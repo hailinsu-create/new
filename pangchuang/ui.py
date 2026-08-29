@@ -102,6 +102,7 @@ class Bubble(QLabel):
         super().__init__(parent)
         self.setWordWrap(True)
         self.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        self.setMinimumHeight(64)
         self.setFont(_pick_font(["ZCOOL XiaoWei", "Noto Sans CJK SC", "Source Han Sans SC", "Segoe UI"], 12))
         self.setStyleSheet(
             """
@@ -123,7 +124,10 @@ class Bubble(QLabel):
 
     def show_text(self, text: str) -> None:
         self.setText(text)
+        if self.parentWidget() is not None:
+            self.setFixedWidth(max(180, self.parentWidget().width() - 28))
         self.adjustSize()
+        self.setMinimumHeight(max(64, self.sizeHint().height()))
         self.show()
         self._opacity.setOpacity(0.0)
         self._fade.stop()
@@ -313,7 +317,8 @@ class MainWindow(QMainWindow):
         self.root.status.setText("正在吐槽…")
 
         def work() -> None:
-            result = self._roaster.roast(frame)
+            scene = getattr(self._stream, "scene_name", None)
+            result = self._roaster.roast(frame, scene=scene)
             self.roast_ready.emit(result.text, result.source)
 
         import threading

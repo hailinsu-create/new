@@ -11,15 +11,15 @@ from PIL import Image
 
 from pangchuang.config import Settings
 
-_MOCK_LINES = [
-    "又开始无脑下拉了，手指比大脑勤快。",
-    "置顶消息闪了三遍，你还在装没看见。",
-    "购物车比存款诚实多了。",
-    "匹配界面都快看穿了，还不快投降。",
-    "备忘录写得很勤，执行力在隔壁。",
-    "这个页面你今天已经见第三次了。",
-    "深夜还在刷，明天的你会来讨债。",
-]
+_MOCK_BY_SCENE = {
+    "feed": ["又开始无脑下拉了，手指比大脑勤快。", "深夜还在刷，明天的你会来讨债。"],
+    "chat": ["置顶消息闪了三遍，你还在装没看见。", "回个表情包也能拖成史诗。"],
+    "shop": ["购物车比存款诚实多了。", "凑单凑着凑着就把理智凑没了。"],
+    "game": ["匹配界面都快看穿了，还不快投降。", "连跪三把还不退，这叫毅力。"],
+    "note": ["备忘录写得很勤，执行力在隔壁。", "提醒设得漂亮，起床另说。"],
+}
+
+_MOCK_LINES = [line for lines in _MOCK_BY_SCENE.values() for line in lines]
 
 
 @dataclass
@@ -44,13 +44,15 @@ class Roaster:
             return True
         return False
 
-    def roast(self, frame: np.ndarray) -> RoastResult:
+    def roast(self, frame: np.ndarray, scene: str | None = None) -> RoastResult:
         if self._settings.mock_api or not self._settings.vision_api_key:
-            return RoastResult(text=random.choice(_MOCK_LINES), source="mock")
+            pool = _MOCK_BY_SCENE.get(scene or "", _MOCK_LINES)
+            return RoastResult(text=random.choice(pool), source="mock")
         try:
             text = self._call_vision(frame)
             if not text:
-                return RoastResult(text=random.choice(_MOCK_LINES), source="mock")
+                pool = _MOCK_BY_SCENE.get(scene or "", _MOCK_LINES)
+                return RoastResult(text=random.choice(pool), source="mock")
             return RoastResult(text=text, source="api")
         except Exception as exc:  # noqa: BLE001 — surface as bubble copy
             return RoastResult(text=f"吐槽服务开小差了：{exc.__class__.__name__}", source="error")

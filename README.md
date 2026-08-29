@@ -17,7 +17,13 @@
                                       气泡吐槽
 ```
 
-## 快速开始
+## 系统依赖（Linux）
+
+Ubuntu/Debian 需要 Qt 相关库，可参考 `apt-packages.txt`：
+
+```bash
+sudo apt-get install -y $(grep -v '^#' apt-packages.txt | tr '\n' ' ')
+```
 
 ```bash
 python3 -m venv .venv

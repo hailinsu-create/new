@@ -37,6 +37,7 @@ class MockPhoneStream(PhoneStream):
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
         self._frames: list[np.ndarray] = []
+        self._names: list[str] = []
         self._idx = 0
         self._lock = threading.Lock()
         self._running = False
@@ -56,6 +57,13 @@ class MockPhoneStream(PhoneStream):
         self._running = False
         if self._thread and self._thread.is_alive():
             self._thread.join(timeout=1.5)
+
+    @property
+    def scene_name(self) -> str:
+        with self._lock:
+            if not self._names:
+                return "demo"
+            return self._names[self._idx % len(self._names)]
 
     def get_frame(self) -> np.ndarray | None:
         with self._lock:
@@ -77,6 +85,7 @@ class MockPhoneStream(PhoneStream):
         paths = sorted(mock_dir.glob("*.png"))
         if len(paths) < 3:
             paths = _write_demo_screens(mock_dir)
+        self._names = [p.stem for p in paths]
         return [_pil_to_rgb_array(Image.open(p)) for p in paths]
 
 
