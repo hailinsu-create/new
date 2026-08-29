@@ -19,7 +19,24 @@ MediaProjection 截帧
 SYSTEM_ALERT_WINDOW 小窗气泡
 ```
 
-## 构建安装
+## 模拟器（本云环境）
+
+```bash
+# 一次性装 SDK + AVD（已装可跳过）
+./scripts/setup-android-sdk.sh
+
+# 启动（此 VM 的嵌套 KVM 常会卡住，默认可用 EMU_ACCEL=off）
+EMU_ACCEL=off ./scripts/start-android-emulator.sh
+
+# 装包
+./scripts/install-pangchuang-apk.sh
+```
+
+说明：
+- AVD 名：`pangchuang_api34`（API 34 / Google APIs x86_64）
+- 无窗口启动在 tmux session `android-emulator`；要看窗口加 `EMU_WINDOW=1`
+- 悬浮窗权限可用 `adb shell appops set com.pangchuang.app SYSTEM_ALERT_WINDOW allow`
+- 屏幕录制授权仍需在模拟器里点一次系统对话框
 
 ```bash
 export ANDROID_HOME=~/android-sdk   # 按本机路径改
