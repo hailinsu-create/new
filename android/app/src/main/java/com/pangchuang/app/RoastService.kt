@@ -1,12 +1,15 @@
 package com.pangchuang.app
 
+import android.app.KeyguardManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -18,6 +21,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -43,8 +47,21 @@ class RoastService : Service() {
     private var demoIndex = 0
     private var unchangedStreak = 0
     private val roasting = AtomicBoolean(false)
+    /** True while screen is off or keyguard is showing — skip capture/API to save tokens. */
+    private val pausedForLock = AtomicBoolean(false)
+    private var screenReceiverRegistered = false
     private lateinit var prefs: Prefs
     private lateinit var vision: VisionClient
+
+    private val screenReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                Intent.ACTION_SCREEN_OFF -> onScreenLocked("screen_off")
+                Intent.ACTION_SCREEN_ON -> refreshLockState("screen_on")
+                Intent.ACTION_USER_PRESENT -> onScreenUnlocked("user_present")
+            }
+        }
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -53,6 +70,8 @@ class RoastService : Service() {
         prefs = Prefs(this)
         vision = VisionClient(prefs)
         createChannel()
+        registerScreenReceiver()
+        refreshLockState("onCreate")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -62,14 +81,16 @@ class RoastService : Service() {
                 return START_NOT_STICKY
             }
             ACTION_FORCE_ROAST -> {
-                // Keep existing FG notification if already running.
                 if (overlay == null) {
                     startAsForeground(demo = demoMode)
                 }
-                scope.launch { roastOnce(force = true) }
+                if (pausedForLock.get()) {
+                    overlay?.showText("锁屏中，醒了我再陪你看屏～")
+                } else {
+                    scope.launch { roastOnce(force = true) }
+                }
             }
             ACTION_START_DEMO -> {
-                // Must enter foreground before any overlay / loop work (slow emulators).
                 startAsForeground(demo = true)
                 mainHandler.post { beginDemo() }
             }
@@ -92,7 +113,89 @@ class RoastService : Service() {
         return START_STICKY
     }
 
+    private fun registerScreenReceiver() {
+        if (screenReceiverRegistered) return
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_USER_PRESENT)
+        }
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(screenReceiver, filter, RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(screenReceiver, filter)
+        }
+        screenReceiverRegistered = true
+    }
+
+    private fun unregisterScreenReceiver() {
+        if (!screenReceiverRegistered) return
+        runCatching { unregisterReceiver(screenReceiver) }
+        screenReceiverRegistered = false
+    }
+
+    private fun isDeviceLockedOrOff(): Boolean {
+        val pm = getSystemService(POWER_SERVICE) as PowerManager
+        if (!pm.isInteractive) return true
+        val km = getSystemService(KEYGUARD_SERVICE) as KeyguardManager
+        return km.isKeyguardLocked
+    }
+
+    private fun refreshLockState(reason: String) {
+        if (isDeviceLockedOrOff()) {
+            onScreenLocked(reason)
+        } else {
+            onScreenUnlocked(reason)
+        }
+    }
+
+    private fun onScreenLocked(reason: String) {
+        if (!pausedForLock.compareAndSet(false, true)) return
+        updateNotification(
+            if (demoMode) "演示已暂停 · 锁屏中"
+            else "锁屏中 · 已暂停看屏（省 token）"
+        )
+        overlay?.showText("锁屏啦，我先歇着，不乱花 token～")
+        android.util.Log.i(TAG, "paused for lock ($reason)")
+    }
+
+    private fun onScreenUnlocked(reason: String) {
+        if (isDeviceLockedOrOff()) return
+        if (!pausedForLock.compareAndSet(true, false)) return
+        updateNotification(
+            if (demoMode) "演示模式 · 小旁用合成画面陪聊"
+            else "小旁陪你看屏幕中"
+        )
+        overlay?.showText("欢迎回来，我继续陪着你。")
+        android.util.Log.i(TAG, "resumed after unlock ($reason)")
+        if (loopJob?.isActive == true && !demoMode) {
+            scope.launch {
+                delay(600)
+                if (!pausedForLock.get()) roastOnce(force = true)
+            }
+        }
+    }
+
     private fun startAsForeground(demo: Boolean) {
+        val text = when {
+            pausedForLock.get() && demo -> "演示已暂停 · 锁屏中"
+            pausedForLock.get() -> "锁屏中 · 已暂停看屏（省 token）"
+            demo -> "演示模式 · 小旁用合成画面陪聊"
+            else -> "小旁陪你看屏幕中"
+        }
+        if (Build.VERSION.SDK_INT >= 34) {
+            val type = if (demo) {
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            } else {
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+            }
+            startForeground(NOTIF_ID, buildNotification(text), type)
+        } else {
+            startForeground(NOTIF_ID, buildNotification(text))
+        }
+    }
+
+    private fun buildNotification(contentText: String): Notification {
         val open = PendingIntent.getActivity(
             this,
             0,
@@ -105,40 +208,32 @@ class RoastService : Service() {
             Intent(this, RoastService::class.java).setAction(ACTION_STOP),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
+        return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.notification_title))
-            .setContentText(
-                if (demo) "演示模式 · 小旁用合成画面陪聊"
-                else "小旁陪你看屏幕中"
-            )
+            .setContentText(contentText)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentIntent(open)
             .addAction(0, getString(R.string.stop_roast), stop)
             .setOngoing(true)
+            .setOnlyAlertOnce(true)
             .build()
+    }
 
-        if (Build.VERSION.SDK_INT >= 34) {
-            val type = if (demo) {
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-            } else {
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
-            }
-            startForeground(NOTIF_ID, notification, type)
-        } else {
-            startForeground(NOTIF_ID, notification)
-        }
+    private fun updateNotification(contentText: String) {
+        val nm = getSystemService(NotificationManager::class.java) ?: return
+        nm.notify(NOTIF_ID, buildNotification(contentText))
     }
 
     private fun beginCapture(resultCode: Int, data: Intent) {
         if (loopJob?.isActive == true) return
         demoMode = false
         unchangedStreak = 0
+        refreshLockState("beginCapture")
 
         val mpm = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         val projection = mpm.getMediaProjection(resultCode, data)
         mediaProjection = projection
 
-        // Android 14+: callback must be registered before createVirtualDisplay.
         val callback = object : MediaProjection.Callback() {
             override fun onStop() {
                 mainHandler.post { stopSelfSafe() }
@@ -151,7 +246,7 @@ class RoastService : Service() {
             scope.launch { roastOnce(force = true) }
         }
         overlay = overlayController
-        overlayController.show("我在这儿陪着你。长按头像，我马上看看屏幕。")
+        overlayController.show("我在这儿陪着你。锁屏会自动停看屏。")
 
         val screenCaptor = ScreenCaptor(this, projection)
         captor = screenCaptor
@@ -159,7 +254,6 @@ class RoastService : Service() {
 
         loopJob = scope.launch {
             delay(900)
-            // First roast ASAP so users feel it working.
             roastOnce(force = true)
             while (isActive) {
                 delay(prefs.intervalSec * 1000L)
@@ -171,6 +265,7 @@ class RoastService : Service() {
     private fun beginDemo() {
         if (loopJob?.isActive == true) return
         demoMode = true
+        refreshLockState("beginDemo")
         val overlayController = OverlayController(this) {
             scope.launch { roastOnce(force = true) }
         }
@@ -187,8 +282,10 @@ class RoastService : Service() {
     }
 
     private suspend fun roastOnce(force: Boolean) {
+        if (pausedForLock.get()) return
         if (!roasting.compareAndSet(false, true)) return
         try {
+            if (pausedForLock.get()) return
             val o = overlay ?: return
             val frame = if (demoMode) {
                 withContext(Dispatchers.Default) { nextDemoFrame() }
@@ -196,6 +293,10 @@ class RoastService : Service() {
                 val c = captor ?: return
                 o.hideForCapture()
                 delay(180)
+                if (pausedForLock.get()) {
+                    o.restoreAfterCapture()
+                    return
+                }
                 val captured = withContext(Dispatchers.Default) { c.captureBitmap(900) }
                 o.restoreAfterCapture()
                 captured
@@ -212,7 +313,6 @@ class RoastService : Service() {
                 if (!changed) {
                     unchangedStreak++
                     frame.recycle()
-                    // Every few quiet ticks, remind instead of looking dead.
                     if (unchangedStreak % 3 == 0) {
                         o.showText("画面没怎么变，我还在陪着你。长按头像可以说一句。")
                     }
@@ -223,10 +323,16 @@ class RoastService : Service() {
             lastFrame?.recycle()
             lastFrame = frame.copy(Bitmap.Config.ARGB_8888, false)
 
+            if (pausedForLock.get()) {
+                frame.recycle()
+                return
+            }
+
             o.showThinking("让我看看你在干嘛…")
             val scene = if (demoMode) DEMO_SCENES[demoIndex % DEMO_SCENES.size].first else null
             val result = withContext(Dispatchers.IO) { vision.roast(frame, scene) }
             frame.recycle()
+            if (pausedForLock.get()) return
             o.showText(result.text)
             if (demoMode) demoIndex++
         } finally {
@@ -258,6 +364,7 @@ class RoastService : Service() {
     private fun stopSelfSafe() {
         loopJob?.cancel()
         loopJob = null
+        unregisterScreenReceiver()
         captor?.release()
         captor = null
         projectionCallback?.let { cb ->
@@ -271,12 +378,14 @@ class RoastService : Service() {
         lastFrame?.recycle()
         lastFrame = null
         demoMode = false
+        pausedForLock.set(false)
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
 
     override fun onDestroy() {
         loopJob?.cancel()
+        unregisterScreenReceiver()
         scope.cancel()
         captor?.release()
         overlay?.dismiss()
@@ -298,6 +407,7 @@ class RoastService : Service() {
     }
 
     companion object {
+        private const val TAG = "PangchuangRoast"
         const val ACTION_START = "com.pangchuang.app.START"
         const val ACTION_START_DEMO = "com.pangchuang.app.START_DEMO"
         const val ACTION_FORCE_ROAST = "com.pangchuang.app.FORCE_ROAST"

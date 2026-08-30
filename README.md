@@ -22,6 +22,8 @@ MediaProjection 截帧（截前隐藏头像）
 SYSTEM_ALERT_WINDOW 气泡 + Live2D（口型 / 表情 / 动作）
 ```
 
+锁屏或仍在锁机界面时会自动暂停截屏和视觉 API 调用（省 token）；解锁后恢复，并马上再看一眼。
+
 Live2D 用透明 WebView + Cubism 4（`pixi-live2d-display`）渲染；说话时驱动口型参数，并按文案情绪切换 expression。样例模型来自 [CubismWebSamples](https://github.com/Live2D/CubismWebSamples) 的 Mao，受 Live2D 样例素材许可约束。
 
 ## 本机 USB 安装
