@@ -17,3 +17,7 @@ android/captures/
 *.ap_
 *.dex
 node_modules/
+
+# Allow published debug APK for phone download
+!dist/
+!dist/pangchuang-*.apk
