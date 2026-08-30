@@ -8,3 +8,8 @@ models/local/**
 !models/local/.gitkeep
 public/models/local/**
 !public/models/local/.gitkeep
+
+# Cubism Wine install (local only)
+tools/cubism/wineprefix/
+tools/cubism/*.exe
+tools/cubism/install.log

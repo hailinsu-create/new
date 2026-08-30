@@ -14,6 +14,16 @@ npm run dev
 
 打开研究台会默认进入**墨汐立绘预览**（原创静帧 + 轻微视差）。Haru 仍留在预设里，仅作播放器对照。
 
+## Cubism Editor（已装）
+
+Linux 上通过 Wine 安装了 Cubism Editor 5.3.03（非官方）：
+
+```bash
+./tools/cubism/launch-editor.sh
+```
+
+可从免费版启动。说明见 `tools/cubism/README.md`。
+
 ## 做成真 Live2D 的最短路径
 
 1. 读 `characters/moxi/cubism/BINDING_CHECKLIST.md`
