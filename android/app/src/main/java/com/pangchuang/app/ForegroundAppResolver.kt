@@ -49,9 +49,12 @@ object ForegroundAppResolver {
         var lastPkg: String? = null
         while (events.hasNextEvent()) {
             events.getNextEvent(event)
-            val movedFront = event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND ||
-                (Build.VERSION.SDK_INT >= 29 &&
-                    event.eventType == UsageEvents.Event.ACTIVITY_RESUMED)
+            val movedFront = if (Build.VERSION.SDK_INT >= 29) {
+                event.eventType == UsageEvents.Event.ACTIVITY_RESUMED
+            } else {
+                @Suppress("DEPRECATION")
+                event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND
+            }
             if (movedFront && !event.packageName.isNullOrBlank()) {
                 lastPkg = event.packageName
             }
