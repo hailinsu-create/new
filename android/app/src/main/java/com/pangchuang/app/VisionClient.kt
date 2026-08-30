@@ -30,9 +30,17 @@ class VisionClient(private val prefs: Prefs) {
         "备忘录写得很勤，执行力在隔壁。"
     )
 
-    fun roast(bitmap: Bitmap): RoastResult {
+    fun roast(bitmap: Bitmap, scene: String? = null): RoastResult {
         if (prefs.mockApi || prefs.apiKey.isBlank()) {
-            return RoastResult(mockLines[Random.nextInt(mockLines.size)], "mock")
+            val pool = when (scene) {
+                "深夜刷短视频" -> listOf("又开始无脑下拉了，手指比大脑勤快。", "深夜还在刷，明天的你会来讨债。")
+                "微信置顶群" -> listOf("置顶消息闪了三遍，你还在装没看见。", "回个表情包也能拖成史诗。")
+                "购物车结算" -> listOf("购物车比存款诚实多了。", "凑单凑着凑着就把理智凑没了。")
+                "排位赛匹配中" -> listOf("匹配界面都快看穿了，还不快投降。", "连跪三把还不退，这叫毅力。")
+                "备忘录" -> listOf("备忘录写得很勤，执行力在隔壁。", "提醒设得漂亮，起床另说。")
+                else -> mockLines
+            }
+            return RoastResult(pool[Random.nextInt(pool.size)], "mock")
         }
         return try {
             val jpeg = bitmapToJpegBase64(bitmap)

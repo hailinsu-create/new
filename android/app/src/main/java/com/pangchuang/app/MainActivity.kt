@@ -52,6 +52,7 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnOverlay.setOnClickListener { openOverlaySettings() }
         binding.btnStart.setOnClickListener { startRoastFlow() }
+        binding.btnDemo.setOnClickListener { startDemoFlow() }
         binding.btnStop.setOnClickListener {
             RoastService.stop(this)
             Toast.makeText(this, "已停止", Toast.LENGTH_SHORT).show()
@@ -59,6 +60,10 @@ class MainActivity : AppCompatActivity() {
 
         maybeAskNotificationPermission()
         refreshPermissionLabels()
+
+        if (intent?.getBooleanExtra(EXTRA_AUTO_DEMO, false) == true) {
+            binding.root.post { startDemoFlow() }
+        }
     }
 
     override fun onResume() {
@@ -114,5 +119,22 @@ class MainActivity : AppCompatActivity() {
         saveForm()
         val mpm = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         captureLauncher.launch(mpm.createScreenCaptureIntent())
+    }
+
+    private fun startDemoFlow() {
+        if (!Settings.canDrawOverlays(this)) {
+            Toast.makeText(this, "请先开启悬浮窗权限", Toast.LENGTH_SHORT).show()
+            openOverlaySettings()
+            return
+        }
+        saveForm()
+        prefs.mockApi = true
+        RoastService.startDemo(this)
+        Toast.makeText(this, "演示悬浮窗已启动", Toast.LENGTH_SHORT).show()
+        moveTaskToBack(true)
+    }
+
+    companion object {
+        const val EXTRA_AUTO_DEMO = "auto_demo"
     }
 }
