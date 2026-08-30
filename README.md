@@ -1,6 +1,6 @@
 # 旁窗（Android）
 
-开源桌面伴侣：悬浮窗里的二次元角色「小旁」会看看你正在用的屏幕，用可爱的口吻陪你说一句。灵感接近 Animates 一类陪伴窗，但整条链路开源、可自建视觉模型。
+开源桌面伴侣：悬浮窗里的 Live2D 角色「小旁」（Cubism 样例模型 Mao）会看看你正在用的屏幕，用可爱的口吻陪你说一句。灵感接近 Animates 一类陪伴窗，但整条链路开源、可自建视觉模型。
 
 ## 真机怎么用（主路径）
 
@@ -19,8 +19,10 @@ MediaProjection 截帧（截前隐藏头像）
     ↓
 画面变化？ → Vision API（Qwen-VL 等）
     ↓
-SYSTEM_ALERT_WINDOW 气泡 + 动态头像
+SYSTEM_ALERT_WINDOW 气泡 + Live2D（口型 / 表情 / 动作）
 ```
+
+Live2D 用透明 WebView + Cubism 4（`pixi-live2d-display`）渲染；说话时驱动口型参数，并按文案情绪切换 expression。样例模型来自 [CubismWebSamples](https://github.com/Live2D/CubismWebSamples) 的 Mao，受 Live2D 样例素材许可约束。
 
 ## 本机 USB 安装
 

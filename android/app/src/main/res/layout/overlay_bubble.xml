@@ -36,22 +36,11 @@
             android:textSize="13sp" />
     </LinearLayout>
 
-    <FrameLayout
+    <com.pangchuang.app.Live2DAvatarView
         android:id="@+id/fab"
-        android:layout_width="72dp"
-        android:layout_height="72dp"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
         android:layout_gravity="bottom|start"
-        android:layout_marginTop="100dp"
-        android:background="@drawable/bg_fab"
-        android:elevation="10dp"
-        android:padding="3dp">
-
-        <ImageView
-            android:id="@+id/avatar"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:contentDescription="@string/companion_name"
-            android:scaleType="centerCrop"
-            android:src="@drawable/companion_avatar_idle" />
-    </FrameLayout>
+        android:layout_marginTop="108dp"
+        android:elevation="10dp" />
 </FrameLayout>

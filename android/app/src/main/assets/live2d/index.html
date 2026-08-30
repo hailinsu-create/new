@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      touch-action: none;
+    }
+    canvas {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+    }
+  </style>
+</head>
+<body>
+<script src="js/live2dcubismcore.min.js"></script>
+<script src="js/pixi.min.js"></script>
+<script src="js/cubism4.min.js"></script>
+<script>
+(function () {
+  const MOOD_EXPR = {
+    IDLE: null,
+    TALK: "exp_01",
+    THINK: "exp_08",
+    HAPPY: "exp_04",
+    CARE: "exp_02",
+    SURPRISE: "exp_07",
+    SHY: "exp_06"
+  };
+
+  let app = null;
+  let model = null;
+  let speaking = false;
+  let mouthTimer = null;
+  let holdTimer = null;
+  let ready = false;
+  let currentMood = "IDLE";
+
+  function coreModel() {
+    try {
+      return model && model.internalModel && model.internalModel.coreModel;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function setParam(id, value) {
+    const core = coreModel();
+    if (!core) return;
+    if (typeof core.setParameterValueById === "function") {
+      core.setParameterValueById(id, value);
+    }
+  }
+
+  function clearExpression() {
+    try {
+      if (model && model.internalModel && model.internalModel.motionManager &&
+          model.internalModel.motionManager.expressionManager) {
+        model.internalModel.motionManager.expressionManager.resetExpression();
+      }
+    } catch (e) {}
+  }
+
+  function applyMood(mood) {
+    currentMood = mood || "IDLE";
+    const expr = MOOD_EXPR[currentMood];
+    clearExpression();
+    if (expr && model && typeof model.expression === "function") {
+      try { model.expression(expr); } catch (e) {}
+    }
+  }
+
+  function stopMouth() {
+    if (mouthTimer) {
+      clearInterval(mouthTimer);
+      mouthTimer = null;
+    }
+    setParam("ParamA", 0);
+    speaking = false;
+  }
+
+  function layoutModel() {
+    if (!app || !model) return;
+    const w = app.renderer.width;
+    const h = app.renderer.height;
+    // Zoom into face for the floating circle.
+    const scale = Math.min(w, h) / 900;
+    model.anchor.set(0.5, 0.5);
+    model.scale.set(scale);
+    model.x = w * 0.5;
+    model.y = h * 0.72;
+  }
+
+  async function boot() {
+    try {
+      if (typeof PIXI === "undefined" || !PIXI.live2d) {
+        throw new Error("PIXI.live2d missing");
+      }
+      app = new PIXI.Application({
+        backgroundAlpha: 0,
+        antialias: true,
+        autoDensity: true,
+        resolution: Math.min(window.devicePixelRatio || 1, 2),
+        resizeTo: window
+      });
+      document.body.appendChild(app.view);
+
+      model = await PIXI.live2d.Live2DModel.from("model/Mao/Mao.model3.json", {
+        autoInteract: false,
+        autoUpdate: true
+      });
+      app.stage.addChild(model);
+      layoutModel();
+      window.addEventListener("resize", layoutModel);
+
+      try { model.motion("Idle"); } catch (e) {}
+      applyMood("IDLE");
+      ready = true;
+      notifyAndroid("ready");
+    } catch (err) {
+      console.error(err);
+      notifyAndroid("error:" + (err && err.message ? err.message : String(err)));
+    }
+  }
+
+  function notifyAndroid(msg) {
+    try {
+      if (window.PangchuangBridge && window.PangchuangBridge.onLive2dEvent) {
+        window.PangchuangBridge.onLive2dEvent(String(msg));
+      }
+    } catch (e) {}
+  }
+
+  window.PangchuangLive2D = {
+    isReady: function () { return ready; },
+    setMood: function (mood) {
+      applyMood(String(mood || "IDLE").toUpperCase());
+    },
+    speak: function (durationMs, mood) {
+      if (!ready || !model) return;
+      const dur = Math.max(600, Math.min(5000, Number(durationMs) || 1600));
+      applyMood(String(mood || "TALK").toUpperCase());
+      stopMouth();
+      if (holdTimer) {
+        clearTimeout(holdTimer);
+        holdTimer = null;
+      }
+      speaking = true;
+      const start = Date.now();
+      mouthTimer = setInterval(function () {
+        const t = (Date.now() - start) / 1000;
+        // Irregular lip sync on Mao's ParamA (あ).
+        const open = 0.35 + 0.55 * Math.abs(Math.sin(t * 10.5)) * (0.55 + 0.45 * Math.abs(Math.sin(t * 3.2)));
+        setParam("ParamA", open);
+        setParam("ParamMouthUp", Math.min(1, open * 0.35));
+      }, 42);
+
+      // Cute motion accents.
+      try {
+        const m = String(mood || "").toUpperCase();
+        if (m === "HAPPY" || m === "SHY" || m === "SURPRISE") {
+          model.motion("TapBody");
+        }
+      } catch (e) {}
+
+      holdTimer = setTimeout(function () {
+        stopMouth();
+        // Hold matched expression briefly, then ease back.
+        holdTimer = setTimeout(function () {
+          try { model.motion("Idle"); } catch (e) {}
+          applyMood("IDLE");
+          notifyAndroid("speak_end");
+        }, 900);
+      }, dur);
+    },
+    idle: function () {
+      stopMouth();
+      if (holdTimer) {
+        clearTimeout(holdTimer);
+        holdTimer = null;
+      }
+      try { model.motion("Idle"); } catch (e) {}
+      applyMood("IDLE");
+    },
+    tap: function () {
+      if (!ready || !model) return;
+      try { model.motion("TapBody"); } catch (e) {}
+    }
+  };
+
+  boot();
+})();
+</script>
+</body>
+</html>
