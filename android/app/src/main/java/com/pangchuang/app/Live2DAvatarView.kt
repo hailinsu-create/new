@@ -172,7 +172,7 @@ class Live2DAvatarView @JvmOverloads constructor(
             fallback.setImageResource(CompanionMoodMatcher.restingDrawable(mood))
             return
         }
-        val duration = (700 + text.length * 55).coerceIn(900, 4200)
+        val duration = (800 + text.length * 60).coerceIn(1000, 7200)
         eval("window.PangchuangLive2D && PangchuangLive2D.speak($duration, '${mood.name}');")
         pendingSpeak = null
     }
