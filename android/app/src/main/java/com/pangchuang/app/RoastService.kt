@@ -328,9 +328,12 @@ class RoastService : Service() {
                 return
             }
 
-            o.showThinking("让我看看你在干嘛…")
+            o.showThinking("且看这一屏…")
             val scene = if (demoMode) DEMO_SCENES[demoIndex % DEMO_SCENES.size].first else null
-            val result = withContext(Dispatchers.IO) { vision.roast(frame, scene) }
+            val appHint = if (demoMode) null else withContext(Dispatchers.IO) {
+                ForegroundAppResolver.resolve(this@RoastService)
+            }
+            val result = withContext(Dispatchers.IO) { vision.roast(frame, scene, appHint) }
             frame.recycle()
             if (pausedForLock.get()) return
             o.showText(result.text)

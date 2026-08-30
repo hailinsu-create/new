@@ -9,4 +9,5 @@
     <string name="stop_roast">让小旁先休息</string>
     <string name="overlay_hint">需要「显示在其他应用上层」权限</string>
     <string name="capture_hint">需要屏幕录制权限，好让小旁看见你正在看的画面</string>
+    <string name="usage_hint">可选「使用情况访问」：帮小旁更准地知道前台是哪个 App（仍以截图为准）</string>
 </resources>

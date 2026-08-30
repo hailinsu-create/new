@@ -27,7 +27,7 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(KEY_MOCK, false)
         set(value) = sp.edit().putBoolean(KEY_MOCK, value).apply()
 
-    /** Optional custom system prompt. Empty = cute companion default. */
+    /** Optional custom system prompt. Empty = 扫地僧 / app-aware default. */
     var roastStyle: String
         get() = sp.getString(KEY_STYLE, "")!!
         set(value) = sp.edit().putString(KEY_STYLE, value).apply()

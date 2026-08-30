@@ -30,7 +30,11 @@ class VisionClient(private val prefs: Prefs) {
         "地图在算路，你也在算今天还剩多少气力。近路远路，到了就好。"
     )
 
-    fun roast(bitmap: Bitmap, scene: String? = null): RoastResult {
+    fun roast(
+        bitmap: Bitmap,
+        scene: String? = null,
+        appHint: AppHint? = null
+    ): RoastResult {
         if (prefs.mockApi || prefs.apiKey.isBlank()) {
             val pool = when (scene) {
                 "深夜刷短视频" -> listOf(
@@ -64,18 +68,16 @@ class VisionClient(private val prefs: Prefs) {
         }
         return try {
             val jpeg = bitmapToJpegBase64(bitmap)
-            val systemPrompt = prefs.roastStyle.ifBlank {
-                "你是手机悬浮窗里的桌面伴侣「小旁」。气质像武侠里的扫地僧：话不多，看得准，说得稳，带一点温度，绝不端着教训人。" +
-                    "你的任务：先从截图识别用户正在用的 App（或网页/系统界面）以及正在做什么，再据此说一两句相关性很强的中文。" +
-                    "要求：\n" +
-                    "1) 必须点出眼前具体内容（App 名、页面类型、可见文字/状态），禁止空泛安慰；\n" +
-                    "2) 像懂行的旁观者随口点破，可短可长（约 20～80 字），长短结合，偶可带一点诗意，但不要文艺腔堆砌；\n" +
-                    "3) 不损人、不说教、不连续提问、不给操作教程；\n" +
-                    "4) 不要表情符号、不要引号包裹、不要自我介绍、不要分点、不要输出 App 名以外的分析过程。"
+            val systemPrompt = prefs.roastStyle.ifBlank { DEFAULT_SYSTEM_PROMPT }
+            val hintLine = if (appHint != null) {
+                "系统侧提示：前台应用很可能是「${appHint.label}」（${appHint.packageName}）。" +
+                    "仅作参考，仍以截图为准；若画面明显是别的 App，以画面为准。"
+            } else {
+                "系统未能提供前台包名，请完全依据截图判断 App 与正在做的事。"
             }
             val body = JSONObject()
                 .put("model", prefs.model)
-                .put("temperature", 0.75)
+                .put("temperature", 0.7)
                 .put("max_tokens", 200)
                 .put(
                     "messages",
@@ -96,9 +98,9 @@ class VisionClient(private val prefs: Prefs) {
                                                 .put("type", "text")
                                                 .put(
                                                     "text",
-                                                    "这是用户手机当前屏幕截图。" +
-                                                        "请先在心里确认：这是什么 App/页面？用户正在干什么？" +
-                                                        "然后只输出给用户听的一两句点评或陪伴，要让人一听就知道你看见了眼前这件事。"
+                                                    "这是用户手机当前屏幕截图。$hintLine" +
+                                                        "请先在心里默念：这是什么 App/页面？用户正在干什么？" +
+                                                        "然后只输出给用户听的一两句，要让人一听就知道你看见了眼前这件事。"
                                                 )
                                         )
                                         .put(
@@ -162,5 +164,19 @@ class VisionClient(private val prefs: Prefs) {
         if (longest <= maxSide) return src
         val scale = maxSide.toFloat() / longest
         return Bitmap.createScaledBitmap(src, (w * scale).toInt(), (h * scale).toInt(), true)
+    }
+
+    companion object {
+        /** 扫地僧气质：先认 App 与动作，再点到为止说两句。 */
+        const val DEFAULT_SYSTEM_PROMPT =
+            "你是手机悬浮窗里的桌面伴侣「小旁」。说话气质像金庸笔下的扫地僧：" +
+                "话少、语气稳、看得准，偶有一点浅浅的悟性，绝不端着教训人，也不卖萌过头。" +
+                "工作方式：先从截图认出用户正在用的 App（或网页/系统界面）以及正在做什么，" +
+                "再据此说一两句相关性很强的中文，像随口点破眼前这一幕。" +
+                "硬性要求：\n" +
+                "1) 必须扣住眼前具体内容——App/页面类型、可见标题、红点、列表、结算、聊天、视频、地图等任一可见线索；禁止空泛安慰或万能鸡汤；\n" +
+                "2) 一句或两句即可，约 18～80 字；可短可稍长，长短随场景，偶可带一点诗意，但不要堆砌辞藻；\n" +
+                "3) 不损人、不说教、不连续提问、不给操作步骤、不推销、不自我介绍；\n" +
+                "4) 不要表情符号、不要引号包裹整段、不要分点、不要输出「我看到了…」式分析过程；直接说给人听的那两句。"
     }
 }

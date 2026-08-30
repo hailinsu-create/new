@@ -51,6 +51,7 @@ class MainActivity : AppCompatActivity() {
         binding.switchMock.isChecked = prefs.mockApi
 
         binding.btnOverlay.setOnClickListener { openOverlaySettings() }
+        binding.btnUsage.setOnClickListener { openUsageAccessSettings() }
         binding.btnStart.setOnClickListener { startRoastFlow() }
         binding.btnDemo.setOnClickListener { startDemoFlow() }
         binding.btnStop.setOnClickListener {
@@ -92,7 +93,14 @@ class MainActivity : AppCompatActivity() {
         }
         binding.btnOverlay.isEnabled = !overlayOk
         binding.captureStatus.text =
-            "点下方主按钮后授权「屏幕录制」。小旁会定时看看你的屏幕，用可爱的口吻陪你说一句。"
+            "点下方主按钮后授权「屏幕录制」。小旁从画面认出你在用什么、在干什么，再说两句相关的。"
+        val usageOk = ForegroundAppResolver.hasUsageAccess(this)
+        binding.usageStatus.text = if (usageOk) {
+            "使用情况访问：已开启（前台 App 提示更准）"
+        } else {
+            getString(R.string.usage_hint)
+        }
+        binding.btnUsage.isEnabled = !usageOk
     }
 
     private fun openOverlaySettings() {
@@ -101,6 +109,15 @@ class MainActivity : AppCompatActivity() {
             Uri.parse("package:$packageName")
         )
         overlaySettingsLauncher.launch(intent)
+    }
+
+    private fun openUsageAccessSettings() {
+        runCatching {
+            startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+        }.onFailure {
+            Toast.makeText(this, "打不开使用情况设置，可到系统设置里搜「使用情况」", Toast.LENGTH_LONG)
+                .show()
+        }
     }
 
     private fun saveForm() {
