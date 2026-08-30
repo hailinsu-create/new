@@ -1,0 +1,23 @@
+{
+  "name": "workspace",
+  "version": "1.0.0",
+  "description": "开源桌面伴侣：悬浮窗里的 Live2D 角色「小旁」（Cubism 样例模型 Mao）会看看你正在用的屏幕，用可爱的口吻陪你说一句。灵感接近 Animates 一类陪伴窗，但整条链路开源、可自建视觉模型。",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hailinsu-create/new.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hailinsu-create/new/issues"
+  },
+  "homepage": "https://github.com/hailinsu-create/new#readme",
+  "dependencies": {
+    "playwright-core": "^1.62.1"
+  }
+}

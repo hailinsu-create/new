@@ -16,3 +16,4 @@ android/captures/
 *.apk
 *.ap_
 *.dex
+node_modules/

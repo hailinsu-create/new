@@ -12,15 +12,19 @@
 <body>
 <div id="stage"></div>
 <script>
+// MUST run before cubism4: Android WebView has no Node `process`.
+window.process = window.process || { env: { NODE_ENV: "production" } };
+window.global = window.global || window;
+</script>
+<script>
 (function () {
-  const BASE = (function () {
-    // Prefer absolute asset base so model/js resolve under WebViewAssetLoader.
+  var BASE = (function () {
     var href = location.href || "";
     var idx = href.lastIndexOf("/");
     return idx >= 0 ? href.slice(0, idx + 1) : "./";
   })();
 
-  const MOOD_EXPR = {
+  var MOOD_EXPR = {
     IDLE: null,
     TALK: "exp_01",
     THINK: "exp_08",
@@ -30,15 +34,17 @@
     SHY: "exp_06"
   };
 
-  let app = null;
-  let model = null;
-  let mouthTimer = null;
-  let holdTimer = null;
-  let ready = false;
-  const MODEL_URL = BASE + "model/Mao/Mao.model3.json";
+  var app = null;
+  var model = null;
+  var mouthTimer = null;
+  var holdTimer = null;
+  var ready = false;
+  var MODEL_URL = BASE + "model/Mao/Mao.model3.json";
 
   function notifyAndroid(msg) {
     try {
+      if (String(msg) === "ready") window.__pangchuangReady = true;
+      if (String(msg).indexOf("error:") === 0) window.__pangchuangError = String(msg).slice(6);
       if (window.PangchuangBridge && window.PangchuangBridge.onLive2dEvent) {
         window.PangchuangBridge.onLive2dEvent(String(msg));
       }
@@ -122,25 +128,64 @@
     if (!app || !model) return;
     var size = stageSize();
     app.renderer.resize(size.w, size.h);
-    var scale = Math.min(size.w, size.h) / 620;
-    model.anchor.set(0.5, 0.5);
+    // Mao is ~5800x8400 at scale=1. Fit head/upper body into the circle.
+    // Do NOT use model.width for the first pass — it can be 0 before textures settle,
+    // which previously produced insane scales or left scale at 1 (extreme zoom).
+    var scale = Math.min(size.w, size.h) / 3000;
+    model.anchor.set(0.5, 0.16);
     model.scale.set(scale);
-    model.x = size.w * 0.5;
-    model.y = size.h * 0.78;
+    model.position.set(size.w * 0.5, size.h * 0.02);
+    model.visible = true;
+    model.alpha = 1;
+    log("layout", size.w + "x" + size.h, "scale=" + scale.toFixed(4), "drawn=" + Math.round(5800 * scale) + "x" + Math.round(8400 * scale));
   }
 
   async function probeModelUrl() {
+    var res = await fetch(MODEL_URL, { method: "GET", cache: "no-store" });
+    log("model fetch", res.status, MODEL_URL, "ct=" + (res.headers.get("content-type") || ""));
+    if (!res.ok) throw new Error("model HTTP " + res.status + " url=" + MODEL_URL);
+    var text = await res.text();
+    if (text.indexOf("FileReferences") < 0) {
+      throw new Error("model3.json invalid body len=" + text.length);
+    }
+    log("model3.json ok bytes", text.length);
+  }
+
+  function ensureWebGL() {
+    var c = document.createElement("canvas");
+    var gl = c.getContext("webgl", { alpha: true, premultipliedAlpha: true, preserveDrawingBuffer: true })
+      || c.getContext("experimental-webgl", { alpha: true, preserveDrawingBuffer: true });
+    if (!gl) throw new Error("WebGL unavailable in this WebView");
+    return true;
+  }
+
+  function createApp(size) {
+    ensureWebGL();
+    var opts = {
+      width: size.w,
+      height: size.h,
+      backgroundAlpha: 0,
+      antialias: true,
+      autoDensity: true,
+      resolution: Math.min(window.devicePixelRatio || 1, 2),
+      powerPreference: "default",
+      preference: "webgl",
+      preferWebGLVersion: 1,
+      preserveDrawingBuffer: true
+    };
     try {
-      var res = await fetch(MODEL_URL, { method: "GET", cache: "no-store" });
-      log("model fetch", res.status, MODEL_URL, "ct=" + (res.headers.get("content-type") || ""));
-      if (!res.ok) throw new Error("model HTTP " + res.status);
-      var text = await res.text();
-      if (text.indexOf("FileReferences") < 0) {
-        throw new Error("model3.json invalid body len=" + text.length);
-      }
-      log("model3.json ok bytes", text.length);
-    } catch (e) {
-      throw new Error("model missing: " + (e && e.message ? e.message : e) + " url=" + MODEL_URL);
+      return new PIXI.Application(opts);
+    } catch (e1) {
+      log("PIXI app first fail", e1 && e1.message);
+      var opts2 = {
+        width: size.w,
+        height: size.h,
+        backgroundAlpha: 0,
+        antialias: false,
+        resolution: 1,
+        preserveDrawingBuffer: true
+      };
+      return new PIXI.Application(opts2);
     }
   }
 
@@ -151,7 +196,6 @@
       log("base", BASE);
       await waitForSize();
 
-      // cubism4 UMD references process.env.NODE_ENV; Android WebView has no process.
       window.process = window.process || { env: { NODE_ENV: "production" } };
       window.global = window.global || window;
 
@@ -163,14 +207,7 @@
       log("pixi loaded", typeof window.PIXI, !!(window.PIXI && PIXI.Application));
       if (!window.PIXI || !PIXI.Application) throw new Error("PIXI.Application missing");
 
-      try {
-        await loadScript(BASE + "js/cubism4.min.js");
-      } catch (e) {
-        throw new Error("cubism4 script error: " + (e && e.message ? e.message : e));
-      }
-      log("cubism4 loaded", !!(PIXI.live2d), !!(PIXI.live2d && PIXI.live2d.Live2DModel));
-
-      // Give UMD a tick; some WebViews attach globals late.
+      await loadScript(BASE + "js/cubism4.min.js");
       for (var i = 0; i < 40; i++) {
         if (PIXI.live2d && PIXI.live2d.Live2DModel) break;
         await sleep(50);
@@ -179,28 +216,18 @@
         var keys = Object.getOwnPropertyNames(PIXI.live2d || {}).slice(0, 12).join(",");
         throw new Error("Live2DModel missing keys=" + keys + " process=" + typeof process);
       }
+      log("cubism4 ok Live2DModel");
 
       if (typeof PIXI.live2d.startUpCubism4 === "function") {
-        try {
-          await PIXI.live2d.startUpCubism4();
-          log("startUpCubism4 ok");
-        } catch (e) {
-          log("startUpCubism4 warn", e && e.message);
-        }
+        await PIXI.live2d.startUpCubism4();
+        log("startUpCubism4 ok");
       }
 
       await probeModelUrl();
 
       var size = stageSize();
-      app = new PIXI.Application({
-        width: size.w,
-        height: size.h,
-        backgroundAlpha: 0,
-        antialias: true,
-        autoDensity: true,
-        resolution: Math.min(window.devicePixelRatio || 1, 2),
-        powerPreference: "high-performance"
-      });
+      app = createApp(size);
+      window.__app = app;
       document.getElementById("stage").appendChild(app.view);
 
       log("Live2DModel.from", MODEL_URL);
@@ -208,11 +235,16 @@
         autoInteract: false,
         autoUpdate: true
       });
+      window.__model = model;
       app.stage.addChild(model);
+      layoutModel();
+      await sleep(80);
       layoutModel();
       window.addEventListener("resize", layoutModel);
       try { model.motion("Idle"); } catch (e) {}
       applyMood("IDLE");
+      // Nudge a few frames so textures bind before we claim ready.
+      await sleep(120);
       ready = true;
       log("ready");
       notifyAndroid("ready");
