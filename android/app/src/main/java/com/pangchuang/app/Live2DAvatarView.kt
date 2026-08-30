@@ -21,9 +21,8 @@ import android.widget.ImageView
 import androidx.webkit.WebViewAssetLoader
 
 /**
- * Circular Live2D host for the floating companion.
- * Serves assets via https://appassets.androidplatform.net so Cubism Core WASM can boot
- * (file:///android_asset often fails WASM / subresource loads on modern WebView).
+ * Live2D host. Uses http://appassets.androidplatform.net (httpAllowed) because some OEM
+ * WebViews fail fake-HTTPS DNS before shouldInterceptRequest runs.
  */
 class Live2DAvatarView @JvmOverloads constructor(
     context: Context,
@@ -37,13 +36,13 @@ class Live2DAvatarView @JvmOverloads constructor(
     private var destroyed = false
     private var pendingSpeak: Pair<String, CompanionMood>? = null
     private var loadAttempts = 0
+    private var lastError: String? = null
 
     var onReady: (() -> Unit)? = null
     var onError: ((String) -> Unit)? = null
 
     init {
         setBackgroundResource(R.drawable.bg_fab)
-        // Avoid clipToOutline: circular clip breaks WebGL on some OEM WebViews.
         clipChildren = true
         clipToPadding = true
 
@@ -58,7 +57,6 @@ class Live2DAvatarView @JvmOverloads constructor(
         webView = WebView(context).apply {
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
             setBackgroundColor(Color.TRANSPARENT)
-            // Keep laid-out + attached so WebGL can initialize; hide with alpha.
             alpha = 0f
             visibility = VISIBLE
             isHorizontalScrollBarEnabled = false
@@ -75,14 +73,13 @@ class Live2DAvatarView @JvmOverloads constructor(
         }
         addView(touchShield)
 
-        // Defer load until we have a real size (important in overlay windows).
         post { reloadLive2D() }
         handler.postDelayed({
             if (!ready && !destroyed) {
-                Log.w(TAG, "Live2D still not ready after timeout; retrying")
+                Log.w(TAG, "timeout; retry lastError=$lastError")
                 reloadLive2D()
             }
-        }, 4500L)
+        }, 6000L)
     }
 
     fun touchTarget(): View = touchShield
@@ -93,22 +90,25 @@ class Live2DAvatarView @JvmOverloads constructor(
             WebView.setWebContentsDebuggingEnabled(true)
         }
 
+        // httpAllowed: many China OEM WebViews resolve HTTPS DNS for appassets.* and fail
+        // before interception. HTTP virtual host is intercepted reliably.
         val assetLoader = WebViewAssetLoader.Builder()
             .setDomain(ASSET_DOMAIN)
-            .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(context))
+            .setHttpAllowed(true)
+            .addPathHandler("/assets/", Live2DAssetsPathHandler(context))
             .build()
 
         val settings = wv.settings
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
+        settings.databaseEnabled = true
         settings.allowFileAccess = false
         settings.allowContentAccess = false
         settings.mediaPlaybackRequiresUserGesture = false
-        settings.cacheMode = WebSettings.LOAD_DEFAULT
+        settings.cacheMode = WebSettings.LOAD_NO_CACHE
         settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
         settings.useWideViewPort = true
         settings.loadWithOverviewMode = true
-        // Cubism needs WebGL; keep default hardware acceleration from window flags.
 
         wv.webChromeClient = object : WebChromeClient() {
             override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
@@ -123,7 +123,11 @@ class Live2DAvatarView @JvmOverloads constructor(
             override fun shouldInterceptRequest(
                 view: WebView,
                 request: WebResourceRequest
-            ) = assetLoader.shouldInterceptRequest(request.url)
+            ) = assetLoader.shouldInterceptRequest(request.url).also { resp ->
+                if (resp == null) {
+                    Log.w(TAG, "not intercepted: ${request.url}")
+                }
+            }
 
             @Deprecated("Deprecated in Java")
             override fun shouldInterceptRequest(view: WebView, url: String) =
@@ -131,15 +135,6 @@ class Live2DAvatarView @JvmOverloads constructor(
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 Log.i(TAG, "page finished: $url")
-                // Nudge boot if scripts finished but bridge never fired.
-                view?.evaluateJavascript(
-                    "(function(){try{return !!(window.PangchuangLive2D&&PangchuangLive2D.isReady&&PangchuangLive2D.isReady());}catch(e){return false;}})();",
-                    { result ->
-                        if (result == "true" && !ready) {
-                            markReady()
-                        }
-                    }
-                )
             }
 
             override fun onReceivedError(
@@ -147,9 +142,10 @@ class Live2DAvatarView @JvmOverloads constructor(
                 request: WebResourceRequest?,
                 error: android.webkit.WebResourceError?
             ) {
+                val desc = error?.description?.toString().orEmpty()
+                Log.e(TAG, "webview error isMain=${request?.isForMainFrame} url=${request?.url} $desc")
                 if (request?.isForMainFrame == true) {
-                    val desc = error?.description?.toString().orEmpty()
-                    Log.e(TAG, "main frame error: $desc")
+                    lastError = desc
                     onError?.invoke(desc)
                 }
             }
@@ -164,7 +160,8 @@ class Live2DAvatarView @JvmOverloads constructor(
         webView.alpha = 0f
         fallback.visibility = VISIBLE
         fallback.alpha = 1f
-        val url = "https://$ASSET_DOMAIN/assets/live2d/index.html"
+        // Prefer HTTP virtual host for OEM WebView compatibility.
+        val url = "http://$ASSET_DOMAIN/assets/live2d/index.html"
         Log.i(TAG, "load attempt=$loadAttempts url=$url size=${width}x${height}")
         webView.loadUrl(url)
     }
@@ -204,6 +201,7 @@ class Live2DAvatarView @JvmOverloads constructor(
     private fun markReady() {
         if (ready || destroyed) return
         ready = true
+        lastError = null
         Log.i(TAG, "Live2D ready")
         webView.animate().alpha(1f).setDuration(280).start()
         fallback.animate().alpha(0f).setDuration(280).withEndAction {
@@ -235,14 +233,15 @@ class Live2DAvatarView @JvmOverloads constructor(
                     msg.startsWith("log:") -> Log.d(TAG, msg.removePrefix("log:"))
                     msg.startsWith("error:") -> {
                         val err = msg.removePrefix("error:")
+                        lastError = err
                         Log.e(TAG, "JS error: $err")
                         ready = false
                         webView.alpha = 0f
                         fallback.visibility = VISIBLE
                         fallback.alpha = 1f
                         onError?.invoke(err)
-                        if (loadAttempts < 3) {
-                            handler.postDelayed({ reloadLive2D() }, 800L)
+                        if (loadAttempts < 4) {
+                            handler.postDelayed({ reloadLive2D() }, 1000L)
                         }
                     }
                     msg == "speak_end" -> Log.d(TAG, "speak_end")

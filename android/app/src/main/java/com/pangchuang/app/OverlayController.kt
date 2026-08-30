@@ -62,7 +62,9 @@ class OverlayController(
         avatar = view.findViewById(R.id.fab)
         val live2d = avatar!!
         live2d.onError = { err ->
-            showText("Live2D 加载中…($err)")
+            // Keep message short for bubble; full detail is in logcat.
+            val short = err.take(48)
+            showText("Live2D：$short")
         }
         live2d.onReady = {
             // Keep current bubble; model is now live.

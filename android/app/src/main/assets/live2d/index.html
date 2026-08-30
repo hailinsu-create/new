@@ -4,34 +4,22 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <style>
-    html, body {
-      margin: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: transparent;
-      touch-action: none;
-    }
-    #stage {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-    }
-    canvas {
-      display: block;
-      width: 100% !important;
-      height: 100% !important;
-    }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; touch-action: none; }
+    #stage { position: absolute; inset: 0; width: 100%; height: 100%; }
+    canvas { display: block; width: 100% !important; height: 100% !important; }
   </style>
 </head>
 <body>
 <div id="stage"></div>
-<script src="js/live2dcubismcore.min.js"></script>
-<script src="js/pixi.min.js"></script>
-<script src="js/cubism4.min.js"></script>
 <script>
 (function () {
+  const BASE = (function () {
+    // Prefer absolute asset base so model/js resolve under WebViewAssetLoader.
+    var href = location.href || "";
+    var idx = href.lastIndexOf("/");
+    return idx >= 0 ? href.slice(0, idx + 1) : "./";
+  })();
+
   const MOOD_EXPR = {
     IDLE: null,
     TALK: "exp_01",
@@ -47,16 +35,7 @@
   let mouthTimer = null;
   let holdTimer = null;
   let ready = false;
-  let currentMood = "IDLE";
-  const MODEL_URL = "model/Mao/Mao.model3.json";
-
-  function log() {
-    try {
-      var args = Array.prototype.slice.call(arguments);
-      console.log.apply(console, ["[PangchuangLive2D]"].concat(args));
-      notifyAndroid("log:" + args.join(" "));
-    } catch (e) {}
-  }
+  const MODEL_URL = BASE + "model/Mao/Mao.model3.json";
 
   function notifyAndroid(msg) {
     try {
@@ -66,24 +45,55 @@
     } catch (e) {}
   }
 
+  function log() {
+    var args = Array.prototype.slice.call(arguments);
+    try { console.log.apply(console, ["[PangchuangLive2D]"].concat(args)); } catch (e) {}
+    notifyAndroid("log:" + args.join(" "));
+  }
+
   function sleep(ms) {
-    return new Promise(function (resolve) { setTimeout(resolve, ms); });
+    return new Promise(function (r) { setTimeout(r, ms); });
+  }
+
+  function loadScript(src) {
+    return new Promise(function (resolve, reject) {
+      var s = document.createElement("script");
+      s.src = src;
+      s.async = false;
+      s.onload = function () { resolve(src); };
+      s.onerror = function () { reject(new Error("script fail: " + src)); };
+      document.head.appendChild(s);
+    });
+  }
+
+  function stageSize() {
+    var stage = document.getElementById("stage");
+    var w = (stage && stage.clientWidth) || window.innerWidth || 1;
+    var h = (stage && stage.clientHeight) || window.innerHeight || 1;
+    return { w: Math.max(1, w), h: Math.max(1, h) };
+  }
+
+  function waitForSize() {
+    return new Promise(function (resolve) {
+      var tries = 0;
+      (function tick() {
+        var size = stageSize();
+        if ((size.w >= 8 && size.h >= 8) || tries > 60) return resolve(size);
+        tries += 1;
+        requestAnimationFrame(tick);
+      })();
+    });
   }
 
   function coreModel() {
-    try {
-      return model && model.internalModel && model.internalModel.coreModel;
-    } catch (e) {
-      return null;
-    }
+    try { return model && model.internalModel && model.internalModel.coreModel; }
+    catch (e) { return null; }
   }
 
   function setParam(id, value) {
     var core = coreModel();
     if (!core) return;
-    if (typeof core.setParameterValueById === "function") {
-      core.setParameterValueById(id, value);
-    }
+    if (typeof core.setParameterValueById === "function") core.setParameterValueById(id, value);
   }
 
   function clearExpression() {
@@ -96,34 +106,22 @@
   }
 
   function applyMood(mood) {
-    currentMood = mood || "IDLE";
-    var expr = MOOD_EXPR[currentMood];
+    var expr = MOOD_EXPR[mood || "IDLE"];
     clearExpression();
     if (expr && model && typeof model.expression === "function") {
-      try { model.expression(expr); } catch (e) { log("expression fail", expr, e && e.message); }
+      try { model.expression(expr); } catch (e) {}
     }
   }
 
   function stopMouth() {
-    if (mouthTimer) {
-      clearInterval(mouthTimer);
-      mouthTimer = null;
-    }
+    if (mouthTimer) { clearInterval(mouthTimer); mouthTimer = null; }
     setParam("ParamA", 0);
-  }
-
-  function stageSize() {
-    var stage = document.getElementById("stage");
-    var w = (stage && stage.clientWidth) || window.innerWidth || 1;
-    var h = (stage && stage.clientHeight) || window.innerHeight || 1;
-    return { w: Math.max(1, w), h: Math.max(1, h) };
   }
 
   function layoutModel() {
     if (!app || !model) return;
     var size = stageSize();
     app.renderer.resize(size.w, size.h);
-    // Zoom into upper body / face for the floating circle.
     var scale = Math.min(size.w, size.h) / 620;
     model.anchor.set(0.5, 0.5);
     model.scale.set(scale);
@@ -131,56 +129,58 @@
     model.y = size.h * 0.78;
   }
 
-  function waitForSize() {
-    return new Promise(function (resolve) {
-      var tries = 0;
-      (function tick() {
-        var size = stageSize();
-        if ((size.w >= 8 && size.h >= 8) || tries > 40) {
-          resolve(size);
-          return;
-        }
-        tries += 1;
-        requestAnimationFrame(tick);
-      })();
-    });
-  }
-
-  async function waitForCore() {
-    for (var i = 0; i < 80; i++) {
-      if (window.Live2DCubismCore) return;
-      await sleep(50);
+  async function probeModelUrl() {
+    try {
+      var res = await fetch(MODEL_URL, { method: "GET", cache: "no-store" });
+      log("model fetch", res.status, MODEL_URL, "ct=" + (res.headers.get("content-type") || ""));
+      if (!res.ok) throw new Error("model HTTP " + res.status);
+      var text = await res.text();
+      if (text.indexOf("FileReferences") < 0) {
+        throw new Error("model3.json invalid body len=" + text.length);
+      }
+      log("model3.json ok bytes", text.length);
+    } catch (e) {
+      throw new Error("model missing: " + (e && e.message ? e.message : e) + " url=" + MODEL_URL);
     }
-    throw new Error("Live2DCubismCore missing (WASM/core script)");
-  }
-
-  async function waitForPixiLive2d() {
-    for (var i = 0; i < 80; i++) {
-      if (window.PIXI && PIXI.live2d && PIXI.live2d.Live2DModel) return;
-      await sleep(50);
-    }
-    throw new Error("PIXI.live2d.Live2DModel missing");
   }
 
   async function boot() {
     try {
       notifyAndroid("boot");
       log("href", location.href);
-      log("UA", navigator.userAgent);
+      log("base", BASE);
       await waitForSize();
-      await waitForCore();
-      log("core ok", typeof Live2DCubismCore);
-      await waitForPixiLive2d();
-      log("pixi live2d ok");
+
+      await loadScript(BASE + "js/live2dcubismcore.min.js");
+      log("core script loaded", typeof window.Live2DCubismCore);
+      if (!window.Live2DCubismCore) throw new Error("Live2DCubismCore missing after script");
+
+      await loadScript(BASE + "js/pixi.min.js");
+      log("pixi loaded", typeof window.PIXI, !!(window.PIXI && PIXI.Application));
+      if (!window.PIXI || !PIXI.Application) throw new Error("PIXI.Application missing");
+
+      await loadScript(BASE + "js/cubism4.min.js");
+      log("cubism4 loaded", !!(PIXI.live2d), !!(PIXI.live2d && PIXI.live2d.Live2DModel));
+
+      // Give UMD a tick; some WebViews attach globals late.
+      for (var i = 0; i < 40; i++) {
+        if (PIXI.live2d && PIXI.live2d.Live2DModel) break;
+        await sleep(50);
+      }
+      if (!PIXI.live2d || !PIXI.live2d.Live2DModel) {
+        throw new Error("Live2DModel missing keys=" + Object.keys(PIXI.live2d || {}).join(","));
+      }
 
       if (typeof PIXI.live2d.startUpCubism4 === "function") {
         try {
           await PIXI.live2d.startUpCubism4();
-          log("startUpCubism4 done");
+          log("startUpCubism4 ok");
         } catch (e) {
-          log("startUpCubism4 skip", e && e.message);
+          log("startUpCubism4 warn", e && e.message);
         }
       }
+
+      await probeModelUrl();
 
       var size = stageSize();
       app = new PIXI.Application({
@@ -194,7 +194,7 @@
       });
       document.getElementById("stage").appendChild(app.view);
 
-      log("load model", MODEL_URL);
+      log("Live2DModel.from", MODEL_URL);
       model = await PIXI.live2d.Live2DModel.from(MODEL_URL, {
         autoInteract: false,
         autoUpdate: true
@@ -202,7 +202,6 @@
       app.stage.addChild(model);
       layoutModel();
       window.addEventListener("resize", layoutModel);
-
       try { model.motion("Idle"); } catch (e) {}
       applyMood("IDLE");
       ready = true;
@@ -217,18 +216,13 @@
 
   window.PangchuangLive2D = {
     isReady: function () { return ready; },
-    setMood: function (mood) {
-      applyMood(String(mood || "IDLE").toUpperCase());
-    },
+    setMood: function (mood) { applyMood(String(mood || "IDLE").toUpperCase()); },
     speak: function (durationMs, mood) {
       if (!ready || !model) return;
       var dur = Math.max(600, Math.min(5000, Number(durationMs) || 1600));
       applyMood(String(mood || "TALK").toUpperCase());
       stopMouth();
-      if (holdTimer) {
-        clearTimeout(holdTimer);
-        holdTimer = null;
-      }
+      if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
       var start = Date.now();
       mouthTimer = setInterval(function () {
         var t = (Date.now() - start) / 1000;
@@ -236,14 +230,10 @@
         setParam("ParamA", open);
         setParam("ParamMouthUp", Math.min(1, open * 0.35));
       }, 42);
-
       try {
         var m = String(mood || "").toUpperCase();
-        if (m === "HAPPY" || m === "SHY" || m === "SURPRISE") {
-          model.motion("TapBody");
-        }
+        if (m === "HAPPY" || m === "SHY" || m === "SURPRISE") model.motion("TapBody");
       } catch (e) {}
-
       holdTimer = setTimeout(function () {
         stopMouth();
         holdTimer = setTimeout(function () {
@@ -255,10 +245,7 @@
     },
     idle: function () {
       stopMouth();
-      if (holdTimer) {
-        clearTimeout(holdTimer);
-        holdTimer = null;
-      }
+      if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
       try { model.motion("Idle"); } catch (e) {}
       applyMood("IDLE");
     },
@@ -269,7 +256,7 @@
   };
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", function () { boot(); });
+    document.addEventListener("DOMContentLoaded", boot);
   } else {
     boot();
   }
