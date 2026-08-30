@@ -3,21 +3,27 @@ package com.pangchuang.app
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
+import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.util.AttributeSet
+import android.util.Log
 import android.view.View
+import android.webkit.ConsoleMessage
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import android.widget.ImageView
+import androidx.webkit.WebViewAssetLoader
 
 /**
  * Circular Live2D host for the floating companion.
- * Falls back to the PNG avatar while the WebView model boots.
+ * Serves assets via https://appassets.androidplatform.net so Cubism Core WASM can boot
+ * (file:///android_asset often fails WASM / subresource loads on modern WebView).
  */
 class Live2DAvatarView @JvmOverloads constructor(
     context: Context,
@@ -28,14 +34,18 @@ class Live2DAvatarView @JvmOverloads constructor(
     private val webView: WebView
     private val touchShield: View
     private var ready = false
+    private var destroyed = false
     private var pendingSpeak: Pair<String, CompanionMood>? = null
+    private var loadAttempts = 0
 
     var onReady: (() -> Unit)? = null
+    var onError: ((String) -> Unit)? = null
 
     init {
         setBackgroundResource(R.drawable.bg_fab)
-        clipToOutline = true
-        outlineProvider = android.view.ViewOutlineProvider.BACKGROUND
+        // Avoid clipToOutline: circular clip breaks WebGL on some OEM WebViews.
+        clipChildren = true
+        clipToPadding = true
 
         fallback = ImageView(context).apply {
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
@@ -48,16 +58,16 @@ class Live2DAvatarView @JvmOverloads constructor(
         webView = WebView(context).apply {
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
             setBackgroundColor(Color.TRANSPARENT)
-            setLayerType(LAYER_TYPE_HARDWARE, null)
+            // Keep laid-out + attached so WebGL can initialize; hide with alpha.
+            alpha = 0f
+            visibility = VISIBLE
             isHorizontalScrollBarEnabled = false
             isVerticalScrollBarEnabled = false
             overScrollMode = OVER_SCROLL_NEVER
-            visibility = INVISIBLE
         }
         configureWebView(webView)
         addView(webView)
 
-        // Capture taps/drags so WebView never steals overlay gestures.
         touchShield = View(context).apply {
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
             isClickable = true
@@ -65,47 +75,108 @@ class Live2DAvatarView @JvmOverloads constructor(
         }
         addView(touchShield)
 
-        loadLive2D()
+        // Defer load until we have a real size (important in overlay windows).
+        post { reloadLive2D() }
+        handler.postDelayed({
+            if (!ready && !destroyed) {
+                Log.w(TAG, "Live2D still not ready after timeout; retrying")
+                reloadLive2D()
+            }
+        }, 4500L)
     }
 
     fun touchTarget(): View = touchShield
 
     @SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
     private fun configureWebView(wv: WebView) {
+        if (BuildConfig.DEBUG) {
+            WebView.setWebContentsDebuggingEnabled(true)
+        }
+
+        val assetLoader = WebViewAssetLoader.Builder()
+            .setDomain(ASSET_DOMAIN)
+            .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(context))
+            .build()
+
         val settings = wv.settings
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
-        settings.allowFileAccess = true
+        settings.allowFileAccess = false
+        settings.allowContentAccess = false
         settings.mediaPlaybackRequiresUserGesture = false
         settings.cacheMode = WebSettings.LOAD_DEFAULT
         settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-        @Suppress("DEPRECATION")
-        settings.allowFileAccessFromFileURLs = true
-        @Suppress("DEPRECATION")
-        settings.allowUniversalAccessFromFileURLs = true
-        wv.webChromeClient = WebChromeClient()
+        settings.useWideViewPort = true
+        settings.loadWithOverviewMode = true
+        // Cubism needs WebGL; keep default hardware acceleration from window flags.
+
+        wv.webChromeClient = object : WebChromeClient() {
+            override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
+                Log.d(
+                    TAG,
+                    "${consoleMessage.messageLevel()} ${consoleMessage.sourceId()}:${consoleMessage.lineNumber()} ${consoleMessage.message()}"
+                )
+                return true
+            }
+        }
         wv.webViewClient = object : WebViewClient() {
+            override fun shouldInterceptRequest(
+                view: WebView,
+                request: WebResourceRequest
+            ) = assetLoader.shouldInterceptRequest(request.url)
+
+            @Deprecated("Deprecated in Java")
+            override fun shouldInterceptRequest(view: WebView, url: String) =
+                assetLoader.shouldInterceptRequest(Uri.parse(url))
+
             override fun onPageFinished(view: WebView?, url: String?) {
-                // ready event comes from JS bridge
+                Log.i(TAG, "page finished: $url")
+                // Nudge boot if scripts finished but bridge never fired.
+                view?.evaluateJavascript(
+                    "(function(){try{return !!(window.PangchuangLive2D&&PangchuangLive2D.isReady&&PangchuangLive2D.isReady());}catch(e){return false;}})();",
+                    { result ->
+                        if (result == "true" && !ready) {
+                            markReady()
+                        }
+                    }
+                )
+            }
+
+            override fun onReceivedError(
+                view: WebView?,
+                request: WebResourceRequest?,
+                error: android.webkit.WebResourceError?
+            ) {
+                if (request?.isForMainFrame == true) {
+                    val desc = error?.description?.toString().orEmpty()
+                    Log.e(TAG, "main frame error: $desc")
+                    onError?.invoke(desc)
+                }
             }
         }
         wv.addJavascriptInterface(Bridge(), "PangchuangBridge")
     }
 
-    private fun loadLive2D() {
-        webView.loadUrl("file:///android_asset/live2d/index.html")
+    private fun reloadLive2D() {
+        if (destroyed) return
+        loadAttempts++
+        ready = false
+        webView.alpha = 0f
+        fallback.visibility = VISIBLE
+        fallback.alpha = 1f
+        val url = "https://$ASSET_DOMAIN/assets/live2d/index.html"
+        Log.i(TAG, "load attempt=$loadAttempts url=$url size=${width}x${height}")
+        webView.loadUrl(url)
     }
 
     fun speak(text: String, mood: CompanionMood) {
         pendingSpeak = text to mood
         if (!ready) {
-            // Animate PNG fallback until Live2D is up.
             fallback.setImageResource(CompanionMoodMatcher.restingDrawable(mood))
             return
         }
         val duration = (700 + text.length * 55).coerceIn(900, 4200)
-        val moodName = mood.name
-        eval("PangchuangLive2D.speak($duration, '$moodName');")
+        eval("window.PangchuangLive2D && PangchuangLive2D.speak($duration, '${mood.name}');")
         pendingSpeak = null
     }
 
@@ -114,15 +185,15 @@ class Live2DAvatarView @JvmOverloads constructor(
             fallback.setImageResource(CompanionMoodMatcher.restingDrawable(mood))
             return
         }
-        eval("PangchuangLive2D.setMood('${mood.name}');")
+        eval("window.PangchuangLive2D && PangchuangLive2D.setMood('${mood.name}');")
     }
 
     fun tap() {
-        if (ready) eval("PangchuangLive2D.tap();")
+        if (ready) eval("window.PangchuangLive2D && PangchuangLive2D.tap();")
     }
 
     fun idle() {
-        if (ready) eval("PangchuangLive2D.idle();")
+        if (ready) eval("window.PangchuangLive2D && PangchuangLive2D.idle();")
         else fallback.setImageResource(R.drawable.companion_avatar_idle)
     }
 
@@ -130,7 +201,20 @@ class Live2DAvatarView @JvmOverloads constructor(
         webView.evaluateJavascript(js, null)
     }
 
+    private fun markReady() {
+        if (ready || destroyed) return
+        ready = true
+        Log.i(TAG, "Live2D ready")
+        webView.animate().alpha(1f).setDuration(280).start()
+        fallback.animate().alpha(0f).setDuration(280).withEndAction {
+            fallback.visibility = GONE
+        }.start()
+        pendingSpeak?.let { (text, mood) -> speak(text, mood) }
+        onReady?.invoke()
+    }
+
     fun destroy() {
+        destroyed = true
         handler.removeCallbacksAndMessages(null)
         runCatching {
             webView.removeJavascriptInterface("PangchuangBridge")
@@ -146,22 +230,22 @@ class Live2DAvatarView @JvmOverloads constructor(
         fun onLive2dEvent(msg: String) {
             handler.post {
                 when {
-                    msg == "ready" -> {
-                        ready = true
-                        webView.visibility = VISIBLE
-                        fallback.animate().alpha(0f).setDuration(280).withEndAction {
-                            fallback.visibility = GONE
-                        }.start()
-                        pendingSpeak?.let { (text, mood) -> speak(text, mood) }
-                        onReady?.invoke()
-                    }
+                    msg == "ready" -> markReady()
+                    msg == "boot" -> Log.i(TAG, "JS boot")
+                    msg.startsWith("log:") -> Log.d(TAG, msg.removePrefix("log:"))
                     msg.startsWith("error:") -> {
-                        // Keep PNG fallback visible.
+                        val err = msg.removePrefix("error:")
+                        Log.e(TAG, "JS error: $err")
                         ready = false
-                        webView.visibility = INVISIBLE
+                        webView.alpha = 0f
                         fallback.visibility = VISIBLE
                         fallback.alpha = 1f
+                        onError?.invoke(err)
+                        if (loadAttempts < 3) {
+                            handler.postDelayed({ reloadLive2D() }, 800L)
+                        }
                     }
+                    msg == "speak_end" -> Log.d(TAG, "speak_end")
                 }
             }
         }
@@ -169,4 +253,9 @@ class Live2DAvatarView @JvmOverloads constructor(
 
     private fun dp(v: Int): Int =
         (v * resources.displayMetrics.density).toInt()
+
+    companion object {
+        private const val TAG = "PangchuangLive2D"
+        private const val ASSET_DOMAIN = "appassets.androidplatform.net"
+    }
 }

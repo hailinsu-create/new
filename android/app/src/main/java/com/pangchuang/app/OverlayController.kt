@@ -61,6 +61,12 @@ class OverlayController(
         bubbleText = view.findViewById(R.id.bubbleText)
         avatar = view.findViewById(R.id.fab)
         val live2d = avatar!!
+        live2d.onError = { err ->
+            showText("Live2D 加载中…($err)")
+        }
+        live2d.onReady = {
+            // Keep current bubble; model is now live.
+        }
         val touchTarget = live2d.touchTarget()
 
         val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
