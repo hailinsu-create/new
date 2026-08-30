@@ -11,10 +11,12 @@
    没跑 `npm run fetch-core` 时，页面应明确报错，而不是 WebGL 白屏。
 
 3. **远程样例适合测「播放器」**  
-   jsDelivr 上的 Haru `model3.json` 可用来确认网络、Core、Pixi 链路。测「自建角色」必须换成本地导出包。
+   jsDelivr 上的 Haru `model3.json` 可用来确认网络、Core、Pixi 链路。测「自建角色」必须换成本地导出包。  
+   本仓库研究台已实测：Core 5.1.0 初始化成功，Haru 远程样例可渲染，视线跟随、点击 hit、动作组播放均正常。
 
 4. **导出包完整性可脚本化**  
-   `check-model` 只做文件与 JSON 引用检查。参数质量、网格穿透、物理爆炸仍要靠眼睛和 Editor。
+   `check-model` 只做文件与 JSON 引用检查。参数质量、网格穿透、物理爆炸仍要靠眼睛和 Editor。  
+   对 `models/example-template` 会正确报缺 `moc3` / 贴图。
 
 5. **第一视口的研究台把角色画布当主视觉**  
    控制台是交互容器；文档链接指向 `docs/`。避免做成参数仪表盘堆砌。
