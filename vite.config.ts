@@ -30,6 +30,19 @@ function serveDocs(): Plugin {
         if (!name.endsWith(".md")) continue;
         fs.copyFileSync(path.join(docsRoot, name), path.join(outDocs, name));
       }
+
+      const charSrc = path.resolve("characters/moxi");
+      const charOut = path.resolve("dist/characters/moxi");
+      fs.mkdirSync(charOut, { recursive: true });
+      for (const name of ["CHARACTER.md"]) {
+        const src = path.join(charSrc, name);
+        if (fs.existsSync(src)) fs.copyFileSync(src, path.join(charOut, name));
+      }
+      const checklist = path.join(charSrc, "cubism/BINDING_CHECKLIST.md");
+      if (fs.existsSync(checklist)) {
+        fs.mkdirSync(path.join(charOut, "cubism"), { recursive: true });
+        fs.copyFileSync(checklist, path.join(charOut, "cubism/BINDING_CHECKLIST.md"));
+      }
     },
   };
 }

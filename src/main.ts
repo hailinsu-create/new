@@ -1,5 +1,6 @@
 import "./styles.css";
 import { MODEL_PRESETS } from "./presets";
+import { MoxiArtPreview } from "./moxiPreview";
 import { Live2DViewer } from "./viewer";
 
 function el<K extends keyof HTMLElementTagNameMap>(
@@ -22,9 +23,16 @@ function el<K extends keyof HTMLElementTagNameMap>(
 const root = document.querySelector("#app");
 if (!root) throw new Error("#app missing");
 
-const canvas = el("canvas", { id: "live2d-canvas" });
+const viewport = el("section", { className: "viewport", id: "viewport" });
+let canvas = el("canvas", { id: "live2d-canvas" });
+const overlay = el("div", { className: "overlay-meta" }, [
+  el("span", {}, ["原创角色 · 墨汐"]),
+  el("span", {}, ["Haru 仅对照"]),
+]);
+viewport.append(canvas, overlay);
+
 const status = el("p", { className: "status", id: "status" }, [
-  "准备就绪。先拉一次 Cubism Core，再加载样例或本地模型。",
+  "目标角色：墨汐（原创）。默认先看立绘预览；moc3 导出后切换「墨汐（本地 moc3）」。",
 ]);
 const motionSelect = el("select", { id: "motion-select" });
 const expressionSelect = el("select", { id: "expression-select" });
@@ -41,45 +49,49 @@ for (const preset of MODEL_PRESETS) {
     el("option", { value: preset.id, textContent: preset.label }),
   );
 }
-motionSelect.append(el("option", { value: "", textContent: "（暂无）" }));
-expressionSelect.append(el("option", { value: "", textContent: "（暂无）" }));
+motionSelect.append(el("option", { value: "", textContent: "（立绘预览无动作组）" }));
+expressionSelect.append(el("option", { value: "", textContent: "（立绘预览无表情）" }));
+motionSelect.disabled = true;
+expressionSelect.disabled = true;
 
-const hint = el("p", { className: "hint" }, [
-  MODEL_PRESETS[0].note,
+const hint = el("p", { className: "hint" }, [MODEL_PRESETS[0].note]);
+
+const loadBtn = el("button", { className: "primary", type: "button" }, ["加载"]);
+const motionBtn = el("button", { className: "ghost", type: "button", disabled: true }, [
+  "播放动作",
 ]);
-
-const loadBtn = el("button", { className: "primary", type: "button" }, ["加载模型"]);
-const motionBtn = el("button", { className: "ghost", type: "button" }, ["播放动作"]);
-const expressionBtn = el("button", { className: "ghost", type: "button" }, ["切换表情"]);
-const idleBtn = el("button", { className: "accent", type: "button" }, ["随机 idle"]);
+const expressionBtn = el("button", { className: "ghost", type: "button", disabled: true }, [
+  "切换表情",
+]);
+const idleBtn = el("button", { className: "accent", type: "button", disabled: true }, [
+  "随机 idle",
+]);
 
 root.append(
   el("div", { className: "stage" }, [
     el("header", { className: "topbar" }, [
       el("div", { className: "brand" }, [
-        el("h1", {}, ["自建 Live2D"]),
+        el("h1", {}, ["墨汐"]),
         el("p", {}, [
-          "从立绘拆分到 moc3 导出，再到浏览器自托管。这个研究台用来验证你自己的角色能不能在本机跑起来。",
+          "咱们自己的 Live2D 角色。立绘已就绪；Cubism 绑定导出 moc3 后，这里就会变成可驱动的真·Live2D。",
         ]),
       ]),
       el("nav", { className: "links" }, [
-        el("a", { href: "/docs/01-overview.md", target: "_blank" }, ["总览"]),
+        el("a", { href: "/docs/07-our-character-moxi.md", target: "_blank" }, ["墨汐进度"]),
         el("a", { href: "/docs/02-creation-pipeline.md", target: "_blank" }, ["制作流程"]),
         el("a", { href: "/docs/04-web-selfhost.md", target: "_blank" }, ["Web 自托管"]),
-        el("a", { href: "https://github.com/Live2D/CubismWebSamples", target: "_blank", rel: "noreferrer" }, [
-          "官方 Samples",
-        ]),
+        el("a", { href: "/docs/05-license-and-compliance.md", target: "_blank" }, ["授权"]),
       ]),
     ]),
     el("div", { className: "workspace" }, [
       el("aside", { className: "panel" }, [
-        el("h2", {}, ["研究控制台"]),
+        el("h2", {}, ["角色台"]),
         el("div", { className: "field" }, [
           el("label", { htmlFor: "preset-select" }, ["预设"]),
           presetSelect,
         ]),
         el("div", { className: "field" }, [
-          el("label", { htmlFor: "model-url" }, ["model3.json 路径"]),
+          el("label", { htmlFor: "model-url" }, ["资源路径"]),
           urlInput,
         ]),
         el("div", { className: "actions" }, [loadBtn]),
@@ -95,20 +107,13 @@ root.append(
         el("div", { className: "actions" }, [motionBtn, expressionBtn, idleBtn]),
         status,
         el("p", { className: "hint" }, [
-          "本地模型：把 Cubism Editor 导出包放进 ",
-          el("code", {}, ["public/models/local/"]),
-          "，然后用 ",
-          el("code", {}, ["npm run check-model -- public/models/local"]),
-          " 检查文件清单。",
+          "绑定指南：",
+          el("code", {}, ["characters/moxi/cubism/BINDING_CHECKLIST.md"]),
+          "。验收：",
+          el("code", {}, ["npm run check-model -- public/models/moxi"]),
         ]),
       ]),
-      el("section", { className: "viewport", id: "viewport" }, [
-        canvas,
-        el("div", { className: "overlay-meta" }, [
-          el("span", {}, ["PixiJS + Cubism4 runtime"]),
-          el("span", {}, ["研究用途 · 注意授权"]),
-        ]),
-      ]),
+      viewport,
     ]),
   ]),
 );
@@ -131,14 +136,44 @@ function fillSelect(select: HTMLSelectElement, values: string[], emptyLabel: str
   }
 }
 
-let viewer: Live2DViewer | null = null;
+function setLive2dControlsEnabled(enabled: boolean): void {
+  motionBtn.disabled = !enabled;
+  expressionBtn.disabled = !enabled;
+  idleBtn.disabled = !enabled;
+  if (!enabled) {
+    fillSelect(motionSelect, [], "（立绘预览无动作组）");
+    fillSelect(expressionSelect, [], "（立绘预览无表情）");
+  }
+}
 
-try {
-  viewer = new Live2DViewer({ canvas, onStatus: setStatus });
-} catch (error) {
-  const message = error instanceof Error ? error.message : String(error);
-  setStatus(message, "error");
-  loadBtn.disabled = true;
+type Mode = "art" | "live2d";
+
+let mode: Mode = "art";
+let artPreview: MoxiArtPreview | null = null;
+let liveViewer: Live2DViewer | null = null;
+
+/** 2D and WebGL cannot share one canvas; replace it on mode switches. */
+function replaceCanvas(): HTMLCanvasElement {
+  const next = el("canvas", { id: "live2d-canvas" });
+  canvas.replaceWith(next);
+  canvas = next;
+  return canvas;
+}
+
+function teardown(): void {
+  if (artPreview) {
+    artPreview.destroy();
+    artPreview = null;
+  }
+  if (liveViewer) {
+    liveViewer.destroy();
+    liveViewer = null;
+  }
+}
+
+function currentPresetKind(): (typeof MODEL_PRESETS)[number]["kind"] {
+  const preset = MODEL_PRESETS.find((item) => item.id === presetSelect.value);
+  return preset?.kind ?? "ours-live2d";
 }
 
 presetSelect.addEventListener("change", () => {
@@ -150,15 +185,30 @@ presetSelect.addEventListener("change", () => {
 
 loadBtn.addEventListener("click", () => {
   void (async () => {
-    if (!viewer) return;
     loadBtn.disabled = true;
     try {
-      const result = await viewer.load(urlInput.value.trim());
+      const kind = currentPresetKind();
+      teardown();
+      const view = replaceCanvas();
+
+      if (kind === "ours-preview") {
+        mode = "art";
+        artPreview = new MoxiArtPreview(view, { setStatus });
+        await artPreview.show(urlInput.value.trim());
+        setLive2dControlsEnabled(false);
+        return;
+      }
+
+      mode = "live2d";
+      liveViewer = new Live2DViewer({ canvas: view, onStatus: setStatus });
+      const result = await liveViewer.load(urlInput.value.trim());
       fillSelect(motionSelect, result.motions, "（无动作组）");
       fillSelect(expressionSelect, result.expressions, "（无表情）");
+      setLive2dControlsEnabled(true);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       setStatus(`加载失败\n${message}`, "error");
+      setLive2dControlsEnabled(false);
     } finally {
       loadBtn.disabled = false;
     }
@@ -166,17 +216,17 @@ loadBtn.addEventListener("click", () => {
 });
 
 motionBtn.addEventListener("click", () => {
-  if (!viewer || !motionSelect.value) return;
-  viewer.playMotion(motionSelect.value);
+  if (mode !== "live2d" || !liveViewer || !motionSelect.value) return;
+  liveViewer.playMotion(motionSelect.value);
 });
 
 expressionBtn.addEventListener("click", () => {
-  if (!viewer || !expressionSelect.value) return;
-  viewer.playExpression(expressionSelect.value);
+  if (mode !== "live2d" || !liveViewer || !expressionSelect.value) return;
+  liveViewer.playExpression(expressionSelect.value);
 });
 
 idleBtn.addEventListener("click", () => {
-  if (!viewer) return;
+  if (mode !== "live2d" || !liveViewer) return;
   const options = [...motionSelect.options]
     .map((option) => option.value)
     .filter(Boolean);
@@ -188,5 +238,7 @@ idleBtn.addEventListener("click", () => {
   }
   const pick = pool[Math.floor(Math.random() * pool.length)]!;
   motionSelect.value = pick;
-  viewer.playMotion(pick);
+  liveViewer.playMotion(pick);
 });
+
+loadBtn.click();
