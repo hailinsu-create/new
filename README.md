@@ -48,7 +48,7 @@ adb shell am start -n com.pangchuang.app/.MainActivity
 |----|------|
 | Base URL | 如 `https://api.siliconflow.cn/v1` 或 `http://127.0.0.1:11434/v1` |
 | API Key | 真陪伴必填；空则只能演示陪伴语 |
-| Vision Model | 如 `Qwen/Qwen3-VL-8B-Instruct` |
+| Vision Model | 推荐 `Qwen/Qwen3-VL-8B-Instruct`（快）或 `Qwen/Qwen3-VL-32B-Instruct`（更准、更慢，偶发 500 会自动重试） |
 | 陪伴间隔 | 默认 12 秒；画面几乎没变会跳过 |
 | 演示陪伴语 | 不调 API |
 | 使用情况访问 | 可选；开启后把前台 App 名一并交给模型 |

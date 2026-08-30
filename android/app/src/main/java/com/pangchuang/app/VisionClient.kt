@@ -2,6 +2,7 @@ package com.pangchuang.app
 
 import android.graphics.Bitmap
 import android.util.Base64
+import android.util.Log
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -9,6 +10,8 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
+import java.io.IOException
+import java.net.SocketTimeoutException
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
 
@@ -17,7 +20,10 @@ data class RoastResult(val text: String, val source: String)
 class VisionClient(private val prefs: Prefs) {
     private val client = OkHttpClient.Builder()
         .connectTimeout(20, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
+        .writeTimeout(60, TimeUnit.SECONDS)
+        .readTimeout(120, TimeUnit.SECONDS)
+        .callTimeout(150, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(true)
         .build()
 
     private val mockLines = listOf(
@@ -66,93 +72,159 @@ class VisionClient(private val prefs: Prefs) {
             }
             return RoastResult(pool[Random.nextInt(pool.size)], "mock")
         }
-        return try {
-            val jpeg = bitmapToJpegBase64(bitmap)
-            val systemPrompt = prefs.roastStyle.ifBlank { DEFAULT_SYSTEM_PROMPT }
-            val hintLine = if (appHint != null) {
-                "系统侧提示：前台应用很可能是「${appHint.label}」（${appHint.packageName}）。" +
-                    "仅作参考，仍以截图为准；若画面明显是别的 App，以画面为准。"
-            } else {
-                "系统未能提供前台包名，请完全依据截图判断 App 与正在做的事。"
-            }
-            val body = JSONObject()
-                .put("model", prefs.model)
-                .put("temperature", 0.7)
-                .put("max_tokens", 200)
-                .put(
-                    "messages",
-                    JSONArray()
-                        .put(
-                            JSONObject()
-                                .put("role", "system")
-                                .put("content", systemPrompt)
-                        )
-                        .put(
-                            JSONObject()
-                                .put("role", "user")
-                                .put(
-                                    "content",
-                                    JSONArray()
-                                        .put(
-                                            JSONObject()
-                                                .put("type", "text")
-                                                .put(
-                                                    "text",
-                                                    "这是用户手机当前屏幕截图。$hintLine" +
-                                                        "请先在心里默念：这是什么 App/页面？用户正在干什么？" +
-                                                        "然后只输出给用户听的一两句，要让人一听就知道你看见了眼前这件事。"
-                                                )
-                                        )
-                                        .put(
-                                            JSONObject()
-                                                .put("type", "image_url")
-                                                .put(
-                                                    "image_url",
-                                                    JSONObject().put(
+
+        val heavy = isHeavyModel(prefs.model)
+        val jpeg = bitmapToJpegBase64(
+            bitmap,
+            maxSide = if (heavy) 640 else 768,
+            quality = if (heavy) 55 else 70
+        )
+        val systemPrompt = prefs.roastStyle.ifBlank { DEFAULT_SYSTEM_PROMPT }
+        val hintLine = if (appHint != null) {
+            "系统侧提示：前台应用很可能是「${appHint.label}」（${appHint.packageName}）。" +
+                "仅作参考，仍以截图为准；若画面明显是别的 App，以画面为准。"
+        } else {
+            "系统未能提供前台包名，请完全依据截图判断 App 与正在做的事。"
+        }
+        val userText =
+            "这是用户手机当前屏幕截图。$hintLine" +
+                "请先在心里默念：这是什么 App/页面？用户正在干什么？" +
+                "然后只输出给用户听的一两句，要让人一听就知道你看见了眼前这件事。"
+
+        val bodyJson = JSONObject()
+            .put("model", prefs.model)
+            .put("temperature", 0.65)
+            .put("max_tokens", if (heavy) 96 else 160)
+            .put(
+                "messages",
+                JSONArray()
+                    .put(
+                        JSONObject()
+                            .put("role", "system")
+                            .put("content", systemPrompt)
+                    )
+                    .put(
+                        JSONObject()
+                            .put("role", "user")
+                            .put(
+                                "content",
+                                JSONArray()
+                                    .put(
+                                        JSONObject()
+                                            .put("type", "text")
+                                            .put("text", userText)
+                                    )
+                                    .put(
+                                        JSONObject()
+                                            .put("type", "image_url")
+                                            .put(
+                                                "image_url",
+                                                JSONObject()
+                                                    .put(
                                                         "url",
                                                         "data:image/jpeg;base64,$jpeg"
                                                     )
-                                                )
-                                        )
-                                )
-                        )
-                )
+                                                    // Lower vision tokens when supported (OpenAI-compatible).
+                                                    .put("detail", if (heavy) "low" else "auto")
+                                            )
+                                    )
+                            )
+                    )
+            )
+            .toString()
 
-            val request = Request.Builder()
-                .url("${prefs.baseUrl}/chat/completions")
-                .addHeader("Authorization", "Bearer ${prefs.apiKey}")
-                .addHeader("Content-Type", "application/json")
-                .post(body.toString().toRequestBody("application/json".toMediaType()))
-                .build()
+        var lastError: RoastResult? = null
+        repeat(MAX_ATTEMPTS) { attempt ->
+            try {
+                val request = Request.Builder()
+                    .url("${prefs.baseUrl}/chat/completions")
+                    .addHeader("Authorization", "Bearer ${prefs.apiKey}")
+                    .addHeader("Content-Type", "application/json")
+                    .post(bodyJson.toRequestBody("application/json".toMediaType()))
+                    .build()
 
-            client.newCall(request).execute().use { resp ->
-                val raw = resp.body?.string().orEmpty()
-                if (!resp.isSuccessful) {
-                    return RoastResult("接口 ${resp.code}：检查 Key/模型哦", "error")
+                client.newCall(request).execute().use { resp ->
+                    val raw = resp.body?.string().orEmpty()
+                    if (!resp.isSuccessful) {
+                        val retryable = resp.code in RETRYABLE_CODES
+                        val friendly = friendlyHttpError(resp.code, raw)
+                        lastError = RoastResult(friendly, "error")
+                        if (retryable && attempt < MAX_ATTEMPTS - 1) {
+                            Log.w(TAG, "API ${resp.code}, retry ${attempt + 1}: ${raw.take(200)}")
+                            Thread.sleep(700L * (attempt + 1))
+                            return@repeat
+                        }
+                        return lastError!!
+                    }
+                    val json = JSONObject(raw)
+                    var text = json
+                        .getJSONArray("choices")
+                        .getJSONObject(0)
+                        .getJSONObject("message")
+                        .optString("content")
+                        .trim()
+                        .replace('\n', ' ')
+                        .replace(Regex("\\s+"), " ")
+                        .trim('"', '“', '”', '「', '」')
+                    // Strip common thinking/analysis preambles some larger models leak.
+                    text = text
+                        .replace(Regex("(?i)^(分析|思考|观察)[:：].{0,40}?。"), "")
+                        .trim()
+                    if (text.length > 96) text = text.take(95) + "…"
+                    return if (text.isBlank()) {
+                        RoastResult(mockLines.random(), "mock")
+                    } else {
+                        RoastResult(text, "api")
+                    }
                 }
-                val json = JSONObject(raw)
-                var text = json
-                    .getJSONArray("choices")
-                    .getJSONObject(0)
-                    .getJSONObject("message")
-                    .optString("content")
-                    .trim()
-                    .replace('\n', ' ')
-                    .replace(Regex("\\s+"), " ")
-                    .trim('"', '“', '”', '「', '」')
-                if (text.length > 96) text = text.take(95) + "…"
-                if (text.isBlank()) RoastResult(mockLines.random(), "mock")
-                else RoastResult(text, "api")
+            } catch (e: SocketTimeoutException) {
+                lastError = RoastResult("模型响应超时，稍后再点头像试试", "error")
+                Log.w(TAG, "timeout attempt ${attempt + 1}", e)
+                if (attempt < MAX_ATTEMPTS - 1) {
+                    Thread.sleep(500L * (attempt + 1))
+                }
+            } catch (e: IOException) {
+                lastError = RoastResult("网络不稳：${e.javaClass.simpleName}", "error")
+                Log.w(TAG, "io attempt ${attempt + 1}", e)
+                if (attempt < MAX_ATTEMPTS - 1) {
+                    Thread.sleep(500L * (attempt + 1))
+                }
+            } catch (e: Exception) {
+                return RoastResult("小旁走神了：${e.javaClass.simpleName}", "error")
             }
-        } catch (e: Exception) {
-            RoastResult("小旁走神了：${e.javaClass.simpleName}", "error")
+        }
+        return lastError ?: RoastResult("接口忙，稍后再试", "error")
+    }
+
+    private fun friendlyHttpError(code: Int, raw: String): String {
+        val serverMsg = runCatching {
+            JSONObject(raw).optString("message")
+                .ifBlank { JSONObject(raw).optJSONObject("error")?.optString("message").orEmpty() }
+        }.getOrDefault("").trim()
+        return when (code) {
+            429 -> "接口限流了，过几秒再看"
+            500, 502, 503, 504, 529 ->
+                if (serverMsg.contains("overload", ignoreCase = true) ||
+                    serverMsg.contains("busy", ignoreCase = true) ||
+                    serverMsg.contains("负载")
+                ) {
+                    "模型正忙（$code），稍后再试"
+                } else {
+                    "服务端 $code，多半是模型繁忙或瞬时故障"
+                }
+            401, 403 -> "Key 无效或无权用该模型"
+            404 -> "模型名不对，检查 Vision Model"
+            else -> {
+                val short = serverMsg.take(40)
+                if (short.isNotBlank()) "接口 $code：$short" else "接口 $code：检查 Key/模型"
+            }
         }
     }
 
-    private fun bitmapToJpegBase64(bitmap: Bitmap): String {
-        val scaled = scaleDown(bitmap, 768)
+    private fun bitmapToJpegBase64(bitmap: Bitmap, maxSide: Int, quality: Int): String {
+        val scaled = scaleDown(bitmap, maxSide)
         val out = ByteArrayOutputStream()
-        scaled.compress(Bitmap.CompressFormat.JPEG, 70, out)
+        scaled.compress(Bitmap.CompressFormat.JPEG, quality.coerceIn(40, 90), out)
         if (scaled !== bitmap) scaled.recycle()
         return Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP)
     }
@@ -167,6 +239,15 @@ class VisionClient(private val prefs: Prefs) {
     }
 
     companion object {
+        private const val TAG = "PangchuangVision"
+        private const val MAX_ATTEMPTS = 3
+        private val RETRYABLE_CODES = setOf(408, 429, 500, 502, 503, 504, 529)
+
+        fun isHeavyModel(model: String): Boolean {
+            val m = model.lowercase()
+            return listOf("32b", "30b", "72b", "235b", "a22b").any { m.contains(it) }
+        }
+
         /** 扫地僧气质：先认 App 与动作，再点到为止说两句。 */
         const val DEFAULT_SYSTEM_PROMPT =
             "你是手机悬浮窗里的桌面伴侣「小旁」。说话气质像金庸笔下的扫地僧：" +

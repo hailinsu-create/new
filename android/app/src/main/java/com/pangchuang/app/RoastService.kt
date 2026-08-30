@@ -328,7 +328,9 @@ class RoastService : Service() {
                 return
             }
 
-            o.showThinking("且看这一屏…")
+            o.showThinking(
+                if (VisionClient.isHeavyModel(prefs.model)) "大模型在看这一屏…" else "且看这一屏…"
+            )
             val scene = if (demoMode) DEMO_SCENES[demoIndex % DEMO_SCENES.size].first else null
             val appHint = if (demoMode) null else withContext(Dispatchers.IO) {
                 ForegroundAppResolver.resolve(this@RoastService)
