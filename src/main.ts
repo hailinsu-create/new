@@ -32,7 +32,7 @@ const overlay = el("div", { className: "overlay-meta" }, [
 viewport.append(canvas, overlay);
 
 const status = el("p", { className: "status", id: "status" }, [
-  "目标角色：墨汐（原创）。默认先看立绘预览；moc3 导出后切换「墨汐（本地 moc3）」。",
+  "目标角色：墨汐。默认加载本地 moc3 Live2D。",
 ]);
 const motionSelect = el("select", { id: "motion-select" });
 const expressionSelect = el("select", { id: "expression-select" });
@@ -73,7 +73,7 @@ root.append(
       el("div", { className: "brand" }, [
         el("h1", {}, ["墨汐"]),
         el("p", {}, [
-          "咱们自己的 Live2D 角色。立绘已就绪；Cubism 绑定导出 moc3 后，这里就会变成可驱动的真·Live2D。",
+          "咱们自己的 Live2D 角色。本地 moc3 已可加载；可继续在 Cubism 里加表情、动作与物理。",
         ]),
       ]),
       el("nav", { className: "links" }, [

@@ -2,7 +2,7 @@
 
 目标不是套官方样例，而是做出**咱们自己的**角色，并在网页里跑起来。
 
-当前原创角色：**墨汐**。立绘与设定在 `characters/moxi/`。Cubism Editor 已通过 Wine 装好（`./tools/cubism/launch-editor.sh`）；导出 moc3 后放进 `public/models/moxi/`。
+当前原创角色：**墨汐**。立绘与设定在 `characters/moxi/`。Cubism Editor 已通过 Wine 装好；**墨汐 moc3 已导出**到 `public/models/moxi/`，研究台默认加载。
 
 ## 现在能做什么
 

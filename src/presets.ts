@@ -11,18 +11,18 @@ export type ModelPreset = {
  */
 export const MODEL_PRESETS = [
   {
-    id: "moxi-preview",
-    label: "墨汐（咱们的角色 · 立绘预览）",
-    url: "/characters/moxi/master.png",
-    note: "原创角色主视觉。Cubism 绑定完成后，改用「墨汐（本地 moc3）」加载真正的 Live2D。",
-    kind: "ours-preview",
+    id: "moxi-local",
+    label: "墨汐（咱们的 Live2D · moc3）",
+    url: "/models/moxi/moxi.model3.json",
+    note: "原创角色墨汐的 Cubism 导出包。当前为单网格 MVP，可继续在 Editor 里加参数与动作。",
+    kind: "ours-live2d",
   },
   {
-    id: "moxi-local",
-    label: "墨汐（本地 moc3）",
-    url: "/models/moxi/moxi.model3.json",
-    note: "把 Cubism 导出包放到 public/models/moxi/ 后使用。现在若 404，说明还没完成绑定导出。",
-    kind: "ours-live2d",
+    id: "moxi-preview",
+    label: "墨汐（立绘预览）",
+    url: "/characters/moxi/master.png",
+    note: "未进 Live2D 前的静帧预览对照。",
+    kind: "ours-preview",
   },
   {
     id: "haru-remote",

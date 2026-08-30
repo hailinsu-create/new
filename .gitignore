@@ -13,3 +13,7 @@ public/models/local/**
 tools/cubism/wineprefix/
 tools/cubism/*.exe
 tools/cubism/install.log
+
+# Cubism working copies (large / regenerable)
+tools/cubism/wineprefix/
+characters/moxi/cubism/import/*.psd

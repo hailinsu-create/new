@@ -7,29 +7,45 @@ Haru 是 Live2D 官方样例，只用来测播放器。项目目标角色是原�
 | 阶段 | 状态 |
 | --- | --- |
 | 设定与主视觉 | 完成（`characters/moxi/art/00_master_reference.png`） |
-| 分层参考稿 | 有草稿（`art/layers*`，需在 PS/CSP 按主视觉重拆） |
-| Cubism Editor 安装 | 完成（Wine 非官方，`tools/cubism/`，5.3.03） |
-| Cubism 网格/参数 | 进行中（Editor 可启动，待拆 PSD 后绑定） |
-| `public/models/moxi/*.moc3` | 未完成 |
-| 研究台默认展示墨汐 | 完成（静帧预览 + 待绑定提示） |
+| 分层参考稿 | 有草稿（精修拆分仍建议在 PS/CSP 做） |
+| Cubism Editor 安装 | 完成（Wine，`tools/cubism/`，5.3.03 FREE） |
+| Cubism 网格 / 导出 | MVP 完成：单网格，导出 **SDK 5.0** 兼容 moc3 |
+| `public/models/moxi/*.moc3` | 完成，研究台可加载 |
+| 研究台默认角色 | 墨汐 Live2D |
 
-Linux 上无官方 Cubism，当前用 Wine 跑 Windows 版。启动：
+启动 Editor：
 
 ```bash
 ./tools/cubism/launch-editor.sh
 ```
 
-细节见 `tools/cubism/README.md`。
+## 运行时包
 
-## 你这边下一步（最短路径）
+```text
+public/models/moxi/
+  moxi.model3.json
+  moxi.moc3          # moc3 v5（SDK 5.0 导出目标）
+  moxi.cdi3.json
+  moxi.1024/texture_00.png
+```
 
-1. 启动 Editor：`./tools/cubism/launch-editor.sh`（选 FREE 即可）
-2. 打开 `characters/moxi/cubism/BINDING_CHECKLIST.md`
-3. 用主视觉拆 PSD → Cubism 网格/参数 → 导出 moc3
-4. 复制到 `public/models/moxi/`
-5. `npm run check-model -- public/models/moxi` 后，在研究台选「墨汐（本地）」
+验收：
 
-## 和 Haru 的关系
+```bash
+npm run check-model -- public/models/moxi
+npm run fetch-core && npm run dev
+```
 
-- Haru：别人的版权，对照用
-- 墨汐：咱们的角色，主路径
+默认预设加载 `/models/moxi/moxi.model3.json`。
+
+## 已知边界（MVP）
+
+- 当前是**单 ArtMesh**，不是精细五官分层；转头/眨眼/口型还可以继续加
+- Cubism 5.3 默认导出 moc3 v6，网页 Core 读不了；导出时选 **For SDK 5.0 / Cubism5.0**
+- Wine + FREE 可用，复杂工程可能卡；正式制作也可换 Windows/macOS 官方 Editor
+
+## 下一步
+
+1. PS/CSP 按主视觉精拆 PSD（眼、嘴、前后发）
+2. Cubism 里加 Angle / EyeOpen / Mouth / Breath 与物理
+3. 导出动作 `Idle`，再写入 `model3.json`

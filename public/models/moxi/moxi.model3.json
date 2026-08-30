@@ -1,0 +1,10 @@
+{
+	"Version": 3,
+	"FileReferences": {
+		"Moc": "moxi.moc3",
+		"Textures": [
+			"moxi.1024/texture_00.png"
+		],
+		"DisplayInfo": "moxi.cdi3.json"
+	}
+}
