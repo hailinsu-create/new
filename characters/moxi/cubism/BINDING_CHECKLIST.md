@@ -6,9 +6,9 @@
 
 本环境没有 Cubism Editor，**网格与参数必须在你本机 Editor 里完成**。
 
-## 0. 准备
+0. 准备
 
-1. 安装 [Cubism Editor](https://www.live2d.com/download/cubism/)（学习可用免费版）
+1. 启动本仓库已装的 Cubism Editor：`./tools/cubism/launch-editor.sh`（选 FREE；或用你自己电脑上的官方安装）
 2. 用 Photoshop / CSP 打开 `art/00_master_reference.png`
 3. 按下面图层表拆成 PSD（AI 自动分层只能当参考，对位不准，**以手拆主视觉为准**）
 
