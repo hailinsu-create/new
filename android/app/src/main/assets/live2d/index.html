@@ -151,6 +151,10 @@
       log("base", BASE);
       await waitForSize();
 
+      // cubism4 UMD references process.env.NODE_ENV; Android WebView has no process.
+      window.process = window.process || { env: { NODE_ENV: "production" } };
+      window.global = window.global || window;
+
       await loadScript(BASE + "js/live2dcubismcore.min.js");
       log("core script loaded", typeof window.Live2DCubismCore);
       if (!window.Live2DCubismCore) throw new Error("Live2DCubismCore missing after script");
@@ -159,7 +163,11 @@
       log("pixi loaded", typeof window.PIXI, !!(window.PIXI && PIXI.Application));
       if (!window.PIXI || !PIXI.Application) throw new Error("PIXI.Application missing");
 
-      await loadScript(BASE + "js/cubism4.min.js");
+      try {
+        await loadScript(BASE + "js/cubism4.min.js");
+      } catch (e) {
+        throw new Error("cubism4 script error: " + (e && e.message ? e.message : e));
+      }
       log("cubism4 loaded", !!(PIXI.live2d), !!(PIXI.live2d && PIXI.live2d.Live2DModel));
 
       // Give UMD a tick; some WebViews attach globals late.
@@ -168,7 +176,8 @@
         await sleep(50);
       }
       if (!PIXI.live2d || !PIXI.live2d.Live2DModel) {
-        throw new Error("Live2DModel missing keys=" + Object.keys(PIXI.live2d || {}).join(","));
+        var keys = Object.getOwnPropertyNames(PIXI.live2d || {}).slice(0, 12).join(",");
+        throw new Error("Live2DModel missing keys=" + keys + " process=" + typeof process);
       }
 
       if (typeof PIXI.live2d.startUpCubism4 === "function") {
