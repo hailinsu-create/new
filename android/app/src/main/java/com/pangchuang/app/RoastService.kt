@@ -62,11 +62,16 @@ class RoastService : Service() {
                 return START_NOT_STICKY
             }
             ACTION_FORCE_ROAST -> {
+                // Keep existing FG notification if already running.
+                if (overlay == null) {
+                    startAsForeground(demo = demoMode)
+                }
                 scope.launch { roastOnce(force = true) }
             }
             ACTION_START_DEMO -> {
+                // Must enter foreground before any overlay / loop work (slow emulators).
                 startAsForeground(demo = true)
-                beginDemo()
+                mainHandler.post { beginDemo() }
             }
             ACTION_START -> {
                 val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, 0)
@@ -81,7 +86,7 @@ class RoastService : Service() {
                     return START_NOT_STICKY
                 }
                 startAsForeground(demo = false)
-                beginCapture(resultCode, data)
+                mainHandler.post { beginCapture(resultCode, data) }
             }
         }
         return START_STICKY
