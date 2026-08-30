@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Continuously mirrors the phone screen via MediaProjection into bitmaps
- * suitable for vision-model roasting.
+ * suitable for the vision companion.
  */
 class ScreenCaptor(
     context: Context,

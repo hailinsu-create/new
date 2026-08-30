@@ -21,23 +21,38 @@ class VisionClient(private val prefs: Prefs) {
         .build()
 
     private val mockLines = listOf(
-        "又开始无脑下拉了，手指比大脑勤快。",
-        "这个页面你今天已经见第三次了。",
-        "深夜还在刷，明天的你会来讨债。",
-        "回都懒得回，手指倒是很忙。",
-        "购物车又涨了，存款还在装死。",
-        "匹配界面看穿了，还不快投降。",
-        "备忘录写得很勤，执行力在隔壁。"
+        "刷这么久啦，眼睛要不要歇一小会儿？",
+        "这个页面你好像很喜欢，我陪你一起看。",
+        "夜里还醒着呀，我在这里陪着你。",
+        "慢慢来就好，我在旁边等你回消息。",
+        "购物车亮晶晶的，开心最重要啦。",
+        "匹配中吗？深呼吸，我给你加油。",
+        "备忘录写得真整齐，明天的你会谢谢现在的你。"
     )
 
     fun roast(bitmap: Bitmap, scene: String? = null): RoastResult {
         if (prefs.mockApi || prefs.apiKey.isBlank()) {
             val pool = when (scene) {
-                "深夜刷短视频" -> listOf("又开始无脑下拉了，手指比大脑勤快。", "深夜还在刷，明天的你会来讨债。")
-                "微信置顶群" -> listOf("置顶消息闪了三遍，你还在装没看见。", "回个表情包也能拖成史诗。")
-                "购物车结算" -> listOf("购物车比存款诚实多了。", "凑单凑着凑着就把理智凑没了。")
-                "排位赛匹配中" -> listOf("匹配界面都快看穿了，还不快投降。", "连跪三把还不退，这叫毅力。")
-                "备忘录" -> listOf("备忘录写得很勤，执行力在隔壁。", "提醒设得漂亮，起床另说。")
+                "深夜刷短视频" -> listOf(
+                    "刷得开心吗？我坐在旁边陪你看到想停为止。",
+                    "夜里的光软软的，记得眨眨眼哦。"
+                )
+                "微信置顶群" -> listOf(
+                    "消息在闪啦，不急，想回的时候再回。",
+                    "置顶群好热闹，我帮你盯着，你慢慢想。"
+                )
+                "购物车结算" -> listOf(
+                    "购物车在发光呢，选喜欢的就好。",
+                    "凑单也好可爱，开心最要紧。"
+                )
+                "排位赛匹配中" -> listOf(
+                    "匹配中呀，我在旁边给你捏个小拳头。",
+                    "输赢都没关系，我一直给你加油。"
+                )
+                "备忘录" -> listOf(
+                    "备忘录排得好整齐，明天我们一起完成。",
+                    "提醒设好啦，到点我会先替你紧张一下。"
+                )
                 else -> mockLines
             }
             return RoastResult(pool[Random.nextInt(pool.size)], "mock")
@@ -45,13 +60,14 @@ class VisionClient(private val prefs: Prefs) {
         return try {
             val jpeg = bitmapToJpegBase64(bitmap)
             val systemPrompt = prefs.roastStyle.ifBlank {
-                "你是贴在用户手机悬浮窗上看热闹的损友。" +
-                    "根据截图里真实内容（App、文字、画面）说一句中文短吐槽，不超过28字。" +
-                    "要具体到眼前画面，俏皮但不伤人；不要建议、不要提问、不要表情符号、不要引号包裹。"
+                "你是手机悬浮窗里的二次元桌面伴侣「小旁」，温柔、可爱、会陪伴。" +
+                    "根据截图里真实内容（App、文字、画面）说一句中文短陪伴语，不超过28字。" +
+                    "要具体到眼前画面，像贴在身边轻声说话；俏皮一点但不要损人、不要说教。" +
+                    "不要提问、不要表情符号、不要引号包裹、不要自我介绍。"
             }
             val body = JSONObject()
                 .put("model", prefs.model)
-                .put("temperature", 0.85)
+                .put("temperature", 0.8)
                 .put("max_tokens", 96)
                 .put(
                     "messages",
@@ -72,7 +88,7 @@ class VisionClient(private val prefs: Prefs) {
                                                 .put("type", "text")
                                                 .put(
                                                     "text",
-                                                    "这是用户手机当前屏幕截图。先判断在用什么、在看什么，再吐槽一句。"
+                                                    "这是用户手机当前屏幕截图。先判断在用什么、在看什么，再以小旁的口吻说一句陪伴。"
                                                 )
                                         )
                                         .put(
@@ -100,7 +116,7 @@ class VisionClient(private val prefs: Prefs) {
             client.newCall(request).execute().use { resp ->
                 val raw = resp.body?.string().orEmpty()
                 if (!resp.isSuccessful) {
-                    return RoastResult("视觉接口 ${resp.code}：检查 Key/模型", "error")
+                    return RoastResult("接口 ${resp.code}：检查 Key/模型哦", "error")
                 }
                 val json = JSONObject(raw)
                 var text = json
@@ -116,7 +132,7 @@ class VisionClient(private val prefs: Prefs) {
                 else RoastResult(text, "api")
             }
         } catch (e: Exception) {
-            RoastResult("吐槽开小差：${e.javaClass.simpleName}", "error")
+            RoastResult("小旁走神了：${e.javaClass.simpleName}", "error")
         }
     }
 

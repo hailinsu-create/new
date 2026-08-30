@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">旁窗</string>
-    <string name="notification_title">旁窗正在看屏吐槽</string>
-    <string name="notification_text">悬浮窗运行中 · 点此回设置</string>
-    <string name="start_roast">开始看屏吐槽</string>
+    <string name="companion_name">小旁</string>
+    <string name="notification_title">小旁陪你看屏幕中</string>
+    <string name="notification_text">桌面伴侣运行中 · 点此回设置</string>
+    <string name="start_roast">召唤小旁陪看屏幕</string>
     <string name="start_demo">仅演示悬浮窗（不看真屏）</string>
-    <string name="stop_roast">停止吐槽</string>
+    <string name="stop_roast">让小旁先休息</string>
     <string name="overlay_hint">需要「显示在其他应用上层」权限</string>
-    <string name="capture_hint">需要屏幕录制权限，用于把当前画面发给视觉模型</string>
+    <string name="capture_hint">需要屏幕录制权限，好让小旁看见你正在看的画面</string>
 </resources>

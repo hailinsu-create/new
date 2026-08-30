@@ -103,8 +103,8 @@ class RoastService : Service() {
         val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.notification_title))
             .setContentText(
-                if (demo) "演示悬浮窗中 · 合成画面吐槽"
-                else "正在看你的屏幕并吐槽"
+                if (demo) "演示模式 · 小旁用合成画面陪聊"
+                else "小旁陪你看屏幕中"
             )
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentIntent(open)
@@ -146,7 +146,7 @@ class RoastService : Service() {
             scope.launch { roastOnce(force = true) }
         }
         overlay = overlayController
-        overlayController.show("已盯上你的屏幕。长按「旁」可立刻吐槽。")
+        overlayController.show("我在这儿陪着你。长按头像，我马上看看屏幕。")
 
         val screenCaptor = ScreenCaptor(this, projection)
         captor = screenCaptor
@@ -170,7 +170,7 @@ class RoastService : Service() {
             scope.launch { roastOnce(force = true) }
         }
         overlay = overlayController
-        overlayController.show("演示模式：合成画面吐槽。长按「旁」立刻换一句。")
+        overlayController.show("演示模式：我会用合成画面陪你练对话。长按头像换一句。")
 
         loopJob = scope.launch {
             delay(400)
@@ -196,7 +196,7 @@ class RoastService : Service() {
                 captured
             }
             if (frame == null) {
-                o.showText("还没抓到画面，再等一下…")
+                o.showText("画面还没准备好，再等我一小下…")
                 return
             }
 
@@ -209,7 +209,7 @@ class RoastService : Service() {
                     frame.recycle()
                     // Every few quiet ticks, remind instead of looking dead.
                     if (unchangedStreak % 3 == 0) {
-                        o.showText("画面差不多，继续盯着…长按可强制吐槽")
+                        o.showText("画面没怎么变，我还在陪着你。长按头像可以说一句。")
                     }
                     return
                 }
@@ -218,16 +218,11 @@ class RoastService : Service() {
             lastFrame?.recycle()
             lastFrame = frame.copy(Bitmap.Config.ARGB_8888, false)
 
-            o.showText("正在看屏吐槽…")
+            o.showText("让我看看你在干嘛…")
             val scene = if (demoMode) DEMO_SCENES[demoIndex % DEMO_SCENES.size].first else null
             val result = withContext(Dispatchers.IO) { vision.roast(frame, scene) }
             frame.recycle()
-            val tag = when (result.source) {
-                "api" -> "看屏"
-                "mock" -> "演示"
-                else -> "异常"
-            }
-            o.showText("[$tag] ${result.text}")
+            o.showText(result.text)
             if (demoMode) demoIndex++
         } finally {
             roasting.set(false)
@@ -251,7 +246,7 @@ class RoastService : Service() {
         canvas.drawRoundRect(48f, 96f, 672f, 240f, 36f, 36f, Paint().apply { color = scene.third })
         canvas.drawText(scene.first, 72f, 180f, title.apply { color = Color.parseColor("#0B1220") })
         canvas.drawText(scene.fourth, 72f, 360f, body)
-        canvas.drawText("旁窗演示画面 #${demoIndex + 1}", 72f, 440f, body)
+        canvas.drawText("小旁演示画面 #${demoIndex + 1}", 72f, 440f, body)
         return bmp
     }
 
@@ -289,7 +284,7 @@ class RoastService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "旁窗吐槽",
+                "旁窗伴侣",
                 NotificationManager.IMPORTANCE_LOW
             )
             val nm = getSystemService(NotificationManager::class.java)

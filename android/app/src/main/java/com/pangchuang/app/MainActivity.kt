@@ -29,12 +29,12 @@ class MainActivity : AppCompatActivity() {
     private val captureLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode != Activity.RESULT_OK || result.data == null) {
-                Toast.makeText(this, "需要屏幕录制权限才能根据屏幕吐槽", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "需要屏幕录制权限，小旁才能看见画面", Toast.LENGTH_SHORT).show()
                 return@registerForActivityResult
             }
             saveForm()
             RoastService.start(this, result.resultCode, result.data!!)
-            Toast.makeText(this, "已开始看屏吐槽，去刷手机吧", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "小旁已就位，去刷手机吧", Toast.LENGTH_SHORT).show()
             moveTaskToBack(true)
         }
 
@@ -92,7 +92,7 @@ class MainActivity : AppCompatActivity() {
         }
         binding.btnOverlay.isEnabled = !overlayOk
         binding.captureStatus.text =
-            "点下方主按钮后授权「屏幕录制」。旁窗会定时截取当前画面发给视觉模型吐槽。"
+            "点下方主按钮后授权「屏幕录制」。小旁会定时看看你的屏幕，用可爱的口吻陪你说一句。"
     }
 
     private fun openOverlaySettings() {
@@ -121,7 +121,7 @@ class MainActivity : AppCompatActivity() {
         if (!prefs.mockApi && prefs.apiKey.isBlank()) {
             Toast.makeText(
                 this,
-                "请填写视觉模型 API Key，或先打开「演示段子」",
+                "请填写视觉模型 API Key，或先打开「演示陪伴语」",
                 Toast.LENGTH_LONG
             ).show()
             return
@@ -140,7 +140,7 @@ class MainActivity : AppCompatActivity() {
         prefs.mockApi = true
         binding.switchMock.isChecked = true
         RoastService.startDemo(this)
-        Toast.makeText(this, "演示悬浮窗已启动（不看真屏）", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "小旁演示已启动（不看真屏）", Toast.LENGTH_SHORT).show()
         moveTaskToBack(true)
     }
 

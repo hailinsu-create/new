@@ -16,7 +16,7 @@ class Prefs(context: Context) {
         set(value) = sp.edit().putString(KEY_KEY, value).apply()
 
     var model: String
-        get() = sp.getString(KEY_MODEL, "Qwen/Qwen2.5-VL-7B-Instruct")!!
+        get() = sp.getString(KEY_MODEL, "Qwen/Qwen3-VL-8B-Instruct")!!
         set(value) = sp.edit().putString(KEY_MODEL, value).apply()
 
     var intervalSec: Int
@@ -27,6 +27,7 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(KEY_MOCK, false)
         set(value) = sp.edit().putBoolean(KEY_MOCK, value).apply()
 
+    /** Optional custom system prompt. Empty = cute companion default. */
     var roastStyle: String
         get() = sp.getString(KEY_STYLE, "")!!
         set(value) = sp.edit().putString(KEY_STYLE, value).apply()

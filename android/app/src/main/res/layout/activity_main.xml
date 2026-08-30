@@ -26,7 +26,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="关掉「演示段子」并填入视觉 API 后，旁窗会截取你正在用的屏幕，用模型按画面内容吐槽。"
+            android:text="关掉「演示陪伴语」并填入视觉 API 后，小旁会看看你正在用的屏幕，用可爱的口吻陪你说一句。开源桌面伴侣，贴在屏幕边。"
             android:textColor="@color/mist"
             android:textSize="15sp" />
 
@@ -144,14 +144,14 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="text"
-                        android:text="Qwen/Qwen2.5-VL-7B-Instruct" />
+                        android:text="Qwen/Qwen3-VL-8B-Instruct" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:hint="吐槽间隔（秒）">
+                    android:hint="陪伴间隔（秒）">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/inputInterval"
@@ -167,7 +167,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:checked="false"
-                    android:text="演示段子（不调视觉 API，假吐槽）"
+                    android:text="演示陪伴语（不调视觉 API）"
                     android:textColor="@color/foam" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
