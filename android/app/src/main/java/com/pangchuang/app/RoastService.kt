@@ -223,7 +223,7 @@ class RoastService : Service() {
             lastFrame?.recycle()
             lastFrame = frame.copy(Bitmap.Config.ARGB_8888, false)
 
-            o.showText("让我看看你在干嘛…")
+            o.showThinking("让我看看你在干嘛…")
             val scene = if (demoMode) DEMO_SCENES[demoIndex % DEMO_SCENES.size].first else null
             val result = withContext(Dispatchers.IO) { vision.roast(frame, scene) }
             frame.recycle()
