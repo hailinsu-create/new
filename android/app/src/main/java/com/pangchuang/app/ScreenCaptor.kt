@@ -5,20 +5,28 @@ import android.graphics.Bitmap
 import android.graphics.PixelFormat
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
+import android.media.Image
 import android.media.ImageReader
 import android.media.projection.MediaProjection
 import android.os.Handler
-import android.os.Looper
+import android.os.HandlerThread
 import android.util.DisplayMetrics
 import android.view.WindowManager
+import java.util.concurrent.atomic.AtomicReference
 
+/**
+ * Continuously mirrors the phone screen via MediaProjection into bitmaps
+ * suitable for vision-model roasting.
+ */
 class ScreenCaptor(
-    private val context: Context,
+    context: Context,
     private val mediaProjection: MediaProjection
 ) {
     private var imageReader: ImageReader? = null
     private var virtualDisplay: VirtualDisplay? = null
-    private val mainHandler = Handler(Looper.getMainLooper())
+    private var workerThread: HandlerThread? = null
+    private var workerHandler: Handler? = null
+    private val latestBitmap = AtomicReference<Bitmap?>(null)
 
     private val width: Int
     private val height: Int
@@ -29,7 +37,6 @@ class ScreenCaptor(
         val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
         @Suppress("DEPRECATION")
         wm.defaultDisplay.getRealMetrics(metrics)
-        // Capture at a modest size for bandwidth + privacy.
         val maxW = 720
         val scale = maxW.toFloat() / metrics.widthPixels.coerceAtLeast(1)
         width = maxW
@@ -38,52 +45,96 @@ class ScreenCaptor(
     }
 
     fun start() {
-        imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
+        val thread = HandlerThread("pangchuang-capture").also { it.start() }
+        workerThread = thread
+        val handler = Handler(thread.looper)
+        workerHandler = handler
+
+        val reader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 3)
+        imageReader = reader
+        reader.setOnImageAvailableListener({ r ->
+            val image = r.acquireLatestImage() ?: return@setOnImageAvailableListener
+            try {
+                val bmp = imageToBitmap(image) ?: return@setOnImageAvailableListener
+                latestBitmap.getAndSet(bmp)?.recycle()
+            } finally {
+                image.close()
+            }
+        }, handler)
+
         virtualDisplay = mediaProjection.createVirtualDisplay(
             "pangchuang-capture",
             width,
             height,
             density,
             DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-            imageReader!!.surface,
+            reader.surface,
             null,
-            mainHandler
+            handler
         )
     }
 
-    fun captureBitmap(): Bitmap? {
-        val reader = imageReader ?: return null
-        val image = reader.acquireLatestImage() ?: return null
-        image.use { img ->
-            val plane = img.planes[0]
-            val buffer = plane.buffer
-            val pixelStride = plane.pixelStride
-            val rowStride = plane.rowStride
-            val rowPadding = rowStride - pixelStride * width
-            val bitmap = Bitmap.createBitmap(
-                width + rowPadding / pixelStride,
-                height,
-                Bitmap.Config.ARGB_8888
-            )
-            bitmap.copyPixelsFromBuffer(buffer)
-            return Bitmap.createBitmap(bitmap, 0, 0, width, height).also {
-                if (it !== bitmap) bitmap.recycle()
+    /**
+     * Returns a copy of the newest frame, waiting briefly if the pipeline is still warming up.
+     */
+    fun captureBitmap(waitMs: Long = 800): Bitmap? {
+        val deadline = System.currentTimeMillis() + waitMs
+        while (System.currentTimeMillis() < deadline) {
+            val current = latestBitmap.get()
+            if (current != null && !current.isRecycled) {
+                return current.copy(Bitmap.Config.ARGB_8888, false)
             }
+            try {
+                Thread.sleep(40)
+            } catch (_: InterruptedException) {
+                break
+            }
+        }
+        val fallback = latestBitmap.get()
+        return if (fallback != null && !fallback.isRecycled) {
+            fallback.copy(Bitmap.Config.ARGB_8888, false)
+        } else {
+            null
         }
     }
 
     fun release() {
         virtualDisplay?.release()
         virtualDisplay = null
+        imageReader?.setOnImageAvailableListener(null, null)
         imageReader?.close()
         imageReader = null
+        latestBitmap.getAndSet(null)?.recycle()
+        workerThread?.quitSafely()
+        workerThread = null
+        workerHandler = null
+    }
+
+    private fun imageToBitmap(image: Image): Bitmap? {
+        val plane = image.planes.getOrNull(0) ?: return null
+        val buffer = plane.buffer
+        val pixelStride = plane.pixelStride
+        val rowStride = plane.rowStride
+        val rowPadding = rowStride - pixelStride * width
+        val full = Bitmap.createBitmap(
+            width + rowPadding / pixelStride,
+            height,
+            Bitmap.Config.ARGB_8888
+        )
+        buffer.rewind()
+        full.copyPixelsFromBuffer(buffer)
+        return if (full.width == width) {
+            full
+        } else {
+            Bitmap.createBitmap(full, 0, 0, width, height).also { full.recycle() }
+        }
     }
 }
 
-fun screenChanged(a: Bitmap?, b: Bitmap, threshold: Float = 12f): Boolean {
+fun screenChanged(a: Bitmap?, b: Bitmap, threshold: Float = 10f): Boolean {
     if (a == null) return true
-    val aw = 32
-    val ah = 32
+    val aw = 48
+    val ah = 48
     val sa = Bitmap.createScaledBitmap(a, aw, ah, true)
     val sb = Bitmap.createScaledBitmap(b, aw, ah, true)
     var diff = 0L

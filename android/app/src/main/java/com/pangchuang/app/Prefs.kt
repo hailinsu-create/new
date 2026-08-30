@@ -20,12 +20,20 @@ class Prefs(context: Context) {
         set(value) = sp.edit().putString(KEY_MODEL, value).apply()
 
     var intervalSec: Int
-        get() = sp.getInt(KEY_INTERVAL, 15).coerceIn(5, 120)
+        get() = sp.getInt(KEY_INTERVAL, 12).coerceIn(5, 120)
         set(value) = sp.edit().putInt(KEY_INTERVAL, value.coerceIn(5, 120)).apply()
 
     var mockApi: Boolean
-        get() = sp.getBoolean(KEY_MOCK, true)
+        get() = sp.getBoolean(KEY_MOCK, false)
         set(value) = sp.edit().putBoolean(KEY_MOCK, value).apply()
+
+    var roastStyle: String
+        get() = sp.getString(KEY_STYLE, "")!!
+        set(value) = sp.edit().putString(KEY_STYLE, value).apply()
+
+    var changeThreshold: Float
+        get() = sp.getFloat(KEY_THRESHOLD, 8f)
+        set(value) = sp.edit().putFloat(KEY_THRESHOLD, value).apply()
 
     companion object {
         private const val KEY_BASE = "base_url"
@@ -33,5 +41,7 @@ class Prefs(context: Context) {
         private const val KEY_MODEL = "model"
         private const val KEY_INTERVAL = "interval"
         private const val KEY_MOCK = "mock"
+        private const val KEY_STYLE = "style"
+        private const val KEY_THRESHOLD = "threshold"
     }
 }

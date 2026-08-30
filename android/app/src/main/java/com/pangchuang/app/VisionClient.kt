@@ -44,36 +44,50 @@ class VisionClient(private val prefs: Prefs) {
         }
         return try {
             val jpeg = bitmapToJpegBase64(bitmap)
+            val systemPrompt = prefs.roastStyle.ifBlank {
+                "你是贴在用户手机悬浮窗上看热闹的损友。" +
+                    "根据截图里真实内容（App、文字、画面）说一句中文短吐槽，不超过28字。" +
+                    "要具体到眼前画面，俏皮但不伤人；不要建议、不要提问、不要表情符号、不要引号包裹。"
+            }
             val body = JSONObject()
                 .put("model", prefs.model)
-                .put("temperature", 0.8)
-                .put("max_tokens", 80)
+                .put("temperature", 0.85)
+                .put("max_tokens", 96)
                 .put(
                     "messages",
-                    JSONArray().put(
-                        JSONObject()
-                            .put("role", "system")
-                            .put(
-                                "content",
-                                "你是贴在安卓小窗边上看热闹的损友。用一句中文短吐槽（不超过28字），俏皮具体，不伤人，不要建议和提问。"
-                            )
-                    ).put(
-                        JSONObject()
-                            .put("role", "user")
-                            .put(
-                                "content",
-                                JSONArray()
-                                    .put(JSONObject().put("type", "text").put("text", "看这张手机截图，来一句短吐槽。"))
-                                    .put(
-                                        JSONObject()
-                                            .put("type", "image_url")
-                                            .put(
-                                                "image_url",
-                                                JSONObject().put("url", "data:image/jpeg;base64,$jpeg")
-                                            )
-                                    )
-                            )
-                    )
+                    JSONArray()
+                        .put(
+                            JSONObject()
+                                .put("role", "system")
+                                .put("content", systemPrompt)
+                        )
+                        .put(
+                            JSONObject()
+                                .put("role", "user")
+                                .put(
+                                    "content",
+                                    JSONArray()
+                                        .put(
+                                            JSONObject()
+                                                .put("type", "text")
+                                                .put(
+                                                    "text",
+                                                    "这是用户手机当前屏幕截图。先判断在用什么、在看什么，再吐槽一句。"
+                                                )
+                                        )
+                                        .put(
+                                            JSONObject()
+                                                .put("type", "image_url")
+                                                .put(
+                                                    "image_url",
+                                                    JSONObject().put(
+                                                        "url",
+                                                        "data:image/jpeg;base64,$jpeg"
+                                                    )
+                                                )
+                                        )
+                                )
+                        )
                 )
 
             val request = Request.Builder()
@@ -84,10 +98,11 @@ class VisionClient(private val prefs: Prefs) {
                 .build()
 
             client.newCall(request).execute().use { resp ->
+                val raw = resp.body?.string().orEmpty()
                 if (!resp.isSuccessful) {
-                    return RoastResult("视觉接口 ${resp.code}，先开演示段子也行", "error")
+                    return RoastResult("视觉接口 ${resp.code}：检查 Key/模型", "error")
                 }
-                val json = JSONObject(resp.body?.string().orEmpty())
+                val json = JSONObject(raw)
                 var text = json
                     .getJSONArray("choices")
                     .getJSONObject(0)
@@ -95,6 +110,7 @@ class VisionClient(private val prefs: Prefs) {
                     .optString("content")
                     .trim()
                     .replace('\n', ' ')
+                    .trim('"', '“', '”', '「', '」')
                 if (text.length > 40) text = text.take(39) + "…"
                 if (text.isBlank()) RoastResult(mockLines.random(), "mock")
                 else RoastResult(text, "api")
@@ -107,7 +123,7 @@ class VisionClient(private val prefs: Prefs) {
     private fun bitmapToJpegBase64(bitmap: Bitmap): String {
         val scaled = scaleDown(bitmap, 768)
         val out = ByteArrayOutputStream()
-        scaled.compress(Bitmap.CompressFormat.JPEG, 72, out)
+        scaled.compress(Bitmap.CompressFormat.JPEG, 70, out)
         if (scaled !== bitmap) scaled.recycle()
         return Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP)
     }

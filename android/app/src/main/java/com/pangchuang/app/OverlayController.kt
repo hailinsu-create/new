@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.PixelFormat
 import android.os.Build
+import android.os.SystemClock
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -15,7 +16,10 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import kotlin.math.abs
 
-class OverlayController(private val context: Context) {
+class OverlayController(
+    private val context: Context,
+    private val onForceRoast: (() -> Unit)? = null
+) {
     private val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     private var root: View? = null
     private var bubblePanel: LinearLayout? = null
@@ -24,7 +28,7 @@ class OverlayController(private val context: Context) {
     private var hiddenForCapture = false
 
     @SuppressLint("ClickableViewAccessibility", "InflateParams")
-    fun show() {
+    fun show(initialText: String = "旁窗已就位，开始盯着你的屏幕。") {
         if (root != null) return
         val view = LayoutInflater.from(context).inflate(R.layout.overlay_bubble, null)
         bubblePanel = view.findViewById(R.id.bubblePanel)
@@ -55,6 +59,7 @@ class OverlayController(private val context: Context) {
         var downY = 0f
         var startX = 0
         var startY = 0
+        var downAt = 0L
         fab.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
@@ -62,6 +67,7 @@ class OverlayController(private val context: Context) {
                     downY = event.rawY
                     startX = lp.x
                     startY = lp.y
+                    downAt = SystemClock.uptimeMillis()
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
@@ -71,8 +77,15 @@ class OverlayController(private val context: Context) {
                     true
                 }
                 MotionEvent.ACTION_UP -> {
-                    if (abs(event.rawX - downX) < 8 && abs(event.rawY - downY) < 8) {
-                        toggleBubble()
+                    val moved = abs(event.rawX - downX) >= 8 || abs(event.rawY - downY) >= 8
+                    val held = SystemClock.uptimeMillis() - downAt >= 450
+                    if (!moved) {
+                        if (held) {
+                            showText("马上吐槽眼前画面…")
+                            onForceRoast?.invoke()
+                        } else {
+                            toggleBubble()
+                        }
                     }
                     true
                 }
@@ -83,7 +96,7 @@ class OverlayController(private val context: Context) {
         windowManager.addView(view, lp)
         root = view
         params = lp
-        showText("旁窗已就位，开始盯着你的屏幕。")
+        showText(initialText)
     }
 
     fun showText(text: String) {

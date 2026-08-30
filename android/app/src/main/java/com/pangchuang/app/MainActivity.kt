@@ -29,12 +29,12 @@ class MainActivity : AppCompatActivity() {
     private val captureLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode != Activity.RESULT_OK || result.data == null) {
-                Toast.makeText(this, "需要屏幕录制权限才能持续看屏", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "需要屏幕录制权限才能根据屏幕吐槽", Toast.LENGTH_SHORT).show()
                 return@registerForActivityResult
             }
             saveForm()
             RoastService.start(this, result.resultCode, result.data!!)
-            Toast.makeText(this, "小窗已启动，去刷手机吧", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "已开始看屏吐槽，去刷手机吧", Toast.LENGTH_SHORT).show()
             moveTaskToBack(true)
         }
 
@@ -91,7 +91,8 @@ class MainActivity : AppCompatActivity() {
             getString(R.string.overlay_hint)
         }
         binding.btnOverlay.isEnabled = !overlayOk
-        binding.captureStatus.text = getString(R.string.capture_hint)
+        binding.captureStatus.text =
+            "点下方主按钮后授权「屏幕录制」。旁窗会定时截取当前画面发给视觉模型吐槽。"
     }
 
     private fun openOverlaySettings() {
@@ -106,7 +107,7 @@ class MainActivity : AppCompatActivity() {
         prefs.baseUrl = binding.inputBaseUrl.text?.toString().orEmpty()
         prefs.apiKey = binding.inputApiKey.text?.toString().orEmpty()
         prefs.model = binding.inputModel.text?.toString().orEmpty()
-        prefs.intervalSec = binding.inputInterval.text?.toString()?.toIntOrNull() ?: 15
+        prefs.intervalSec = binding.inputInterval.text?.toString()?.toIntOrNull() ?: 12
         prefs.mockApi = binding.switchMock.isChecked
     }
 
@@ -117,6 +118,14 @@ class MainActivity : AppCompatActivity() {
             return
         }
         saveForm()
+        if (!prefs.mockApi && prefs.apiKey.isBlank()) {
+            Toast.makeText(
+                this,
+                "请填写视觉模型 API Key，或先打开「演示段子」",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
         val mpm = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         captureLauncher.launch(mpm.createScreenCaptureIntent())
     }
@@ -129,8 +138,9 @@ class MainActivity : AppCompatActivity() {
         }
         saveForm()
         prefs.mockApi = true
+        binding.switchMock.isChecked = true
         RoastService.startDemo(this)
-        Toast.makeText(this, "演示悬浮窗已启动", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "演示悬浮窗已启动（不看真屏）", Toast.LENGTH_SHORT).show()
         moveTaskToBack(true)
     }
 

@@ -15,7 +15,9 @@ import android.graphics.Paint
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,16 +28,21 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.concurrent.atomic.AtomicBoolean
 
 class RoastService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val mainHandler = Handler(Looper.getMainLooper())
     private var loopJob: Job? = null
     private var mediaProjection: MediaProjection? = null
+    private var projectionCallback: MediaProjection.Callback? = null
     private var captor: ScreenCaptor? = null
     private var overlay: OverlayController? = null
     private var lastFrame: Bitmap? = null
     private var demoMode = false
     private var demoIndex = 0
+    private var unchangedStreak = 0
+    private val roasting = AtomicBoolean(false)
     private lateinit var prefs: Prefs
     private lateinit var vision: VisionClient
 
@@ -53,6 +60,9 @@ class RoastService : Service() {
             ACTION_STOP -> {
                 stopSelfSafe()
                 return START_NOT_STICKY
+            }
+            ACTION_FORCE_ROAST -> {
+                scope.launch { roastOnce(force = true) }
             }
             ACTION_START_DEMO -> {
                 startAsForeground(demo = true)
@@ -94,7 +104,7 @@ class RoastService : Service() {
             .setContentTitle(getString(R.string.notification_title))
             .setContentText(
                 if (demo) "演示悬浮窗中 · 合成画面吐槽"
-                else getString(R.string.notification_text)
+                else "正在看你的屏幕并吐槽"
             )
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentIntent(open)
@@ -117,28 +127,38 @@ class RoastService : Service() {
     private fun beginCapture(resultCode: Int, data: Intent) {
         if (loopJob?.isActive == true) return
         demoMode = false
+        unchangedStreak = 0
+
         val mpm = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         val projection = mpm.getMediaProjection(resultCode, data)
         mediaProjection = projection
-        projection.registerCallback(object : MediaProjection.Callback() {
-            override fun onStop() {
-                stopSelfSafe()
-            }
-        }, null)
 
-        val overlayController = OverlayController(this)
+        // Android 14+: callback must be registered before createVirtualDisplay.
+        val callback = object : MediaProjection.Callback() {
+            override fun onStop() {
+                mainHandler.post { stopSelfSafe() }
+            }
+        }
+        projectionCallback = callback
+        projection.registerCallback(callback, mainHandler)
+
+        val overlayController = OverlayController(this) {
+            scope.launch { roastOnce(force = true) }
+        }
         overlay = overlayController
-        overlayController.show()
+        overlayController.show("已盯上你的屏幕。长按「旁」可立刻吐槽。")
 
         val screenCaptor = ScreenCaptor(this, projection)
         captor = screenCaptor
         screenCaptor.start()
 
         loopJob = scope.launch {
-            delay(800)
+            delay(900)
+            // First roast ASAP so users feel it working.
+            roastOnce(force = true)
             while (isActive) {
-                roastOnce()
                 delay(prefs.intervalSec * 1000L)
+                roastOnce(force = false)
             }
         }
     }
@@ -146,56 +166,72 @@ class RoastService : Service() {
     private fun beginDemo() {
         if (loopJob?.isActive == true) return
         demoMode = true
-        val overlayController = OverlayController(this)
+        val overlayController = OverlayController(this) {
+            scope.launch { roastOnce(force = true) }
+        }
         overlay = overlayController
-        overlayController.show()
-        overlayController.showText("演示模式：合成手机画面，持续吐槽中。")
+        overlayController.show("演示模式：合成画面吐槽。长按「旁」立刻换一句。")
 
         loopJob = scope.launch {
             delay(400)
             while (isActive) {
-                roastOnce()
+                roastOnce(force = true)
                 delay((prefs.intervalSec.coerceAtMost(8)) * 1000L)
             }
         }
     }
 
-    private suspend fun roastOnce() {
-        val o = overlay ?: return
-        val frame = if (demoMode) {
-            withContext(Dispatchers.Default) { nextDemoFrame() }
-        } else {
-            val c = captor ?: return
-            o.hideForCapture()
-            delay(120)
-            val captured = withContext(Dispatchers.Default) { c.captureBitmap() }
-            o.restoreAfterCapture()
-            captured
-        }
-        if (frame == null) {
-            o.showText("还没抓到画面，稍后再试。")
-            return
-        }
-        val changed = withContext(Dispatchers.Default) { screenChanged(lastFrame, frame) }
-        if (!changed && lastFrame != null && !demoMode) {
-            frame.recycle()
-            return
-        }
-        lastFrame?.recycle()
-        lastFrame = frame.copy(Bitmap.Config.ARGB_8888, false)
+    private suspend fun roastOnce(force: Boolean) {
+        if (!roasting.compareAndSet(false, true)) return
+        try {
+            val o = overlay ?: return
+            val frame = if (demoMode) {
+                withContext(Dispatchers.Default) { nextDemoFrame() }
+            } else {
+                val c = captor ?: return
+                o.hideForCapture()
+                delay(180)
+                val captured = withContext(Dispatchers.Default) { c.captureBitmap(900) }
+                o.restoreAfterCapture()
+                captured
+            }
+            if (frame == null) {
+                o.showText("还没抓到画面，再等一下…")
+                return
+            }
 
-        o.showText("正在吐槽…")
-        val scene = if (demoMode) DEMO_SCENES[demoIndex % DEMO_SCENES.size].first else null
-        val result = withContext(Dispatchers.IO) { vision.roast(frame, scene) }
-        if (!demoMode) frame.recycle()
-        else frame.recycle()
-        val tag = when (result.source) {
-            "api" -> "视觉"
-            "mock" -> "演示"
-            else -> "异常"
+            if (!force && !demoMode) {
+                val changed = withContext(Dispatchers.Default) {
+                    screenChanged(lastFrame, frame, prefs.changeThreshold)
+                }
+                if (!changed) {
+                    unchangedStreak++
+                    frame.recycle()
+                    // Every few quiet ticks, remind instead of looking dead.
+                    if (unchangedStreak % 3 == 0) {
+                        o.showText("画面差不多，继续盯着…长按可强制吐槽")
+                    }
+                    return
+                }
+            }
+            unchangedStreak = 0
+            lastFrame?.recycle()
+            lastFrame = frame.copy(Bitmap.Config.ARGB_8888, false)
+
+            o.showText("正在看屏吐槽…")
+            val scene = if (demoMode) DEMO_SCENES[demoIndex % DEMO_SCENES.size].first else null
+            val result = withContext(Dispatchers.IO) { vision.roast(frame, scene) }
+            frame.recycle()
+            val tag = when (result.source) {
+                "api" -> "看屏"
+                "mock" -> "演示"
+                else -> "异常"
+            }
+            o.showText("[$tag] ${result.text}")
+            if (demoMode) demoIndex++
+        } finally {
+            roasting.set(false)
         }
-        o.showText("[$tag] ${result.text}")
-        if (demoMode) demoIndex++
     }
 
     private fun nextDemoFrame(): Bitmap {
@@ -224,6 +260,10 @@ class RoastService : Service() {
         loopJob = null
         captor?.release()
         captor = null
+        projectionCallback?.let { cb ->
+            runCatching { mediaProjection?.unregisterCallback(cb) }
+        }
+        projectionCallback = null
         mediaProjection?.stop()
         mediaProjection = null
         overlay?.dismiss()
@@ -260,13 +300,13 @@ class RoastService : Service() {
     companion object {
         const val ACTION_START = "com.pangchuang.app.START"
         const val ACTION_START_DEMO = "com.pangchuang.app.START_DEMO"
+        const val ACTION_FORCE_ROAST = "com.pangchuang.app.FORCE_ROAST"
         const val ACTION_STOP = "com.pangchuang.app.STOP"
         const val EXTRA_RESULT_CODE = "result_code"
         const val EXTRA_RESULT_DATA = "result_data"
         private const val CHANNEL_ID = "pangchuang_roast"
         private const val NOTIF_ID = 42
 
-        // name, bg, accent, body
         private val DEMO_SCENES = listOf(
             Triple("深夜刷短视频", Color.parseColor("#0F172A"), Color.parseColor("#38BDF8")) to "又一条同款舞蹈",
             Triple("微信置顶群", Color.parseColor("#111827"), Color.parseColor("#34D399")) to "老板：在吗？急！",
