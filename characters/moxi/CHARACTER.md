@@ -1,6 +1,6 @@
 # 墨汐（Mo Xi）
 
-本仓库的原创 Live2D 角色。画稿与设定归本项目；最终 `moc3` 需在 Cubism Editor 中由本立绘包绑定导出。
+本仓库的原创 Live2D 角色。画稿与设定归本项目。
 
 ## 设定
 
@@ -10,31 +10,30 @@
 | 定位 | 研究台看板娘 / 自托管演示角色 |
 | 气质 | 冷静、带一点墨色幽默；话不多，眼神先到 |
 | 视觉 | 墨青短发、琥珀色眼睛、炭灰高领，呼应站点的海墨配色 |
-| 用途 MVP | 半身、转头、眨眼、视线、张嘴、一条 idle |
+| 用途 MVP | 半身可加载 Live2D（单网格）；后续补眨眼/口型/idle |
 
 ## 版权
 
 - 角色原创，服务本仓库「自建 Live2D」目标
 - **不是** Live2D 官方 Haru / Hiyori 等样例
-- 研究台里的 Haru 仅作播放器对照，默认不再作为主角色
+- 研究台里的 Haru 仅作播放器对照
 
 ## 目录
 
 ```text
 characters/moxi/
-  CHARACTER.md          ← 本文件
-  art/                  ← 主视觉与分层 PNG
-  cubism/               ← 给 Editor 用的导入说明与清单
-public/models/moxi/     ← 导出 moc3 后放这里供网页加载
+  CHARACTER.md
+  art/                  主视觉与分层参考
+  cubism/               绑定清单与 import 素材
+public/models/moxi/     可加载 moc3 运行包
 ```
 
 ## 当前进度
 
 - [x] 角色设定
 - [x] 主视觉参考图
-- [x] 分层 PNG 包（Cubism 导入用）
-- [ ] Cubism Editor：网格 / 变形器 / 参数 / 物理
-- [ ] 导出 `moxi.model3.json` + `moxi.moc3` + textures
-- [ ] 研究台默认加载本地墨汐
-
-没有 Cubism 之前，研究台用主视觉静帧占位，提醒「待绑定」。
+- [x] Cubism Editor（Wine）导入并导出 moc3（SDK 5.0）
+- [x] 研究台默认加载本地墨汐 Live2D
+- [ ] 精拆 PSD（眼/嘴/发分层）
+- [ ] Angle / EyeOpen / Mouth / Breath 完整参数
+- [ ] Idle 动作与物理
