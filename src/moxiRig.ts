@@ -30,7 +30,6 @@ const PORTRAIT_WIDTH = 1536;
 const PORTRAIT_HEIGHT = 1024;
 const SLICE_COUNT = 64;
 const MOUTH_TILT = -0.175;
-const SKIN = "rgb(247, 223, 207)";
 const SKIN_A = (alpha: number) => `rgba(247, 223, 207, ${alpha})`;
 
 const ASSETS = {
@@ -121,79 +120,79 @@ const EXPRESSION_POSES: Record<RigExpression, FacePose> = {
     mouthWidth: 1.12,
     mouthCover: 1,
     blush: 0.42,
-    sparkle: 0.7,
+    sparkle: 0.45,
   },
   laugh: {
     ...NEUTRAL_POSE,
-    leftOpen: 0.52,
-    rightOpen: 0.52,
-    lowerLid: 0.9,
-    browRaise: 0.18,
-    mouthOpen: 0.82,
+    leftOpen: 0.08,
+    rightOpen: 0.08,
+    lowerLid: 0.15,
+    browRaise: 0.22,
+    mouthOpen: 0.88,
     mouthCurve: 1,
-    mouthWidth: 1.22,
+    mouthWidth: 1.28,
     mouthCover: 1,
-    blush: 0.55,
-    sparkle: 0.85,
-    headBounce: 1,
+    blush: 0.58,
+    sparkle: 0.2,
+    headBounce: 0.45,
   },
   surprise: {
     ...NEUTRAL_POSE,
-    leftOpen: 1.1,
-    rightOpen: 1.1,
-    eyeWidth: 1.06,
-    browRaise: 0.85,
-    mouthOpen: 0.9,
-    mouthCurve: 0.05,
-    mouthWidth: 0.72,
+    leftOpen: 1.14,
+    rightOpen: 1.14,
+    eyeWidth: 1.08,
+    browRaise: 1,
+    mouthOpen: 1,
+    mouthCurve: 0.02,
+    mouthWidth: 0.62,
     mouthCover: 1,
     blush: 0,
     sparkle: 1,
+    sweat: 0.25,
   },
   sad: {
     ...NEUTRAL_POSE,
-    leftOpen: 0.9,
-    rightOpen: 0.9,
-    lowerLid: 0.22,
-    browInner: 0.95,
-    browRaise: 0.12,
-    mouthCurve: -0.72,
-    mouthWidth: 0.88,
+    leftOpen: 0.86,
+    rightOpen: 0.86,
+    lowerLid: 0.18,
+    browInner: 1,
+    browRaise: 0.2,
+    mouthCurve: -0.9,
+    mouthWidth: 0.84,
     mouthCover: 1,
-    blush: 0.12,
-    lookBiasY: 0.22,
-    sparkle: 0.15,
-    tear: 0.85,
+    blush: 0.1,
+    lookBiasY: 0.18,
+    sparkle: 0.12,
+    tear: 1,
   },
   angry: {
     ...NEUTRAL_POSE,
-    leftOpen: 0.78,
-    rightOpen: 0.78,
-    eyeWidth: 0.94,
-    lowerLid: 0.35,
+    leftOpen: 0.72,
+    rightOpen: 0.72,
+    eyeWidth: 0.92,
+    lowerLid: 0.28,
     browInner: -1,
-    mouthOpen: 0.12,
-    mouthCurve: -0.35,
-    mouthWidth: 0.78,
+    mouthOpen: 0.08,
+    mouthCurve: -0.42,
+    mouthWidth: 0.7,
     mouthCover: 1,
-    blush: 0.22,
-    sparkle: 0.2,
-    sweat: 0.35,
+    blush: 0.18,
+    sparkle: 0.12,
+    sweat: 0.45,
   },
   shy: {
     ...NEUTRAL_POSE,
-    leftOpen: 0.88,
-    rightOpen: 0.88,
-    lowerLid: 0.45,
-    browInner: 0.28,
-    mouthCurve: 0.55,
-    mouthWidth: 0.82,
+    leftOpen: 0.86,
+    rightOpen: 0.86,
+    lowerLid: 0.38,
+    mouthCurve: 0.62,
+    mouthWidth: 0.8,
     mouthCover: 1,
-    blush: 0.92,
-    lookBiasX: 0.42,
-    lookBiasY: 0.38,
-    sparkle: 0.4,
-    sweat: 0.7,
+    blush: 1,
+    lookBiasX: 0.32,
+    lookBiasY: 0.3,
+    sparkle: 0.35,
+    sweat: 0.8,
   },
   wink: {
     ...NEUTRAL_POSE,
@@ -281,7 +280,7 @@ function talkViseme(seconds: number): { open: number; width: number; curve: numb
   return {
     open,
     width: 0.9 + 0.18 * Math.sin(seconds * 5.6 + 1.1),
-    curve: 0.16 + 0.12 * a,
+    curve: 0.3 + 0.22 * a,
   };
 }
 
@@ -515,8 +514,8 @@ export class MoxiRigViewer {
     this.drawEyeSocketFill(FACE.eyeRight, rightOpen);
     this.drawEye(this.assets.eyeLeft, FACE.eyeLeft, leftOpen, -1);
     this.drawEye(this.assets.eyeRight, FACE.eyeRight, rightOpen, 1);
-    this.drawLowerLid(FACE.eyeLeft, this.pose.lowerLid * (0.35 + 0.65 * leftOpen), -1);
-    this.drawLowerLid(FACE.eyeRight, this.pose.lowerLid * (0.35 + 0.65 * rightOpen), 1);
+    this.drawLowerLid(FACE.eyeLeft, this.pose.lowerLid * Math.min(1, leftOpen * 1.2), -1);
+    this.drawLowerLid(FACE.eyeRight, this.pose.lowerLid * Math.min(1, rightOpen * 1.2), 1);
     this.drawSparkle(FACE.eyeLeft, leftOpen, -1, seconds);
     this.drawSparkle(FACE.eyeRight, rightOpen, 1, seconds);
 
@@ -574,18 +573,15 @@ export class MoxiRigViewer {
     context.save();
     context.translate(center.x + this.lookX * 2.8, center.y + this.lookY * 1.8);
     context.scale(1 + side * this.lookX * 0.045, 1);
-    const shade = context.createLinearGradient(0, 2, 0, 22);
-    shade.addColorStop(0, SKIN_A(0));
-    shade.addColorStop(0.4, SKIN_A(0.28 * amount));
-    shade.addColorStop(1, SKIN_A(0.9 * amount));
-    context.fillStyle = shade;
-    context.beginPath();
-    context.ellipse(0, 11 + amount * 2, 30, 15, 0, 0, Math.PI * 2);
-    context.fill();
-    context.globalAlpha = 0.4 * amount;
-    context.strokeStyle = "#2a1f22";
-    context.lineWidth = 1.15;
     context.lineCap = "round";
+    context.strokeStyle = SKIN_A(0.55 * amount);
+    context.lineWidth = 7.5;
+    context.beginPath();
+    context.moveTo(-26, 6);
+    context.quadraticCurveTo(0, 12 + amount * 4, 26, 5);
+    context.stroke();
+    context.strokeStyle = `rgba(42, 31, 34, ${0.45 * amount})`;
+    context.lineWidth = 1.2;
     context.beginPath();
     context.moveTo(-24, 7);
     context.quadraticCurveTo(0, 13 + amount * 3, 24, 6);
@@ -663,7 +659,7 @@ export class MoxiRigViewer {
   private drawBrows(): void {
     const inner = this.pose.browInner;
     const raise = this.pose.browRaise;
-    if (Math.abs(inner) < 0.04 && Math.abs(raise) < 0.04) return;
+    if (Math.abs(inner) < 0.32 && Math.abs(raise) < 0.28) return;
     const context = this.portraitCtx;
     const lift = -raise * 7;
     this.strokeBrow(context, {
@@ -689,16 +685,9 @@ export class MoxiRigViewer {
     context.save();
     context.lineCap = "round";
     context.lineJoin = "round";
-    context.strokeStyle = SKIN;
-    context.lineWidth = 6.5;
-    context.globalAlpha = 0.7;
-    context.beginPath();
-    context.moveTo(points.outerX, points.outerY);
-    context.quadraticCurveTo(midX, midY, points.innerX, points.innerY);
-    context.stroke();
     context.strokeStyle = "#2a2428";
-    context.lineWidth = 2.15;
-    context.globalAlpha = 0.82;
+    context.lineWidth = 2.35;
+    context.globalAlpha = 0.78;
     context.beginPath();
     context.moveTo(points.outerX, points.outerY);
     context.quadraticCurveTo(midX, midY, points.innerX, points.innerY);
@@ -721,11 +710,11 @@ export class MoxiRigViewer {
     context.rotate(MOUTH_TILT);
     context.globalAlpha = cover;
 
-    const coverRx = 34 * width + open * 8;
-    const coverRy = 14 + open * 16;
-    const skinBlend = context.createRadialGradient(0, 1, 3, 0, 2, Math.max(coverRx, coverRy));
+    const coverRx = 30 * width + open * 6;
+    const coverRy = 12 + open * 14;
+    const skinBlend = context.createRadialGradient(0, 1, 2, 0, 2, Math.max(coverRx, coverRy));
     skinBlend.addColorStop(0, SKIN_A(1));
-    skinBlend.addColorStop(0.62, SKIN_A(0.88));
+    skinBlend.addColorStop(0.58, SKIN_A(0.9));
     skinBlend.addColorStop(1, SKIN_A(0));
     context.fillStyle = skinBlend;
     context.beginPath();
@@ -745,8 +734,8 @@ export class MoxiRigViewer {
     curve: number,
     width: number,
   ): void {
-    const half = 22 * width;
-    const dip = 9 * curve;
+    const half = 24 * width;
+    const dip = 11 * curve;
     context.fillStyle = "rgba(232, 184, 174, 0.78)";
     context.beginPath();
     context.ellipse(0, 5 + Math.max(0, dip) * 0.15, 9 * width, 4.2, 0, 0, Math.PI * 2);
@@ -780,41 +769,68 @@ export class MoxiRigViewer {
     curve: number,
     width: number,
   ): void {
-    const rx = 16 * width + open * 4;
-    const ry = 5 + open * 11;
-    const smile = Math.max(0, curve) * 4;
     context.save();
-    context.translate(0, 3);
-    context.beginPath();
-    context.moveTo(-rx, -smile * 0.2);
-    context.bezierCurveTo(-rx * 0.4, -ry * 0.2 - smile, rx * 0.4, -ry * 0.2 - smile, rx, -smile * 0.25);
-    context.bezierCurveTo(rx * 0.7, ry + smile * 0.4, -rx * 0.7, ry + smile * 0.4, -rx, -smile * 0.2);
-    context.closePath();
-    context.fillStyle = "#743d47";
-    context.fill();
-    context.fillStyle = "#2c131b";
-    context.beginPath();
-    context.ellipse(0, ry * 0.18, rx * 0.72, ry * 0.62, 0, 0, Math.PI * 2);
-    context.fill();
-    if (open > 0.35) {
-      context.fillStyle = "rgba(247, 233, 226, 0.95)";
+    context.translate(0, 2);
+    if (curve < 0.35) {
+      const rx = 6.5 * width + open * 4.5;
+      const ry = 5.5 + open * 9.5;
       context.beginPath();
-      context.ellipse(0, -ry * 0.28, rx * 0.62, Math.max(1.6, 2.6 * open), 0, Math.PI, Math.PI * 2);
+      context.ellipse(0, 2, rx, ry, 0, 0, Math.PI * 2);
+      context.fillStyle = "#6e3a43";
+      context.fill();
+      context.fillStyle = "#2a1218";
+      context.beginPath();
+      context.ellipse(0, 3.2, rx * 0.72, ry * 0.62, 0, 0, Math.PI * 2);
+      context.fill();
+      context.strokeStyle = "rgba(92, 51, 56, 0.8)";
+      context.lineWidth = 1.4;
+      context.beginPath();
+      context.ellipse(0, 2, rx, ry, 0, 0, Math.PI * 2);
+      context.stroke();
+      context.fillStyle = "rgba(232, 184, 174, 0.88)";
+      context.beginPath();
+      context.ellipse(0, ry + 1.2, rx * 0.7, 2.6, 0, 0, Math.PI * 2);
+      context.fill();
+    } else {
+      const half = 17 * width + open * 3;
+      const depth = 7 + open * 10;
+      context.beginPath();
+      context.moveTo(-half, 0);
+      context.quadraticCurveTo(0, -3.5 - curve * 1.5, half, 0);
+      context.quadraticCurveTo(half * 0.35, depth, 0, depth + 1);
+      context.quadraticCurveTo(-half * 0.35, depth, -half, 0);
+      context.closePath();
+      context.fillStyle = "#6e3a43";
+      context.fill();
+      context.fillStyle = "#2a1218";
+      context.beginPath();
+      context.ellipse(0, depth * 0.42, half * 0.55, depth * 0.38, 0, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = "rgba(247, 236, 230, 0.95)";
+      context.beginPath();
+      context.moveTo(-half * 0.72, 0.4);
+      context.quadraticCurveTo(0, -1.2, half * 0.72, 0.4);
+      context.lineTo(half * 0.62, 3.4);
+      context.quadraticCurveTo(0, 2.2, -half * 0.62, 3.4);
+      context.closePath();
+      context.fill();
+      context.fillStyle = "rgba(196, 112, 122, 0.82)";
+      context.beginPath();
+      context.ellipse(0, depth * 0.55, half * 0.32, depth * 0.2, 0, 0, Math.PI * 2);
+      context.fill();
+      context.strokeStyle = "rgba(92, 51, 56, 0.78)";
+      context.lineWidth = 1.35;
+      context.beginPath();
+      context.moveTo(-half, 0);
+      context.quadraticCurveTo(0, -3.5 - curve * 1.5, half, 0);
+      context.quadraticCurveTo(half * 0.35, depth, 0, depth + 1);
+      context.quadraticCurveTo(-half * 0.35, depth, -half, 0);
+      context.stroke();
+      context.fillStyle = "rgba(232, 184, 174, 0.9)";
+      context.beginPath();
+      context.ellipse(0, depth * 0.82, half * 0.55, 2.8, 0, 0, Math.PI * 2);
       context.fill();
     }
-    if (open > 0.5) {
-      context.fillStyle = "rgba(196, 112, 122, 0.88)";
-      context.beginPath();
-      context.ellipse(0, ry * 0.28, rx * 0.42, ry * 0.28, 0, 0, Math.PI * 2);
-      context.fill();
-    }
-    context.fillStyle = "rgba(232, 184, 174, 0.9)";
-    context.beginPath();
-    context.ellipse(0, ry * 0.72, rx * 0.7, 3.2, 0, 0, Math.PI * 2);
-    context.fill();
-    context.strokeStyle = "rgba(92, 51, 56, 0.75)";
-    context.lineWidth = 1.35;
-    context.stroke();
     context.restore();
   }
 
@@ -862,8 +878,8 @@ export class MoxiRigViewer {
     const drip = (Math.sin(seconds * 2.4) + 1) * 0.5;
     context.save();
     context.globalAlpha = amount * (0.55 + 0.45 * drip);
-    this.paintTear(context, 690, 328 + drip * 7);
-    this.paintTear(context, 768, 312 + drip * 6);
+    this.paintTear(context, 688, 326 + drip * 9);
+    this.paintTear(context, 770, 310 + drip * 8);
     context.restore();
   }
 
@@ -891,7 +907,7 @@ export class MoxiRigViewer {
     const bob = Math.sin(seconds * 4.4) * 1.5;
     context.save();
     context.globalAlpha = amount * 0.8;
-    context.translate(872, 268 + bob);
+    context.translate(846, 252 + bob);
     context.rotate(0.25);
     context.fillStyle = "rgba(196, 224, 232, 0.8)";
     context.beginPath();
