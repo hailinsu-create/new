@@ -79,6 +79,7 @@ export class Live2DViewer {
   private talking = false;
   private mouthHold = 0;
   private readonly onTick: () => void;
+  private resizeObserver: ResizeObserver | null = null;
 
   constructor(options: ViewerOptions) {
     if (!hasCubismCore()) {
@@ -99,10 +100,17 @@ export class Live2DViewer {
       resizeTo: options.canvas.parentElement ?? undefined,
     });
 
+    Live2DModel.registerTicker(PIXI.Ticker);
+
     this.app.stage.addChild(this.root);
     this.onTick = () => this.updateTalk();
     this.app.ticker.add(this.onTick, undefined, PIXI.UPDATE_PRIORITY.LOW);
     window.addEventListener("resize", this.handleResize);
+    const host = options.canvas.parentElement;
+    if (host && typeof ResizeObserver !== "undefined") {
+      this.resizeObserver = new ResizeObserver(() => this.fitModel());
+      this.resizeObserver.observe(host);
+    }
   }
 
   async load(url: string): Promise<LoadResult> {
@@ -129,6 +137,7 @@ export class Live2DViewer {
     this.talking = false;
     this.mouthHold = 0;
     this.fitModel();
+    requestAnimationFrame(() => this.fitModel());
     const core = coreModelOf(next);
     if (core) this.setMouthOpen(core, 0);
 
@@ -196,6 +205,7 @@ export class Live2DViewer {
   destroy(): void {
     this.destroyed = true;
     this.app.ticker.remove(this.onTick);
+    this.resizeObserver?.disconnect();
     window.removeEventListener("resize", this.handleResize);
     if (this.model) {
       this.model.destroy();
@@ -209,31 +219,32 @@ export class Live2DViewer {
   };
 
   /**
-   * pixi-live2d-display sizes the sprite by moc3 canvas pixels (1536×1024),
-   * not the mesh AABB. Mao-style min(view, 3000) / min(w,h) crops a wide PSD
-   * into a corner. Half-body portraits fit on height and keep the bust centered.
+   * pixi-live2d-display sizes the sprite by moc3 canvas pixels (1536×1024).
+   * Do not use Mao min(view, 3000), and do not rely on Live2DModel.anchor:
+   * if pivot is still 0, the bust sits in the bottom-right corner.
    */
   private fitModel(): void {
     if (!this.model) return;
-    const { width, height } = this.app.renderer;
-    if (!width || !height) return;
+    const host = this.app.view.parentElement;
+    const width = host?.clientWidth || this.app.renderer.width;
+    const height = host?.clientHeight || this.app.renderer.height;
+    if (width < 32 || height < 32) return;
 
     const iw = this.model.internalModel.width || 1;
     const ih = this.model.internalModel.height || 1;
     const bust = this.character?.layout?.scaleMode === "portraitBust";
-    const scale = bust ? (height / ih) * 0.94 : Math.min(width / iw, height / ih) * 0.92;
-    const anchorX = this.character?.layout?.anchorX ?? 0.5;
-    const anchorY = bust ? 0.5 : (this.character?.layout?.anchorY ?? 0.5);
+    const bodyFrac = bust ? 0.52 : 1;
+    const scale = Math.min(width / (iw * bodyFrac), height / ih) * 0.9;
+    const safe = Number.isFinite(scale) && scale > 0 ? scale : 1;
 
-    this.model.anchor.set(anchorX, anchorY);
-    this.model.scale.set(Number.isFinite(scale) && scale > 0 ? scale : 1);
-    this.model.x = 0;
-    this.model.y = 0;
+    this.model.anchor.set(0, 0);
+    this.model.pivot.set(0, 0);
+    this.model.scale.set(safe);
     this.model.rotation = 0;
-    this.root.x = width / 2;
-    this.root.y = height / 2;
-    this.root.rotation = 0;
+    this.root.position.set(0, 0);
     this.root.scale.set(1);
+    this.root.rotation = 0;
+    this.model.position.set(width / 2 - (iw * safe) / 2, height / 2 - (ih * safe) / 2);
   }
 
   private setMouthOpen(core: CubismCoreModel, value: number): void {
