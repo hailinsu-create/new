@@ -14,7 +14,7 @@ export const MODEL_PRESETS = [
     id: "moxi-local",
     label: "墨汐（咱们的 Live2D · moc3）",
     url: "/models/moxi/moxi.model3.json",
-    note: "原创角色墨汐的 Cubism 导出包。当前为单网格 MVP，可继续在 Editor 里加参数与动作。",
+    note: "原创墨汐 moc3。有 Idle 动作与 smile/surprise 表情文件；单网格下脸部形变有限，呼吸晃动在网页端可见。",
     kind: "ours-live2d",
   },
   {

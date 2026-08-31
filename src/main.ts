@@ -73,7 +73,7 @@ root.append(
       el("div", { className: "brand" }, [
         el("h1", {}, ["墨汐"]),
         el("p", {}, [
-          "咱们自己的 Live2D 角色。本地 moc3 已可加载；可继续在 Cubism 里加表情、动作与物理。",
+          "咱们自己的 Live2D 角色。已开呼吸晃动与表情切换；精致五官表情还要继续在 Cubism 分层绑定。",
         ]),
       ]),
       el("nav", { className: "links" }, [
