@@ -35,6 +35,7 @@ public/models/moxi/     可加载 moc3 运行包
 - [x] Cubism Editor（Wine）可启动
 - [x] `character.json`（旁窗读缩放 / 口型 / 心情表）
 - [x] 研究台默认加载本地墨汐 Cubism 包
-- [ ] Editor 里给 `mouth_open` / 眼独立 ArtMesh 绑关键形（FREE 每层 ≤2 参数）
-- [ ] 导出 SDK 5.0 moc3 替换现在的单网格 stub
+- [x] 七层 ArtMesh moc3（body / 发 / 眼 / 嘴 / 流苏）+ 图集
+- [x] `ParamMouthOpenY` 绑 `mouth_open` 透明度（Idle 闭嘴，Talk 张开）
+- [ ] Editor 里补眨眼与其余表情关键形（不挡旁窗接入）
 - [ ] 精细物理与十表情 moc3（不挡旁窗接入）

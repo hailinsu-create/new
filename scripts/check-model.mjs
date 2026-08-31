@@ -67,6 +67,26 @@ async function checkModel(modelDir) {
   if (moc3.length === 0) problems.push("Missing *.moc3");
   if (!relative.includes("character.json")) {
     problems.push("Missing character.json (APK scale / lip-sync / mood map)");
+  } else {
+    try {
+      const character = JSON.parse(await readFile(join(abs, "character.json"), "utf8"));
+      if (!isObject(character)) {
+        problems.push("character.json: root must be an object");
+      } else {
+        const lip = character.lipSync;
+        if (!isObject(lip) || typeof lip.parameter !== "string") {
+          problems.push("character.json: lipSync.parameter is required");
+        } else if (lip.parameter === "ParamA") {
+          problems.push("character.json: lipSync.parameter is still Mao ParamA");
+        }
+        const layout = character.layout;
+        if (!isObject(layout) || layout.scaleMode !== "portraitBust") {
+          notes.push("character.json: layout.scaleMode should be portraitBust for 墨汐");
+        }
+      }
+    } catch {
+      problems.push("character.json: invalid JSON");
+    }
   }
 
   for (const suffix of REQUIRED_SUFFIXES) {

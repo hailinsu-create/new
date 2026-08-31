@@ -17,52 +17,47 @@ python3 scripts/build-moxi-psd.py
 
 ## 1. 导入
 
-1. File → Open → `C:\moxi\moxi.psd`
-2. 每个图层会变成 ArtMesh。若还是整块矩形，选中后 Modeling → Automatic Mesh Generator，alpha 阈值约 20%，生成。
-3. 对 7 个图层都做一遍。不要合并成一个网格。
-4. Modeling → Parameter → 若没有 `ParamMouthOpenY` / `ParamEyeLOpen`，加默认参数模板（标准 ID，不要自造名字）。
+1. File → Open → `C:\moxi\moxi.psd`，选 Create new model from PSD。
+2. FREE 没有 Automatic Mesh Generator。每个图层导入时是四顶点矩形即可，张嘴只改透明度，不用细网格。
+3. 若网格被弄丢：选中 ArtMesh，Ctrl+E，Reset mesh，再 Ctrl+E 退出。
+4. 没有 `ParamMouthOpenY` / `ParamEyeLOpen` 时，加默认参数模板（标准 ID）。
 
-## 2. 张嘴（必须）
+## 2. 张嘴
 
-选中 `mouth_open`。只绑 **一个** 参数：`ParamMouthOpenY`。
+`mouth_open` 只绑 `ParamMouthOpenY`。关键形：0 → 不透明 0%，1 → 100%。默认值 0。
 
-| 关键形 | 不透明度 |
-| --- | --- |
-| 0 | 0% |
-| 1 | 100% |
+Editor 里绑当然最好。当前运行包用 `scripts/bind-mouth-keyforms.py` 在导出文件上补了同样的两帧，旁窗写 LipSync 参数就能张嘴。不要用 py-moc3 整文件重写。
 
-默认值保持 0。闭嘴时看到 `body` 上的原嘴；开口时这层盖上去。
+## 3. 眨眼
 
-## 3. 眨眼（一起做，仍是 MVP）
-
-`eye_left` → 只绑 `ParamEyeLOpen`：0 = 0%，1 = 100%。
-`eye_right` → 只绑 `ParamEyeROpen`，同样。
-
-`body` 眼窝已填肤色，眼睛层隐掉就是闭眼。不要在同一网格上再绑 Angle。
+`eye_left` 只绑 `ParamEyeLOpen`：0 = 0%，1 = 100%。
+`eye_right` 只绑 `ParamEyeROpen`。
+`body` 眼窝已填肤色。不要在嘴或眼上再绑 Angle（FREE 每层最多 2 个参数）。
 
 ## 4. 导出
 
-1. Edit Texture Atlas。2048 够用。自动摆盘，确认七块都在图集里。
-2. File → Export Embedded File → Export as MOC3。快捷键 Ctrl+Alt+S。
-3. **Export target 选 For SDK 5.0 / Cubism5.0**。不要用 5.2/5.3（moc3 v6，网页 Core 读不了）。
-4. 导出到 `public/models/moxi/`，覆盖 `moxi.moc3` 和纹理。
-5. 立刻跑：
+1. Texture Atlas 用 2048，Auto Layout。FREE 经常导出一张全透明图，UV 是对的。
+2. File → Export Embedded File → Export as MOC3（Ctrl+Alt+S）。
+3. Export target 选 **For SDK 5.0 / Cubism5.0**。不要 5.2/5.3（moc3 v6）。
+4. 备份到 `characters/moxi/cubism/moxi.cubism-export.moc3`，再：
 
 ```bash
+python3 scripts/pack-moxi-atlas.py
+python3 scripts/bind-mouth-keyforms.py
 python3 scripts/merge-cubism-export.py
 npm run check-model -- public/models/moxi
 ```
 
-merge 会把 Cubism 抹掉的 LipSync 组、Idle/Talk、idle/talk/smile/surprise 写回 `model3.json`。
+`pack-moxi-atlas.py` 按 UV 把七层 PNG 填进图集。`bind-mouth-keyforms.py` 只插入嘴的透明度关键形，画布仍是 1536×1024。不要改成 1×1，也不要用 py-moc3 `to_file()`（会丢掉 v5 尾部，网页 Core 直接 Unknown error）。
 
 ## 5. 不要做
 
-- 不要把十种肖像网格表情画进 moc3。现在只有平静 / 浅笑 / 吃惊三个 expression 文件；难过生气先并到 talk。
+- 不要把十种肖像网格表情画进 moc3。难过/生气先并到 talk。
 - 不要精细物理、点击 hit area。
 - 不要在这个仓库里给旁窗改识屏或 TTS。
 
 ## 6. 完成定义（这一版）
 
 1. 研究台默认预设是墨汐 moc3
-2. 播 Talk 或把 `ParamMouthOpenY` 拉到 1，嘴从图上张开
+2. 播 Talk，嘴从图上张开
 3. `public/models/moxi/character.json` 仍在，旁窗整夹复制

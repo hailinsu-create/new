@@ -295,8 +295,7 @@ button:disabled {
   overflow: hidden;
   min-height: clamp(420px, 70vh, 820px);
   background:
-    linear-gradient(180deg, rgba(10, 24, 30, 0.15), rgba(10, 24, 30, 0.55)),
-    radial-gradient(circle at 50% 30%, rgba(183, 208, 216, 0.2), transparent 55%);
+    radial-gradient(circle at 50% 28%, #efe6dc 0%, #d5cbbf 42%, #c4b8ab 100%);
   border: 1px solid rgba(232, 241, 244, 0.12);
   box-shadow: var(--shadow);
   animation: rise 1.1s ease 0.2s both;
@@ -317,7 +316,7 @@ button:disabled {
   justify-content: space-between;
   gap: 1rem;
   pointer-events: none;
-  color: rgba(244, 250, 251, 0.78);
+  color: rgba(16, 32, 41, 0.62);
   font-size: 0.78rem;
 }
 

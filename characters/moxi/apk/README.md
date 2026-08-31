@@ -8,7 +8,7 @@
 public/models/moxi/  →  assets/live2d/model/moxi/
 ```
 
-不要改路径名。旁窗只读 `character.json`，不要再为 Mao 写死 `ParamA` / `exp_01`。
+贴图在 `moxi.2048/texture_00.png`，以 `moxi.model3.json` 为准。不要改路径名。旁窗只读 `character.json`，不要再为 Mao 写死 `ParamA` / `exp_01`。
 
 ## character.json
 

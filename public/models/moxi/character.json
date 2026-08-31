@@ -3,7 +3,7 @@
   "displayName": "墨汐",
   "displayNameEn": "Moxi",
   "model3": "moxi.model3.json",
-  "fallbackPng": "moxi.1024/texture_00.png",
+  "fallbackPng": "moxi.2048/texture_00.png",
   "layout": {
     "scaleMode": "portraitBust",
     "scale": 0.42,
@@ -21,23 +21,51 @@
   },
   "eyeBlink": {
     "group": "EyeBlink",
-    "parameters": ["ParamEyeLOpen", "ParamEyeROpen"]
+    "parameters": [
+      "ParamEyeLOpen",
+      "ParamEyeROpen"
+    ]
   },
   "idle": {
     "motionGroup": "Idle",
     "index": 0
   },
-  "expressions": ["idle", "talk", "smile", "surprise"],
+  "expressions": [
+    "idle",
+    "talk",
+    "smile",
+    "surprise"
+  ],
   "moods": {
-    "neutral": { "expression": "idle" },
-    "idle": { "expression": "idle" },
-    "talk": { "expression": "talk" },
-    "happy": { "expression": "smile" },
-    "smile": { "expression": "smile" },
-    "surprise": { "expression": "surprise" },
-    "sad": { "expression": "talk" },
-    "angry": { "expression": "talk" },
-    "shy": { "expression": "smile" },
-    "sleepy": { "expression": "idle" }
+    "neutral": {
+      "expression": "idle"
+    },
+    "idle": {
+      "expression": "idle"
+    },
+    "talk": {
+      "expression": "talk"
+    },
+    "happy": {
+      "expression": "smile"
+    },
+    "smile": {
+      "expression": "smile"
+    },
+    "surprise": {
+      "expression": "surprise"
+    },
+    "sad": {
+      "expression": "talk"
+    },
+    "angry": {
+      "expression": "talk"
+    },
+    "shy": {
+      "expression": "smile"
+    },
+    "sleepy": {
+      "expression": "idle"
+    }
   }
 }
