@@ -8,21 +8,22 @@ export type ModelPreset = {
 
 /**
  * 墨汐是本仓库原创角色。Haru 仅作播放器对照，不是自建目标。
+ * 默认走 Cubism moc3，给旁窗 APK 同一份包。
  */
 export const MODEL_PRESETS = [
-  {
-    id: "moxi-rig",
-    label: "墨汐（肖像网格 · 重制版）",
-    url: "/characters/moxi/portrait-rig/base.png",
-    note: "眼窝和碎点清过。眼睛用眼皮裁切，刘海仍压在睫毛前。表情带过冲，不再整只眼睛压扁。",
-    kind: "ours-rig",
-  },
   {
     id: "moxi-local",
     label: "墨汐（Cubism moc3）",
     url: "/models/moxi/moxi.model3.json",
-    note: "Cubism 导出包。FREE 版关键形不完整，脸部细表情仍弱，作对照。",
+    note: "默认角色包。口型 ParamMouthOpenY，表情 idle / talk / smile / surprise。character.json 给 APK 读缩放和心情表。",
     kind: "ours-live2d",
+  },
+  {
+    id: "moxi-rig",
+    label: "墨汐（肖像网格 · 对照）",
+    url: "/characters/moxi/portrait-rig/base.png",
+    note: "画布覆盖网格，仅对照。产品默认不要用这一路。",
+    kind: "ours-rig",
   },
   {
     id: "haru-remote",

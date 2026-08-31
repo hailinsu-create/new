@@ -1,33 +1,35 @@
 # 咱们的角色：墨汐
 
-Haru 是 Live2D 官方样例，只用来测播放器。项目目标角色是原创的 **墨汐**。
+Haru 只用来测播放器。项目角色是原创的 **墨汐**。
+
+旁窗那条线不在这个仓库里改。这里交出一份能丢进 APK 的 Cubism 包。
 
 ## 现在完成到哪
 
 | 阶段 | 状态 |
 | --- | --- |
 | 设定与主视觉 | 完成（`characters/moxi/art/00_master_reference.png`） |
-| 分层参考稿 | 有草稿（精修拆分仍建议在 PS/CSP 做） |
-| Cubism Editor 安装 | 完成（Wine，`tools/cubism/`，5.3.03 FREE） |
-| Cubism 网格 / 导出 | MVP 完成：单网格，导出 **SDK 5.0** 兼容 moc3 |
-| `public/models/moxi/*.moc3` | 完成，研究台可加载 |
-| 研究台默认角色 | 墨汐 Live2D |
+| Cubism Editor | Wine 5.3.03，`./tools/cubism/launch-editor.sh`，选 FREE |
+| PSD | `python3 scripts/build-moxi-psd.py` → `characters/moxi/cubism/import/moxi.psd` |
+| 运行包 | `public/models/moxi/`，含 `character.json` |
+| 研究台默认 | 墨汐 Cubism moc3 |
+| 嘴 / 眼关键形 | 按 `characters/moxi/cubism/BINDING_CHECKLIST.md` 在 Editor 里绑。未绑时参数写了脸不动 |
 
-启动 Editor：
-
-```bash
-./tools/cubism/launch-editor.sh
-```
-
-## 运行时包
+## 交给旁窗的目录
 
 ```text
-public/models/moxi/
+public/models/moxi/          →  assets/live2d/model/moxi/
+  character.json             # 缩放、锚点、ParamMouthOpenY、心情→表情
   moxi.model3.json
-  moxi.moc3          # moc3 v5（SDK 5.0 导出目标）
-  moxi.cdi3.json
-  moxi.1024/texture_00.png
+  moxi.moc3                  # 必须是 SDK 5.0（moc3 v5）
+  textures /
+  expressions /              # idle talk smile surprise
+  motions /                  # Idle + Talk
 ```
+
+`character.json` 由 app 定义、这边填。没有这份表，Android 会继续为 Mao 写死 `ParamA` / `exp_01`。
+
+心情：sad/angry → talk，shy → smile，sleepy → idle。肖像网格那十张脸不当 moc3 映射。
 
 验收：
 
@@ -36,38 +38,12 @@ npm run check-model -- public/models/moxi
 npm run fetch-core && npm run dev
 ```
 
-默认预设加载 `/models/moxi/moxi.model3.json`。
+## 已知边界
 
-## 已知边界（MVP）
+- 导出必须选 **For SDK 5.0 / Cubism5.0**。5.3 默认 moc3 v6，网页 Core 读不了
+- FREE：每个 ArtMesh 最多 2 个参数。嘴、眼各自一层
+- 肖像网格（`src/moxiRig.ts`）只作对照。覆盖型不好看，产品默认不要走那条
 
-- 当前是**单 ArtMesh**，不是精细五官分层；转头/眨眼/口型还可以继续加
-- Cubism 5.3 默认导出 moc3 v6，网页 Core 读不了；导出时选 **For SDK 5.0 / Cubism5.0**
-- Wine + FREE 可用，复杂工程可能卡；正式制作也可换 Windows/macOS 官方 Editor
+## 下一步（只在 Cubism 里）
 
-## 下一步
-
-1. PS/CSP 按主视觉精拆 PSD（眼、嘴、前后发）
-2. Cubism 里加 Angle / EyeOpen / Mouth / Breath 与物理
-3. 导出动作 `Idle`，再写入 `model3.json`
-
-
-## 肖像网格重制版（当前默认）
-
-上一版粗切眼、嘴后直接拼接，圆形遮罩和独立嘴层有明显贴纸感，已废弃。当前 `src/moxiRig.ts` 改为：
-
-- 保留完整原画，只从底图中精确移除虹膜区域；眼窝用脸颊肤色填，不再吃进邻域黑发
-- 开眼素材去掉刘海，眨眼改为眼皮裁切，虹膜保持原大小
-- 转头用 128 条连续图像带，位移再收小
-- 眼层画完后用刘海遮罩扣掉，避免眼睛画到刘海上
-- 侧发用更大的脸部椭圆裁切，并限制摆幅
-- 表情切换用带速度的弹簧，会过冲再回，大笑弹跳会衰减
-- 闭眼改成细月牙线，去掉原先那块皮肤填色
-- surprise 口型更小，内部不再是纯黑块
-- 呼吸只影响胸肩区域，不再让整张海报大幅摇摆
-- 青色侧发与腰间流苏从静态底图中拆出，使用弹簧惯性；方向变化后会滞后、过冲并回弹
-- 表情按区块走：眼开合、下眼睑、眉形、嘴型、颊红、高光、泪和汗分开插值
-- 表情：neutral / smile / laugh / surprise / sad / angry / shy / wink / talk / sleepy
-- 嘴线按 3/4 视角倾斜，先用肤色盖住原嘴再画，避免叠出双唇线
-- 眼窝残留虹膜已用肤色填平，闭眼时不再露出脏色块
-
-这版没有黑眼洞、圆形遮罩或切片裂缝。它仍不是高规格 Cubism 成品：嘴角不会牵动脸颊，目前也只有一束侧发和一条流苏具备独立物理。Cubism moc3 保留作 SDK 对照。
+按绑定清单：PSD 打开 → 自动网格 → `mouth_open` 绑 `ParamMouthOpenY` 透明度 → 导出 moc3 → `python3 scripts/merge-cubism-export.py`。

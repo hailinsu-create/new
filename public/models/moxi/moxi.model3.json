@@ -5,12 +5,15 @@
     "Textures": ["moxi.1024/texture_00.png"],
     "DisplayInfo": "moxi.cdi3.json",
     "Expressions": [
-      { "Name": "neutral", "File": "expressions/neutral.exp3.json" },
+      { "Name": "idle", "File": "expressions/idle.exp3.json" },
+      { "Name": "talk", "File": "expressions/talk.exp3.json" },
       { "Name": "smile", "File": "expressions/smile.exp3.json" },
-      { "Name": "surprise", "File": "expressions/surprise.exp3.json" }
+      { "Name": "surprise", "File": "expressions/surprise.exp3.json" },
+      { "Name": "neutral", "File": "expressions/idle.exp3.json" }
     ],
     "Motions": {
-      "Idle": [{ "File": "motions/idle.motion3.json", "FadeInTime": 0.5, "FadeOutTime": 0.5 }]
+      "Idle": [{ "File": "motions/idle.motion3.json", "FadeInTime": 0.5, "FadeOutTime": 0.5 }],
+      "Talk": [{ "File": "motions/talk.motion3.json", "FadeInTime": 0.15, "FadeOutTime": 0.25 }]
     }
   },
   "Groups": [

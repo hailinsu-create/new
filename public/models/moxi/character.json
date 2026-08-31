@@ -1,0 +1,43 @@
+{
+  "id": "moxi",
+  "displayName": "墨汐",
+  "displayNameEn": "Moxi",
+  "model3": "moxi.model3.json",
+  "fallbackPng": "moxi.1024/texture_00.png",
+  "layout": {
+    "scaleMode": "portraitBust",
+    "scale": 0.42,
+    "anchorX": 0.5,
+    "anchorY": 0.82,
+    "artWidth": 1536,
+    "artHeight": 1024,
+    "notes": "半身肖像。不要用 Mao 的 min(view, 3000) 缩放，会把墨汐裁成一块脸。"
+  },
+  "lipSync": {
+    "group": "LipSync",
+    "parameter": "ParamMouthOpenY",
+    "closed": 0,
+    "open": 1
+  },
+  "eyeBlink": {
+    "group": "EyeBlink",
+    "parameters": ["ParamEyeLOpen", "ParamEyeROpen"]
+  },
+  "idle": {
+    "motionGroup": "Idle",
+    "index": 0
+  },
+  "expressions": ["idle", "talk", "smile", "surprise"],
+  "moods": {
+    "neutral": { "expression": "idle" },
+    "idle": { "expression": "idle" },
+    "talk": { "expression": "talk" },
+    "happy": { "expression": "smile" },
+    "smile": { "expression": "smile" },
+    "surprise": { "expression": "surprise" },
+    "sad": { "expression": "talk" },
+    "angry": { "expression": "talk" },
+    "shy": { "expression": "smile" },
+    "sleepy": { "expression": "idle" }
+  }
+}

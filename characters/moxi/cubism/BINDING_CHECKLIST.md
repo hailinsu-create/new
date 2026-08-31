@@ -1,84 +1,68 @@
 # Cubism 绑定清单（墨汐）
 
-目标：把 `characters/moxi/art/` 做成可在研究台加载的本地模型：
+旁窗不负责网格。这里把 PSD 变成能张嘴的 moc3。
 
-`public/models/moxi/moxi.model3.json`
+Wine 启动：`./tools/cubism/launch-editor.sh`（首次选 FREE）。本机官方 Editor 也可以，打开同一份 PSD。
 
-本环境没有 Cubism Editor，**网格与参数必须在你本机 Editor 里完成**。
-
-0. 准备
-
-1. 启动本仓库已装的 Cubism Editor：`./tools/cubism/launch-editor.sh`（选 FREE；或用你自己电脑上的官方安装）
-2. 用 Photoshop / CSP 打开 `art/00_master_reference.png`
-3. 按下面图层表拆成 PSD（AI 自动分层只能当参考，对位不准，**以手拆主视觉为准**）
-
-## 1. 必拆图层（MVP）
-
-从下到上建议顺序：
-
-| 图层名 | 内容 |
-| --- | --- |
-| `hair_back` | 后发 |
-| `body` | 身体 + 高领衣服 |
-| `shawl` | 肩上墨纹外搭（可与 body 合并，若要摆动则单拆） |
-| `neck` | 脖子 |
-| `face` | 脸底（含鼻子、面颊） |
-| `ear_l` / `ear_r` | 耳 |
-| `eye_white_l/r` | 眼白 |
-| `iris_l/r` | 虹膜 |
-| `highlight_l/r` | 眼高光 |
-| `eyelid_up_l/r` | 上眼皮 |
-| `eyelid_down_l/r` | 下眼皮 |
-| `brow_l/r` | 眉 |
-| `mouth` | 嘴（可再拆开合） |
-| `hair_side_l/r` | 侧发 |
-| `hair_front` | 刘海 |
-| `bangs_lock` | 右侧长发缕（墨青渐变那缕） |
-| `crane_pin` | 纸鹤胸针（可选） |
-
-`art/layers_transparent/` 里的 PNG 是草稿参考，不要直接当最终 PSD。
-
-## 2. Editor 内最低参数
-
-- `ParamAngleX` / `Y` / `Z`
-- `ParamEyeLOpen` / `ParamEyeROpen`
-- `ParamEyeBallX` / `Y`
-- `ParamBrowLY` / `RY`
-- `ParamMouthOpenY`
-- `ParamBreath`
-
-先做出：转头小范围、眨眼、视线、张嘴、呼吸。
-
-## 3. 导出
-
-1. 纹理图集检查无漏图
-2. `导出嵌入文件` → `moc3`
-3. 用 Viewer (for OW) 补 HitArea、表情列表
-4. 整包复制到：
-
-```text
-public/models/moxi/
-  moxi.model3.json
-  moxi.moc3
-  textures/
-  motions/          # 至少一条 Idle
-  expressions/      # 可选
-```
-
-5. 仓库内验收：
+## 0. 生成 PSD
 
 ```bash
-npm run check-model -- public/models/moxi
-npm run fetch-core
-npm run dev
+python3 scripts/build-cubism-layers.py
+python3 scripts/build-moxi-psd.py
 ```
 
-研究台选择「墨汐（本地）」加载 `/models/moxi/moxi.model3.json`。
+产出：`characters/moxi/cubism/import/moxi.psd`（gitignore）。Wine 下另有 `C:\moxi\moxi.psd`。
 
-## 4. 完成定义
+图层（底 → 顶）：`body` `hair_lock` `eye_left` `eye_right` `mouth_open` `hair_front` `tassel`。
 
-墨汐算「自建 Live2D 角色完成」当且仅当：
+## 1. 导入
 
-1. 立绘与图层为项目原创（已具备主视觉）
-2. `public/models/moxi/` 存在可加载 moc3 包
-3. 研究台能播 idle，并有视线或点击反馈之一
+1. File → Open → `C:\moxi\moxi.psd`
+2. 每个图层会变成 ArtMesh。若还是整块矩形，选中后 Modeling → Automatic Mesh Generator，alpha 阈值约 20%，生成。
+3. 对 7 个图层都做一遍。不要合并成一个网格。
+4. Modeling → Parameter → 若没有 `ParamMouthOpenY` / `ParamEyeLOpen`，加默认参数模板（标准 ID，不要自造名字）。
+
+## 2. 张嘴（必须）
+
+选中 `mouth_open`。只绑 **一个** 参数：`ParamMouthOpenY`。
+
+| 关键形 | 不透明度 |
+| --- | --- |
+| 0 | 0% |
+| 1 | 100% |
+
+默认值保持 0。闭嘴时看到 `body` 上的原嘴；开口时这层盖上去。
+
+## 3. 眨眼（一起做，仍是 MVP）
+
+`eye_left` → 只绑 `ParamEyeLOpen`：0 = 0%，1 = 100%。
+`eye_right` → 只绑 `ParamEyeROpen`，同样。
+
+`body` 眼窝已填肤色，眼睛层隐掉就是闭眼。不要在同一网格上再绑 Angle。
+
+## 4. 导出
+
+1. Edit Texture Atlas。2048 够用。自动摆盘，确认七块都在图集里。
+2. File → Export Embedded File → Export as MOC3。快捷键 Ctrl+Alt+S。
+3. **Export target 选 For SDK 5.0 / Cubism5.0**。不要用 5.2/5.3（moc3 v6，网页 Core 读不了）。
+4. 导出到 `public/models/moxi/`，覆盖 `moxi.moc3` 和纹理。
+5. 立刻跑：
+
+```bash
+python3 scripts/merge-cubism-export.py
+npm run check-model -- public/models/moxi
+```
+
+merge 会把 Cubism 抹掉的 LipSync 组、Idle/Talk、idle/talk/smile/surprise 写回 `model3.json`。
+
+## 5. 不要做
+
+- 不要把十种肖像网格表情画进 moc3。现在只有平静 / 浅笑 / 吃惊三个 expression 文件；难过生气先并到 talk。
+- 不要精细物理、点击 hit area。
+- 不要在这个仓库里给旁窗改识屏或 TTS。
+
+## 6. 完成定义（这一版）
+
+1. 研究台默认预设是墨汐 moc3
+2. 播 Talk 或把 `ParamMouthOpenY` 拉到 1，嘴从图上张开
+3. `public/models/moxi/character.json` 仍在，旁窗整夹复制

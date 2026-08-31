@@ -15,9 +15,27 @@ type ViewerOptions = {
 
 type CubismLive2DModel = Awaited<ReturnType<typeof Live2DModel.from>>;
 
+type CubismCoreModel = {
+  setParameterValueById(parameterId: string, value: number, weight?: number): void;
+};
+
+const LIP_SYNC_PARAM = "ParamMouthOpenY";
+const TALK_EXPRESSIONS = new Set(["talk"]);
+
 function hasCubismCore(): boolean {
   const core = (window as Window & { Live2DCubismCore?: unknown }).Live2DCubismCore;
   return typeof core !== "undefined";
+}
+
+function isCubismCoreModel(value: unknown): value is CubismCoreModel {
+  if (typeof value !== "object" || value === null) return false;
+  const record = value as Record<string, unknown>;
+  return typeof record.setParameterValueById === "function";
+}
+
+function coreModelOf(model: CubismLive2DModel): CubismCoreModel | null {
+  const core = model.internalModel.coreModel;
+  return isCubismCoreModel(core) ? core : null;
 }
 
 export class Live2DViewer {
@@ -26,9 +44,7 @@ export class Live2DViewer {
   private readonly root = new PIXI.Container();
   private model: CubismLive2DModel | null = null;
   private destroyed = false;
-  private baseScale = 1;
-  private idleEnabled = true;
-  private expressionPose: "neutral" | "smile" | "surprise" = "neutral";
+  private talking = false;
   private readonly onTick: () => void;
 
   constructor(options: ViewerOptions) {
@@ -51,7 +67,7 @@ export class Live2DViewer {
     });
 
     this.app.stage.addChild(this.root);
-    this.onTick = () => this.updateIdle();
+    this.onTick = () => this.updateTalk();
     this.app.ticker.add(this.onTick);
     window.addEventListener("resize", this.handleResize);
   }
@@ -74,9 +90,8 @@ export class Live2DViewer {
 
     this.model = next;
     this.root.addChild(next);
+    this.talking = false;
     this.fitModel();
-    this.expressionPose = "neutral";
-    this.idleEnabled = true;
 
     const motions = Object.keys(next.internalModel.motionManager.definitions);
     const settingsExpressions = (
@@ -91,14 +106,12 @@ export class Live2DViewer {
       [];
 
     if (motions.includes("Idle")) {
-      void next.motion("Idle").catch(() => {
-        // Motion file optional; container idle still runs.
-      });
+      void next.motion("Idle").catch(() => undefined);
     }
 
     const modelName = url.split("/").pop() ?? url;
     this.onStatus(
-      `已加载 ${modelName}\n动作组 ${motions.length} · 表情 ${expressionNames.length}\n整身呼吸晃动已开。表情：${expressionNames.join(", ") || "无"}。脸部细表情仍受单网格限制。`,
+      `已加载 ${modelName}\n动作组 ${motions.join(", ") || "无"} · 表情 ${expressionNames.join(", ") || "无"}\n口型走 LipSync / ${LIP_SYNC_PARAM}。Idle 用模型动作，不再整张图摇摆。`,
       "ok",
     );
 
@@ -107,31 +120,33 @@ export class Live2DViewer {
 
   playMotion(group: string): void {
     if (!this.model) return;
-    this.idleEnabled = true;
+    this.talking = group === "Talk";
     void this.model.motion(group).catch(() => undefined);
   }
 
   playExpression(name: string): void {
     if (!this.model) return;
-    if (name === "smile" || name === "surprise" || name === "neutral") {
-      this.expressionPose = name;
-    }
+    this.talking = TALK_EXPRESSIONS.has(name);
     const manager = this.model.internalModel.motionManager.expressionManager;
-    if (!manager) {
-      this.onStatus(
-        `表情「${name}」已切到网页侧姿态（模型未挂上 ExpressionManager，脸部网格形变不可用）。`,
-        "info",
-      );
-      return;
+    if (manager) {
+      void this.model.expression(name).catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        this.onStatus(`表情加载失败：${message}`, "error");
+      });
     }
-    void this.model.expression(name).catch((error: unknown) => {
-      const message = error instanceof Error ? error.message : String(error);
-      this.onStatus(`表情加载失败：${message}`, "error");
-    });
+    if (this.talking) {
+      void this.model.motion("Talk").catch(() => undefined);
+    } else {
+      void this.model.motion("Idle").catch(() => undefined);
+      const core = coreModelOf(this.model);
+      if (core && name !== "surprise") {
+        core.setParameterValueById(LIP_SYNC_PARAM, 0);
+      }
+    }
   }
 
-  setIdleEnabled(enabled: boolean): void {
-    this.idleEnabled = enabled;
+  setIdleEnabled(_enabled: boolean): void {
+    // Idle is the model motion, not a container transform.
   }
 
   destroy(): void {
@@ -153,41 +168,25 @@ export class Live2DViewer {
     if (!this.model) return;
     const { width, height } = this.app.renderer;
     const bounds = this.model.getLocalBounds();
-    this.baseScale = Math.min(width / bounds.width, height / bounds.height) * 0.92;
-    this.model.anchor.set(0.5, 0.5);
-    this.model.scale.set(this.baseScale);
+    const scale = Math.min(width / bounds.width, height / bounds.height) * 0.92;
+    this.model.anchor.set(0.5, 0.52);
+    this.model.scale.set(scale);
     this.model.x = 0;
     this.model.y = 0;
     this.model.rotation = 0;
     this.root.x = width / 2;
-    this.root.y = height / 2 + height * 0.04;
+    this.root.y = height / 2 + height * 0.02;
     this.root.rotation = 0;
     this.root.scale.set(1);
   }
 
-  private updateIdle(): void {
-    if (!this.model || !this.idleEnabled) return;
-    const t = performance.now() / 1000;
-    const breath = Math.sin(t * 1.8) * 0.08;
-    const sway = Math.sin(t * 1.05) * 0.14;
-    const poseBoost =
-      this.expressionPose === "smile"
-        ? 0.03
-        : this.expressionPose === "surprise"
-          ? 0.06
-          : 0;
-
-    this.root.scale.set(1 + breath + poseBoost);
-    this.root.rotation = sway * 0.55;
-    this.root.x =
-      this.app.renderer.width / 2 + Math.sin(t * 0.8) * 70;
-    this.root.y =
-      this.app.renderer.height / 2 +
-      this.app.renderer.height * 0.04 +
-      Math.sin(t * 1.8) * 34;
-
-    // Also nudge the model itself in case custom Live2D rendering ignores parents.
-    this.model.rotation = Math.sin(t * 1.05) * 0.08;
-    this.model.y = Math.sin(t * 1.8) * 10;
+  private updateTalk(): void {
+    if (!this.model || !this.talking) return;
+    const core = coreModelOf(this.model);
+    if (!core) return;
+    const seconds = performance.now() / 1000;
+    const pulse = Math.abs(Math.sin(seconds * 8.4));
+    const envelope = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(seconds * 2.2));
+    core.setParameterValueById(LIP_SYNC_PARAM, Math.min(1, 0.12 + pulse * envelope));
   }
 }

@@ -65,7 +65,9 @@ async function checkModel(modelDir) {
 
   if (model3.length === 0) problems.push("Missing *.model3.json");
   if (moc3.length === 0) problems.push("Missing *.moc3");
-  if (textures.length === 0) problems.push("Missing texture PNG files");
+  if (!relative.includes("character.json")) {
+    problems.push("Missing character.json (APK scale / lip-sync / mood map)");
+  }
 
   for (const suffix of REQUIRED_SUFFIXES) {
     if (!relative.some((f) => f.endsWith(suffix))) {

@@ -10,7 +10,7 @@
 | 定位 | 研究台看板娘 / 自托管演示角色 |
 | 气质 | 冷静、带一点墨色幽默；话不多，眼神先到 |
 | 视觉 | 墨青短发、琥珀色眼睛、炭灰高领，呼应站点的海墨配色 |
-| 用途 MVP | 半身可加载 Live2D（单网格）；后续补眨眼/口型/idle |
+| 用途 MVP | 半身 Cubism：idle + 张嘴。表情先 idle / talk / smile / surprise |
 
 ## 版权
 
@@ -32,8 +32,9 @@ public/models/moxi/     可加载 moc3 运行包
 
 - [x] 角色设定
 - [x] 主视觉参考图
-- [x] Cubism Editor（Wine）导入并导出 moc3（SDK 5.0）
-- [x] 研究台默认加载本地墨汐 Live2D
-- [ ] 精拆 PSD（眼/嘴/发分层）
-- [ ] Angle / EyeOpen / Mouth / Breath 完整参数
-- [ ] Idle 动作与物理
+- [x] Cubism Editor（Wine）可启动
+- [x] `character.json`（旁窗读缩放 / 口型 / 心情表）
+- [x] 研究台默认加载本地墨汐 Cubism 包
+- [ ] Editor 里给 `mouth_open` / 眼独立 ArtMesh 绑关键形（FREE 每层 ≤2 参数）
+- [ ] 导出 SDK 5.0 moc3 替换现在的单网格 stub
+- [ ] 精细物理与十表情 moc3（不挡旁窗接入）

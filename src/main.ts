@@ -32,7 +32,7 @@ const overlay = el("div", { className: "overlay-meta" }, [
 viewport.append(canvas, overlay);
 
 const status = el("p", { className: "status", id: "status" }, [
-  "目标角色：墨汐。默认加载本地 moc3 Live2D。",
+  "目标角色：墨汐。默认加载 Cubism moc3。",
 ]);
 const motionSelect = el("select", { id: "motion-select" });
 const expressionSelect = el("select", { id: "expression-select" });
@@ -73,7 +73,7 @@ root.append(
       el("div", { className: "brand" }, [
         el("h1", {}, ["墨汐"]),
         el("p", {}, [
-          "眼、眉、嘴、颊分开画。下拉里有浅笑、大笑、吃惊、难过、生气、害羞、眨眼、说话、困倦。",
+          "Cubism 包：idle / talk / smile / surprise。口型走 ParamMouthOpenY。肖像网格只作对照。",
         ]),
       ]),
       el("nav", { className: "links" }, [
@@ -153,7 +153,7 @@ function setLive2dControlsEnabled(enabled: boolean): void {
 
 type Mode = "live2d" | "rig";
 
-let mode: Mode = "rig";
+let mode: Mode = "live2d";
 let liveViewer: Live2DViewer | null = null;
 let rigViewer: MoxiRigViewer | null = null;
 
@@ -178,7 +178,7 @@ function teardown(): void {
 
 function currentPresetKind(): (typeof MODEL_PRESETS)[number]["kind"] {
   const preset = MODEL_PRESETS.find((item) => item.id === presetSelect.value);
-  return preset?.kind ?? "ours-rig";
+  return preset?.kind ?? "ours-live2d";
 }
 
 presetSelect.addEventListener("change", () => {
@@ -232,8 +232,13 @@ motionBtn.addEventListener("click", () => {
 });
 
 expressionSelect.addEventListener("change", () => {
-  if (mode === "rig" && rigViewer && expressionSelect.value) {
+  if (!expressionSelect.value) return;
+  if (mode === "rig" && rigViewer) {
     rigViewer.playExpression(expressionSelect.value);
+    return;
+  }
+  if (mode === "live2d" && liveViewer) {
+    liveViewer.playExpression(expressionSelect.value);
   }
 });
 
