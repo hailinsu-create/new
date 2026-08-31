@@ -8,6 +8,8 @@ const ASSETS = {
   base: "/characters/moxi/portrait-rig/base.png",
   eyeLeft: "/characters/moxi/portrait-rig/eye_left.png",
   eyeRight: "/characters/moxi/portrait-rig/eye_right.png",
+  hairLock: "/characters/moxi/portrait-rig/hair_lock.png",
+  tassel: "/characters/moxi/portrait-rig/tassel.png",
 } as const;
 
 const FACE = {
@@ -21,6 +23,8 @@ type LoadedAssets = {
   base: HTMLImageElement;
   eyeLeft: HTMLImageElement;
   eyeRight: HTMLImageElement;
+  hairLock: HTMLImageElement;
+  tassel: HTMLImageElement;
 };
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -63,6 +67,11 @@ export class MoxiRigViewer {
   private targetLookX = 0;
   private targetLookY = 0;
   private mouthOpen = 0;
+  private lastFrameAt = 0;
+  private hairAngle = 0;
+  private hairVelocity = 0;
+  private tasselAngle = 0;
+  private tasselVelocity = 0;
   private readonly handlePointer: (event: PointerEvent) => void;
   private readonly handlePointerLeave: () => void;
   private readonly handleResize: () => void;
@@ -87,10 +96,14 @@ export class MoxiRigViewer {
     this.handlePointer = (event: PointerEvent) => {
       const bounds = this.canvas.getBoundingClientRect();
       if (bounds.width === 0 || bounds.height === 0) return;
-      this.targetLookX = Math.max(
+      const nextLookX = Math.max(
         -1,
         Math.min(1, ((event.clientX - bounds.left) / bounds.width - 0.5) * 2),
       );
+      const directionChange = nextLookX - this.targetLookX;
+      this.hairVelocity -= directionChange * 0.055;
+      this.tasselVelocity -= directionChange * 0.08;
+      this.targetLookX = nextLookX;
       this.targetLookY = Math.max(
         -1,
         Math.min(1, ((event.clientY - bounds.top) / bounds.height - 0.5) * 2),
@@ -105,21 +118,24 @@ export class MoxiRigViewer {
 
   async load(): Promise<{ expressions: string[]; motions: string[] }> {
     this.onStatus("正在加载墨汐肖像网格…", "info");
-    const [base, eyeLeft, eyeRight] = await Promise.all([
+    const [base, eyeLeft, eyeRight, hairLock, tassel] = await Promise.all([
       loadImage(ASSETS.base),
       loadImage(ASSETS.eyeLeft),
       loadImage(ASSETS.eyeRight),
+      loadImage(ASSETS.hairLock),
+      loadImage(ASSETS.tassel),
     ]);
-    this.assets = { base, eyeLeft, eyeRight };
+    this.assets = { base, eyeLeft, eyeRight, hairLock, tassel };
     this.resize();
     this.canvas.addEventListener("pointermove", this.handlePointer);
     this.canvas.addEventListener("pointerleave", this.handlePointerLeave);
     window.addEventListener("resize", this.handleResize);
     this.running = true;
     this.startedAt = performance.now();
+    this.lastFrameAt = this.startedAt;
     this.frameId = requestAnimationFrame(this.renderFrame);
     this.onStatus(
-      "墨汐重制版已加载\n完整原画保持不变；局部眨眼、细微转头和口型在脸上连续变形。\n表情：neutral / smile / surprise。",
+      "墨汐重制版已加载\n局部眨眼、头部透视和口型连续变形；发梢与流苏有独立弹性。\n表情：neutral / smile / surprise。",
       "ok",
     );
     return {
@@ -136,6 +152,9 @@ export class MoxiRigViewer {
 
   playMotion(_group: string): void {
     this.targetLookX = this.targetLookX === 0 ? 0.35 : -this.targetLookX;
+    const direction = this.targetLookX >= 0 ? 1 : -1;
+    this.hairVelocity -= direction * 0.13;
+    this.tasselVelocity -= direction * 0.2;
   }
 
   destroy(): void {
@@ -160,10 +179,13 @@ export class MoxiRigViewer {
   private readonly renderFrame = (now: number) => {
     if (!this.running || !this.assets) return;
     const seconds = (now - this.startedAt) / 1000;
+    const frameDelta = Math.min(2, Math.max(0.25, (now - this.lastFrameAt) / 16.67));
+    this.lastFrameAt = now;
     this.lookX += (this.targetLookX - this.lookX) * 0.075;
     this.lookY += (this.targetLookY - this.lookY) * 0.075;
     const mouthTarget = this.expression === "surprise" ? 1 : 0;
     this.mouthOpen += (mouthTarget - this.mouthOpen) * 0.12;
+    this.updatePhysics(seconds, frameDelta);
 
     this.composePortrait({
       blink: blinkAmount(seconds),
@@ -178,6 +200,7 @@ export class MoxiRigViewer {
     const context = this.portraitCtx;
     context.clearRect(0, 0, PORTRAIT_WIDTH, PORTRAIT_HEIGHT);
     context.drawImage(this.assets.base, 0, 0);
+    this.drawSecondaryPhysics();
 
     const smileSquint = this.expression === "smile" ? 0.86 : 1;
     const surpriseOpen = this.expression === "surprise" ? 1.06 : 1;
@@ -192,6 +215,44 @@ export class MoxiRigViewer {
       this.drawClosedEyes(1 - eyeScaleY / 0.18);
     }
     this.drawExpression(state.seconds);
+  }
+
+  private updatePhysics(seconds: number, frameDelta: number): void {
+    const hairTarget = -this.lookX * 0.22 + Math.sin(seconds * 0.85) * 0.1;
+    this.hairVelocity +=
+      (hairTarget - this.hairAngle) * 0.065 * frameDelta;
+    this.hairVelocity *= Math.pow(0.86, frameDelta);
+    this.hairAngle += this.hairVelocity * frameDelta;
+
+    const tasselTarget =
+      -this.lookX * 0.28 + Math.sin(seconds * 1.15 + 0.7) * 0.14;
+    this.tasselVelocity +=
+      (tasselTarget - this.tasselAngle) * 0.045 * frameDelta;
+    this.tasselVelocity *= Math.pow(0.9, frameDelta);
+    this.tasselAngle += this.tasselVelocity * frameDelta;
+  }
+
+  private drawSecondaryPhysics(): void {
+    if (!this.assets) return;
+    const context = this.portraitCtx;
+
+    context.save();
+    context.globalAlpha = 1;
+    context.translate(526, 292);
+    context.rotate(this.hairAngle);
+    context.translate(-526, -292);
+    context.translate(this.hairAngle * 85, Math.abs(this.hairAngle) * 14);
+    context.drawImage(this.assets.hairLock, 0, 0);
+    context.restore();
+
+    context.save();
+    context.globalAlpha = 1;
+    context.translate(819, 658);
+    context.rotate(this.tasselAngle);
+    context.translate(-819, -658);
+    context.translate(this.tasselAngle * 52, Math.abs(this.tasselAngle) * 10);
+    context.drawImage(this.assets.tassel, 0, 0);
+    context.restore();
   }
 
   private drawEye(
@@ -241,6 +302,16 @@ export class MoxiRigViewer {
     if (this.expression === "smile") {
       const pulse = (Math.sin(seconds * 2.1) + 1) * 0.5;
       context.save();
+      const leftBlush = context.createRadialGradient(631, 357, 2, 631, 357, 31);
+      leftBlush.addColorStop(0, "rgba(224, 119, 121, 0.15)");
+      leftBlush.addColorStop(1, "rgba(224, 119, 121, 0)");
+      context.fillStyle = leftBlush;
+      context.fillRect(596, 327, 70, 60);
+      const rightBlush = context.createRadialGradient(855, 343, 2, 855, 343, 29);
+      rightBlush.addColorStop(0, "rgba(224, 119, 121, 0.13)");
+      rightBlush.addColorStop(1, "rgba(224, 119, 121, 0)");
+      context.fillStyle = rightBlush;
+      context.fillRect(822, 314, 66, 58);
       context.strokeStyle = `rgba(112, 54, 62, ${0.3 + pulse * 0.15})`;
       context.lineWidth = 2.2;
       context.lineCap = "round";
