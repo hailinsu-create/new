@@ -78,7 +78,6 @@ export class Live2DViewer {
   private destroyed = false;
   private talking = false;
   private mouthHold = 0;
-  private readonly onTick: () => void;
   private resizeObserver: ResizeObserver | null = null;
 
   constructor(options: ViewerOptions) {
@@ -103,8 +102,6 @@ export class Live2DViewer {
     Live2DModel.registerTicker(PIXI.Ticker);
 
     this.app.stage.addChild(this.root);
-    this.onTick = () => this.updateTalk();
-    this.app.ticker.add(this.onTick, undefined, PIXI.UPDATE_PRIORITY.LOW);
     window.addEventListener("resize", this.handleResize);
     const host = options.canvas.parentElement;
     if (host && typeof ResizeObserver !== "undefined") {
@@ -136,10 +133,9 @@ export class Live2DViewer {
     this.root.addChild(next);
     this.talking = false;
     this.mouthHold = 0;
+    this.hookMouthAfterUpdate(next);
     this.fitModel();
     requestAnimationFrame(() => this.fitModel());
-    const core = coreModelOf(next);
-    if (core) this.setMouthOpen(core, 0);
 
     const motions = Object.keys(next.internalModel.motionManager.definitions);
     const settingsExpressions = (
@@ -204,7 +200,6 @@ export class Live2DViewer {
 
   destroy(): void {
     this.destroyed = true;
-    this.app.ticker.remove(this.onTick);
     this.resizeObserver?.disconnect();
     window.removeEventListener("resize", this.handleResize);
     if (this.model) {
@@ -261,7 +256,23 @@ export class Live2DViewer {
     opacities[index] = value;
   }
 
-  private updateTalk(): void {
+  /**
+   * pixi applies motions inside InternalModel.update(), which runs in _render
+   * after our ticker. Talk.motion3.json also writes ParamMouthOpenY and would
+   * wipe a ticker-only viseme. Re-apply lip-sync after that update, before draw.
+   */
+  private hookMouthAfterUpdate(model: CubismLive2DModel): void {
+    const internal = model.internalModel as unknown as {
+      update: (dt: number, now: number) => void;
+    };
+    const original = internal.update.bind(internal);
+    internal.update = (dt: number, now: number) => {
+      original(dt, now);
+      this.applyMouth();
+    };
+  }
+
+  private applyMouth(): void {
     if (!this.model) return;
     const core = coreModelOf(this.model);
     if (!core) return;
@@ -269,6 +280,7 @@ export class Live2DViewer {
       this.setMouthOpen(core, this.mouthHold);
       return;
     }
+    const pulse = Math.abs(Math.sin(performance.now() / 1000 * 8.4));
     this.setMouthOpen(core, Math.min(1, 0.55 + pulse * 0.45));
   }
 }
