@@ -12,9 +12,9 @@ export type ModelPreset = {
 export const MODEL_PRESETS = [
   {
     id: "moxi-rig",
-    label: "墨汐（分层绑定 · 眨眼张嘴）",
-    url: "/characters/moxi/rig/preview_stack.png",
-    note: "对齐分层运行时：自动眨眼、指针转头、表情切张嘴。这是目前最接近真 Live2D 的墨汐。",
+    label: "墨汐（肖像网格 · 重制版）",
+    url: "/characters/moxi/portrait-rig/base.png",
+    note: "保留完整原画，只对眼睛、嘴和头部网格做局部变形；自动眨眼、指针转头，避免贴纸感。",
     kind: "ours-rig",
   },
   {
