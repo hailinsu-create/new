@@ -14,7 +14,7 @@ export const MODEL_PRESETS = [
     id: "moxi-rig",
     label: "墨汐（肖像网格 · 重制版）",
     url: "/characters/moxi/portrait-rig/base.png",
-    note: "原画保留，眼眉嘴颊分区变形。十种表情，发梢和流苏有弹簧。",
+    note: "清过黑边和眼窝。眼睛画在刘海后面；表情切换有过渡，不再硬切。",
     kind: "ours-rig",
   },
   {
