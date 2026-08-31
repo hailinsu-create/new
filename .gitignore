@@ -17,3 +17,4 @@ tools/cubism/install.log
 # Cubism working copies (large / regenerable)
 tools/cubism/wineprefix/
 characters/moxi/cubism/import/*.psd
+characters/moxi/cubism/rig/*.psd

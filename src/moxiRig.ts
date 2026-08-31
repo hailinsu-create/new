@@ -158,7 +158,7 @@ export class MoxiRigViewer {
 
     const breath = (Math.sin(t * 1.7) + 1) / 2;
     const talk =
-      this.expression === "surprise" ? 0.85 : this.expression === "smile" ? 0.12 : 0;
+      this.expression === "surprise" ? 0.55 : this.expression === "smile" ? 0.08 : 0;
     this.mouth += (talk - this.mouth) * 0.14;
 
     this.draw({ t, breath });
