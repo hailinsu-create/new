@@ -818,10 +818,10 @@ export class MoxiRigViewer {
     const midY = 3.4 - happy * 5.4 + sad * 5.8;
     context.beginPath();
     context.moveTo(-half, leftY);
-    context.quadraticCurveTo(0, midY, half, rightY);
-    context.strokeStyle = SKIN_A(1);
-    context.lineWidth = 5.6;
-    context.stroke();
+    context.quadraticCurveTo(0, midY + 5.5, half, rightY);
+    context.quadraticCurveTo(0, midY - 4.2, -half, leftY);
+    context.fillStyle = SKIN_A(0.97);
+    context.fill();
     context.beginPath();
     context.moveTo(-half, leftY);
     context.quadraticCurveTo(0, midY, half, rightY);
