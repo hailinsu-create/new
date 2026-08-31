@@ -1,8 +1,37 @@
-export type RigExpression = "neutral" | "smile" | "surprise";
+export const RIG_EXPRESSIONS = [
+  "neutral",
+  "smile",
+  "laugh",
+  "surprise",
+  "sad",
+  "angry",
+  "shy",
+  "wink",
+  "talk",
+  "sleepy",
+] as const;
+
+export type RigExpression = (typeof RIG_EXPRESSIONS)[number];
+
+export const RIG_EXPRESSION_LABELS: Record<RigExpression, string> = {
+  neutral: "neutral · 平静",
+  smile: "smile · 浅笑",
+  laugh: "laugh · 大笑",
+  surprise: "surprise · 吃惊",
+  sad: "sad · 难过",
+  angry: "angry · 生气",
+  shy: "shy · 害羞",
+  wink: "wink · 眨眼",
+  talk: "talk · 说话",
+  sleepy: "sleepy · 困倦",
+};
 
 const PORTRAIT_WIDTH = 1536;
 const PORTRAIT_HEIGHT = 1024;
 const SLICE_COUNT = 64;
+const MOUTH_TILT = -0.175;
+const SKIN = "rgb(247, 223, 207)";
+const SKIN_A = (alpha: number) => `rgba(247, 223, 207, ${alpha})`;
 
 const ASSETS = {
   base: "/characters/moxi/portrait-rig/base.png",
@@ -15,9 +44,191 @@ const ASSETS = {
 const FACE = {
   eyeLeft: { x: 657, y: 307 },
   eyeRight: { x: 802, y: 289 },
-  mouth: { x: 753, y: 406 },
+  mouth: { x: 753, y: 401 },
   head: { x: 746, y: 285 },
+  browLeft: { innerX: 688, innerY: 271, outerX: 628, outerY: 276 },
+  browRight: { innerX: 764, innerY: 256, outerX: 838, outerY: 250 },
 } as const;
+
+type FacePose = {
+  leftOpen: number;
+  rightOpen: number;
+  eyeWidth: number;
+  lowerLid: number;
+  browInner: number;
+  browRaise: number;
+  mouthOpen: number;
+  mouthCurve: number;
+  mouthWidth: number;
+  mouthCover: number;
+  blush: number;
+  lookBiasX: number;
+  lookBiasY: number;
+  sparkle: number;
+  tear: number;
+  sweat: number;
+  headBounce: number;
+};
+
+const POSE_KEYS = [
+  "leftOpen",
+  "rightOpen",
+  "eyeWidth",
+  "lowerLid",
+  "browInner",
+  "browRaise",
+  "mouthOpen",
+  "mouthCurve",
+  "mouthWidth",
+  "mouthCover",
+  "blush",
+  "lookBiasX",
+  "lookBiasY",
+  "sparkle",
+  "tear",
+  "sweat",
+  "headBounce",
+] as const satisfies readonly (keyof FacePose)[];
+
+const NEUTRAL_POSE: FacePose = {
+  leftOpen: 1,
+  rightOpen: 1,
+  eyeWidth: 1,
+  lowerLid: 0,
+  browInner: 0,
+  browRaise: 0,
+  mouthOpen: 0,
+  mouthCurve: 0.28,
+  mouthWidth: 1,
+  mouthCover: 0,
+  blush: 0.08,
+  lookBiasX: 0,
+  lookBiasY: 0,
+  sparkle: 0.35,
+  tear: 0,
+  sweat: 0,
+  headBounce: 0,
+};
+
+const EXPRESSION_POSES: Record<RigExpression, FacePose> = {
+  neutral: NEUTRAL_POSE,
+  smile: {
+    ...NEUTRAL_POSE,
+    leftOpen: 0.84,
+    rightOpen: 0.84,
+    lowerLid: 0.72,
+    mouthCurve: 0.92,
+    mouthWidth: 1.12,
+    mouthCover: 1,
+    blush: 0.42,
+    sparkle: 0.7,
+  },
+  laugh: {
+    ...NEUTRAL_POSE,
+    leftOpen: 0.52,
+    rightOpen: 0.52,
+    lowerLid: 0.9,
+    browRaise: 0.18,
+    mouthOpen: 0.82,
+    mouthCurve: 1,
+    mouthWidth: 1.22,
+    mouthCover: 1,
+    blush: 0.55,
+    sparkle: 0.85,
+    headBounce: 1,
+  },
+  surprise: {
+    ...NEUTRAL_POSE,
+    leftOpen: 1.1,
+    rightOpen: 1.1,
+    eyeWidth: 1.06,
+    browRaise: 0.85,
+    mouthOpen: 0.9,
+    mouthCurve: 0.05,
+    mouthWidth: 0.72,
+    mouthCover: 1,
+    blush: 0,
+    sparkle: 1,
+  },
+  sad: {
+    ...NEUTRAL_POSE,
+    leftOpen: 0.9,
+    rightOpen: 0.9,
+    lowerLid: 0.22,
+    browInner: 0.95,
+    browRaise: 0.12,
+    mouthCurve: -0.72,
+    mouthWidth: 0.88,
+    mouthCover: 1,
+    blush: 0.12,
+    lookBiasY: 0.22,
+    sparkle: 0.15,
+    tear: 0.85,
+  },
+  angry: {
+    ...NEUTRAL_POSE,
+    leftOpen: 0.78,
+    rightOpen: 0.78,
+    eyeWidth: 0.94,
+    lowerLid: 0.35,
+    browInner: -1,
+    mouthOpen: 0.12,
+    mouthCurve: -0.35,
+    mouthWidth: 0.78,
+    mouthCover: 1,
+    blush: 0.22,
+    sparkle: 0.2,
+    sweat: 0.35,
+  },
+  shy: {
+    ...NEUTRAL_POSE,
+    leftOpen: 0.88,
+    rightOpen: 0.88,
+    lowerLid: 0.45,
+    browInner: 0.28,
+    mouthCurve: 0.55,
+    mouthWidth: 0.82,
+    mouthCover: 1,
+    blush: 0.92,
+    lookBiasX: 0.42,
+    lookBiasY: 0.38,
+    sparkle: 0.4,
+    sweat: 0.7,
+  },
+  wink: {
+    ...NEUTRAL_POSE,
+    leftOpen: 0.05,
+    rightOpen: 1,
+    lowerLid: 0.2,
+    mouthCurve: 0.7,
+    mouthWidth: 1.04,
+    mouthCover: 1,
+    blush: 0.28,
+    sparkle: 0.75,
+  },
+  talk: {
+    ...NEUTRAL_POSE,
+    mouthOpen: 0.45,
+    mouthCurve: 0.22,
+    mouthWidth: 1.02,
+    mouthCover: 1,
+    sparkle: 0.45,
+  },
+  sleepy: {
+    ...NEUTRAL_POSE,
+    leftOpen: 0.4,
+    rightOpen: 0.38,
+    lowerLid: 0.4,
+    browRaise: -0.35,
+    mouthOpen: 0.08,
+    mouthCurve: 0.12,
+    mouthWidth: 0.86,
+    mouthCover: 1,
+    blush: 0.16,
+    lookBiasY: 0.18,
+    sparkle: 0.08,
+  },
+};
 
 type LoadedAssets = {
   base: HTMLImageElement;
@@ -26,6 +237,10 @@ type LoadedAssets = {
   hairLock: HTMLImageElement;
   tassel: HTMLImageElement;
 };
+
+function isRigExpression(name: string): name is RigExpression {
+  return (RIG_EXPRESSIONS as readonly string[]).includes(name);
+}
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -36,17 +251,43 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-function blinkAmount(seconds: number): number {
-  const phase = seconds % 3.8;
-  if (phase < 3.52) return 1;
-  if (phase < 3.62) return 1 - (phase - 3.52) / 0.1;
-  if (phase < 3.7) return 0.06;
-  return Math.min(1, (phase - 3.7) / 0.1);
+function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
+
+function lerpPose(current: FacePose, target: FacePose, t: number): FacePose {
+  const next = { ...current };
+  for (const key of POSE_KEYS) {
+    next[key] = lerp(current[key], target[key], t);
+  }
+  return next;
+}
+
+function blinkAmount(seconds: number, period: number): number {
+  const phase = seconds % period;
+  const closeStart = period - 0.4;
+  if (phase < closeStart) return 1;
+  const t = phase - closeStart;
+  if (t < 0.11) return 1 - t / 0.11;
+  if (t < 0.2) return 0.05;
+  return Math.min(1, (t - 0.2) / 0.2);
+}
+
+function talkViseme(seconds: number): { open: number; width: number; curve: number } {
+  const a = Math.sin(seconds * 8.4);
+  const b = Math.sin(seconds * 13.1 + 0.7);
+  const envelope = 0.5 + 0.5 * Math.sin(seconds * 2.15);
+  const open = Math.min(1, Math.max(0.06, (0.38 + 0.34 * a + 0.18 * b) * (0.4 + 0.6 * envelope)));
+  return {
+    open,
+    width: 0.9 + 0.18 * Math.sin(seconds * 5.6 + 1.1),
+    curve: 0.16 + 0.12 * a,
+  };
 }
 
 /**
- * Preserves the finished portrait and deforms only facial features and
- * horizontal image bands. Broad cut-out masks caused the old pasted-on look.
+ * Portrait-mesh runtime. Keeps the finished painting and deforms eyes, brows,
+ * mouth, blush, and a few physics pieces on top.
  */
 export class MoxiRigViewer {
   private readonly canvas: HTMLCanvasElement;
@@ -59,6 +300,7 @@ export class MoxiRigViewer {
   ) => void;
   private assets: LoadedAssets | null = null;
   private expression: RigExpression = "neutral";
+  private pose: FacePose = { ...NEUTRAL_POSE };
   private running = false;
   private frameId = 0;
   private startedAt = 0;
@@ -66,7 +308,6 @@ export class MoxiRigViewer {
   private lookY = 0;
   private targetLookX = 0;
   private targetLookY = 0;
-  private mouthOpen = 0;
   private lastFrameAt = 0;
   private hairAngle = 0;
   private hairVelocity = 0;
@@ -92,6 +333,10 @@ export class MoxiRigViewer {
     this.onStatus = onStatus;
     this.portrait.width = PORTRAIT_WIDTH;
     this.portrait.height = PORTRAIT_HEIGHT;
+    this.ctx.imageSmoothingEnabled = true;
+    this.ctx.imageSmoothingQuality = "high";
+    this.portraitCtx.imageSmoothingEnabled = true;
+    this.portraitCtx.imageSmoothingQuality = "high";
 
     this.handlePointer = (event: PointerEvent) => {
       const bounds = this.canvas.getBoundingClientRect();
@@ -135,19 +380,20 @@ export class MoxiRigViewer {
     this.lastFrameAt = this.startedAt;
     this.frameId = requestAnimationFrame(this.renderFrame);
     this.onStatus(
-      "墨汐重制版已加载\n局部眨眼、头部透视和口型连续变形；发梢与流苏有独立弹性。\n表情：neutral / smile / surprise。",
+      "墨汐已加载。眼、眉、嘴、颊分开变形；发梢和流苏有弹性。\n表情可在下拉里直接切换。",
       "ok",
     );
     return {
-      expressions: ["neutral", "smile", "surprise"],
+      expressions: [...RIG_EXPRESSIONS],
       motions: ["Idle"],
     };
   }
 
   playExpression(name: string): void {
-    if (name === "neutral" || name === "smile" || name === "surprise") {
-      this.expression = name;
-    }
+    if (!isRigExpression(name) || name === this.expression) return;
+    this.expression = name;
+    this.hairVelocity -= 0.045;
+    this.tasselVelocity += 0.06;
   }
 
   playMotion(_group: string): void {
@@ -174,6 +420,8 @@ export class MoxiRigViewer {
     this.canvas.height = Math.max(1, Math.floor(parent.clientHeight * density));
     this.canvas.style.width = `${parent.clientWidth}px`;
     this.canvas.style.height = `${parent.clientHeight}px`;
+    this.ctx.imageSmoothingEnabled = true;
+    this.ctx.imageSmoothingQuality = "high";
   }
 
   private readonly renderFrame = (now: number) => {
@@ -181,14 +429,27 @@ export class MoxiRigViewer {
     const seconds = (now - this.startedAt) / 1000;
     const frameDelta = Math.min(2, Math.max(0.25, (now - this.lastFrameAt) / 16.67));
     this.lastFrameAt = now;
-    this.lookX += (this.targetLookX - this.lookX) * 0.075;
-    this.lookY += (this.targetLookY - this.lookY) * 0.075;
-    const mouthTarget = this.expression === "surprise" ? 1 : 0;
-    this.mouthOpen += (mouthTarget - this.mouthOpen) * 0.12;
+
+    const targetPose = { ...EXPRESSION_POSES[this.expression] };
+    if (this.expression === "talk") {
+      const viseme = talkViseme(seconds);
+      targetPose.mouthOpen = viseme.open;
+      targetPose.mouthWidth = viseme.width;
+      targetPose.mouthCurve = viseme.curve;
+      targetPose.mouthCover = 1;
+    }
+    this.pose = lerpPose(this.pose, targetPose, 1 - Math.pow(0.86, frameDelta));
+
+    const lookTargetX = Math.max(-1, Math.min(1, this.targetLookX + this.pose.lookBiasX));
+    const lookTargetY = Math.max(-1, Math.min(1, this.targetLookY + this.pose.lookBiasY));
+    this.lookX += (lookTargetX - this.lookX) * 0.075;
+    this.lookY += (lookTargetY - this.lookY) * 0.075;
     this.updatePhysics(seconds, frameDelta);
 
+    const blinkPeriod = this.expression === "sleepy" ? 2.35 : this.expression === "surprise" ? 5.2 : 3.8;
+    const blink = blinkAmount(seconds, blinkPeriod);
     this.composePortrait({
-      blink: blinkAmount(seconds),
+      blink,
       seconds,
     });
     this.drawDeformedPortrait(seconds);
@@ -201,33 +462,22 @@ export class MoxiRigViewer {
     context.clearRect(0, 0, PORTRAIT_WIDTH, PORTRAIT_HEIGHT);
     context.drawImage(this.assets.base, 0, 0);
     this.drawSecondaryPhysics();
-
-    const smileSquint = this.expression === "smile" ? 0.86 : 1;
-    const surpriseOpen = this.expression === "surprise" ? 1.06 : 1;
-    const eyeScaleY = Math.max(
-      0.05,
-      state.blink * smileSquint * surpriseOpen,
-    );
-    this.drawEye(this.assets.eyeLeft, FACE.eyeLeft, eyeScaleY, -1);
-    this.drawEye(this.assets.eyeRight, FACE.eyeRight, eyeScaleY, 1);
-
-    if (eyeScaleY < 0.18) {
-      this.drawClosedEyes(1 - eyeScaleY / 0.18);
-    }
-    this.drawExpression(state.seconds);
+    this.drawMouth();
+    this.drawEyes(state.blink, state.seconds);
+    this.drawBrows();
+    this.drawCheeks(state.seconds);
+    this.drawTears(state.seconds);
+    this.drawSweat(state.seconds);
   }
 
   private updatePhysics(seconds: number, frameDelta: number): void {
     const hairTarget = -this.lookX * 0.22 + Math.sin(seconds * 0.85) * 0.1;
-    this.hairVelocity +=
-      (hairTarget - this.hairAngle) * 0.065 * frameDelta;
+    this.hairVelocity += (hairTarget - this.hairAngle) * 0.065 * frameDelta;
     this.hairVelocity *= Math.pow(0.86, frameDelta);
     this.hairAngle += this.hairVelocity * frameDelta;
 
-    const tasselTarget =
-      -this.lookX * 0.28 + Math.sin(seconds * 1.15 + 0.7) * 0.14;
-    this.tasselVelocity +=
-      (tasselTarget - this.tasselAngle) * 0.045 * frameDelta;
+    const tasselTarget = -this.lookX * 0.28 + Math.sin(seconds * 1.15 + 0.7) * 0.14;
+    this.tasselVelocity += (tasselTarget - this.tasselAngle) * 0.045 * frameDelta;
     this.tasselVelocity *= Math.pow(0.9, frameDelta);
     this.tasselAngle += this.tasselVelocity * frameDelta;
   }
@@ -237,7 +487,6 @@ export class MoxiRigViewer {
     const context = this.portraitCtx;
 
     context.save();
-    context.globalAlpha = 1;
     context.translate(526, 292);
     context.rotate(this.hairAngle);
     context.translate(-526, -292);
@@ -246,12 +495,52 @@ export class MoxiRigViewer {
     context.restore();
 
     context.save();
-    context.globalAlpha = 1;
     context.translate(819, 658);
     context.rotate(this.tasselAngle);
     context.translate(-819, -658);
     context.translate(this.tasselAngle * 52, Math.abs(this.tasselAngle) * 10);
     context.drawImage(this.assets.tassel, 0, 0);
+    context.restore();
+  }
+
+  private drawEyes(blink: number, seconds: number): void {
+    if (!this.assets) return;
+    const leftOpen = Math.max(
+      0.04,
+      this.pose.leftOpen * (this.expression === "wink" ? 1 : blink),
+    );
+    const rightOpen = Math.max(0.04, this.pose.rightOpen * blink);
+
+    this.drawEyeSocketFill(FACE.eyeLeft, leftOpen);
+    this.drawEyeSocketFill(FACE.eyeRight, rightOpen);
+    this.drawEye(this.assets.eyeLeft, FACE.eyeLeft, leftOpen, -1);
+    this.drawEye(this.assets.eyeRight, FACE.eyeRight, rightOpen, 1);
+    this.drawLowerLid(FACE.eyeLeft, this.pose.lowerLid * (0.35 + 0.65 * leftOpen), -1);
+    this.drawLowerLid(FACE.eyeRight, this.pose.lowerLid * (0.35 + 0.65 * rightOpen), 1);
+    this.drawSparkle(FACE.eyeLeft, leftOpen, -1, seconds);
+    this.drawSparkle(FACE.eyeRight, rightOpen, 1, seconds);
+
+    if (leftOpen < 0.22) {
+      this.drawClosedEye(FACE.eyeLeft, 1 - leftOpen / 0.22, -1);
+    }
+    if (rightOpen < 0.22) {
+      this.drawClosedEye(FACE.eyeRight, 1 - rightOpen / 0.22, 1);
+    }
+  }
+
+  private drawEyeSocketFill(center: { x: number; y: number }, open: number): void {
+    if (open > 0.92) return;
+    const context = this.portraitCtx;
+    const cover = 1 - Math.min(1, open);
+    context.save();
+    context.translate(center.x + this.lookX * 2.4, center.y + this.lookY * 1.5);
+    const fill = context.createRadialGradient(0, 0, 4, 0, 0, 34);
+    fill.addColorStop(0, SKIN_A(0.55 * cover));
+    fill.addColorStop(1, SKIN_A(0));
+    context.fillStyle = fill;
+    context.beginPath();
+    context.ellipse(0, 1, 32, 20, 0, 0, Math.PI * 2);
+    context.fill();
     context.restore();
   }
 
@@ -262,7 +551,7 @@ export class MoxiRigViewer {
     side: -1 | 1,
   ): void {
     const context = this.portraitCtx;
-    const perspectiveScaleX = 1 + side * this.lookX * 0.045;
+    const perspectiveScaleX = (1 + side * this.lookX * 0.045) * this.pose.eyeWidth;
     const depthOffset = side * Math.abs(this.lookX) * 1.4;
     context.save();
     context.translate(
@@ -275,86 +564,345 @@ export class MoxiRigViewer {
     context.restore();
   }
 
-  private drawClosedEyes(alpha: number): void {
+  private drawLowerLid(
+    center: { x: number; y: number },
+    amount: number,
+    side: -1 | 1,
+  ): void {
+    if (amount < 0.03) return;
     const context = this.portraitCtx;
     context.save();
-    context.globalAlpha = alpha;
-    context.strokeStyle = "#211a1d";
-    context.lineWidth = 4.2;
+    context.translate(center.x + this.lookX * 2.8, center.y + this.lookY * 1.8);
+    context.scale(1 + side * this.lookX * 0.045, 1);
+    const shade = context.createLinearGradient(0, 2, 0, 22);
+    shade.addColorStop(0, SKIN_A(0));
+    shade.addColorStop(0.4, SKIN_A(0.28 * amount));
+    shade.addColorStop(1, SKIN_A(0.9 * amount));
+    context.fillStyle = shade;
+    context.beginPath();
+    context.ellipse(0, 11 + amount * 2, 30, 15, 0, 0, Math.PI * 2);
+    context.fill();
+    context.globalAlpha = 0.4 * amount;
+    context.strokeStyle = "#2a1f22";
+    context.lineWidth = 1.15;
     context.lineCap = "round";
-
     context.beginPath();
-    context.moveTo(620, 304);
-    context.bezierCurveTo(640, 321, 671, 322, 696, 302);
-    context.stroke();
-
-    context.beginPath();
-    context.moveTo(764, 287);
-    context.bezierCurveTo(786, 304, 819, 304, 846, 282);
+    context.moveTo(-24, 7);
+    context.quadraticCurveTo(0, 13 + amount * 3, 24, 6);
     context.stroke();
     context.restore();
   }
 
-  private drawExpression(seconds: number): void {
+  private drawSparkle(
+    center: { x: number; y: number },
+    open: number,
+    side: -1 | 1,
+    seconds: number,
+  ): void {
+    const amount = this.pose.sparkle * Math.max(0, open - 0.35);
+    if (amount < 0.05) return;
     const context = this.portraitCtx;
-    const { x, y } = FACE.mouth;
-
-    if (this.expression === "smile") {
-      const pulse = (Math.sin(seconds * 2.1) + 1) * 0.5;
-      context.save();
-      const leftBlush = context.createRadialGradient(631, 357, 2, 631, 357, 31);
-      leftBlush.addColorStop(0, "rgba(224, 119, 121, 0.15)");
-      leftBlush.addColorStop(1, "rgba(224, 119, 121, 0)");
-      context.fillStyle = leftBlush;
-      context.fillRect(596, 327, 70, 60);
-      const rightBlush = context.createRadialGradient(855, 343, 2, 855, 343, 29);
-      rightBlush.addColorStop(0, "rgba(224, 119, 121, 0.13)");
-      rightBlush.addColorStop(1, "rgba(224, 119, 121, 0)");
-      context.fillStyle = rightBlush;
-      context.fillRect(822, 314, 66, 58);
-      context.strokeStyle = `rgba(112, 54, 62, ${0.3 + pulse * 0.15})`;
-      context.lineWidth = 2.2;
-      context.lineCap = "round";
-      context.beginPath();
-      context.moveTo(x - 24, y);
-      context.quadraticCurveTo(x, y + 13, x + 25, y - 1);
-      context.stroke();
-      context.restore();
-      return;
-    }
-
-    if (this.mouthOpen < 0.03) return;
-    const open = this.mouthOpen;
+    const pulse = 0.85 + 0.15 * Math.sin(seconds * 3.2 + side);
     context.save();
-    context.globalAlpha = open;
-    const skinBlend = context.createRadialGradient(x, y + 2, 4, x, y + 2, 31);
-    skinBlend.addColorStop(0, "rgba(246, 208, 193, 0.94)");
-    skinBlend.addColorStop(0.62, "rgba(246, 208, 193, 0.56)");
-    skinBlend.addColorStop(1, "rgba(246, 208, 193, 0)");
+    context.translate(
+      center.x + this.lookX * 4.2 + side * 4,
+      center.y + this.lookY * 2.4 - 4,
+    );
+    context.globalAlpha = amount * pulse;
+    context.fillStyle = "rgba(255, 252, 248, 0.92)";
+    context.beginPath();
+    context.ellipse(-2, -3, 3.4, 4.2, -0.2, 0, Math.PI * 2);
+    context.fill();
+    context.beginPath();
+    context.ellipse(6, 5, 1.6, 1.9, 0.3, 0, Math.PI * 2);
+    context.fill();
+    context.restore();
+  }
+
+  private drawClosedEye(
+    center: { x: number; y: number },
+    alpha: number,
+    side: -1 | 1,
+  ): void {
+    const context = this.portraitCtx;
+    const happy = Math.max(0, this.pose.mouthCurve);
+    const sad = Math.max(0, -this.pose.mouthCurve);
+    const outerLift = happy * 5 - sad * 4;
+    context.save();
+    context.globalAlpha = alpha;
+    context.translate(center.x + this.lookX * 2.2, center.y + this.lookY * 1.2);
+    context.strokeStyle = "#211a1d";
+    context.lineCap = "round";
+    context.lineJoin = "round";
+    context.lineWidth = 4.4;
+    const leftX = -36;
+    const rightX = 36;
+    const leftY = 2 + (side === -1 ? -outerLift : outerLift * 0.12);
+    const rightY = 1 + (side === 1 ? -outerLift * 0.45 : outerLift * 0.1);
+    context.beginPath();
+    context.moveTo(leftX, leftY);
+    context.bezierCurveTo(
+      -12,
+      16 - happy * 4 + sad * 6,
+      12,
+      16 - happy * 4 + sad * 6,
+      rightX,
+      rightY,
+    );
+    context.stroke();
+    context.lineWidth = 1.5;
+    context.globalAlpha = alpha * 0.7;
+    const flickX = side === -1 ? leftX - 2 : rightX + 2;
+    context.beginPath();
+    context.moveTo(flickX, 2);
+    context.quadraticCurveTo(flickX + side * 6, 8, flickX + side * 9, 14);
+    context.stroke();
+    context.restore();
+  }
+
+  private drawBrows(): void {
+    const inner = this.pose.browInner;
+    const raise = this.pose.browRaise;
+    if (Math.abs(inner) < 0.04 && Math.abs(raise) < 0.04) return;
+    const context = this.portraitCtx;
+    const lift = -raise * 7;
+    this.strokeBrow(context, {
+      outerX: FACE.browLeft.outerX + this.lookX * 1.4,
+      outerY: FACE.browLeft.outerY + lift * 0.45 + this.lookY * 0.8,
+      innerX: FACE.browLeft.innerX + this.lookX * 1.4,
+      innerY: FACE.browLeft.innerY - inner * 8 + lift + this.lookY * 0.8,
+    });
+    this.strokeBrow(context, {
+      outerX: FACE.browRight.outerX + this.lookX * 1.4,
+      outerY: FACE.browRight.outerY + lift * 0.45 + this.lookY * 0.8,
+      innerX: FACE.browRight.innerX + this.lookX * 1.4,
+      innerY: FACE.browRight.innerY - inner * 8 + lift + this.lookY * 0.8,
+    });
+  }
+
+  private strokeBrow(
+    context: CanvasRenderingContext2D,
+    points: { outerX: number; outerY: number; innerX: number; innerY: number },
+  ): void {
+    const midX = (points.outerX + points.innerX) / 2;
+    const midY = (points.outerY + points.innerY) / 2 - 2;
+    context.save();
+    context.lineCap = "round";
+    context.lineJoin = "round";
+    context.strokeStyle = SKIN;
+    context.lineWidth = 6.5;
+    context.globalAlpha = 0.7;
+    context.beginPath();
+    context.moveTo(points.outerX, points.outerY);
+    context.quadraticCurveTo(midX, midY, points.innerX, points.innerY);
+    context.stroke();
+    context.strokeStyle = "#2a2428";
+    context.lineWidth = 2.15;
+    context.globalAlpha = 0.82;
+    context.beginPath();
+    context.moveTo(points.outerX, points.outerY);
+    context.quadraticCurveTo(midX, midY, points.innerX, points.innerY);
+    context.stroke();
+    context.restore();
+  }
+
+  private drawMouth(): void {
+    const cover = this.pose.mouthCover;
+    if (cover < 0.04) return;
+    const context = this.portraitCtx;
+    const open = this.pose.mouthOpen;
+    const curve = this.pose.mouthCurve;
+    const width = this.pose.mouthWidth;
+    context.save();
+    context.translate(
+      FACE.mouth.x + this.lookX * 1.8,
+      FACE.mouth.y + this.lookY * 1.1,
+    );
+    context.rotate(MOUTH_TILT);
+    context.globalAlpha = cover;
+
+    const coverRx = 34 * width + open * 8;
+    const coverRy = 14 + open * 16;
+    const skinBlend = context.createRadialGradient(0, 1, 3, 0, 2, Math.max(coverRx, coverRy));
+    skinBlend.addColorStop(0, SKIN_A(1));
+    skinBlend.addColorStop(0.62, SKIN_A(0.88));
+    skinBlend.addColorStop(1, SKIN_A(0));
     context.fillStyle = skinBlend;
     context.beginPath();
-    context.ellipse(x, y + 2, 32, 22, 0, 0, Math.PI * 2);
+    context.ellipse(0, 2, coverRx, coverRy, 0, 0, Math.PI * 2);
     context.fill();
 
-    context.translate(x, y + 4);
-    context.scale(1, 0.45 + open * 0.55);
-    context.fillStyle = "#743d47";
+    if (open < 0.18) {
+      this.drawClosedMouth(context, curve, width);
+    } else {
+      this.drawOpenMouth(context, open, curve, width);
+    }
+    context.restore();
+  }
+
+  private drawClosedMouth(
+    context: CanvasRenderingContext2D,
+    curve: number,
+    width: number,
+  ): void {
+    const half = 22 * width;
+    const dip = 9 * curve;
+    context.fillStyle = "rgba(232, 184, 174, 0.78)";
     context.beginPath();
-    context.ellipse(0, 0, 17, 11, 0, 0, Math.PI * 2);
+    context.ellipse(0, 5 + Math.max(0, dip) * 0.15, 9 * width, 4.2, 0, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = "rgba(255, 252, 249, 0.85)";
+    context.beginPath();
+    context.ellipse(1, 5.2, 2.1, 1.15, 0, 0, Math.PI * 2);
+    context.fill();
+    context.strokeStyle = "#5c3338";
+    context.lineWidth = 1.85;
+    context.lineCap = "round";
+    context.beginPath();
+    context.moveTo(-half, -dip * 0.08);
+    context.quadraticCurveTo(0, dip, half, -dip * 0.18);
+    context.stroke();
+    if (curve > 0.45) {
+      context.globalAlpha *= 0.45;
+      context.lineWidth = 1.1;
+      context.beginPath();
+      context.moveTo(-half + 1, 1);
+      context.quadraticCurveTo(-half - 3, 4, -half - 1, 7);
+      context.moveTo(half - 1, 0);
+      context.quadraticCurveTo(half + 3, 3, half + 1, 6);
+      context.stroke();
+    }
+  }
+
+  private drawOpenMouth(
+    context: CanvasRenderingContext2D,
+    open: number,
+    curve: number,
+    width: number,
+  ): void {
+    const rx = 16 * width + open * 4;
+    const ry = 5 + open * 11;
+    const smile = Math.max(0, curve) * 4;
+    context.save();
+    context.translate(0, 3);
+    context.beginPath();
+    context.moveTo(-rx, -smile * 0.2);
+    context.bezierCurveTo(-rx * 0.4, -ry * 0.2 - smile, rx * 0.4, -ry * 0.2 - smile, rx, -smile * 0.25);
+    context.bezierCurveTo(rx * 0.7, ry + smile * 0.4, -rx * 0.7, ry + smile * 0.4, -rx, -smile * 0.2);
+    context.closePath();
+    context.fillStyle = "#743d47";
     context.fill();
     context.fillStyle = "#2c131b";
     context.beginPath();
-    context.ellipse(0, 1.5, 13, 8, 0, 0, Math.PI * 2);
+    context.ellipse(0, ry * 0.18, rx * 0.72, ry * 0.62, 0, 0, Math.PI * 2);
     context.fill();
-    context.fillStyle = "rgba(247, 233, 226, 0.92)";
+    if (open > 0.35) {
+      context.fillStyle = "rgba(247, 233, 226, 0.95)";
+      context.beginPath();
+      context.ellipse(0, -ry * 0.28, rx * 0.62, Math.max(1.6, 2.6 * open), 0, Math.PI, Math.PI * 2);
+      context.fill();
+    }
+    if (open > 0.5) {
+      context.fillStyle = "rgba(196, 112, 122, 0.88)";
+      context.beginPath();
+      context.ellipse(0, ry * 0.28, rx * 0.42, ry * 0.28, 0, 0, Math.PI * 2);
+      context.fill();
+    }
+    context.fillStyle = "rgba(232, 184, 174, 0.9)";
     context.beginPath();
-    context.ellipse(0, -3, 8.5, 2.4, 0, Math.PI, Math.PI * 2);
+    context.ellipse(0, ry * 0.72, rx * 0.7, 3.2, 0, 0, Math.PI * 2);
     context.fill();
-    context.strokeStyle = "rgba(128, 65, 74, 0.7)";
-    context.lineWidth = 1.4;
-    context.beginPath();
-    context.arc(0, 0, 17, 0.18, Math.PI - 0.18);
+    context.strokeStyle = "rgba(92, 51, 56, 0.75)";
+    context.lineWidth = 1.35;
     context.stroke();
+    context.restore();
+  }
+
+  private drawCheeks(seconds: number): void {
+    const amount = this.pose.blush;
+    if (amount < 0.03) return;
+    const context = this.portraitCtx;
+    const pulse = 0.85 + 0.15 * Math.sin(seconds * 2.05);
+    const alpha = amount * pulse;
+    this.fillBlush(context, 631, 357, 34, alpha * 0.55);
+    this.fillBlush(context, 855, 343, 32, alpha * 0.5);
+    if (amount > 0.55) {
+      context.save();
+      context.globalAlpha = (amount - 0.55) * 0.9;
+      context.fillStyle = "rgba(255, 236, 232, 0.55)";
+      context.beginPath();
+      context.ellipse(624, 350, 2.2, 1.4, 0.3, 0, Math.PI * 2);
+      context.fill();
+      context.beginPath();
+      context.ellipse(862, 336, 2.1, 1.3, -0.2, 0, Math.PI * 2);
+      context.fill();
+      context.restore();
+    }
+  }
+
+  private fillBlush(
+    context: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    radius: number,
+    alpha: number,
+  ): void {
+    const gradient = context.createRadialGradient(x, y, 2, x, y, radius);
+    gradient.addColorStop(0, `rgba(224, 119, 121, ${alpha})`);
+    gradient.addColorStop(0.55, `rgba(224, 119, 121, ${alpha * 0.35})`);
+    gradient.addColorStop(1, "rgba(224, 119, 121, 0)");
+    context.fillStyle = gradient;
+    context.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+  }
+
+  private drawTears(seconds: number): void {
+    const amount = this.pose.tear;
+    if (amount < 0.05) return;
+    const context = this.portraitCtx;
+    const drip = (Math.sin(seconds * 2.4) + 1) * 0.5;
+    context.save();
+    context.globalAlpha = amount * (0.55 + 0.45 * drip);
+    this.paintTear(context, 690, 328 + drip * 7);
+    this.paintTear(context, 768, 312 + drip * 6);
+    context.restore();
+  }
+
+  private paintTear(context: CanvasRenderingContext2D, x: number, y: number): void {
+    const gloss = context.createLinearGradient(x - 3, y - 4, x + 4, y + 10);
+    gloss.addColorStop(0, "rgba(210, 232, 240, 0.85)");
+    gloss.addColorStop(0.45, "rgba(140, 188, 210, 0.7)");
+    gloss.addColorStop(1, "rgba(140, 188, 210, 0)");
+    context.fillStyle = gloss;
+    context.beginPath();
+    context.moveTo(x, y - 5);
+    context.quadraticCurveTo(x + 4, y + 2, x, y + 11);
+    context.quadraticCurveTo(x - 4, y + 2, x, y - 5);
+    context.fill();
+    context.fillStyle = "rgba(255, 255, 255, 0.7)";
+    context.beginPath();
+    context.ellipse(x - 0.8, y - 1, 1.1, 1.6, -0.3, 0, Math.PI * 2);
+    context.fill();
+  }
+
+  private drawSweat(seconds: number): void {
+    const amount = this.pose.sweat;
+    if (amount < 0.08) return;
+    const context = this.portraitCtx;
+    const bob = Math.sin(seconds * 4.4) * 1.5;
+    context.save();
+    context.globalAlpha = amount * 0.8;
+    context.translate(872, 268 + bob);
+    context.rotate(0.25);
+    context.fillStyle = "rgba(196, 224, 232, 0.8)";
+    context.beginPath();
+    context.moveTo(0, -7);
+    context.quadraticCurveTo(5, 1, 0, 9);
+    context.quadraticCurveTo(-5, 1, 0, -7);
+    context.fill();
+    context.fillStyle = "rgba(255, 255, 255, 0.65)";
+    context.beginPath();
+    context.ellipse(-1, -1, 1.2, 2, 0, 0, Math.PI * 2);
+    context.fill();
     context.restore();
   }
 
@@ -366,46 +914,35 @@ export class MoxiRigViewer {
 
     const breathing = Math.sin(seconds * 1.45);
     const idleSway = Math.sin(seconds * 0.6);
+    const laughBounce = Math.sin(seconds * 9.2) * this.pose.headBounce;
     const scale =
-      Math.min(
-        canvasWidth / PORTRAIT_WIDTH,
-        canvasHeight / PORTRAIT_HEIGHT,
-      ) *
-      0.93;
+      Math.min(canvasWidth / PORTRAIT_WIDTH, canvasHeight / PORTRAIT_HEIGHT) * 0.93;
     const drawWidth = PORTRAIT_WIDTH * scale;
     const drawHeight = PORTRAIT_HEIGHT * scale;
     const originX = (canvasWidth - drawWidth) / 2;
     const originY =
       (canvasHeight - drawHeight) / 2 +
       canvasHeight * 0.035 +
-      breathing * 2.5 * scale;
+      (breathing * 2.5 + laughBounce * 3.2) * scale;
     const sliceHeight = PORTRAIT_HEIGHT / SLICE_COUNT;
 
     context.save();
     context.translate(canvasWidth / 2, canvasHeight / 2);
-    context.rotate(this.lookX * 0.006 + idleSway * 0.002);
+    context.rotate(this.lookX * 0.006 + idleSway * 0.002 + this.pose.lookBiasX * 0.01);
     context.translate(-canvasWidth / 2, -canvasHeight / 2);
 
     for (let index = 0; index < SLICE_COUNT; index += 1) {
       const sourceY = index * sliceHeight;
       const normalizedY = sourceY / PORTRAIT_HEIGHT;
-      const headInfluence = Math.exp(
-        -Math.pow((normalizedY - 0.28) / 0.32, 2),
-      );
-      const chestInfluence = Math.exp(
-        -Math.pow((normalizedY - 0.63) / 0.28, 2),
-      );
-      const xShift =
-        (this.lookX * 18 * headInfluence + idleSway * 1.5) * scale;
+      const headInfluence = Math.exp(-Math.pow((normalizedY - 0.28) / 0.32, 2));
+      const chestInfluence = Math.exp(-Math.pow((normalizedY - 0.63) / 0.28, 2));
+      const xShift = (this.lookX * 18 * headInfluence + idleSway * 1.5) * scale;
       const yShift =
-        (this.lookY * 8 * headInfluence -
-          breathing * 2.2 * chestInfluence) *
+        (this.lookY * 8 * headInfluence - breathing * 2.2 * chestInfluence + laughBounce * 1.4 * headInfluence) *
         scale;
-      const horizontalScale =
-        1 - Math.abs(this.lookX) * 0.012 * headInfluence;
+      const horizontalScale = 1 - Math.abs(this.lookX) * 0.012 * headInfluence;
       const sliceWidth = drawWidth * horizontalScale;
-      const sliceX =
-        originX + xShift + (drawWidth - sliceWidth) / 2;
+      const sliceX = originX + xShift + (drawWidth - sliceWidth) / 2;
       const sliceY = originY + sourceY * scale + yShift;
 
       context.drawImage(

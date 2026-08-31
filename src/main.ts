@@ -1,6 +1,6 @@
 import "./styles.css";
 import { MODEL_PRESETS } from "./presets";
-import { MoxiRigViewer } from "./moxiRig";
+import { MoxiRigViewer, RIG_EXPRESSION_LABELS } from "./moxiRig";
 import { Live2DViewer } from "./viewer";
 
 function el<K extends keyof HTMLElementTagNameMap>(
@@ -73,7 +73,7 @@ root.append(
       el("div", { className: "brand" }, [
         el("h1", {}, ["墨汐"]),
         el("p", {}, [
-          "默认是分层绑定：会眨眼、会转头、表情能张嘴。这才是往真 Live2D 靠的那一版。",
+          "眼、眉、嘴、颊分开画。下拉里有浅笑、大笑、吃惊、难过、生气、害羞、眨眼、说话、困倦。",
         ]),
       ]),
       el("nav", { className: "links" }, [
@@ -123,7 +123,12 @@ function setStatus(message: string, kind: "info" | "ok" | "error"): void {
   status.className = `status${kind === "info" ? "" : ` ${kind}`}`;
 }
 
-function fillSelect(select: HTMLSelectElement, values: string[], emptyLabel: string): void {
+function fillSelect(
+  select: HTMLSelectElement,
+  values: string[],
+  emptyLabel: string,
+  labels?: { readonly [key: string]: string },
+): void {
   select.replaceChildren();
   if (values.length === 0) {
     select.append(el("option", { value: "", textContent: emptyLabel }));
@@ -132,7 +137,7 @@ function fillSelect(select: HTMLSelectElement, values: string[], emptyLabel: str
   }
   select.disabled = false;
   for (const value of values) {
-    select.append(el("option", { value, textContent: value }));
+    select.append(el("option", { value, textContent: labels?.[value] ?? value }));
   }
 }
 
@@ -196,7 +201,7 @@ loadBtn.addEventListener("click", () => {
         rigViewer = new MoxiRigViewer(view, setStatus);
         const result = await rigViewer.load();
         fillSelect(motionSelect, result.motions, "（无动作组）");
-        fillSelect(expressionSelect, result.expressions, "（无表情）");
+        fillSelect(expressionSelect, result.expressions, "（无表情）", RIG_EXPRESSION_LABELS);
         setLive2dControlsEnabled(true);
         return;
       }
@@ -224,6 +229,12 @@ motionBtn.addEventListener("click", () => {
   }
   if (mode !== "live2d" || !liveViewer || !motionSelect.value) return;
   liveViewer.playMotion(motionSelect.value);
+});
+
+expressionSelect.addEventListener("change", () => {
+  if (mode === "rig" && rigViewer && expressionSelect.value) {
+    rigViewer.playExpression(expressionSelect.value);
+  }
 });
 
 expressionBtn.addEventListener("click", () => {
