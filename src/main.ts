@@ -1,6 +1,6 @@
 import "./styles.css";
 import { MODEL_PRESETS } from "./presets";
-import { MoxiArtPreview } from "./moxiPreview";
+import { MoxiRigViewer } from "./moxiRig";
 import { Live2DViewer } from "./viewer";
 
 function el<K extends keyof HTMLElementTagNameMap>(
@@ -73,7 +73,7 @@ root.append(
       el("div", { className: "brand" }, [
         el("h1", {}, ["墨汐"]),
         el("p", {}, [
-          "咱们自己的 Live2D 角色。已开呼吸晃动与表情切换；精致五官表情还要继续在 Cubism 分层绑定。",
+          "默认是分层绑定：会眨眼、会转头、表情能张嘴。这才是往真 Live2D 靠的那一版。",
         ]),
       ]),
       el("nav", { className: "links" }, [
@@ -146,11 +146,11 @@ function setLive2dControlsEnabled(enabled: boolean): void {
   }
 }
 
-type Mode = "art" | "live2d";
+type Mode = "live2d" | "rig";
 
-let mode: Mode = "art";
-let artPreview: MoxiArtPreview | null = null;
+let mode: Mode = "rig";
 let liveViewer: Live2DViewer | null = null;
+let rigViewer: MoxiRigViewer | null = null;
 
 /** 2D and WebGL cannot share one canvas; replace it on mode switches. */
 function replaceCanvas(): HTMLCanvasElement {
@@ -161,19 +161,19 @@ function replaceCanvas(): HTMLCanvasElement {
 }
 
 function teardown(): void {
-  if (artPreview) {
-    artPreview.destroy();
-    artPreview = null;
-  }
   if (liveViewer) {
     liveViewer.destroy();
     liveViewer = null;
+  }
+  if (rigViewer) {
+    rigViewer.destroy();
+    rigViewer = null;
   }
 }
 
 function currentPresetKind(): (typeof MODEL_PRESETS)[number]["kind"] {
   const preset = MODEL_PRESETS.find((item) => item.id === presetSelect.value);
-  return preset?.kind ?? "ours-live2d";
+  return preset?.kind ?? "ours-rig";
 }
 
 presetSelect.addEventListener("change", () => {
@@ -191,11 +191,13 @@ loadBtn.addEventListener("click", () => {
       teardown();
       const view = replaceCanvas();
 
-      if (kind === "ours-preview") {
-        mode = "art";
-        artPreview = new MoxiArtPreview(view, { setStatus });
-        await artPreview.show(urlInput.value.trim());
-        setLive2dControlsEnabled(false);
+      if (kind === "ours-rig") {
+        mode = "rig";
+        rigViewer = new MoxiRigViewer(view, setStatus);
+        const result = await rigViewer.load();
+        fillSelect(motionSelect, result.motions, "（无动作组）");
+        fillSelect(expressionSelect, result.expressions, "（无表情）");
+        setLive2dControlsEnabled(true);
         return;
       }
 
@@ -216,16 +218,28 @@ loadBtn.addEventListener("click", () => {
 });
 
 motionBtn.addEventListener("click", () => {
+  if (mode === "rig" && rigViewer) {
+    rigViewer.playMotion(motionSelect.value || "Idle");
+    return;
+  }
   if (mode !== "live2d" || !liveViewer || !motionSelect.value) return;
   liveViewer.playMotion(motionSelect.value);
 });
 
 expressionBtn.addEventListener("click", () => {
+  if (mode === "rig" && rigViewer && expressionSelect.value) {
+    rigViewer.playExpression(expressionSelect.value);
+    return;
+  }
   if (mode !== "live2d" || !liveViewer || !expressionSelect.value) return;
   liveViewer.playExpression(expressionSelect.value);
 });
 
 idleBtn.addEventListener("click", () => {
+  if (mode === "rig" && rigViewer) {
+    rigViewer.playMotion("Idle");
+    return;
+  }
   if (mode !== "live2d" || !liveViewer) return;
   const options = [...motionSelect.options]
     .map((option) => option.value)

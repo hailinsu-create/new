@@ -49,3 +49,15 @@ npm run fetch-core && npm run dev
 1. PS/CSP 按主视觉精拆 PSD（眼、嘴、前后发）
 2. Cubism 里加 Angle / EyeOpen / Mouth / Breath 与物理
 3. 导出动作 `Idle`，再写入 `model3.json`
+
+
+## 分层绑定（当前默认）
+
+Cubism FREE 很难把眨眼/张嘴关键形导出完整。研究台默认走 `src/moxiRig.ts`：
+
+- 图层来自同一张主视觉切割（`public/characters/moxi/rig/`）
+- 自动眨眼（开眼/闭眼图层切换）
+- 指针转头（头部图层倾斜）
+- smile / surprise 切张嘴与眉位
+
+这是目前最接近「真 Live2D」的墨汐。Cubism moc3 仍保留作对照。
