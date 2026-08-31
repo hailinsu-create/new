@@ -512,18 +512,22 @@ export class MoxiRigViewer {
 
     this.drawEyeSocketFill(FACE.eyeLeft, leftOpen);
     this.drawEyeSocketFill(FACE.eyeRight, rightOpen);
-    this.drawEye(this.assets.eyeLeft, FACE.eyeLeft, leftOpen, -1);
-    this.drawEye(this.assets.eyeRight, FACE.eyeRight, rightOpen, 1);
+    if (leftOpen >= 0.16) {
+      this.drawEye(this.assets.eyeLeft, FACE.eyeLeft, leftOpen, -1);
+    }
+    if (rightOpen >= 0.16) {
+      this.drawEye(this.assets.eyeRight, FACE.eyeRight, rightOpen, 1);
+    }
     this.drawLowerLid(FACE.eyeLeft, this.pose.lowerLid * Math.min(1, leftOpen * 1.2), -1);
     this.drawLowerLid(FACE.eyeRight, this.pose.lowerLid * Math.min(1, rightOpen * 1.2), 1);
     this.drawSparkle(FACE.eyeLeft, leftOpen, -1, seconds);
     this.drawSparkle(FACE.eyeRight, rightOpen, 1, seconds);
 
     if (leftOpen < 0.22) {
-      this.drawClosedEye(FACE.eyeLeft, 1 - leftOpen / 0.22, -1);
+      this.drawClosedEye(FACE.eyeLeft, leftOpen < 0.16 ? 1 : 1 - leftOpen / 0.22, -1);
     }
     if (rightOpen < 0.22) {
-      this.drawClosedEye(FACE.eyeRight, 1 - rightOpen / 0.22, 1);
+      this.drawClosedEye(FACE.eyeRight, rightOpen < 0.16 ? 1 : 1 - rightOpen / 0.22, 1);
     }
   }
 
@@ -534,7 +538,8 @@ export class MoxiRigViewer {
     context.save();
     context.translate(center.x + this.lookX * 2.4, center.y + this.lookY * 1.5);
     const fill = context.createRadialGradient(0, 0, 4, 0, 0, 34);
-    fill.addColorStop(0, SKIN_A(0.55 * cover));
+    fill.addColorStop(0, SKIN_A(0.94 * cover));
+    fill.addColorStop(0.55, SKIN_A(0.55 * cover));
     fill.addColorStop(1, SKIN_A(0));
     context.fillStyle = fill;
     context.beginPath();
@@ -710,11 +715,12 @@ export class MoxiRigViewer {
     context.rotate(MOUTH_TILT);
     context.globalAlpha = cover;
 
-    const coverRx = 30 * width + open * 6;
-    const coverRy = 12 + open * 14;
-    const skinBlend = context.createRadialGradient(0, 1, 2, 0, 2, Math.max(coverRx, coverRy));
+    const coverRx = 32 * width + open * 8;
+    const coverRy = 16 + open * 16;
+    const skinBlend = context.createRadialGradient(0, 0, 2, 0, 1, Math.max(coverRx, coverRy));
     skinBlend.addColorStop(0, SKIN_A(1));
-    skinBlend.addColorStop(0.58, SKIN_A(0.9));
+    skinBlend.addColorStop(0.45, SKIN_A(1));
+    skinBlend.addColorStop(0.78, SKIN_A(0.82));
     skinBlend.addColorStop(1, SKIN_A(0));
     context.fillStyle = skinBlend;
     context.beginPath();
@@ -840,8 +846,8 @@ export class MoxiRigViewer {
     const context = this.portraitCtx;
     const pulse = 0.85 + 0.15 * Math.sin(seconds * 2.05);
     const alpha = amount * pulse;
-    this.fillBlush(context, 631, 357, 34, alpha * 0.55);
-    this.fillBlush(context, 855, 343, 32, alpha * 0.5);
+    this.fillBlush(context, 631, 357, 38, alpha * 0.72);
+    this.fillBlush(context, 855, 343, 36, alpha * 0.66);
     if (amount > 0.55) {
       context.save();
       context.globalAlpha = (amount - 0.55) * 0.9;
