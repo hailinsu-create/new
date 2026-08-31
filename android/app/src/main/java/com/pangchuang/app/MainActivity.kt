@@ -49,6 +49,7 @@ class MainActivity : AppCompatActivity() {
         binding.inputModel.setText(prefs.model)
         binding.inputInterval.setText(prefs.intervalSec.toString())
         binding.switchMock.isChecked = prefs.mockApi
+        binding.switchFrameAvatar.isChecked = prefs.preferFrameAvatar
 
         binding.btnOverlay.setOnClickListener { openOverlaySettings() }
         binding.btnUsage.setOnClickListener { openUsageAccessSettings() }
@@ -126,6 +127,7 @@ class MainActivity : AppCompatActivity() {
         prefs.model = binding.inputModel.text?.toString().orEmpty()
         prefs.intervalSec = binding.inputInterval.text?.toString()?.toIntOrNull() ?: 12
         prefs.mockApi = binding.switchMock.isChecked
+        prefs.preferFrameAvatar = binding.switchFrameAvatar.isChecked
     }
 
     private fun startRoastFlow() {
