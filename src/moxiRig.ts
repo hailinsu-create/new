@@ -30,7 +30,7 @@ const PORTRAIT_WIDTH = 1536;
 const PORTRAIT_HEIGHT = 1024;
 const SLICE_COUNT = 128;
 const MOUTH_TILT = -0.175;
-const SKIN_A = (alpha: number) => `rgba(240, 208, 184, ${alpha})`;
+const SKIN_A = (alpha: number) => `rgba(231, 205, 189, ${alpha})`;
 
 const ASSETS = {
   base: "/characters/moxi/portrait-rig/base.png",
@@ -619,6 +619,7 @@ export class MoxiRigViewer {
     this.drawBrows();
     this.featureCtx.save();
     this.featureCtx.globalCompositeOperation = "destination-out";
+    this.featureCtx.filter = "blur(0.9px)";
     this.featureCtx.drawImage(this.assets.bangs, 0, 0);
     this.featureCtx.restore();
     context.drawImage(this.features, 0, 0);
@@ -815,6 +816,12 @@ export class MoxiRigViewer {
     const leftY = 1.2 - (side === -1 ? outerLift * 0.4 : outerLift * 0.08);
     const rightY = 0.6 - (side === 1 ? outerLift * 0.32 : outerLift * 0.08);
     const midY = 3.4 - happy * 5.4 + sad * 5.8;
+    context.beginPath();
+    context.moveTo(-half, leftY);
+    context.quadraticCurveTo(0, midY, half, rightY);
+    context.strokeStyle = SKIN_A(1);
+    context.lineWidth = 5.6;
+    context.stroke();
     context.beginPath();
     context.moveTo(-half, leftY);
     context.quadraticCurveTo(0, midY, half, rightY);
