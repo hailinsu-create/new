@@ -186,6 +186,23 @@
                     android:checked="false"
                     android:text="演示陪伴语（不调视觉 API）"
                     android:textColor="@color/foam" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switchFrameAvatar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:checked="false"
+                    android:text="墨汐帧动画（不加载 Live2D）"
+                    android:textColor="@color/foam" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Live2D 口型未过关时打开。用墨汐立绘 PNG 表情 + 口型切帧，悬浮窗照常说话。"
+                    android:textColor="@color/mist"
+                    android:textSize="12sp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

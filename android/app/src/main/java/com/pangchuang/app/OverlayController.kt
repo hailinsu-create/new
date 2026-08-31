@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -63,8 +64,13 @@ class OverlayController(
         val live2d = avatar!!
         live2d.onError = { err ->
             // Keep message short for bubble; full detail is in logcat.
-            val short = err.take(48)
-            showText("Live2D：$short")
+            // Frame-engine lock is expected Plan B — don't scare the user.
+            if (!err.contains("帧动画")) {
+                val short = err.take(48)
+                showText("Live2D：$short")
+            } else {
+                Log.i("PangchuangOverlay", err)
+            }
         }
         live2d.onReady = {
             // Keep current bubble; model is now live.

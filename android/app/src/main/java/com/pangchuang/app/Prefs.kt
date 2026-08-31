@@ -36,6 +36,14 @@ class Prefs(context: Context) {
         get() = sp.getFloat(KEY_THRESHOLD, 8f)
         set(value) = sp.edit().putFloat(KEY_THRESHOLD, value).apply()
 
+    /**
+     * Plan B: skip Cubism WebView and drive the floating avatar with PNG frames
+     * (blink + mouth chatter). Also used automatically after Live2D exhausts retries.
+     */
+    var preferFrameAvatar: Boolean
+        get() = sp.getBoolean(KEY_FRAME_AVATAR, false)
+        set(value) = sp.edit().putBoolean(KEY_FRAME_AVATAR, value).apply()
+
     companion object {
         private const val KEY_BASE = "base_url"
         private const val KEY_KEY = "api_key"
@@ -44,5 +52,6 @@ class Prefs(context: Context) {
         private const val KEY_MOCK = "mock"
         private const val KEY_STYLE = "style"
         private const val KEY_THRESHOLD = "threshold"
+        private const val KEY_FRAME_AVATAR = "prefer_frame_avatar"
     }
 }
