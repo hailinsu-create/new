@@ -269,9 +269,6 @@ export class Live2DViewer {
       this.setMouthOpen(core, this.mouthHold);
       return;
     }
-    const seconds = performance.now() / 1000;
-    const pulse = Math.abs(Math.sin(seconds * 8.4));
-    const envelope = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(seconds * 2.2));
-    this.setMouthOpen(core, Math.min(1, 0.12 + pulse * envelope));
+    this.setMouthOpen(core, Math.min(1, 0.55 + pulse * 0.45));
   }
 }
