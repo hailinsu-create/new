@@ -1,0 +1,65 @@
+{
+  "Version": 3,
+  "FileReferences": {
+    "Moc": "moxi.moc3",
+    "Textures": [
+      "moxi.2048/texture_00.png"
+    ],
+    "DisplayInfo": "moxi.cdi3.json",
+    "Expressions": [
+      {
+        "Name": "idle",
+        "File": "expressions/idle.exp3.json"
+      },
+      {
+        "Name": "talk",
+        "File": "expressions/talk.exp3.json"
+      },
+      {
+        "Name": "smile",
+        "File": "expressions/smile.exp3.json"
+      },
+      {
+        "Name": "surprise",
+        "File": "expressions/surprise.exp3.json"
+      },
+      {
+        "Name": "neutral",
+        "File": "expressions/idle.exp3.json"
+      }
+    ],
+    "Motions": {
+      "Idle": [
+        {
+          "File": "motions/idle.motion3.json",
+          "FadeInTime": 0.5,
+          "FadeOutTime": 0.5
+        }
+      ],
+      "Talk": [
+        {
+          "File": "motions/talk.motion3.json",
+          "FadeInTime": 0.15,
+          "FadeOutTime": 0.25
+        }
+      ]
+    }
+  },
+  "Groups": [
+    {
+      "Target": "Parameter",
+      "Name": "EyeBlink",
+      "Ids": [
+        "ParamEyeLOpen",
+        "ParamEyeROpen"
+      ]
+    },
+    {
+      "Target": "Parameter",
+      "Name": "LipSync",
+      "Ids": [
+        "ParamMouthOpenY"
+      ]
+    }
+  ]
+}

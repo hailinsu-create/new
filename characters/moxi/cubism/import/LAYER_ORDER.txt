@@ -1,0 +1,8 @@
+Import bottom to top:
+01_hair_back.png
+02_body.png
+03_face.png
+04_eyes.png
+05_mouth.png
+06_hair_front.png
+Or start with 00_full.png for MVP single-mesh Live2D.
