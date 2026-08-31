@@ -14,7 +14,7 @@ export const MODEL_PRESETS = [
     id: "moxi-rig",
     label: "墨汐（肖像网格 · 重制版）",
     url: "/characters/moxi/portrait-rig/base.png",
-    note: "清过黑边和眼窝。眼睛画在刘海后面；表情切换有过渡，不再硬切。",
+    note: "眼窝和碎点清过。眼睛用眼皮裁切，刘海仍压在睫毛前。表情带过冲，不再整只眼睛压扁。",
     kind: "ours-rig",
   },
   {

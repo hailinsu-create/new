@@ -28,9 +28,9 @@ export const RIG_EXPRESSION_LABELS: Record<RigExpression, string> = {
 
 const PORTRAIT_WIDTH = 1536;
 const PORTRAIT_HEIGHT = 1024;
-const SLICE_COUNT = 96;
+const SLICE_COUNT = 128;
 const MOUTH_TILT = -0.175;
-const SKIN_A = (alpha: number) => `rgba(247, 223, 207, ${alpha})`;
+const SKIN_A = (alpha: number) => `rgba(240, 208, 184, ${alpha})`;
 
 const ASSETS = {
   base: "/characters/moxi/portrait-rig/base.png",
@@ -92,25 +92,46 @@ const POSE_KEYS = [
   "headTilt",
 ] as const satisfies readonly (keyof FacePose)[];
 
-const POSE_RATES: FacePose = {
-  leftOpen: 0.2,
-  rightOpen: 0.2,
-  eyeWidth: 0.16,
-  lowerLid: 0.18,
-  browInner: 0.13,
-  browRaise: 0.13,
-  mouthOpen: 0.28,
-  mouthCurve: 0.22,
-  mouthWidth: 0.2,
-  mouthCover: 0.38,
+const POSE_STIFF: FacePose = {
+  leftOpen: 0.24,
+  rightOpen: 0.24,
+  eyeWidth: 0.18,
+  lowerLid: 0.22,
+  browInner: 0.17,
+  browRaise: 0.17,
+  mouthOpen: 0.34,
+  mouthCurve: 0.28,
+  mouthWidth: 0.26,
+  mouthCover: 0.48,
   blush: 0.07,
-  lookBiasX: 0.09,
-  lookBiasY: 0.09,
-  sparkle: 0.12,
-  tear: 0.09,
-  sweat: 0.1,
-  headBounce: 0.14,
-  headTilt: 0.1,
+  lookBiasX: 0.11,
+  lookBiasY: 0.11,
+  sparkle: 0.16,
+  tear: 0.12,
+  sweat: 0.13,
+  headBounce: 0.2,
+  headTilt: 0.14,
+};
+
+const POSE_DAMP: FacePose = {
+  leftOpen: 0.58,
+  rightOpen: 0.58,
+  eyeWidth: 0.66,
+  lowerLid: 0.6,
+  browInner: 0.64,
+  browRaise: 0.64,
+  mouthOpen: 0.52,
+  mouthCurve: 0.56,
+  mouthWidth: 0.58,
+  mouthCover: 0.5,
+  blush: 0.8,
+  lookBiasX: 0.72,
+  lookBiasY: 0.72,
+  sparkle: 0.7,
+  tear: 0.74,
+  sweat: 0.72,
+  headBounce: 0.55,
+  headTilt: 0.68,
 };
 
 const NEUTRAL_POSE: FacePose = {
@@ -138,104 +159,104 @@ const EXPRESSION_POSES: Record<RigExpression, FacePose> = {
   neutral: NEUTRAL_POSE,
   smile: {
     ...NEUTRAL_POSE,
-    leftOpen: 0.84,
-    rightOpen: 0.84,
-    lowerLid: 0.72,
-    mouthCurve: 0.92,
-    mouthWidth: 1.12,
+    leftOpen: 0.78,
+    rightOpen: 0.78,
+    lowerLid: 0.82,
+    mouthCurve: 0.88,
+    mouthWidth: 1.08,
     mouthCover: 1,
-    blush: 0.42,
-    sparkle: 0.4,
-    headTilt: 0.012,
+    blush: 0.38,
+    sparkle: 0.48,
+    headTilt: 0.016,
   },
   laugh: {
     ...NEUTRAL_POSE,
-    leftOpen: 0.08,
-    rightOpen: 0.08,
-    lowerLid: 0.12,
-    browRaise: 0.28,
-    mouthOpen: 0.88,
+    leftOpen: 0,
+    rightOpen: 0,
+    lowerLid: 0.2,
+    browRaise: 0.34,
+    mouthOpen: 0.92,
     mouthCurve: 1,
-    mouthWidth: 1.28,
+    mouthWidth: 1.22,
     mouthCover: 1,
-    blush: 0.58,
-    sparkle: 0.12,
-    headBounce: 0.55,
-    headTilt: 0.03,
+    blush: 0.52,
+    sparkle: 0,
+    headBounce: 0.62,
+    headTilt: 0.028,
   },
   surprise: {
     ...NEUTRAL_POSE,
-    leftOpen: 1.12,
-    rightOpen: 1.12,
-    eyeWidth: 1.07,
-    browRaise: 1,
-    mouthOpen: 1,
-    mouthCurve: 0.02,
-    mouthWidth: 0.62,
+    leftOpen: 1.08,
+    rightOpen: 1.08,
+    eyeWidth: 1.05,
+    browRaise: 0.92,
+    mouthOpen: 0.82,
+    mouthCurve: 0.04,
+    mouthWidth: 0.58,
     mouthCover: 1,
     blush: 0,
-    sparkle: 0.85,
-    sweat: 0.22,
-    headTilt: -0.01,
+    sparkle: 0.9,
+    sweat: 0.18,
+    headTilt: -0.012,
   },
   sad: {
     ...NEUTRAL_POSE,
-    leftOpen: 0.86,
-    rightOpen: 0.86,
-    lowerLid: 0.18,
+    leftOpen: 0.82,
+    rightOpen: 0.8,
+    lowerLid: 0.22,
     browInner: 1,
-    browRaise: 0.2,
-    mouthCurve: -0.9,
-    mouthWidth: 0.84,
+    browRaise: 0.28,
+    mouthCurve: -0.86,
+    mouthWidth: 0.78,
     mouthCover: 1,
-    blush: 0.1,
-    lookBiasY: 0.2,
-    sparkle: 0.1,
+    blush: 0.12,
+    lookBiasY: 0.24,
+    sparkle: 0.08,
     tear: 1,
-    headTilt: -0.025,
+    headTilt: -0.03,
   },
   angry: {
     ...NEUTRAL_POSE,
-    leftOpen: 0.72,
-    rightOpen: 0.72,
-    eyeWidth: 0.92,
-    lowerLid: 0.28,
+    leftOpen: 0.64,
+    rightOpen: 0.64,
+    eyeWidth: 0.9,
+    lowerLid: 0.42,
     browInner: -1,
-    mouthOpen: 0.08,
-    mouthCurve: -0.42,
-    mouthWidth: 0.7,
+    mouthOpen: 0.06,
+    mouthCurve: -0.55,
+    mouthWidth: 0.66,
     mouthCover: 1,
-    blush: 0.18,
-    sparkle: 0.1,
-    sweat: 0.4,
-    headTilt: 0.008,
+    blush: 0.22,
+    sparkle: 0.06,
+    sweat: 0.48,
+    headTilt: 0.01,
   },
   shy: {
     ...NEUTRAL_POSE,
-    leftOpen: 0.86,
-    rightOpen: 0.86,
-    lowerLid: 0.38,
-    mouthCurve: 0.62,
-    mouthWidth: 0.8,
+    leftOpen: 0.8,
+    rightOpen: 0.82,
+    lowerLid: 0.48,
+    mouthCurve: 0.55,
+    mouthWidth: 0.76,
     mouthCover: 1,
     blush: 1,
-    lookBiasX: 0.28,
-    lookBiasY: 0.26,
-    sparkle: 0.28,
-    sweat: 0.75,
-    headTilt: 0.045,
+    lookBiasX: 0.34,
+    lookBiasY: 0.3,
+    sparkle: 0.22,
+    sweat: 0.7,
+    headTilt: 0.05,
   },
   wink: {
     ...NEUTRAL_POSE,
-    leftOpen: 0.05,
+    leftOpen: 0,
     rightOpen: 1,
-    lowerLid: 0.18,
-    mouthCurve: 0.7,
-    mouthWidth: 1.04,
+    lowerLid: 0.22,
+    mouthCurve: 0.74,
+    mouthWidth: 1.06,
     mouthCover: 1,
-    blush: 0.28,
-    sparkle: 0.55,
-    headTilt: 0.02,
+    blush: 0.32,
+    sparkle: 0.6,
+    headTilt: 0.022,
   },
   talk: {
     ...NEUTRAL_POSE,
@@ -243,22 +264,22 @@ const EXPRESSION_POSES: Record<RigExpression, FacePose> = {
     mouthCurve: 0.22,
     mouthWidth: 1.02,
     mouthCover: 1,
-    sparkle: 0.45,
+    sparkle: 0.42,
   },
   sleepy: {
     ...NEUTRAL_POSE,
-    leftOpen: 0.4,
-    rightOpen: 0.38,
-    lowerLid: 0.4,
-    browRaise: -0.35,
-    mouthOpen: 0.08,
-    mouthCurve: 0.12,
-    mouthWidth: 0.86,
+    leftOpen: 0.36,
+    rightOpen: 0.34,
+    lowerLid: 0.52,
+    browRaise: -0.42,
+    mouthOpen: 0.06,
+    mouthCurve: 0.1,
+    mouthWidth: 0.84,
     mouthCover: 1,
-    blush: 0.16,
-    lookBiasY: 0.18,
-    sparkle: 0.08,
-    headTilt: 0.018,
+    blush: 0.14,
+    lookBiasY: 0.22,
+    sparkle: 0.05,
+    headTilt: 0.022,
   },
 };
 
@@ -288,13 +309,45 @@ function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
-function springPose(current: FacePose, target: FacePose, frameDelta: number): FacePose {
-  const next = { ...current };
+function integratePose(
+  current: FacePose,
+  velocity: FacePose,
+  target: FacePose,
+  frameDelta: number,
+): void {
   for (const key of POSE_KEYS) {
-    const rate = 1 - Math.pow(1 - POSE_RATES[key], frameDelta);
-    next[key] = lerp(current[key], target[key], rate);
+    const error = target[key] - current[key];
+    velocity[key] += error * POSE_STIFF[key] * frameDelta;
+    velocity[key] *= Math.pow(POSE_DAMP[key], frameDelta);
+    current[key] += velocity[key] * frameDelta;
+    if (Math.abs(error) < 0.001 && Math.abs(velocity[key]) < 0.002) {
+      current[key] = target[key];
+      velocity[key] = 0;
+    }
   }
-  return next;
+}
+
+function emptyPose(): FacePose {
+  return {
+    leftOpen: 0,
+    rightOpen: 0,
+    eyeWidth: 0,
+    lowerLid: 0,
+    browInner: 0,
+    browRaise: 0,
+    mouthOpen: 0,
+    mouthCurve: 0,
+    mouthWidth: 0,
+    mouthCover: 0,
+    blush: 0,
+    lookBiasX: 0,
+    lookBiasY: 0,
+    sparkle: 0,
+    tear: 0,
+    sweat: 0,
+    headBounce: 0,
+    headTilt: 0,
+  };
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -341,6 +394,7 @@ export class MoxiRigViewer {
   private assets: LoadedAssets | null = null;
   private expression: RigExpression = "neutral";
   private pose: FacePose = { ...NEUTRAL_POSE };
+  private poseVel: FacePose = emptyPose();
   private running = false;
   private frameId = 0;
   private startedAt = 0;
@@ -443,10 +497,14 @@ export class MoxiRigViewer {
 
   playExpression(name: string): void {
     if (!isRigExpression(name) || name === this.expression) return;
+    const nextPose = EXPRESSION_POSES[name];
+    for (const key of POSE_KEYS) {
+      this.poseVel[key] += (nextPose[key] - this.pose[key]) * 0.22;
+    }
     this.expression = name;
     this.hairVelocity -= 0.05;
     this.tasselVelocity += 0.07;
-    this.bounce = name === "laugh" ? 1 : name === "surprise" ? 0.55 : 0.28;
+    this.bounce = name === "laugh" ? 1 : name === "surprise" ? 0.62 : 0.32;
     if (name !== "wink" && name !== "sleepy") {
       this.blinkKick = 1;
     }
@@ -493,12 +551,24 @@ export class MoxiRigViewer {
       targetPose.mouthWidth = viseme.width;
       targetPose.mouthCurve = viseme.curve;
       targetPose.mouthCover = 1;
+      targetPose.headBounce = 0.1 + 0.08 * Math.sin(seconds * 6.4);
     } else if (this.expression === "neutral") {
-      targetPose.mouthCurve = 0.28 + Math.sin(seconds * 1.7) * 0.03;
+      targetPose.mouthCurve = 0.28 + Math.sin(seconds * 1.55) * 0.04;
+      targetPose.lowerLid = 0.08 + Math.sin(seconds * 0.85) * 0.05;
+      targetPose.browRaise = Math.sin(seconds * 1.05) * 0.06;
+    } else if (this.expression === "smile") {
+      targetPose.lowerLid = 0.82 + Math.sin(seconds * 1.3) * 0.05;
+      targetPose.mouthCurve = 0.88 + Math.sin(seconds * 2.1) * 0.03;
+    } else if (this.expression === "sleepy") {
+      const droop = 0.5 + 0.5 * Math.sin(seconds * 0.52);
+      targetPose.leftOpen = 0.3 + droop * 0.1;
+      targetPose.rightOpen = 0.28 + droop * 0.1;
+    } else if (this.expression === "laugh") {
+      targetPose.mouthOpen = 0.86 + Math.sin(seconds * 9.5) * 0.05 * this.bounce;
     }
-    this.pose = springPose(this.pose, targetPose, frameDelta);
+    integratePose(this.pose, this.poseVel, targetPose, frameDelta);
     if (this.expression === "wink") {
-      this.pose.leftOpen += (0.05 - this.pose.leftOpen) * (1 - Math.pow(0.52, frameDelta));
+      this.pose.leftOpen += (0 - this.pose.leftOpen) * (1 - Math.pow(0.48, frameDelta));
     }
     this.bounce *= Math.pow(0.9, frameDelta);
     this.blinkKick *= Math.pow(0.78, frameDelta);
@@ -559,17 +629,17 @@ export class MoxiRigViewer {
   }
 
   private updatePhysics(seconds: number, frameDelta: number): void {
-    const hairTarget = -this.lookX * 0.22 + Math.sin(seconds * 0.85) * 0.1;
-    this.hairVelocity += (hairTarget - this.hairAngle) * 0.065 * frameDelta;
+    const hairTarget = -this.lookX * 0.16 + Math.sin(seconds * 0.85) * 0.08;
+    this.hairVelocity += (hairTarget - this.hairAngle) * 0.058 * frameDelta;
     this.hairVelocity *= Math.pow(0.86, frameDelta);
     this.hairAngle += this.hairVelocity * frameDelta;
-    this.hairAngle = clamp(this.hairAngle, -0.36, 0.26);
+    this.hairAngle = clamp(this.hairAngle, -0.24, 0.14);
 
-    const tasselTarget = -this.lookX * 0.28 + Math.sin(seconds * 1.15 + 0.7) * 0.14;
-    this.tasselVelocity += (tasselTarget - this.tasselAngle) * 0.045 * frameDelta;
+    const tasselTarget = -this.lookX * 0.22 + Math.sin(seconds * 1.15 + 0.7) * 0.12;
+    this.tasselVelocity += (tasselTarget - this.tasselAngle) * 0.042 * frameDelta;
     this.tasselVelocity *= Math.pow(0.9, frameDelta);
     this.tasselAngle += this.tasselVelocity * frameDelta;
-    this.tasselAngle = clamp(this.tasselAngle, -0.38, 0.38);
+    this.tasselAngle = clamp(this.tasselAngle, -0.32, 0.32);
   }
 
   private drawSecondaryPhysics(): void {
@@ -579,12 +649,12 @@ export class MoxiRigViewer {
     context.save();
     context.beginPath();
     context.rect(0, 0, PORTRAIT_WIDTH, PORTRAIT_HEIGHT);
-    context.ellipse(742, 328, 152, 188, 0, 0, Math.PI * 2);
+    context.ellipse(748, 334, 176, 208, -0.08, 0, Math.PI * 2);
     context.clip("evenodd");
     context.translate(526, 292);
     context.rotate(this.hairAngle);
     context.translate(-526, -292);
-    context.translate(this.hairAngle * 70, Math.abs(this.hairAngle) * 12);
+    context.translate(this.hairAngle * 34, Math.abs(this.hairAngle) * 8);
     context.drawImage(this.assets.hairLock, 0, 0);
     context.restore();
 
@@ -592,7 +662,7 @@ export class MoxiRigViewer {
     context.translate(819, 658);
     context.rotate(this.tasselAngle);
     context.translate(-819, -658);
-    context.translate(this.tasselAngle * 52, Math.abs(this.tasselAngle) * 10);
+    context.translate(this.tasselAngle * 38, Math.abs(this.tasselAngle) * 8);
     context.drawImage(this.assets.tassel, 0, 0);
     context.restore();
   }
@@ -600,78 +670,75 @@ export class MoxiRigViewer {
   private drawEyes(blink: number, seconds: number): void {
     if (!this.assets) return;
     const leftOpen = Math.max(
-      0.04,
+      0,
       this.pose.leftOpen * (this.expression === "wink" ? 1 : blink),
     );
-    const rightOpen = Math.max(0.04, this.pose.rightOpen * blink);
+    const rightOpen = Math.max(0, this.pose.rightOpen * blink);
 
-    this.drawEyeSocketFill(FACE.eyeLeft, leftOpen);
-    this.drawEyeSocketFill(FACE.eyeRight, rightOpen);
-    if (leftOpen >= 0.16) {
+    if (leftOpen >= 0.12) {
       this.drawEye(this.assets.eyeLeft, FACE.eyeLeft, leftOpen, -1);
     }
-    if (rightOpen >= 0.16) {
+    if (rightOpen >= 0.12) {
       this.drawEye(this.assets.eyeRight, FACE.eyeRight, rightOpen, 1);
     }
-    this.drawLowerLid(FACE.eyeLeft, this.pose.lowerLid * Math.min(1, leftOpen * 1.2), -1);
-    this.drawLowerLid(FACE.eyeRight, this.pose.lowerLid * Math.min(1, rightOpen * 1.2), 1);
+    this.drawLowerLid(FACE.eyeLeft, this.pose.lowerLid * Math.min(1, leftOpen * 1.15), -1);
+    this.drawLowerLid(FACE.eyeRight, this.pose.lowerLid * Math.min(1, rightOpen * 1.15), 1);
     this.drawSparkle(FACE.eyeLeft, leftOpen, -1, seconds);
     this.drawSparkle(FACE.eyeRight, rightOpen, 1, seconds);
 
-    if (leftOpen < 0.22) {
-      this.drawClosedEye(FACE.eyeLeft, leftOpen < 0.16 ? 1 : 1 - leftOpen / 0.22, -1);
+    if (leftOpen < 0.2) {
+      this.drawClosedEye(FACE.eyeLeft, leftOpen < 0.12 ? 1 : 1 - leftOpen / 0.2, -1);
     }
-    if (rightOpen < 0.22) {
-      this.drawClosedEye(FACE.eyeRight, rightOpen < 0.16 ? 1 : 1 - rightOpen / 0.22, 1);
+    if (rightOpen < 0.2) {
+      this.drawClosedEye(FACE.eyeRight, rightOpen < 0.12 ? 1 : 1 - rightOpen / 0.2, 1);
     }
-  }
-
-  private drawEyeSocketFill(center: { x: number; y: number }, open: number): void {
-    if (open > 0.92) return;
-    const context = this.featureCtx;
-    const cover = 1 - Math.min(1, open);
-    context.save();
-    context.translate(center.x + this.lookX * 2.4, center.y + this.lookY * 1.5);
-    const fill = context.createRadialGradient(0, 0, 4, 0, 0, 34);
-    fill.addColorStop(0, SKIN_A(0.94 * cover));
-    fill.addColorStop(0.55, SKIN_A(0.55 * cover));
-    fill.addColorStop(1, SKIN_A(0));
-    context.fillStyle = fill;
-    context.beginPath();
-    context.ellipse(0, 1, 32, 20, 0, 0, Math.PI * 2);
-    context.fill();
-    context.restore();
   }
 
   private drawEye(
     image: HTMLImageElement,
     center: { x: number; y: number },
-    scaleY: number,
+    open: number,
     side: -1 | 1,
   ): void {
     const context = this.featureCtx;
-    const perspectiveScaleX = (1 + side * this.lookX * 0.045) * this.pose.eyeWidth;
-    const depthOffset = side * Math.abs(this.lookX) * 1.4;
+    const cx = center.x + this.lookX * 2.6 + side * Math.abs(this.lookX) * 1.15;
+    const cy = center.y + this.lookY * 1.55;
+    const width = 39 * this.pose.eyeWidth;
+    const height = 18.5;
+    const openClamped = clamp(open, 0, 1.16);
+    const upper = lerp(-height, height * 0.12, 1 - openClamped);
+    const lower = lerp(height, -height * 0.04, 1 - openClamped) - this.pose.lowerLid * 7.5;
+    if (lower - upper < 3.4) return;
+
     context.save();
+    context.translate(cx, cy);
+    context.rotate(MOUTH_TILT * 0.22);
     context.beginPath();
-    context.ellipse(
-      center.x + this.lookX * 2.8 + depthOffset,
-      center.y + this.lookY * 1.8,
-      46,
-      30,
-      0,
-      0,
-      Math.PI * 2,
-    );
+    context.moveTo(-width, (upper + lower) * 0.12);
+    context.bezierCurveTo(-width * 0.46, upper, width * 0.46, upper, width, (upper + lower) * 0.08);
+    context.bezierCurveTo(width * 0.42, lower, -width * 0.42, lower, -width, (upper + lower) * 0.12);
+    context.closePath();
     context.clip();
-    context.translate(
-      center.x + this.lookX * 2.8 + depthOffset,
-      center.y + this.lookY * 1.8,
-    );
-    context.scale(perspectiveScaleX, scaleY);
-    context.translate(-center.x, -center.y);
+    context.rotate(-MOUTH_TILT * 0.22);
+    context.scale(1 + side * this.lookX * 0.035, 1);
+    context.translate(-cx, -cy);
     context.drawImage(image, 0, 0);
     context.restore();
+
+    if (openClamped < 0.94) {
+      const lidAlpha = (1 - openClamped) * 0.82;
+      context.save();
+      context.translate(cx, cy);
+      context.rotate(MOUTH_TILT * 0.22);
+      context.lineCap = "round";
+      context.strokeStyle = `rgba(38, 30, 34, ${lidAlpha})`;
+      context.lineWidth = 1.45 + (1 - openClamped) * 1.2;
+      context.beginPath();
+      context.moveTo(-width * 0.9, (upper + lower) * 0.1);
+      context.quadraticCurveTo(0, upper + 0.6, width * 0.9, (upper + lower) * 0.06);
+      context.stroke();
+      context.restore();
+    }
   }
 
   private drawLowerLid(
@@ -679,23 +746,23 @@ export class MoxiRigViewer {
     amount: number,
     side: -1 | 1,
   ): void {
-    if (amount < 0.03) return;
+    if (amount < 0.04) return;
     const context = this.featureCtx;
     context.save();
-    context.translate(center.x + this.lookX * 2.8, center.y + this.lookY * 1.8);
-    context.scale(1 + side * this.lookX * 0.045, 1);
+    context.translate(center.x + this.lookX * 2.6, center.y + this.lookY * 1.55);
+    context.scale(1 + side * this.lookX * 0.035, 1);
     context.lineCap = "round";
-    context.strokeStyle = SKIN_A(0.55 * amount);
-    context.lineWidth = 7.5;
-    context.beginPath();
-    context.moveTo(-26, 6);
-    context.quadraticCurveTo(0, 12 + amount * 4, 26, 5);
-    context.stroke();
-    context.strokeStyle = `rgba(42, 31, 34, ${0.45 * amount})`;
-    context.lineWidth = 1.2;
+    context.strokeStyle = SKIN_A(0.42 * amount);
+    context.lineWidth = 6.2;
     context.beginPath();
     context.moveTo(-24, 7);
-    context.quadraticCurveTo(0, 13 + amount * 3, 24, 6);
+    context.quadraticCurveTo(0, 11 + amount * 3.2, 24, 6.5);
+    context.stroke();
+    context.strokeStyle = `rgba(48, 36, 40, ${0.28 * amount})`;
+    context.lineWidth = 0.95;
+    context.beginPath();
+    context.moveTo(-22, 8);
+    context.quadraticCurveTo(0, 12 + amount * 2.4, 22, 7.2);
     context.stroke();
     context.restore();
   }
@@ -737,62 +804,51 @@ export class MoxiRigViewer {
     const context = this.featureCtx;
     const happy = Math.max(0, this.pose.mouthCurve);
     const sad = Math.max(0, -this.pose.mouthCurve);
-    const outerLift = happy * 5 - sad * 4;
     context.save();
     context.globalAlpha = alpha;
-    context.translate(center.x + this.lookX * 2.2, center.y + this.lookY * 1.2);
+    context.translate(center.x + this.lookX * 2.1, center.y + this.lookY * 1.05);
+    context.rotate(MOUTH_TILT * 0.2);
     context.lineCap = "round";
     context.lineJoin = "round";
-    const leftX = -32;
-    const rightX = 32;
-    const leftY = 2 + (side === -1 ? -outerLift : outerLift * 0.12);
-    const rightY = 1 + (side === 1 ? -outerLift * 0.45 : outerLift * 0.1);
+    const half = 27;
+    const outerLift = happy * 6.2 - sad * 4.6;
+    const leftY = 1.2 - (side === -1 ? outerLift * 0.4 : outerLift * 0.08);
+    const rightY = 0.6 - (side === 1 ? outerLift * 0.32 : outerLift * 0.08);
+    const midY = 3.4 - happy * 5.4 + sad * 5.8;
     context.beginPath();
-    context.moveTo(leftX, leftY);
-    context.bezierCurveTo(
-      -10,
-      13 - happy * 3 + sad * 5,
-      10,
-      13 - happy * 3 + sad * 5,
-      rightX,
-      rightY,
-    );
-    context.quadraticCurveTo(0, leftY - 6, leftX, leftY);
-    context.fillStyle = SKIN_A(0.96);
-    context.fill();
-    context.beginPath();
-    context.moveTo(leftX, leftY);
-    context.bezierCurveTo(
-      -10,
-      13 - happy * 3 + sad * 5,
-      10,
-      13 - happy * 3 + sad * 5,
-      rightX,
-      rightY,
-    );
-    context.strokeStyle = "#2c2428";
-    context.lineWidth = 3.05;
+    context.moveTo(-half, leftY);
+    context.quadraticCurveTo(0, midY, half, rightY);
+    context.strokeStyle = "#2a2226";
+    context.lineWidth = 2.2;
     context.stroke();
+    if (happy > 0.4) {
+      context.strokeStyle = "rgba(42, 34, 38, 0.22)";
+      context.lineWidth = 1;
+      context.beginPath();
+      context.moveTo(-half * 0.7, leftY + 3.4);
+      context.quadraticCurveTo(0, midY + 4.6, half * 0.7, rightY + 3.2);
+      context.stroke();
+    }
     context.restore();
   }
 
   private drawBrows(): void {
     const inner = this.pose.browInner;
     const raise = this.pose.browRaise;
-    if (Math.abs(inner) < 0.32 && Math.abs(raise) < 0.28) return;
+    if (Math.abs(inner) < 0.22 && Math.abs(raise) < 0.2) return;
     const context = this.featureCtx;
-    const lift = -raise * 7;
+    const lift = -raise * 6.5;
     this.strokeBrow(context, {
-      outerX: FACE.browLeft.outerX + this.lookX * 1.4,
-      outerY: FACE.browLeft.outerY + lift * 0.45 + this.lookY * 0.8,
-      innerX: FACE.browLeft.innerX + this.lookX * 1.4,
-      innerY: FACE.browLeft.innerY - inner * 8 + lift + this.lookY * 0.8,
+      outerX: FACE.browLeft.outerX + this.lookX * 1.3,
+      outerY: FACE.browLeft.outerY + lift * 0.4 + this.lookY * 0.7,
+      innerX: FACE.browLeft.innerX + this.lookX * 1.3,
+      innerY: FACE.browLeft.innerY - inner * 7.5 + lift + this.lookY * 0.7,
     });
     this.strokeBrow(context, {
-      outerX: FACE.browRight.outerX + this.lookX * 1.4,
-      outerY: FACE.browRight.outerY + lift * 0.45 + this.lookY * 0.8,
-      innerX: FACE.browRight.innerX + this.lookX * 1.4,
-      innerY: FACE.browRight.innerY - inner * 8 + lift + this.lookY * 0.8,
+      outerX: FACE.browRight.outerX + this.lookX * 1.3,
+      outerY: FACE.browRight.outerY + lift * 0.4 + this.lookY * 0.7,
+      innerX: FACE.browRight.innerX + this.lookX * 1.3,
+      innerY: FACE.browRight.innerY - inner * 7.5 + lift + this.lookY * 0.7,
     });
   }
 
@@ -801,16 +857,21 @@ export class MoxiRigViewer {
     points: { outerX: number; outerY: number; innerX: number; innerY: number },
   ): void {
     const midX = (points.outerX + points.innerX) / 2;
-    const midY = (points.outerY + points.innerY) / 2 - 2;
+    const midY = (points.outerY + points.innerY) / 2 - 1.6;
     context.save();
     context.lineCap = "round";
     context.lineJoin = "round";
-    context.strokeStyle = "#2a2428";
-    context.lineWidth = 2.35;
-    context.globalAlpha = 0.78;
     context.beginPath();
     context.moveTo(points.outerX, points.outerY);
     context.quadraticCurveTo(midX, midY, points.innerX, points.innerY);
+    context.strokeStyle = SKIN_A(0.92);
+    context.lineWidth = 5.4;
+    context.stroke();
+    context.beginPath();
+    context.moveTo(points.outerX, points.outerY);
+    context.quadraticCurveTo(midX, midY, points.innerX, points.innerY);
+    context.strokeStyle = "rgba(52, 42, 46, 0.78)";
+    context.lineWidth = 1.7;
     context.stroke();
     context.restore();
   }
@@ -830,12 +891,12 @@ export class MoxiRigViewer {
     context.rotate(MOUTH_TILT);
     context.globalAlpha = cover;
 
-    const coverRx = 32 * width + open * 8;
-    const coverRy = 16 + open * 16;
+    const coverRx = 30 * width + open * 7;
+    const coverRy = 14 + open * 14;
     const skinBlend = context.createRadialGradient(0, 0, 2, 0, 1, Math.max(coverRx, coverRy));
     skinBlend.addColorStop(0, SKIN_A(1));
-    skinBlend.addColorStop(0.45, SKIN_A(1));
-    skinBlend.addColorStop(0.78, SKIN_A(0.82));
+    skinBlend.addColorStop(0.5, SKIN_A(1));
+    skinBlend.addColorStop(0.8, SKIN_A(0.78));
     skinBlend.addColorStop(1, SKIN_A(0));
     context.fillStyle = skinBlend;
     context.beginPath();
@@ -855,31 +916,27 @@ export class MoxiRigViewer {
     curve: number,
     width: number,
   ): void {
-    const half = 24 * width;
-    const dip = 11 * curve;
-    context.fillStyle = "rgba(232, 184, 174, 0.78)";
+    const half = 22 * width;
+    const dip = 9.5 * curve;
+    context.fillStyle = "rgba(228, 176, 166, 0.42)";
     context.beginPath();
-    context.ellipse(0, 5 + Math.max(0, dip) * 0.15, 9 * width, 4.2, 0, 0, Math.PI * 2);
+    context.ellipse(1, 4.6 + Math.max(0, dip) * 0.12, 7.5 * width, 3.2, 0, 0, Math.PI * 2);
     context.fill();
-    context.fillStyle = "rgba(255, 252, 249, 0.85)";
-    context.beginPath();
-    context.ellipse(1, 5.2, 2.1, 1.15, 0, 0, Math.PI * 2);
-    context.fill();
-    context.strokeStyle = "#5c3338";
-    context.lineWidth = 1.85;
+    context.strokeStyle = "#5a353c";
+    context.lineWidth = 1.45;
     context.lineCap = "round";
     context.beginPath();
-    context.moveTo(-half, -dip * 0.08);
-    context.quadraticCurveTo(0, dip, half, -dip * 0.18);
+    context.moveTo(-half, -dip * 0.1);
+    context.quadraticCurveTo(-half * 0.08, dip, half, -dip * 0.22);
     context.stroke();
-    if (curve > 0.45) {
-      context.globalAlpha *= 0.45;
-      context.lineWidth = 1.1;
+    if (curve > 0.5) {
+      context.globalAlpha *= 0.38;
+      context.lineWidth = 0.95;
       context.beginPath();
-      context.moveTo(-half + 1, 1);
-      context.quadraticCurveTo(-half - 3, 4, -half - 1, 7);
-      context.moveTo(half - 1, 0);
-      context.quadraticCurveTo(half + 3, 3, half + 1, 6);
+      context.moveTo(-half + 1, 0.8);
+      context.quadraticCurveTo(-half - 2.5, 3.4, -half - 0.5, 6.2);
+      context.moveTo(half - 1, 0.4);
+      context.quadraticCurveTo(half + 2.5, 2.8, half + 0.6, 5.6);
       context.stroke();
     }
   }
@@ -893,24 +950,24 @@ export class MoxiRigViewer {
     context.save();
     context.translate(0, 2);
     if (curve < 0.35) {
-      const rx = 6.5 * width + open * 4.5;
-      const ry = 5.5 + open * 9.5;
+      const rx = 5.6 * width + open * 4.2;
+      const ry = 4.8 + open * 8.2;
       context.beginPath();
-      context.ellipse(0, 2, rx, ry, 0, 0, Math.PI * 2);
-      context.fillStyle = "#6e3a43";
+      context.ellipse(0, 1.6, rx, ry, 0, 0, Math.PI * 2);
+      context.fillStyle = "#7a454c";
       context.fill();
-      context.fillStyle = "#2a1218";
+      context.fillStyle = "#3a181e";
       context.beginPath();
-      context.ellipse(0, 3.2, rx * 0.72, ry * 0.62, 0, 0, Math.PI * 2);
+      context.ellipse(0, 2.6, rx * 0.68, ry * 0.58, 0, 0, Math.PI * 2);
       context.fill();
-      context.strokeStyle = "rgba(92, 51, 56, 0.8)";
-      context.lineWidth = 1.4;
+      context.strokeStyle = "rgba(92, 51, 56, 0.72)";
+      context.lineWidth = 1.15;
       context.beginPath();
-      context.ellipse(0, 2, rx, ry, 0, 0, Math.PI * 2);
+      context.ellipse(0, 1.6, rx, ry, 0, 0, Math.PI * 2);
       context.stroke();
-      context.fillStyle = "rgba(232, 184, 174, 0.88)";
+      context.fillStyle = "rgba(232, 184, 174, 0.72)";
       context.beginPath();
-      context.ellipse(0, ry + 1.2, rx * 0.7, 2.6, 0, 0, Math.PI * 2);
+      context.ellipse(0, ry + 0.4, rx * 0.68, 2.1, 0, 0, Math.PI * 2);
       context.fill();
     } else {
       const half = 17 * width + open * 3;
@@ -1075,13 +1132,13 @@ export class MoxiRigViewer {
       const normalizedY = sourceY / PORTRAIT_HEIGHT;
       const headInfluence = Math.exp(-Math.pow((normalizedY - 0.28) / 0.34, 2));
       const chestInfluence = Math.exp(-Math.pow((normalizedY - 0.63) / 0.28, 2));
-      const xShift = (this.lookX * 10 * headInfluence + idleSway * 1.2) * scale;
+      const xShift = (this.lookX * 6.5 * headInfluence + idleSway * 1.1) * scale;
       const yShift =
-        (this.lookY * 5.5 * headInfluence -
+        (this.lookY * 4.2 * headInfluence -
           breathing * 2.2 * chestInfluence +
           laughBounce * 0.45 * headInfluence) *
         scale;
-      const horizontalScale = 1 - Math.abs(this.lookX) * 0.008 * headInfluence;
+      const horizontalScale = 1 - Math.abs(this.lookX) * 0.005 * headInfluence;
       const sliceWidth = drawWidth * horizontalScale;
       const sliceX = originX + xShift + (drawWidth - sliceWidth) / 2;
       const sliceY = originY + sourceY * scale + yShift;
