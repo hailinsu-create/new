@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">旁窗</string>
+    <string name="companion_name">소팡</string>
+    <string name="subtitle">데모 대사를 끄고 비전 API를 넣으세요. 기본은 안정적인 Qwen3-VL-8B. 캐릭터는 공식 Live2D Mao입니다.</string>
+    <string name="section_permissions">권한</string>
+    <string name="section_vision">비전 모델 (OpenAI 호환)</string>
+    <string name="section_privacy">개인정보</string>
+    <string name="btn_overlay">오버레이 허용</string>
+    <string name="btn_usage">사용 기록 접근 (선택)</string>
+    <string name="hint_interval">응답 간격 (초)</string>
+    <string name="switch_mock">데모 대사 (API 호출 안 함)</string>
+    <string name="btn_reset_model">권장 8B로 되돌리기</string>
+    <string name="btn_privacy">개인정보 처리방침</string>
+    <string name="btn_licenses">오픈소스 및 Live2D 라이선스</string>
+    <string name="notification_title">소팡이 화면을 보고 있어요</string>
+    <string name="notification_text">동반자 실행 중. 눌러서 설정으로.</string>
+    <string name="notification_channel">旁窗 동반자</string>
+    <string name="notification_paused_demo">데모 일시정지 · 잠금</string>
+    <string name="notification_paused_capture">잠금 · 캡처 중지 (토큰 절약)</string>
+    <string name="notification_demo">데모 모드 · 합성 화면만</string>
+    <string name="start_roast">실제 화면으로 시작</string>
+    <string name="start_demo">오버레이 데모만 (실제 화면 없음)</string>
+    <string name="stop_roast">소팡 쉬게 하기</string>
+    <string name="overlay_hint">다른 앱 위에 표시 권한이 필요합니다</string>
+    <string name="overlay_on">오버레이: 켜짐</string>
+    <string name="capture_hint">메인 버튼을 누르면 화면 녹화가 필요합니다. 프레임은 대사에만 쓰이고 잠그면 멈춥니다.</string>
+    <string name="usage_hint">사용 기록 접근은 선택입니다. 앞 앱 이름을 힌트로 씁니다. 스크린샷이 우선입니다.</string>
+    <string name="usage_on">사용 기록: 켜짐 (앱 힌트가 더 정확)</string>
+    <string name="privacy_consent_title">시작하기 전에</string>
+    <string name="privacy_consent_message">旁窗은 현재 화면을 찍어 당신이 설정한 비전 API(예: SiliconFlow)로 보내 대사를 만듭니다.
+
+• 스크린샷은 갤러리나 저희 서버에 저장되지 않습니다
+• API 키는 이 기기에만 있습니다
+• 잠그면 캡처와 API가 멈춥니다
+• 선택적으로 앞 앱 이름을 읽습니다
+
+계속하면 개인정보 처리방침에 동의하는 것입니다.</string>
+    <string name="privacy_accept">동의하고 계속</string>
+    <string name="privacy_decline">나중에</string>
+    <string name="privacy_view_policy">정책 보기</string>
+    <string name="privacy_accepted">개인정보 처리방침: 동의함</string>
+    <string name="privacy_required">개인정보 처리방침: 시작 전 동의 필요</string>
+    <string name="data_disclosure_summary">데이터는 당신이 넣은 비전 API로 갑니다. 기본 모델 Qwen3-VL-8B. HTTPS. 로컬 Ollama는 127.0.0.1.</string>
+    <string name="purchase_title">전체 동반 잠금 해제</string>
+    <string name="purchase_summary">약 $0.99 일회. 데모는 계속 무료. 비전 API 비용은 별도입니다.</string>
+    <string name="purchase_status_locked">전체 동반이 잠겨 있습니다</string>
+    <string name="purchase_status_unlocked">잠금 해제됨. 감사합니다.</string>
+    <string name="purchase_buy">전체 동반 잠금 해제</string>
+    <string name="purchase_buy_with_price">전체 동반 잠금 해제 (%1$s)</string>
+    <string name="purchase_unlocked_button">해제됨</string>
+    <string name="purchase_restore">구매 복원</string>
+    <string name="purchase_price_fallback">약 $0.99</string>
+    <string name="purchase_required_title">잠금 해제가 필요합니다</string>
+    <string name="purchase_required_message">실제 화면은 일회 구매(약 $0.99)가 필요합니다. 데모부터 해보세요.</string>
+    <string name="purchase_success">해제되었습니다. 旁窗을 지원해 주셔서 감사합니다.</string>
+    <string name="purchase_failed">구매가 끝나지 않았습니다. 나중에 다시 시도하세요.</string>
+    <string name="purchase_canceled">구매를 취소했습니다</string>
+    <string name="purchase_pending">구매 처리 중입니다. 끝나면 해제됩니다.</string>
+    <string name="purchase_restore_none">복원할 구매가 없습니다</string>
+    <string name="purchase_billing_unavailable">Google Play 결제에 연결할 수 없습니다. Play에서 설치하거나 나중에 시도하세요.</string>
+    <string name="purchase_debug_note">디버그 빌드는 사이드로드 테스트용으로 자동 해제됩니다. Play 빌드는 구매가 필요합니다.</string>
+    <string name="capture_disclosure_title">다음으로 화면 캡처</string>
+    <string name="capture_disclosure_message">시스템이 화면 녹화를 묻습니다. 旁窗은 현재 프레임만 당신의 API로 보냅니다. 갤러리에 저장하지 않고, 잠그면 멈춥니다.</string>
+    <string name="capture_disclosure_continue">계속</string>
+    <string name="view_terms">이용약관</string>
+    <string name="legal_privacy_title">개인정보 처리방침</string>
+    <string name="legal_licenses_title">오픈소스 및 샘플 라이선스</string>
+    <string name="legal_terms_title">이용약관</string>
+    <string name="legal_back">뒤로</string>
+    <string name="legal_load_failed">%1$s 을(를) 불러올 수 없습니다</string>
+    <string name="toast_need_capture">화면 캡처가 있어야 소팡이 화면을 봅니다</string>
+    <string name="toast_companion_ready">소팡이 준비됐습니다. 폰을 쓰세요.</string>
+    <string name="toast_reset_model">권장 8B로 되돌렸습니다</string>
+    <string name="toast_stopped">중지됨</string>
+    <string name="toast_usage_settings_fail">사용 기록 설정을 열 수 없습니다. 시스템 설정에서 검색하세요.</string>
+    <string name="toast_need_overlay">먼저 오버레이를 켜세요</string>
+    <string name="toast_need_api_key">비전 API 키를 넣거나 데모 대사를 켜세요</string>
+    <string name="toast_https_only">출시 빌드는 HTTPS만 허용합니다. 로컬 Ollama는 http://127.0.0.1:11434/v1</string>
+    <string name="toast_demo_started">데모 시작 (실제 화면 없음)</string>
+    <string name="overlay_hello">소팡이 여기 있어요. 화면을 같이 볼게요.</string>
+    <string name="overlay_looking">지금 뭐 하는지 볼게요…</string>
+    <string name="overlay_thinking">이 화면을 보는 중…</string>
+    <string name="overlay_thinking_heavy">큰 모델이 보는 중…</string>
+    <string name="overlay_locked_idle">잠겨 있어요. 돌아오면 다시 볼게요.</string>
+    <string name="overlay_locked">잠갔습니다. 토큰을 아끼려고 쉴게요.</string>
+    <string name="overlay_welcome_back">다시 왔군요. 옆에 있을게요.</string>
+    <string name="overlay_no_projection">화면 캡처를 못 받았습니다. 잠시 쉴게요.</string>
+    <string name="overlay_capture_hello">여기 있어요. 잠그면 캡처가 멈춥니다.</string>
+    <string name="overlay_demo_hello">데모는 가짜 화면입니다. 아바타를 길게 누르면 다른 대사가 나옵니다.</string>
+    <string name="overlay_frame_wait">프레임이 아직이에요. 잠깐만요…</string>
+    <string name="overlay_unchanged">화면이 거의 안 바뀌었어요. 길게 누르면 한 마디 할게요.</string>
+    <string name="demo_frame_label">소팡 데모 #%1$d</string>
+    <string name="demo_scene_shorts_title">심야 쇼츠</string>
+    <string name="demo_scene_shorts_body">또 같은 춤 복제</string>
+    <string name="demo_scene_chat_title">고정 단톡</string>
+    <string name="demo_scene_chat_body">상사: 있어? 급해</string>
+    <string name="demo_scene_cart_title">결제</string>
+    <string name="demo_scene_cart_body">쿠폰까지 ¥12.8 부족</string>
+    <string name="demo_scene_ranked_title">랭크 대기</string>
+    <string name="demo_scene_ranked_body">3연패</string>
+    <string name="demo_scene_notes_title">메모</string>
+    <string name="demo_scene_notes_body">내일 7:30 회의</string>
+    <string name="vision_reply_language">한국어</string>
+    <string name="vision_timeout">모델이 시간 초과했습니다. 나중에 아바타를 누르세요.</string>
+    <string name="vision_network">네트워크 문제: %1$s</string>
+    <string name="vision_distracted">소팡이 한눈팔았어요: %1$s</string>
+    <string name="vision_busy">API가 바쁩니다. 잠시 후 다시.</string>
+    <string name="vision_rate_limited">호출 제한. 몇 초 기다리세요.</string>
+    <string name="vision_model_busy">모델이 바쁨 (%1$d). 잠시 후.</string>
+    <string name="vision_server">서버 %1$d. 모델이 바쁜 듯합니다.</string>
+    <string name="vision_bad_key">키가 잘못되었거나 이 모델을 쓸 수 없습니다</string>
+    <string name="vision_bad_model">모델 이름이 틀렸습니다. Vision Model을 확인하세요.</string>
+    <string name="vision_http">API %1$d: %2$s</string>
+    <string name="vision_http_generic">API %1$d: 키와 모델을 확인하세요</string>
+</resources>

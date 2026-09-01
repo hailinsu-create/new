@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="mock_generic">
+        <item>微信消息堆着也不必慌。先看完眼前这一条，再决定要不要跳进下一阵热闹。</item>
+        <item>短视频像流水。刷得开心便刷，觉得空了就停；停也是一种本事。</item>
+        <item>购物车亮着，说明你还在挑。挑本身没错，结不结账，听心里那一下就好。</item>
+        <item>备忘录写得密，是把明天拆成可走的路。一条一条过，比一口气背起整座山轻松。</item>
+        <item>匹配界面干等最磨人。胜负都是过客，手别僵着就行。</item>
+        <item>浏览器页签开得多，心也容易散。先关掉用不上的那几扇窗。</item>
+        <item>地图在算路，你也在算今天还剩多少气力。近路远路，到了就好。</item>
+    </string-array>
+    <string-array name="mock_shorts">
+        <item>短视频一条接一条，像夜里不停的潮。潮有涨有落，你也可以随时上岸。</item>
+        <item>刷到会心一笑就够了。别跟推荐算法较劲，它不知道你几点该睡。</item>
+        <item>灯下指尖还在滑。滑着滑着若觉得空，不是你的错，是内容太浅。</item>
+    </string-array>
+    <string-array name="mock_chat">
+        <item>置顶群在闪，多半有人等回复。回得慢不丢人，回得清楚比回得快更体面。</item>
+        <item>红点不是圣旨。你看完屏幕上的字，再决定要不要把自己扔进那阵吵闹里。</item>
+        <item>微信里头热闹，微信外头还有你自己。先安顿好呼吸，再点开那一串消息。</item>
+    </string-array>
+    <string-array name="mock_cart">
+        <item>结算页最容易心软。喜欢就买，犹豫就晾着；别让优惠倒逼你的决定。</item>
+        <item>凑单像做加减法。加的是物件，减的不该是清醒。</item>
+        <item>购物车满了，不代表今天必须清空。留一点空，也是给明天留余地。</item>
+    </string-array>
+    <string-array name="mock_ranked">
+        <item>匹配的光一闪一闪。这一局输赢都会过去，手别跟着心跳一起抖就好。</item>
+        <item>段位是数字，手感是此刻。打得明白，比打得焦躁强。</item>
+        <item>排队的时候最容易胡思乱想。想无可想，就盯着加载，当作一次小小的静坐。</item>
+    </string-array>
+    <string-array name="mock_notes">
+        <item>备忘录写得密，是把乱七八糟的事摊成一条条能走的路。很好。</item>
+        <item>提醒设了，不等于压力到账。到点做一件，做完勾掉，日子就往前挪。</item>
+        <item>列出待办的人，已经赢过只在心里打转的人。剩下的，交给时间表。</item>
+    </string-array>
+</resources>

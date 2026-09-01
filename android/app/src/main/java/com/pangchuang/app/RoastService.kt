@@ -68,7 +68,7 @@ class RoastService : Service() {
     override fun onCreate() {
         super.onCreate()
         prefs = Prefs(this)
-        vision = VisionClient(prefs)
+        vision = VisionClient(this, prefs)
         createChannel()
         registerScreenReceiver()
         refreshLockState("onCreate")
@@ -85,7 +85,7 @@ class RoastService : Service() {
                     startAsForeground(demo = demoMode)
                 }
                 if (pausedForLock.get()) {
-                    overlay?.showText("锁屏中，醒了我再陪你看屏～")
+                    overlay?.showText(getString(R.string.overlay_locked_idle))
                 } else {
                     scope.launch { roastOnce(force = true) }
                 }
@@ -151,22 +151,16 @@ class RoastService : Service() {
 
     private fun onScreenLocked(reason: String) {
         if (!pausedForLock.compareAndSet(false, true)) return
-        updateNotification(
-            if (demoMode) "演示已暂停 · 锁屏中"
-            else "锁屏中 · 已暂停看屏（省 token）"
-        )
-        overlay?.showText("锁屏啦，我先歇着，不乱花 token～")
+        updateNotification(statusText())
+        overlay?.showText(getString(R.string.overlay_locked))
         android.util.Log.i(TAG, "paused for lock ($reason)")
     }
 
     private fun onScreenUnlocked(reason: String) {
         if (isDeviceLockedOrOff()) return
         if (!pausedForLock.compareAndSet(true, false)) return
-        updateNotification(
-            if (demoMode) "演示模式 · 小旁用合成画面陪聊"
-            else "小旁陪你看屏幕中"
-        )
-        overlay?.showText("欢迎回来，我继续陪着你。")
+        updateNotification(statusText())
+        overlay?.showText(getString(R.string.overlay_welcome_back))
         android.util.Log.i(TAG, "resumed after unlock ($reason)")
         if (loopJob?.isActive == true && !demoMode) {
             scope.launch {
@@ -176,13 +170,15 @@ class RoastService : Service() {
         }
     }
 
+    private fun statusText(demo: Boolean = demoMode): String = when {
+        pausedForLock.get() && demo -> getString(R.string.notification_paused_demo)
+        pausedForLock.get() -> getString(R.string.notification_paused_capture)
+        demo -> getString(R.string.notification_demo)
+        else -> getString(R.string.notification_title)
+    }
+
     private fun startAsForeground(demo: Boolean) {
-        val text = when {
-            pausedForLock.get() && demo -> "演示已暂停 · 锁屏中"
-            pausedForLock.get() -> "锁屏中 · 已暂停看屏（省 token）"
-            demo -> "演示模式 · 小旁用合成画面陪聊"
-            else -> "小旁陪你看屏幕中"
-        }
+        val text = statusText(demo)
         if (Build.VERSION.SDK_INT >= 34) {
             val type = if (demo) {
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
@@ -233,7 +229,7 @@ class RoastService : Service() {
         val mpm = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         val projection = mpm.getMediaProjection(resultCode, data)
         if (projection == null) {
-            overlay?.show("系统未给出录屏权限，先休息一下。")
+            overlay?.show(getString(R.string.overlay_no_projection))
             stopSelfSafe()
             return
         }
@@ -251,7 +247,7 @@ class RoastService : Service() {
             scope.launch { roastOnce(force = true) }
         }
         overlay = overlayController
-        overlayController.show("我在这儿陪着你。锁屏会自动停看屏。")
+        overlayController.show(getString(R.string.overlay_capture_hello))
 
         val screenCaptor = ScreenCaptor(this, projection)
         captor = screenCaptor
@@ -275,7 +271,7 @@ class RoastService : Service() {
             scope.launch { roastOnce(force = true) }
         }
         overlay = overlayController
-        overlayController.show("演示模式：我会用合成画面陪你练对话。长按头像换一句。")
+        overlayController.show(getString(R.string.overlay_demo_hello))
 
         loopJob = scope.launch {
             delay(400)
@@ -307,7 +303,7 @@ class RoastService : Service() {
                 captured
             }
             if (frame == null) {
-                o.showText("画面还没准备好，再等我一小下…")
+                o.showText(getString(R.string.overlay_frame_wait))
                 return
             }
 
@@ -319,7 +315,7 @@ class RoastService : Service() {
                     unchangedStreak++
                     frame.recycle()
                     if (unchangedStreak % 3 == 0) {
-                        o.showText("画面没怎么变，我还在陪着你。长按头像可以说一句。")
+                        o.showText(getString(R.string.overlay_unchanged))
                     }
                     return
                 }
@@ -334,9 +330,15 @@ class RoastService : Service() {
             }
 
             o.showThinking(
-                if (VisionClient.isHeavyModel(prefs.model)) "大模型在看这一屏…" else "且看这一屏…"
+                getString(
+                    if (VisionClient.isHeavyModel(prefs.model)) {
+                        R.string.overlay_thinking_heavy
+                    } else {
+                        R.string.overlay_thinking
+                    }
+                )
             )
-            val scene = if (demoMode) DEMO_SCENES[demoIndex % DEMO_SCENES.size].first else null
+            val scene = if (demoMode) demoScenes[demoIndex % demoScenes.size].key else null
             val appHint = if (demoMode) null else withContext(Dispatchers.IO) {
                 ForegroundAppResolver.resolve(this@RoastService)
             }
@@ -351,10 +353,10 @@ class RoastService : Service() {
     }
 
     private fun nextDemoFrame(): Bitmap {
-        val scene = DEMO_SCENES[demoIndex % DEMO_SCENES.size]
+        val scene = demoScenes[demoIndex % demoScenes.size]
         val bmp = Bitmap.createBitmap(720, 1280, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bmp)
-        canvas.drawColor(scene.second)
+        canvas.drawColor(scene.bg)
         val title = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
             textSize = 54f
@@ -364,10 +366,10 @@ class RoastService : Service() {
             color = Color.parseColor("#E2E8F0")
             textSize = 40f
         }
-        canvas.drawRoundRect(48f, 96f, 672f, 240f, 36f, 36f, Paint().apply { color = scene.third })
-        canvas.drawText(scene.first, 72f, 180f, title.apply { color = Color.parseColor("#0B1220") })
-        canvas.drawText(scene.fourth, 72f, 360f, body)
-        canvas.drawText("小旁演示画面 #${demoIndex + 1}", 72f, 440f, body)
+        canvas.drawRoundRect(48f, 96f, 672f, 240f, 36f, 36f, Paint().apply { color = scene.accent })
+        canvas.drawText(getString(scene.titleRes), 72f, 180f, title.apply { color = Color.parseColor("#0B1220") })
+        canvas.drawText(getString(scene.bodyRes), 72f, 360f, body)
+        canvas.drawText(getString(R.string.demo_frame_label, demoIndex + 1), 72f, 440f, body)
         return bmp
     }
 
@@ -408,7 +410,7 @@ class RoastService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "旁窗伴侣",
+                getString(R.string.notification_channel),
                 NotificationManager.IMPORTANCE_LOW
             )
             val nm = getSystemService(NotificationManager::class.java)
@@ -426,16 +428,6 @@ class RoastService : Service() {
         const val EXTRA_RESULT_DATA = "result_data"
         private const val CHANNEL_ID = "pangchuang_roast"
         private const val NOTIF_ID = 42
-
-        private val DEMO_SCENES = listOf(
-            Triple("深夜刷短视频", Color.parseColor("#0F172A"), Color.parseColor("#38BDF8")) to "又一条同款舞蹈",
-            Triple("微信置顶群", Color.parseColor("#111827"), Color.parseColor("#34D399")) to "老板：在吗？急！",
-            Triple("购物车结算", Color.parseColor("#1C1917"), Color.parseColor("#FB923C")) to "凑单还差 ¥12.8",
-            Triple("排位赛匹配中", Color.parseColor("#0C1222"), Color.parseColor("#A78BFA")) to "你已经连跪三把",
-            Triple("备忘录", Color.parseColor("#14221B"), Color.parseColor("#86EFAC")) to "明天早上 7:30 开会"
-        ).map { (triple, body) ->
-            Quadruple(triple.first, triple.second, triple.third, body)
-        }
 
         fun start(context: Context, resultCode: Int, data: Intent) {
             if (!Entitlement.isUnlocked(context)) return
@@ -457,6 +449,50 @@ class RoastService : Service() {
             context.startService(Intent(context, RoastService::class.java).setAction(ACTION_STOP))
         }
     }
+
+    private val demoScenes = listOf(
+        DemoScene(
+            VisionClient.SCENE_SHORTS,
+            R.string.demo_scene_shorts_title,
+            R.string.demo_scene_shorts_body,
+            Color.parseColor("#0F172A"),
+            Color.parseColor("#38BDF8")
+        ),
+        DemoScene(
+            VisionClient.SCENE_CHAT,
+            R.string.demo_scene_chat_title,
+            R.string.demo_scene_chat_body,
+            Color.parseColor("#111827"),
+            Color.parseColor("#34D399")
+        ),
+        DemoScene(
+            VisionClient.SCENE_CART,
+            R.string.demo_scene_cart_title,
+            R.string.demo_scene_cart_body,
+            Color.parseColor("#1C1917"),
+            Color.parseColor("#FB923C")
+        ),
+        DemoScene(
+            VisionClient.SCENE_RANKED,
+            R.string.demo_scene_ranked_title,
+            R.string.demo_scene_ranked_body,
+            Color.parseColor("#0C1222"),
+            Color.parseColor("#A78BFA")
+        ),
+        DemoScene(
+            VisionClient.SCENE_NOTES,
+            R.string.demo_scene_notes_title,
+            R.string.demo_scene_notes_body,
+            Color.parseColor("#14221B"),
+            Color.parseColor("#86EFAC")
+        )
+    )
 }
 
-private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
+private data class DemoScene(
+    val key: String,
+    val titleRes: Int,
+    val bodyRes: Int,
+    val bg: Int,
+    val accent: Int
+)

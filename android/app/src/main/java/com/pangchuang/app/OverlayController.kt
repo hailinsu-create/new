@@ -54,7 +54,7 @@ class OverlayController(
     }
 
     @SuppressLint("ClickableViewAccessibility", "InflateParams")
-    fun show(initialText: String = "小旁来陪你啦，我会悄悄看着屏幕陪你聊聊。") {
+    fun show(initialText: String? = null) {
         if (root != null) return
         val view = LayoutInflater.from(context).inflate(R.layout.overlay_bubble, null)
         bubblePanel = view.findViewById(R.id.bubblePanel)
@@ -117,7 +117,7 @@ class OverlayController(
                     val held = SystemClock.uptimeMillis() - downAt >= 450
                     if (!moved) {
                         if (held) {
-                            showText("嗯，我看看你现在在干嘛…")
+                            showText(context.getString(R.string.overlay_looking))
                             onForceRoast?.invoke()
                         } else {
                             live2d.tap()
@@ -134,7 +134,7 @@ class OverlayController(
         root = view
         params = lp
         handler.post(bobLoop)
-        showText(initialText)
+        showText(initialText ?: context.getString(R.string.overlay_hello))
     }
 
     fun showText(text: String) {
@@ -154,8 +154,8 @@ class OverlayController(
         avatar?.speak(text, mood)
     }
 
-    fun showThinking(text: String = "让我看看你在干嘛…") {
-        showText(text)
+    fun showThinking(text: String? = null) {
+        showText(text ?: context.getString(R.string.overlay_thinking))
     }
 
     fun hideForCapture() {

@@ -13,8 +13,8 @@ android {
         applicationId = "com.pangchuang.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 16
-        versionName = "0.7.0"
+        versionCode = 17
+        versionName = "0.8.0"
     }
 
     signingConfigs {

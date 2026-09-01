@@ -48,7 +48,7 @@ adb shell appops set com.pangchuang.app SYSTEM_ALERT_WINDOW allow
 adb shell am start -n com.pangchuang.app/.MainActivity
 ```
 
-最低 Android 8.0（API 26），target 36。
+最低 Android 8.0（API 26），target 36。界面随系统语言切换：简体中文、繁体中文、英语、日语、韩语、西班牙语、巴西葡萄牙语、法语、德语、俄语、印尼语、越南语、泰语、阿拉伯语。
 
 ## 模拟器（可选）
 

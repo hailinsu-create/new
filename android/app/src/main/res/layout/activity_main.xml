@@ -26,7 +26,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="关掉「演示陪伴语」并填入视觉 API。默认使用稳定的 Qwen3-VL-8B。角色为官方虹色 Mao 样例。"
+            android:text="@string/subtitle"
             android:textColor="@color/mist"
             android:textSize="15sp" />
 
@@ -49,7 +49,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="权限"
+                    android:text="@string/section_permissions"
                     android:textColor="@color/foam"
                     android:textSize="16sp"
                     android:textStyle="bold" />
@@ -69,7 +69,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="开启悬浮窗权限" />
+                    android:text="@string/btn_overlay" />
 
                 <TextView
                     android:id="@+id/captureStatus"
@@ -95,7 +95,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="开启使用情况访问（可选）" />
+                    android:text="@string/btn_usage" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -118,7 +118,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="视觉模型（OpenAI 兼容）"
+                    android:text="@string/section_vision"
                     android:textColor="@color/foam"
                     android:textSize="16sp"
                     android:textStyle="bold" />
@@ -127,7 +127,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:hint="Base URL">
+                    android:hint="@string/hint_base_url">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/inputBaseUrl"
@@ -141,7 +141,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:hint="API Key">
+                    android:hint="@string/hint_api_key">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/inputApiKey"
@@ -154,7 +154,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:hint="Vision Model">
+                    android:hint="@string/hint_model">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/inputModel"
@@ -168,7 +168,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:hint="陪伴间隔（秒）">
+                    android:hint="@string/hint_interval">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/inputInterval"
@@ -184,7 +184,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:checked="false"
-                    android:text="演示陪伴语（不调视觉 API）"
+                    android:text="@string/switch_mock"
                     android:textColor="@color/foam" />
 
                 <com.google.android.material.button.MaterialButton
@@ -193,7 +193,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="恢复推荐 8B 模型" />
+                    android:text="@string/btn_reset_model" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -284,7 +284,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="隐私与合规"
+                    android:text="@string/section_privacy"
                     android:textColor="@color/foam"
                     android:textSize="16sp"
                     android:textStyle="bold" />
@@ -312,7 +312,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="查看隐私政策" />
+                    android:text="@string/btn_privacy" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnLicenses"
@@ -320,7 +320,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="开源与 Live2D 许可" />
+                    android:text="@string/btn_licenses" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnTerms"

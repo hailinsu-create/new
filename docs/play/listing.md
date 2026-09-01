@@ -62,7 +62,7 @@ A floating Live2D companion that notices what you are looking at. Demo is free; 
 
 **Full description**
 
-Pangchuang is an Android floating-window companion. A character sits at the edge of your screen, recognizes the app and scene in front of you, and replies in one or two calm lines of Chinese.
+Pangchuang is an Android floating-window companion. A character sits at the edge of your screen, recognizes the app and scene in front of you, and replies in one or two calm lines in the language of your phone.
 
 • Demo mode is free: try the overlay and lip-sync without sending real screenshots.
 • A one-time $0.99 unlock enables real-screen companionship using a vision API that you configure (Qwen3-VL-8B by default).
@@ -98,3 +98,11 @@ You pay your own vision-API usage. The character is the official Live2D Mao samp
 - 目标年龄：**18 岁及以上**
 - 包含应用内购买：**是**（一次性，非订阅）
 - 金融功能：仅 Play 结算内购
+
+## 应用内语言（0.8.0）
+
+系统语言会切界面。陪伴语也按同一语言生成。
+
+简体中文、繁体中文、English、日本語、한국어、Español、Português (Brasil)、Français、Deutsch、Русский、Indonesia、Tiếng Việt、ไทย、العربية
+
+Play Console 可再为上述语言各填一套商店文案；没有的会回落到默认中文/英文。

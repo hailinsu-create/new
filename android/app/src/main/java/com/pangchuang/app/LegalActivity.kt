@@ -18,9 +18,9 @@ class LegalActivity : AppCompatActivity() {
             else -> "legal/privacy_policy.md"
         }
         val title = when (mode) {
-            MODE_LICENSES -> "开源与素材许可"
-            MODE_TERMS -> "使用条款"
-            else -> "隐私政策"
+            MODE_LICENSES -> getString(R.string.legal_licenses_title)
+            MODE_TERMS -> getString(R.string.legal_terms_title)
+            else -> getString(R.string.legal_privacy_title)
         }
         binding.legalTitle.text = title
         binding.legalBody.text = loadAsset(assetPath)
@@ -29,11 +29,22 @@ class LegalActivity : AppCompatActivity() {
     }
 
     private fun loadAsset(path: String): String {
-        return runCatching {
-            assets.open(path).use { stream ->
-                stream.readBytes().toString(Charset.forName("UTF-8"))
-            }
-        }.getOrElse { "无法加载 $path" }
+        val lang = resources.configuration.locales[0].language
+        val localized = if (lang == "zh") {
+            path
+        } else {
+            path.replace(".md", "_en.md").replace(".txt", ".txt")
+        }
+        val tryPaths = if (localized == path) listOf(path) else listOf(localized, path)
+        for (candidate in tryPaths) {
+            val text = runCatching {
+                assets.open(candidate).use { stream ->
+                    stream.readBytes().toString(Charset.forName("UTF-8"))
+                }
+            }.getOrNull()
+            if (text != null) return text
+        }
+        return getString(R.string.legal_load_failed, path)
     }
 
     companion object {

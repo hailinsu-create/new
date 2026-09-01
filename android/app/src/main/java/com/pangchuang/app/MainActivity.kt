@@ -32,12 +32,12 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
     private val captureLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode != Activity.RESULT_OK || result.data == null) {
-                Toast.makeText(this, "需要屏幕录制权限，小旁才能看见画面", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, R.string.toast_need_capture, Toast.LENGTH_SHORT).show()
                 return@registerForActivityResult
             }
             saveForm()
             RoastService.start(this, result.resultCode, result.data!!)
-            Toast.makeText(this, "小旁已就位，去刷手机吧", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.toast_companion_ready, Toast.LENGTH_SHORT).show()
             moveTaskToBack(true)
         }
 
@@ -62,7 +62,7 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
         binding.btnResetModel.setOnClickListener {
             prefs.useStableModel()
             binding.inputModel.setText(Prefs.MODEL_STABLE)
-            Toast.makeText(this, "已切回推荐 8B 模型", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.toast_reset_model, Toast.LENGTH_SHORT).show()
         }
         binding.btnPurchase.setOnClickListener { billingManager?.launchPurchase() }
         binding.btnRestorePurchase.setOnClickListener { billingManager?.restorePurchases() }
@@ -70,7 +70,7 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
         binding.btnDemo.setOnClickListener { startDemoFlow() }
         binding.btnStop.setOnClickListener {
             RoastService.stop(this)
-            Toast.makeText(this, "已停止", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.toast_stopped, Toast.LENGTH_SHORT).show()
         }
 
         maybeAskNotificationPermission()
@@ -153,7 +153,7 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
     private fun refreshPermissionLabels() {
         val overlayOk = Settings.canDrawOverlays(this)
         binding.overlayStatus.text = if (overlayOk) {
-            "悬浮窗权限：已开启"
+            getString(R.string.overlay_on)
         } else {
             getString(R.string.overlay_hint)
         }
@@ -161,7 +161,7 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
         binding.captureStatus.text = getString(R.string.capture_hint)
         val usageOk = ForegroundAppResolver.hasUsageAccess(this)
         binding.usageStatus.text = if (usageOk) {
-            "使用情况访问：已开启（前台 App 提示更准）"
+            getString(R.string.usage_on)
         } else {
             getString(R.string.usage_hint)
         }
@@ -230,7 +230,7 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
         runCatching {
             startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
         }.onFailure {
-            Toast.makeText(this, "打不开使用情况设置，可到系统设置里搜「使用情况」", Toast.LENGTH_LONG)
+            Toast.makeText(this, R.string.toast_usage_settings_fail, Toast.LENGTH_LONG)
                 .show()
         }
     }
@@ -258,7 +258,7 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
             return
         }
         if (!Settings.canDrawOverlays(this)) {
-            Toast.makeText(this, "请先开启悬浮窗权限", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.toast_need_overlay, Toast.LENGTH_SHORT).show()
             openOverlaySettings()
             return
         }
@@ -266,7 +266,7 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
         if (!prefs.mockApi && prefs.apiKey.isBlank()) {
             Toast.makeText(
                 this,
-                "请填写视觉模型 API Key，或先打开「演示陪伴语」",
+                R.string.toast_need_api_key,
                 Toast.LENGTH_LONG
             ).show()
             return
@@ -278,7 +278,7 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
         ) {
             Toast.makeText(
                 this,
-                "上架版默认仅 HTTPS。本地 Ollama 请用 http://127.0.0.1:11434/v1",
+                R.string.toast_https_only,
                 Toast.LENGTH_LONG
             ).show()
             return
@@ -297,7 +297,7 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
     private fun startDemoFlow() {
         if (!ensurePrivacyConsent()) return
         if (!Settings.canDrawOverlays(this)) {
-            Toast.makeText(this, "请先开启悬浮窗权限", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.toast_need_overlay, Toast.LENGTH_SHORT).show()
             openOverlaySettings()
             return
         }
@@ -305,7 +305,7 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
         prefs.mockApi = true
         binding.switchMock.isChecked = true
         RoastService.startDemo(this)
-        Toast.makeText(this, "小旁演示已启动（不看真屏）", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, R.string.toast_demo_started, Toast.LENGTH_SHORT).show()
         moveTaskToBack(true)
     }
 
