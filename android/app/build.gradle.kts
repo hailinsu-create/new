@@ -13,8 +13,8 @@ android {
         applicationId = "com.pangchuang.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 14
-        versionName = "0.5.0"
+        versionCode = 15
+        versionName = "0.6.0"
     }
 
     signingConfigs {
@@ -73,4 +73,5 @@ dependencies {
     implementation("androidx.webkit:webkit:1.11.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.android.billingclient:billing-ktx:7.1.1")
 }

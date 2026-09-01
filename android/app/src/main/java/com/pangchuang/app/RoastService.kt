@@ -433,6 +433,7 @@ class RoastService : Service() {
         }
 
         fun start(context: Context, resultCode: Int, data: Intent) {
+            if (!Entitlement.isUnlocked(context)) return
             val intent = Intent(context, RoastService::class.java).apply {
                 action = ACTION_START
                 putExtra(EXTRA_RESULT_CODE, resultCode)

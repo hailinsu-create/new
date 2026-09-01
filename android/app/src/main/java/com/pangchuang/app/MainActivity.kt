@@ -15,9 +15,11 @@ import androidx.core.content.ContextCompat
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.pangchuang.app.databinding.ActivityMainBinding
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), BillingManager.Listener {
     private lateinit var binding: ActivityMainBinding
     private lateinit var prefs: Prefs
+    private var billingManager: BillingManager? = null
+    private var displayedPrice: String? = null
 
     private val overlaySettingsLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -61,6 +63,8 @@ class MainActivity : AppCompatActivity() {
             binding.inputModel.setText(Prefs.MODEL_STABLE)
             Toast.makeText(this, "已切回推荐 8B 模型", Toast.LENGTH_SHORT).show()
         }
+        binding.btnPurchase.setOnClickListener { billingManager?.launchPurchase() }
+        binding.btnRestorePurchase.setOnClickListener { billingManager?.restorePurchases() }
         binding.btnStart.setOnClickListener { startRoastFlow() }
         binding.btnDemo.setOnClickListener { startDemoFlow() }
         binding.btnStop.setOnClickListener {
@@ -70,17 +74,67 @@ class MainActivity : AppCompatActivity() {
 
         maybeAskNotificationPermission()
         refreshPermissionLabels()
-        maybeShowPrivacyConsent()
+        updatePrivacyStatus()
+        updatePurchaseUi()
+        billingManager = BillingManager(this, prefs, this).also { it.start() }
 
         if (intent?.getBooleanExtra(EXTRA_AUTO_DEMO, false) == true) {
             binding.root.post { startDemoFlow() }
+        } else {
+            maybeShowPrivacyConsent()
         }
+    }
+
+    override fun onDestroy() {
+        billingManager?.stop()
+        billingManager = null
+        super.onDestroy()
     }
 
     override fun onResume() {
         super.onResume()
         refreshPermissionLabels()
         updatePrivacyStatus()
+        updatePurchaseUi()
+        billingManager?.start()
+    }
+
+    override fun onBillingReady(priceLabel: String?) {
+        displayedPrice = priceLabel
+        runOnUiThread { updatePurchaseUi() }
+    }
+
+    override fun onPurchaseStateChanged(unlocked: Boolean) {
+        runOnUiThread { updatePurchaseUi() }
+    }
+
+    override fun onPurchaseMessage(message: String) {
+        runOnUiThread {
+            Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+            updatePurchaseUi()
+        }
+    }
+
+    private fun updatePurchaseUi() {
+        val unlocked = Entitlement.isUnlocked(this)
+        binding.purchaseStatus.text = if (unlocked) {
+            getString(R.string.purchase_status_unlocked)
+        } else {
+            getString(R.string.purchase_status_locked)
+        }
+        binding.btnPurchase.isEnabled = !unlocked
+        binding.btnRestorePurchase.isEnabled = !unlocked
+        binding.btnPurchase.text = if (unlocked) {
+            getString(R.string.purchase_unlocked_button)
+        } else {
+            val price = displayedPrice ?: getString(R.string.purchase_price_fallback)
+            getString(R.string.purchase_buy_with_price, price)
+        }
+        if (BuildConfig.DEBUG) {
+            binding.purchaseDebugNote.visibility = android.view.View.VISIBLE
+        } else {
+            binding.purchaseDebugNote.visibility = android.view.View.GONE
+        }
     }
 
     private fun maybeAskNotificationPermission() {
@@ -190,6 +244,18 @@ class MainActivity : AppCompatActivity() {
 
     private fun startRoastFlow() {
         if (!ensurePrivacyConsent()) return
+        if (!Entitlement.isUnlocked(this)) {
+            MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.purchase_required_title)
+                .setMessage(R.string.purchase_required_message)
+                .setPositiveButton(R.string.purchase_buy) { _, _ ->
+                    billingManager?.launchPurchase()
+                }
+                .setNeutralButton(R.string.start_demo, null)
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+            return
+        }
         if (!Settings.canDrawOverlays(this)) {
             Toast.makeText(this, "请先开启悬浮窗权限", Toast.LENGTH_SHORT).show()
             openOverlaySettings()

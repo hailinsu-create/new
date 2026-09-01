@@ -18,4 +18,22 @@
     <string name="privacy_accepted">隐私政策：已同意</string>
     <string name="privacy_required">隐私政策：启动陪伴前需同意</string>
     <string name="data_disclosure_summary">数据去向：你填写的视觉 API。默认模型 Qwen3-VL-8B。HTTPS 传输；本地 Ollama 可用 127.0.0.1。</string>
+    <string name="purchase_title">解锁完整陪伴</string>
+    <string name="purchase_summary">一次购买约 $0.99，永久解锁真屏陪伴。演示模式始终免费。视觉 API 费用仍由你自行承担。</string>
+    <string name="purchase_status_locked">尚未解锁完整陪伴</string>
+    <string name="purchase_status_unlocked">已解锁完整陪伴，感谢支持</string>
+    <string name="purchase_buy">解锁完整陪伴</string>
+    <string name="purchase_buy_with_price">解锁完整陪伴（%1$s）</string>
+    <string name="purchase_unlocked_button">已解锁</string>
+    <string name="purchase_restore">恢复购买</string>
+    <string name="purchase_price_fallback">约 $0.99</string>
+    <string name="purchase_required_title">需要解锁</string>
+    <string name="purchase_required_message">真屏陪伴需一次性解锁（约 $0.99）。可先试用「仅演示悬浮窗」。</string>
+    <string name="purchase_success">已解锁，感谢支持旁窗</string>
+    <string name="purchase_failed">购买未完成，请稍后重试</string>
+    <string name="purchase_canceled">已取消购买</string>
+    <string name="purchase_pending">购买处理中，完成后会自动解锁</string>
+    <string name="purchase_restore_none">未找到可恢复的购买记录</string>
+    <string name="purchase_billing_unavailable">暂时无法连接 Google Play 结算，请确认从 Play 安装或稍后再试</string>
+    <string name="purchase_debug_note">Debug 包已自动解锁，便于侧载测试。上架版需通过 Play 购买。</string>
 </resources>

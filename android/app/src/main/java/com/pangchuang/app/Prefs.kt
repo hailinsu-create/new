@@ -44,6 +44,11 @@ class Prefs(context: Context) {
     val hasPrivacyConsent: Boolean
         get() = privacyConsentAt > 0L
 
+    /** One-time Play purchase unlocks real screen companion; demo stays free. */
+    var isPremiumUnlocked: Boolean
+        get() = sp.getBoolean(KEY_PREMIUM, false)
+        set(value) = sp.edit().putBoolean(KEY_PREMIUM, value).apply()
+
     fun acceptPrivacy() {
         privacyConsentAt = System.currentTimeMillis()
     }
@@ -76,6 +81,7 @@ class Prefs(context: Context) {
         private const val KEY_STYLE = "style"
         private const val KEY_THRESHOLD = "threshold"
         private const val KEY_PRIVACY_CONSENT = "privacy_consent_at"
+        private const val KEY_PREMIUM = "premium_unlocked"
         private const val KEY_SCHEMA = "prefs_schema"
     }
 }

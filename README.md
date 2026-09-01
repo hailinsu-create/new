@@ -4,6 +4,8 @@
 
 **默认视觉模型：`Qwen/Qwen3-VL-8B-Instruct`（稳定推荐）**
 
+**定价：演示免费；完整真屏陪伴通过 Google Play 一次性解锁（约 $0.99）。Debug 包侧载测试时自动解锁。**
+
 ## 真机怎么用（主路径）
 
 1. 开 **悬浮窗** 权限  
@@ -17,7 +19,7 @@
 
 ## Google Play 上架
 
-见 [docs/play-store-checklist.md](docs/play-store-checklist.md) 与 [docs/privacy-policy.md](docs/privacy-policy.md)。
+见 [docs/play-store-checklist.md](docs/play-store-checklist.md)、[docs/play-store-listing.md](docs/play-store-listing.md) 与 [docs/privacy-policy.md](docs/privacy-policy.md)。
 
 ## 设置项
 
