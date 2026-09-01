@@ -12,6 +12,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.pangchuang.app.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
@@ -43,6 +44,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         prefs = Prefs(this)
+        prefs.migrateForPlayReadiness()
 
         binding.inputBaseUrl.setText(prefs.baseUrl)
         binding.inputApiKey.setText(prefs.apiKey)
@@ -52,6 +54,13 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnOverlay.setOnClickListener { openOverlaySettings() }
         binding.btnUsage.setOnClickListener { openUsageAccessSettings() }
+        binding.btnPrivacy.setOnClickListener { openLegal(LegalActivity.MODE_PRIVACY) }
+        binding.btnLicenses.setOnClickListener { openLegal(LegalActivity.MODE_LICENSES) }
+        binding.btnResetModel.setOnClickListener {
+            prefs.useStableModel()
+            binding.inputModel.setText(Prefs.MODEL_STABLE)
+            Toast.makeText(this, "已切回推荐 8B 模型", Toast.LENGTH_SHORT).show()
+        }
         binding.btnStart.setOnClickListener { startRoastFlow() }
         binding.btnDemo.setOnClickListener { startDemoFlow() }
         binding.btnStop.setOnClickListener {
@@ -61,6 +70,7 @@ class MainActivity : AppCompatActivity() {
 
         maybeAskNotificationPermission()
         refreshPermissionLabels()
+        maybeShowPrivacyConsent()
 
         if (intent?.getBooleanExtra(EXTRA_AUTO_DEMO, false) == true) {
             binding.root.post { startDemoFlow() }
@@ -70,6 +80,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         refreshPermissionLabels()
+        updatePrivacyStatus()
     }
 
     private fun maybeAskNotificationPermission() {
@@ -92,8 +103,7 @@ class MainActivity : AppCompatActivity() {
             getString(R.string.overlay_hint)
         }
         binding.btnOverlay.isEnabled = !overlayOk
-        binding.captureStatus.text =
-            "点下方主按钮后授权「屏幕录制」。小旁从画面认出你在用什么、在干什么，再说两句相关的。"
+        binding.captureStatus.text = getString(R.string.capture_hint)
         val usageOk = ForegroundAppResolver.hasUsageAccess(this)
         binding.usageStatus.text = if (usageOk) {
             "使用情况访问：已开启（前台 App 提示更准）"
@@ -101,6 +111,56 @@ class MainActivity : AppCompatActivity() {
             getString(R.string.usage_hint)
         }
         binding.btnUsage.isEnabled = !usageOk
+    }
+
+    private fun updatePrivacyStatus() {
+        binding.privacyStatus.text = if (prefs.hasPrivacyConsent) {
+            getString(R.string.privacy_accepted)
+        } else {
+            getString(R.string.privacy_required)
+        }
+    }
+
+    private fun maybeShowPrivacyConsent() {
+        if (prefs.hasPrivacyConsent) return
+        val message = getString(R.string.privacy_consent_message)
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.privacy_consent_title)
+            .setMessage(message)
+            .setPositiveButton(R.string.privacy_accept) { _, _ ->
+                prefs.acceptPrivacy()
+                updatePrivacyStatus()
+            }
+            .setNeutralButton(R.string.privacy_view_policy) { _, _ ->
+                openLegal(LegalActivity.MODE_PRIVACY)
+            }
+            .setNegativeButton(R.string.privacy_decline, null)
+            .setCancelable(false)
+            .create()
+        dialog.show()
+    }
+
+    private fun ensurePrivacyConsent(): Boolean {
+        if (prefs.hasPrivacyConsent) return true
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.privacy_consent_title)
+            .setMessage(R.string.privacy_consent_message)
+            .setPositiveButton(R.string.privacy_accept) { _, _ ->
+                prefs.acceptPrivacy()
+                updatePrivacyStatus()
+            }
+            .setNeutralButton(R.string.privacy_view_policy) { _, _ ->
+                openLegal(LegalActivity.MODE_PRIVACY)
+            }
+            .setNegativeButton(R.string.privacy_decline, null)
+            .show()
+        return false
+    }
+
+    private fun openLegal(mode: String) {
+        startActivity(
+            Intent(this, LegalActivity::class.java).putExtra(LegalActivity.EXTRA_MODE, mode)
+        )
     }
 
     private fun openOverlaySettings() {
@@ -124,11 +184,12 @@ class MainActivity : AppCompatActivity() {
         prefs.baseUrl = binding.inputBaseUrl.text?.toString().orEmpty()
         prefs.apiKey = binding.inputApiKey.text?.toString().orEmpty()
         prefs.model = binding.inputModel.text?.toString().orEmpty()
-        prefs.intervalSec = binding.inputInterval.text?.toString()?.toIntOrNull() ?: 12
+        prefs.intervalSec = binding.inputInterval.text?.toString()?.toIntOrNull() ?: 15
         prefs.mockApi = binding.switchMock.isChecked
     }
 
     private fun startRoastFlow() {
+        if (!ensurePrivacyConsent()) return
         if (!Settings.canDrawOverlays(this)) {
             Toast.makeText(this, "请先开启悬浮窗权限", Toast.LENGTH_SHORT).show()
             openOverlaySettings()
@@ -143,11 +204,24 @@ class MainActivity : AppCompatActivity() {
             ).show()
             return
         }
+        if (!prefs.mockApi && !prefs.baseUrl.startsWith("https://") &&
+            !prefs.baseUrl.contains("127.0.0.1") &&
+            !prefs.baseUrl.contains("localhost") &&
+            !prefs.baseUrl.contains("10.0.2.2")
+        ) {
+            Toast.makeText(
+                this,
+                "上架版默认仅 HTTPS。本地 Ollama 请用 http://127.0.0.1:11434/v1",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
         val mpm = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         captureLauncher.launch(mpm.createScreenCaptureIntent())
     }
 
     private fun startDemoFlow() {
+        if (!ensurePrivacyConsent()) return
         if (!Settings.canDrawOverlays(this)) {
             Toast.makeText(this, "请先开启悬浮窗权限", Toast.LENGTH_SHORT).show()
             openOverlaySettings()

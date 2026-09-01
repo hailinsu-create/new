@@ -3,6 +3,8 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+import java.util.Properties
+
 android {
     namespace = "com.pangchuang.app"
     compileSdk = 34
@@ -11,17 +13,39 @@ android {
         applicationId = "com.pangchuang.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 13
-        versionName = "0.4.0"
+        versionCode = 14
+        versionName = "0.5.0"
+    }
+
+    signingConfigs {
+        create("release") {
+            val props = Properties()
+            val localProps = rootProject.file("local.properties")
+            if (localProps.exists()) {
+                localProps.inputStream().use { props.load(it) }
+                val storePath = props.getProperty("RELEASE_STORE_FILE")
+                if (!storePath.isNullOrBlank()) {
+                    storeFile = file(storePath)
+                    storePassword = props.getProperty("RELEASE_STORE_PASSWORD")
+                    keyAlias = props.getProperty("RELEASE_KEY_ALIAS")
+                    keyPassword = props.getProperty("RELEASE_KEY_PASSWORD")
+                }
+            }
+        }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            val releaseSigning = signingConfigs.getByName("release")
+            if (releaseSigning.storeFile != null) {
+                signingConfig = releaseSigning
+            }
         }
     }
 

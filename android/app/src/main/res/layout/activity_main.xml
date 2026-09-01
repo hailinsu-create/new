@@ -26,7 +26,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="关掉「演示陪伴语」并填入视觉 API。角色暂用官方虹色 Mao（能张嘴）。推荐 Qwen3-VL-8B。"
+            android:text="关掉「演示陪伴语」并填入视觉 API。默认使用稳定的 Qwen3-VL-8B。角色为官方虹色 Mao 样例。"
             android:textColor="@color/mist"
             android:textSize="15sp" />
 
@@ -186,6 +186,73 @@
                     android:checked="false"
                     android:text="演示陪伴语（不调视觉 API）"
                     android:textColor="@color/foam" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnResetModel"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="恢复推荐 8B 模型" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            app:cardBackgroundColor="@color/panel"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp"
+            app:strokeColor="#33A8B4C0"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="隐私与合规"
+                    android:textColor="@color/foam"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/privacyStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/privacy_required"
+                    android:textColor="@color/mist"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/data_disclosure_summary"
+                    android:textColor="@color/mist"
+                    android:textSize="13sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPrivacy"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="查看隐私政策" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnLicenses"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="开源与 Live2D 许可" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

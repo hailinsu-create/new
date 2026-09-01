@@ -1,33 +1,33 @@
 # 旁窗（Android）
 
-开源桌面伴侣：悬浮窗里的 Live2D 角色「小旁」（Cubism 样例模型 Mao）会从屏幕认出你在用什么 App、在干什么，再用扫地僧那种点到为止的口吻说两句。灵感接近 Animates 一类陪伴窗，整条链路开源、可自建视觉模型。
+开源桌面伴侣：悬浮窗里的 Live2D 角色「小旁」（官方虹色 Mao 样例）会从屏幕认出你在用什么 App、在干什么，再用扫地僧那种点到为止的口吻说两句。
+
+**默认视觉模型：`Qwen/Qwen3-VL-8B-Instruct`（稳定推荐）**
 
 ## 真机怎么用（主路径）
 
 1. 开 **悬浮窗** 权限  
-2. （可选）开 **使用情况访问**，前台 App 提示更准；不开也能单靠截图识别  
-3. **关掉「演示陪伴语」**，填视觉模型（SiliconFlow / Ollama 等 OpenAI 兼容接口）  
-4. 点 **「召唤小旁陪看屏幕」** → 允许系统「屏幕录制」  
-5. 去刷微信 / 浏览器 / 短视频；小旁截当前画面 → 认出场景 → 说两句相关的  
-6. **长按头像**立刻再说一句；短按显隐气泡  
+2. 阅读并 **同意隐私政策**（首次启动）  
+3. （可选）开 **使用情况访问**  
+4. **关掉「演示陪伴语」**，填视觉 API（SiliconFlow 等 HTTPS 接口）  
+5. 点 **「召唤小旁陪看屏幕」** → 允许系统「屏幕录制」  
+6. 去刷其它 App；小旁截当前画面 → 说两句相关的  
 
-「仅演示悬浮窗」只验证小窗形态，**不看真屏**。
+锁屏自动暂停截屏与 API。本地 Ollama 请用 `http://127.0.0.1:11434/v1`。
 
-```
-你刷其它 App
-    ↓
-MediaProjection 截帧（截前隐藏头像）
-    ↓
-（可选）UsageStats 前台包名提示
-    ↓
-画面变化？ → Vision API（Qwen-VL 等）识别 App + 正在做的事
-    ↓
-扫地僧语气一两句 → 悬浮气泡 + Live2D
-```
+## Google Play 上架
 
-锁屏或仍在锁机界面时会自动暂停截屏和视觉 API 调用（省 token）；解锁后恢复，并马上再看一眼。
+见 [docs/play-store-checklist.md](docs/play-store-checklist.md) 与 [docs/privacy-policy.md](docs/privacy-policy.md)。
 
-Live2D 用透明 WebView + Cubism 4（`pixi-live2d-display`）渲染。当前角色是官方样例虹色 Mao（[CubismWebSamples](https://github.com/Live2D/CubismWebSamples)），悬浮窗裁到脸部，说话时停掉 idle 再驱动口型。受 Live2D 样例素材许可约束。
+## 设置项
+
+| 项 | 说明 |
+|----|------|
+| Base URL | 默认 `https://api.siliconflow.cn/v1`；本地仅 127.0.0.1 |
+| API Key | 真陪伴必填；仅存本机 |
+| Vision Model | 默认 **Qwen3-VL-8B**；可点「恢复推荐 8B」 |
+| 陪伴间隔 | 默认 15 秒 |
+| 隐私与合规 | 应用内政策与 Live2D 许可说明 |
 
 ## 本机 USB 安装
 
@@ -48,10 +48,11 @@ adb shell am start -n com.pangchuang.app/.MainActivity
 |----|------|
 | Base URL | 如 `https://api.siliconflow.cn/v1` 或 `http://127.0.0.1:11434/v1` |
 | API Key | 真陪伴必填；空则只能演示陪伴语 |
-| Vision Model | 推荐 `Qwen/Qwen3-VL-8B-Instruct`（快）或 `Qwen/Qwen3-VL-32B-Instruct`（更准、更慢，偶发 500 会自动重试） |
-| 陪伴间隔 | 默认 12 秒；画面几乎没变会跳过 |
+| Vision Model | 默认 `Qwen/Qwen3-VL-8B-Instruct` |
+| 陪伴间隔 | 默认 15 秒；画面几乎没变会跳过 |
 | 演示陪伴语 | 不调 API |
-| 使用情况访问 | 可选；开启后把前台 App 名一并交给模型 |
+| 使用情况访问 | 可选 |
+| 隐私政策 | 应用内 + `docs/privacy-policy.md` |
 
 ## 模拟器（可选）
 

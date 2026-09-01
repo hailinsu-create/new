@@ -8,6 +8,14 @@
     <string name="start_demo">仅演示悬浮窗（不看真屏）</string>
     <string name="stop_roast">让小旁先休息</string>
     <string name="overlay_hint">需要「显示在其他应用上层」权限</string>
-    <string name="capture_hint">需要屏幕录制权限，好让小旁看见你正在看的画面</string>
+    <string name="capture_hint">点主按钮后授权「屏幕录制」。截图仅用于生成陪伴语，锁屏自动暂停。</string>
     <string name="usage_hint">可选「使用情况访问」：帮小旁更准地知道前台是哪个 App（仍以截图为准）</string>
+    <string name="privacy_consent_title">使用前请知悉</string>
+    <string name="privacy_consent_message">旁窗会截取当前屏幕画面，并发送到你自行配置的视觉 API（如硅基流动）以生成陪伴语。\n\n• 截图不会保存到相册，也不会上传到我们控制的服务器\n• API Key 仅存在本机\n• 锁屏时自动停止截屏与 API\n• 可选读取前台应用名以提高识别准确度\n\n继续即表示你同意隐私政策。</string>
+    <string name="privacy_accept">同意并继续</string>
+    <string name="privacy_decline">暂不同意</string>
+    <string name="privacy_view_policy">查看政策</string>
+    <string name="privacy_accepted">隐私政策：已同意</string>
+    <string name="privacy_required">隐私政策：启动陪伴前需同意</string>
+    <string name="data_disclosure_summary">数据去向：你填写的视觉 API。默认模型 Qwen3-VL-8B。HTTPS 传输；本地 Ollama 可用 127.0.0.1。</string>
 </resources>
