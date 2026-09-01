@@ -3,6 +3,8 @@
     <string name="app_name">Pangchuang</string>
     <string name="companion_name">Xiao Pang</string>
     <string name="subtitle">Désactivez les répliques de démo et ajoutez une API vision. Modèle par défaut : Qwen3-VL-8B stable. Personnage : Mao officiel Live2D.</string>
+    <string name="language_title">Langue</string>
+    <string name="language_system">Suivre le système</string>
     <string name="section_permissions">Autorisations</string>
     <string name="section_vision">Modèle vision (compatible OpenAI)</string>
     <string name="section_privacy">Confidentialité</string>

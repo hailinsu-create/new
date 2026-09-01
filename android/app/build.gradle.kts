@@ -13,8 +13,8 @@ android {
         applicationId = "com.pangchuang.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 17
-        versionName = "0.8.0"
+        versionCode = 18
+        versionName = "0.9.0"
     }
 
     signingConfigs {
@@ -61,6 +61,14 @@ android {
     buildFeatures {
         viewBinding = true
         buildConfig = true
+    }
+
+    // Keep every UI language in the Play split so the in-app picker can switch
+    // without downloading a language pack the user has not installed yet.
+    bundle {
+        language {
+            enableSplit = false
+        }
     }
 }
 

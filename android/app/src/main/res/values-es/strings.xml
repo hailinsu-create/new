@@ -3,6 +3,8 @@
     <string name="app_name">Pangchuang</string>
     <string name="companion_name">Xiao Pang</string>
     <string name="subtitle">Desactiva las frases de demo y añade una API de visión. El modelo por defecto es Qwen3-VL-8B estable. El personaje es el Mao oficial de Live2D.</string>
+    <string name="language_title">Idioma</string>
+    <string name="language_system">Seguir el sistema</string>
     <string name="section_permissions">Permisos</string>
     <string name="section_vision">Modelo de visión (compatible con OpenAI)</string>
     <string name="section_privacy">Privacidad</string>

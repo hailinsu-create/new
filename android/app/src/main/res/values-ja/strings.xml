@@ -3,6 +3,8 @@
     <string name="app_name">旁窗</string>
     <string name="companion_name">小旁</string>
     <string name="subtitle">デモ台詞をオフにしてビジョン API を入れてください。既定は安定版 Qwen3-VL-8B。キャラは公式 Live2D Mao です。</string>
+    <string name="language_title">表示言語</string>
+    <string name="language_system">システムに合わせる</string>
     <string name="section_permissions">権限</string>
     <string name="section_vision">ビジョンモデル（OpenAI 互換）</string>
     <string name="section_privacy">プライバシー</string>

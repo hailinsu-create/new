@@ -3,6 +3,8 @@
     <string name="app_name">Pangchuang</string>
     <string name="companion_name">Xiao Pang</string>
     <string name="subtitle">Turn off demo lines and add a vision API. Default model is stable Qwen3-VL-8B. Character is official Live2D Mao.</string>
+    <string name="language_title">Language</string>
+    <string name="language_system">Follow system</string>
     <string name="section_permissions">Permissions</string>
     <string name="section_vision">Vision model (OpenAI-compatible)</string>
     <string name="section_privacy">Privacy</string>

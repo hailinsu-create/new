@@ -3,6 +3,8 @@
     <string name="app_name">Pangchuang</string>
     <string name="companion_name">Xiao Pang</string>
     <string name="subtitle">Demo-Sätze aus und Vision-API eintragen. Standard ist das stabile Qwen3-VL-8B. Figur ist das offizielle Live2D-Mao.</string>
+    <string name="language_title">Sprache</string>
+    <string name="language_system">System folgen</string>
     <string name="section_permissions">Berechtigungen</string>
     <string name="section_vision">Vision-Modell (OpenAI-kompatibel)</string>
     <string name="section_privacy">Datenschutz</string>

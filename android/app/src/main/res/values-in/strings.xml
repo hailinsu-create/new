@@ -3,6 +3,8 @@
     <string name="app_name">Pangchuang</string>
     <string name="companion_name">Xiao Pang</string>
     <string name="subtitle">Matikan kalimat demo dan isi vision API. Default-nya Qwen3-VL-8B yang stabil. Karakternya Mao resmi Live2D.</string>
+    <string name="language_title">Bahasa</string>
+    <string name="language_system">Ikuti sistem</string>
     <string name="section_permissions">Izin</string>
     <string name="section_vision">Model visi (kompatibel OpenAI)</string>
     <string name="section_privacy">Privasi</string>

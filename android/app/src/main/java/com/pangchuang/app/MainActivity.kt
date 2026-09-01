@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -53,6 +54,7 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
         binding.inputModel.setText(prefs.model)
         binding.inputInterval.setText(prefs.intervalSec.toString())
         binding.switchMock.isChecked = prefs.mockApi
+        setupLanguagePicker()
 
         binding.btnOverlay.setOnClickListener { openOverlaySettings() }
         binding.btnUsage.setOnClickListener { openUsageAccessSettings() }
@@ -83,6 +85,27 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
             binding.root.post { startDemoFlow() }
         } else {
             maybeShowPrivacyConsent()
+        }
+    }
+
+    private fun setupLanguagePicker() {
+        val choices = AppLanguages.choices(this)
+        binding.inputLanguage.setAdapter(
+            ArrayAdapter(this, android.R.layout.simple_list_item_1, choices.map { it.label })
+        )
+        val index = AppLanguages.indexOfCurrent(choices).coerceIn(choices.indices)
+        binding.inputLanguage.setText(choices[index].label, false)
+        binding.inputLanguage.setOnClickListener { binding.inputLanguage.showDropDown() }
+        binding.inputLanguage.setOnItemClickListener { _, _, pos, _ ->
+            val chosen = choices[pos]
+            val current = AppLanguages.currentTag()
+            val same = if (chosen.tag.isBlank()) {
+                current.isBlank()
+            } else {
+                current.equals(chosen.tag, ignoreCase = true)
+            }
+            if (same) return@setOnItemClickListener
+            AppLanguages.apply(chosen.tag)
         }
     }
 

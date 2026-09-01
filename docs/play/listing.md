@@ -48,6 +48,8 @@
 
 https://hailinsu-create.github.io/new/privacy.html
 
+英文商店页可用：https://hailinsu-create.github.io/new/privacy-en.html
+
 （启用 GitHub Pages 之前可用 docs/privacy.html 的 GitHub 链接。）
 
 ## English
@@ -58,7 +60,7 @@ Pangchuang
 
 **Short description**
 
-A floating Live2D companion that notices what you are looking at. Demo is free; full unlock is $0.99.
+Floating Live2D companion that notices your screen. Demo free; unlock $0.99.
 
 **Full description**
 
@@ -99,10 +101,8 @@ You pay your own vision-API usage. The character is the official Live2D Mao samp
 - 包含应用内购买：**是**（一次性，非订阅）
 - 金融功能：仅 Play 结算内购
 
-## 应用内语言（0.8.0）
+## 应用内语言（0.9.0）
 
-系统语言会切界面。陪伴语也按同一语言生成。
+设置页可选界面语言，也可跟随系统。陪伴语跟当前界面语言。其它语言的商店短/长说明见 `listing-i18n.md`。
 
 简体中文、繁体中文、English、日本語、한국어、Español、Português (Brasil)、Français、Deutsch、Русский、Indonesia、Tiếng Việt、ไทย、العربية
-
-Play Console 可再为上述语言各填一套商店文案；没有的会回落到默认中文/英文。

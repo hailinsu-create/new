@@ -1,18 +1,19 @@
 # Google Play 上架清单（旁窗）
 
-## 已完成（仓库内，0.7.0）
+## 已完成（仓库内，0.9.0）
 
 - [x] 默认视觉模型：`Qwen/Qwen3-VL-8B-Instruct`
 - [x] `targetSdk` / `compileSdk` **36**（2026-08-31 起新应用硬性要求）
 - [x] 首次启动隐私同意 + 录屏前二次披露
 - [x] 应用内隐私政策、使用条款、开源许可
-- [x] 网页版隐私政策 / 条款：`docs/privacy.html` `docs/terms.html`
+- [x] 网页版隐私政策 / 条款：`docs/privacy.html` `docs/terms.html`，英文 `privacy-en.html` `terms-en.html`
 - [x] 默认禁止明文 HTTP（仅 localhost / 127.0.0.1 / 模拟器 10.0.2.2）
 - [x] 关闭云备份（避免 API Key 进 Google Backup）
 - [x] Adaptive 图标 + Play 512 图标 + 1024×500 特色图
 - [x] Google Play Billing 一次性内购 `full_unlock`（约 $0.99）
 - [x] Release 签名脚手架；上传密钥脚本 `android/scripts/generate-upload-keystore.sh`
-- [x] Console 填表包：`docs/play/`
+- [x] 14 种界面语言；设置页可切换；Play AAB 关闭语言分包以免选语言缺资源
+- [x] Console 填表包：`docs/play/`（含 `console-app-content.md` 与 `listing-i18n.md`）
 
 ## 你必须亲自完成
 
@@ -32,7 +33,10 @@
 | 用途 | 文件 |
 |------|------|
 | 你要办的事 | [play/YOU-MUST-DO.md](./play/YOU-MUST-DO.md) |
-| 商店文案 | [play/listing.md](./play/listing.md) |
+| 按页面点下去 | [play/console-app-content.md](./play/console-app-content.md) |
+| 商店文案（中/英） | [play/listing.md](./play/listing.md) |
+| 其它语言商店文案 | [play/listing-i18n.md](./play/listing-i18n.md) |
+| 本版最新动态 | [play/release-notes.md](./play/release-notes.md) |
 | Data safety | [play/data-safety.md](./play/data-safety.md) |
 | 内容分级 | [play/content-rating.md](./play/content-rating.md) |
 | 权限声明 | [play/permission-declarations.md](./play/permission-declarations.md) |
@@ -43,4 +47,6 @@
 | 版本 | 说明 |
 |------|------|
 | 0.6.0 | $0.99 一次性内购解锁真屏陪伴 |
+| 0.7.0 | targetSdk 36、录屏二次披露、Play 图形草稿 |
 | 0.8.0 | 14 种常用语言；陪伴语跟系统语言 |
+| 0.9.0 | 设置页语言开关；英文政策页；Console 问卷总表与多语言商店文案 |

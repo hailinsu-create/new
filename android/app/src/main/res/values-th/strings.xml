@@ -3,6 +3,8 @@
     <string name="app_name">Pangchuang</string>
     <string name="companion_name">เสี่ยวผาง</string>
     <string name="subtitle">ปิดประโยคเดโม แล้วใส่ vision API ค่าเริ่มต้นคือ Qwen3-VL-8B ที่เสถียร ตัวละครคือ Mao ทางการของ Live2D</string>
+    <string name="language_title">ภาษา</string>
+    <string name="language_system">ตามระบบ</string>
     <string name="section_permissions">สิทธิ์</string>
     <string name="section_vision">โมเดลวิชัน (เข้ากันได้กับ OpenAI)</string>
     <string name="section_privacy">ความเป็นส่วนตัว</string>

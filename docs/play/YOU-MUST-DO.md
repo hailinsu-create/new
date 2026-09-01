@@ -23,7 +23,9 @@ Play 必须填一个**不登录也能打开**的隐私政策网页。
 保存后打开：
 
 - 隐私政策：`https://hailinsu-create.github.io/new/privacy.html`
+- Privacy policy：`https://hailinsu-create.github.io/new/privacy-en.html`
 - 使用条款：`https://hailinsu-create.github.io/new/terms.html`
+- Terms：`https://hailinsu-create.github.io/new/terms-en.html`
 
 若暂时不启用 Pages，可用过渡 URL（公开仓库即可）：
 
@@ -75,17 +77,22 @@ License testing：Settings → License testing，把你的 Gmail 加进去，内
 
 1. 打开 **App signing**：第一次上传时选择由 Google 管理应用签名密钥（推荐）
 2. Testing → Internal testing → 创建版本
-3. 上传 `pangchuang-0.7.0.aab`（见 Cursor 产物或本地 `bundleRelease` 输出）
+3. 上传 `pangchuang-0.9.0.aab`（见 Cursor 产物或本地 `bundleRelease` 输出）
 4. 把你的 Google 账号加为测试员，用测试轨道链接安装（**不要用 GitHub debug APK 测购买**）
 
 ## 7. 按填表包复制粘贴
 
+按页面点下去的总表：`docs/play/console-app-content.md`
+
 全部现成答案在：
 
-- 商店文案：`docs/play/listing.md`
+- 商店文案（中/英）：`docs/play/listing.md`
+- 其它语言商店文案：`docs/play/listing-i18n.md`
+- 问卷总表：`docs/play/console-app-content.md`
 - Data safety：`docs/play/data-safety.md`
 - 内容分级：`docs/play/content-rating.md`
 - 权限声明：`docs/play/permission-declarations.md`
+- 本版「最新动态」：`docs/play/release-notes.md`
 - 商店图标 / 宣传图：`docs/play/assets/`
 
 最少上传：

@@ -24,7 +24,8 @@
 - 你要亲自办的事：[docs/play/YOU-MUST-DO.md](docs/play/YOU-MUST-DO.md)
 - 清单：[docs/play-store-checklist.md](docs/play-store-checklist.md)
 - 填表包：[docs/play/](docs/play/)
-- 隐私政策：[docs/privacy-policy.md](docs/privacy-policy.md) / [docs/privacy.html](docs/privacy.html)
+- 隐私政策：[docs/privacy-policy.md](docs/privacy-policy.md) / [docs/privacy.html](docs/privacy.html) / [docs/privacy-en.html](docs/privacy-en.html)
+- 问卷总表：[docs/play/console-app-content.md](docs/play/console-app-content.md)
 
 ## 设置项
 
@@ -34,6 +35,7 @@
 | API Key | 真陪伴必填；仅存本机，不进云备份 |
 | Vision Model | 默认 **Qwen3-VL-8B**；可点「恢复推荐 8B」 |
 | 陪伴间隔 | 默认 15 秒 |
+| 界面语言 | 设置页可切换；也可跟随系统。14 种常用语言 |
 | 解锁 | Play 一次性内购 `full_unlock`（约 $0.99） |
 | 隐私与合规 | 应用内政策、条款与 Live2D 许可 |
 
@@ -48,7 +50,7 @@ adb shell appops set com.pangchuang.app SYSTEM_ALERT_WINDOW allow
 adb shell am start -n com.pangchuang.app/.MainActivity
 ```
 
-最低 Android 8.0（API 26），target 36。界面随系统语言切换：简体中文、繁体中文、英语、日语、韩语、西班牙语、巴西葡萄牙语、法语、德语、俄语、印尼语、越南语、泰语、阿拉伯语。
+最低 Android 8.0（API 26），target 36。设置页可选界面语言，也可跟随系统：简体中文、繁体中文、英语、日语、韩语、西班牙语、巴西葡萄牙语、法语、德语、俄语、印尼语、越南语、泰语、阿拉伯语。
 
 ## 模拟器（可选）
 

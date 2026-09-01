@@ -3,6 +3,8 @@
     <string name="app_name">旁窗</string>
     <string name="companion_name">소팡</string>
     <string name="subtitle">데모 대사를 끄고 비전 API를 넣으세요. 기본은 안정적인 Qwen3-VL-8B. 캐릭터는 공식 Live2D Mao입니다.</string>
+    <string name="language_title">언어</string>
+    <string name="language_system">시스템 따라가기</string>
     <string name="section_permissions">권한</string>
     <string name="section_vision">비전 모델 (OpenAI 호환)</string>
     <string name="section_privacy">개인정보</string>

@@ -3,6 +3,8 @@
     <string name="app_name">Pangchuang</string>
     <string name="companion_name">Сяо Пан</string>
     <string name="subtitle">Выключите демо-реплики и укажите vision API. По умолчанию стабильный Qwen3-VL-8B. Персонаж — официальный Live2D Mao.</string>
+    <string name="language_title">Язык</string>
+    <string name="language_system">Как в системе</string>
     <string name="section_permissions">Разрешения</string>
     <string name="section_vision">Модель зрения (совместима с OpenAI)</string>
     <string name="section_privacy">Конфиденциальность</string>

@@ -3,6 +3,8 @@
     <string name="app_name">Pangchuang</string>
     <string name="companion_name">Tiểu Bàng</string>
     <string name="subtitle">Tắt câu demo và điền vision API. Mặc định là Qwen3-VL-8B ổn định. Nhân vật là Mao Live2D chính thức.</string>
+    <string name="language_title">Ngôn ngữ</string>
+    <string name="language_system">Theo hệ thống</string>
     <string name="section_permissions">Quyền</string>
     <string name="section_vision">Mô hình thị giác (tương thích OpenAI)</string>
     <string name="section_privacy">Quyền riêng tư</string>

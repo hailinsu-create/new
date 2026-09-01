@@ -1,6 +1,6 @@
 # Pangchuang privacy policy (in-app)
 
-Last updated: 2026-09-01 (0.8.0)
+Last updated: 2026-09-01 (0.9.0)
 
 Pangchuang is an open-source Android floating companion. We do not run an account server.
 

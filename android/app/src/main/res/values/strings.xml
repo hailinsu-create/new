@@ -3,6 +3,8 @@
     <string name="app_name">旁窗</string>
     <string name="companion_name">小旁</string>
     <string name="subtitle">关掉「演示陪伴语」并填入视觉 API。默认使用稳定的 Qwen3-VL-8B。角色为官方虹色 Mao 样例。</string>
+    <string name="language_title">界面语言</string>
+    <string name="language_system">跟随系统</string>
     <string name="section_permissions">权限</string>
     <string name="section_vision">视觉模型（OpenAI 兼容）</string>
     <string name="section_privacy">隐私与合规</string>
