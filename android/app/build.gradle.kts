@@ -7,14 +7,14 @@ import java.util.Properties
 
 android {
     namespace = "com.pangchuang.app"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.pangchuang.app"
         minSdk = 26
-        targetSdk = 34
-        versionCode = 15
-        versionName = "0.6.0"
+        targetSdk = 36
+        versionCode = 16
+        versionName = "0.7.0"
     }
 
     signingConfigs {

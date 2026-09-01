@@ -13,6 +13,11 @@ android/.gradle/
 android/local.properties
 android/**/build/
 android/captures/
+android/keystore/
+*.jks
+*.keystore
+*.aab
+secrets/
 *.apk
 *.ap_
 *.dex

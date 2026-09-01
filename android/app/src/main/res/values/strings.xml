@@ -36,4 +36,8 @@
     <string name="purchase_restore_none">未找到可恢复的购买记录</string>
     <string name="purchase_billing_unavailable">暂时无法连接 Google Play 结算，请确认从 Play 安装或稍后再试</string>
     <string name="purchase_debug_note">Debug 包已自动解锁，便于侧载测试。上架版需通过 Play 购买。</string>
+    <string name="capture_disclosure_title">即将请求屏幕录制</string>
+    <string name="capture_disclosure_message">下一页系统会询问「屏幕录制」。旁窗仅截取当前画面，用于生成陪伴语并发送到你配置的视觉 API。截图不保存到相册，锁屏自动停止。</string>
+    <string name="capture_disclosure_continue">继续授权</string>
+    <string name="view_terms">查看使用条款</string>
 </resources>

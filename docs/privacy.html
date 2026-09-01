@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>旁窗 · 隐私政策</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 20px; line-height: 1.65; color: #1a1218; }
+    h1, h2 { font-weight: 650; }
+    table { border-collapse: collapse; width: 100%; }
+    td, th { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    a { color: #6b3a44; }
+  </style>
+</head>
+<body>
+  <p><a href="./index.html">旁窗</a></p>
+  <h1>旁窗隐私政策</h1>
+  <p>最后更新：2026-09-01（0.7.0）</p>
+  <p>旁窗（应用包名 <code>com.pangchuang.app</code>）是一款开源 Android 悬浮窗伴侣。本页供 Google Play 与应用内查阅。</p>
+
+  <h2>我们收集什么</h2>
+  <p>本应用<strong>不运营自有账号服务器</strong>。下列数据仅在您的设备上处理，或按您的设置发往您选择的第三方 API：</p>
+  <table>
+    <tr><th>数据</th><th>用途</th><th>去向</th></tr>
+    <tr><td>屏幕截图（JPEG）</td><td>识别当前画面、生成陪伴语</td><td>您填写的视觉 API（如硅基流动）</td></tr>
+    <tr><td>前台应用名（可选）</td><td>辅助识别正在使用的 App</td><td>同上，作为文本提示</td></tr>
+    <tr><td>API Key、Base URL、模型名</td><td>调用视觉接口</td><td>仅存于本机，已关闭云备份</td></tr>
+    <tr><td>解锁状态</td><td>记录是否已购买完整陪伴</td><td>本机；购买本身由 Google Play 处理</td></tr>
+  </table>
+  <p>本应用不会将截图持久保存到相册，也不会上传到我们控制的服务器。锁屏时自动停止截屏与 API 调用。</p>
+
+  <h2>第三方服务</h2>
+  <ul>
+    <li>视觉 API：由您自行选择（例如 SiliconFlow）。受该服务商隐私政策约束。</li>
+    <li>Google Play 结算：一次性内购 <code>full_unlock</code>。付款信息由 Google 处理，我们不收集银行卡号。</li>
+  </ul>
+
+  <h2>权限</h2>
+  <ul>
+    <li>悬浮窗：显示角色与气泡。</li>
+    <li>屏幕录制（MediaProjection）：完整陪伴截取当前画面；演示模式不使用。</li>
+    <li>使用情况访问（可选）：读取前台包名。</li>
+    <li>通知：显示前台服务状态。</li>
+  </ul>
+
+  <h2>应用内购买</h2>
+  <p>演示模式免费。完整陪伴需 Google Play 一次性解锁（约 0.99 美元）。退款遵循 Google Play 政策。</p>
+
+  <h2>儿童</h2>
+  <p>本应用不面向 13 岁以下儿童，也不会故意收集儿童信息。商店目标年龄建议 18 岁以上（因可能截取任意屏幕内容）。</p>
+
+  <h2>您的选择</h2>
+  <ul>
+    <li>可随时停止服务。</li>
+    <li>可删除 API Key 并卸载以清除本地配置。</li>
+    <li>可仅使用演示模式（不向视觉 API 发送截图）。</li>
+  </ul>
+
+  <h2>联系</h2>
+  <p>项目仓库：<a href="https://github.com/hailinsu-create/new">https://github.com/hailinsu-create/new</a></p>
+</body>
+</html>

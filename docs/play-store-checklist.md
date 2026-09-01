@@ -1,64 +1,46 @@
 # Google Play 上架清单（旁窗）
 
-## 已完成（代码侧）
+## 已完成（仓库内，0.7.0）
 
 - [x] 默认视觉模型：`Qwen/Qwen3-VL-8B-Instruct`
-- [x] 首次启动隐私同意（录屏 / API 发送说明）
-- [x] 应用内隐私政策与开源许可页
-- [x] 仓库 `docs/privacy-policy.md`（Console 填 URL 用）
+- [x] `targetSdk` / `compileSdk` **36**（2026-08-31 起新应用硬性要求）
+- [x] 首次启动隐私同意 + 录屏前二次披露
+- [x] 应用内隐私政策、使用条款、开源许可
+- [x] 网页版隐私政策 / 条款：`docs/privacy.html` `docs/terms.html`
 - [x] 默认禁止明文 HTTP（仅 localhost / 127.0.0.1 / 模拟器 10.0.2.2）
-- [x] Release 构建脚手架（签名读 `local.properties`）
-- [x] **Google Play Billing**：一次性内购 `full_unlock`（约 $0.99），演示模式免费
-- [x] 商店文案模板：`docs/play-store-listing.md`
+- [x] 关闭云备份（避免 API Key 进 Google Backup）
+- [x] Adaptive 图标 + Play 512 图标 + 1024×500 特色图
+- [x] Google Play Billing 一次性内购 `full_unlock`（约 $0.99）
+- [x] Release 签名脚手架；上传密钥脚本 `android/scripts/generate-upload-keystore.sh`
+- [x] Console 填表包：`docs/play/`
 
-## Play Console 配置（上架必做）
+## 你必须亲自完成
 
-### 1. 应用定价
+见 **[YOU-MUST-DO.md](./play/YOU-MUST-DO.md)**。摘要：
 
-- **应用本身设为免费**（便于试用演示模式）
-- **Monetize → Products → In-app products** 创建：
-  - Product ID：`full_unlock`（必须与代码一致）
-  - 类型：Managed product（一次性）
-  - 价格：**$0.99 USD**（或按地区等价定价）
-  - 状态：Active
+- [ ] Google Play 开发者账号（$25）
+- [ ] GitHub Pages（`/docs`）以便隐私政策 URL 可公开打开
+- [ ] 下载并保管上传 keystore（不要提交 Git）
+- [ ] Console 创建免费应用 + 内购 `full_unlock` @ $0.99
+- [ ] 上传 AAB 到内部测试，License testers 验证购买
+- [ ] 真机录制悬浮窗 / 录屏权限视频
+- [ ] 确认 Live2D Mao 样例许可适合你的主体
+- [ ] 提交审核
 
-### 2. 签名与 AAB
+## 填表文件索引
 
-- [ ] Google Play 开发者账号（$25 一次性）
-- [ ] 创建 **release** 签名 keystore，写入 `android/local.properties`：
-  ```properties
-  RELEASE_STORE_FILE=/path/to/pangchuang-release.jks
-  RELEASE_STORE_PASSWORD=***
-  RELEASE_KEY_ALIAS=pangchuang
-  RELEASE_KEY_PASSWORD=***
-  ```
-- [ ] `./gradlew :app:bundleRelease` 生成 AAB
-- [ ] Play Console → **App signing**：启用 Google Play App Signing
+| 用途 | 文件 |
+|------|------|
+| 你要办的事 | [play/YOU-MUST-DO.md](./play/YOU-MUST-DO.md) |
+| 商店文案 | [play/listing.md](./play/listing.md) |
+| Data safety | [play/data-safety.md](./play/data-safety.md) |
+| 内容分级 | [play/content-rating.md](./play/content-rating.md) |
+| 权限声明 | [play/permission-declarations.md](./play/permission-declarations.md) |
+| 图标/宣传图 | [play/assets/](./play/assets/) |
 
-### 3. 测试轨道
-
-- [ ] 内部测试轨道上传 AAB
-- [ ] **License testers** 添加你的 Gmail（测试购买不扣费）
-- [ ] 真机验证：演示免费 → 购买解锁 → 恢复购买
-
-### 4. 政策与披露
-
-- [ ] **Data safety**：声明「屏幕内容」「应用活动」发往用户配置的第三方 AI
-- [ ] **敏感权限**：MediaProjection、悬浮窗、使用情况访问说明视频/文案
-- [ ] 隐私政策 URL：`https://github.com/hailinsu-create/new/blob/main/docs/privacy-policy.md`
-- [ ] **Financial features**：声明应用内购买（一次性解锁）
-- [ ] 商店截图、简短说明（见 `docs/play-store-listing.md`）、内容分级问卷
-- [ ] 确认 Mao 样例在您主体规模下符合 Live2D 商用条款，或替换为自有/授权角色
-
-## 版本说明
+## 版本
 
 | 版本 | 说明 |
 |------|------|
-| 0.6.0 | 加入 $0.99 一次性内购解锁真屏陪伴；Debug 包自动解锁便于侧载测试 |
-
-## 建议下一版产品
-
-- [ ] 后端代理 API Key（避免用户手填）
-- [ ] EncryptedSharedPreferences 存 Key
-- [ ] 崩溃上报（Firebase Crashlytics 等）
-- [ ] 多机型 QA 矩阵
+| 0.6.0 | $0.99 一次性内购解锁真屏陪伴 |
+| 0.7.0 | targetSdk 36、商店素材、隐私网页、录屏二次披露、关闭备份 |

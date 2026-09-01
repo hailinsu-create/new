@@ -232,6 +232,11 @@ class RoastService : Service() {
 
         val mpm = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         val projection = mpm.getMediaProjection(resultCode, data)
+        if (projection == null) {
+            overlay?.show("系统未给出录屏权限，先休息一下。")
+            stopSelfSafe()
+            return
+        }
         mediaProjection = projection
 
         val callback = object : MediaProjection.Callback() {

@@ -14,10 +14,12 @@ class LegalActivity : AppCompatActivity() {
         val mode = intent.getStringExtra(EXTRA_MODE) ?: MODE_PRIVACY
         val assetPath = when (mode) {
             MODE_LICENSES -> "legal/open_source_licenses.txt"
+            MODE_TERMS -> "legal/terms_of_use.md"
             else -> "legal/privacy_policy.md"
         }
         val title = when (mode) {
             MODE_LICENSES -> "开源与素材许可"
+            MODE_TERMS -> "使用条款"
             else -> "隐私政策"
         }
         binding.legalTitle.text = title
@@ -38,5 +40,6 @@ class LegalActivity : AppCompatActivity() {
         const val EXTRA_MODE = "mode"
         const val MODE_PRIVACY = "privacy"
         const val MODE_LICENSES = "licenses"
+        const val MODE_TERMS = "terms"
     }
 }

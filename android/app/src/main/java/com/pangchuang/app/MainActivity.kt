@@ -58,6 +58,7 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
         binding.btnUsage.setOnClickListener { openUsageAccessSettings() }
         binding.btnPrivacy.setOnClickListener { openLegal(LegalActivity.MODE_PRIVACY) }
         binding.btnLicenses.setOnClickListener { openLegal(LegalActivity.MODE_LICENSES) }
+        binding.btnTerms.setOnClickListener { openLegal(LegalActivity.MODE_TERMS) }
         binding.btnResetModel.setOnClickListener {
             prefs.useStableModel()
             binding.inputModel.setText(Prefs.MODEL_STABLE)
@@ -282,8 +283,15 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
             ).show()
             return
         }
-        val mpm = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-        captureLauncher.launch(mpm.createScreenCaptureIntent())
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.capture_disclosure_title)
+            .setMessage(R.string.capture_disclosure_message)
+            .setPositiveButton(R.string.capture_disclosure_continue) { _, _ ->
+                val mpm = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                captureLauncher.launch(mpm.createScreenCaptureIntent())
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun startDemoFlow() {

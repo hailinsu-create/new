@@ -13,6 +13,6 @@ Cubism Core / Web SDK
 pixi.js / pixi-live2d-display
 见各自开源许可（随 assets/live2d/js 分发）
 
-OkHttp — Apache License 2.0
+Google Play Billing Library — Apache License 2.0
 Kotlin Coroutines — Apache License 2.0
 AndroidX / Material — Apache License 2.0
