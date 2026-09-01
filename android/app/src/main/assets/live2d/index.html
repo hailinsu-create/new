@@ -39,6 +39,10 @@ window.global = window.global || window;
   var mouthTimer = null;
   var holdTimer = null;
   var ready = false;
+  var speaking = false;
+  var mouthOpen = 0;
+  var mouthForm = 0;
+  var patchedUpdate = false;
   var MODEL_URL = BASE + "model/Mao/Mao.model3.json";
 
   function notifyAndroid(msg) {
@@ -96,6 +100,15 @@ window.global = window.global || window;
     catch (e) { return null; }
   }
 
+  function getParam(id) {
+    var core = coreModel();
+    if (!core) return null;
+    if (typeof core.getParameterValueById === "function") {
+      try { return core.getParameterValueById(id); } catch (e) { return null; }
+    }
+    return null;
+  }
+
   function setParam(id, value) {
     var core = coreModel();
     if (!core) return;
@@ -119,22 +132,65 @@ window.global = window.global || window;
     }
   }
 
+  function stopMotions() {
+    try {
+      var mm = model && model.internalModel && model.internalModel.motionManager;
+      if (mm && typeof mm.stopAllMotions === "function") mm.stopAllMotions();
+    } catch (e) {}
+  }
+
+  function applyMouthOverride() {
+    if (!speaking) return;
+    setParam("ParamA", mouthOpen);
+    setParam("ParamO", mouthOpen * 0.55);
+    setParam("ParamI", mouthForm * 0.35);
+    setParam("ParamMouthUp", Math.min(1, mouthOpen * 0.22));
+    setParam("ParamAngleX", Math.sin(Date.now() / 320) * 1.6);
+    setParam("ParamAngleY", Math.sin(Date.now() / 470) * 1.1);
+  }
+
+  function patchModelUpdate() {
+    if (patchedUpdate || !model || !model.internalModel) return;
+    var internal = model.internalModel;
+    if (typeof internal.update !== "function") return;
+    var orig = internal.update.bind(internal);
+    internal.update = function (elapsed, now) {
+      orig(elapsed, now);
+      applyMouthOverride();
+      try {
+        if (internal.coreModel && typeof internal.coreModel.update === "function") {
+          internal.coreModel.update();
+        }
+      } catch (e) {}
+    };
+    patchedUpdate = true;
+    log("patched internalModel.update for lip-sync override");
+  }
+
   function stopMouth() {
+    speaking = false;
+    mouthOpen = 0;
+    mouthForm = 0;
     if (mouthTimer) { clearInterval(mouthTimer); mouthTimer = null; }
     setParam("ParamA", 0);
+    setParam("ParamO", 0);
+    setParam("ParamI", 0);
+    setParam("ParamMouthUp", 0);
+    setParam("ParamAngleX", 0);
+    setParam("ParamAngleY", 0);
   }
 
   function layoutModel() {
     if (!app || !model) return;
     var size = stageSize();
     app.renderer.resize(size.w, size.h);
-    // Mao is ~5800x8400 at scale=1. Fit head/upper body into the circle.
-    // Do NOT use model.width for the first pass — it can be 0 before textures settle,
-    // which previously produced insane scales or left scale at 1 (extreme zoom).
-    var scale = Math.min(size.w, size.h) / 3000;
-    model.anchor.set(0.5, 0.16);
+    // Mao is ~5800x8400 at scale=1. Crop to hat + face so the mouth reads in a ~150dp circle.
+    // Do NOT use model.width for the first pass — it can be 0 before textures settle.
+    var side = Math.min(size.w, size.h);
+    var scale = side / 1520;
+    model.anchor.set(0.50, 0.225);
     model.scale.set(scale);
-    model.position.set(size.w * 0.5, size.h * 0.02);
+    model.position.set(size.w * 0.50, size.h * 0.50);
     model.visible = true;
     model.alpha = 1;
     log("layout", size.w + "x" + size.h, "scale=" + scale.toFixed(4), "drawn=" + Math.round(5800 * scale) + "x" + Math.round(8400 * scale));
@@ -237,6 +293,7 @@ window.global = window.global || window;
       });
       window.__model = model;
       app.stage.addChild(model);
+      patchModelUpdate();
       layoutModel();
       await sleep(80);
       layoutModel();
@@ -257,31 +314,32 @@ window.global = window.global || window;
 
   window.PangchuangLive2D = {
     isReady: function () { return ready; },
+    mouthOpen: function () { return mouthOpen; },
+    paramA: function () { return getParam("ParamA"); },
     setMood: function (mood) { applyMood(String(mood || "IDLE").toUpperCase()); },
     speak: function (durationMs, mood) {
       if (!ready || !model) return;
-      var dur = Math.max(600, Math.min(5000, Number(durationMs) || 1600));
+      var dur = Math.max(700, Math.min(5600, Number(durationMs) || 1800));
       applyMood(String(mood || "TALK").toUpperCase());
-      stopMouth();
       if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+      if (mouthTimer) { clearInterval(mouthTimer); mouthTimer = null; }
+      stopMotions();
+      speaking = true;
       var start = Date.now();
       mouthTimer = setInterval(function () {
         var t = (Date.now() - start) / 1000;
-        var open = 0.35 + 0.55 * Math.abs(Math.sin(t * 10.5)) * (0.55 + 0.45 * Math.abs(Math.sin(t * 3.2)));
-        setParam("ParamA", open);
-        setParam("ParamMouthUp", Math.min(1, open * 0.35));
-      }, 42);
-      try {
-        var m = String(mood || "").toUpperCase();
-        if (m === "HAPPY" || m === "SHY" || m === "SURPRISE") model.motion("TapBody");
-      } catch (e) {}
+        var pulse = Math.abs(Math.sin(t * 9.2));
+        var syllable = Math.abs(Math.sin(t * 3.6));
+        mouthOpen = 0.28 + 0.72 * pulse * (0.5 + 0.5 * syllable);
+        mouthForm = Math.abs(Math.sin(t * 5.1));
+      }, 33);
       holdTimer = setTimeout(function () {
         stopMouth();
         holdTimer = setTimeout(function () {
           try { model.motion("Idle"); } catch (e) {}
           applyMood("IDLE");
           notifyAndroid("speak_end");
-        }, 900);
+        }, 700);
       }, dur);
     },
     idle: function () {

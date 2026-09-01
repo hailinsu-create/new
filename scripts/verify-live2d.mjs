@@ -136,9 +136,27 @@ async function main() {
   });
 
   fs.writeFileSync(path.join(OUT, 'live2d-verify.json'), JSON.stringify({ result, pixels, logs: logs.slice(-120) }, null, 2));
+  await page.screenshot({ path: path.join(OUT, 'live2d-face-idle.png'), omitBackground: false });
+
+  const mouth = await page.evaluate(async () => {
+    if (!window.PangchuangLive2D || !PangchuangLive2D.speak) return { error: 'no api' };
+    PangchuangLive2D.speak(2400, 'TALK');
+    await new Promise((r) => setTimeout(r, 420));
+    return {
+      mouthOpen: PangchuangLive2D.mouthOpen ? PangchuangLive2D.mouthOpen() : null,
+      paramA: PangchuangLive2D.paramA ? PangchuangLive2D.paramA() : null,
+    };
+  });
+  await page.waitForTimeout(80);
+  await page.screenshot({ path: path.join(OUT, 'live2d-face-speak.png'), omitBackground: false });
+
+  fs.writeFileSync(
+    path.join(OUT, 'live2d-verify.json'),
+    JSON.stringify({ result, pixels, mouth, logs: logs.slice(-120) }, null, 2)
+  );
   await browser.close();
   server.close();
-  console.log(JSON.stringify({ result, pixels }, null, 2));
+  console.log(JSON.stringify({ result, pixels, mouth }, null, 2));
   if (!result.ok) {
     console.error('FAIL logs:\n' + logs.slice(-60).join('\n'));
     process.exit(1);
@@ -147,6 +165,11 @@ async function main() {
   if (!pixels.hasCanvas || !painted) {
     console.error('FAIL: ready but no painted pixels', pixels);
     process.exit(2);
+  }
+  const paramA = Number(mouth && mouth.paramA);
+  if (!(paramA > 0.15)) {
+    console.error('FAIL: mouth ParamA too low while speaking', mouth);
+    process.exit(4);
   }
   console.log('PASS');
 }

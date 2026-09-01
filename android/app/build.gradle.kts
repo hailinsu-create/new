@@ -11,8 +11,8 @@ android {
         applicationId = "com.pangchuang.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 12
-        versionName = "0.3.9"
+        versionCode = 13
+        versionName = "0.4.0"
     }
 
     buildTypes {
