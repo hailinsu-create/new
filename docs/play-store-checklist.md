@@ -39,6 +39,7 @@
 | 用途 | 文件 |
 |------|------|
 | 你要办的事 | [play/YOU-MUST-DO.md](./play/YOU-MUST-DO.md) |
+| 注册 Play 账号 | [play/signup.md](./play/signup.md) |
 | 按页面点下去 | [play/console-app-content.md](./play/console-app-content.md) |
 | 封闭测试 | [play/closed-testing.md](./play/closed-testing.md) |
 | 测试员邀请 | [play/tester-invite.md](./play/tester-invite.md) |
