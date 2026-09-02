@@ -79,7 +79,7 @@ You pay your own vision-API usage. The character is the official Live2D Mao samp
 |-----------|------|
 | 高清图标 512×512 | `docs/play/assets/play_icon_512.png` |
 | 特色图形 1024×500 | `docs/play/assets/feature_graphic_1024x500.png` |
-| 手机截图 | `docs/play/assets/screenshot_*.png` |
+| 手机截图 | `screenshot_settings.png` `screenshot_consent.png` `screenshot_overlay.png` `screenshot_overlay_closeup.png` |
 
 ## 内购商品
 

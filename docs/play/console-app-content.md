@@ -24,7 +24,7 @@ Pages 未开时，公开仓库可用：
 - 标签：个性化、效率
 - 高清图标：`assets/play_icon_512.png`
 - 特色图形：`assets/feature_graphic_1024x500.png`
-- 手机截图：至少 2 张。草稿在 `assets/screenshot_*.png`（0.9.0 已带语言选择行），**请用真机换掉**，尤其要有 Live2D 悬浮窗。
+- 手机截图：至少 2 张，建议 4 张。草稿在 `assets/screenshot_*.png`（含 Live2D 悬浮窗拼图），**请用真机换掉**。
 - 平板截图：可选。未锁方向，平板能开；没有真机可先空着。
 - 最新动态：`release-notes.md`
 
@@ -125,11 +125,11 @@ Does your app contain ads? **No**
 
 ## 测试
 
-1. 内部测试轨道上传 AAB（产物 `pangchuang-0.9.0.aab`）
+1. 内部测试轨道上传 AAB（产物 `pangchuang-0.10.0.aab`）
 2. Settings → License testing 加入你的 Gmail
 3. 用测试链接安装 **Release** 包，不要用 GitHub debug APK 测购买
 4. 测：演示免费 → 购买 → 恢复购买 → 锁屏暂停
 
 ## 封闭测试
 
-新个人开发者账号常被要求先封闭测试约 14 天。内部测试通过后，把同一 AAB 升到封闭测试，满员后再申请生产。
+新个人开发者账号（2023-11-13 之后）必须封闭测试：**至少 12 人 opt-in，连续 14 天**。内部测试不算。详见 `closed-testing.md`。

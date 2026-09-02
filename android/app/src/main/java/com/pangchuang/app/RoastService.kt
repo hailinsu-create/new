@@ -183,7 +183,9 @@ class RoastService : Service() {
             val type = if (demo) {
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
             } else {
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+                // Full companion keeps the overlay up while capturing.
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
             }
             startForeground(NOTIF_ID, buildNotification(text), type)
         } else {

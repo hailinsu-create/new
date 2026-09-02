@@ -1,0 +1,19 @@
+name: Play preflight
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - cursor/phone-roast-small-window-b0b5
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pillow
+      - run: python3 scripts/play_preflight.py

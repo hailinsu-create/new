@@ -26,6 +26,7 @@
 - 填表包：[docs/play/](docs/play/)
 - 隐私政策：[docs/privacy-policy.md](docs/privacy-policy.md) / [docs/privacy.html](docs/privacy.html) / [docs/privacy-en.html](docs/privacy-en.html)
 - 问卷总表：[docs/play/console-app-content.md](docs/play/console-app-content.md)
+- 封闭测试：[docs/play/closed-testing.md](docs/play/closed-testing.md)
 
 ## 设置项
 

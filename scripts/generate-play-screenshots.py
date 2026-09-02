@@ -2,7 +2,7 @@
 """Phone-sized listing screenshots that match the real settings copy and overlay art."""
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageChops, ImageDraw, ImageFont
 
 OUT = Path("/workspace/docs/play/assets")
 INK = (26, 18, 24, 255)
@@ -83,11 +83,112 @@ def consent_shot() -> Image.Image:
     return img.convert("RGB")
 
 
+def overlay_host() -> Image.Image:
+    """A fake short-video / cart screen so the listing shows overlay on another app."""
+    img = Image.new("RGB", (W, H), (18, 16, 22))
+    d = ImageDraw.Draw(img)
+    d.rectangle((0, 0, W, 88), fill=(12, 10, 14))
+    d.text((36, 28), "9:41", font=font(28), fill=FOAM[:3])
+    d.text((860, 28), "4G  81%", font=font(24), fill=MIST[:3])
+
+    d.rectangle((0, 88, W, 1480), fill=(8, 8, 10))
+    d.text((48, 140), "夜市短视频", font=font(26), fill=MIST[:3])
+    d.text((48, 200), "同一支舞的第十八个翻拍", font=font(40), fill=FOAM[:3])
+    rounded(d, (48, 280, 1032, 980), 28, (42, 28, 36))
+    d.text((80, 600), "购物车还差 ¥12.8 凑券", font=font(36), fill=AMBER)
+    d.text((80, 670), "结不结账，听心里那一下。", font=font(28), fill=MIST[:3])
+
+    rounded(d, (48, 1020, 320, 1100), 20, (60, 44, 52))
+    d.text((88, 1044), "不感兴趣", font=font(24), fill=FOAM[:3])
+    rounded(d, (360, 1020, 700, 1100), 20, YELLOW)
+    d.text((430, 1044), "去结算", font=font(26), fill=INK[:3])
+
+    d.rectangle((0, 1480, W, H), fill=(14, 12, 16))
+    for i, lab in enumerate(["首页", "朋友", "拍", "消息", "我"]):
+        d.text((70 + i * 210, 1580), lab, font=font(26), fill=MIST[:3])
+    return img
+
+
+def cut_mao(path: Path, size: int) -> Image.Image:
+    src = Image.open(path).convert("RGBA")
+    pix = src.load()
+    w, h = src.size
+    key = pix[2, 2][:3]
+    out = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    op = out.load()
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = pix[x, y]
+            dist = abs(r - key[0]) + abs(g - key[1]) + abs(b - key[2])
+            if dist < 90:
+                op[x, y] = (0, 0, 0, 0)
+            else:
+                op[x, y] = (r, g, b, 255)
+    # Circle crop
+    circle = Image.new("L", (w, h), 0)
+    ImageDraw.Draw(circle).ellipse((8, 8, w - 8, h - 8), fill=255)
+    out.putalpha(ImageChops.multiply(out.split()[3], circle))
+    return out.resize((size, size), Image.Resampling.LANCZOS)
+
+
+def paint_overlay(base: Image.Image, line: str, mao: Image.Image) -> Image.Image:
+    img = base.convert("RGBA")
+    d = ImageDraw.Draw(img)
+    # Bubble
+    bx0, by0, bx1, by1 = 48, 1180, 720, 1420
+    rounded(d, (bx0, by0, bx1, by1), 28, PANEL)
+    d.text((bx0 + 28, by0 + 22), "小旁", font=font(22), fill=AMBER)
+    # wrap line
+    y = by0 + 64
+    buf = ""
+    for ch in line:
+        trial = buf + ch
+        if font(26).getlength(trial) > (bx1 - bx0 - 56):
+            d.text((bx0 + 28, y), buf, font=font(26), fill=FOAM[:3])
+            y += 40
+            buf = ch
+        else:
+            buf = trial
+    if buf:
+        d.text((bx0 + 28, y), buf, font=font(26), fill=FOAM[:3])
+    ax, ay = 40, 1480
+    ring = Image.new("RGBA", (mao.size[0] + 16, mao.size[1] + 16), (0, 0, 0, 0))
+    ImageDraw.Draw(ring).ellipse((0, 0, ring.size[0] - 1, ring.size[1] - 1), outline=AMBER, width=6)
+    img.alpha_composite(ring, (ax - 8, ay - 8))
+    img.alpha_composite(mao, (ax, ay))
+    return img.convert("RGB")
+
+
+def overlay_shot(mao: Image.Image) -> Image.Image:
+    return paint_overlay(overlay_host(), "购物车比存款诚实。喜欢就买，犹豫就先晾着。", mao)
+
+
+def overlay_closeup(mao: Image.Image) -> Image.Image:
+    img = Image.new("RGB", (W, H), (18, 16, 22))
+    d = ImageDraw.Draw(img)
+    d.text((72, 80), "演示模式 · 不看真屏", font=font(28), fill=MIST[:3])
+    big = mao.resize((560, 560), Image.Resampling.LANCZOS)
+    img.paste(big, (260, 220), big)
+    rounded(d, (80, 860, 1000, 1220), 32, PANEL)
+    d.text((120, 900), "小旁", font=font(28), fill=AMBER)
+    d.text((120, 960), "短视频一条接一条，像夜里不停的潮。", font=font(32), fill=FOAM[:3])
+    d.text((120, 1020), "潮有涨有落，你也可以随时上岸。", font=font(32), fill=FOAM[:3])
+    d.text((120, 1110), "长按角色换一句。锁屏会自己停。", font=font(26), fill=MIST[:3])
+    return img
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     settings_shot().save(OUT / "screenshot_settings.png", "PNG")
     consent_shot().save(OUT / "screenshot_consent.png", "PNG")
-    print("wrote listing screenshots")
+    mao_path = OUT / "mao_face.png"
+    if mao_path.exists():
+        mao = cut_mao(mao_path, 420)
+        overlay_shot(mao).save(OUT / "screenshot_overlay.png", "PNG")
+        overlay_closeup(mao).save(OUT / "screenshot_overlay_closeup.png", "PNG")
+        print("wrote listing screenshots including overlay")
+    else:
+        print("wrote listing screenshots (no mao_face.png, skipped overlay)")
 
 
 if __name__ == "__main__":
