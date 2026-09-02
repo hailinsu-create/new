@@ -1,0 +1,4 @@
+Mao sample model from Live2D Cubism Web Samples.
+https://github.com/Live2D/CubismWebSamples
+Subject to Live2D Free Material License Agreement / Live2D proprietary terms for sample materials.
+Cubism Core for Web: Live2D Cubism SDK — see Live2D license agreements.

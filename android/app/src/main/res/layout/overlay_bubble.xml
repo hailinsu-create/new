@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/overlayRoot"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+    <LinearLayout
+        android:id="@+id/bubblePanel"
+        android:layout_width="260dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|start"
+        android:layout_marginBottom="10dp"
+        android:background="@drawable/bg_bubble"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/bubbleBrand"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/companion_name"
+            android:textColor="@color/blush"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/bubbleText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:lineSpacingExtra="2dp"
+            android:textColor="@color/foam"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <com.pangchuang.app.Live2DAvatarView
+        android:id="@+id/fab"
+        android:layout_width="156dp"
+        android:layout_height="156dp"
+        android:layout_gravity="bottom|start"
+        android:layout_marginTop="108dp"
+        android:elevation="10dp" />
+</FrameLayout>

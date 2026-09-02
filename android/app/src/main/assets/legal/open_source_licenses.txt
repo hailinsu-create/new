@@ -1,0 +1,18 @@
+旁窗 — 开源与素材声明
+
+应用代码：MIT License（见仓库 LICENSE）
+
+Live2D 虹色 Mao 样例模型
+来源：https://github.com/Live2D/CubismWebSamples
+须遵守 Live2D Free Material License Agreement 及 Cubism 样例数据使用条款。
+应用内仅作展示，版权归 Live2D Inc.
+
+Cubism Core / Web SDK
+(C) Live2D Inc. — 见 Live2D 许可协议
+
+pixi.js / pixi-live2d-display
+见各自开源许可（随 assets/live2d/js 分发）
+
+Google Play Billing Library — Apache License 2.0
+Kotlin Coroutines — Apache License 2.0
+AndroidX / Material — Apache License 2.0

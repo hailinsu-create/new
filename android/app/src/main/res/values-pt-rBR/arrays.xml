@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="mock_generic">
+        <item>Unread chats can wait. Finish this one line, then decide whether to step into the noise.</item>
+        <item>Shorts run like water. Keep scrolling if it feels good. Stopping is a skill too.</item>
+        <item>A full cart means you are still choosing. Paying or not is a quieter decision.</item>
+        <item>A dense notes list is tomorrow cut into walkable pieces. One item at a time.</item>
+        <item>Queue screens grind the most. Wins and losses pass. Keep your hands loose.</item>
+        <item>Too many tabs scatter the mind. Close the ones you are not using.</item>
+        <item>The map is calculating a route. So are you, with whatever energy is left today.</item>
+    </string-array>
+    <string-array name="mock_shorts">
+        <item>Clip after clip, like a tide that does not sleep. Tides turn. You can step off.</item>
+        <item>One genuine laugh is enough. Do not arm-wrestle the recommender. It does not know your bedtime.</item>
+        <item>Your thumb is still moving. If it starts to feel empty, that is the feed, not you.</item>
+    </string-array>
+    <string-array name="mock_chat">
+        <item>The pinned chat is blinking. Someone is waiting. Slow and clear beats fast and messy.</item>
+        <item>A red badge is not an order. Read it, then choose whether to throw yourself in.</item>
+        <item>The chat is loud. Outside it, you still have a body. Breathe first.</item>
+    </string-array>
+    <string-array name="mock_cart">
+        <item>Checkout is where the will goes soft. Buy what you like. Leave the rest.</item>
+        <item>Filling a coupon is arithmetic. Add objects, not panic.</item>
+        <item>A full cart does not mean it has to empty tonight.</item>
+    </string-array>
+    <string-array name="mock_ranked">
+        <item>The match light keeps flashing. This game will end. Keep your hands from shaking with it.</item>
+        <item>Rank is a number. Feel is now. Play clean rather than frantic.</item>
+        <item>Queues invite rumination. Watch the spinner like a small sit.</item>
+    </string-array>
+    <string-array name="mock_notes">
+        <item>A messy life, listed. That already helps.</item>
+        <item>A reminder is not extra weight. Do one thing when it rings, then tick it off.</item>
+        <item>People who write the list are already ahead of people who only spin it in their head.</item>
+    </string-array>
+</resources>

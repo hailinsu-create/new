@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ink">#FF1A1218</color>
+    <color name="ink_soft">#F2281C24</color>
+    <color name="foam">#FFFFF7F5</color>
+    <color name="mist">#FFC4A8B0</color>
+    <color name="amber">#FFF2A7B8</color>
+    <color name="sky">#FFE8A0B0</color>
+    <color name="rose">#FFE8A0B0</color>
+    <color name="blush">#FFFFC8D4</color>
+    <color name="panel">#E61F1520</color>
+</resources>

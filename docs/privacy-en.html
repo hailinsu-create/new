@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pangchuang · Privacy policy</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 20px; line-height: 1.65; color: #1a1218; }
+    h1, h2 { font-weight: 650; }
+    table { border-collapse: collapse; width: 100%; }
+    td, th { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    a { color: #6b3a44; }
+  </style>
+</head>
+<body>
+  <p><a href="./index.html">Pangchuang</a> · <a href="./privacy.html">中文</a></p>
+  <h1>Pangchuang privacy policy</h1>
+  <p>Last updated: 2026-09-01 (0.9.0)</p>
+  <p>Pangchuang (package <code>com.pangchuang.app</code>) is an open-source Android floating companion. This page is for Google Play and in-app review.</p>
+
+  <h2>What we collect</h2>
+  <p>The app does <strong>not</strong> run an account server. The data below is processed on your device, or sent to a third-party API that you choose:</p>
+  <table>
+    <tr><th>Data</th><th>Use</th><th>Where it goes</th></tr>
+    <tr><td>Screen JPEG</td><td>Recognize the current screen and write a companion line</td><td>The vision API you configure (for example SiliconFlow)</td></tr>
+    <tr><td>Foreground app name (optional)</td><td>Hint which app is in front</td><td>Same API, as a text hint</td></tr>
+    <tr><td>API key, base URL, model name</td><td>Call the vision API</td><td>On device only. Cloud backup is off.</td></tr>
+    <tr><td>Unlock state</td><td>Whether full companion is purchased</td><td>On device. Payment is handled by Google Play.</td></tr>
+  </table>
+  <p>Screenshots are not saved to the gallery and are not uploaded to a server we control. Capture and API calls stop when the phone is locked.</p>
+
+  <h2>Third parties</h2>
+  <ul>
+    <li>Vision API: you choose it (for example SiliconFlow). That provider's privacy policy applies.</li>
+    <li>Google Play Billing: one-time product <code>full_unlock</code>. Google handles payment. We do not collect card numbers.</li>
+  </ul>
+
+  <h2>Permissions</h2>
+  <ul>
+    <li>Overlay: show the character and bubble.</li>
+    <li>Screen capture (MediaProjection): full companion grabs the current frame. Demo mode does not.</li>
+    <li>Usage access (optional): read the foreground package name.</li>
+    <li>Notifications: show the foreground service status.</li>
+  </ul>
+
+  <h2>In-app purchase</h2>
+  <p>Demo mode is free. Full companion is a Google Play one-time unlock (about USD 0.99). Refunds follow Google Play policy.</p>
+
+  <h2>Children</h2>
+  <p>This app is not directed at children under 13, and we do not knowingly collect data from children. Play target age should be 18+ because full companion may capture whatever is on screen.</p>
+
+  <h2>Your choices</h2>
+  <ul>
+    <li>Stop the companion at any time.</li>
+    <li>Delete the API key and uninstall to clear local settings.</li>
+    <li>Use demo mode only (no screenshots sent to a vision API).</li>
+    <li>Pick the UI language in settings, or follow the system language.</li>
+  </ul>
+
+  <h2>Contact</h2>
+  <p>Project: <a href="https://github.com/hailinsu-create/new">https://github.com/hailinsu-create/new</a></p>
+</body>
+</html>
