@@ -51,4 +51,41 @@
 2. 打开 Play Console，确认身份验证状态是已完成。
 3. 回来告诉我「账号好了」。下一步是 GitHub Pages 隐私政策 URL，然后创建应用「旁窗」。
 
-个人账号（2023-11-13 之后）即使验证通过，也还不能直接上生产。要先封闭测试：至少 12 人连续 opt-in 14 天。那是注册之后的事，见 `closed-testing.md`。
+## 剩下每一页怎么填（已过「经验 / 赚钱 / 应用类别」）
+
+不要截图。标题对得上就按下面勾。对不上把标题打字发我。
+
+**How many apps in the next 12 months?**  
+1（或 1–5 里最小的一档）
+
+**Have you used another Google account to access Play Console in the last 6 months?**  
+没有就选 No。
+
+**Website**  
+有就填 `https://github.com/hailinsu-create/new`。没有站点、只有仓库也可以填这个。没有可选 I don't have a website。
+
+**Developer name（商店公开的发行方名称）**  
+填你的姓名或工作室名，以后能改。应用名「旁窗」是创建应用时再填，这里不要填包名。
+
+**Payments profile（支付资料）**  
+法定全名、街道、城市、省、邮编、国家：和证件、银行卡账单同一套。国家选真实居住地。
+
+**Developer email（商店上展示）**  
+能长期收信的邮箱，收 OTP。可以和 Gmail 相同。
+
+**Contact name / email / phone / language（Google 找你，用户看不见）**  
+真名、常用邮箱、能收短信的手机。语言选中文或你读得懂的。
+
+**条款**  
+勾选：已满 18 岁、接受 Developer Distribution Agreement、接受 Console 服务条款。营销邮件可关。
+
+**Create account and pay**  
+USD 25。Visa / Mastercard / Amex，不要预付卡、虚拟卡。账单地址和支付资料逐字相同。
+
+**身份验证**  
+上传身份证或护照。姓名必须和支付资料一致。若要地址证明：带章的纸质账单彩照，地址逐字相同。失败不要连点重试。
+
+**Play 管理中心 App（真机）**  
+同一 Google 账号登录手机，按提示证明你有一台 Android 设备。
+
+付完款、验证通过前，Console 里很多按钮是灰的。可能几小时到几天。通过后回来说「账号好了」。
