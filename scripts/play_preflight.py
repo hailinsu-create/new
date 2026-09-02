@@ -8,7 +8,7 @@ import zipfile
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
-ROOT = Path("/workspace")
+ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "android/app/src/main/AndroidManifest.xml"
 GRADLE = ROOT / "android/app/build.gradle.kts"
 ASSETS = ROOT / "docs/play/assets"
