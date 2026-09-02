@@ -18,7 +18,7 @@ Play 必须填一个**不登录也能打开**的隐私政策网页。仓库里�
 
 - Source: **GitHub Actions**（不要再选 Deploy from a branch）
 
-保存后等一次成功的 workflow，打开：
+保存后打开 Actions → **Deploy docs to GitHub Pages** → Run workflow（选当前分支）。成功后再打开：
 
 - 隐私政策：`https://hailinsu-create.github.io/new/privacy.html`
 - Privacy policy：`https://hailinsu-create.github.io/new/privacy-en.html`
