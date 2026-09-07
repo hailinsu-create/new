@@ -9,6 +9,7 @@ const DAMAGE_PER_SHOT := 34.0
 const SHOT_INTERVAL := 0.18
 const MAX_HP := 100.0
 const START_AMMO := 7
+const MAX_AMMO := 14
 const COVER_DAMAGE_MULT := 0.4
 const LOOT_RANGE := 52.0
 
@@ -32,12 +33,7 @@ var shot_cd: float = 0.0
 func setup(id: int, pname: String) -> void:
 	op_id = id
 	display_name = pname
-	alive = true
-	hp = MAX_HP
-	ammo = START_AMMO
-	shot_cd = 0.0
-	_refresh_tag()
-	_rebuild_cone()
+	reset_loadout()
 
 
 func reset_loadout() -> void:
@@ -66,8 +62,13 @@ func rotate_by(delta_deg: float) -> void:
 
 func lock_plan() -> void:
 	locked = true
-	if cone:
-		cone.color = Color(0.85, 0.35, 0.2, 0.22)
+	_rebuild_cone()
+
+
+## Cooldown advances on the simulation clock even with no target (blueprint P0).
+func tick_cooldown(delta: float) -> void:
+	if shot_cd > 0.0:
+		shot_cd = maxf(shot_cd - delta, 0.0)
 
 
 func _rebuild_cone() -> void:
@@ -105,11 +106,9 @@ func can_engage(target: Vector2, grid: AmbushGrid) -> bool:
 	return grid.has_los(global_position, target)
 
 
-## Returns true if a shot was fired this tick.
-func try_fire(delta: float, target: EnemyRunner, grid: AmbushGrid) -> bool:
+func try_fire(target: EnemyRunner, grid: AmbushGrid) -> bool:
 	if not can_engage(target.global_position, grid):
 		return false
-	shot_cd -= delta
 	if shot_cd > 0.0:
 		return false
 	shot_cd = SHOT_INTERVAL
@@ -123,6 +122,7 @@ func try_fire(delta: float, target: EnemyRunner, grid: AmbushGrid) -> bool:
 func take_damage(amount: float) -> void:
 	if not alive:
 		return
+	# P0: flat cover mitigation; direction-aware cover is P2.
 	hp -= amount * COVER_DAMAGE_MULT
 	_refresh_tag()
 	if hp <= 0.0:
@@ -140,19 +140,23 @@ func _die() -> void:
 	died.emit(self)
 
 
-func try_loot(loot: Node2D) -> bool:
+func can_reach_loot(loot_pos: Vector2, grid: AmbushGrid) -> bool:
 	if not alive:
 		return false
-	if global_position.distance_to(loot.global_position) > LOOT_RANGE:
+	if global_position.distance_to(loot_pos) > LOOT_RANGE:
 		return false
-	if loot.has_method("collect"):
-		var gained: int = int(loot.collect())
-		if gained > 0:
-			ammo += gained
-			_refresh_tag()
-			_rebuild_cone()
-			return true
-	return false
+	return grid.has_los(global_position, loot_pos)
+
+
+func receive_ammo(amount: int) -> int:
+	if not alive or amount <= 0:
+		return 0
+	var room := MAX_AMMO - ammo
+	var gained := mini(amount, room)
+	ammo += gained
+	_refresh_tag()
+	_rebuild_cone()
+	return gained
 
 
 func _refresh_tag() -> void:

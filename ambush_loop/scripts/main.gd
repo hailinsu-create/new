@@ -1,18 +1,20 @@
 extends Node2D
 
-## Ambush Loop — Commandos-style prep MVP.
-## Deploy to cover, set overwatch, limited ammo, enemies return fire, loot corpses.
-## Enemies follow FIXED routes.
+## Ambush Loop — P0 rule trust pass (blueprint §2 / §8).
+## Deploy to cover, set overwatch, limited ammo, LOS return fire, corpse loot.
+## Enemies follow FIXED routes. Retry restores last plan.
 
 enum Phase { SETUP, WATCHING, FAILED, WON }
 enum Tool { DEPLOY, TRIPWIRE }
 
 const MAX_TRIPWIRES := 1
+const TRIPWIRE_ROUTE_DIST := 24.0
 
 var grid: AmbushGrid = AmbushGrid.new()
 var phase: Phase = Phase.SETUP
 var tool: Tool = Tool.DEPLOY
 var loop_index: int = 1
+var run_id: int = 0
 var intel_paths: Array[PackedVector2Array] = []
 var fail_reason: String = ""
 
@@ -23,8 +25,13 @@ var enemies: Array[EnemyRunner] = []
 var tripwires: Array[Tripwire] = []
 var loot_piles: Array[LootPickup] = []
 
+## Last locked/attempted plan: [{op_id, slot_id, facing}]
+var last_plan: Array = []
+var last_tripwire_positions: Array[Vector2] = []
+
 var escape_world: Vector2
 var hud_tick: float = 0.0
+var return_fire_fx: Array = [] # temporary Line2D refs
 
 @onready var map_draw: Node2D = $World/MapDraw
 @onready var entities: Node2D = $World/Entities
@@ -53,17 +60,16 @@ func _ready() -> void:
 	_build_operators()
 	_draw_fixed_routes()
 	alarm_button.pressed.connect(_on_alarm_pressed)
-	clear_button.pressed.connect(_reset_deployments)
+	clear_button.pressed.connect(_on_clear_pressed)
 	tool_button.pressed.connect(_toggle_tool)
 	continue_button.pressed.connect(_on_continue_pressed)
 	result_panel.visible = false
-	clear_button.text = "收回队员"
+	clear_button.text = "收回部署"
 	tool_button.text = "工具: 部署队员"
-	_start_setup(false)
+	_start_setup(false, false)
 
 
 func _cover_defs() -> Array:
-	# cell, label, default facing deg
 	return [
 		{"cell": Vector2i(7, 11), "name": "西侧掩体", "face": 0.0},
 		{"cell": Vector2i(15, 7), "name": "北廊掩体", "face": 90.0},
@@ -88,6 +94,10 @@ func _route_flank() -> PackedVector2Array:
 		Vector2i(32, 6), Vector2i(32, 11), Vector2i(32, 15), Vector2i(31, 17), Vector2i(31, 19)
 	]
 	return _cells_to_world(cells)
+
+
+func _all_routes() -> Array:
+	return [_route_main(), _route_flank()]
 
 
 func _cells_to_world(cells: Array) -> PackedVector2Array:
@@ -137,10 +147,11 @@ func _build_operators() -> void:
 		if is_instance_valid(o):
 			o.queue_free()
 	operators.clear()
+	# Blueprint P0: names differ but stats are identical — UI must not imply otherwise.
 	var defs := [
-		{"id": 1, "name": "机枪手"},
-		{"id": 2, "name": "步枪手"},
-		{"id": 3, "name": "侦察兵"},
+		{"id": 1, "name": "队员甲"},
+		{"id": 2, "name": "队员乙"},
+		{"id": 3, "name": "队员丙"},
 	]
 	for d in defs:
 		var op := _make_operator(d["id"], d["name"])
@@ -199,17 +210,24 @@ func _add_route_line(points: PackedVector2Array, color: Color, label: String) ->
 		routes_draw.add_child(t)
 
 
-func _start_setup(keep_intel: bool) -> void:
+func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 	phase = Phase.SETUP
 	tool = Tool.DEPLOY
 	fail_reason = ""
+	run_id += 1 # invalidate any deferred spawn callbacks
 	_clear_enemies()
 	_clear_tripwires()
 	_clear_loot()
-	_reset_deployments()
+	_clear_return_fx()
 	if not keep_intel:
 		intel_paths.clear()
 		loop_index = 1
+		last_plan.clear()
+		last_tripwire_positions.clear()
+	if restore_plan and not last_plan.is_empty():
+		_restore_last_plan()
+	else:
+		_clear_deployments()
 	_redraw_ghosts()
 	alarm_button.disabled = false
 	clear_button.disabled = false
@@ -218,7 +236,18 @@ func _start_setup(keep_intel: bool) -> void:
 	_update_hud()
 
 
-func _reset_deployments() -> void:
+func _on_clear_pressed() -> void:
+	if phase != Phase.SETUP:
+		return
+	_clear_deployments()
+	_clear_tripwires()
+	last_plan.clear()
+	last_tripwire_positions.clear()
+	status_label.text = "已收回部署（记忆保留）"
+	_update_hud()
+
+
+func _clear_deployments() -> void:
 	for slot in cover_slots:
 		slot.occupied_by = null
 		slot.set_highlight(false)
@@ -229,7 +258,58 @@ func _reset_deployments() -> void:
 		op.position = Vector2(-1000, -1000)
 	selected = operators[0]
 	_refresh_selection_visual()
-	_update_hud()
+
+
+func _capture_plan() -> void:
+	last_plan.clear()
+	for op in operators:
+		if op.visible and op.slot != null:
+			last_plan.append({
+				"op_id": op.op_id,
+				"slot_id": op.slot.slot_id,
+				"facing": op.facing_deg,
+			})
+	last_tripwire_positions.clear()
+	for t in tripwires:
+		if is_instance_valid(t):
+			last_tripwire_positions.append(t.position)
+
+
+func _restore_last_plan() -> void:
+	_clear_deployments()
+	_clear_tripwires()
+	for entry in last_plan:
+		var op := _op_by_id(int(entry["op_id"]))
+		var slot := _slot_by_id(int(entry["slot_id"]))
+		if op == null or slot == null:
+			continue
+		selected = op
+		_deploy_selected_to(slot, false)
+		op.set_facing(float(entry["facing"]))
+		op.reset_loadout()
+		op.set_facing(float(entry["facing"]))
+	for pos in last_tripwire_positions:
+		var tw := _make_tripwire(pos)
+		entities.add_child(tw)
+		tripwires.append(tw)
+	if operators.size() > 0:
+		selected = operators[0]
+		_refresh_selection_visual()
+	status_label.text = "已恢复上轮计划（满血满弹）"
+
+
+func _op_by_id(id: int) -> OperatorUnit:
+	for op in operators:
+		if op.op_id == id:
+			return op
+	return null
+
+
+func _slot_by_id(id: int) -> CoverSlot:
+	for s in cover_slots:
+		if s.slot_id == id:
+			return s
+	return null
 
 
 func _clear_enemies() -> void:
@@ -256,19 +336,26 @@ func _clear_loot() -> void:
 			n.queue_free()
 
 
+func _clear_return_fx() -> void:
+	for fx in return_fire_fx:
+		if is_instance_valid(fx):
+			fx.queue_free()
+	return_fire_fx.clear()
+
+
 func _toggle_tool() -> void:
 	if phase != Phase.SETUP:
 		return
 	tool = Tool.TRIPWIRE if tool == Tool.DEPLOY else Tool.DEPLOY
-	tool_button.text = "工具: 部署队员" if tool == Tool.DEPLOY else "工具: 拌索(后勤)"
-	status_label.text = "部署到掩体位，A/D 调整射界" if tool == Tool.DEPLOY else "在固定路线上放拌索（最多1）"
+	tool_button.text = "工具: 部署队员" if tool == Tool.DEPLOY else "工具: 绊索(后勤)"
+	status_label.text = "部署到掩体位，A/D 调整射界" if tool == Tool.DEPLOY else "在路线线段附近放绊索（最多1）"
 	_update_hud()
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("reset_run"):
 		loop_index = 1
-		_start_setup(false)
+		_start_setup(false, false)
 		get_viewport().set_input_as_handled()
 		return
 
@@ -301,7 +388,6 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 			if selected and selected.visible and not selected.locked:
-				# Face toward cursor
 				var v := get_global_mouse_position() - selected.global_position
 				selected.set_facing(rad_to_deg(atan2(v.y, v.x)))
 			get_viewport().set_input_as_handled()
@@ -315,7 +401,7 @@ func _select_op(idx: int) -> void:
 	tool = Tool.DEPLOY
 	tool_button.text = "工具: 部署队员"
 	_refresh_selection_visual()
-	status_label.text = "已选择 %s — 点击掩体位部署，右键朝向光标" % selected.display_name
+	status_label.text = "已选择 %s（能力相同）— 点掩体部署，右键朝向" % selected.display_name
 	_update_hud()
 
 
@@ -329,12 +415,10 @@ func _handle_setup_click(world_pos: Vector2) -> void:
 	if tool == Tool.TRIPWIRE:
 		_try_place_tripwire(world_pos)
 		return
-	# Prefer clicking a cover slot
 	var slot := _nearest_slot(world_pos, 28.0)
 	if slot:
-		_deploy_selected_to(slot)
+		_deploy_selected_to(slot, true)
 		return
-	# Click existing operator to select
 	for op in operators:
 		if op.visible and op.global_position.distance_to(world_pos) <= 20.0:
 			selected = op
@@ -355,15 +439,13 @@ func _nearest_slot(world_pos: Vector2, max_dist: float) -> CoverSlot:
 	return best
 
 
-func _deploy_selected_to(slot: CoverSlot) -> void:
+func _deploy_selected_to(slot: CoverSlot, announce: bool = true) -> void:
 	if selected == null:
 		return
-	# Free previous
 	if selected.slot:
 		selected.slot.occupied_by = null
 		selected.slot.set_highlight(false)
 	if slot.occupied_by and slot.occupied_by != selected:
-		# Swap: send occupant back to roster
 		var other: OperatorUnit = slot.occupied_by
 		other.slot = null
 		other.visible = false
@@ -373,34 +455,54 @@ func _deploy_selected_to(slot: CoverSlot) -> void:
 	selected.slot = slot
 	selected.visible = true
 	selected.global_position = slot.global_position
+	var face := float(slot.get_meta("default_face"))
 	selected.reset_loadout()
-	selected.set_facing(float(slot.get_meta("default_face")))
+	selected.set_facing(face)
 	_refresh_selection_visual()
-	status_label.text = "%s 已进入「%s」— 弹药 %d | A/D 或右键调整射界" % [selected.display_name, slot.label_text, selected.ammo]
+	if announce:
+		status_label.text = "%s →「%s」弹%d 掩体减伤60%%（各向相同）" % [selected.display_name, slot.label_text, selected.ammo]
 	_update_hud()
 
 
 func _try_place_tripwire(world_pos: Vector2) -> void:
 	if tripwires.size() >= MAX_TRIPWIRES:
-		status_label.text = "拌索已用完（后勤限额 1）"
+		status_label.text = "绊索已用完（后勤限额 1）"
 		return
-	# Must be near a fixed route
-	if not _near_any_route(world_pos, 28.0):
-		status_label.text = "拌索只能布在已知路线附近"
+	if not _near_any_route_segment(world_pos, TRIPWIRE_ROUTE_DIST):
+		status_label.text = "绊索只能布在路线线段附近"
 		return
 	var tw := _make_tripwire(world_pos)
 	entities.add_child(tw)
 	tripwires.append(tw)
-	status_label.text = "拌索已埋伏"
+	status_label.text = "绊索已埋伏"
 	_update_hud()
 
 
-func _near_any_route(pos: Vector2, max_dist: float) -> bool:
-	for route in [_route_main(), _route_flank()]:
-		for p in route:
-			if pos.distance_to(p) <= max_dist:
-				return true
+func _near_any_route_segment(pos: Vector2, max_dist: float) -> bool:
+	for route in _all_routes():
+		if _dist_to_polyline(pos, route) <= max_dist:
+			return true
 	return false
+
+
+func _dist_to_polyline(pos: Vector2, points: PackedVector2Array) -> float:
+	if points.is_empty():
+		return INF
+	if points.size() == 1:
+		return pos.distance_to(points[0])
+	var best := INF
+	for i in range(points.size() - 1):
+		best = minf(best, _dist_point_to_segment(pos, points[i], points[i + 1]))
+	return best
+
+
+func _dist_point_to_segment(p: Vector2, a: Vector2, b: Vector2) -> float:
+	var ab := b - a
+	var len_sq := ab.length_squared()
+	if len_sq <= 0.0001:
+		return p.distance_to(a)
+	var t := clampf((p - a).dot(ab) / len_sq, 0.0, 1.0)
+	return p.distance_to(a + ab * t)
 
 
 func _make_tripwire(pos: Vector2) -> Tripwire:
@@ -430,6 +532,9 @@ func _on_alarm_pressed() -> void:
 	if _deployed_count() < 1:
 		status_label.text = "至少部署一名队员到掩体"
 		return
+	_capture_plan()
+	run_id += 1
+	var this_run := run_id
 	phase = Phase.WATCHING
 	alarm_button.disabled = true
 	clear_button.disabled = true
@@ -437,38 +542,42 @@ func _on_alarm_pressed() -> void:
 	for op in operators:
 		if op.visible:
 			op.lock_plan()
-	_spawn_enemies()
-	status_label.text = "方案锁死 — 敌军会还击，注意弹药。跑掉或全灭均失败。"
+	_spawn_enemies(this_run)
+	status_label.text = "方案锁死 — 还击需 LOS/射程。跑掉或全灭均失败。"
 	_update_hud()
 
 
-func _spawn_enemies() -> void:
+func _spawn_enemies(this_run: int) -> void:
 	_clear_enemies()
 	_clear_loot()
+	# loot_ammo trial 0–2: only some carry (blueprint §2)
 	var specs := [
-		{"id": 1, "route": _route_main(), "delay": 0.0},
-		{"id": 2, "route": _route_main(), "delay": 0.8},
-		{"id": 3, "route": _route_flank(), "delay": 0.4},
+		{"id": 1, "route": _route_main(), "delay": 0.0, "loot": 2},
+		{"id": 2, "route": _route_main(), "delay": 0.8, "loot": 0},
+		{"id": 3, "route": _route_flank(), "delay": 0.4, "loot": 2},
 	]
 	for spec in specs:
-		var e := _make_enemy(spec["id"], spec["route"])
+		var e := _make_enemy(int(spec["id"]))
 		entities.add_child(e)
-		e.setup(spec["id"], spec["route"])
+		e.setup(int(spec["id"]), spec["route"], grid, int(spec["loot"]))
+		e.return_fired.connect(_on_return_fired)
 		enemies.append(e)
-		_activate_later(e, float(spec["delay"]))
+		_activate_later(e, float(spec["delay"]), this_run)
 
 
-func _activate_later(enemy: EnemyRunner, delay: float) -> void:
+func _activate_later(enemy: EnemyRunner, delay: float, this_run: int) -> void:
 	if delay <= 0.0:
 		enemy.activate()
 		return
 	get_tree().create_timer(delay).timeout.connect(func() -> void:
-		if is_instance_valid(enemy) and phase == Phase.WATCHING:
+		if run_id != this_run or phase != Phase.WATCHING:
+			return
+		if is_instance_valid(enemy):
 			enemy.activate()
 	)
 
 
-func _make_enemy(id: int, route: PackedVector2Array) -> EnemyRunner:
+func _make_enemy(id: int) -> EnemyRunner:
 	var e := EnemyRunner.new()
 	var body := Polygon2D.new()
 	body.name = "Body"
@@ -490,6 +599,8 @@ func _make_enemy(id: int, route: PackedVector2Array) -> EnemyRunner:
 
 
 func _spawn_loot_at(pos: Vector2, amount: int) -> void:
+	if amount <= 0:
+		return
 	var loot := LootPickup.new()
 	var visual := Polygon2D.new()
 	visual.name = "Visual"
@@ -510,11 +621,31 @@ func _spawn_loot_at(pos: Vector2, amount: int) -> void:
 	loot_piles.append(loot)
 
 
+func _on_return_fired(from: EnemyRunner, to: OperatorUnit) -> void:
+	var line := Line2D.new()
+	line.width = 2.0
+	line.default_color = Color(1.0, 0.55, 0.15, 0.85)
+	line.points = PackedVector2Array([from.global_position, to.global_position])
+	entities.add_child(line)
+	return_fire_fx.append(line)
+	var tw := create_tween()
+	tw.tween_property(line, "modulate:a", 0.0, 0.2)
+	tw.tween_callback(func() -> void:
+		if is_instance_valid(line):
+			line.queue_free()
+	)
+
+
 func _process(delta: float) -> void:
 	if phase != Phase.WATCHING:
 		return
 
-	# Each operator fires at the nearest valid target in cone (ammo limited)
+	# 1) Independent cooldowns
+	for op in operators:
+		if op.visible and op.alive:
+			op.tick_cooldown(delta)
+
+	# 2) Operator fire — nearest legal target, stable ID on tie
 	for op in operators:
 		if not op.visible or not op.locked or not op.alive:
 			continue
@@ -523,29 +654,58 @@ func _process(delta: float) -> void:
 		for enemy in enemies:
 			if not enemy.alive or not enemy.active:
 				continue
-			if op.can_engage(enemy.global_position, grid):
-				var d := op.global_position.distance_to(enemy.global_position)
-				if d < best_d:
-					best_d = d
-					best = enemy
+			if not op.can_engage(enemy.global_position, grid):
+				continue
+			var d := op.global_position.distance_to(enemy.global_position)
+			if d < best_d - 0.01 or (absf(d - best_d) <= 0.01 and best != null and enemy.label_id < best.label_id):
+				best_d = d
+				best = enemy
+			elif best == null:
+				best_d = d
+				best = enemy
 		if best:
-			op.try_fire(delta, best, grid)
+			op.try_fire(best, grid)
 
-	# Auto-scavenge nearby corpse ammo (watch-only logistics)
+	# 3) Enemy move + return fire (LOS gated inside sim_step)
+	for enemy in enemies:
+		if enemy.alive and enemy.active:
+			enemy.sim_step(delta)
+
+	# 4) Loot: nearest with LOS, then stable op_id; respect ammo cap
 	for loot in loot_piles.duplicate():
 		if not is_instance_valid(loot) or loot.collected:
 			continue
-		for op in operators:
-			if op.visible and op.alive and op.try_loot(loot):
-				status_label.text = "%s 搜刮尸体 +弹药" % op.display_name
-				break
-	# Prune freed loot refs
+		_try_assign_loot(loot)
+
 	loot_piles = loot_piles.filter(func(l: LootPickup) -> bool: return is_instance_valid(l) and not l.collected)
 
 	hud_tick += delta
 	if hud_tick >= 0.35:
 		hud_tick = 0.0
 		_update_hud()
+
+
+func _try_assign_loot(loot: LootPickup) -> void:
+	var candidates: Array[OperatorUnit] = []
+	for op in operators:
+		if op.visible and op.can_reach_loot(loot.global_position, grid):
+			candidates.append(op)
+	if candidates.is_empty():
+		return
+	candidates.sort_custom(func(a: OperatorUnit, b: OperatorUnit) -> bool:
+		var da := a.global_position.distance_to(loot.global_position)
+		var db := b.global_position.distance_to(loot.global_position)
+		if absf(da - db) > 0.01:
+			return da < db
+		return a.op_id < b.op_id
+	)
+	for op in candidates:
+		var amount := loot.ammo_amount
+		var gained := op.receive_ammo(amount)
+		if gained > 0:
+			loot.collect()
+			status_label.text = "%s 搜刮 +%d弹" % [op.display_name, gained]
+			return
 
 
 func _on_enemy_escaped(_enemy: EnemyRunner, path: PackedVector2Array) -> void:
@@ -558,7 +718,7 @@ func _on_enemy_escaped(_enemy: EnemyRunner, path: PackedVector2Array) -> void:
 	intel_paths.append(path)
 	_redraw_ghosts()
 	result_panel.visible = true
-	result_label.text = "有人活着走出封锁区。\n第 %d 世失败。\n漏网路线已写入记忆。\n弹药会在穿梭后补满，情报留下。" % loop_index
+	result_label.text = "有人活着走出封锁区。\n第 %d 世失败（逃逸）。\n漏网路线已写入记忆。\n穿梭后恢复上轮计划，满血满弹。" % loop_index
 	continue_button.text = "带着情报穿梭回去"
 	status_label.text = "逃逸 — 穿梭"
 	_update_hud()
@@ -574,7 +734,7 @@ func _on_enemy_died(enemy: EnemyRunner) -> void:
 func _on_operator_died(op: OperatorUnit) -> void:
 	if phase != Phase.WATCHING:
 		return
-	status_label.text = "%s 阵亡 — 敌军在还击" % op.display_name
+	status_label.text = "%s 阵亡 — 敌军还击（需 LOS）" % op.display_name
 	if _living_ops() == 0:
 		_fail_squad_wipe()
 
@@ -594,8 +754,12 @@ func _fail_squad_wipe() -> void:
 	phase = Phase.FAILED
 	for e in enemies:
 		e.active = false
+		# Blueprint: wipe keeps observed trajectories up to cutoff
+		if e.recorded.size() > 1:
+			intel_paths.append(e.recorded.duplicate())
+	_redraw_ghosts()
 	result_panel.visible = true
-	result_label.text = "小队覆灭。\n第 %d 世失败。\n敌军还击撕开了埋伏。\n穿梭回去：少暴露射界，或先集火再搜刮弹药。" % loop_index
+	result_label.text = "小队覆灭。\n第 %d 世失败（全灭）。\n已观测轨迹写入记忆。\n穿梭后恢复上轮计划，满血满弹。" % loop_index
 	continue_button.text = "带着情报穿梭回去"
 	status_label.text = "全灭 — 穿梭"
 	_update_hud()
@@ -610,7 +774,7 @@ func _check_win() -> void:
 		return
 	phase = Phase.WON
 	result_panel.visible = true
-	result_label.text = "零逃逸。\n埋伏成立。\n用了 %d 世；弹药与还击都算进计划里。" % loop_index
+	result_label.text = "零逃逸。\n埋伏成立。\n用了 %d 世。" % loop_index
 	continue_button.text = "再玩一局（清空记忆）"
 	status_label.text = "计划奏效"
 	_update_hud()
@@ -619,19 +783,22 @@ func _check_win() -> void:
 func _on_continue_pressed() -> void:
 	if phase == Phase.FAILED:
 		loop_index += 1
-		_start_setup(true)
+		_start_setup(true, true) # keep intel, restore plan
 	elif phase == Phase.WON:
-		_start_setup(false)
+		_start_setup(false, false)
 
 
 func _redraw_ghosts() -> void:
 	for c in ghosts.get_children():
 		c.queue_free()
 	var gi := 0
-	for path in intel_paths:
+	# Default: show most recent path most clearly; keep a few
+	var start_i := maxi(intel_paths.size() - 3, 0)
+	for i in range(start_i, intel_paths.size()):
+		var path: PackedVector2Array = intel_paths[i]
 		var line := Line2D.new()
 		line.width = 3.0
-		line.default_color = Color(0.35, 0.75, 1.0, 0.5 - minf(0.15, float(gi) * 0.04))
+		line.default_color = Color(0.35, 0.75, 1.0, 0.55 - minf(0.15, float(gi) * 0.05))
 		line.points = path
 		ghosts.add_child(line)
 		gi += 1
@@ -644,7 +811,7 @@ func _ammo_summary() -> String:
 			if not op.alive:
 				parts.append("%s:亡" % op.display_name)
 			else:
-				parts.append("%s:%d弹" % [op.display_name.substr(0, 2), op.ammo])
+				parts.append("%s:%d弹" % [op.display_name, op.ammo])
 	return "  ".join(parts)
 
 
@@ -653,10 +820,10 @@ func _update_hud() -> void:
 	intel_label.text = "漏网记忆：%d   |   %s" % [intel_paths.size(), _ammo_summary()]
 	var dep := _deployed_count()
 	if phase == Phase.SETUP:
-		help_label.text = "准备：点掩体部署（%d/3）| 1/2/3选人 | A/D转射界 | 右键朝向\n每人出发仅 %d 发；被打会还击；尸体可搜弹药。空格拉警报。跑掉/全灭=穿梭。R重置。" % [dep, OperatorUnit.START_AMMO]
+		help_label.text = "准备：点掩体（%d/3）| 1/2/3选人 | A/D转射界 | 右键朝向 | Tab绊索\n三人能力相同。掩体减伤60%%（各向）。穿梭恢复上轮计划。「收回部署」清空布置；R清空记忆。" % dep
 	elif phase == Phase.WATCHING:
-		help_label.text = "锁死看戏：耗弹、还击、搜尸自动发生。射界外漏人、或小队打光都会失败。"
+		help_label.text = "锁死看戏：冷却独立计时；还击需射程+LOS；搜尸需 LOS，最近者优先。"
 	elif phase == Phase.FAILED:
-		help_label.text = "根据幽灵路线改掩体/朝向；别让一人扛整波还击。"
+		help_label.text = "失败原因：%s。改朝向/掩体后再警报。" % fail_reason
 	elif phase == Phase.WON:
-		help_label.text = "战前准备 + 弹药节奏决定战斗。"
+		help_label.text = "战前准备决定战斗。"

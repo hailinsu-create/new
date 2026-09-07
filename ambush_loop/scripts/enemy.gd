@@ -3,13 +3,15 @@ extends Node2D
 
 signal escaped(enemy: EnemyRunner, path: PackedVector2Array)
 signal died(enemy: EnemyRunner)
+signal return_fired(from: EnemyRunner, to: OperatorUnit)
 
 const SPEED := 70.0
 const ALERT_SPEED := 32.0
 const RECORD_DIST := 10.0
 const MAX_HP := 100.0
-const RETURN_FIRE_DPS := 22.0
-const LOOT_AMMO := 5
+const RETURN_RANGE := 200.0
+const RETURN_DAMAGE := 14.0
+const RETURN_INTERVAL := 0.28
 
 var route: PackedVector2Array = PackedVector2Array()
 var route_index: int = 0
@@ -20,21 +22,28 @@ var hp: float = MAX_HP
 var label_id: int = 0
 var recorded: PackedVector2Array = PackedVector2Array()
 var focus_target: OperatorUnit = null
-var loot_ammo: int = LOOT_AMMO
+var loot_ammo: int = 2
+var grid: AmbushGrid = null
+var return_cd: float = 0.0
+var returning_fire: bool = false
 
 @onready var body: Polygon2D = $Body
 @onready var tag: Label = $Tag
 @onready var hp_bar: Polygon2D = $HpBar
 
 
-func setup(id: int, p_route: PackedVector2Array) -> void:
+func setup(id: int, p_route: PackedVector2Array, p_grid: AmbushGrid = null, p_loot: int = 2) -> void:
 	label_id = id
 	route = p_route.duplicate()
+	grid = p_grid
+	loot_ammo = p_loot
 	alive = true
 	active = false
 	alerted = false
+	returning_fire = false
 	hp = MAX_HP
 	focus_target = null
+	return_cd = 0.0
 	add_to_group("enemies")
 	if tag:
 		tag.text = "敌%d" % id
@@ -50,17 +59,16 @@ func activate() -> void:
 	route_index = 1 if route.size() > 1 else 0
 
 
-func _process(delta: float) -> void:
+func sim_step(delta: float) -> void:
 	if not active or not alive:
 		return
 
-	# Return fire while alerted and still seeing the shooter
-	if alerted and focus_target != null and is_instance_valid(focus_target) and focus_target.alive:
-		focus_target.take_damage(RETURN_FIRE_DPS * delta)
-		if body:
-			body.color = Color(0.95, 0.45, 0.15) # angry / returning fire
-	elif body:
-		body.color = Color(0.75, 0.22, 0.2)
+	return_cd = maxf(return_cd - delta, 0.0)
+	returning_fire = false
+	_try_return_fire()
+
+	if body:
+		body.color = Color(0.95, 0.45, 0.15) if returning_fire else Color(0.75, 0.22, 0.2)
 
 	if route_index >= route.size():
 		mark_escaped()
@@ -73,6 +81,26 @@ func _process(delta: float) -> void:
 		route_index += 1
 	if recorded.is_empty() or global_position.distance_to(recorded[recorded.size() - 1]) >= RECORD_DIST:
 		recorded.append(global_position)
+
+
+func _try_return_fire() -> void:
+	if not alerted:
+		return
+	if focus_target == null or not is_instance_valid(focus_target) or not focus_target.alive:
+		focus_target = null
+		return
+	var dist := global_position.distance_to(focus_target.global_position)
+	if dist > RETURN_RANGE:
+		return
+	if grid != null and not grid.has_los(global_position, focus_target.global_position):
+		return
+	if return_cd > 0.0:
+		returning_fire = true # still aiming / in contact
+		return
+	return_cd = RETURN_INTERVAL
+	returning_fire = true
+	focus_target.take_damage(RETURN_DAMAGE)
+	return_fired.emit(self, focus_target)
 
 
 func apply_fire(amount: float, from: OperatorUnit = null) -> void:
@@ -95,6 +123,7 @@ func kill() -> void:
 	alive = false
 	active = false
 	alerted = false
+	returning_fire = false
 	if body:
 		body.color = Color(0.35, 0.35, 0.38, 0.7)
 	if tag:
@@ -107,6 +136,7 @@ func mark_escaped() -> void:
 		return
 	alive = false
 	active = false
+	returning_fire = false
 	recorded.append(global_position)
 	escaped.emit(self, recorded.duplicate())
 
