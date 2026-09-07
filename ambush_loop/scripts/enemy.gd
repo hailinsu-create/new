@@ -65,10 +65,6 @@ func sim_step(delta: float) -> void:
 
 	return_cd = maxf(return_cd - delta, 0.0)
 	returning_fire = false
-	_try_return_fire()
-
-	if body:
-		body.color = Color(0.95, 0.45, 0.15) if returning_fire else Color(0.75, 0.22, 0.2)
 
 	if route_index >= route.size():
 		mark_escaped()
@@ -79,8 +75,23 @@ func sim_step(delta: float) -> void:
 	global_position = global_position.move_toward(target, speed * delta)
 	if global_position.distance_to(target) < 2.0:
 		route_index += 1
+		# Escape commits on the same tick the last waypoint is reached.
+		if route_index >= route.size():
+			if recorded.is_empty() or global_position.distance_to(recorded[recorded.size() - 1]) >= RECORD_DIST:
+				recorded.append(global_position)
+			mark_escaped()
+			return
 	if recorded.is_empty() or global_position.distance_to(recorded[recorded.size() - 1]) >= RECORD_DIST:
 		recorded.append(global_position)
+
+
+func resolve_return_fire() -> void:
+	if not active or not alive:
+		return
+	returning_fire = false
+	_try_return_fire()
+	if body:
+		body.color = Color(0.95, 0.45, 0.15) if returning_fire else Color(0.75, 0.22, 0.2)
 
 
 func _try_return_fire() -> void:
@@ -99,8 +110,9 @@ func _try_return_fire() -> void:
 		return
 	return_cd = RETURN_INTERVAL
 	returning_fire = true
-	focus_target.take_damage(RETURN_DAMAGE, global_position)
+	# Log/FX signal before damage so terminal UI can include the attack.
 	return_fired.emit(self, focus_target)
+	focus_target.take_damage(RETURN_DAMAGE, global_position)
 
 
 func apply_fire(amount: float, from: OperatorUnit = null) -> void:

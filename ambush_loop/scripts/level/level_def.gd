@@ -38,18 +38,20 @@ static func make_yard() -> LevelDef:
 	l.teaching = "用掩体与射界挡住主路和侧翼。"
 	l.tutorial = "点绿色掩体部署队员，A/D 或右键调射界，空格拉警报。跑掉一人或小队全灭都会穿梭；穿梭会恢复上轮计划。"
 	l.escape_cell = Vector2i(31, 19)
+	# All covers on open cells (yard crates leave spine / lanes free).
 	l.cover_defs = [
 		{"cell": Vector2i(7, 11), "name": "西侧掩体", "face": 0.0, "protect": 180.0},
 		{"cell": Vector2i(15, 7), "name": "北廊掩体", "face": 90.0, "protect": 270.0},
-		{"cell": Vector2i(24, 8), "name": "东箱掩体", "face": 180.0, "protect": 0.0},
+		{"cell": Vector2i(24, 7), "name": "东箱掩体", "face": 180.0, "protect": 0.0},
 		{"cell": Vector2i(25, 13), "name": "中庭掩体", "face": 90.0, "protect": 270.0},
 		{"cell": Vector2i(12, 15), "name": "南廊掩体", "face": 0.0, "protect": 180.0},
 		{"cell": Vector2i(28, 16), "name": "出口掩体", "face": 180.0, "protect": 0.0},
 	]
+	# Waypoints stay off crates; south bend goes around (16-20,14-16).
 	l.route_cells = {
 		"main": [
 			Vector2i(13, 3), Vector2i(13, 5), Vector2i(13, 7), Vector2i(13, 11),
-			Vector2i(13, 15), Vector2i(17, 17), Vector2i(24, 17), Vector2i(31, 17), Vector2i(31, 19)
+			Vector2i(13, 15), Vector2i(13, 17), Vector2i(24, 17), Vector2i(31, 17), Vector2i(31, 19)
 		],
 		"flank": [
 			Vector2i(13, 3), Vector2i(13, 5), Vector2i(16, 6), Vector2i(23, 6),
@@ -73,22 +75,23 @@ static func make_warehouse() -> LevelDef:
 	l.teaching = "入伏再打与稀缺补给：过早开火会空弹。"
 	l.tutorial = "本关可给一名队员携带「备用弹包」（首次空弹自动补一次）。试试「入伏再打」，等敌人进入黄色伏击区再开火。"
 	l.escape_cell = Vector2i(31, 19)
+	# Covers sit only in walkable corridor cells for warehouse shelves.
 	l.cover_defs = [
-		{"cell": Vector2i(10, 8), "name": "仓门掩体", "face": 90.0, "protect": 270.0},
+		{"cell": Vector2i(11, 8), "name": "仓门掩体", "face": 90.0, "protect": 270.0},
 		{"cell": Vector2i(15, 12), "name": "货架掩体", "face": 0.0, "protect": 180.0},
 		{"cell": Vector2i(22, 7), "name": "侧廊掩体", "face": 180.0, "protect": 0.0},
-		{"cell": Vector2i(27, 14), "name": "装卸位", "face": 180.0, "protect": 0.0},
+		{"cell": Vector2i(28, 14), "name": "装卸位", "face": 180.0, "protect": 0.0},
 		{"cell": Vector2i(18, 16), "name": "南口掩体", "face": 0.0, "protect": 180.0},
 		{"cell": Vector2i(29, 17), "name": "闸口掩体", "face": 180.0, "protect": 0.0},
 	]
 	l.route_cells = {
 		"main": [
 			Vector2i(13, 3), Vector2i(13, 6), Vector2i(13, 10), Vector2i(13, 14),
-			Vector2i(18, 17), Vector2i(24, 17), Vector2i(31, 17), Vector2i(31, 19)
+			Vector2i(13, 17), Vector2i(24, 17), Vector2i(31, 17), Vector2i(31, 19)
 		],
 		"flank": [
-			Vector2i(13, 3), Vector2i(18, 5), Vector2i(24, 5), Vector2i(32, 5),
-			Vector2i(32, 10), Vector2i(32, 15), Vector2i(31, 17), Vector2i(31, 19)
+			Vector2i(13, 3), Vector2i(13, 5), Vector2i(18, 5), Vector2i(24, 5),
+			Vector2i(32, 5), Vector2i(32, 10), Vector2i(32, 15), Vector2i(31, 17), Vector2i(31, 19)
 		],
 	}
 	l.spawn_schedule = [
@@ -110,26 +113,26 @@ static func make_pump() -> LevelDef:
 	l.tutorial = "准备阶段可选择「锁门」或保持畅通。锁门会封住东廊，敌人改走备用接近；注意侧背暴露。"
 	l.escape_cell = Vector2i(31, 19)
 	l.cover_defs = [
-		{"cell": Vector2i(9, 9), "name": "泵房西", "face": 0.0, "protect": 180.0},
+		{"cell": Vector2i(10, 8), "name": "泵房西", "face": 0.0, "protect": 180.0},
 		{"cell": Vector2i(14, 7), "name": "阀廊", "face": 90.0, "protect": 270.0},
-		{"cell": Vector2i(23, 9), "name": "东廊掩体", "face": 180.0, "protect": 0.0},
-		{"cell": Vector2i(20, 14), "name": "管架", "face": 90.0, "protect": 270.0},
+		{"cell": Vector2i(23, 8), "name": "东廊掩体", "face": 180.0, "protect": 0.0},
+		{"cell": Vector2i(21, 14), "name": "管架", "face": 90.0, "protect": 270.0},
 		{"cell": Vector2i(27, 12), "name": "侧背点", "face": 270.0, "protect": 90.0},
 		{"cell": Vector2i(29, 17), "name": "出水口", "face": 180.0, "protect": 0.0},
 	]
 	l.route_cells = {
 		"main": [
-			Vector2i(13, 3), Vector2i(13, 6), Vector2i(13, 11), Vector2i(16, 15),
-			Vector2i(22, 17), Vector2i(31, 17), Vector2i(31, 19)
+			Vector2i(13, 3), Vector2i(13, 6), Vector2i(13, 11), Vector2i(13, 15),
+			Vector2i(16, 17), Vector2i(22, 17), Vector2i(31, 17), Vector2i(31, 19)
 		],
 		"flank": [
 			Vector2i(13, 3), Vector2i(13, 5), Vector2i(20, 6), Vector2i(28, 6),
 			Vector2i(32, 6), Vector2i(32, 12), Vector2i(31, 17), Vector2i(31, 19)
 		],
 	}
-	# When door locked, flank uses this alternate (approaches from south-east earlier)
+	# Locked door: west-then-south approach, never through machinery blocks.
 	l.alternate_route_cells = [
-		Vector2i(13, 3), Vector2i(13, 5), Vector2i(10, 8), Vector2i(10, 14),
+		Vector2i(13, 3), Vector2i(13, 5), Vector2i(11, 8), Vector2i(11, 14),
 		Vector2i(16, 17), Vector2i(24, 17), Vector2i(31, 17), Vector2i(31, 19)
 	]
 	l.door_cell = Vector2i(28, 6)

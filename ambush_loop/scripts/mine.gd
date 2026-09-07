@@ -2,6 +2,7 @@ class_name Tripwire
 extends Node2D
 
 ## Secondary logistics tool — not the main verb. One shot.
+## Trigger checks run only from Main._sim_tick (fixed step), never from _process.
 
 signal triggered
 
@@ -13,10 +14,10 @@ var spent: bool = false
 @onready var visual: Polygon2D = $Visual
 
 
-func _process(_delta: float) -> void:
+func sim_check(active_enemies: Array) -> void:
 	if not armed or spent:
 		return
-	for node in get_tree().get_nodes_in_group("enemies"):
+	for node in active_enemies:
 		if node is EnemyRunner and node.alive and node.active:
 			if global_position.distance_to(node.global_position) <= RADIUS:
 				_trip(node)

@@ -42,6 +42,7 @@ var hud_tick: float = 0.0
 var ambush_zone_poly: Polygon2D = null
 var door_marker: Node2D = null
 var all_spawns_done: bool = false
+var pending_result: String = "" # "" | "fail" | "win" — build panel after tick events/snapshot
 
 @onready var map_draw: Node2D = $World/MapDraw
 @onready var entities: Node2D = $World/Entities
@@ -195,6 +196,23 @@ func _load_level(level_id: String, keep_intel: bool, restore_plan: bool) -> void
 	var idx := LEVEL_ORDER.find(level.level_id)
 	if idx >= 0:
 		level_index = idx
+	var effective_door_locked := door_locked if restore_plan else false
+	if not keep_intel:
+		effective_door_locked = false
+	grid.rebuild(level.level_id)
+	if level.door_cell.x >= 0:
+		grid.set_door_state(level.door_cell, effective_door_locked)
+	else:
+		grid.door_cell = Vector2i(-1, -1)
+		grid.door_locked = false
+	var geo_errs := grid.validate_level_geometry(
+		level.cover_defs,
+		level.route_cells,
+		level.alternate_route_cells,
+		level.door_blocks_route if (level.door_cell.x >= 0 and effective_door_locked) else ""
+	)
+	for e in geo_errs:
+		push_error("LEVEL_GEO %s: %s" % [level.level_id, e])
 	escape_world = grid.cell_to_world_center(level.escape_cell)
 	escape_marker.position = escape_world
 	map_draw.set("grid", grid)
@@ -416,6 +434,7 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 	phase = Phase.SETUP
 	tool = Tool.DEPLOY
 	fail_reason = ""
+	pending_result = ""
 	run_id += 1
 	sim.reset()
 	battle_log.clear()
@@ -435,6 +454,8 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 	else:
 		_clear_deployments()
 		door_locked = last_plan.door_locked if restore_plan else false
+	if level != null and level.door_cell.x >= 0:
+		grid.set_door_state(level.door_cell, door_locked)
 	_redraw_ghosts()
 	_refresh_door_visual()
 	alarm_button.disabled = false
@@ -833,6 +854,8 @@ func _on_door_pressed() -> void:
 	if phase != Phase.SETUP or level == null or level.door_cell.x < 0:
 		return
 	door_locked = not door_locked
+	grid.set_door_state(level.door_cell, door_locked)
+	map_draw.queue_redraw()
 	_refresh_door_visual()
 	status_label.text = "门已锁闭 — 侧翼改走备用接近" if door_locked else "门保持畅通"
 	_update_hud()
@@ -972,7 +995,9 @@ func _spawn_loot_at(pos: Vector2, amount: int) -> void:
 
 
 func _on_return_fired(from: EnemyRunner, to: OperatorUnit) -> void:
-	battle_log.add_event(sim.tick, "return_fire", from.label_id, to.op_id, from.global_position)
+	# Called before damage is applied so terminal summaries include the shot.
+	if phase == Phase.WATCHING or pending_result != "":
+		battle_log.add_event(sim.tick, "return_fire", from.label_id, to.op_id, from.global_position)
 	var line := Line2D.new()
 	line.width = 2.0
 	line.default_color = Color(1.0, 0.55, 0.15, 0.85)
@@ -1001,6 +1026,7 @@ func _process(delta: float) -> void:
 
 func _sim_tick() -> void:
 	var this_run := run_id
+	# Blueprint §5: spawn/env → move → escape → fire/return → loot → win → snapshot
 	# 1) Spawn schedule by sim time
 	var tsec := sim.time_sec()
 	all_spawns_done = true
@@ -1023,53 +1049,88 @@ func _sim_tick() -> void:
 	# 3) Ambush zone arming
 	_tick_ambush_zone()
 
-	# 4) Operator fire — nearest legal, stable ID on tie
-	for op in operators:
-		if not op.visible or not op.locked or not op.alive:
-			continue
-		var best: EnemyRunner = null
-		var best_d := INF
-		for enemy in enemies:
-			if not enemy.alive or not enemy.active:
-				continue
-			if not op.can_engage(enemy.global_position, grid):
-				continue
-			var d := op.global_position.distance_to(enemy.global_position)
-			if d < best_d - 0.01 or (absf(d - best_d) <= 0.01 and best != null and enemy.label_id < best.label_id):
-				best_d = d
-				best = enemy
-			elif best == null:
-				best_d = d
-				best = enemy
-		if best:
-			if op.try_fire(best, grid):
-				battle_log.add_event(sim.tick, "fire", op.op_id, best.label_id, op.global_position)
-				if op.ammo <= 0:
-					battle_log.add_event(sim.tick, "empty", op.op_id)
-
-	# 5) Enemy move + return fire
+	# 4) Enemy move — escape commits in the same step the last waypoint is reached
 	for enemy in enemies:
 		if enemy.alive and enemy.active:
 			enemy.sim_step(SimClock.TICK_DT)
 		if phase != Phase.WATCHING:
-			sim.advance()
+			_finish_sim_tick()
 			return
 
-	# 6) Loot: nearest + LOS + stable op_id
-	for loot in loot_piles.duplicate():
-		if not is_instance_valid(loot) or loot.collected:
-			continue
-		_try_assign_loot(loot)
-	loot_piles = loot_piles.filter(func(l: LootPickup) -> bool: return is_instance_valid(l) and not l.collected)
+	# 5) Tripwire checks (fixed-step only; never from Tripwire._process)
+	if phase == Phase.WATCHING:
+		for tw in tripwires:
+			if is_instance_valid(tw):
+				tw.sim_check(enemies)
+			if phase != Phase.WATCHING:
+				_finish_sim_tick()
+				return
 
-	# 7) Snapshots
-	if sim.tick % SNAPSHOT_EVERY == 0:
-		battle_log.add_snapshot(sim.tick, _snapshot_data())
+	# 6) Operator fire — log confirmed shot before damage so terminal includes it
+	if phase == Phase.WATCHING:
+		for op in operators:
+			if not op.visible or not op.locked or not op.alive:
+				continue
+			var best: EnemyRunner = null
+			var best_d := INF
+			for enemy in enemies:
+				if not enemy.alive or not enemy.active:
+					continue
+				if not op.can_engage(enemy.global_position, grid):
+					continue
+				var d := op.global_position.distance_to(enemy.global_position)
+				if d < best_d - 0.01 or (absf(d - best_d) <= 0.01 and best != null and enemy.label_id < best.label_id):
+					best_d = d
+					best = enemy
+				elif best == null:
+					best_d = d
+					best = enemy
+			if best != null and op.shot_cd <= 0.0 and op.can_engage(best.global_position, grid):
+				battle_log.add_event(sim.tick, "fire", op.op_id, best.label_id, op.global_position)
+				if op.try_fire(best, grid):
+					if op.ammo <= 0:
+						battle_log.add_event(sim.tick, "empty", op.op_id)
+				if phase != Phase.WATCHING:
+					_finish_sim_tick()
+					return
 
-	sim.advance()
+	# 7) Return fire (signal logs before damage)
+	if phase == Phase.WATCHING:
+		for enemy in enemies:
+			if enemy.alive and enemy.active:
+				enemy.resolve_return_fire()
+			if phase != Phase.WATCHING:
+				_finish_sim_tick()
+				return
+
+	# 8) Loot: nearest + LOS + stable op_id
+	if phase == Phase.WATCHING:
+		for loot in loot_piles.duplicate():
+			if not is_instance_valid(loot) or loot.collected:
+				continue
+			_try_assign_loot(loot)
+		loot_piles = loot_piles.filter(func(l: LootPickup) -> bool: return is_instance_valid(l) and not l.collected)
+
+	_finish_sim_tick()
+
+
+func _finish_sim_tick() -> void:
+	# Win check before snapshot so terminal ticks always get a recorded frame.
 	if phase == Phase.WATCHING:
 		_check_win()
+	if sim.tick % SNAPSHOT_EVERY == 0 or pending_result != "" or phase != Phase.WATCHING:
+		battle_log.add_snapshot(sim.tick, _snapshot_data())
+	sim.advance()
+	_flush_pending_result()
 
+
+func _flush_pending_result() -> void:
+	if pending_result == "fail":
+		pending_result = ""
+		_show_fail_result()
+	elif pending_result == "win":
+		pending_result = ""
+		_show_win_result()
 
 func _tick_ambush_zone() -> void:
 	if level.ambush_zone.size == Vector2.ZERO:
@@ -1136,16 +1197,18 @@ func _on_enemy_escaped(enemy: EnemyRunner, path: PackedVector2Array) -> void:
 		e.active = false
 	intel_paths.append(path)
 	_redraw_ghosts()
-	_show_fail_result()
+	pending_result = "fail"
 
 
 func _on_enemy_died(enemy: EnemyRunner) -> void:
-	if phase != Phase.WATCHING:
+	if phase != Phase.WATCHING and pending_result == "":
 		return
-	battle_log.add_event(sim.tick, "kill", enemy.label_id)
+	if phase == Phase.WATCHING or pending_result != "":
+		battle_log.add_event(sim.tick, "kill", enemy.label_id)
 	_spawn_loot_at(enemy.global_position, enemy.loot_ammo)
 	_update_event_log()
-	_check_win()
+	if phase == Phase.WATCHING:
+		_check_win()
 
 
 func _on_operator_died(op: OperatorUnit) -> void:
@@ -1177,7 +1240,7 @@ func _fail_squad_wipe() -> void:
 		if e.recorded.size() > 1:
 			intel_paths.append(e.recorded.duplicate())
 	_redraw_ghosts()
-	_show_fail_result()
+	pending_result = "fail"
 
 
 func _show_fail_result() -> void:
@@ -1205,6 +1268,10 @@ func _check_win() -> void:
 		return
 	phase = Phase.WON
 	battle_log.mark_terminal(sim.tick, "win")
+	pending_result = "win"
+
+
+func _show_win_result() -> void:
 	result_panel.visible = true
 	var lines := battle_log.summary_lines(8)
 	var has_next := level_index + 1 < LEVEL_ORDER.size()
@@ -1229,15 +1296,14 @@ func _on_continue_pressed() -> void:
 	elif phase == Phase.WON:
 		if level_index + 1 < LEVEL_ORDER.size():
 			level_index += 1
-			_save_progress()
 			_load_level(LEVEL_ORDER[level_index], false, false)
+			_save_progress()
 		else:
 			level_index = 0
-			_save_progress()
 			_load_level(LEVEL_ORDER[0], false, false)
+			_save_progress()
 	elif phase == Phase.REPLAY:
 		_start_setup(true, true)
-
 
 func _redraw_ghosts() -> void:
 	for c in ghosts.get_children():
