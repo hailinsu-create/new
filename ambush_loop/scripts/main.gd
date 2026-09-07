@@ -979,12 +979,10 @@ func _on_return_fired(from: EnemyRunner, to: OperatorUnit) -> void:
 	line.points = PackedVector2Array([from.global_position, to.global_position])
 	entities.add_child(line)
 	return_fire_fx.append(line)
-	var tw := create_tween()
+	# Tween owned by the line so level reloads don't leave dangling captures.
+	var tw := line.create_tween()
 	tw.tween_property(line, "modulate:a", 0.0, 0.2)
-	tw.tween_callback(func() -> void:
-		if is_instance_valid(line):
-			line.queue_free()
-	)
+	tw.tween_callback(line.queue_free)
 
 
 func _process(delta: float) -> void:
