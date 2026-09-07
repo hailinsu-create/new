@@ -119,13 +119,11 @@ func _make_slot(id: int, text: String, pos: Vector2) -> CoverSlot:
 	s.add_child(pad)
 	var tag := Label.new()
 	tag.name = "Tag"
-	tag.text = text
 	tag.position = Vector2(-40, 16)
 	tag.add_theme_font_size_override("font_size", 11)
 	tag.add_theme_color_override("font_color", Color(0.65, 0.85, 0.7))
 	s.add_child(tag)
-	s.slot_id = id
-	s.label_text = text
+	s.setup(id, text)
 	return s
 
 
@@ -142,7 +140,6 @@ func _build_operators() -> void:
 	for d in defs:
 		var op := _make_operator(d["id"], d["name"])
 		entities.add_child(op)
-		op.setup(d["id"], d["name"])
 		op.visible = false
 		operators.append(op)
 	selected = operators[0]
@@ -151,8 +148,6 @@ func _build_operators() -> void:
 
 func _make_operator(id: int, pname: String) -> OperatorUnit:
 	var op := OperatorUnit.new()
-	op.op_id = id
-	op.display_name = pname
 	var body := Polygon2D.new()
 	body.name = "Body"
 	body.polygon = PackedVector2Array([
@@ -165,11 +160,11 @@ func _make_operator(id: int, pname: String) -> OperatorUnit:
 	op.add_child(cone)
 	var tag := Label.new()
 	tag.name = "Tag"
-	tag.text = pname
 	tag.position = Vector2(-28, -30)
 	tag.add_theme_font_size_override("font_size", 12)
 	tag.add_theme_color_override("font_color", Color(0.8, 0.9, 1.0))
 	op.add_child(tag)
+	op.setup(id, pname)
 	return op
 
 
@@ -438,7 +433,6 @@ func _spawn_enemies() -> void:
 	for spec in specs:
 		var e := _make_enemy(spec["id"], spec["route"])
 		entities.add_child(e)
-		e.setup(spec["id"], spec["route"])
 		enemies.append(e)
 		_activate_later(e, float(spec["delay"]))
 
@@ -462,13 +456,13 @@ func _make_enemy(id: int, route: PackedVector2Array) -> EnemyRunner:
 	e.add_child(body)
 	var tag := Label.new()
 	tag.name = "Tag"
-	tag.text = "敌%d" % id
 	tag.position = Vector2(-12, -34)
 	tag.add_theme_font_size_override("font_size", 12)
 	e.add_child(tag)
 	var hp := Polygon2D.new()
 	hp.name = "HpBar"
 	e.add_child(hp)
+	e.setup(id, route)
 	e.escaped.connect(_on_enemy_escaped)
 	e.died.connect(_on_enemy_died)
 	return e

@@ -1,6 +1,9 @@
 class_name AmbushGrid
 extends RefCounted
 
+## Static yard geometry for drawing + LOS checks. Enemies do NOT pathfind —
+## they follow authored routes. Operators only stand on cover slots.
+
 const TILE := 32
 const COLS := 40
 const ROWS := 22
@@ -11,11 +14,10 @@ var blocked: PackedByteArray = PackedByteArray()
 func _init() -> void:
 	blocked.resize(COLS * ROWS)
 	blocked.fill(0)
-	_build_default_map()
+	_build_yard()
 
 
-func _build_default_map() -> void:
-	# Outer walls
+func _build_yard() -> void:
 	for x in COLS:
 		set_blocked(x, 0, true)
 		set_blocked(x, ROWS - 1, true)
@@ -23,41 +25,35 @@ func _build_default_map() -> void:
 		set_blocked(0, y, true)
 		set_blocked(COLS - 1, y, true)
 
-	# Fill northern band as wall, then carve two isolated spawn pockets
-	for y in range(1, 6):
-		for x in range(1, COLS - 1):
-			set_blocked(x, y, true)
-
-	# West spawn pocket + main breach
-	for x in range(10, 15):
-		for y in range(2, 5):
-			set_blocked(x, y, false)
-	set_blocked(12, 5, false)
-	set_blocked(13, 5, false)
-
-	# East spawn pocket + side breach
-	for x in range(26, 31):
-		for y in range(2, 5):
-			set_blocked(x, y, false)
-	set_blocked(28, 5, false)
-	set_blocked(29, 5, false)
-
-	# Central bunker splits south yard into west/east corridors
-	for x in range(16, 25):
-		for y in range(6, 16):
-			set_blocked(x, y, true)
-
-	# Keep runners from early edge-hugging to the escape
-	for y in range(6, 17):
-		set_blocked(36, y, true)
-		set_blocked(37, y, true)
-		set_blocked(38, y, true)
-
-	# South wall with SE funnel into escape pocket
-	for x in range(1, 30):
+	# Compound shell
+	for x in range(4, 36):
+		set_blocked(x, 4, true)
 		set_blocked(x, 18, true)
-	for y in range(18, 21):
-		set_blocked(29, y, true)
+	for y in range(4, 19):
+		set_blocked(4, y, true)
+		set_blocked(35, y, true)
+
+	# North entry
+	set_blocked(12, 4, false)
+	set_blocked(13, 4, false)
+	set_blocked(14, 4, false)
+
+	# Interior cover blocks (crates / low walls) — LOS blockers
+	_block_rect(8, 8, 11, 10)
+	_block_rect(18, 9, 22, 12)
+	_block_rect(27, 7, 30, 9)
+	_block_rect(16, 14, 20, 16)
+
+	# South escape mouth
+	set_blocked(30, 18, false)
+	set_blocked(31, 18, false)
+	set_blocked(32, 18, false)
+
+
+func _block_rect(x0: int, y0: int, x1: int, y1: int) -> void:
+	for x in range(x0, x1 + 1):
+		for y in range(y0, y1 + 1):
+			set_blocked(x, y, true)
 
 
 func idx(x: int, y: int) -> int:
@@ -87,48 +83,30 @@ func cell_to_world_center(cell: Vector2i) -> Vector2:
 	return Vector2((cell.x + 0.5) * TILE, (cell.y + 0.5) * TILE)
 
 
-func is_world_walkable(pos: Vector2) -> bool:
-	var c := world_to_cell(pos)
-	return not is_blocked(c.x, c.y)
-
-
-func find_path(from_world: Vector2, to_world: Vector2) -> PackedVector2Array:
-	var start := world_to_cell(from_world)
-	var goal := world_to_cell(to_world)
-	if is_blocked(start.x, start.y) or is_blocked(goal.x, goal.y):
-		return PackedVector2Array()
-
-	var came_from: Dictionary = {}
-	var queue: Array[Vector2i] = [start]
-	came_from[start] = start
-	var found := false
-	var dirs: Array[Vector2i] = [
-		Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)
-	]
-
-	while not queue.is_empty():
-		var cur: Vector2i = queue.pop_front()
-		if cur == goal:
-			found = true
+## Bresenham LOS — walls block shooting through crates.
+func has_los(from: Vector2, to: Vector2) -> bool:
+	var a := world_to_cell(from)
+	var b := world_to_cell(to)
+	var x0 := a.x
+	var y0 := a.y
+	var x1 := b.x
+	var y1 := b.y
+	var dx := absi(x1 - x0)
+	var dy := -absi(y1 - y0)
+	var sx := 1 if x0 < x1 else -1
+	var sy := 1 if y0 < y1 else -1
+	var err := dx + dy
+	while true:
+		if Vector2i(x0, y0) != a and Vector2i(x0, y0) != b:
+			if is_blocked(x0, y0):
+				return false
+		if x0 == x1 and y0 == y1:
 			break
-		for d in dirs:
-			var n := cur + d
-			if is_blocked(n.x, n.y):
-				continue
-			if came_from.has(n):
-				continue
-			came_from[n] = cur
-			queue.append(n)
-
-	var out := PackedVector2Array()
-	if not found:
-		return out
-
-	var walk := goal
-	var cells: Array[Vector2i] = []
-	while walk != start:
-		cells.push_front(walk)
-		walk = came_from[walk]
-	for c in cells:
-		out.append(cell_to_world_center(c))
-	return out
+		var e2 := 2 * err
+		if e2 >= dy:
+			err += dy
+			x0 += sx
+		if e2 <= dx:
+			err += dx
+			y0 += sy
+	return true

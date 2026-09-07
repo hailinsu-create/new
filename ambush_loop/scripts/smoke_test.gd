@@ -1,5 +1,7 @@
 extends SceneTree
 
+## Headless: fail by covering only west, then win by covering main + flank + exit.
+
 func _init() -> void:
 	call_deferred("_run")
 
@@ -13,18 +15,19 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	var main = current_scene
-	for i in 5:
+	for i in 8:
 		await process_frame
 
-	# Life 1: seal west only — east runner should escape
-	main._try_place_mine(Vector2(13.5 * 32.0, 5.5 * 32.0))
-	main._try_place_mine(Vector2(15.5 * 32.0, 10.5 * 32.0))
+	# Life 1: only north-west cover facing poorly — flank escapes
+	main._select_op(0)
+	main._deploy_selected_to(main.cover_slots[0]) # 西侧掩体
+	main.selected.set_facing(90.0) # face south, misses east flank
 	main._on_alarm_pressed()
-	print("LIFE1 mines=", main.mines.size())
+	print("LIFE1 deployed=", main._deployed_count())
 
 	var frames := 0
 	var saw_fail := false
-	while frames < 60 * 50:
+	while frames < 60 * 90:
 		await process_frame
 		frames += 1
 		if frames % 180 == 0:
@@ -38,11 +41,18 @@ func _run() -> void:
 			print("SMOKE_FAIL_ESCAPE intel=", main.intel_paths.size())
 			main._on_continue_pressed()
 			await process_frame
-			main._try_place_mine(Vector2(13.5 * 32.0, 5.5 * 32.0))
-			main._try_place_mine(Vector2(29.5 * 32.0, 5.5 * 32.0))
-			main._try_place_mine(Vector2(35.5 * 32.0, 16.5 * 32.0))
+			# Life 2: cover main corridor, flank approach, and exit funnel
+			main._select_op(0)
+			main._deploy_selected_to(main.cover_slots[1]) # 北廊
+			main.selected.set_facing(90.0)
+			main._select_op(1)
+			main._deploy_selected_to(main.cover_slots[2]) # 东箱 — face west into flank
+			main.selected.set_facing(180.0)
+			main._select_op(2)
+			main._deploy_selected_to(main.cover_slots[5]) # 出口掩体
+			main.selected.set_facing(180.0)
 			main._on_alarm_pressed()
-			print("LIFE2 mines=", main.mines.size())
+			print("LIFE2 deployed=", main._deployed_count())
 		if main.phase == main.Phase.WON:
 			print("SMOKE_OK won loop=", main.loop_index, " frames=", frames)
 			quit(0)
