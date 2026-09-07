@@ -1,8 +1,8 @@
 extends Node2D
 
 ## Ambush Loop — Commandos-style prep MVP.
-## Main verbs: station operators on cover, set overwatch cones, optional tripwire.
-## Enemies follow FIXED routes (no pathfinding around your plan).
+## Deploy to cover, set overwatch, limited ammo, enemies return fire, loot corpses.
+## Enemies follow FIXED routes.
 
 enum Phase { SETUP, WATCHING, FAILED, WON }
 enum Tool { DEPLOY, TRIPWIRE }
@@ -14,14 +14,17 @@ var phase: Phase = Phase.SETUP
 var tool: Tool = Tool.DEPLOY
 var loop_index: int = 1
 var intel_paths: Array[PackedVector2Array] = []
+var fail_reason: String = ""
 
 var cover_slots: Array[CoverSlot] = []
 var operators: Array[OperatorUnit] = []
 var selected: OperatorUnit = null
 var enemies: Array[EnemyRunner] = []
 var tripwires: Array[Tripwire] = []
+var loot_piles: Array[LootPickup] = []
 
 var escape_world: Vector2
+var hud_tick: float = 0.0
 
 @onready var map_draw: Node2D = $World/MapDraw
 @onready var entities: Node2D = $World/Entities
@@ -143,6 +146,7 @@ func _build_operators() -> void:
 		var op := _make_operator(d["id"], d["name"])
 		entities.add_child(op)
 		op.setup(d["id"], d["name"])
+		op.died.connect(_on_operator_died)
 		op.visible = false
 		operators.append(op)
 	selected = operators[0]
@@ -198,8 +202,10 @@ func _add_route_line(points: PackedVector2Array, color: Color, label: String) ->
 func _start_setup(keep_intel: bool) -> void:
 	phase = Phase.SETUP
 	tool = Tool.DEPLOY
+	fail_reason = ""
 	_clear_enemies()
 	_clear_tripwires()
+	_clear_loot()
 	_reset_deployments()
 	if not keep_intel:
 		intel_paths.clear()
@@ -217,11 +223,10 @@ func _reset_deployments() -> void:
 		slot.occupied_by = null
 		slot.set_highlight(false)
 	for op in operators:
-		op.locked = false
+		op.reset_loadout()
 		op.slot = null
 		op.visible = false
 		op.position = Vector2(-1000, -1000)
-		op._rebuild_cone()
 	selected = operators[0]
 	_refresh_selection_visual()
 	_update_hud()
@@ -239,6 +244,16 @@ func _clear_tripwires() -> void:
 		if is_instance_valid(t):
 			t.queue_free()
 	tripwires.clear()
+
+
+func _clear_loot() -> void:
+	for l in loot_piles:
+		if is_instance_valid(l):
+			l.queue_free()
+	loot_piles.clear()
+	for n in get_tree().get_nodes_in_group("loot"):
+		if is_instance_valid(n):
+			n.queue_free()
 
 
 func _toggle_tool() -> void:
@@ -358,10 +373,10 @@ func _deploy_selected_to(slot: CoverSlot) -> void:
 	selected.slot = slot
 	selected.visible = true
 	selected.global_position = slot.global_position
-	selected.locked = false
+	selected.reset_loadout()
 	selected.set_facing(float(slot.get_meta("default_face")))
 	_refresh_selection_visual()
-	status_label.text = "%s 已进入「%s」— A/D 或右键调整射界" % [selected.display_name, slot.label_text]
+	status_label.text = "%s 已进入「%s」— 弹药 %d | A/D 或右键调整射界" % [selected.display_name, slot.label_text, selected.ammo]
 	_update_hud()
 
 
@@ -423,13 +438,13 @@ func _on_alarm_pressed() -> void:
 		if op.visible:
 			op.lock_plan()
 	_spawn_enemies()
-	status_label.text = "方案锁死 — 只能看戏。射界外漏人即失败。"
+	status_label.text = "方案锁死 — 敌军会还击，注意弹药。跑掉或全灭均失败。"
 	_update_hud()
 
 
 func _spawn_enemies() -> void:
 	_clear_enemies()
-	# Two on main route, one on flank — teaches covering both approaches
+	_clear_loot()
 	var specs := [
 		{"id": 1, "route": _route_main(), "delay": 0.0},
 		{"id": 2, "route": _route_main(), "delay": 0.8},
@@ -474,48 +489,128 @@ func _make_enemy(id: int, route: PackedVector2Array) -> EnemyRunner:
 	return e
 
 
+func _spawn_loot_at(pos: Vector2, amount: int) -> void:
+	var loot := LootPickup.new()
+	var visual := Polygon2D.new()
+	visual.name = "Visual"
+	visual.polygon = PackedVector2Array([
+		Vector2(-7, -7), Vector2(7, -7), Vector2(7, 7), Vector2(-7, 7)
+	])
+	visual.color = Color(0.95, 0.85, 0.25)
+	loot.add_child(visual)
+	var tag := Label.new()
+	tag.name = "Tag"
+	tag.position = Vector2(-14, -22)
+	tag.add_theme_font_size_override("font_size", 11)
+	tag.add_theme_color_override("font_color", Color(1.0, 0.9, 0.4))
+	loot.add_child(tag)
+	entities.add_child(loot)
+	loot.global_position = pos
+	loot.setup(amount)
+	loot_piles.append(loot)
+
+
 func _process(delta: float) -> void:
 	if phase != Phase.WATCHING:
 		return
-	# Overwatch fire — the prepared plan executing
-	for enemy in enemies:
-		if not enemy.alive or not enemy.active:
+
+	# Each operator fires at the nearest valid target in cone (ammo limited)
+	for op in operators:
+		if not op.visible or not op.locked or not op.alive:
 			continue
-		for op in operators:
-			if not op.visible or not op.locked:
+		var best: EnemyRunner = null
+		var best_d := INF
+		for enemy in enemies:
+			if not enemy.alive or not enemy.active:
 				continue
 			if op.can_engage(enemy.global_position, grid):
-				enemy.apply_fire(OperatorUnit.DPS * delta)
+				var d := op.global_position.distance_to(enemy.global_position)
+				if d < best_d:
+					best_d = d
+					best = enemy
+		if best:
+			op.try_fire(delta, best, grid)
+
+	# Auto-scavenge nearby corpse ammo (watch-only logistics)
+	for loot in loot_piles.duplicate():
+		if not is_instance_valid(loot) or loot.collected:
+			continue
+		for op in operators:
+			if op.visible and op.alive and op.try_loot(loot):
+				status_label.text = "%s 搜刮尸体 +弹药" % op.display_name
+				break
+	# Prune freed loot refs
+	loot_piles = loot_piles.filter(func(l: LootPickup) -> bool: return is_instance_valid(l) and not l.collected)
+
+	hud_tick += delta
+	if hud_tick >= 0.35:
+		hud_tick = 0.0
+		_update_hud()
 
 
 func _on_enemy_escaped(_enemy: EnemyRunner, path: PackedVector2Array) -> void:
 	if phase != Phase.WATCHING:
 		return
+	fail_reason = "escape"
 	phase = Phase.FAILED
 	for e in enemies:
 		e.active = false
 	intel_paths.append(path)
 	_redraw_ghosts()
 	result_panel.visible = true
-	result_label.text = "有人活着走出封锁区。\n第 %d 世失败。\n漏掉的路线已写入记忆。\n回去重布掩体与射界。" % loop_index
+	result_label.text = "有人活着走出封锁区。\n第 %d 世失败。\n漏网路线已写入记忆。\n弹药会在穿梭后补满，情报留下。" % loop_index
 	continue_button.text = "带着情报穿梭回去"
-	status_label.text = "射界没封住 — 穿梭"
+	status_label.text = "逃逸 — 穿梭"
 	_update_hud()
 
 
-func _on_enemy_died(_enemy: EnemyRunner) -> void:
+func _on_enemy_died(enemy: EnemyRunner) -> void:
 	if phase != Phase.WATCHING:
 		return
+	_spawn_loot_at(enemy.global_position, enemy.loot_ammo)
 	_check_win()
+
+
+func _on_operator_died(op: OperatorUnit) -> void:
+	if phase != Phase.WATCHING:
+		return
+	status_label.text = "%s 阵亡 — 敌军在还击" % op.display_name
+	if _living_ops() == 0:
+		_fail_squad_wipe()
+
+
+func _living_ops() -> int:
+	var n := 0
+	for op in operators:
+		if op.visible and op.alive:
+			n += 1
+	return n
+
+
+func _fail_squad_wipe() -> void:
+	if phase != Phase.WATCHING:
+		return
+	fail_reason = "wipe"
+	phase = Phase.FAILED
+	for e in enemies:
+		e.active = false
+	result_panel.visible = true
+	result_label.text = "小队覆灭。\n第 %d 世失败。\n敌军还击撕开了埋伏。\n穿梭回去：少暴露射界，或先集火再搜刮弹药。" % loop_index
+	continue_button.text = "带着情报穿梭回去"
+	status_label.text = "全灭 — 穿梭"
+	_update_hud()
 
 
 func _check_win() -> void:
 	for e in enemies:
 		if e.alive:
 			return
+	if _living_ops() == 0:
+		_fail_squad_wipe()
+		return
 	phase = Phase.WON
 	result_panel.visible = true
-	result_label.text = "零逃逸。\n埋伏成立。\n用了 %d 世完成战前准备。" % loop_index
+	result_label.text = "零逃逸。\n埋伏成立。\n用了 %d 世；弹药与还击都算进计划里。" % loop_index
 	continue_button.text = "再玩一局（清空记忆）"
 	status_label.text = "计划奏效"
 	_update_hud()
@@ -542,15 +637,26 @@ func _redraw_ghosts() -> void:
 		gi += 1
 
 
+func _ammo_summary() -> String:
+	var parts: PackedStringArray = []
+	for op in operators:
+		if op.visible:
+			if not op.alive:
+				parts.append("%s:亡" % op.display_name)
+			else:
+				parts.append("%s:%d弹" % [op.display_name.substr(0, 2), op.ammo])
+	return "  ".join(parts)
+
+
 func _update_hud() -> void:
 	title_label.text = "AMBUSH LOOP  ·  第 %d 世" % loop_index
-	intel_label.text = "记忆中的漏网路线：%d" % intel_paths.size()
+	intel_label.text = "漏网记忆：%d   |   %s" % [intel_paths.size(), _ammo_summary()]
 	var dep := _deployed_count()
 	if phase == Phase.SETUP:
-		help_label.text = "敢死队式准备：点击掩体位部署队员（已部署 %d/3）| 1/2/3 选人 | A/D 转射界 | 右键朝向光标\nTab 切换拌索（可选后勤）| 空格拉警报后方案锁死，只能看戏。跑掉一个 = 穿梭。R 重置。" % dep
+		help_label.text = "准备：点掩体部署（%d/3）| 1/2/3选人 | A/D转射界 | 右键朝向\n每人出发仅 %d 发；被打会还击；尸体可搜弹药。空格拉警报。跑掉/全灭=穿梭。R重置。" % [dep, OperatorUnit.START_AMMO]
 	elif phase == Phase.WATCHING:
-		help_label.text = "布置已锁死。掩体、射界、拌索按原案执行。"
+		help_label.text = "锁死看戏：耗弹、还击、搜尸自动发生。射界外漏人、或小队打光都会失败。"
 	elif phase == Phase.FAILED:
-		help_label.text = "看清漏网方向，换掩体或改朝向。"
+		help_label.text = "根据幽灵路线改掩体/朝向；别让一人扛整波还击。"
 	elif phase == Phase.WON:
-		help_label.text = "战前准备决定战斗。"
+		help_label.text = "战前准备 + 弹药节奏决定战斗。"

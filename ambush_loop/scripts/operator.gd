@@ -1,17 +1,28 @@
 class_name OperatorUnit
 extends Node2D
 
-## A squad member stationed in cover with a locked overwatch cone.
+## Squad member in cover: limited ammo, can die to return fire, scavenges corpses.
 
 const RANGE := 220.0
 const HALF_ANGLE_DEG := 28.0
-const DPS := 90.0
+const DAMAGE_PER_SHOT := 34.0
+const SHOT_INTERVAL := 0.18
+const MAX_HP := 100.0
+const START_AMMO := 7
+const COVER_DAMAGE_MULT := 0.4
+const LOOT_RANGE := 52.0
+
+signal died(op: OperatorUnit)
 
 var op_id: int = 0
 var display_name: String = "队员"
 var facing_deg: float = 90.0
 var locked: bool = false
 var slot: CoverSlot = null
+var alive: bool = true
+var hp: float = MAX_HP
+var ammo: int = START_AMMO
+var shot_cd: float = 0.0
 
 @onready var body: Polygon2D = $Body
 @onready var cone: Polygon2D = $Cone
@@ -21,8 +32,24 @@ var slot: CoverSlot = null
 func setup(id: int, pname: String) -> void:
 	op_id = id
 	display_name = pname
-	if tag:
-		tag.text = pname
+	alive = true
+	hp = MAX_HP
+	ammo = START_AMMO
+	shot_cd = 0.0
+	_refresh_tag()
+	_rebuild_cone()
+
+
+func reset_loadout() -> void:
+	alive = true
+	hp = MAX_HP
+	ammo = START_AMMO
+	shot_cd = 0.0
+	locked = false
+	if body:
+		body.color = Color(0.35, 0.65, 0.95)
+		body.modulate = Color.WHITE
+	_refresh_tag()
 	_rebuild_cone()
 
 
@@ -48,29 +75,94 @@ func _rebuild_cone() -> void:
 		return
 	var pts := PackedVector2Array([Vector2.ZERO])
 	var steps := 10
-	var half := HALF_ANGLE_DEG
 	for i in range(steps + 1):
-		var t := lerpf(-half, half, float(i) / float(steps))
+		var t := lerpf(-HALF_ANGLE_DEG, HALF_ANGLE_DEG, float(i) / float(steps))
 		var rad := deg_to_rad(facing_deg + t)
 		pts.append(Vector2(cos(rad), sin(rad)) * RANGE)
 	cone.polygon = pts
-	cone.color = Color(0.95, 0.75, 0.25, 0.28) if not locked else Color(0.85, 0.35, 0.2, 0.22)
+	if not alive:
+		cone.color = Color(0.2, 0.2, 0.2, 0.12)
+	elif ammo <= 0:
+		cone.color = Color(0.45, 0.45, 0.5, 0.18)
+	elif locked:
+		cone.color = Color(0.85, 0.35, 0.2, 0.22)
+	else:
+		cone.color = Color(0.95, 0.75, 0.25, 0.28)
 	if body:
 		body.rotation = deg_to_rad(facing_deg + 90.0)
 
 
 func can_engage(target: Vector2, grid: AmbushGrid) -> bool:
+	if not alive or ammo <= 0:
+		return false
 	var to_v := target - global_position
 	var dist := to_v.length()
 	if dist < 8.0 or dist > RANGE:
 		return false
 	var ang := rad_to_deg(atan2(to_v.y, to_v.x))
-	var delta := absf(angle_diff_deg(facing_deg, ang))
-	if delta > HALF_ANGLE_DEG:
+	if absf(angle_diff_deg(facing_deg, ang)) > HALF_ANGLE_DEG:
 		return false
 	return grid.has_los(global_position, target)
 
 
+## Returns true if a shot was fired this tick.
+func try_fire(delta: float, target: EnemyRunner, grid: AmbushGrid) -> bool:
+	if not can_engage(target.global_position, grid):
+		return false
+	shot_cd -= delta
+	if shot_cd > 0.0:
+		return false
+	shot_cd = SHOT_INTERVAL
+	ammo = maxi(ammo - 1, 0)
+	target.apply_fire(DAMAGE_PER_SHOT, self)
+	_refresh_tag()
+	_rebuild_cone()
+	return true
+
+
+func take_damage(amount: float) -> void:
+	if not alive:
+		return
+	hp -= amount * COVER_DAMAGE_MULT
+	_refresh_tag()
+	if hp <= 0.0:
+		_die()
+
+
+func _die() -> void:
+	alive = false
+	hp = 0.0
+	if body:
+		body.color = Color(0.25, 0.28, 0.32)
+		body.modulate = Color(0.6, 0.6, 0.6, 0.85)
+	_rebuild_cone()
+	_refresh_tag()
+	died.emit(self)
+
+
+func try_loot(loot: Node2D) -> bool:
+	if not alive:
+		return false
+	if global_position.distance_to(loot.global_position) > LOOT_RANGE:
+		return false
+	if loot.has_method("collect"):
+		var gained: int = int(loot.collect())
+		if gained > 0:
+			ammo += gained
+			_refresh_tag()
+			_rebuild_cone()
+			return true
+	return false
+
+
+func _refresh_tag() -> void:
+	if tag == null:
+		return
+	if not alive:
+		tag.text = "%s [阵亡]" % display_name
+	else:
+		tag.text = "%s  弹%d  HP%d" % [display_name, ammo, int(ceil(hp))]
+
+
 static func angle_diff_deg(a: float, b: float) -> float:
-	var d := fposmod(b - a + 180.0, 360.0) - 180.0
-	return d
+	return fposmod(b - a + 180.0, 360.0) - 180.0
