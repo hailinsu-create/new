@@ -1,7 +1,7 @@
 class_name OperatorUnit
 extends Node2D
 
-## Squad member in cover: limited ammo, can die to return fire, scavenges corpses.
+## Squad member: ammo, fire modes, directional cover, optional ammo pack.
 
 const RANGE := 220.0
 const HALF_ANGLE_DEG := 28.0
@@ -11,7 +11,10 @@ const MAX_HP := 100.0
 const START_AMMO := 7
 const MAX_AMMO := 14
 const COVER_DAMAGE_MULT := 0.4
+const EXPOSED_DAMAGE_MULT := 1.0
 const LOOT_RANGE := 52.0
+
+enum FireMode { ENGAGE_ON_SIGHT, HOLD_FOR_AMBUSH }
 
 signal died(op: OperatorUnit)
 
@@ -24,6 +27,10 @@ var alive: bool = true
 var hp: float = MAX_HP
 var ammo: int = START_AMMO
 var shot_cd: float = 0.0
+var fire_mode: int = FireMode.ENGAGE_ON_SIGHT
+var fire_permitted: bool = true # HOLD_FOR_AMBUSH starts false until zone trigger
+var has_ammo_pack: bool = false
+var ammo_pack_used: bool = false
 
 @onready var body: Polygon2D = $Body
 @onready var cone: Polygon2D = $Cone
@@ -42,11 +49,31 @@ func reset_loadout() -> void:
 	ammo = START_AMMO
 	shot_cd = 0.0
 	locked = false
+	ammo_pack_used = false
+	fire_permitted = fire_mode == FireMode.ENGAGE_ON_SIGHT
 	if body:
 		body.color = Color(0.35, 0.65, 0.95)
 		body.modulate = Color.WHITE
 	_refresh_tag()
 	_rebuild_cone()
+
+
+func set_fire_mode(mode: int) -> void:
+	if locked:
+		return
+	fire_mode = mode
+	fire_permitted = fire_mode == FireMode.ENGAGE_ON_SIGHT
+	_refresh_tag()
+
+
+func cycle_fire_mode() -> void:
+	set_fire_mode(FireMode.HOLD_FOR_AMBUSH if fire_mode == FireMode.ENGAGE_ON_SIGHT else FireMode.ENGAGE_ON_SIGHT)
+
+
+func arm_ambush() -> void:
+	if fire_mode == FireMode.HOLD_FOR_AMBUSH and not fire_permitted:
+		fire_permitted = true
+		_refresh_tag()
 
 
 func set_facing(deg: float) -> void:
@@ -62,10 +89,10 @@ func rotate_by(delta_deg: float) -> void:
 
 func lock_plan() -> void:
 	locked = true
+	fire_permitted = fire_mode == FireMode.ENGAGE_ON_SIGHT
 	_rebuild_cone()
 
 
-## Cooldown advances on the simulation clock even with no target (blueprint P0).
 func tick_cooldown(delta: float) -> void:
 	if shot_cd > 0.0:
 		shot_cd = maxf(shot_cd - delta, 0.0)
@@ -75,14 +102,15 @@ func _rebuild_cone() -> void:
 	if cone == null:
 		return
 	var pts := PackedVector2Array([Vector2.ZERO])
-	var steps := 10
-	for i in range(steps + 1):
-		var t := lerpf(-HALF_ANGLE_DEG, HALF_ANGLE_DEG, float(i) / float(steps))
+	for i in range(11):
+		var t := lerpf(-HALF_ANGLE_DEG, HALF_ANGLE_DEG, float(i) / 10.0)
 		var rad := deg_to_rad(facing_deg + t)
 		pts.append(Vector2(cos(rad), sin(rad)) * RANGE)
 	cone.polygon = pts
 	if not alive:
 		cone.color = Color(0.2, 0.2, 0.2, 0.12)
+	elif not fire_permitted:
+		cone.color = Color(0.55, 0.55, 0.2, 0.2)
 	elif ammo <= 0:
 		cone.color = Color(0.45, 0.45, 0.5, 0.18)
 	elif locked:
@@ -94,7 +122,7 @@ func _rebuild_cone() -> void:
 
 
 func can_engage(target: Vector2, grid: AmbushGrid) -> bool:
-	if not alive or ammo <= 0:
+	if not alive or ammo <= 0 or not fire_permitted:
 		return false
 	var to_v := target - global_position
 	var dist := to_v.length()
@@ -114,16 +142,29 @@ func try_fire(target: EnemyRunner, grid: AmbushGrid) -> bool:
 	shot_cd = SHOT_INTERVAL
 	ammo = maxi(ammo - 1, 0)
 	target.apply_fire(DAMAGE_PER_SHOT, self)
+	if ammo == 0:
+		_try_ammo_pack()
 	_refresh_tag()
 	_rebuild_cone()
 	return true
 
 
-func take_damage(amount: float) -> void:
+func _try_ammo_pack() -> void:
+	if has_ammo_pack and not ammo_pack_used:
+		ammo_pack_used = true
+		ammo = START_AMMO
+		_refresh_tag()
+
+
+func take_damage(amount: float, from_pos: Vector2 = Vector2.INF) -> void:
 	if not alive:
 		return
-	# P0: flat cover mitigation; direction-aware cover is P2.
-	hp -= amount * COVER_DAMAGE_MULT
+	var mult := EXPOSED_DAMAGE_MULT
+	if slot != null and from_pos != Vector2.INF and slot.protects_from(from_pos):
+		mult = COVER_DAMAGE_MULT
+	elif slot != null and from_pos == Vector2.INF:
+		mult = COVER_DAMAGE_MULT # legacy callers
+	hp -= amount * mult
 	_refresh_tag()
 	if hp <= 0.0:
 		_die()
@@ -159,13 +200,21 @@ func receive_ammo(amount: int) -> int:
 	return gained
 
 
+func fire_mode_label() -> String:
+	return "见敌即打" if fire_mode == FireMode.ENGAGE_ON_SIGHT else "入伏再打"
+
+
 func _refresh_tag() -> void:
 	if tag == null:
 		return
 	if not alive:
 		tag.text = "%s [阵亡]" % display_name
-	else:
-		tag.text = "%s  弹%d  HP%d" % [display_name, ammo, int(ceil(hp))]
+		return
+	var pack := "包" if has_ammo_pack and not ammo_pack_used else ("已用包" if has_ammo_pack else "")
+	var mode := "伏" if fire_mode == FireMode.HOLD_FOR_AMBUSH else "即"
+	if fire_mode == FireMode.HOLD_FOR_AMBUSH and not fire_permitted:
+		mode = "等"
+	tag.text = "%s %s 弹%d%s" % [display_name, mode, ammo, (" " + pack) if pack != "" else ""]
 
 
 static func angle_diff_deg(a: float, b: float) -> float:

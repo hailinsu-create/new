@@ -99,7 +99,7 @@ func _try_return_fire() -> void:
 		return
 	return_cd = RETURN_INTERVAL
 	returning_fire = true
-	focus_target.take_damage(RETURN_DAMAGE)
+	focus_target.take_damage(RETURN_DAMAGE, global_position)
 	return_fired.emit(self, focus_target)
 
 
