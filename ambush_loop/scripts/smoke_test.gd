@@ -2,8 +2,10 @@ extends SceneTree
 
 ## Vertical-slice smoke: yard escape→restore→win, then warehouse+pump reference wins.
 ## Isolates user:// save data so player progress cannot mask failures.
+## Bypasses title via change_scene_to_file(main.tscn).
 
 const SAVE_PATH := "user://ambush_loop.cfg"
+const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
 
 
 func _init() -> void:
@@ -12,6 +14,8 @@ func _init() -> void:
 
 func _run() -> void:
 	_wipe_save()
+	if not _assert_launch_bar():
+		return
 	var err := change_scene_to_file("res://scenes/main.tscn")
 	if err != OK:
 		push_error("Failed to load main scene: %s" % err)
@@ -697,3 +701,36 @@ func _assert_tripwire_tooling(main) -> bool:
 func _wipe_save() -> void:
 	if FileAccess.file_exists(SAVE_PATH):
 		DirAccess.remove_absolute(SAVE_PATH)
+	if FileAccess.file_exists(SETTINGS_PATH):
+		DirAccess.remove_absolute(SETTINGS_PATH)
+	var gs = root.get_node_or_null("GameSettings")
+	if gs:
+		gs.reset_to_defaults()
+		gs.seen_tutorial = true
+
+
+func _assert_launch_bar() -> bool:
+	if not ResourceLoader.exists("res://scenes/title.tscn"):
+		push_error("SMOKE_NO_TITLE_SCENE")
+		quit(42)
+		return false
+	var packed = load("res://scenes/title.tscn")
+	if packed == null:
+		push_error("SMOKE_TITLE_LOAD_FAIL")
+		quit(42)
+		return false
+	var inst = packed.instantiate()
+	if inst == null:
+		push_error("SMOKE_TITLE_INSTANTIATE_FAIL")
+		quit(42)
+		return false
+	inst.free()
+	var gs = root.get_node_or_null("GameSettings")
+	if gs == null:
+		push_error("SMOKE_NO_GAMESETTINGS")
+		quit(42)
+		return false
+	# Keep tutorial modal off so SETUP input/API matches the slice gate.
+	gs.seen_tutorial = true
+	print("SMOKE_OK_LAUNCH_BAR title+GameSettings")
+	return true

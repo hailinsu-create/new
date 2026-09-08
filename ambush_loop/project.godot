@@ -5,9 +5,13 @@ config_version=5
 
 config/name="Ambush Loop"
 config/description="Commandos-style ambush prep: station operators on cover, set overwatch cones, lock the plan, watch. One escape rewinds time with intel."
-run/main_scene="res://scenes/main.tscn"
+run/main_scene="res://scenes/title.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
+
+[autoload]
+
+GameSettings="*res://scripts/game_settings.gd"
 
 [display]
 

@@ -79,8 +79,9 @@ var event_log: Control = null
 var level_label: Label = null
 var tut_label: Label = null
 var flash_label: Label = null
-var role_box: HBoxContainer = null
+var role_box: Control = null
 var role_card_buttons: Array[Button] = []
+var role_cards: Array = []
 var plan_readout: Label = null
 var replay_layer: Node2D = null
 var _flash_tween: Tween = null
@@ -103,6 +104,11 @@ var _restored_this_setup: bool = false
 var _plan_diff_guard: bool = false
 var plan_restore_hint: String = ""
 var sfx_muted: bool = false
+var pause_overlay: PauseOverlay = null
+var tutorial_overlay: TutorialOverlay = null
+var credits_overlay: CreditsOverlay = null
+var _menu_paused_sim: bool = false
+var _campaign_complete: bool = false
 
 
 func _ready() -> void:
@@ -121,13 +127,14 @@ func _ready() -> void:
 	)
 	clear_button.text = "收回部署"
 	tool_button.text = "工具: 部署队员"
-	_load_progress()
-	_apply_mute_state()
-	_load_level(LEVEL_ORDER[level_index], false, false)
+	_bind_settings()
+	_load_level(_resolve_start_level(), false, false)
+	_maybe_show_tutorial()
 
 
 func _resolve_optional_hud() -> void:
 	var root: Control = $HUD/Root
+	root.theme = NightOps.theme()
 	var bar: HBoxContainer = $HUD/Root/BottomBar
 	speed_button = get_node_or_null("HUD/Root/BottomBar/SpeedButton") as Button
 	pause_button = get_node_or_null("HUD/Root/BottomBar/PauseButton") as Button
@@ -247,10 +254,10 @@ func _resolve_optional_hud() -> void:
 		tut_label = Label.new()
 		tut_label.name = "TutLabel"
 		tut_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-		tut_label.offset_left = 16.0
-		tut_label.offset_top = 200.0
+		tut_label.offset_left = 220.0
+		tut_label.offset_top = 108.0
 		tut_label.offset_right = 940.0
-		tut_label.offset_bottom = 292.0
+		tut_label.offset_bottom = 168.0
 		tut_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		tut_label.add_theme_font_size_override("font_size", 13)
 		tut_label.add_theme_color_override("font_color", Color(0.8, 0.78, 0.65))
@@ -258,6 +265,7 @@ func _resolve_optional_hud() -> void:
 		root.add_child(tut_label)
 
 	_build_role_card_hud(root)
+	_build_modals()
 	if killzone_draw == null:
 		killzone_draw = Node2D.new()
 		killzone_draw.name = "KillzoneDraw"
@@ -271,31 +279,141 @@ func _resolve_optional_hud() -> void:
 		$World.add_child(replay_layer)
 
 
-func _build_role_card_hud(_root: Control) -> void:
-	var topbar := $HUD/Root/TopBar as Control
-	topbar.offset_bottom = 196.0
-	role_box = HBoxContainer.new()
-	role_box.name = "RoleCards"
-	role_box.add_theme_constant_override("separation", 8)
-	role_box.mouse_filter = Control.MOUSE_FILTER_STOP
-	topbar.add_child(role_box)
+func _build_role_card_hud(root: Control) -> void:
+	var dock := VBoxContainer.new()
+	dock.name = "RoleCards"
+	dock.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	dock.offset_left = 10.0
+	dock.offset_top = 78.0
+	dock.offset_right = 214.0
+	dock.offset_bottom = 430.0
+	dock.add_theme_constant_override("separation", 8)
+	dock.mouse_filter = Control.MOUSE_FILTER_STOP
+	root.add_child(dock)
+	role_box = dock
+	role_cards.clear()
 	role_card_buttons.clear()
 	for i in 3:
-		var btn := Button.new()
-		btn.name = "RoleCard%d" % i
-		btn.custom_minimum_size = Vector2(280, 56)
-		btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		var idx := i
-		btn.pressed.connect(func() -> void: _select_op(idx))
-		role_box.add_child(btn)
-		role_card_buttons.append(btn)
+		var card := OpCard.new()
+		card.setup(i)
+		card.picked.connect(_select_op)
+		dock.add_child(card)
+		role_cards.append(card)
 	plan_readout = Label.new()
 	plan_readout.name = "PlanReadout"
 	plan_readout.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	plan_readout.add_theme_font_size_override("font_size", 12)
+	plan_readout.add_theme_font_size_override("font_size", 11)
 	plan_readout.add_theme_color_override("font_color", Color(0.7, 0.85, 0.78))
-	topbar.add_child(plan_readout)
+	plan_readout.custom_minimum_size = Vector2(196, 48)
+	dock.add_child(plan_readout)
+
+
+func _build_modals() -> void:
+	pause_overlay = PauseOverlay.new()
+	add_child(pause_overlay)
+	pause_overlay.closed.connect(_on_pause_overlay_closed)
+	pause_overlay.return_to_title.connect(_return_to_title)
+	pause_overlay.redeploy_requested.connect(_on_redeploy_from_menu)
+	tutorial_overlay = TutorialOverlay.new()
+	add_child(tutorial_overlay)
+	tutorial_overlay.dismissed.connect(_on_tutorial_dismissed)
+	credits_overlay = CreditsOverlay.new()
+	add_child(credits_overlay)
+	credits_overlay.finished.connect(_return_to_title)
+
+
+func _gs():
+	return get_node_or_null("/root/GameSettings")
+
+
+func _bind_settings() -> void:
+	var gs = _gs()
+	if gs and not gs.changed.is_connected(_sync_settings):
+		gs.changed.connect(_sync_settings)
+	_sync_settings()
+
+
+func _sync_settings() -> void:
+	var gs = _gs()
+	if gs:
+		sfx_muted = bool(gs.muted)
+	_apply_mute_state()
+
+
+func _modal_blocks_input() -> bool:
+	if pause_overlay and pause_overlay.is_open():
+		return true
+	if tutorial_overlay and tutorial_overlay.is_open():
+		return true
+	if credits_overlay and credits_overlay.is_open():
+		return true
+	return false
+
+
+func _resolve_start_level() -> String:
+	var gs = _gs()
+	if gs and str(gs.pending_level_id) != "":
+		var id := str(gs.pending_level_id)
+		gs.pending_level_id = ""
+		var idx := LEVEL_ORDER.find(id)
+		level_index = idx if idx >= 0 else 0
+		return LEVEL_ORDER[level_index]
+	_load_progress()
+	return LEVEL_ORDER[level_index]
+
+
+func _maybe_show_tutorial() -> void:
+	if level == null or level.level_id != "yard":
+		return
+	var gs = _gs()
+	if gs and gs.seen_tutorial:
+		return
+	if tutorial_overlay:
+		tutorial_overlay.present()
+
+
+func _on_tutorial_dismissed() -> void:
+	var gs = _gs()
+	if gs:
+		gs.mark_tutorial_seen()
+
+
+func _toggle_pause_menu() -> void:
+	if pause_overlay == null:
+		return
+	if pause_overlay.is_open():
+		pause_overlay.dismiss()
+		return
+	pause_overlay.present(phase == Phase.SETUP, true)
+	if phase == Phase.WATCHING and not sim.paused:
+		sim.paused = true
+		_menu_paused_sim = true
+		if pause_button:
+			pause_button.text = "继续"
+
+
+func _on_pause_overlay_closed() -> void:
+	if _menu_paused_sim and phase == Phase.WATCHING:
+		sim.paused = false
+		_menu_paused_sim = false
+		if pause_button:
+			pause_button.text = "暂停"
+
+
+func _on_redeploy_from_menu() -> void:
+	if pause_overlay:
+		pause_overlay.dismiss()
+	_on_clear_pressed()
+
+
+func _return_to_title() -> void:
+	get_tree().change_scene_to_file("res://scenes/title.tscn")
+
+
+func _show_credits() -> void:
+	result_panel.visible = false
+	if credits_overlay:
+		credits_overlay.present()
 
 
 func _make_hud_btn(p_name: String, text: String, parent: Control) -> Button:
@@ -314,8 +432,12 @@ func _sfx(cue: String) -> void:
 
 
 func _toggle_mute() -> void:
-	sfx_muted = not sfx_muted
-	_apply_mute_state()
+	var gs = _gs()
+	if gs:
+		gs.toggle_mute()
+	else:
+		sfx_muted = not sfx_muted
+		_apply_mute_state()
 	if status_label:
 		status_label.text = "音效已关闭（M）" if sfx_muted else "音效已开启（M）"
 	_save_progress()
@@ -344,13 +466,13 @@ func _load_progress() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(PROGRESS_PATH) != OK:
 		level_index = 0
-		sfx_muted = false
+		_campaign_complete = false
 		return
 	var id := str(cfg.get_value("progress", "level_id", "yard"))
 	level_index = LEVEL_ORDER.find(id)
 	if level_index < 0:
 		level_index = 0
-	sfx_muted = bool(cfg.get_value("audio", "muted", false))
+	_campaign_complete = bool(cfg.get_value("progress", "complete", false))
 
 
 func _save_progress() -> void:
@@ -359,6 +481,7 @@ func _save_progress() -> void:
 	cfg.set_value("progress", "level_id", level.level_id if level else "yard")
 	cfg.set_value("progress", "level_index", level_index)
 	cfg.set_value("progress", "loop_index", loop_index)
+	cfg.set_value("progress", "complete", _campaign_complete)
 	cfg.set_value("audio", "muted", sfx_muted)
 	cfg.save(PROGRESS_PATH)
 
@@ -401,6 +524,7 @@ func _load_level(level_id: String, keep_intel: bool, restore_plan: bool) -> void
 	_build_door_marker()
 	_build_barrels()
 	_start_setup(keep_intel, restore_plan)
+	_save_progress()
 
 
 func _build_route_world() -> void:
@@ -590,7 +714,7 @@ func _draw_fixed_routes() -> void:
 	if not level.alternate_route_cells.is_empty():
 		_add_route_line(
 			_cells_to_world(level.alternate_route_cells),
-			Color(0.55, 0.4, 0.85, 0.28),
+			Color(0.62, 0.52, 0.28, 0.32),
 			"备用接近"
 		)
 
@@ -988,6 +1112,22 @@ func _toggle_tool() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_M:
 		_toggle_mute()
+		if pause_overlay and pause_overlay.is_open():
+			pause_overlay._refresh_audio()
+		get_viewport().set_input_as_handled()
+		return
+	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_ESCAPE:
+		if tutorial_overlay and tutorial_overlay.is_open():
+			get_viewport().set_input_as_handled()
+			return
+		if credits_overlay and credits_overlay.is_open():
+			_return_to_title()
+			get_viewport().set_input_as_handled()
+			return
+		_toggle_pause_menu()
+		get_viewport().set_input_as_handled()
+		return
+	if _modal_blocks_input():
 		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("reset_run"):
@@ -1008,7 +1148,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				KEY_RIGHT:
 					replay.set_tick(replay.scrub_tick + 6)
 					_apply_replay_scrub()
-				KEY_ESCAPE, KEY_SPACE:
+				KEY_SPACE:
 					_exit_replay_to_setup()
 			get_viewport().set_input_as_handled()
 		return
@@ -1081,14 +1221,17 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _select_op(idx: int) -> void:
-	if phase != Phase.SETUP:
+	if phase == Phase.REPLAY:
 		return
 	if idx < 0 or idx >= operators.size():
 		return
 	selected = operators[idx]
+	_refresh_selection_visual()
+	_update_role_cards()
+	if phase != Phase.SETUP:
+		return
 	tool = Tool.DEPLOY
 	tool_button.text = "工具: 部署队员"
-	_refresh_selection_visual()
 	_refresh_mode_pack_buttons()
 	status_label.text = "已选择 %s — %s" % [selected.display_name, selected.kit_blurb()]
 	_update_cover_previews()
@@ -1545,6 +1688,8 @@ func _process(delta: float) -> void:
 	if hud_tick >= 0.35:
 		hud_tick = 0.0
 		_update_hud()
+	else:
+		_update_role_cards()
 
 
 func _sim_tick() -> void:
@@ -1966,7 +2111,8 @@ func _show_win_result() -> void:
 		continue_button.text = "下一关"
 	else:
 		result_label.text = "全部关卡封锁完成。\n总世数记忆保留于存档。\n\n%s" % "\n".join(lines)
-		continue_button.text = "再玩一局（清空记忆）"
+		continue_button.text = "查看致谢"
+		_campaign_complete = true
 	if replay_button:
 		replay_button.visible = true
 	status_label.text = "计划奏效"
@@ -2139,9 +2285,9 @@ func _on_continue_pressed() -> void:
 			_load_level(LEVEL_ORDER[level_index], false, false)
 			_save_progress()
 		else:
-			level_index = 0
-			_load_level(LEVEL_ORDER[0], false, false)
+			_campaign_complete = true
 			_save_progress()
+			_show_credits()
 	elif phase == Phase.REPLAY:
 		_exit_replay_to_setup()
 
@@ -2443,7 +2589,7 @@ func _update_hud() -> void:
 	intel_label.text = "漏网记忆：%d   |   %s" % [intel.records.size(), _ammo_summary()]
 	var dep := _deployed_count()
 	if phase == Phase.SETUP:
-		help_label.text = "准备：左卡选步枪/机枪/侦察。青弧=掩体保护方向。黄锥=墙裁切射界。红线=选中队员可打到的路线。侦察观察环仅准备期。点掩体（%d/3）| 1/2/3 | A/D射界 | F开火 | G弹包 | B门 | Tab绊索 | M静音\n空格拉警报（锁死方案）。X中止留情报。时间轴复盘只读。R清空记忆。" % dep
+		help_label.text = "准备：左卡选步枪/机枪/侦察。青弧=掩体保护方向。黄锥=墙裁切射界。红线=选中队员可打到的路线。侦察观察环仅准备期。点掩体（%d/3）| 1/2/3 | A/D射界 | F开火 | G弹包 | B门 | Tab绊索 | M静音 | Esc菜单\n空格拉警报（锁死方案）。X中止留情报。时间轴复盘只读。R清空记忆。" % dep
 	elif phase == Phase.WATCHING:
 		var spd := "暂停" if sim.paused else ("2×" if sim.speed >= 1.5 else "1×")
 		help_label.text = "锁死看戏 t=%.1fs [%s]：优先打更接近逃逸口的目标；点事件可定位。X中止保留情报。暂停/变速只改观看。" % [sim.time_sec(), spd]
@@ -2452,7 +2598,7 @@ func _update_hud() -> void:
 	elif phase == Phase.WON:
 		help_label.text = "战前准备决定战斗。可回看只读时间轴；点击事件定位。"
 	elif phase == Phase.REPLAY:
-		help_label.text = "复盘只读 t=%.1fs / %.1fs — 点击事件定位并跳到该时刻。不重演模拟、不改写下一世计划。空格返回。" % [
+		help_label.text = "复盘只读 t=%.1fs / %.1fs — 点击事件定位并跳到该时刻。不重演模拟、不改写下一世计划。空格返回。Esc 菜单。" % [
 			float(replay.scrub_tick) / 60.0, float(replay.max_tick()) / 60.0
 		]
 	_refresh_door_visual()
@@ -2487,21 +2633,13 @@ func _update_cover_previews() -> void:
 func _update_role_cards() -> void:
 	if role_box:
 		role_box.modulate = Color(1, 1, 1, 0.45) if phase == Phase.REPLAY else Color.WHITE
-	for i in role_card_buttons.size():
-		var btn: Button = role_card_buttons[i]
+	for i in role_cards.size():
+		var card: OpCard = role_cards[i]
 		if i >= operators.size():
-			btn.visible = false
+			card.visible = false
 			continue
 		var op: OperatorUnit = operators[i]
-		btn.visible = true
-		btn.disabled = phase != Phase.SETUP
-		btn.text = op.kit_card_text()
-		if op == selected:
-			btn.modulate = Color(1.15, 1.08, 0.72)
-		elif op.visible:
-			btn.modulate = Color.WHITE
-		else:
-			btn.modulate = Color(0.72, 0.74, 0.76)
+		card.bind(op, op == selected, phase != Phase.REPLAY)
 	if plan_readout == null:
 		return
 	if selected == null:
