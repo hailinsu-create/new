@@ -37,8 +37,9 @@ func steps_for_frame(real_delta: float) -> int:
 	while _accum >= TICK_DT:
 		_accum -= TICK_DT
 		n += 1
-		if n >= 8: # safety cap
-			_accum = 0.0
+		if n >= 8:
+			# Cap steps per frame for hitch safety, but keep leftover accum so
+			# 1× vs 2× still reach the same tick total (blueprint consistency).
 			break
 	return n
 

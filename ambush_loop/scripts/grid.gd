@@ -162,7 +162,8 @@ func validate_level_geometry(
 	cover_defs: Array,
 	route_cells: Dictionary,
 	alt_route: Array = [],
-	blocked_route: String = ""
+	blocked_route: String = "",
+	barrel_cell: Vector2i = Vector2i(-1, -1)
 ) -> PackedStringArray:
 	var errs := PackedStringArray()
 	for d in cover_defs:
@@ -177,6 +178,9 @@ func validate_level_geometry(
 		errs.append_array(_validate_route_cells("alternate", alt_route))
 	elif blocked_route != "":
 		errs.append("door locked but alternate route empty")
+	if barrel_cell.x >= 0:
+		if is_blocked(barrel_cell.x, barrel_cell.y):
+			errs.append("barrel blocked %s" % str(barrel_cell))
 	return errs
 
 

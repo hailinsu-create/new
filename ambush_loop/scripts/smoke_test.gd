@@ -29,6 +29,12 @@ func _run() -> void:
 		return
 	if not _assert_geometry(main, "yard_start"):
 		return
+	if not _assert_sim_clock():
+		return
+	if not _assert_roles_and_cover(main):
+		return
+	if not _assert_los_cone(main):
+		return
 	print("LEVEL=", main.level.level_id)
 
 	# Life 1: only one cover — expect flank escape
@@ -65,8 +71,24 @@ func _run() -> void:
 			print(
 				"SMOKE_FAIL_ESCAPE reason=", main.fail_reason,
 				" intel=", main.intel_paths.size(),
-				" events=", main.battle_log.events.size()
+				" events=", main.battle_log.events.size(),
+				" tick=", main.sim.tick
 			)
+			if not main.map_draw.escape_flash:
+				push_error("SMOKE_NO_ESCAPE_FLASH")
+				quit(27)
+				return
+			if not main.focus_latest_of_type("escape"):
+				push_error("SMOKE_FOCUS_ESCAPE_FAIL")
+				quit(28)
+				return
+			if main.focus_ring == null or not is_instance_valid(main.focus_ring):
+				push_error("SMOKE_NO_FOCUS_RING")
+				quit(28)
+				return
+			var fp_1x: String = main.battle_log.fingerprint()
+			var tick_1x: int = main.sim.tick
+			print("SMOKE_1X_FP tick=", tick_1x, " fp=", fp_1x)
 			main._on_continue_pressed()
 			await process_frame
 			if main._deployed_count() < 1:
@@ -74,11 +96,33 @@ func _run() -> void:
 				quit(5)
 				return
 			print("LIFE2_RESTORED deployed=", main._deployed_count())
+			# Same plan at 2× must match terminal tick + event fingerprint.
+			main._on_alarm_pressed()
+			main.sim.set_speed(2.0)
+			var speed_ok: bool = await _wait_phase(main, main.Phase.FAILED, 60 * 180)
+			if not speed_ok or main.fail_reason != "escape":
+				push_error(
+					"SMOKE_2X_FAIL phase=%s reason=%s tick=%s"
+					% [main.phase, main.fail_reason, main.sim.tick]
+				)
+				quit(29)
+				return
+			var fp_2x: String = main.battle_log.fingerprint()
+			if main.sim.tick != tick_1x or fp_2x != fp_1x:
+				push_error(
+					"SMOKE_SPEED_MISMATCH 1x_tick=%s 2x_tick=%s\n1x=%s\n2x=%s"
+					% [tick_1x, main.sim.tick, fp_1x, fp_2x]
+				)
+				quit(30)
+				return
+			print("SMOKE_OK_SPEED_CONSISTENT tick=", tick_1x)
+			main._on_continue_pressed()
+			await process_frame
 			main._on_clear_pressed()
 			await process_frame
 			_deploy_ref(main, [1, 2, 5], [90.0, 180.0, 180.0])
 			main._on_alarm_pressed()
-			print("LIFE2 deployed=", main._deployed_count())
+			print("LIFE3 deployed=", main._deployed_count())
 		if main.phase == main.Phase.WON and main.level.level_id == "yard":
 			print(
 				"SMOKE_OK yard won loop=", main.loop_index,
@@ -99,6 +143,18 @@ func _run() -> void:
 			if not _assert_geometry(main, "warehouse"):
 				return
 			print("SMOKE_LEVEL2_LOADED warehouse covers=", main.cover_slots.size())
+			if main.barrels.size() != 1:
+				push_error("SMOKE_WAREHOUSE_NO_BARREL n=%s" % main.barrels.size())
+				quit(31)
+				return
+			if main.level.barrel_cell != Vector2i(32, 10):
+				push_error("SMOKE_BARREL_CELL %s" % str(main.level.barrel_cell))
+				quit(31)
+				return
+			if main.grid.is_blocked(main.level.barrel_cell.x, main.level.barrel_cell.y):
+				push_error("SMOKE_BARREL_BLOCKED")
+				quit(31)
+				return
 
 			_deploy_ref(main, [1, 3, 5], [180.0, 0.0, 180.0])
 			main.sim.set_speed(2.0)
@@ -227,7 +283,7 @@ func _assert_geometry(main, tag: String) -> bool:
 	if main.door_locked and main.level.door_blocks_route != "":
 		blocked_route = main.level.door_blocks_route
 	var errs: PackedStringArray = main.grid.validate_level_geometry(
-		main.level.cover_defs, main.level.route_cells, alt, blocked_route
+		main.level.cover_defs, main.level.route_cells, alt, blocked_route, main.level.barrel_cell
 	)
 	if not errs.is_empty():
 		for e in errs:
@@ -281,6 +337,108 @@ func _assert_fire_before_terminal(main) -> bool:
 		push_error("SMOKE_WIN_TERMINAL_WITHOUT_FIRE tick=%s" % term_tick)
 		quit(24)
 		return false
+	return true
+
+
+func _assert_sim_clock() -> bool:
+	var a := SimClock.new()
+	var b := SimClock.new()
+	a.set_speed(1.0)
+	b.set_speed(2.0)
+	var sa := 0
+	var sb := 0
+	for i in 60:
+		sa += a.steps_for_frame(1.0 / 60.0)
+		sb += b.steps_for_frame(1.0 / 60.0)
+	if sa != 60 or sb != 120:
+		push_error("SMOKE_CLOCK_STEPS 1x=%s 2x=%s" % [sa, sb])
+		quit(26)
+		return false
+	# Hitch must not drop leftover accum (1× vs 2× consistency).
+	var c := SimClock.new()
+	c.set_speed(2.0)
+	var total := c.steps_for_frame(0.2)
+	for i in 40:
+		total += c.steps_for_frame(1.0 / 60.0)
+	var real_t := 0.2 + 40.0 * (1.0 / 60.0)
+	var expected := int(floor(real_t * 2.0 * 60.0 + 0.0001))
+	if total != expected:
+		push_error("SMOKE_CLOCK_HITCH got=%s expected=%s" % [total, expected])
+		quit(26)
+		return false
+	print("SMOKE_OK_CLOCK 1x=60 2x=120 hitch=", total)
+	return true
+
+
+func _assert_roles_and_cover(main) -> bool:
+	if main.operators.size() < 3:
+		push_error("SMOKE_NO_ROLES")
+		quit(32)
+		return false
+	var rifle: OperatorUnit = main.operators[0]
+	var mg: OperatorUnit = main.operators[1]
+	var scout: OperatorUnit = main.operators[2]
+	if mg.half_angle_deg <= rifle.half_angle_deg:
+		push_error("SMOKE_MG_CONE_NOT_WIDER")
+		quit(32)
+		return false
+	if scout.range_px <= rifle.range_px:
+		push_error("SMOKE_SCOUT_RANGE_NOT_LONGER")
+		quit(32)
+		return false
+	if scout.half_angle_deg >= rifle.half_angle_deg:
+		push_error("SMOKE_SCOUT_CONE_NOT_NARROWER")
+		quit(32)
+		return false
+	if rifle.start_ammo == mg.start_ammo and rifle.shot_interval == mg.shot_interval:
+		push_error("SMOKE_ROLES_IDENTICAL")
+		quit(32)
+		return false
+	if main.cover_slots.is_empty():
+		push_error("SMOKE_NO_COVER")
+		quit(32)
+		return false
+	var slot: CoverSlot = main.cover_slots[0]
+	# Yard 西侧 protect 180° (west): attacks from west mitigated, east exposed.
+	var west: Vector2 = slot.global_position + Vector2(-48, 0)
+	var east: Vector2 = slot.global_position + Vector2(48, 0)
+	if not slot.protects_from(west):
+		push_error("SMOKE_PROTECT_ARC_WEST_MISS face=%s" % slot.protect_facing_deg)
+		quit(33)
+		return false
+	if slot.protects_from(east):
+		push_error("SMOKE_PROTECT_ARC_EAST_FALSE_COVER face=%s" % slot.protect_facing_deg)
+		quit(33)
+		return false
+	if slot.protect_compass() != "西":
+		push_error("SMOKE_PROTECT_COMPASS %s" % slot.protect_compass())
+		quit(33)
+		return false
+	print(
+		"SMOKE_OK_ROLES mg_cone=", mg.half_angle_deg,
+		" scout_range=", scout.range_px,
+		" protect=", slot.protect_compass()
+	)
+	return true
+
+
+func _assert_los_cone(main) -> bool:
+	main._select_op(0)
+	main._deploy_selected_to(main.cover_slots[0])
+	main.selected.set_facing(180.0)  # west into yard wall
+	var into_wall: float = main.selected._los_clip_distance(Vector2(-1, 0))
+	main.selected.set_facing(0.0)
+	var open_lane: float = main.selected._los_clip_distance(Vector2(1, 0))
+	main._on_clear_pressed()
+	if into_wall >= main.operators[0].range_px - 1.0:
+		push_error("SMOKE_LOS_NOT_CLIPPED wall=%s range=%s" % [into_wall, main.operators[0].range_px])
+		quit(34)
+		return false
+	if open_lane <= into_wall + 8.0:
+		push_error("SMOKE_LOS_OPEN_NOT_LONGER wall=%s open=%s" % [into_wall, open_lane])
+		quit(34)
+		return false
+	print("SMOKE_OK_LOS wall=", into_wall, " open=", open_lane)
 	return true
 
 

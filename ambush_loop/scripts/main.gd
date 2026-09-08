@@ -83,6 +83,14 @@ var role_card_buttons: Array[Button] = []
 var plan_readout: Label = null
 var replay_layer: Node2D = null
 var _flash_tween: Tween = null
+var event_list: ItemList = null
+var event_log_title: Label = null
+var _event_list_items: Array = []
+var focus_ring: Node2D = null
+var replay_focus_actor: int = -1
+var replay_focus_type: String = ""
+var _escape_tween: Tween = null
+var _result_panel_home: Vector4 = Vector4(-180, -90, 180, 90)
 
 
 func _ready() -> void:
@@ -92,6 +100,10 @@ func _ready() -> void:
 	tool_button.pressed.connect(_toggle_tool)
 	continue_button.pressed.connect(_on_continue_pressed)
 	result_panel.visible = false
+	_result_panel_home = Vector4(
+		result_panel.offset_left, result_panel.offset_top,
+		result_panel.offset_right, result_panel.offset_bottom
+	)
 	clear_button.text = "收回部署"
 	tool_button.text = "工具: 部署队员"
 	_load_progress()
@@ -171,20 +183,39 @@ func _resolve_optional_hud() -> void:
 	root.add_child(flash_label)
 
 	if event_log == null:
-		var rtl := RichTextLabel.new()
-		rtl.name = "EventLog"
-		rtl.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-		rtl.offset_left = -320.0
-		rtl.offset_top = 206.0
-		rtl.offset_right = -16.0
-		rtl.offset_bottom = 400.0
-		rtl.bbcode_enabled = true
-		rtl.fit_content = false
-		rtl.scroll_active = true
-		rtl.add_theme_font_size_override("normal_font_size", 12)
-		rtl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		root.add_child(rtl)
-		event_log = rtl
+		var box := VBoxContainer.new()
+		box.name = "EventLog"
+		box.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		box.offset_left = -328.0
+		box.offset_top = 206.0
+		box.offset_right = -12.0
+		box.offset_bottom = 430.0
+		box.add_theme_constant_override("separation", 2)
+		box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var title := Label.new()
+		title.name = "EventLogTitle"
+		title.text = "事件日志 · 点击定位"
+		title.add_theme_font_size_override("font_size", 12)
+		title.add_theme_color_override("font_color", Color(0.75, 0.82, 0.78))
+		title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_child(title)
+		var list := ItemList.new()
+		list.name = "EventList"
+		list.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		list.allow_reselect = true
+		list.add_theme_font_size_override("font_size", 12)
+		list.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		list.item_clicked.connect(_on_event_item_clicked)
+		box.add_child(list)
+		root.add_child(box)
+		event_log = box
+		event_log_title = title
+		event_list = list
+	else:
+		event_list = event_log.get_node_or_null("EventList") as ItemList
+		event_log_title = event_log.get_node_or_null("EventLogTitle") as Label
+		if event_list:
+			event_list.item_clicked.connect(_on_event_item_clicked)
 
 	if level_label == null:
 		level_label = Label.new()
@@ -198,9 +229,9 @@ func _resolve_optional_hud() -> void:
 		tut_label.name = "TutLabel"
 		tut_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 		tut_label.offset_left = 16.0
-		tut_label.offset_top = 202.0
-		tut_label.offset_right = 900.0
-		tut_label.offset_bottom = 250.0
+		tut_label.offset_top = 200.0
+		tut_label.offset_right = 940.0
+		tut_label.offset_bottom = 292.0
 		tut_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		tut_label.add_theme_font_size_override("font_size", 13)
 		tut_label.add_theme_color_override("font_color", Color(0.8, 0.78, 0.65))
@@ -289,13 +320,17 @@ func _load_level(level_id: String, keep_intel: bool, restore_plan: bool) -> void
 		level.cover_defs,
 		level.route_cells,
 		level.alternate_route_cells,
-		level.door_blocks_route if (level.door_cell.x >= 0 and effective_door_locked) else ""
+		level.door_blocks_route if (level.door_cell.x >= 0 and effective_door_locked) else "",
+		level.barrel_cell
 	)
 	for e in geo_errs:
 		push_error("LEVEL_GEO %s: %s" % [level.level_id, e])
 	escape_world = grid.cell_to_world_center(level.escape_cell)
 	escape_marker.position = escape_world
 	map_draw.set("grid", grid)
+	map_draw.escape_cell = level.escape_cell
+	map_draw.barrel_cell = level.barrel_cell
+	map_draw.escape_flash = false
 	map_draw.queue_redraw()
 	_build_route_world()
 	_build_cover_slots()
@@ -365,6 +400,7 @@ func _make_slot(id: int, text: String, pos: Vector2) -> CoverSlot:
 	tag.add_theme_color_override("font_color", Color(0.65, 0.85, 0.7))
 	s.add_child(tag)
 	s.setup(id, text, 0.0)
+	s.z_index = 1
 	return s
 
 
@@ -385,6 +421,7 @@ func _build_operators() -> void:
 		op.died.connect(_on_operator_died)
 		op.fired_shot.connect(_on_op_fired_shot)
 		op.ammo_empty.connect(_on_op_ammo_empty)
+		op.ammo_repacked.connect(_on_op_ammo_repacked)
 		op.visible = false
 		operators.append(op)
 	selected = operators[0]
@@ -574,7 +611,12 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 	if scrub_slider:
 		scrub_slider.visible = false
 	_clear_replay_layer()
+	_clear_focus_ring()
+	_reset_escape_flash()
+	_reset_result_panel_pos()
 	_reset_barrels()
+	replay_focus_actor = -1
+	replay_focus_type = ""
 	_update_event_log()
 	_update_hud()
 
@@ -966,6 +1008,7 @@ func _reset_barrels() -> void:
 func _make_barrel(pos: Vector2) -> Node2D:
 	var b = preload("res://scripts/barrel.gd").new()
 	b.position = pos
+	b.z_index = 2
 	var vis := Polygon2D.new()
 	vis.name = "Visual"
 	vis.polygon = PackedVector2Array([
@@ -981,7 +1024,7 @@ func _make_barrel(pos: Vector2) -> Node2D:
 		pts.append(Vector2(cos(r), sin(r)) * 52.0)
 	blast.polygon = pts
 	blast.color = Color(0.95, 0.35, 0.12, 0.14)
-	blast.z_index = -1
+	blast.show_behind_parent = true
 	b.add_child(blast)
 	var tag := Label.new()
 	tag.name = "Tag"
@@ -1337,6 +1380,8 @@ func _finish_sim_tick() -> void:
 		_check_win()
 	if sim.tick % SNAPSHOT_EVERY == 0 or pending_result != "" or phase != Phase.WATCHING:
 		battle_log.add_snapshot(sim.tick, _snapshot_data())
+		if phase == Phase.WATCHING:
+			_update_role_cards()
 	sim.advance()
 	_flush_pending_result()
 
@@ -1375,7 +1420,11 @@ func _snapshot_data() -> Dictionary:
 	var ens := []
 	for e in enemies:
 		ens.append({"id": e.label_id, "hp": e.hp, "alive": e.alive, "pos": e.global_position})
-	return {"ops": ops, "enemies": ens}
+	var bars := []
+	for b in barrels:
+		if is_instance_valid(b):
+			bars.append({"pos": b.global_position, "spent": bool(b.spent)})
+	return {"ops": ops, "enemies": ens, "barrels": bars}
 
 
 func _try_assign_loot(loot: LootPickup) -> void:
@@ -1413,7 +1462,8 @@ func _on_enemy_escaped(enemy: EnemyRunner, path: PackedVector2Array) -> void:
 	for e in enemies:
 		e.active = false
 	_remember_path(path, "escape")
-	_flash("逃逸！", Color(1.0, 0.35, 0.25))
+	_flash("逃逸！出口已标记", Color(1.0, 0.35, 0.25))
+	_begin_escape_flash()
 	_redraw_ghosts()
 	pending_result = "fail"
 
@@ -1501,6 +1551,14 @@ func _on_op_ammo_empty(op: OperatorUnit) -> void:
 	_flash("%s 空弹" % op.display_name, Color(0.9, 0.55, 0.2))
 
 
+func _on_op_ammo_repacked(op: OperatorUnit) -> void:
+	if phase == Phase.WATCHING or pending_result != "":
+		battle_log.add_event(sim.tick, "repack", op.op_id)
+	_flash("%s 弹包补给" % op.display_name, Color(0.55, 0.9, 0.45))
+	_update_event_log()
+	_update_role_cards()
+
+
 func _flash(text: String, color: Color) -> void:
 	if flash_label == null:
 		return
@@ -1517,6 +1575,14 @@ func _show_fail_result() -> void:
 	if abort_button:
 		abort_button.visible = false
 	result_panel.visible = true
+	if fail_reason == "escape":
+		# Keep the south-east exit on screen (blueprint: freeze + mark the mouth).
+		result_panel.offset_left = -560.0
+		result_panel.offset_top = -280.0
+		result_panel.offset_right = -200.0
+		result_panel.offset_bottom = -40.0
+	else:
+		_reset_result_panel_pos()
 	var lines := battle_log.summary_lines(10)
 	var summary := "\n".join(lines)
 	var reason_zh: String = str({
@@ -1524,11 +1590,16 @@ func _show_fail_result() -> void:
 		"wipe": "全灭",
 		"abort": "中止",
 	}.get(fail_reason, fail_reason))
-	result_label.text = "第 %d 世失败（%s）。\n穿梭后恢复上轮计划，满血满弹。\n\n—— 事件摘要 ——\n%s" % [loop_index, reason_zh, summary]
+	result_label.text = "第 %d 世失败（%s）。\n穿梭后恢复上轮计划，满血满弹。\n%s\n\n—— 事件摘要（点击右侧日志定位）——\n%s" % [
+		loop_index,
+		reason_zh,
+		"逃逸口已在地图上闪烁。" if fail_reason == "escape" else "",
+		summary,
+	]
 	continue_button.text = "带着情报穿梭回去"
 	if replay_button:
 		replay_button.visible = true
-	status_label.text = "%s — 穿梭或打开时间轴复盘" % reason_zh
+	status_label.text = "%s — 穿梭或打开时间轴复盘；点击事件定位" % reason_zh
 	_update_event_log()
 	_update_hud()
 
@@ -1536,6 +1607,7 @@ func _show_fail_result() -> void:
 func _show_win_result() -> void:
 	if abort_button:
 		abort_button.visible = false
+	_reset_result_panel_pos()
 	result_panel.visible = true
 	var lines := battle_log.summary_lines(8)
 	var has_next := level_index + 1 < LEVEL_ORDER.size()
@@ -1579,7 +1651,7 @@ func _on_replay_pressed() -> void:
 			l.visible = false
 	_clear_replay_layer()
 	_apply_replay_scrub()
-	status_label.text = "只读时间轴 — 拖动滑条或 ←/→，空格返回并恢复上轮计划"
+	status_label.text = "只读时间轴 — 拖动滑条或 ←/→；点击事件定位对象。空格返回并恢复上轮计划"
 	_update_hud()
 
 
@@ -1597,11 +1669,7 @@ func _apply_replay_scrub() -> void:
 	if scrub_slider and replay.max_tick() > 0:
 		scrub_slider.set_value_no_signal(float(replay.scrub_tick) / float(replay.max_tick()))
 	_paint_replay_snapshot(snap)
-	if event_log is RichTextLabel:
-		var lines: PackedStringArray = replay.summary_at_scrub(12)
-		(event_log as RichTextLabel).text = "[b]复盘 t=%.1fs[/b]\n%s" % [
-			float(replay.scrub_tick) / 60.0, "\n".join(lines)
-		]
+	_fill_event_list(replay.events_up_to(replay.scrub_tick), 12, "复盘 t=%.1fs · 点击定位" % (float(replay.scrub_tick) / 60.0))
 	_update_hud()
 
 
@@ -1614,29 +1682,50 @@ func _paint_replay_snapshot(snap: Dictionary) -> void:
 		var op := _op_by_id(int(o["id"]))
 		var col := op.body_color if op != null else Color(0.35, 0.65, 0.95)
 		var alive := bool(o["alive"])
-		_add_replay_marker(o["pos"], col if alive else Color(0.3, 0.3, 0.32), "队员%d" % int(o["id"]), alive)
+		var hot := replay_focus_actor == int(o["id"]) and replay_focus_type in ["fire", "empty", "op_down", "loot", "ambush_armed", "repack", "return_fire"]
+		_add_replay_marker(o["pos"], col if alive else Color(0.3, 0.3, 0.32), "队员%d" % int(o["id"]), alive, hot)
 	for e in data.get("enemies", []):
 		var alive := bool(e["alive"])
+		var hot := replay_focus_actor == int(e["id"]) and replay_focus_type in ["spawn", "kill", "escape", "fire", "return_fire"]
 		_add_replay_marker(
 			e["pos"],
 			Color(0.75, 0.22, 0.2) if alive else Color(0.35, 0.35, 0.38, 0.7),
 			"敌%d" % int(e["id"]),
-			alive
+			alive,
+			hot
+		)
+	for b in data.get("barrels", []):
+		var spent := bool(b.get("spent", false))
+		_add_replay_marker(
+			b["pos"],
+			Color(0.45, 0.28, 0.2) if spent else Color(0.85, 0.4, 0.15),
+			"油桶",
+			not spent,
+			replay_focus_type == "barrel"
 		)
 
 
-func _add_replay_marker(pos: Vector2, color: Color, label: String, alive: bool) -> void:
+func _add_replay_marker(pos: Vector2, color: Color, label: String, alive: bool, focused: bool = false) -> void:
 	var n := Node2D.new()
 	n.position = pos
+	if focused:
+		var halo := Polygon2D.new()
+		var hpts := PackedVector2Array()
+		for i in 12:
+			var r := deg_to_rad(float(i) * 30.0)
+			hpts.append(Vector2(cos(r), sin(r)) * 20.0)
+		halo.polygon = hpts
+		halo.color = Color(1.0, 0.92, 0.25, 0.38)
+		n.add_child(halo)
 	var body := Polygon2D.new()
 	body.polygon = PackedVector2Array([Vector2(0, -10), Vector2(8, 8), Vector2(-8, 8)])
-	body.color = color
+	body.color = Color(1.0, 0.9, 0.3) if focused else color
 	n.add_child(body)
 	var t := Label.new()
 	t.text = label if alive else "%s·亡" % label
 	t.position = Vector2(-18, -28)
 	t.add_theme_font_size_override("font_size", 11)
-	t.add_theme_color_override("font_color", color)
+	t.add_theme_color_override("font_color", Color(1.0, 0.92, 0.4) if focused else color)
 	n.add_child(t)
 	replay_layer.add_child(n)
 
@@ -1742,14 +1831,207 @@ func _ammo_summary() -> String:
 
 
 func _update_event_log() -> void:
-	if event_log == null:
+	_fill_event_list(battle_log.events, 14, "事件日志 · 点击定位")
+
+
+func _fill_event_list(evs: Array, max_count: int, title: String) -> void:
+	if event_log_title:
+		event_log_title.text = title
+	if event_list == null:
+		if event_log is RichTextLabel:
+			var lines := PackedStringArray()
+			var start0 := maxi(evs.size() - max_count, 0)
+			for i in range(start0, evs.size()):
+				lines.append(battle_log.format_event(evs[i]))
+			(event_log as RichTextLabel).text = "[b]%s[/b]\n%s" % [title, "\n".join(lines)]
 		return
-	var lines := battle_log.summary_lines(14)
-	var text := "[b]事件日志[/b]\n" + "\n".join(lines)
-	if event_log is RichTextLabel:
-		(event_log as RichTextLabel).text = text
-	elif event_log is Label:
-		(event_log as Label).text = "\n".join(lines)
+	event_list.clear()
+	_event_list_items.clear()
+	var start := maxi(evs.size() - max_count, 0)
+	for i in range(start, evs.size()):
+		var ev: Dictionary = evs[i]
+		_event_list_items.append(ev)
+		event_list.add_item(battle_log.format_event(ev))
+	if _event_list_items.size() > 0:
+		event_list.select(_event_list_items.size() - 1)
+		event_list.ensure_current_is_visible()
+	_set_event_log_interactive(phase != Phase.SETUP and _event_list_items.size() > 0)
+
+
+func _set_event_log_interactive(on: bool) -> void:
+	var f := Control.MOUSE_FILTER_STOP if on else Control.MOUSE_FILTER_IGNORE
+	if event_log:
+		event_log.mouse_filter = f
+	if event_list:
+		event_list.mouse_filter = f
+
+
+func _on_event_item_clicked(index: int, _at: Vector2, mouse_button_index: int) -> void:
+	if mouse_button_index != MOUSE_BUTTON_LEFT:
+		return
+	if index < 0 or index >= _event_list_items.size():
+		return
+	_focus_battle_event(_event_list_items[index])
+
+
+func _focus_battle_event(ev: Dictionary) -> void:
+	if ev.is_empty():
+		return
+	replay_focus_actor = int(ev.get("actor_id", -1))
+	replay_focus_type = str(ev.get("type", ""))
+	if phase == Phase.REPLAY:
+		replay.set_tick(int(ev["tick"]))
+		_apply_replay_scrub()
+	var pos := _event_focus_position(ev)
+	if phase == Phase.REPLAY:
+		pos = _pos_from_snapshot(replay.snapshot_at_or_before(replay.scrub_tick), ev, pos)
+	_spawn_focus_ring(pos)
+	if str(ev["type"]) == "escape":
+		_begin_escape_flash()
+	if status_label:
+		status_label.text = "定位 · %s" % battle_log.format_event(ev)
+
+
+func focus_latest_of_type(type_name: String) -> bool:
+	var ev := battle_log.last_of_type(type_name)
+	if ev.is_empty():
+		return false
+	_focus_battle_event(ev)
+	return focus_ring != null and is_instance_valid(focus_ring)
+
+
+func _event_focus_position(ev: Dictionary) -> Vector2:
+	var pos: Vector2 = ev.get("position", Vector2.ZERO)
+	if pos.length() > 4.0:
+		return pos
+	var typ := str(ev["type"])
+	match typ:
+		"fire", "empty", "op_down", "loot", "ambush_armed", "repack":
+			var op := _op_by_id(int(ev["actor_id"]))
+			if op != null:
+				return op.global_position
+		"spawn", "kill", "escape", "return_fire":
+			for e in enemies:
+				if e.label_id == int(ev["actor_id"]):
+					return e.global_position
+		"barrel":
+			if barrels.size() > 0 and is_instance_valid(barrels[0]):
+				return barrels[0].global_position
+		"terminal", "abort", "door":
+			return escape_world
+	return escape_world
+
+
+func _pos_from_snapshot(snap: Dictionary, ev: Dictionary, fallback: Vector2) -> Vector2:
+	if not snap.has("data"):
+		return fallback
+	var data: Dictionary = snap["data"]
+	var typ := str(ev["type"])
+	var aid := int(ev.get("actor_id", -1))
+	if typ in ["fire", "empty", "op_down", "loot", "ambush_armed", "repack", "return_fire"]:
+		var look_id := aid
+		if typ == "return_fire":
+			look_id = int(ev.get("target_id", aid))
+			for e in data.get("enemies", []):
+				if int(e["id"]) == aid:
+					return e["pos"]
+			aid = look_id
+		for o in data.get("ops", []):
+			if int(o["id"]) == look_id or int(o["id"]) == aid:
+				return o["pos"]
+	if typ in ["spawn", "kill", "escape", "fire"]:
+		for e in data.get("enemies", []):
+			if int(e["id"]) == int(ev.get("target_id", -1)) and typ == "fire":
+				return e["pos"]
+			if int(e["id"]) == aid:
+				return e["pos"]
+	if typ == "barrel":
+		for b in data.get("barrels", []):
+			return b["pos"]
+	return fallback
+
+
+func _spawn_focus_ring(pos: Vector2) -> void:
+	_clear_focus_ring()
+	focus_ring = Node2D.new()
+	focus_ring.name = "FocusRing"
+	focus_ring.z_index = 25
+	focus_ring.position = pos
+	var halo := Polygon2D.new()
+	var hpts := PackedVector2Array()
+	for i in 16:
+		var r := deg_to_rad(float(i) * 22.5)
+		hpts.append(Vector2(cos(r), sin(r)) * 24.0)
+	halo.polygon = hpts
+	halo.color = Color(1.0, 0.92, 0.25, 0.32)
+	focus_ring.add_child(halo)
+	var line := Line2D.new()
+	line.width = 2.5
+	line.closed = true
+	line.default_color = Color(1.0, 0.9, 0.2, 0.95)
+	var lp := PackedVector2Array()
+	for i in 17:
+		var r := deg_to_rad(float(i) * 22.5)
+		lp.append(Vector2(cos(r), sin(r)) * 28.0)
+	line.points = lp
+	focus_ring.add_child(line)
+	$World.add_child(focus_ring)
+	var tw := focus_ring.create_tween()
+	tw.tween_property(focus_ring, "scale", Vector2(1.35, 1.35), 0.16)
+	tw.tween_property(focus_ring, "scale", Vector2(1.0, 1.0), 0.16)
+
+
+func _clear_focus_ring() -> void:
+	if focus_ring != null and is_instance_valid(focus_ring):
+		focus_ring.queue_free()
+	focus_ring = null
+
+
+func _begin_escape_flash() -> void:
+	if map_draw:
+		map_draw.escape_cell = level.escape_cell if level else map_draw.escape_cell
+		map_draw.escape_flash = true
+		map_draw.queue_redraw()
+	if _escape_tween != null:
+		_escape_tween.kill()
+	escape_marker.scale = Vector2.ONE
+	_escape_tween = create_tween().set_loops()
+	_escape_tween.tween_property(escape_marker, "scale", Vector2(1.4, 1.4), 0.22)
+	_escape_tween.tween_property(escape_marker, "scale", Vector2(1.0, 1.0), 0.22)
+	var ring := escape_marker.get_node_or_null("Ring") as Polygon2D
+	if ring:
+		ring.color = Color(1.0, 0.22, 0.12, 0.72)
+	var lab := escape_marker.get_node_or_null("EscapeLabel") as Label
+	if lab:
+		lab.text = "逃逸口·越界"
+		lab.add_theme_color_override("font_color", Color(1.0, 0.45, 0.28))
+
+
+func _reset_escape_flash() -> void:
+	if _escape_tween != null:
+		_escape_tween.kill()
+		_escape_tween = null
+	if is_instance_valid(escape_marker):
+		escape_marker.scale = Vector2.ONE
+		var ring := escape_marker.get_node_or_null("Ring") as Polygon2D
+		if ring:
+			ring.color = Color(0.2, 0.85, 0.55, 0.35)
+		var lab := escape_marker.get_node_or_null("EscapeLabel") as Label
+		if lab:
+			lab.text = "逃逸口"
+			lab.add_theme_color_override("font_color", Color(0.55, 0.95, 0.75, 1))
+	if map_draw:
+		map_draw.escape_flash = false
+		map_draw.queue_redraw()
+
+
+func _reset_result_panel_pos() -> void:
+	if result_panel == null:
+		return
+	result_panel.offset_left = _result_panel_home.x
+	result_panel.offset_top = _result_panel_home.y
+	result_panel.offset_right = _result_panel_home.z
+	result_panel.offset_bottom = _result_panel_home.w
 
 
 func _update_hud() -> void:
@@ -1762,16 +2044,16 @@ func _update_hud() -> void:
 	intel_label.text = "漏网记忆：%d   |   %s" % [intel.records.size(), _ammo_summary()]
 	var dep := _deployed_count()
 	if phase == Phase.SETUP:
-		help_label.text = "准备：左卡选步枪/机枪/侦察。青弧=掩体保护方向。点掩体（%d/3）| 1/2/3 | A/D射界 | F开火 | G弹包 | B门 | Tab绊索\n空格拉警报（锁死方案）。X中止留情报。时间轴复盘只读。R清空记忆。" % dep
+		help_label.text = "准备：左卡选步枪/机枪/侦察。青弧=掩体保护方向。黄锥=墙裁切射界。点掩体（%d/3）| 1/2/3 | A/D射界 | F开火 | G弹包 | B门 | Tab绊索\n空格拉警报（锁死方案）。失败后点右侧事件定位。X中止留情报。时间轴复盘只读。R清空记忆。" % dep
 	elif phase == Phase.WATCHING:
 		var spd := "暂停" if sim.paused else ("2×" if sim.speed >= 1.5 else "1×")
-		help_label.text = "锁死看戏 t=%.1fs [%s]：优先打更接近逃逸口的目标；X中止保留情报；墙体裁切射界。暂停/变速只改观看。" % [sim.time_sec(), spd]
+		help_label.text = "锁死看戏 t=%.1fs [%s]：优先打更接近逃逸口的目标；点事件可定位。X中止保留情报。暂停/变速只改观看。" % [sim.time_sec(), spd]
 	elif phase == Phase.FAILED:
-		help_label.text = "失败原因：%s。打开时间轴（只读）或改朝向/掩体/开火条件后再警报。" % fail_reason
+		help_label.text = "失败原因：%s。点击右侧事件定位对象；逃逸口在失败时闪烁。打开时间轴或改朝向/掩体/开火条件后再警报。" % fail_reason
 	elif phase == Phase.WON:
-		help_label.text = "战前准备决定战斗。可回看只读时间轴。"
+		help_label.text = "战前准备决定战斗。可回看只读时间轴；点击事件定位。"
 	elif phase == Phase.REPLAY:
-		help_label.text = "复盘只读 t=%.1fs / %.1fs — 不重演模拟、不改写下一世计划。空格返回并恢复上轮部署。" % [
+		help_label.text = "复盘只读 t=%.1fs / %.1fs — 点击事件定位并跳到该时刻。不重演模拟、不改写下一世计划。空格返回。" % [
 			float(replay.scrub_tick) / 60.0, float(replay.max_tick()) / 60.0
 		]
 	_refresh_door_visual()
@@ -1784,7 +2066,7 @@ func _update_hud() -> void:
 func _update_cover_previews() -> void:
 	if cover_slots.is_empty():
 		return
-	var show := phase == Phase.SETUP or phase == Phase.WATCHING
+	var show := phase == Phase.SETUP or phase == Phase.WATCHING or phase == Phase.REPLAY or phase == Phase.FAILED
 	var hover: CoverSlot = null
 	if phase == Phase.SETUP:
 		hover = _nearest_slot(get_global_mouse_position(), 32.0)
@@ -1827,7 +2109,7 @@ func _update_role_cards() -> void:
 	elif not selected.visible or selected.slot == null:
 		plan_readout.text = "选中 %s（未部署）\n%s" % [selected.display_name, selected.kit_blurb()]
 	else:
-		plan_readout.text = "掩体「%s」保护弧朝%s（%d°）— 该方向来袭减伤60%%，侧背无减免。\n优先目标：距逃逸口剩余路程最短。" % [
+		plan_readout.text = "掩体「%s」保护弧朝%s（%d°）— 该方向来袭减伤60%%，侧背无减免。黄锥=墙体裁切射界。\n优先目标：距逃逸口剩余路程最短。" % [
 			selected.slot.label_text,
 			selected.slot.protect_compass(),
 			int(selected.slot.protect_facing_deg),

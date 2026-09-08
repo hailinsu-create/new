@@ -64,6 +64,8 @@ func format_event(ev: Dictionary) -> String:
 			return "%.1fs  指挥官中止尝试" % t
 		"barrel":
 			return "%.1fs  油桶爆炸" % t
+		"repack":
+			return "%.1fs  队员%d 弹包补给" % [t, ev["actor_id"]]
 		"ambush_armed":
 			return "%.1fs  队员%d 入伏许可开启" % [t, ev["actor_id"]]
 		"door":
@@ -80,3 +82,17 @@ func summary_lines(max_count: int = 12) -> PackedStringArray:
 	for i in range(start, events.size()):
 		out.append(format_event(events[i]))
 	return out
+
+
+func last_of_type(type_name: String) -> Dictionary:
+	for i in range(events.size() - 1, -1, -1):
+		if str(events[i]["type"]) == type_name:
+			return events[i]
+	return {}
+
+
+func fingerprint() -> String:
+	var parts: PackedStringArray = []
+	for ev in events:
+		parts.append("%s:%d" % [str(ev["type"]), int(ev["tick"])])
+	return ",".join(parts)

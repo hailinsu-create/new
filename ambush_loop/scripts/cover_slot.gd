@@ -34,7 +34,10 @@ func _ensure_protect_arc() -> void:
 	if protect_arc == null:
 		protect_arc = Polygon2D.new()
 		protect_arc.name = "ProtectArc"
-		protect_arc.z_index = -1
+		# Behind the pad, but keep the slot's world z so the cyan arc is not
+		# composited under MapDraw (z_index -1 + relative was hiding it).
+		protect_arc.z_index = 0
+		protect_arc.show_behind_parent = true
 		add_child(protect_arc)
 
 

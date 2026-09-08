@@ -29,11 +29,11 @@ Smoke must print `SMOKE_SLICE_COMPLETE` and exit 0. Reference wins: yard slots 1
 | P | Pause during watch |
 | + / − or speed button | 1× / 2× watch speed (viewing only) |
 | X or 中止尝试 | Abort current attempt; keep intel up to now (counts as fail) |
-| 时间轴复盘 | Read-only snapshot scrub (←/→ or slider). Does not re-simulate or keep scrubbed HP/ammo. Space restores the last plan. |
+| 时间轴复盘 | Read-only snapshot scrub (←/→ or slider). Click an event log line to seek/highlight that actor. Does not re-simulate. Space restores the last plan. |
 | Clear btn | Clear deploy (keep intel + tripwires) |
 | R | Clear memory and restart |
 
-Alarm locks layout, facing, fire modes, door, and tools. Pause/speed/replay only change viewing. Escape **or** squad wipe fails the loop; abort is an intentional fail that still stores intel. Cross-loop keeps intel ghosts + last plan only.
+Alarm locks layout, facing, fire modes, door, and tools. Pause/speed/replay only change viewing. Escape **or** squad wipe fails the loop; abort is an intentional fail that still stores intel. On escape the exit cell flashes and the result panel shifts so the mouth stays visible. Cross-loop keeps intel ghosts + last plan only.
 
 ## Roles
 
@@ -43,10 +43,12 @@ Alarm locks layout, facing, fire modes, door, and tools. Pause/speed/replay only
 | 机枪手 | Wider cone, faster fire, shorter reach, hungrier ammo; more exposed from the flank |
 | 侦察兵 | Long narrow overwatch, few heavy shots — exit / lock-line |
 
-Cover only mitigates attacks from its protect arc (shown in cyan). Side/back shots are full damage.
+Cover only mitigates attacks from its protect arc (cyan fan, drawn on top of the floor). Side/back shots are full damage. Fire cones are yellow and clipped by walls.
+
+Warehouse has an authored orange **油桶** on the east flank (cell tint + blast preview). It detonates on enemy proximity during the frozen watch — never by mid-fight click — and damages friendlies in the blast.
 
 ## Levels
 
-1. **院子** — cover / facing / dual routes  
+1. **院子** — cover / facing / dual routes; rifle / MG / scout kits  
 2. **仓道** — ambush hold-fire + ammo pack + authored explosive barrel on the east flank (proximity during sim only; damages friendlies in blast)  
-3. **泵站** — door lock switches flank to alternate route  
+3. **泵站** — door lock switches flank to alternate route; re-cover the new approach  
