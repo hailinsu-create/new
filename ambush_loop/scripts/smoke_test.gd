@@ -35,6 +35,8 @@ func _run() -> void:
 		return
 	if not _assert_los_cone(main):
 		return
+	if not _assert_sfx(main):
+		return
 	print("LEVEL=", main.level.level_id)
 
 	# Life 1: only one cover — expect flank escape
@@ -96,6 +98,11 @@ func _run() -> void:
 				quit(5)
 				return
 			print("LIFE2_RESTORED deployed=", main._deployed_count())
+			if str(main.plan_restore_hint).find("已恢复上轮计划") < 0:
+				push_error("SMOKE_NO_PLAN_RESTORE_HINT got=%s" % main.plan_restore_hint)
+				quit(35)
+				return
+			print("SMOKE_OK_PLAN_RESTORE ", main.plan_restore_hint)
 			# Same plan at 2× must match terminal tick + event fingerprint.
 			main._on_alarm_pressed()
 			main.sim.set_speed(2.0)
@@ -121,7 +128,15 @@ func _run() -> void:
 			main._on_clear_pressed()
 			await process_frame
 			_deploy_ref(main, [1, 2, 5], [90.0, 180.0, 180.0])
+			if not main.operators[2].observation_ring_visible():
+				push_error("SMOKE_SCOUT_OBS_MISSING_SETUP")
+				quit(37)
+				return
 			main._on_alarm_pressed()
+			if main.operators[2].observation_ring_visible():
+				push_error("SMOKE_SCOUT_OBS_DURING_WATCH")
+				quit(37)
+				return
 			print("LIFE3 deployed=", main._deployed_count())
 		if main.phase == main.Phase.WON and main.level.level_id == "yard":
 			print(
@@ -394,6 +409,30 @@ func _assert_roles_and_cover(main) -> bool:
 		push_error("SMOKE_ROLES_IDENTICAL")
 		quit(32)
 		return false
+	if absf(rifle.range_px - mg.range_px) < 1.0 or absf(rifle.range_px - scout.range_px) < 1.0:
+		push_error(
+			"SMOKE_RANGES_NOT_DISTINCT rifle=%s mg=%s scout=%s"
+			% [rifle.range_px, mg.range_px, scout.range_px]
+		)
+		quit(32)
+		return false
+	main._select_op(2)
+	main._deploy_selected_to(main.cover_slots[0], false)
+	if not scout.observation_ring_visible():
+		push_error("SMOKE_SCOUT_OBS_NOT_SHOWN")
+		quit(37)
+		return false
+	if scout.cone != null and scout.obs_ring != null:
+		# Ring is a full circle at range; cone is a filled fan — they must be distinct nodes.
+		if scout.obs_ring == scout.cone:
+			push_error("SMOKE_OBS_RING_IS_CONE")
+			quit(37)
+			return false
+	main._on_clear_pressed()
+	if scout.observation_ring_visible():
+		push_error("SMOKE_SCOUT_OBS_AFTER_CLEAR")
+		quit(37)
+		return false
 	if main.cover_slots.is_empty():
 		push_error("SMOKE_NO_COVER")
 		quit(32)
@@ -439,6 +478,40 @@ func _assert_los_cone(main) -> bool:
 		quit(34)
 		return false
 	print("SMOKE_OK_LOS wall=", into_wall, " open=", open_lane)
+	return true
+
+
+func _assert_sfx(main) -> bool:
+	if main.sfx == null:
+		push_error("SMOKE_NO_SFX")
+		quit(36)
+		return false
+	for cue in ["alarm", "fire", "return_fire", "empty", "loot", "op_death", "escape", "win"]:
+		if not main.sfx.has_cue(cue):
+			push_error("SMOKE_SFX_MISSING %s" % cue)
+			quit(36)
+			return false
+	var was_muted: bool = bool(main.sfx_muted)
+	if was_muted:
+		main._toggle_mute()
+	main._sfx("alarm")
+	if str(main.sfx.last_cue) != "alarm":
+		push_error("SMOKE_SFX_NO_PLAY cue=%s" % main.sfx.last_cue)
+		quit(36)
+		return false
+	main._toggle_mute()
+	if not main.sfx.muted:
+		push_error("SMOKE_MUTE_FAIL")
+		quit(36)
+		return false
+	main._toggle_mute()
+	if main.sfx.muted:
+		push_error("SMOKE_UNMUTE_FAIL")
+		quit(36)
+		return false
+	if was_muted:
+		main._toggle_mute()
+	print("SMOKE_OK_SFX cues=8 muted=", main.sfx.muted)
 	return true
 
 

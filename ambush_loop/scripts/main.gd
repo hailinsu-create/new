@@ -11,6 +11,7 @@ const TRIPWIRE_ROUTE_DIST := 24.0
 const SNAPSHOT_EVERY := 6
 const PROGRESS_PATH := "user://ambush_loop.cfg"
 const LEVEL_ORDER := ["yard", "warehouse", "pump"]
+const SfxBusScript := preload("res://scripts/sfx/sfx_bus.gd")
 
 var grid: AmbushGrid = AmbushGrid.new()
 var phase: Phase = Phase.SETUP
@@ -92,9 +93,21 @@ var replay_focus_type: String = ""
 var _escape_tween: Tween = null
 var _result_panel_home: Vector4 = Vector4(-180, -90, 180, 90)
 
+var sfx = null
+var mute_button: Button = null
+var _watch_first_fire: bool = false
+var _watch_first_return: bool = false
+var _restored_this_setup: bool = false
+var _plan_diff_guard: bool = false
+var plan_restore_hint: String = ""
+var sfx_muted: bool = false
+
 
 func _ready() -> void:
 	_resolve_optional_hud()
+	sfx = SfxBusScript.new()
+	sfx.name = "SfxBus"
+	add_child(sfx)
 	alarm_button.pressed.connect(_on_alarm_pressed)
 	clear_button.pressed.connect(_on_clear_pressed)
 	tool_button.pressed.connect(_toggle_tool)
@@ -107,6 +120,7 @@ func _ready() -> void:
 	clear_button.text = "收回部署"
 	tool_button.text = "工具: 部署队员"
 	_load_progress()
+	_apply_mute_state()
 	_load_level(LEVEL_ORDER[level_index], false, false)
 
 
@@ -143,6 +157,9 @@ func _resolve_optional_hud() -> void:
 		pack_button = _make_hud_btn("PackButton", "弹包 (G)", extra)
 	if door_button == null:
 		door_button = _make_hud_btn("DoorButton", "门: 畅通 (B)", extra)
+
+	mute_button = _make_hud_btn("MuteButton", "音效 M", extra)
+	mute_button.pressed.connect(_toggle_mute)
 
 	speed_button.pressed.connect(_on_speed_pressed)
 	pause_button.pressed.connect(_on_pause_pressed)
@@ -282,15 +299,50 @@ func _make_hud_btn(p_name: String, text: String, parent: Control) -> Button:
 	return b
 
 
+func _sfx(cue: String) -> void:
+	if sfx == null:
+		return
+	sfx.play(cue)
+
+
+func _toggle_mute() -> void:
+	sfx_muted = not sfx_muted
+	_apply_mute_state()
+	if status_label:
+		status_label.text = "音效已关闭（M）" if sfx_muted else "音效已开启（M）"
+	_save_progress()
+
+
+func _apply_mute_state() -> void:
+	if sfx:
+		sfx.set_muted(sfx_muted)
+	_refresh_mute_button()
+
+
+func _refresh_mute_button() -> void:
+	if mute_button == null:
+		return
+	mute_button.text = "静音 M" if sfx_muted else "音效 M"
+
+
+func _update_observation_rings() -> void:
+	var show := phase == Phase.SETUP
+	for op in operators:
+		if is_instance_valid(op):
+			op.set_observation_ring(show)
+
+
 func _load_progress() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(PROGRESS_PATH) != OK:
 		level_index = 0
+		sfx_muted = false
 		return
 	var id := str(cfg.get_value("progress", "level_id", "yard"))
 	level_index = LEVEL_ORDER.find(id)
 	if level_index < 0:
 		level_index = 0
+	sfx_muted = bool(cfg.get_value("audio", "muted", false))
 
 
 func _save_progress() -> void:
@@ -299,6 +351,7 @@ func _save_progress() -> void:
 	cfg.set_value("progress", "level_id", level.level_id if level else "yard")
 	cfg.set_value("progress", "level_index", level_index)
 	cfg.set_value("progress", "loop_index", loop_index)
+	cfg.set_value("audio", "muted", sfx_muted)
 	cfg.save(PROGRESS_PATH)
 
 
@@ -561,6 +614,10 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 	battle_log.clear()
 	pending_spawns.clear()
 	all_spawns_done = false
+	_watch_first_fire = false
+	_watch_first_return = false
+	_restored_this_setup = false
+	plan_restore_hint = ""
 	_clear_enemies()
 	_clear_tripwires()
 	_clear_loot()
@@ -584,6 +641,7 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 		if op.visible:
 			op._rebuild_cone()
 	_update_cover_previews()
+	_update_observation_rings()
 	_update_role_cards()
 	alarm_button.disabled = false
 	clear_button.disabled = false
@@ -626,6 +684,7 @@ func _on_clear_pressed() -> void:
 		return
 	_clear_deployments()
 	status_label.text = "已收回部署（记忆与绊索保留）"
+	_announce_plan_edit()
 	_update_hud()
 
 
@@ -644,27 +703,39 @@ func _clear_deployments() -> void:
 	_refresh_selection_visual()
 	_refresh_mode_pack_buttons()
 	_update_cover_previews()
+	_update_observation_rings()
 
 
 func _capture_plan() -> void:
-	last_plan.clear()
+	_fill_plan(last_plan)
+
+
+func _fill_plan(p: PlanState) -> void:
+	p.clear()
 	for op in operators:
 		if op.visible and op.slot != null:
-			last_plan.deployments.append({
+			p.deployments.append({
 				"op_id": op.op_id,
 				"slot_id": op.slot.slot_id,
 				"facing": op.facing_deg,
 				"fire_mode": op.fire_mode,
 				"has_ammo_pack": op.has_ammo_pack,
 			})
-	last_plan.tripwire_positions.clear()
+	p.tripwire_positions.clear()
 	for t in tripwires:
 		if is_instance_valid(t):
-			last_plan.tripwire_positions.append(t.position)
-	last_plan.door_locked = door_locked
+			p.tripwire_positions.append(t.position)
+	p.door_locked = door_locked
+
+
+func _live_plan() -> PlanState:
+	var p := PlanState.new()
+	_fill_plan(p)
+	return p
 
 
 func _restore_last_plan() -> void:
+	_plan_diff_guard = true
 	_clear_deployments()
 	_clear_tripwires()
 	door_locked = last_plan.door_locked
@@ -688,7 +759,99 @@ func _restore_last_plan() -> void:
 		_refresh_selection_visual()
 	_refresh_door_visual()
 	_refresh_mode_pack_buttons()
-	status_label.text = "已恢复上轮计划（满血满弹）"
+	_update_observation_rings()
+	_restored_this_setup = true
+	_plan_diff_guard = false
+	var summary := _plan_summary_text(last_plan)
+	plan_restore_hint = "已恢复上轮计划：%s" % summary
+	status_label.text = plan_restore_hint
+	_flash(plan_restore_hint, Color(0.7, 0.92, 0.75))
+
+
+func _compass_deg(deg: float) -> String:
+	var d := fposmod(deg, 360.0)
+	if d >= 315.0 or d < 45.0:
+		return "东"
+	if d < 135.0:
+		return "南"
+	if d < 225.0:
+		return "西"
+	return "北"
+
+
+func _plan_summary_text(plan: PlanState) -> String:
+	if plan == null or plan.deployments.is_empty():
+		return "无部署"
+	var parts: PackedStringArray = []
+	for entry in plan.deployments:
+		var op := _op_by_id(int(entry["op_id"]))
+		var slot := _slot_by_id(int(entry["slot_id"]))
+		var nm := op.display_name if op else ("队员%d" % int(entry["op_id"]))
+		var sn := slot.label_text if slot else ("位%d" % int(entry["slot_id"]))
+		var face := float(entry["facing"])
+		parts.append("%s→「%s」朝%s%d°" % [nm, sn, _compass_deg(face), int(face)])
+	if plan.door_locked:
+		parts.append("门锁")
+	if plan.tripwire_positions.size() > 0:
+		parts.append("绊索%d" % plan.tripwire_positions.size())
+	return " · ".join(parts)
+
+
+func _diff_vs_last_plan() -> String:
+	if last_plan == null:
+		return ""
+	var live := _live_plan()
+	var bits: PackedStringArray = []
+	var old_map := {}
+	for e in last_plan.deployments:
+		old_map[int(e["op_id"])] = e
+	var live_map := {}
+	for e in live.deployments:
+		var oid := int(e["op_id"])
+		live_map[oid] = e
+		var op := _op_by_id(oid)
+		var nm := op.display_name if op else str(oid)
+		if not old_map.has(oid):
+			var slot := _slot_by_id(int(e["slot_id"]))
+			bits.append("%s新部署「%s」" % [nm, slot.label_text if slot else "?"])
+			continue
+		var oe: Dictionary = old_map[oid]
+		if int(oe["slot_id"]) != int(e["slot_id"]):
+			var os := _slot_by_id(int(oe["slot_id"]))
+			var ns := _slot_by_id(int(e["slot_id"]))
+			bits.append("%s「%s」→「%s」" % [
+				nm,
+				os.label_text if os else "?",
+				ns.label_text if ns else "?"
+			])
+		if absf(float(oe["facing"]) - float(e["facing"])) > 0.51:
+			bits.append("%s朝向%d°→%d°" % [nm, int(oe["facing"]), int(e["facing"])])
+		if int(oe.get("fire_mode", 0)) != int(e.get("fire_mode", 0)):
+			bits.append("%s开火条件已改" % nm)
+		if bool(oe.get("has_ammo_pack", false)) != bool(e.get("has_ammo_pack", false)):
+			bits.append("%s弹包已改" % nm)
+	for oid in old_map.keys():
+		if not live_map.has(oid):
+			var op2 := _op_by_id(int(oid))
+			bits.append("%s已收回" % (op2.display_name if op2 else str(oid)))
+	if last_plan.door_locked != live.door_locked:
+		bits.append("门:%s" % ("锁闭" if live.door_locked else "畅通"))
+	if last_plan.tripwire_positions.size() != live.tripwire_positions.size():
+		bits.append("绊索%d→%d" % [last_plan.tripwire_positions.size(), live.tripwire_positions.size()])
+	return "；".join(bits)
+
+
+func _announce_plan_edit() -> void:
+	if _plan_diff_guard or not _restored_this_setup:
+		return
+	if last_plan.deployments.is_empty():
+		return
+	var diff := _diff_vs_last_plan()
+	if diff == "":
+		return
+	var msg := "相对上轮：%s" % diff
+	status_label.text = msg
+	_flash(msg, Color(0.95, 0.82, 0.4))
 
 
 func _op_by_id(id: int) -> OperatorUnit:
@@ -746,6 +909,10 @@ func _toggle_tool() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_M:
+		_toggle_mute()
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("reset_run"):
 		loop_index = 1
 		intel_paths.clear()
@@ -805,9 +972,11 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_A, KEY_Q:
 				if selected and selected.visible:
 					selected.rotate_by(-15.0)
+					_announce_plan_edit()
 			KEY_D, KEY_E:
 				if selected and selected.visible:
 					selected.rotate_by(15.0)
+					_announce_plan_edit()
 			KEY_F:
 				_on_mode_pressed()
 			KEY_G:
@@ -826,6 +995,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if selected and selected.visible and not selected.locked:
 			var v := get_global_mouse_position() - selected.global_position
 			selected.set_facing(rad_to_deg(atan2(v.y, v.x)))
+			_announce_plan_edit()
 		get_viewport().set_input_as_handled()
 		return
 
@@ -922,6 +1092,8 @@ func _deploy_selected_to(slot: CoverSlot, announce: bool = true) -> void:
 		status_label.text = "%s →「%s」弹%d · 保护弧朝%s（来袭减伤60%%，侧背无减免）" % [
 			selected.display_name, slot.label_text, selected.ammo, prot
 		]
+		_announce_plan_edit()
+	_update_observation_rings()
 	_update_hud()
 
 
@@ -936,6 +1108,7 @@ func _try_place_tripwire(world_pos: Vector2) -> void:
 	entities.add_child(tw)
 	tripwires.append(tw)
 	status_label.text = "绊索已埋伏"
+	_announce_plan_edit()
 	_update_hud()
 
 
@@ -1058,6 +1231,7 @@ func _on_mode_pressed() -> void:
 	selected.cycle_fire_mode()
 	_refresh_mode_pack_buttons()
 	status_label.text = "%s 开火模式：%s" % [selected.display_name, selected.fire_mode_label()]
+	_announce_plan_edit()
 	_update_hud()
 
 
@@ -1082,6 +1256,7 @@ func _on_pack_pressed() -> void:
 		selected.set_facing(selected.facing_deg)
 		status_label.text = "%s 携带备用弹包（空弹自动补一次）" % selected.display_name
 	_refresh_mode_pack_buttons()
+	_announce_plan_edit()
 	_update_hud()
 
 
@@ -1097,6 +1272,7 @@ func _on_door_pressed() -> void:
 			op._rebuild_cone()
 	_update_cover_previews()
 	status_label.text = "门已锁闭 — 侧翼改走备用接近" if door_locked else "门保持畅通"
+	_announce_plan_edit()
 	_update_hud()
 
 
@@ -1129,6 +1305,10 @@ func _on_alarm_pressed() -> void:
 	phase = Phase.WATCHING
 	sim.reset()
 	battle_log.clear()
+	_watch_first_fire = false
+	_watch_first_return = false
+	_sfx("alarm")
+	_update_observation_rings()
 	alarm_button.disabled = true
 	clear_button.disabled = true
 	tool_button.disabled = true
@@ -1247,6 +1427,9 @@ func _on_return_fired(from: EnemyRunner, to: OperatorUnit) -> void:
 	# Called before damage is applied so terminal summaries include the shot.
 	if phase == Phase.WATCHING or pending_result != "":
 		battle_log.add_event(sim.tick, "return_fire", from.label_id, to.op_id, from.global_position)
+	if not _watch_first_return:
+		_watch_first_return = true
+		_sfx("return_fire")
 	var line := Line2D.new()
 	line.width = 2.0
 	line.default_color = Color(1.0, 0.55, 0.15, 0.85)
@@ -1348,6 +1531,9 @@ func _sim_tick() -> void:
 			if best != null and op.shot_cd <= 0.0 and op.can_engage(best.global_position, grid):
 				battle_log.add_event(sim.tick, "fire", op.op_id, best.label_id, op.global_position)
 				if op.try_fire(best, grid):
+					if not _watch_first_fire:
+						_watch_first_fire = true
+						_sfx("fire")
 					if op.ammo <= 0:
 						battle_log.add_event(sim.tick, "empty", op.op_id)
 				if phase != Phase.WATCHING:
@@ -1448,6 +1634,7 @@ func _try_assign_loot(loot: LootPickup) -> void:
 			loot.collect()
 			battle_log.add_event(sim.tick, "loot", op.op_id, -1, loot.global_position, {"amount": gained})
 			status_label.text = "%s 搜刮 +%d弹" % [op.display_name, gained]
+			_sfx("loot")
 			_update_event_log()
 			return
 
@@ -1463,6 +1650,7 @@ func _on_enemy_escaped(enemy: EnemyRunner, path: PackedVector2Array) -> void:
 		e.active = false
 	_remember_path(path, "escape")
 	_flash("逃逸！出口已标记", Color(1.0, 0.35, 0.25))
+	_sfx("escape")
 	_begin_escape_flash()
 	_redraw_ghosts()
 	pending_result = "fail"
@@ -1484,6 +1672,7 @@ func _on_operator_died(op: OperatorUnit) -> void:
 		return
 	battle_log.add_event(sim.tick, "op_down", op.op_id)
 	status_label.text = "%s 阵亡 — 敌军还击（需 LOS）" % op.display_name
+	_sfx("op_death")
 	_update_event_log()
 	if _living_ops() == 0:
 		_fail_squad_wipe()
@@ -1549,6 +1738,7 @@ func _on_op_fired_shot(op: OperatorUnit, target_pos: Vector2) -> void:
 
 func _on_op_ammo_empty(op: OperatorUnit) -> void:
 	_flash("%s 空弹" % op.display_name, Color(0.9, 0.55, 0.2))
+	_sfx("empty")
 
 
 func _on_op_ammo_repacked(op: OperatorUnit) -> void:
@@ -1777,6 +1967,7 @@ func _check_win() -> void:
 	phase = Phase.WON
 	battle_log.mark_terminal(sim.tick, "win")
 	_flash("零逃逸", Color(0.45, 0.9, 0.45))
+	_sfx("win")
 	pending_result = "win"
 
 
@@ -2044,7 +2235,7 @@ func _update_hud() -> void:
 	intel_label.text = "漏网记忆：%d   |   %s" % [intel.records.size(), _ammo_summary()]
 	var dep := _deployed_count()
 	if phase == Phase.SETUP:
-		help_label.text = "准备：左卡选步枪/机枪/侦察。青弧=掩体保护方向。黄锥=墙裁切射界。点掩体（%d/3）| 1/2/3 | A/D射界 | F开火 | G弹包 | B门 | Tab绊索\n空格拉警报（锁死方案）。失败后点右侧事件定位。X中止留情报。时间轴复盘只读。R清空记忆。" % dep
+		help_label.text = "准备：左卡选步枪/机枪/侦察。青弧=掩体保护方向。黄锥=墙裁切射界。侦察观察环仅准备期。点掩体（%d/3）| 1/2/3 | A/D射界 | F开火 | G弹包 | B门 | Tab绊索 | M静音\n空格拉警报（锁死方案）。X中止留情报。时间轴复盘只读。R清空记忆。" % dep
 	elif phase == Phase.WATCHING:
 		var spd := "暂停" if sim.paused else ("2×" if sim.speed >= 1.5 else "1×")
 		help_label.text = "锁死看戏 t=%.1fs [%s]：优先打更接近逃逸口的目标；点事件可定位。X中止保留情报。暂停/变速只改观看。" % [sim.time_sec(), spd]
@@ -2059,6 +2250,7 @@ func _update_hud() -> void:
 	_refresh_door_visual()
 	_refresh_mode_pack_buttons()
 	_update_role_cards()
+	_update_observation_rings()
 	if phase != Phase.SETUP:
 		_update_cover_previews()
 

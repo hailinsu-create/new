@@ -47,6 +47,10 @@ var role_short: String = "步"
 @onready var cone: Polygon2D = $Cone
 @onready var tag: Label = $Tag
 
+var obs_ring: Line2D = null
+var obs_fill: Polygon2D = null
+var obs_tag: Label = null
+
 
 static func role_for_id(id: int) -> int:
 	match id:
@@ -74,7 +78,9 @@ func setup(id: int, pname: String, p_grid: AmbushGrid = null) -> void:
 	display_name = pname if pname != "" else role_display(role)
 	grid = p_grid
 	_apply_role_kit()
+	_ensure_observation_visual()
 	reset_loadout()
+	set_observation_ring(false)
 
 
 func _apply_role_kit() -> void:
@@ -328,12 +334,75 @@ func fire_mode_label() -> String:
 	return "见敌即打" if fire_mode == FireMode.ENGAGE_ON_SIGHT else "入伏再打"
 
 
+func _ensure_observation_visual() -> void:
+	if role != Role.SCOUT:
+		return
+	if obs_fill == null or not is_instance_valid(obs_fill):
+		obs_fill = Polygon2D.new()
+		obs_fill.name = "ObsFill"
+		obs_fill.z_index = -2
+		obs_fill.show_behind_parent = true
+		add_child(obs_fill)
+	if obs_ring == null or not is_instance_valid(obs_ring):
+		obs_ring = Line2D.new()
+		obs_ring.name = "ObsRing"
+		obs_ring.width = 1.6
+		obs_ring.closed = true
+		obs_ring.default_color = Color(0.42, 0.88, 1.0, 0.38)
+		obs_ring.z_index = -1
+		obs_ring.show_behind_parent = true
+		add_child(obs_ring)
+	if obs_tag == null or not is_instance_valid(obs_tag):
+		obs_tag = Label.new()
+		obs_tag.name = "ObsTag"
+		obs_tag.text = "观察环"
+		obs_tag.position = Vector2(-28, -48)
+		obs_tag.add_theme_font_size_override("font_size", 11)
+		obs_tag.add_theme_color_override("font_color", Color(0.55, 0.9, 1.0, 0.75))
+		obs_tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(obs_tag)
+	_rebuild_observation_ring()
+
+
+func _rebuild_observation_ring() -> void:
+	if obs_ring == null and obs_fill == null:
+		return
+	var pts := PackedVector2Array()
+	const RAYS := 36
+	for i in RAYS:
+		var r := deg_to_rad(float(i) * (360.0 / float(RAYS)))
+		pts.append(Vector2(cos(r), sin(r)) * range_px)
+	if obs_ring:
+		var loop := pts.duplicate()
+		if loop.size() > 0:
+			loop.append(loop[0])
+		obs_ring.points = loop
+	if obs_fill:
+		obs_fill.polygon = pts
+		obs_fill.color = Color(0.35, 0.8, 0.95, 0.045)
+
+
+func set_observation_ring(show: bool) -> void:
+	_ensure_observation_visual()
+	var on := show and role == Role.SCOUT and visible and alive
+	if obs_ring:
+		obs_ring.visible = on
+	if obs_fill:
+		obs_fill.visible = on
+	if obs_tag:
+		obs_tag.visible = on
+
+
+func observation_ring_visible() -> bool:
+	return role == Role.SCOUT and obs_ring != null and is_instance_valid(obs_ring) and obs_ring.visible
+
+
 func kit_blurb() -> String:
 	match role:
 		Role.MG:
 			return "宽射界·高射速·短距·耗弹快；侧背更危险"
 		Role.SCOUT:
-			return "远距·窄扇区·弹少打重；适合出口/侧翼锁线"
+			return "远距·窄扇区·弹少打重；适合出口/侧翼锁线。准备期淡青观察环=射程，不透视战斗"
 		_:
 			return "均衡步枪：补漏与持续压制"
 

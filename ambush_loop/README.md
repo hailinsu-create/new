@@ -30,10 +30,11 @@ Smoke must print `SMOKE_SLICE_COMPLETE` and exit 0. Reference wins: yard slots 1
 | + / − or speed button | 1× / 2× watch speed (viewing only) |
 | X or 中止尝试 | Abort current attempt; keep intel up to now (counts as fail) |
 | 时间轴复盘 | Read-only snapshot scrub (←/→ or slider). Click an event log line to seek/highlight that actor. Does not re-simulate. Space restores the last plan. |
+| M or 音效 button | Mute / unmute procedural SFX (alarm, first fire, return fire, empty, loot, death, escape, win) |
 | Clear btn | Clear deploy (keep intel + tripwires) |
 | R | Clear memory and restart |
 
-Alarm locks layout, facing, fire modes, door, and tools. Pause/speed/replay only change viewing. Escape **or** squad wipe fails the loop; abort is an intentional fail that still stores intel. On escape the exit cell flashes and the result panel shifts so the mouth stays visible. Cross-loop keeps intel ghosts + last plan only.
+Alarm locks layout, facing, fire modes, door, and tools. Pause/speed/replay only change viewing. Escape **or** squad wipe fails the loop; abort is an intentional fail that still stores intel. On escape the exit cell flashes and the result panel shifts so the mouth stays visible. After fail continue, the last plan restores with a slot/facing summary; further edits flash a diff vs that plan. Cross-loop keeps intel ghosts + last plan only.
 
 ## Roles
 
@@ -41,7 +42,7 @@ Alarm locks layout, facing, fire modes, door, and tools. Pause/speed/replay only
 |------|-----|
 | 步枪手 | Balanced cone, 7 rounds — filler / sustain |
 | 机枪手 | Wider cone, faster fire, shorter reach, hungrier ammo; more exposed from the flank |
-| 侦察兵 | Long narrow overwatch, few heavy shots — exit / lock-line |
+| 侦察兵 | Long narrow overwatch, few heavy shots — exit / lock-line. SETUP-only faint 「观察环」 at scout range (not combat FOW) |
 
 Cover only mitigates attacks from its protect arc (cyan fan, drawn on top of the floor). Side/back shots are full damage. Fire cones are yellow and clipped by walls.
 
@@ -49,6 +50,8 @@ Warehouse has an authored orange **油桶** on the east flank (cell tint + blast
 
 ## Levels
 
-1. **院子** — cover / facing / dual routes; rifle / MG / scout kits  
+1. **院子** — cover / facing / dual routes; rifle / MG / scout kits; abort / replay / mute  
 2. **仓道** — ambush hold-fire + ammo pack + authored explosive barrel on the east flank (proximity during sim only; damages friendlies in blast)  
 3. **泵站** — door lock switches flank to alternate route; re-cover the new approach  
+
+Completeness notes: `docs/COMMANDOS_COMPLETE.md`  
