@@ -1,11 +1,11 @@
 extends "res://scripts/sfx/sfx_bus.gd"
 
 ## Autoload: pooled SFX + looping procedural bed. Master volume/mute gate both.
+## Bed is a reused looping WAV (not AudioStreamGenerator) so Dummy-driver
+## headless quit does not leak AudioStreamGeneratorPlayback.
 
 var _music: AudioStreamPlayer
-var _music_gen: AudioStreamGenerator
-var _music_playback: AudioStreamGeneratorPlayback
-var _phase: float = 0.0
+var _music_stream: AudioStreamWAV
 var _want_music: bool = true
 
 
@@ -20,12 +20,16 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
-	if _music != null and is_instance_valid(_music):
-		_music.stop()
-		_music.stream = null
-	_music_playback = null
-	_music_gen = null
+	_stop_music_hard()
 	super._exit_tree()
+
+
+func has_music_bed() -> bool:
+	return _music != null and is_instance_valid(_music) and _music.stream != null
+
+
+func music_bus_ok() -> bool:
+	return AudioServer.get_bus_index("Music") >= 0 and AudioServer.get_bus_index("SFX") >= 0
 
 
 func music_is_running() -> bool:
@@ -34,10 +38,6 @@ func music_is_running() -> bool:
 
 func music_player_playing() -> bool:
 	return _music != null and is_instance_valid(_music) and _music.playing
-
-
-func music_bus_ok() -> bool:
-	return AudioServer.get_bus_index("Music") >= 0 and AudioServer.get_bus_index("SFX") >= 0
 
 
 func set_muted(on: bool) -> void:
@@ -53,17 +53,29 @@ func _on_settings_changed() -> void:
 		_apply_music_mute()
 
 
+func _can_play_audio() -> bool:
+	# Dummy/headless leaves AudioStreamPlaybackWAV in ObjectDB if we start the bed.
+	return DisplayServer.get_name() != "headless"
+
+
 func _apply_music_mute() -> void:
 	if _music == null or not is_instance_valid(_music):
 		return
-	if muted or not _want_music:
+	if muted or not _want_music or not _can_play_audio():
 		if _music.playing:
 			_music.stop()
-		_music_playback = null
 		return
+	if _music.stream == null and _music_stream != null:
+		_music.stream = _music_stream
 	if not _music.playing:
 		_music.play()
-	_music_playback = _music.get_stream_playback() as AudioStreamGeneratorPlayback
+
+
+func _stop_music_hard() -> void:
+	if _music != null and is_instance_valid(_music):
+		_music.stop()
+		_music.stream = null
+	_music_stream = null
 
 
 func _ensure_buses() -> void:
@@ -82,34 +94,38 @@ func _add_bus_if_missing(bus_name: String, volume_db: float) -> void:
 
 
 func _setup_music() -> void:
-	_music_gen = AudioStreamGenerator.new()
-	_music_gen.mix_rate = 22050.0
-	_music_gen.buffer_length = 0.35
+	_music_stream = _build_bed_wav()
 	_music = AudioStreamPlayer.new()
 	_music.name = "MusicBed"
-	_music.stream = _music_gen
+	_music.stream = _music_stream
 	_music.bus = "Music" if AudioServer.get_bus_index("Music") >= 0 else "Master"
-	_music.volume_db = -10.0
+	_music.volume_db = -12.0
 	add_child(_music)
-	_music.play()
-	_music_playback = _music.get_stream_playback() as AudioStreamGeneratorPlayback
+	if _can_play_audio():
+		_music.play()
 
 
-func _process(_delta: float) -> void:
-	if muted or _music_playback == null:
-		return
-	if not is_instance_valid(_music) or not _music.playing:
-		return
-	var n := _music_playback.get_frames_available()
-	if n <= 0:
-		return
-	var rate := 22050.0
-	for _i in n:
-		_phase += 1.0
-		var t := _phase / rate
-		# Very quiet dual-drone + slow pulse. Headless Dummy driver still consumes frames.
-		var pulse := 0.62 + 0.38 * sin(t * TAU * 0.38)
+func _build_bed_wav() -> AudioStreamWAV:
+	## ~1.6s looping dual-drone with a slow pulse. Very quiet.
+	var rate := 22050
+	var sec := 1.6
+	var n := int(sec * rate)
+	var data := PackedByteArray()
+	data.resize(n * 2)
+	for i in n:
+		var t := float(i) / float(rate)
+		var pulse := 0.62 + 0.38 * sin(t * TAU * 0.625)
 		var s := sin(t * TAU * 46.0) * 0.016 * pulse
 		s += sin(t * TAU * 69.0) * 0.011 * pulse
 		s += sin(t * TAU * 92.5) * 0.005
-		_music_playback.push_frame(Vector2(s, s))
+		var v := int(clampf(s, -1.0, 1.0) * 32767.0)
+		data.encode_s16(i * 2, v)
+	var st := AudioStreamWAV.new()
+	st.format = AudioStreamWAV.FORMAT_16_BITS
+	st.mix_rate = rate
+	st.stereo = false
+	st.data = data
+	st.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	st.loop_begin = 0
+	st.loop_end = n
+	return st
