@@ -30,5 +30,5 @@ func _trip(enemy: EnemyRunner) -> void:
 	armed = false
 	enemy.kill()
 	if visual:
-		visual.color = Color(0.3, 0.3, 0.3, 0.5)
+		visual.color = Color(0.3, 0.32, 0.3, 0.45)
 	triggered.emit()

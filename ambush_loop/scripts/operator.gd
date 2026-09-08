@@ -52,6 +52,7 @@ var role_short: String = "步"
 var obs_ring: Line2D = null
 var obs_fill: Polygon2D = null
 var obs_tag: Label = null
+var role_glyph: Polygon2D = null
 
 
 static func role_for_id(id: int) -> int:
@@ -81,6 +82,7 @@ func setup(id: int, pname: String, p_grid: AmbushGrid = null) -> void:
 	grid = p_grid
 	_apply_role_kit()
 	_ensure_observation_visual()
+	_refresh_role_glyph()
 	reset_loadout()
 	set_observation_ring(false)
 
@@ -133,6 +135,7 @@ func reset_loadout() -> void:
 	if body:
 		body.color = body_color
 		body.modulate = Color.WHITE
+	_refresh_role_glyph()
 	_refresh_tag()
 	_rebuild_cone()
 
@@ -324,6 +327,32 @@ func take_damage(amount: float, from_pos: Vector2 = Vector2.INF) -> void:
 		_die()
 
 
+func _refresh_role_glyph() -> void:
+	if role_glyph == null or not is_instance_valid(role_glyph):
+		role_glyph = get_node_or_null("RoleGlyph") as Polygon2D
+	if role_glyph == null:
+		return
+	role_glyph.position = Vector2(13, -11)
+	role_glyph.z_index = 2
+	match role:
+		Role.MG:
+			role_glyph.polygon = PackedVector2Array([
+				Vector2(-5, -3), Vector2(5, -3), Vector2(4, 5), Vector2(-4, 5)
+			])
+			role_glyph.color = Color(0.62, 0.74, 0.38)
+		Role.SCOUT:
+			role_glyph.polygon = PackedVector2Array([
+				Vector2(0, -6), Vector2(6, 0), Vector2(0, 6), Vector2(-6, 0)
+			])
+			role_glyph.color = Color(0.42, 0.78, 0.92)
+		_:
+			role_glyph.polygon = PackedVector2Array([
+				Vector2(0, -6), Vector2(5, 5), Vector2(-5, 5)
+			])
+			role_glyph.color = Color(0.42, 0.72, 0.96)
+	role_glyph.modulate = Color(0.55, 0.55, 0.55, 0.8) if not alive else Color.WHITE
+
+
 func _die() -> void:
 	alive = false
 	hp = 0.0
@@ -332,6 +361,7 @@ func _die() -> void:
 		body.modulate = Color(0.6, 0.6, 0.6, 0.85)
 	_rebuild_cone()
 	_refresh_tag()
+	_refresh_role_glyph()
 	died.emit(self)
 
 

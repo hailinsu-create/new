@@ -109,17 +109,22 @@ var tutorial_overlay: TutorialOverlay = null
 var credits_overlay: CreditsOverlay = null
 var _menu_paused_sim: bool = false
 var _campaign_complete: bool = false
+var title_return_button: Button = null
+var _punch_tween: Tween = null
 
 
 func _ready() -> void:
 	_resolve_optional_hud()
-	sfx = SfxBusScript.new()
-	sfx.name = "SfxBus"
-	add_child(sfx)
+	sfx = get_node_or_null("/root/AudioDirector")
+	if sfx == null:
+		sfx = SfxBusScript.new()
+		sfx.name = "SfxBus"
+		add_child(sfx)
 	alarm_button.pressed.connect(_on_alarm_pressed)
 	clear_button.pressed.connect(_on_clear_pressed)
 	tool_button.pressed.connect(_toggle_tool)
 	continue_button.pressed.connect(_on_continue_pressed)
+	_ensure_debrief_buttons()
 	result_panel.visible = false
 	_result_panel_home = Vector4(
 		result_panel.offset_left, result_panel.offset_top,
@@ -478,12 +483,39 @@ func _load_progress() -> void:
 func _save_progress() -> void:
 	var cfg := ConfigFile.new()
 	cfg.load(PROGRESS_PATH)
-	cfg.set_value("progress", "level_id", level.level_id if level else "yard")
-	cfg.set_value("progress", "level_index", level_index)
+	# After a win, GameSettings.record_win already advanced level_id / cleared.
+	if phase != Phase.WON:
+		cfg.set_value("progress", "level_id", level.level_id if level else "yard")
+		cfg.set_value("progress", "level_index", level_index)
+		cfg.set_value("progress", "complete", _campaign_complete)
 	cfg.set_value("progress", "loop_index", loop_index)
-	cfg.set_value("progress", "complete", _campaign_complete)
 	cfg.set_value("audio", "muted", sfx_muted)
 	cfg.save(PROGRESS_PATH)
+
+
+func _ensure_debrief_buttons() -> void:
+	if title_return_button != null:
+		return
+	var vbox := result_panel.get_node_or_null("Margin/VBox") as VBoxContainer
+	if vbox == null:
+		return
+	title_return_button = Button.new()
+	title_return_button.name = "TitleReturnButton"
+	title_return_button.text = "返回标题"
+	title_return_button.visible = false
+	title_return_button.pressed.connect(_return_to_title)
+	vbox.add_child(title_return_button)
+
+
+func _camera_punch() -> void:
+	var world: Node2D = $World
+	if world == null:
+		return
+	if _punch_tween != null:
+		_punch_tween.kill()
+	world.position = Vector2(2, -1)
+	_punch_tween = create_tween()
+	_punch_tween.tween_property(world, "position", Vector2.ZERO, 0.14).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
 
 func _load_level(level_id: String, keep_intel: bool, restore_plan: bool) -> void:
@@ -697,6 +729,9 @@ func _make_operator(id: int, pname: String) -> OperatorUnit:
 	tag.add_theme_font_size_override("font_size", 12)
 	tag.add_theme_color_override("font_color", Color(0.8, 0.9, 1.0))
 	op.add_child(tag)
+	var glyph := Polygon2D.new()
+	glyph.name = "RoleGlyph"
+	op.add_child(glyph)
 	return op
 
 
@@ -863,6 +898,8 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 		abort_button.disabled = true
 	if replay_button:
 		replay_button.visible = false
+	if title_return_button:
+		title_return_button.visible = false
 	if scrub_slider:
 		scrub_slider.visible = false
 	_clear_replay_layer()
@@ -872,6 +909,8 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 	_reset_barrels()
 	replay_focus_actor = -1
 	replay_focus_type = ""
+	if has_node("World"):
+		$World.position = Vector2.ZERO
 	_update_event_log()
 	_update_hud()
 
@@ -1371,10 +1410,32 @@ func _make_tripwire(pos: Vector2) -> Tripwire:
 	var visual := Polygon2D.new()
 	visual.name = "Visual"
 	visual.polygon = PackedVector2Array([
-		Vector2(-10, -3), Vector2(10, -3), Vector2(10, 3), Vector2(-10, 3)
+		Vector2(-14, -2.5), Vector2(14, -2.5), Vector2(14, 2.5), Vector2(-14, 2.5)
 	])
-	visual.color = Color(0.85, 0.8, 0.35)
+	visual.color = Color(0.42, 0.95, 0.52, 0.95)
 	t.add_child(visual)
+	var peg_a := Polygon2D.new()
+	peg_a.name = "PegA"
+	peg_a.polygon = PackedVector2Array([
+		Vector2(-16, -6), Vector2(-10, -6), Vector2(-10, 6), Vector2(-16, 6)
+	])
+	peg_a.color = Color(0.18, 0.32, 0.2, 0.95)
+	t.add_child(peg_a)
+	var peg_b := Polygon2D.new()
+	peg_b.name = "PegB"
+	peg_b.polygon = PackedVector2Array([
+		Vector2(10, -6), Vector2(16, -6), Vector2(16, 6), Vector2(10, 6)
+	])
+	peg_b.color = Color(0.18, 0.32, 0.2, 0.95)
+	t.add_child(peg_b)
+	var tag := Label.new()
+	tag.name = "Tag"
+	tag.text = "绊索"
+	tag.position = Vector2(-16, -20)
+	tag.add_theme_font_size_override("font_size", 11)
+	tag.add_theme_color_override("font_color", Color(0.55, 0.95, 0.6))
+	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	t.add_child(tag)
 	return t
 
 
@@ -1411,10 +1472,24 @@ func _make_barrel(pos: Vector2) -> Node2D:
 	var vis := Polygon2D.new()
 	vis.name = "Visual"
 	vis.polygon = PackedVector2Array([
-		Vector2(-8, -12), Vector2(8, -12), Vector2(9, 12), Vector2(-9, 12)
+		Vector2(-9, -13), Vector2(9, -13), Vector2(10, 13), Vector2(-10, 13)
 	])
-	vis.color = Color(0.85, 0.4, 0.15, 0.95)
+	vis.color = Color(0.98, 0.48, 0.08, 0.98)
 	b.add_child(vis)
+	var band := Polygon2D.new()
+	band.name = "Band"
+	band.polygon = PackedVector2Array([
+		Vector2(-10, -3), Vector2(10, -3), Vector2(10, 3), Vector2(-10, 3)
+	])
+	band.color = Color(0.12, 0.07, 0.04, 0.95)
+	b.add_child(band)
+	var band2 := Polygon2D.new()
+	band2.name = "Band2"
+	band2.polygon = PackedVector2Array([
+		Vector2(-9, 6), Vector2(10, 6), Vector2(10, 9), Vector2(-9, 9)
+	])
+	band2.color = Color(0.12, 0.07, 0.04, 0.9)
+	b.add_child(band2)
 	var blast := Polygon2D.new()
 	blast.name = "BlastPreview"
 	var pts := PackedVector2Array()
@@ -1422,7 +1497,7 @@ func _make_barrel(pos: Vector2) -> Node2D:
 		var r := deg_to_rad(float(i) * 30.0)
 		pts.append(Vector2(cos(r), sin(r)) * 52.0)
 	blast.polygon = pts
-	blast.color = Color(0.95, 0.35, 0.12, 0.14)
+	blast.color = Color(0.98, 0.42, 0.08, 0.18)
 	blast.show_behind_parent = true
 	b.add_child(blast)
 	var tag := Label.new()
@@ -1430,7 +1505,7 @@ func _make_barrel(pos: Vector2) -> Node2D:
 	tag.text = "油桶"
 	tag.position = Vector2(-16, -28)
 	tag.add_theme_font_size_override("font_size", 11)
-	tag.add_theme_color_override("font_color", Color(0.95, 0.6, 0.3))
+	tag.add_theme_color_override("font_color", Color(1.0, 0.62, 0.22))
 	b.add_child(tag)
 	b.detonated.connect(_on_barrel_detonated)
 	return b
@@ -1856,7 +1931,7 @@ func _ensure_tripwire_ghost() -> void:
 	var vis := Polygon2D.new()
 	vis.name = "Visual"
 	vis.polygon = PackedVector2Array([
-		Vector2(-10, -3), Vector2(10, -3), Vector2(10, 3), Vector2(-10, 3)
+		Vector2(-14, -2.5), Vector2(14, -2.5), Vector2(14, 2.5), Vector2(-14, 2.5)
 	])
 	vis.color = Color(0.9, 0.25, 0.22, 0.75)
 	tripwire_ghost.add_child(vis)
@@ -1881,7 +1956,7 @@ func _update_tripwire_ghost() -> void:
 	var ok := _near_any_route_segment(pos, TRIPWIRE_ROUTE_DIST)
 	var vis := tripwire_ghost.get_node_or_null("Visual") as Polygon2D
 	if vis:
-		vis.color = Color(0.35, 0.9, 0.4, 0.8) if ok else Color(0.9, 0.25, 0.22, 0.8)
+		vis.color = Color(0.42, 0.95, 0.52, 0.88) if ok else Color(0.92, 0.22, 0.2, 0.85)
 	var tag := tripwire_ghost.get_node_or_null("Tag") as Label
 	if tag:
 		tag.add_theme_color_override("font_color", Color(0.5, 0.95, 0.5) if ok else Color(0.95, 0.4, 0.3))
@@ -1958,6 +2033,7 @@ func _on_enemy_escaped(enemy: EnemyRunner, path: PackedVector2Array) -> void:
 	_remember_path(path, "escape")
 	_flash("逃逸！出口已标记", Color(1.0, 0.35, 0.25))
 	_sfx("escape")
+	_camera_punch()
 	_begin_escape_flash()
 	_redraw_ghosts()
 	pending_result = "fail"
@@ -2071,6 +2147,8 @@ func _flash(text: String, color: Color) -> void:
 func _show_fail_result() -> void:
 	if abort_button:
 		abort_button.visible = false
+	if title_return_button:
+		title_return_button.visible = false
 	result_panel.visible = true
 	_dock_fail_result_panel(fail_reason == "escape")
 	var lines := battle_log.summary_lines(10)
@@ -2101,18 +2179,29 @@ func _show_win_result() -> void:
 	if abort_button:
 		abort_button.visible = false
 	_reset_result_panel_pos()
+	result_panel.offset_left = -300.0
+	result_panel.offset_right = 300.0
+	result_panel.offset_top = -230.0
+	result_panel.offset_bottom = 230.0
 	result_panel.visible = true
-	var lines := battle_log.summary_lines(8)
+	if title_return_button:
+		title_return_button.visible = true
+	var lines := battle_log.summary_lines(5)
 	var has_next := level_index + 1 < LEVEL_ORDER.size()
 	if has_next:
-		result_label.text = "零逃逸。埋伏成立。\n用了 %d 世。\n\n%s\n\n—— 事件 ——\n%s" % [
-			loop_index, level.teaching, "\n".join(lines)
+		result_label.text = "任务完成。\n本关用了 %d 世。\n\n—— 关键事件 ——\n%s" % [
+			loop_index, "\n".join(lines)
 		]
 		continue_button.text = "下一关"
 	else:
-		result_label.text = "全部关卡封锁完成。\n总世数记忆保留于存档。\n\n%s" % "\n".join(lines)
+		result_label.text = "全部关卡封锁完成。\n本关用了 %d 世。\n\n—— 关键事件 ——\n%s" % [
+			loop_index, "\n".join(lines)
+		]
 		continue_button.text = "查看致谢"
 		_campaign_complete = true
+	var gs = _gs()
+	if gs and level:
+		gs.record_win(level.level_id)
 	if replay_button:
 		replay_button.visible = true
 	status_label.text = "计划奏效"
@@ -2272,6 +2361,7 @@ func _check_win() -> void:
 	battle_log.mark_terminal(sim.tick, "win")
 	_flash("零逃逸", Color(0.45, 0.9, 0.45))
 	_sfx("win")
+	_camera_punch()
 	pending_result = "win"
 
 

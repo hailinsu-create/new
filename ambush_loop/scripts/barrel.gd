@@ -22,10 +22,10 @@ func reset_fuse() -> void:
 	armed = true
 	spent = false
 	if visual:
-		visual.color = Color(0.85, 0.4, 0.15, 0.95)
+		visual.color = Color(0.98, 0.48, 0.08, 0.98)
 	if blast:
 		blast.visible = true
-		blast.color = Color(0.95, 0.35, 0.12, 0.14)
+		blast.color = Color(0.98, 0.42, 0.08, 0.18)
 	if tag:
 		tag.text = "油桶"
 
@@ -44,9 +44,9 @@ func _detonate(active_enemies: Array, ops: Array) -> void:
 	spent = true
 	armed = false
 	if visual:
-		visual.color = Color(0.28, 0.26, 0.24, 0.7)
+		visual.color = Color(0.32, 0.22, 0.14, 0.75)
 	if blast:
-		blast.color = Color(0.95, 0.45, 0.1, 0.35)
+		blast.color = Color(0.98, 0.5, 0.12, 0.4)
 	if tag:
 		tag.text = "油桶·已爆"
 	detonated.emit(self)

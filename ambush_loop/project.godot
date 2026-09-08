@@ -12,6 +12,11 @@ config/icon="res://icon.svg"
 [autoload]
 
 GameSettings="*res://scripts/game_settings.gd"
+AudioDirector="*res://scripts/sfx/audio_director.gd"
+
+[audio]
+
+buses/default_bus_layout="res://default_bus_layout.tres"
 
 [display]
 

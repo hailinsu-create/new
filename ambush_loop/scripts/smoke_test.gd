@@ -14,7 +14,7 @@ func _init() -> void:
 
 func _run() -> void:
 	_wipe_save()
-	if not _assert_launch_bar():
+	if not await _assert_launch_bar():
 		return
 	var err := change_scene_to_file("res://scenes/main.tscn")
 	if err != OK:
@@ -159,6 +159,23 @@ func _run() -> void:
 				" events=", main.battle_log.events.size()
 			)
 			if not _assert_fire_before_terminal(main):
+				return
+			if main.title_return_button == null or not main.title_return_button.visible:
+				push_error("SMOKE_NO_DEBRIEF_TITLE_BTN")
+				quit(44)
+				return
+			if str(main.continue_button.text).find("下一关") < 0:
+				push_error("SMOKE_DEBRIEF_CONTINUE %s" % main.continue_button.text)
+				quit(44)
+				return
+			if str(main.result_label.text).find("关键事件") < 0:
+				push_error("SMOKE_DEBRIEF_EVENTS")
+				quit(44)
+				return
+			var gs_win = root.get_node_or_null("GameSettings")
+			if gs_win == null or not gs_win.is_level_cleared("yard") or not gs_win.is_level_unlocked("warehouse"):
+				push_error("SMOKE_WIN_UNLOCK")
+				quit(44)
 				return
 			main._on_continue_pressed()
 			await process_frame
@@ -557,6 +574,15 @@ func _assert_sfx(main) -> bool:
 		push_error("SMOKE_MUTE_FAIL")
 		quit(36)
 		return false
+	var audio = root.get_node_or_null("AudioDirector")
+	if audio == null or not audio.has_music_bed():
+		push_error("SMOKE_NO_MUSIC_BED")
+		quit(43)
+		return false
+	if audio.music_player_playing():
+		push_error("SMOKE_MUTE_LEAVES_MUSIC")
+		quit(36)
+		return false
 	main._toggle_mute()
 	if main.sfx.muted:
 		push_error("SMOKE_UNMUTE_FAIL")
@@ -719,18 +745,69 @@ func _assert_launch_bar() -> bool:
 		push_error("SMOKE_TITLE_LOAD_FAIL")
 		quit(42)
 		return false
-	var inst = packed.instantiate()
-	if inst == null:
-		push_error("SMOKE_TITLE_INSTANTIATE_FAIL")
-		quit(42)
-		return false
-	inst.free()
 	var gs = root.get_node_or_null("GameSettings")
 	if gs == null:
 		push_error("SMOKE_NO_GAMESETTINGS")
 		quit(42)
 		return false
+	var audio = root.get_node_or_null("AudioDirector")
+	if audio == null:
+		push_error("SMOKE_NO_AUDIODIRECTOR")
+		quit(43)
+		return false
+	if not audio.has_cue("alarm") or not audio.has_cue("win"):
+		push_error("SMOKE_AUDIO_CUES")
+		quit(43)
+		return false
+	if not audio.has_music_bed() or not audio.music_bus_ok():
+		push_error("SMOKE_NO_MUSIC_BED")
+		quit(43)
+		return false
+	var entries: Array = gs.mission_entries()
+	if entries.size() != 3:
+		push_error("SMOKE_MISSION_COUNT %s" % entries.size())
+		quit(43)
+		return false
+	if not bool(entries[0]["unlocked"]) or bool(entries[1]["unlocked"]) or bool(entries[0]["cleared"]):
+		push_error("SMOKE_MISSION_UNLOCK_FRESH")
+		quit(43)
+		return false
+	var inst = packed.instantiate()
+	if inst == null:
+		push_error("SMOKE_TITLE_INSTANTIATE_FAIL")
+		quit(42)
+		return false
+	root.add_child(inst)
+	await process_frame
+	await process_frame
+	if inst.mission_row_count() != 3:
+		push_error("SMOKE_TITLE_MISSION_ROWS %s" % inst.mission_row_count())
+		inst.free()
+		quit(43)
+		return false
+	inst._on_start()
+	await process_frame
+	if not inst.mission_select_visible():
+		push_error("SMOKE_MISSION_SELECT_HIDDEN")
+		inst.free()
+		quit(43)
+		return false
+	inst._on_mission_picked(1)
+	await process_frame
+	if inst.briefing_visible() or inst.pending_mission_id() == "warehouse":
+		push_error("SMOKE_SKIPPED_LOCKED_MISSION")
+		inst.free()
+		quit(43)
+		return false
+	inst._on_mission_picked(0)
+	await process_frame
+	if not inst.briefing_visible() or inst.pending_mission_id() != "yard":
+		push_error("SMOKE_YARD_BRIEFING_FAIL")
+		inst.free()
+		quit(43)
+		return false
+	inst.free()
 	# Keep tutorial modal off so SETUP input/API matches the slice gate.
 	gs.seen_tutorial = true
-	print("SMOKE_OK_LAUNCH_BAR title+GameSettings")
+	print("SMOKE_OK_LAUNCH_BAR title+GameSettings+AudioDirector+missions")
 	return true

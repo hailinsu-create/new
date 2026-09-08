@@ -1,8 +1,17 @@
 # Ambush Loop — launch bar vs deferred
 
-Target: **indie Commandos-lite / Into-the-Breach-adjacent Steam early access average** — shippable loop, readable UI, onboarding, settings, menu, exportable project. Not an AAA Commandos remake.
+Target: **indie Commandos-lite / Into-the-Breach-adjacent Steam early access average (~7/10)**. Shippable loop, readable UI, onboarding, settings, mission list, quiet bed + SFX, exportable project. Not an AAA Commandos remake.
 
 Hard rules that must stay true: alarm freezes plan; no mid-fight micro; authored routes; escape/wipe fail; intel+plan across loops.
+
+## Score (this cut): **7 / 10**
+
+Average similar-game launch: title that lists missions, keyboard legend, quit confirm, debrief after a win, specialist silhouettes you can read at a glance, and *some* music bed even if it is a quiet drone. That is the bar this cut aims at.
+
+| Band | Why |
+|------|-----|
+| **7** | Mission select + lock/clear from save, looping bed + SFX bus, win debrief, role glyphs, facing chevrons, full key table, quit confirm. Matches a small tactics Steam page that is honest about scope. |
+| Not 8+ | Still geometry-only art, no FOW, no mix/VO, no playtest pass, three authored yards only. Those are the usual store-page “this is a real game” gaps, not a missing menu. |
 
 ## Launch bar (this cut)
 
@@ -12,28 +21,30 @@ Hard rules that must stay true: alarm freezes plan; no mid-fight micro; authored
 | A2 | Brand-first title: **AMBUSH LOOP**, tagline 战前埋伏 · 锁死计划 · 时间穿梭, CTAs 开始行动 / 继续进度 / 操作说明 / 退出 | Done |
 | A3 | Night-ops asphalt/olive (no purple gradient, no cream+serif terracotta); grid + wordmark fade, CTA pulse, route-line drift | Done |
 | A4 | 继续进度 loads `user://ambush_loop.cfg` if present; else disabled | Done |
-| A5 | 开始行动 → briefing for current/first incomplete level → `main.tscn` via `GameSettings.pending_level_id` | Done |
+| A5 | 开始行动 → **mission list** (3 levels, lock / 可出击 / 首通 from `ambush_loop.cfg`) → briefing → `main.tscn`. Sequential unlock; cannot skip locked | Done |
 | B6 | Autoload `GameSettings`: mute, master volume 0–1, seen_tutorial; `user://ambush_loop_settings.cfg` | Done |
-| B7 | Title + in-game Esc pause/settings (mute, volume, 返回标题, 重新部署 SETUP-only). M toggles mute | Done |
-| B8 | Progress save + settings; campaign complete → credits → title | Done |
+| B7 | In-game Esc pause/settings (mute, volume, 返回标题, 重新部署 SETUP-only). M toggles mute. Title Esc / 退出 → quit confirm (设置 still reachable) | Done |
+| B8 | Progress save + settings; campaign complete → credits → title. Win records `cleared` and unlocks the next id | Done |
 | C9 | First yard SETUP: 3-step modal; page 1 cannot be skipped via dimmer; auto-mark seen on dismiss | Done |
 | C10 | Existing `tut_label` kept as secondary tip | Done |
-| D11 | Left operator cards: name/role, ammo, HP, fire mode, slot or 未部署; click select; highlight | Done |
-| D12 | Cooler night floor, warmer walls, escape mouth glow; route labels kept | Done |
-| D13 | Result panels stay docked off the escape mouth; campaign win → credits | Done |
+| D11 | Left operator cards: name/role **glyph**, ammo, HP, fire mode, slot or 未部署; click select; highlight; matching glyph on the map | Done |
+| D12 | Cooler night floor, warmer walls, escape mouth glow; route labels kept; lime tripwire / saturated oil-drum barrel | Done |
+| D13 | Fail panels stay docked off the escape mouth; **win debrief** (loops used, last 5 events, 下一关 / 返回标题) before advance; campaign win → credits | Done |
 | E14 | `export_presets.cfg` Linux + Windows Desktop (Godot 4.7), embed PCK | Done |
 | E15 | README: Godot 4.7.2, run, export, controls, content | Done |
 | F17 | Smoke still `change_scene_to_file(main.tscn)`, `SMOKE_SLICE_COMPLETE` exit 0 | Done |
 | F18 | Smoke asserts title scene + GameSettings autoload | Done |
+| G19 | Autoload `AudioDirector`: looping generator bed on **Music**, pooled WAV SFX on **SFX**; master volume slider; mute kills both; streams reused / nulled on exit | Done |
+| G20 | Enemy chevron rotates to move direction; 1–2px camera punch on escape/win | Done |
 
-## Still below Steam-average (deferred)
+## Still below 8+ (deferred)
 
-These are the honest blockers to a *true* similar-game store page, not this launch bar:
+These are the honest blockers to a *strong* similar-game store page:
 
 | Item | Why it is out |
 |------|----------------|
-| Art / animation / isometric Commandos read | Geometry + labels; no sprite pipeline, no character anim |
-| Music / mix / VO | Procedural beeps only; Dummy driver in headless |
+| Art / animation / isometric Commandos read | Geometry + labels + tiny glyphs; no sprite pipeline |
+| Real music mix / VO | Quiet procedural drone + beeps; Dummy driver in headless |
 | Fog of war / hidden enemies | Scout ring is SETUP-only on purpose |
 | Human playtest + balance pass | Smoke is the regression gate |
 | Steam page, achievements, cloud saves, controller | Export presets exist; no store integration |

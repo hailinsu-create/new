@@ -15,8 +15,8 @@ top-down Godot vertical slice, not a Commandos clone.
 - **Read-only replay:** snapshot scrub, click-to-focus events. Does not re-simulate.
 - **Authored toys:** tripwire (1), ammo pack, door→alternate route, warehouse proximity barrel (sim-tick only).
 - **Watch-only speed:** 1× / 2× must match tick + event fingerprint (smoke).
-- **Procedural SFX:** short in-code WAV beeps (alarm, first fire, first return fire, empty, loot, op death, escape, win). Mute with **M**. No external audio assets.
-- **Title / settings / onboarding:** night-ops title, briefing, Esc settings (mute + volume), first-run 3-step yard tutorial, left operator cards, campaign credits.
+- **Procedural audio:** short pooled WAV beeps on the **SFX** bus; looping generator drone on **Music**. Mute with **M** (Master, both buses). Volume slider is master. No external audio assets.
+- **Title / settings / onboarding:** night-ops title, **mission select** (lock / 首通), briefing, Esc quit confirm on title, in-game Esc settings, first-run 3-step yard tutorial, left operator cards with role glyphs, win debrief, campaign credits.
 - **Export presets:** Linux + Windows desktop in `export_presets.cfg` (manual export; see README).
 
 ## Deferred (not this slice)
@@ -28,7 +28,7 @@ top-down Godot vertical slice, not a Commandos clone.
 | Steam/itch store page + CI export artifacts | Presets ship; builds are local (export templates required) |
 | Human playtest pass | Smoke is the regression gate, not a player report |
 | Mid-mission Commandos verbs | Climb, knife, distract, vehicles, multi-floor — explicitly out of design |
-| Real audio mix / VO / music | Beeps only; Dummy driver in headless |
+| Real audio mix / VO / soundtrack | Quiet drone + beeps; Dummy driver in headless |
 
 Launch-bar checklist: `docs/LAUNCH_BAR.md`.
 
@@ -36,4 +36,4 @@ Launch-bar checklist: `docs/LAUNCH_BAR.md`.
 
 `godot --headless --path ambush_loop -s res://scripts/smoke_test.gd` prints `SMOKE_SLICE_COMPLETE` and `SMOKE_OK_LAUNCH_BAR` and exits 0.
 
-Includes: title scene + GameSettings autoload; yard escape → restore → 1×/2× fingerprint match → reference win; warehouse barrel present; pump open + locked alternate route; roles with distinct ranges; LOS clip.
+Includes: title scene + GameSettings + AudioDirector autoloads; mission list lock; yard escape → restore → 1×/2× fingerprint match → reference win + debrief; warehouse barrel present; pump open + locked alternate route; roles with distinct ranges; LOS clip.

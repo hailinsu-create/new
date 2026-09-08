@@ -1,9 +1,10 @@
 extends Node
 
-## Autoload: mute, master volume, tutorial flag, pending mission id.
+## Autoload: mute, master volume, tutorial flag, pending mission id, campaign list.
 
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
 const PROGRESS_PATH := "user://ambush_loop.cfg"
+const LEVEL_ORDER := ["yard", "warehouse", "pump"]
 
 signal changed
 
@@ -110,6 +111,99 @@ func current_or_first_level() -> String:
 	if not has_progress() or is_campaign_complete():
 		return "yard"
 	return progress_level_id()
+
+
+func _progress_cfg() -> ConfigFile:
+	var cfg := ConfigFile.new()
+	cfg.load(PROGRESS_PATH)
+	return cfg
+
+
+func _read_cleared_raw(cfg: ConfigFile) -> PackedStringArray:
+	var v = cfg.get_value("progress", "cleared", PackedStringArray())
+	var out := PackedStringArray()
+	if v is PackedStringArray:
+		out = v
+	elif v is Array:
+		for x in v:
+			var s := str(x)
+			if s != "" and not out.has(s):
+				out.append(s)
+	elif v is String:
+		for p in str(v).split(","):
+			var s := p.strip_edges()
+			if s != "" and not out.has(s):
+				out.append(s)
+	return out
+
+
+func cleared_level_ids() -> PackedStringArray:
+	var cfg := _progress_cfg()
+	var cleared := _read_cleared_raw(cfg)
+	if bool(cfg.get_value("progress", "complete", false)):
+		return PackedStringArray(LEVEL_ORDER)
+	var cur := str(cfg.get_value("progress", "level_id", "yard"))
+	var idx := LEVEL_ORDER.find(cur)
+	if idx < 0:
+		idx = 0
+	# Old saves only stored the current incomplete level — everything before it is beaten.
+	for i in idx:
+		var id: String = LEVEL_ORDER[i]
+		if not cleared.has(id):
+			cleared.append(id)
+	return cleared
+
+
+func is_level_cleared(id: String) -> bool:
+	return cleared_level_ids().has(id)
+
+
+func is_level_unlocked(id: String) -> bool:
+	var idx := LEVEL_ORDER.find(id)
+	if idx <= 0:
+		return true
+	if is_campaign_complete():
+		return true
+	return is_level_cleared(LEVEL_ORDER[idx - 1])
+
+
+func mission_entries() -> Array:
+	var out: Array = []
+	var cleared := cleared_level_ids()
+	var complete := is_campaign_complete()
+	for i in LEVEL_ORDER.size():
+		var id: String = LEVEL_ORDER[i]
+		var def: LevelDef = LevelDef.by_id(id)
+		var unlocked := i == 0 or complete or cleared.has(LEVEL_ORDER[i - 1])
+		out.append({
+			"id": id,
+			"title": def.title,
+			"unlocked": unlocked,
+			"cleared": complete or cleared.has(id),
+		})
+	return out
+
+
+func record_win(level_id: String) -> void:
+	var cfg := _progress_cfg()
+	var cleared := _read_cleared_raw(cfg)
+	if not cleared.has(level_id):
+		cleared.append(level_id)
+	# Keep inferred predecessors so lock state never regresses.
+	var won_idx := LEVEL_ORDER.find(level_id)
+	for i in maxi(won_idx, 0):
+		var pred: String = LEVEL_ORDER[i]
+		if not cleared.has(pred):
+			cleared.append(pred)
+	cfg.set_value("progress", "cleared", cleared)
+	if won_idx >= LEVEL_ORDER.size() - 1:
+		cfg.set_value("progress", "complete", true)
+	elif won_idx >= 0:
+		var next_id: String = LEVEL_ORDER[won_idx + 1]
+		cfg.set_value("progress", "level_id", next_id)
+		cfg.set_value("progress", "level_index", won_idx + 1)
+		cfg.set_value("progress", "complete", false)
+	cfg.save(PROGRESS_PATH)
 
 
 func _migrate_mute_from_progress() -> void:

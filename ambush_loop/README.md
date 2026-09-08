@@ -42,8 +42,8 @@ Presets live in `ambush_loop/export_presets.cfg` (Linux Desktop, Windows Desktop
 
 | Key / UI | Action |
 |----------|--------|
-| Title | 开始行动 (briefing) / 继续进度 / 操作说明 / 退出 |
-| Esc | Pause / settings (mute, volume, 返回标题, 重新部署 in SETUP) |
+| Title | 开始行动 → 任务列表（锁定/可出击/首通）→ 简报 / 继续进度 / 操作说明（全键表） / 退出（确认） |
+| Esc | 标题：退出确认（可进设置）；战场：暂停 / 设置（静音、音量、返回标题、布置期重新部署） |
 | 1 / 2 / 3 or left operator cards | Select 步枪手 / 机枪手 / 侦察兵 |
 | LMB cover | Deploy selected operator (cyan arc = cover protect direction) |
 | Hover cover | Preview that slot's protect arc |
@@ -57,7 +57,7 @@ Presets live in `ambush_loop/export_presets.cfg` (Linux Desktop, Windows Desktop
 | + / − or speed button | 1× / 2× watch speed (viewing only) |
 | X or 中止尝试 | Abort current attempt; keep intel up to now (counts as fail) |
 | 时间轴复盘 | Read-only snapshot scrub (←/→ or slider). Click an event log line to seek/highlight that actor. Does not re-simulate. Space restores the last plan. |
-| M or 音效 button | Mute / unmute procedural SFX |
+| M or 音效 button | Mute / unmute (master: music bed + SFX) |
 | Clear btn | Clear deploy (keep intel + tripwires) |
 | R | Clear memory and restart |
 
@@ -69,14 +69,14 @@ First yard visit shows a 3-page tutorial (cannot skip page 1 by clicking the dim
 
 | Piece | What ships |
 |-------|------------|
-| Title | Wordmark, Chinese tagline, start / continue / how-to / quit, briefing overlay |
+| Title | Wordmark, Chinese tagline, start → mission list → briefing, continue, full key table, quit confirm |
 | Settings | Autoload `GameSettings`: mute, master volume, seen_tutorial (`user://ambush_loop_settings.cfg`) |
-| Progress | `user://ambush_loop.cfg` current level; campaign complete → credits → title |
-| Roles | 步枪手 / 机枪手 / 侦察兵 kits, left-rail HP/ammo/mode/slot cards |
+| Progress | `user://ambush_loop.cfg` current level + `cleared`; campaign complete → credits → title |
+| Roles | 步枪手 / 机枪手 / 侦察兵 kits, left-rail HP/ammo/mode/slot cards + role glyphs on card and map |
 | Levels | 院子, 仓道 (ammo pack + barrel), 泵站 (door → alternate route) |
-| Toys | Tripwire (1), killzone preview, scout observation ring (SETUP only) |
-| Loop | Alarm freezes plan; authored routes; escape/wipe fail; intel + last plan persist |
-| Audio | Procedural SFX beeps; M mute; volume slider |
+| Toys | Tripwire (1, lime pegs), killzone preview, scout observation ring (SETUP only) |
+| Loop | Alarm freezes plan; authored routes; escape/wipe fail; intel + last plan persist; win debrief before 下一关 |
+| Audio | Autoload `AudioDirector`: quiet looping drone (Music) + pooled SFX beeps (SFX); M mute; master volume |
 | Export | Linux + Windows desktop presets (manual) |
 
 ## Roles

@@ -1,7 +1,7 @@
 class_name SfxBus
 extends Node
 
-## Tiny procedural WAV beeps — no asset files. Mute with M.
+## Tiny procedural WAV beeps — pooled, reused, SFX bus. Mute with M / Master.
 
 const MIX_RATE := 22050
 const CUES := [
@@ -11,15 +11,34 @@ const CUES := [
 var muted: bool = false
 var last_cue: String = ""
 var _players: Dictionary = {}
+var _stream_pool: Dictionary = {}
 
 
 func _ready() -> void:
+	_build_players()
+
+
+func _exit_tree() -> void:
+	# Drop WAV refs so headless ObjectDB stays quiet on quit.
+	for k in _players:
+		var p: AudioStreamPlayer = _players[k]
+		if p != null and is_instance_valid(p):
+			p.stop()
+			p.stream = null
+	_players.clear()
+	_stream_pool.clear()
+
+
+func _build_players() -> void:
+	var bus := _sfx_bus_name()
 	for cue in CUES:
+		if _players.has(cue) and _players[cue] != null and is_instance_valid(_players[cue]):
+			continue
 		var p := AudioStreamPlayer.new()
 		p.name = "Cue_%s" % cue
-		p.stream = _build_stream(cue)
+		p.stream = _pooled_stream(cue)
 		p.volume_db = _gain(cue)
-		p.bus = "Master"
+		p.bus = bus
 		add_child(p)
 		_players[cue] = p
 
@@ -52,6 +71,18 @@ func toggle_muted() -> bool:
 
 func has_cue(cue: String) -> bool:
 	return _players.has(cue) and _players[cue] != null
+
+
+func _sfx_bus_name() -> String:
+	return "SFX" if AudioServer.get_bus_index("SFX") >= 0 else "Master"
+
+
+func _pooled_stream(cue: String) -> AudioStreamWAV:
+	if _stream_pool.has(cue) and _stream_pool[cue] != null:
+		return _stream_pool[cue]
+	var st := _build_stream(cue)
+	_stream_pool[cue] = st
+	return st
 
 
 func _gain(cue: String) -> float:

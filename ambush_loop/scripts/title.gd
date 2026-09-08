@@ -1,10 +1,28 @@
 extends Control
 
-## Title: brand, briefing, continue, how-to, settings.
+## Title: brand, mission select, briefing, continue, how-to, quit confirm.
 
-const HOWTO := """布置：1/2/3 或左侧卡片选队员，左键点掩体部署。A/D 或右键调射界。F 开火条件，G 弹包（仓道），B 门锁（泵站），Tab 绊索。
-空格：拉响警报并锁死计划。之后只能观看（P 暂停，+/- 变速）。X 中止并保留情报。
-失败（逃逸/全灭/中止）穿梭回去，恢复上轮计划。M 静音。Esc 设置。R 清空记忆。
+const HOWTO := """布置杀局，警报锁死，只能观看。失败穿梭并带回情报。
+
+键 / 操作              作用
+1 / 2 / 3 或左侧卡片    选步枪手 / 机枪手 / 侦察兵
+左键点掩体              部署选中队员（青弧=保护方向）
+悬停掩体                预览该位保护弧
+A / D 或右键            调整射界（黄锥被墙裁切）
+F                       开火条件：见敌即打 / 入伏再打
+G                       弹包交给已部署队员（仓道、泵站）
+B                       门锁（泵站；侧翼改走备用接近）
+Tab                     绊索工具（路线附近，限额 1）
+空格                    拉响警报并锁死计划 / 观看时暂停 / 退出复盘
+P                       观看暂停
++ / −                   观看变速 1× / 2×（不改模拟结果）
+X                       中止尝试，保留目前情报（算失败）
+时间轴复盘 / ← →        只读回放，点击事件定位
+M                       静音（主音量：音乐+音效一起关）
+R                       清空记忆并重新布置
+Esc                     标题：退出确认；战场：作战设置
+退出                    退出确认（进度留在本地）
+
 硬规则：警报后不能微操；敌人走作者路线；逃逸或全灭都算失败。"""
 
 @onready var wordmark: Label = $UI/Wordmark
@@ -19,6 +37,10 @@ var _brief: CanvasLayer
 var _brief_title: Label
 var _brief_body: Label
 var _howto: CanvasLayer
+var _mission: CanvasLayer
+var _mission_box: VBoxContainer
+var _mission_btns: Array[Button] = []
+var _quit: CanvasLayer
 var _pending_id: String = "yard"
 
 
@@ -34,6 +56,8 @@ func _ready() -> void:
 	_wire_menu()
 	_build_briefing()
 	_build_howto()
+	_build_mission_select()
+	_build_quit_confirm()
 	pause_ui = PauseOverlay.new()
 	add_child(pause_ui)
 	pause_ui.closed.connect(func() -> void: pass)
@@ -42,11 +66,27 @@ func _ready() -> void:
 	_refresh_continue()
 
 
+func mission_row_count() -> int:
+	return _mission_btns.size()
+
+
+func mission_select_visible() -> bool:
+	return _mission != null and _mission.visible
+
+
+func briefing_visible() -> bool:
+	return _brief != null and _brief.visible
+
+
+func pending_mission_id() -> String:
+	return _pending_id
+
+
 func _wire_menu() -> void:
 	start_btn.pressed.connect(_on_start)
 	continue_btn.pressed.connect(_on_continue)
 	help_btn.pressed.connect(_on_help)
-	quit_btn.pressed.connect(func() -> void: get_tree().quit())
+	quit_btn.pressed.connect(_show_quit_confirm)
 
 
 func _refresh_continue() -> void:
@@ -80,26 +120,67 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 		if event.physical_keycode == KEY_ESCAPE:
-			if _brief.visible:
+			if _quit != null and _quit.visible:
+				_quit.visible = false
+			elif _brief != null and _brief.visible:
 				_brief.visible = false
-			elif _howto.visible:
+			elif _howto != null and _howto.visible:
 				_howto.visible = false
-			elif pause_ui.is_open():
+			elif _mission != null and _mission.visible:
+				_mission.visible = false
+			elif pause_ui != null and pause_ui.is_open():
 				pause_ui.dismiss()
 			else:
-				pause_ui.present(false, false)
+				_show_quit_confirm()
 			get_viewport().set_input_as_handled()
 
 
 func _on_start() -> void:
-	_pending_id = GameSettings.current_or_first_level()
-	_show_briefing(_pending_id)
+	_show_mission_select()
 
 
 func _on_continue() -> void:
 	if not GameSettings.has_progress():
 		return
 	_enter_mission(GameSettings.progress_level_id())
+
+
+func _show_mission_select() -> void:
+	_refresh_mission_rows()
+	_mission.visible = true
+
+
+func _refresh_mission_rows() -> void:
+	var entries: Array = GameSettings.mission_entries()
+	for i in _mission_btns.size():
+		var btn := _mission_btns[i]
+		if i >= entries.size():
+			btn.visible = false
+			continue
+		var e: Dictionary = entries[i]
+		btn.visible = true
+		btn.disabled = not bool(e["unlocked"])
+		var badge := "锁定 · 先完成上一关"
+		if bool(e["unlocked"]):
+			badge = "可出击"
+		if bool(e["cleared"]):
+			badge = "首通"
+		btn.text = "%s\n%s" % [str(e["title"]), badge]
+		btn.modulate = Color(0.62, 0.64, 0.58) if btn.disabled else Color.WHITE
+		btn.set_meta("level_id", str(e["id"]))
+		btn.set_meta("unlocked", bool(e["unlocked"]))
+
+
+func _on_mission_picked(idx: int) -> void:
+	if idx < 0 or idx >= _mission_btns.size():
+		return
+	var btn := _mission_btns[idx]
+	if not bool(btn.get_meta("unlocked", false)):
+		return
+	var id := str(btn.get_meta("level_id", "yard"))
+	_mission.visible = false
+	_pending_id = id
+	_show_briefing(id)
 
 
 func _show_briefing(level_id: String) -> void:
@@ -118,24 +199,40 @@ func _on_help() -> void:
 	_howto.visible = true
 
 
-func _build_briefing() -> void:
-	_brief = CanvasLayer.new()
-	_brief.layer = 20
-	_brief.visible = false
-	add_child(_brief)
+func _show_quit_confirm() -> void:
+	if _quit:
+		_quit.visible = true
+
+
+func _confirm_quit() -> void:
+	get_tree().quit()
+
+
+func _open_settings_from_quit() -> void:
+	if _quit:
+		_quit.visible = false
+	if pause_ui:
+		pause_ui.present(false, false)
+
+
+func _modal_panel(layer: int, w: float, h: float) -> Dictionary:
+	var root := CanvasLayer.new()
+	root.layer = layer
+	root.visible = false
+	add_child(root)
 	var dim := ColorRect.new()
 	dim.color = Color(0.02, 0.03, 0.02, 0.82)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
-	_brief.add_child(dim)
+	root.add_child(dim)
 	var panel := PanelContainer.new()
 	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.offset_left = -320.0
-	panel.offset_right = 320.0
-	panel.offset_top = -210.0
-	panel.offset_bottom = 210.0
+	panel.offset_left = -w * 0.5
+	panel.offset_right = w * 0.5
+	panel.offset_top = -h * 0.5
+	panel.offset_bottom = h * 0.5
 	panel.theme = NightOps.theme()
-	_brief.add_child(panel)
+	root.add_child(panel)
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 22)
 	margin.add_theme_constant_override("margin_right", 22)
@@ -145,6 +242,13 @@ func _build_briefing() -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 12)
 	margin.add_child(box)
+	return {"root": root, "box": box}
+
+
+func _build_briefing() -> void:
+	var ui := _modal_panel(20, 640.0, 420.0)
+	_brief = ui["root"]
+	var box: VBoxContainer = ui["box"]
 	var kicker := Label.new()
 	kicker.text = "任务简报"
 	kicker.add_theme_color_override("font_color", NightOps.OLIVE_DIM)
@@ -164,7 +268,10 @@ func _build_briefing() -> void:
 	box.add_child(row)
 	var back := Button.new()
 	back.text = "返回"
-	back.pressed.connect(func() -> void: _brief.visible = false)
+	back.pressed.connect(func() -> void:
+		_brief.visible = false
+		_show_mission_select()
+	)
 	row.add_child(back)
 	var go := Button.new()
 	go.text = "进入战场"
@@ -173,32 +280,9 @@ func _build_briefing() -> void:
 
 
 func _build_howto() -> void:
-	_howto = CanvasLayer.new()
-	_howto.layer = 20
-	_howto.visible = false
-	add_child(_howto)
-	var dim := ColorRect.new()
-	dim.color = Color(0.02, 0.03, 0.02, 0.82)
-	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	dim.mouse_filter = Control.MOUSE_FILTER_STOP
-	_howto.add_child(dim)
-	var panel := PanelContainer.new()
-	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.offset_left = -340.0
-	panel.offset_right = 340.0
-	panel.offset_top = -200.0
-	panel.offset_bottom = 200.0
-	panel.theme = NightOps.theme()
-	_howto.add_child(panel)
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 22)
-	margin.add_theme_constant_override("margin_right", 22)
-	margin.add_theme_constant_override("margin_top", 18)
-	margin.add_theme_constant_override("margin_bottom", 18)
-	panel.add_child(margin)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 12)
-	margin.add_child(box)
+	var ui := _modal_panel(20, 720.0, 520.0)
+	_howto = ui["root"]
+	var box: VBoxContainer = ui["box"]
 	var t := Label.new()
 	t.text = "操作说明"
 	t.add_theme_font_size_override("font_size", 22)
@@ -206,10 +290,76 @@ func _build_howto() -> void:
 	box.add_child(t)
 	var body := Label.new()
 	body.text = HOWTO
-	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	body.custom_minimum_size = Vector2(620, 220)
+	body.autowrap_mode = TextServer.AUTOWRAP_OFF
+	body.custom_minimum_size = Vector2(660, 360)
 	box.add_child(body)
 	var close := Button.new()
 	close.text = "关闭"
 	close.pressed.connect(func() -> void: _howto.visible = false)
 	box.add_child(close)
+
+
+func _build_mission_select() -> void:
+	var ui := _modal_panel(20, 560.0, 430.0)
+	_mission = ui["root"]
+	_mission_box = ui["box"]
+	var t := Label.new()
+	t.text = "选择任务"
+	t.add_theme_font_size_override("font_size", 22)
+	t.add_theme_color_override("font_color", NightOps.OLIVE_HI)
+	_mission_box.add_child(t)
+	var hint := Label.new()
+	hint.text = "按顺序解锁。已封锁的关卡可再打一次。"
+	hint.add_theme_color_override("font_color", NightOps.OLIVE_DIM)
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_mission_box.add_child(hint)
+	_mission_btns.clear()
+	for i in 3:
+		var btn := Button.new()
+		btn.custom_minimum_size = Vector2(500, 72)
+		btn.add_theme_font_size_override("font_size", 16)
+		btn.clip_text = false
+		var idx := i
+		btn.pressed.connect(func() -> void: _on_mission_picked(idx))
+		_mission_box.add_child(btn)
+		_mission_btns.append(btn)
+	var back := Button.new()
+	back.text = "返回"
+	back.pressed.connect(func() -> void: _mission.visible = false)
+	_mission_box.add_child(back)
+
+
+func _build_quit_confirm() -> void:
+	var ui := _modal_panel(30, 420.0, 230.0)
+	_quit = ui["root"]
+	var box: VBoxContainer = ui["box"]
+	var t := Label.new()
+	t.text = "退出游戏？"
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	t.add_theme_font_size_override("font_size", 22)
+	t.add_theme_color_override("font_color", NightOps.OLIVE_HI)
+	box.add_child(t)
+	var body := Label.new()
+	body.text = "进度留在本地。音量与静音会记住。"
+	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(body)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 10)
+	box.add_child(row)
+	var cancel := Button.new()
+	cancel.text = "取消"
+	cancel.custom_minimum_size = Vector2(90, 36)
+	cancel.pressed.connect(func() -> void: _quit.visible = false)
+	row.add_child(cancel)
+	var settings := Button.new()
+	settings.text = "设置"
+	settings.custom_minimum_size = Vector2(90, 36)
+	settings.pressed.connect(_open_settings_from_quit)
+	row.add_child(settings)
+	var yes := Button.new()
+	yes.text = "退出"
+	yes.custom_minimum_size = Vector2(90, 36)
+	yes.pressed.connect(_confirm_quit)
+	row.add_child(yes)

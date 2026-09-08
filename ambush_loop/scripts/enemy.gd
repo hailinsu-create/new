@@ -55,6 +55,8 @@ func setup(id: int, p_route: PackedVector2Array, p_grid: AmbushGrid = null, p_lo
 		global_position = route[0]
 	recorded.clear()
 	recorded.append(global_position)
+	if route.size() > 1:
+		_face_move(route[1])
 	_update_hp_bar()
 
 
@@ -116,6 +118,19 @@ func sim_step(delta: float) -> void:
 			return
 	if recorded.is_empty() or global_position.distance_to(recorded[recorded.size() - 1]) >= RECORD_DIST:
 		recorded.append(global_position)
+	_face_move(target)
+
+
+func _face_move(target: Vector2) -> void:
+	if body == null:
+		return
+	var aim := target - global_position
+	if aim.length_squared() < 0.25 and route_index > 0 and route_index <= route.size():
+		aim = route[mini(route_index, route.size() - 1)] - route[route_index - 1]
+	if aim.length_squared() < 0.04:
+		return
+	# Body chevron tip is local -Y; rotate so the tip points along travel.
+	body.rotation = aim.angle() + PI * 0.5
 
 
 func resolve_return_fire() -> void:

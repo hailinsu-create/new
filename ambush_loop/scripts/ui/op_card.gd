@@ -12,6 +12,7 @@ var _hp: ProgressBar
 var _hp_txt: Label
 var _meta: Label
 var _slot: Label
+var _glyph: RoleGlyph
 var _fill_col: Color = Color(0, 0, 0, 0)
 var _normal: StyleBoxFlat
 var _hot: StyleBoxFlat
@@ -37,11 +38,19 @@ func setup(i: int) -> void:
 	box.add_theme_constant_override("separation", 3)
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_child(box)
+	var name_row := HBoxContainer.new()
+	name_row.add_theme_constant_override("separation", 6)
+	name_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(name_row)
+	_glyph = RoleGlyph.new()
+	_glyph.custom_minimum_size = Vector2(18, 18)
+	name_row.add_child(_glyph)
 	_name = Label.new()
 	_name.add_theme_font_size_override("font_size", 15)
 	_name.add_theme_color_override("font_color", NightOps.OLIVE_HI)
 	_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(_name)
+	_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_row.add_child(_name)
 	_role = Label.new()
 	_role.add_theme_font_size_override("font_size", 11)
 	_role.add_theme_color_override("font_color", NightOps.MUTED)
@@ -85,6 +94,8 @@ func bind(op: OperatorUnit, is_sel: bool, can_pick: bool) -> void:
 	visible = true
 	modulate = Color(1, 1, 1, 1) if can_pick else Color(1, 1, 1, 0.5)
 	add_theme_stylebox_override("panel", _hot if is_sel else _normal)
+	if _glyph:
+		_glyph.role = op.role
 	_name.text = op.display_name
 	_role.text = "%s · %s" % [OperatorUnit.role_display(op.role), _kit_short(op)]
 	var hp := op.hp if op.alive else 0.0

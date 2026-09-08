@@ -32,8 +32,8 @@ func _draw() -> void:
 		var brect := Rect2(
 			barrel_cell.x * tile, barrel_cell.y * tile, tile, tile
 		)
-		draw_rect(brect, Color(0.85, 0.38, 0.12, 0.22))
-		draw_rect(brect, Color(0.95, 0.5, 0.2, 0.55), false, 1.5)
+		draw_rect(brect, Color(0.98, 0.42, 0.08, 0.28))
+		draw_rect(brect, Color(1.0, 0.55, 0.18, 0.7), false, 2.0)
 	if escape_cell.x >= 0:
 		var erect := Rect2(escape_cell.x * tile, escape_cell.y * tile, tile, tile)
 		# Soft mouth glow so the exit stays readable even before a fail flash.
