@@ -111,6 +111,7 @@ var _menu_paused_sim: bool = false
 var _campaign_complete: bool = false
 var title_return_button: Button = null
 var _punch_tween: Tween = null
+var _game_cam: Camera2D = null
 
 
 func _ready() -> void:
@@ -277,6 +278,7 @@ func _resolve_optional_hud() -> void:
 		$World.add_child(killzone_draw)
 		$World.move_child(killzone_draw, routes_draw.get_index())
 	_ensure_tripwire_ghost()
+	_ensure_game_camera()
 	if replay_layer == null:
 		replay_layer = Node2D.new()
 		replay_layer.name = "ReplayLayer"
@@ -507,15 +509,26 @@ func _ensure_debrief_buttons() -> void:
 	vbox.add_child(title_return_button)
 
 
-func _camera_punch() -> void:
-	var world: Node2D = $World
-	if world == null:
+func _ensure_game_camera() -> void:
+	if _game_cam != null and is_instance_valid(_game_cam):
 		return
+	# Default 2D view is origin = top-left. A centered camera at the viewport
+	# midpoint preserves that, so we can punch offset without moving World
+	# (which would shift gameplay global_position and break 1×/2×).
+	_game_cam = Camera2D.new()
+	_game_cam.name = "GameCam"
+	_game_cam.position = Vector2(640, 360)
+	_game_cam.enabled = true
+	add_child(_game_cam)
+
+
+func _camera_punch() -> void:
+	_ensure_game_camera()
 	if _punch_tween != null:
 		_punch_tween.kill()
-	world.position = Vector2(2, -1)
+	_game_cam.offset = Vector2(2, -1)
 	_punch_tween = create_tween()
-	_punch_tween.tween_property(world, "position", Vector2.ZERO, 0.14).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_punch_tween.tween_property(_game_cam, "offset", Vector2.ZERO, 0.14).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
 
 func _load_level(level_id: String, keep_intel: bool, restore_plan: bool) -> void:
@@ -911,6 +924,11 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 	replay_focus_type = ""
 	if has_node("World"):
 		$World.position = Vector2.ZERO
+	if _punch_tween != null:
+		_punch_tween.kill()
+		_punch_tween = null
+	if _game_cam != null:
+		_game_cam.offset = Vector2.ZERO
 	_update_event_log()
 	_update_hud()
 
