@@ -1,23 +1,50 @@
 # Ambush Loop
 
-Godot 4.7 vertical slice — Commandos-style ambush prep + time-loop intel.
+Godot 4.7.2 vertical slice — Commandos-style ambush prep + time-loop intel.
 
-Blueprint: `docs/Ambush_Loop_开发蓝图.md`
+Blueprint: `docs/Ambush_Loop_开发蓝图.md`  
+Launch criteria: `docs/LAUNCH_BAR.md`  
+Completeness: `docs/COMMANDOS_COMPLETE.md`
+
+## Install Godot 4.7.2
+
+1. Download **Godot 4.7.2** (standard, not .NET) from https://godotengine.org/download
+2. Unpack so `godot` is on your `PATH`, or use the full binary path below.
+
+This repo was last run against `4.7.2.stable`.
 
 ## Run
+
+From the repository root:
 
 ```bash
 godot --path ambush_loop
 godot --headless --path ambush_loop -s res://scripts/smoke_test.gd
 ```
 
-Smoke must print `SMOKE_SLICE_COMPLETE` and exit 0. Reference wins: yard slots 1,2,5 facings 90/180/180; warehouse 1,3,5; pump 1,4,5 (open and locked door).
+The editor **Main Scene** is `scenes/title.tscn`. Smoke bypasses the title and loads `scenes/main.tscn` directly; it must print `SMOKE_SLICE_COMPLETE` and exit 0.
+
+Reference wins: yard slots 1,2,5 facings 90/180/180; warehouse 1,3,5; pump 1,4,5 (open and locked door).
+
+## Export (Linux + Windows)
+
+Presets live in `ambush_loop/export_presets.cfg` (Linux Desktop, Windows Desktop, embed PCK, x86_64). CI does **not** build them; export locally.
+
+1. Install Godot **export templates** matching 4.7.2: Editor → Manage Export Templates → Download.
+2. Open the project: `godot --editor --path ambush_loop`
+3. Project → Export.
+4. **Linux Desktop** → Export Project → `build/linux/AmbushLoop.x86_64`
+5. **Windows Desktop** → Export Project → `build/windows/AmbushLoop.exe`
+
+`build/` is gitignored. You do not need export templates to *play* from the editor.
 
 ## Controls
 
 | Key / UI | Action |
 |----------|--------|
-| 1 / 2 / 3 or role cards | Select 步枪手 / 机枪手 / 侦察兵 |
+| Title | 开始行动 (briefing) / 继续进度 / 操作说明 / 退出 |
+| Esc | Pause / settings (mute, volume, 返回标题, 重新部署 in SETUP) |
+| 1 / 2 / 3 or left operator cards | Select 步枪手 / 机枪手 / 侦察兵 |
 | LMB cover | Deploy selected operator (cyan arc = cover protect direction) |
 | Hover cover | Preview that slot's protect arc |
 | A/D or RMB | Facing (fire cone is LOS-clipped by walls) |
@@ -30,11 +57,27 @@ Smoke must print `SMOKE_SLICE_COMPLETE` and exit 0. Reference wins: yard slots 1
 | + / − or speed button | 1× / 2× watch speed (viewing only) |
 | X or 中止尝试 | Abort current attempt; keep intel up to now (counts as fail) |
 | 时间轴复盘 | Read-only snapshot scrub (←/→ or slider). Click an event log line to seek/highlight that actor. Does not re-simulate. Space restores the last plan. |
-| M or 音效 button | Mute / unmute procedural SFX (alarm, first fire, return fire, empty, loot, death, escape, win) |
+| M or 音效 button | Mute / unmute procedural SFX |
 | Clear btn | Clear deploy (keep intel + tripwires) |
 | R | Clear memory and restart |
 
-Alarm locks layout, facing, fire modes, door, and tools. Pause/speed/replay only change viewing. Escape **or** squad wipe fails the loop; abort is an intentional fail that still stores intel. On escape the exit cell flashes and the result panel shifts so the mouth stays visible. After fail continue, the last plan restores with a slot/facing summary; further edits flash a diff vs that plan. Cross-loop keeps intel ghosts + last plan only.
+Alarm locks layout, facing, fire modes, door, and tools. Pause/speed/replay only change viewing. Escape **or** squad wipe fails the loop; abort is an intentional fail that still stores intel. On escape the exit cell flashes and the result panel stays docked so the mouth stays visible. After fail continue, the last plan restores with a slot/facing summary; further edits flash a diff vs that plan. Cross-loop keeps intel ghosts + last plan only.
+
+First yard visit shows a 3-page tutorial (cannot skip page 1 by clicking the dimmer). The bottom `tut_label` remains as a secondary tip.
+
+## Content
+
+| Piece | What ships |
+|-------|------------|
+| Title | Wordmark, Chinese tagline, start / continue / how-to / quit, briefing overlay |
+| Settings | Autoload `GameSettings`: mute, master volume, seen_tutorial (`user://ambush_loop_settings.cfg`) |
+| Progress | `user://ambush_loop.cfg` current level; campaign complete → credits → title |
+| Roles | 步枪手 / 机枪手 / 侦察兵 kits, left-rail HP/ammo/mode/slot cards |
+| Levels | 院子, 仓道 (ammo pack + barrel), 泵站 (door → alternate route) |
+| Toys | Tripwire (1), killzone preview, scout observation ring (SETUP only) |
+| Loop | Alarm freezes plan; authored routes; escape/wipe fail; intel + last plan persist |
+| Audio | Procedural SFX beeps; M mute; volume slider |
+| Export | Linux + Windows desktop presets (manual) |
 
 ## Roles
 
@@ -53,5 +96,3 @@ Warehouse has an authored orange **油桶** on the east flank (cell tint + blast
 1. **院子** — cover / facing / dual routes; rifle / MG / scout kits; abort / replay / mute  
 2. **仓道** — ambush hold-fire + ammo pack + authored explosive barrel on the east flank (proximity during sim only; damages friendlies in blast)  
 3. **泵站** — door lock switches flank to alternate route; re-cover the new approach  
-
-Completeness notes: `docs/COMMANDOS_COMPLETE.md`  
