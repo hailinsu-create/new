@@ -657,7 +657,9 @@ func _assert_engage_helpers(main) -> bool:
 
 
 func _assert_tripwire_tooling(main) -> bool:
-	var empty = Tripwire.new().sim_check([])
+	var tw := Tripwire.new()
+	var empty = tw.sim_check([])
+	tw.free()
 	if empty != null:
 		push_error("SMOKE_TRIP_EMPTY_NOT_NULL")
 		quit(41)
