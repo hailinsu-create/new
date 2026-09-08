@@ -1,58 +1,128 @@
 class_name OperatorUnit
 extends Node2D
 
-## Squad member: ammo, fire modes, directional cover, optional ammo pack.
+## Squad specialist: distinct Commandos-style kits (rifle / MG / scout).
 
-const RANGE := 220.0
-const HALF_ANGLE_DEG := 28.0
-const DAMAGE_PER_SHOT := 34.0
-const SHOT_INTERVAL := 0.18
+enum Role { RIFLE, MG, SCOUT }
+enum FireMode { ENGAGE_ON_SIGHT, HOLD_FOR_AMBUSH }
+
 const MAX_HP := 100.0
-const START_AMMO := 7
-const MAX_AMMO := 14
 const COVER_DAMAGE_MULT := 0.4
 const EXPOSED_DAMAGE_MULT := 1.0
 const LOOT_RANGE := 52.0
-
-enum FireMode { ENGAGE_ON_SIGHT, HOLD_FOR_AMBUSH }
+const CONE_RAYS := 14
 
 signal died(op: OperatorUnit)
+signal fired_shot(op: OperatorUnit, target_pos: Vector2)
+signal ammo_empty(op: OperatorUnit)
+signal ammo_repacked(op: OperatorUnit)
 
 var op_id: int = 0
 var display_name: String = "队员"
+var role: int = Role.RIFLE
 var facing_deg: float = 90.0
 var locked: bool = false
 var slot: CoverSlot = null
 var alive: bool = true
 var hp: float = MAX_HP
-var ammo: int = START_AMMO
+var ammo: int = 7
 var shot_cd: float = 0.0
 var fire_mode: int = FireMode.ENGAGE_ON_SIGHT
-var fire_permitted: bool = true # HOLD_FOR_AMBUSH starts false until zone trigger
+var fire_permitted: bool = true
 var has_ammo_pack: bool = false
 var ammo_pack_used: bool = false
+var grid: AmbushGrid = null
+
+# Kit stats (filled by apply_role)
+var range_px: float = 220.0
+var half_angle_deg: float = 28.0
+var damage_per_shot: float = 34.0
+var shot_interval: float = 0.18
+var start_ammo: int = 7
+var max_ammo: int = 14
+var body_color: Color = Color(0.35, 0.65, 0.95)
+var role_short: String = "步"
 
 @onready var body: Polygon2D = $Body
 @onready var cone: Polygon2D = $Cone
 @onready var tag: Label = $Tag
 
 
-func setup(id: int, pname: String) -> void:
+static func role_for_id(id: int) -> int:
+	match id:
+		2:
+			return Role.MG
+		3:
+			return Role.SCOUT
+		_:
+			return Role.RIFLE
+
+
+static func role_display(role_id: int) -> String:
+	match role_id:
+		Role.MG:
+			return "机枪手"
+		Role.SCOUT:
+			return "侦察兵"
+		_:
+			return "步枪手"
+
+
+func setup(id: int, pname: String, p_grid: AmbushGrid = null) -> void:
 	op_id = id
-	display_name = pname
+	role = role_for_id(id)
+	display_name = pname if pname != "" else role_display(role)
+	grid = p_grid
+	_apply_role_kit()
 	reset_loadout()
+
+
+func _apply_role_kit() -> void:
+	match role:
+		Role.MG:
+			# Wider cone, faster cadence, shorter reach, hungrier ammo — Commandos "heavy".
+			# Range stays near the old 220 so yard east-crate still covers the north flank lane.
+			range_px = 205.0
+			half_angle_deg = 48.0
+			damage_per_shot = 22.0
+			shot_interval = 0.10
+			start_ammo = 12
+			max_ammo = 18
+			body_color = Color(0.45, 0.55, 0.35)
+			role_short = "机"
+		Role.SCOUT:
+			# Long narrow overwatch, scarce rounds — Commandos sniper/lookout.
+			# 20° half-angle keeps the reference exit slot (facing 180) on the south corridor.
+			range_px = 280.0
+			half_angle_deg = 20.0
+			damage_per_shot = 42.0
+			shot_interval = 0.28
+			start_ammo = 6
+			max_ammo = 10
+			body_color = Color(0.35, 0.55, 0.75)
+			role_short = "侦"
+		_:
+			# Rifle: stable filler, same baseline as the original identical kits.
+			range_px = 220.0
+			half_angle_deg = 28.0
+			damage_per_shot = 34.0
+			shot_interval = 0.18
+			start_ammo = 7
+			max_ammo = 14
+			body_color = Color(0.35, 0.65, 0.95)
+			role_short = "步"
 
 
 func reset_loadout() -> void:
 	alive = true
 	hp = MAX_HP
-	ammo = START_AMMO
+	ammo = start_ammo
 	shot_cd = 0.0
 	locked = false
 	ammo_pack_used = false
 	fire_permitted = fire_mode == FireMode.ENGAGE_ON_SIGHT
 	if body:
-		body.color = Color(0.35, 0.65, 0.95)
+		body.color = body_color
 		body.modulate = Color.WHITE
 	_refresh_tag()
 	_rebuild_cone()
@@ -64,6 +134,7 @@ func set_fire_mode(mode: int) -> void:
 	fire_mode = mode
 	fire_permitted = fire_mode == FireMode.ENGAGE_ON_SIGHT
 	_refresh_tag()
+	_rebuild_cone()
 
 
 func cycle_fire_mode() -> void:
@@ -74,6 +145,7 @@ func arm_ambush() -> void:
 	if fire_mode == FireMode.HOLD_FOR_AMBUSH and not fire_permitted:
 		fire_permitted = true
 		_refresh_tag()
+		_rebuild_cone()
 
 
 func set_facing(deg: float) -> void:
@@ -98,52 +170,98 @@ func tick_cooldown(delta: float) -> void:
 		shot_cd = maxf(shot_cd - delta, 0.0)
 
 
+func _los_clip_distance(local_dir: Vector2) -> float:
+	## March along ray in world space; stop at first blocked cell (Commandos LOS cone).
+	if grid == null:
+		return range_px
+	var origin := global_position
+	var step := float(AmbushGrid.TILE) * 0.5
+	var traveled := step
+	var last_ok := step
+	while traveled <= range_px:
+		var sample: Vector2 = origin + local_dir * traveled
+		var cell := grid.world_to_cell(sample)
+		var origin_cell := grid.world_to_cell(origin)
+		if cell != origin_cell and grid.is_blocked(cell.x, cell.y):
+			return maxf(last_ok, step)
+		if not grid.has_los(origin, sample):
+			return maxf(last_ok, step)
+		last_ok = traveled
+		traveled += step
+	return range_px
+
+
 func _rebuild_cone() -> void:
 	if cone == null:
 		return
 	var pts := PackedVector2Array([Vector2.ZERO])
-	for i in range(11):
-		var t := lerpf(-HALF_ANGLE_DEG, HALF_ANGLE_DEG, float(i) / 10.0)
+	for i in range(CONE_RAYS + 1):
+		var t := lerpf(-half_angle_deg, half_angle_deg, float(i) / float(CONE_RAYS))
 		var rad := deg_to_rad(facing_deg + t)
-		pts.append(Vector2(cos(rad), sin(rad)) * RANGE)
+		var dir := Vector2(cos(rad), sin(rad))
+		var dist := _los_clip_distance(dir)
+		pts.append(dir * dist)
 	cone.polygon = pts
 	if not alive:
 		cone.color = Color(0.2, 0.2, 0.2, 0.12)
 	elif not fire_permitted:
-		cone.color = Color(0.55, 0.55, 0.2, 0.2)
+		cone.color = Color(0.55, 0.55, 0.2, 0.22)
 	elif ammo <= 0:
 		cone.color = Color(0.45, 0.45, 0.5, 0.18)
 	elif locked:
-		cone.color = Color(0.85, 0.35, 0.2, 0.22)
+		cone.color = Color(0.85, 0.35, 0.2, 0.24)
 	else:
-		cone.color = Color(0.95, 0.75, 0.25, 0.28)
+		cone.color = Color(0.95, 0.75, 0.25, 0.30)
 	if body:
 		body.rotation = deg_to_rad(facing_deg + 90.0)
+		# Distinct silhouettes per role (Commandos readability).
+		match role:
+			Role.MG:
+				body.polygon = PackedVector2Array([
+					Vector2(0, -10), Vector2(10, 8), Vector2(4, 10), Vector2(-4, 10), Vector2(-10, 8)
+				])
+			Role.SCOUT:
+				body.polygon = PackedVector2Array([
+					Vector2(0, -13), Vector2(6, 8), Vector2(-6, 8)
+				])
+			_:
+				body.polygon = PackedVector2Array([
+					Vector2(0, -11), Vector2(8, 9), Vector2(-8, 9)
+				])
 
 
-func can_engage(target: Vector2, grid: AmbushGrid) -> bool:
+func can_engage(target: Vector2, p_grid: AmbushGrid) -> bool:
 	if not alive or ammo <= 0 or not fire_permitted:
+		return false
+	var g := p_grid if p_grid != null else grid
+	if g == null:
 		return false
 	var to_v := target - global_position
 	var dist := to_v.length()
-	if dist < 8.0 or dist > RANGE:
+	if dist < 8.0 or dist > range_px:
 		return false
 	var ang := rad_to_deg(atan2(to_v.y, to_v.x))
-	if absf(angle_diff_deg(facing_deg, ang)) > HALF_ANGLE_DEG:
+	if absf(angle_diff_deg(facing_deg, ang)) > half_angle_deg:
 		return false
-	return grid.has_los(global_position, target)
+	return g.has_los(global_position, target)
 
 
-func try_fire(target: EnemyRunner, grid: AmbushGrid) -> bool:
-	if not can_engage(target.global_position, grid):
+func try_fire(target: EnemyRunner, p_grid: AmbushGrid) -> bool:
+	if not can_engage(target.global_position, p_grid):
 		return false
 	if shot_cd > 0.0:
 		return false
-	shot_cd = SHOT_INTERVAL
+	shot_cd = shot_interval
 	ammo = maxi(ammo - 1, 0)
-	target.apply_fire(DAMAGE_PER_SHOT, self)
+	fired_shot.emit(self, target.global_position)
+	target.apply_fire(damage_per_shot, self)
 	if ammo == 0:
+		var before := ammo
 		_try_ammo_pack()
+		if ammo > before:
+			ammo_repacked.emit(self)
+		else:
+			ammo_empty.emit(self)
 	_refresh_tag()
 	_rebuild_cone()
 	return true
@@ -152,7 +270,7 @@ func try_fire(target: EnemyRunner, grid: AmbushGrid) -> bool:
 func _try_ammo_pack() -> void:
 	if has_ammo_pack and not ammo_pack_used:
 		ammo_pack_used = true
-		ammo = START_AMMO
+		ammo = start_ammo
 		_refresh_tag()
 
 
@@ -163,7 +281,10 @@ func take_damage(amount: float, from_pos: Vector2 = Vector2.INF) -> void:
 	if slot != null and from_pos != Vector2.INF and slot.protects_from(from_pos):
 		mult = COVER_DAMAGE_MULT
 	elif slot != null and from_pos == Vector2.INF:
-		mult = COVER_DAMAGE_MULT # legacy callers
+		mult = COVER_DAMAGE_MULT
+	# MG is heavier silhouette — slightly more exposed when not covered.
+	if role == Role.MG and mult >= EXPOSED_DAMAGE_MULT:
+		mult *= 1.15
 	hp -= amount * mult
 	_refresh_tag()
 	if hp <= 0.0:
@@ -181,18 +302,21 @@ func _die() -> void:
 	died.emit(self)
 
 
-func can_reach_loot(loot_pos: Vector2, grid: AmbushGrid) -> bool:
+func can_reach_loot(loot_pos: Vector2, p_grid: AmbushGrid) -> bool:
 	if not alive:
 		return false
 	if global_position.distance_to(loot_pos) > LOOT_RANGE:
 		return false
-	return grid.has_los(global_position, loot_pos)
+	var g := p_grid if p_grid != null else grid
+	if g == null:
+		return false
+	return g.has_los(global_position, loot_pos)
 
 
 func receive_ammo(amount: int) -> int:
 	if not alive or amount <= 0:
 		return 0
-	var room := MAX_AMMO - ammo
+	var room := max_ammo - ammo
 	var gained := mini(amount, room)
 	ammo += gained
 	_refresh_tag()
@@ -202,6 +326,49 @@ func receive_ammo(amount: int) -> int:
 
 func fire_mode_label() -> String:
 	return "见敌即打" if fire_mode == FireMode.ENGAGE_ON_SIGHT else "入伏再打"
+
+
+func kit_blurb() -> String:
+	match role:
+		Role.MG:
+			return "宽射界·高射速·短距·耗弹快；侧背更危险"
+		Role.SCOUT:
+			return "远距·窄扇区·弹少打重；适合出口/侧翼锁线"
+		_:
+			return "均衡步枪：补漏与持续压制"
+
+
+func facing_compass() -> String:
+	var d := fposmod(facing_deg, 360.0)
+	if d >= 315.0 or d < 45.0:
+		return "东"
+	if d < 135.0:
+		return "南"
+	if d < 225.0:
+		return "西"
+	return "北"
+
+
+func kit_card_text() -> String:
+	var dep := "未部署"
+	if visible and slot != null:
+		dep = slot.label_text
+	var cone := int(round(half_angle_deg * 2.0))
+	if not visible or slot == null:
+		return "%s [%s]  %s\n%s  弹%d/%d  锥%d°  射程%d" % [
+			display_name, role_short, dep, fire_mode_label(), ammo, max_ammo, cone, int(range_px)
+		]
+	return "%s [%s]  %s\n%s  弹%d/%d  锥%d°  朝%s %d°" % [
+		display_name,
+		role_short,
+		dep,
+		fire_mode_label(),
+		ammo,
+		max_ammo,
+		cone,
+		facing_compass(),
+		int(facing_deg),
+	]
 
 
 func _refresh_tag() -> void:
@@ -214,7 +381,9 @@ func _refresh_tag() -> void:
 	var mode := "伏" if fire_mode == FireMode.HOLD_FOR_AMBUSH else "即"
 	if fire_mode == FireMode.HOLD_FOR_AMBUSH and not fire_permitted:
 		mode = "等"
-	tag.text = "%s %s 弹%d%s" % [display_name, mode, ammo, (" " + pack) if pack != "" else ""]
+	tag.text = "%s[%s] %s 弹%d%s" % [
+		display_name, role_short, mode, ammo, (" " + pack) if pack != "" else ""
+	]
 
 
 static func angle_diff_deg(a: float, b: float) -> float:

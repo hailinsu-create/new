@@ -153,6 +153,18 @@ func mark_escaped() -> void:
 	escaped.emit(self, recorded.duplicate())
 
 
+## Remaining polyline distance to escape (blueprint target priority).
+func remaining_path_to_escape() -> float:
+	if route.is_empty():
+		return INF
+	if route_index >= route.size():
+		return 0.0
+	var dist := global_position.distance_to(route[route_index])
+	for i in range(route_index, route.size() - 1):
+		dist += route[i].distance_to(route[i + 1])
+	return dist
+
+
 func _update_hp_bar() -> void:
 	if hp_bar == null:
 		return

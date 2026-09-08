@@ -60,6 +60,10 @@ func format_event(ev: Dictionary) -> String:
 			return "%.1fs  队员%d 阵亡" % [t, ev["actor_id"]]
 		"escape":
 			return "%.1fs  敌%d 越界逃逸" % [t, ev["actor_id"]]
+		"abort":
+			return "%.1fs  指挥官中止尝试" % t
+		"barrel":
+			return "%.1fs  油桶爆炸" % t
 		"ambush_armed":
 			return "%.1fs  队员%d 入伏许可开启" % [t, ev["actor_id"]]
 		"door":

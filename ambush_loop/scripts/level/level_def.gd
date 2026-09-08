@@ -18,6 +18,8 @@ var alternate_route_cells: Array = [] # used when door locked
 var wall_extra: Array = [] # extra blocked cells
 var has_ammo_pack: bool = false
 var tutorial: String = ""
+## Authored explosive; (-1,-1) = none. Detonates on enemy proximity during sim_tick only.
+var barrel_cell: Vector2i = Vector2i(-1, -1)
 
 
 static func catalog() -> Array:
@@ -72,8 +74,10 @@ static func make_warehouse() -> LevelDef:
 	var l := LevelDef.new()
 	l.level_id = "warehouse"
 	l.title = "第2关 · 仓道：弹药窗口"
-	l.teaching = "入伏再打与稀缺补给：过早开火会空弹。"
-	l.tutorial = "本关可给一名队员携带「备用弹包」（首次空弹自动补一次）。试试「入伏再打」，等敌人进入黄色伏击区再开火。"
+	l.teaching = "入伏再打与稀缺补给：过早开火会空弹。侧廊油桶会在敌人靠近时引爆。"
+	l.tutorial = "本关可给一名队员携带「备用弹包」（首次空弹自动补一次）。试试「入伏再打」，等敌人进入黄色伏击区再开火。东廊预置油桶：敌人靠近即炸，准备期不能手动引爆，注意爆炸伤及友军。"
+	# East flank corridor — away from reference slots 1/3/5 so smoke stays a skill check.
+	l.barrel_cell = Vector2i(32, 10)
 	l.escape_cell = Vector2i(31, 19)
 	# Covers sit only in walkable corridor cells for warehouse shelves.
 	l.cover_defs = [
