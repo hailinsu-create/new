@@ -70,10 +70,34 @@ func format_event(ev: Dictionary) -> String:
 			return "%.1fs  队员%d 入伏许可开启" % [t, ev["actor_id"]]
 		"door":
 			return "%.1fs  门状态=%s" % [t, str(ev["payload"].get("locked", "?"))]
+		"no_engage":
+			return "%.1fs  队员%d 无法交战 敌%d（%s）" % [
+				t, ev["actor_id"], ev["target_id"], _no_engage_reason_zh(str(ev["payload"].get("reason", "?")))
+			]
+		"trip":
+			return "%.1fs  绊索击毙 敌%d" % [t, ev["actor_id"]]
+		"route_choice":
+			return "%.1fs  敌%d 改走备用接近" % [t, ev["actor_id"]]
 		"terminal":
 			return "%.1fs  终局：%s" % [t, str(ev["payload"].get("reason", "?"))]
 		_:
 			return "%.1fs  %s" % [t, typ]
+
+
+func _no_engage_reason_zh(reason: String) -> String:
+	match reason:
+		"hold":
+			return "入伏未许可"
+		"ammo":
+			return "弹药"
+		"range":
+			return "射程"
+		"cone":
+			return "射界"
+		"los":
+			return "视线"
+		_:
+			return reason
 
 
 func summary_lines(max_count: int = 12) -> PackedStringArray:

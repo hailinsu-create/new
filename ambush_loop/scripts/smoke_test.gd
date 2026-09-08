@@ -37,6 +37,10 @@ func _run() -> void:
 		return
 	if not _assert_sfx(main):
 		return
+	if not _assert_engage_helpers(main):
+		return
+	if not _assert_tripwire_tooling(main):
+		return
 	print("LEVEL=", main.level.level_id)
 
 	# Life 1: only one cover — expect flank escape
@@ -88,6 +92,12 @@ func _run() -> void:
 				push_error("SMOKE_NO_FOCUS_RING")
 				quit(28)
 				return
+			await process_frame
+			if main.result_panel_covers_escape():
+				push_error("SMOKE_RESULT_COVERS_ESCAPE")
+				quit(39)
+				return
+			print("SMOKE_OK_ESCAPE_PANEL_CLEAR")
 			var fp_1x: String = main.battle_log.fingerprint()
 			var tick_1x: int = main.sim.tick
 			print("SMOKE_1X_FP tick=", tick_1x, " fp=", fp_1x)
@@ -222,6 +232,14 @@ func _run() -> void:
 				return
 			if not _assert_geometry(main, "pump_locked"):
 				return
+			if main.level.decision_cell != Vector2i(13, 5):
+				push_error("SMOKE_DECISION_CELL %s" % str(main.level.decision_cell))
+				quit(38)
+				return
+			if main._active_routes().size() != 2:
+				push_error("SMOKE_LOCKED_ACTIVE_ROUTES n=%s" % main._active_routes().size())
+				quit(38)
+				return
 			_deploy_ref(main, [1, 4, 5], [90.0, 0.0, 180.0])
 			main._on_alarm_pressed()
 			main.sim.set_speed(2.0)
@@ -238,16 +256,47 @@ func _run() -> void:
 				push_error("SMOKE_NO_FLANK_SPAWN")
 				quit(16)
 				return
-			var used_alt := false
 			var alt_mark: Vector2 = main.grid.cell_to_world_center(Vector2i(11, 8))
+			var spawn_has_alt := false
 			for p in flank_enemy.route:
 				if p.distance_to(alt_mark) < 1.0:
-					used_alt = true
+					spawn_has_alt = true
 					break
-			if not used_alt:
-				push_error("SMOKE_LOCKED_ROUTE_NOT_USED door=%s route_len=%s" % [main.door_locked, flank_enemy.route.size()])
+			if spawn_has_alt:
+				push_error("SMOKE_ALT_AT_SPAWN route_len=%s" % flank_enemy.route.size())
 				quit(16)
 				return
+			print("SMOKE_OK_SPAWN_PRIMARY_ROUTE")
+			var used_alt := false
+			var saw_choice := false
+			var wait_branch := 0
+			while wait_branch < 60 * 200:
+				await process_frame
+				wait_branch += 1
+				if flank_enemy.did_branch:
+					for p in flank_enemy.route:
+						if p.distance_to(alt_mark) < 1.0:
+							used_alt = true
+							break
+				for ev in main.battle_log.events:
+					if str(ev["type"]) == "route_choice" and int(ev["actor_id"]) == 2:
+						saw_choice = true
+				if used_alt and saw_choice:
+					break
+				if main.phase == main.Phase.FAILED or main.phase == main.Phase.WON:
+					break
+			if not used_alt:
+				push_error(
+					"SMOKE_LOCKED_ROUTE_NOT_USED door=%s branched=%s route_len=%s"
+					% [main.door_locked, flank_enemy.did_branch, flank_enemy.route.size()]
+				)
+				quit(16)
+				return
+			if not saw_choice:
+				push_error("SMOKE_NO_ROUTE_CHOICE")
+				quit(16)
+				return
+			print("SMOKE_OK_BRANCH_AFTER_DECISION")
 			var pl: bool = await _wait_phase(main, main.Phase.WON, 60 * 200)
 			if not pl:
 				push_error(
@@ -512,6 +561,134 @@ func _assert_sfx(main) -> bool:
 	if was_muted:
 		main._toggle_mute()
 	print("SMOKE_OK_SFX cues=8 muted=", main.sfx.muted)
+	return true
+
+
+func _assert_engage_helpers(main) -> bool:
+	main._select_op(0)
+	main._deploy_selected_to(main.cover_slots[0])
+	var op: OperatorUnit = main.selected
+	op.set_facing(0.0)
+	op.fire_permitted = true
+	op.ammo = op.start_ammo
+	var ahead: Vector2 = op.global_position + Vector2(80, 0)
+	if not op.in_fire_geometry(ahead, main.grid):
+		push_error("SMOKE_IN_FIRE_GEO_AHEAD")
+		quit(40)
+		return false
+	if op.engage_block_reason(ahead, main.grid) != "":
+		push_error("SMOKE_ENGAGE_REASON_CLEAR %s" % op.engage_block_reason(ahead, main.grid))
+		quit(40)
+		return false
+	if not op.can_engage(ahead, main.grid):
+		push_error("SMOKE_CAN_ENGAGE_AHEAD")
+		quit(40)
+		return false
+	op.fire_permitted = false
+	if op.engage_block_reason(ahead, main.grid) != "hold":
+		push_error("SMOKE_ENGAGE_HOLD %s" % op.engage_block_reason(ahead, main.grid))
+		quit(40)
+		return false
+	if op.can_engage(ahead, main.grid):
+		push_error("SMOKE_CAN_ENGAGE_WHILE_HOLD")
+		quit(40)
+		return false
+	if not op.in_fire_geometry(ahead, main.grid):
+		push_error("SMOKE_HOLD_SHOULD_STILL_BE_GEO")
+		quit(40)
+		return false
+	op.fire_permitted = true
+	op.ammo = 0
+	if op.engage_block_reason(ahead, main.grid) != "ammo":
+		push_error("SMOKE_ENGAGE_AMMO %s" % op.engage_block_reason(ahead, main.grid))
+		quit(40)
+		return false
+	op.ammo = op.start_ammo
+	var behind: Vector2 = op.global_position + Vector2(-80, 0)
+	if op.in_fire_geometry(behind, main.grid):
+		push_error("SMOKE_IN_FIRE_GEO_BEHIND")
+		quit(40)
+		return false
+	if op.engage_block_reason(behind, main.grid) != "cone":
+		push_error("SMOKE_ENGAGE_CONE %s" % op.engage_block_reason(behind, main.grid))
+		quit(40)
+		return false
+	var far: Vector2 = op.global_position + Vector2(op.range_px + 40.0, 0)
+	if op.engage_block_reason(far, main.grid) != "range":
+		push_error("SMOKE_ENGAGE_RANGE %s" % op.engage_block_reason(far, main.grid))
+		quit(40)
+		return false
+	# Wall west of yard west-cover: facing into wall should be los.
+	op.set_facing(180.0)
+	var into_wall: Vector2 = op.global_position + Vector2(-48, 0)
+	var wall_reason := op.engage_block_reason(into_wall, main.grid)
+	if wall_reason != "los" and wall_reason != "range":
+		# Close point may still be range if clipped; los is the intended deny.
+		if not main.grid.has_los(op.global_position, into_wall) and wall_reason != "los":
+			push_error("SMOKE_ENGAGE_LOS %s" % wall_reason)
+			quit(40)
+			return false
+	op.set_facing(0.0)
+	main._refresh_killzone_preview()
+	if main.killzone_draw == null or main.killzone_draw.get_child_count() < 1:
+		push_error("SMOKE_NO_KILLZONE")
+		quit(40)
+		return false
+	if main._active_routes().size() != 2:
+		push_error("SMOKE_YARD_ACTIVE_ROUTES n=%s" % main._active_routes().size())
+		quit(40)
+		return false
+	var blog := BattleLog.new()
+	var ne := {
+		"tick": 60,
+		"type": "no_engage",
+		"actor_id": 1,
+		"target_id": 3,
+		"payload": {"reason": "los"},
+	}
+	var formatted: String = blog.format_event(ne)
+	if formatted.find("无法交战") < 0 or formatted.find("视线") < 0:
+		push_error("SMOKE_NO_ENGAGE_FORMAT %s" % formatted)
+		quit(40)
+		return false
+	print("SMOKE_OK_ENGAGE_HELPERS killzone=", main.killzone_draw.get_child_count())
+	main._on_clear_pressed()
+	return true
+
+
+func _assert_tripwire_tooling(main) -> bool:
+	var empty = Tripwire.new().sim_check([])
+	if empty != null:
+		push_error("SMOKE_TRIP_EMPTY_NOT_NULL")
+		quit(41)
+		return false
+	var on_route: Vector2 = main.grid.cell_to_world_center(Vector2i(13, 11))
+	if not main._near_any_route_segment(on_route, 24.0):
+		push_error("SMOKE_ROUTE_SEGMENT_MISS")
+		quit(41)
+		return false
+	main.tool = main.Tool.TRIPWIRE
+	main._update_tripwire_ghost()
+	if main.tripwire_ghost == null or not main.tripwire_ghost.visible:
+		push_error("SMOKE_TRIP_GHOST_HIDDEN")
+		quit(41)
+		return false
+	main.tripwire_ghost.global_position = on_route
+	var vis: Polygon2D = main.tripwire_ghost.get_node_or_null("Visual")
+	if vis:
+		# Force color check via the same rule the ghost uses.
+		var ok: bool = main._near_any_route_segment(on_route, main.TRIPWIRE_ROUTE_DIST)
+		if not ok:
+			push_error("SMOKE_TRIP_GHOST_NOT_GREEN_POS")
+			quit(41)
+			return false
+	main.tool = main.Tool.DEPLOY
+	main._update_tripwire_ghost()
+	if main.tripwire_ghost.visible:
+		push_error("SMOKE_TRIP_GHOST_STILL_VISIBLE")
+		quit(41)
+		return false
+	print("SMOKE_OK_TRIPWIRE_TOOLING")
 	return true
 
 

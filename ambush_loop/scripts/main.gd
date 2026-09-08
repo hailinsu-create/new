@@ -92,6 +92,8 @@ var replay_focus_actor: int = -1
 var replay_focus_type: String = ""
 var _escape_tween: Tween = null
 var _result_panel_home: Vector4 = Vector4(-180, -90, 180, 90)
+var killzone_draw: Node2D = null
+var tripwire_ghost: Node2D = null
 
 var sfx = null
 var mute_button: Button = null
@@ -256,6 +258,12 @@ func _resolve_optional_hud() -> void:
 		root.add_child(tut_label)
 
 	_build_role_card_hud(root)
+	if killzone_draw == null:
+		killzone_draw = Node2D.new()
+		killzone_draw.name = "KillzoneDraw"
+		$World.add_child(killzone_draw)
+		$World.move_child(killzone_draw, routes_draw.get_index())
+	_ensure_tripwire_ghost()
 	if replay_layer == null:
 		replay_layer = Node2D.new()
 		replay_layer.name = "ReplayLayer"
@@ -408,13 +416,76 @@ func _cells_to_world(cells: Array) -> PackedVector2Array:
 	return out
 
 
-func _all_routes() -> Array:
+func _active_routes() -> Array:
+	## Routes enemies will actually walk: skip locked door_blocks_route, include alt.
 	var out: Array = []
+	if level == null:
+		return out
 	for key in route_world.keys():
+		if door_locked and level.door_blocks_route != "" and str(key) == level.door_blocks_route:
+			continue
 		out.append(route_world[key])
 	if door_locked and not level.alternate_route_cells.is_empty():
 		out.append(_cells_to_world(level.alternate_route_cells))
 	return out
+
+
+func _refresh_killzone_preview() -> void:
+	if killzone_draw == null:
+		return
+	for c in killzone_draw.get_children():
+		killzone_draw.remove_child(c)
+		c.free()
+	if phase != Phase.SETUP:
+		return
+	if selected == null or not selected.visible or not selected.alive:
+		return
+	const STEP := 16.0
+	for route in _active_routes():
+		var hit_run := PackedVector2Array()
+		for p in _sample_polyline(route, STEP):
+			if selected.in_fire_geometry(p, grid):
+				hit_run.append(p)
+			else:
+				_add_killzone_line(hit_run)
+				hit_run = PackedVector2Array()
+		_add_killzone_line(hit_run)
+
+
+func _sample_polyline(points: PackedVector2Array, spacing: float) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	if points.is_empty():
+		return out
+	if points.size() == 1:
+		out.append(points[0])
+		return out
+	for i in range(points.size() - 1):
+		var a: Vector2 = points[i]
+		var b: Vector2 = points[i + 1]
+		var dist := a.distance_to(b)
+		var n := maxi(1, int(ceil(dist / spacing)))
+		for s in n:
+			out.append(a.lerp(b, float(s) / float(n)))
+		if i == points.size() - 2:
+			out.append(b)
+	return out
+
+
+func _add_killzone_line(pts: PackedVector2Array) -> void:
+	if killzone_draw == null or pts.is_empty():
+		return
+	var line := Line2D.new()
+	line.width = 8.0
+	line.default_color = Color(0.95, 0.28, 0.18, 0.42)
+	line.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	line.end_cap_mode = Line2D.LINE_CAP_ROUND
+	line.joint_mode = Line2D.LINE_JOINT_ROUND
+	if pts.size() == 1:
+		var p: Vector2 = pts[0]
+		line.points = PackedVector2Array([p + Vector2(-5, 0), p + Vector2(5, 0)])
+	else:
+		line.points = pts
+	killzone_draw.add_child(line)
 
 
 func _build_cover_slots() -> void:
@@ -643,6 +714,8 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 	_update_cover_previews()
 	_update_observation_rings()
 	_update_role_cards()
+	_refresh_killzone_preview()
+	_update_tripwire_ghost()
 	alarm_button.disabled = false
 	clear_button.disabled = false
 	tool_button.disabled = false
@@ -704,6 +777,8 @@ func _clear_deployments() -> void:
 	_refresh_mode_pack_buttons()
 	_update_cover_previews()
 	_update_observation_rings()
+	_refresh_killzone_preview()
+	_update_tripwire_ghost()
 
 
 func _capture_plan() -> void:
@@ -760,6 +835,7 @@ func _restore_last_plan() -> void:
 	_refresh_door_visual()
 	_refresh_mode_pack_buttons()
 	_update_observation_rings()
+	_refresh_killzone_preview()
 	_restored_this_setup = true
 	_plan_diff_guard = false
 	var summary := _plan_summary_text(last_plan)
@@ -905,6 +981,7 @@ func _toggle_tool() -> void:
 	tool = Tool.TRIPWIRE if tool == Tool.DEPLOY else Tool.DEPLOY
 	tool_button.text = "工具: 部署队员" if tool == Tool.DEPLOY else "工具: 绊索(后勤)"
 	status_label.text = "部署到掩体位，A/D 调整射界" if tool == Tool.DEPLOY else "在路线线段附近放绊索（最多1）"
+	_update_tripwire_ghost()
 	_update_hud()
 
 
@@ -973,10 +1050,12 @@ func _unhandled_input(event: InputEvent) -> void:
 				if selected and selected.visible:
 					selected.rotate_by(-15.0)
 					_announce_plan_edit()
+					_refresh_killzone_preview()
 			KEY_D, KEY_E:
 				if selected and selected.visible:
 					selected.rotate_by(15.0)
 					_announce_plan_edit()
+					_refresh_killzone_preview()
 			KEY_F:
 				_on_mode_pressed()
 			KEY_G:
@@ -996,6 +1075,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			var v := get_global_mouse_position() - selected.global_position
 			selected.set_facing(rad_to_deg(atan2(v.y, v.x)))
 			_announce_plan_edit()
+			_refresh_killzone_preview()
 		get_viewport().set_input_as_handled()
 		return
 
@@ -1012,6 +1092,7 @@ func _select_op(idx: int) -> void:
 	_refresh_mode_pack_buttons()
 	status_label.text = "已选择 %s — %s" % [selected.display_name, selected.kit_blurb()]
 	_update_cover_previews()
+	_refresh_killzone_preview()
 	_update_hud()
 
 
@@ -1050,6 +1131,7 @@ func _handle_setup_click(world_pos: Vector2) -> void:
 			_refresh_mode_pack_buttons()
 			status_label.text = "已选择 %s — %s" % [op.display_name, op.kit_blurb()]
 			_update_cover_previews()
+			_refresh_killzone_preview()
 			_update_hud()
 			return
 
@@ -1094,6 +1176,7 @@ func _deploy_selected_to(slot: CoverSlot, announce: bool = true) -> void:
 		]
 		_announce_plan_edit()
 	_update_observation_rings()
+	_refresh_killzone_preview()
 	_update_hud()
 
 
@@ -1113,7 +1196,7 @@ func _try_place_tripwire(world_pos: Vector2) -> void:
 
 
 func _near_any_route_segment(pos: Vector2, max_dist: float) -> bool:
-	for route in _all_routes():
+	for route in _active_routes():
 		if _dist_to_polyline(pos, route) <= max_dist:
 			return true
 	return false
@@ -1232,6 +1315,7 @@ func _on_mode_pressed() -> void:
 	_refresh_mode_pack_buttons()
 	status_label.text = "%s 开火模式：%s" % [selected.display_name, selected.fire_mode_label()]
 	_announce_plan_edit()
+	_refresh_killzone_preview()
 	_update_hud()
 
 
@@ -1273,6 +1357,7 @@ func _on_door_pressed() -> void:
 	_update_cover_previews()
 	status_label.text = "门已锁闭 — 侧翼改走备用接近" if door_locked else "门保持畅通"
 	_announce_plan_edit()
+	_refresh_killzone_preview()
 	_update_hud()
 
 
@@ -1324,9 +1409,12 @@ func _on_alarm_pressed() -> void:
 		speed_button.disabled = false
 	for op in operators:
 		if op.visible:
+			op.last_deny.clear()
 			op.lock_plan()
 			op._rebuild_cone()
 	_update_cover_previews()
+	_refresh_killzone_preview()
+	_update_tripwire_ghost()
 	battle_log.add_event(0, "door", -1, -1, Vector2.ZERO, {"locked": door_locked})
 	_queue_spawns(this_run)
 	if abort_button:
@@ -1357,11 +1445,9 @@ func _queue_spawns(_this_run: int) -> void:
 
 
 func _route_for_spawn(route_name: String) -> PackedVector2Array:
-	if door_locked and route_name == level.door_blocks_route and not level.alternate_route_cells.is_empty():
-		return _cells_to_world(level.alternate_route_cells)
+	## Always the authored primary. Locked-door branch happens at the decision cell.
 	if route_world.has(route_name):
 		return route_world[route_name]
-	# fallback first route
 	for key in route_world.keys():
 		return route_world[key]
 	return PackedVector2Array()
@@ -1370,8 +1456,9 @@ func _route_for_spawn(route_name: String) -> PackedVector2Array:
 func _spawn_one(spec: Dictionary) -> void:
 	var e := _make_enemy(int(spec["id"]))
 	entities.add_child(e)
-	var route := _route_for_spawn(str(spec["route"]))
-	e.setup(int(spec["id"]), route, grid, int(spec["loot"]))
+	var route_name := str(spec["route"])
+	var route := _route_for_spawn(route_name)
+	e.setup(int(spec["id"]), route, grid, int(spec["loot"]), route_name)
 	e.return_fired.connect(_on_return_fired)
 	enemies.append(e)
 	e.activate()
@@ -1445,6 +1532,7 @@ func _on_return_fired(from: EnemyRunner, to: OperatorUnit) -> void:
 func _process(delta: float) -> void:
 	if phase == Phase.SETUP:
 		_update_cover_previews()
+		_update_tripwire_ghost()
 		return
 	if phase != Phase.WATCHING:
 		return
@@ -1484,10 +1572,12 @@ func _sim_tick() -> void:
 	# 3) Ambush zone arming
 	_tick_ambush_zone()
 
-	# 4) Enemy move — escape commits in the same step the last waypoint is reached
+	# 4) Enemy move — branch at decision, then escape commits on last waypoint
 	for enemy in enemies:
 		if enemy.alive and enemy.active:
+			_try_enemy_branch(enemy)
 			enemy.sim_step(SimClock.TICK_DT)
+			_try_enemy_branch(enemy)
 		if phase != Phase.WATCHING:
 			_finish_sim_tick()
 			return
@@ -1496,7 +1586,10 @@ func _sim_tick() -> void:
 	if phase == Phase.WATCHING:
 		for tw in tripwires:
 			if is_instance_valid(tw):
-				tw.sim_check(enemies)
+				var victim: EnemyRunner = tw.sim_check(enemies)
+				if victim != null:
+					battle_log.add_event(sim.tick, "trip", victim.label_id, -1, tw.global_position)
+					_update_event_log()
 			if phase != Phase.WATCHING:
 				_finish_sim_tick()
 				return
@@ -1521,8 +1614,11 @@ func _sim_tick() -> void:
 			for enemy in enemies:
 				if not enemy.alive or not enemy.active:
 					continue
-				if not op.can_engage(enemy.global_position, grid):
+				var deny := op.engage_block_reason(enemy.global_position, grid)
+				if deny != "":
+					_log_no_engage_if_changed(op, enemy, deny)
 					continue
+				op.last_deny[enemy.label_id] = ""
 				var rem := enemy.remaining_path_to_escape()
 				if rem < best_escape - 0.5 or (absf(rem - best_escape) <= 0.5 and enemy.label_id < best_id):
 					best_escape = rem
@@ -1579,6 +1675,72 @@ func _flush_pending_result() -> void:
 	elif pending_result == "win":
 		pending_result = ""
 		_show_win_result()
+
+func _try_enemy_branch(enemy: EnemyRunner) -> void:
+	if level == null or level.decision_cell.x < 0:
+		return
+	if not enemy.alive or not enemy.active:
+		return
+	var decision_world := grid.cell_to_world_center(level.decision_cell)
+	var alt := _cells_to_world(level.alternate_route_cells)
+	if enemy.maybe_branch(door_locked, decision_world, alt, level.door_blocks_route):
+		battle_log.add_event(sim.tick, "route_choice", enemy.label_id, -1, enemy.global_position)
+		_update_event_log()
+
+
+func _log_no_engage_if_changed(op: OperatorUnit, enemy: EnemyRunner, reason: String) -> void:
+	if reason == "":
+		op.last_deny[enemy.label_id] = ""
+		return
+	var prev := str(op.last_deny.get(enemy.label_id, ""))
+	if prev == reason:
+		return
+	op.last_deny[enemy.label_id] = reason
+	battle_log.add_event(
+		sim.tick, "no_engage", op.op_id, enemy.label_id, op.global_position, {"reason": reason}
+	)
+
+
+func _ensure_tripwire_ghost() -> void:
+	if tripwire_ghost != null and is_instance_valid(tripwire_ghost):
+		return
+	tripwire_ghost = Node2D.new()
+	tripwire_ghost.name = "TripwireGhost"
+	tripwire_ghost.z_index = 6
+	tripwire_ghost.visible = false
+	var vis := Polygon2D.new()
+	vis.name = "Visual"
+	vis.polygon = PackedVector2Array([
+		Vector2(-10, -3), Vector2(10, -3), Vector2(10, 3), Vector2(-10, 3)
+	])
+	vis.color = Color(0.9, 0.25, 0.22, 0.75)
+	tripwire_ghost.add_child(vis)
+	var tag := Label.new()
+	tag.name = "Tag"
+	tag.text = "绊索"
+	tag.position = Vector2(-16, -18)
+	tag.add_theme_font_size_override("font_size", 11)
+	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tripwire_ghost.add_child(tag)
+	$World.add_child(tripwire_ghost)
+
+
+func _update_tripwire_ghost() -> void:
+	_ensure_tripwire_ghost()
+	if phase != Phase.SETUP or tool != Tool.TRIPWIRE:
+		tripwire_ghost.visible = false
+		return
+	tripwire_ghost.visible = true
+	var pos := get_global_mouse_position()
+	tripwire_ghost.global_position = pos
+	var ok := _near_any_route_segment(pos, TRIPWIRE_ROUTE_DIST)
+	var vis := tripwire_ghost.get_node_or_null("Visual") as Polygon2D
+	if vis:
+		vis.color = Color(0.35, 0.9, 0.4, 0.8) if ok else Color(0.9, 0.25, 0.22, 0.8)
+	var tag := tripwire_ghost.get_node_or_null("Tag") as Label
+	if tag:
+		tag.add_theme_color_override("font_color", Color(0.5, 0.95, 0.5) if ok else Color(0.95, 0.4, 0.3))
+
 
 func _tick_ambush_zone() -> void:
 	if level.ambush_zone.size == Vector2.ZERO:
@@ -1765,14 +1927,7 @@ func _show_fail_result() -> void:
 	if abort_button:
 		abort_button.visible = false
 	result_panel.visible = true
-	if fail_reason == "escape":
-		# Keep the south-east exit on screen (blueprint: freeze + mark the mouth).
-		result_panel.offset_left = -560.0
-		result_panel.offset_top = -280.0
-		result_panel.offset_right = -200.0
-		result_panel.offset_bottom = -40.0
-	else:
-		_reset_result_panel_pos()
+	_dock_fail_result_panel(fail_reason == "escape")
 	var lines := battle_log.summary_lines(10)
 	var summary := "\n".join(lines)
 	var reason_zh: String = str({
@@ -1792,6 +1947,9 @@ func _show_fail_result() -> void:
 	status_label.text = "%s — 穿梭或打开时间轴复盘；点击事件定位" % reason_zh
 	_update_event_log()
 	_update_hud()
+	# Re-dock after text layout so a tall summary cannot cover the south-east mouth.
+	if fail_reason == "escape":
+		_dock_fail_result_panel(true)
 
 
 func _show_win_result() -> void:
@@ -1872,11 +2030,11 @@ func _paint_replay_snapshot(snap: Dictionary) -> void:
 		var op := _op_by_id(int(o["id"]))
 		var col := op.body_color if op != null else Color(0.35, 0.65, 0.95)
 		var alive := bool(o["alive"])
-		var hot := replay_focus_actor == int(o["id"]) and replay_focus_type in ["fire", "empty", "op_down", "loot", "ambush_armed", "repack", "return_fire"]
+		var hot := replay_focus_actor == int(o["id"]) and replay_focus_type in ["fire", "empty", "op_down", "loot", "ambush_armed", "repack", "return_fire", "no_engage"]
 		_add_replay_marker(o["pos"], col if alive else Color(0.3, 0.3, 0.32), "队员%d" % int(o["id"]), alive, hot)
 	for e in data.get("enemies", []):
 		var alive := bool(e["alive"])
-		var hot := replay_focus_actor == int(e["id"]) and replay_focus_type in ["spawn", "kill", "escape", "fire", "return_fire"]
+		var hot := replay_focus_actor == int(e["id"]) and replay_focus_type in ["spawn", "kill", "escape", "fire", "return_fire", "trip", "route_choice", "no_engage"]
 		_add_replay_marker(
 			e["pos"],
 			Color(0.75, 0.22, 0.2) if alive else Color(0.35, 0.35, 0.38, 0.7),
@@ -2097,11 +2255,11 @@ func _event_focus_position(ev: Dictionary) -> Vector2:
 		return pos
 	var typ := str(ev["type"])
 	match typ:
-		"fire", "empty", "op_down", "loot", "ambush_armed", "repack":
+		"fire", "empty", "op_down", "loot", "ambush_armed", "repack", "no_engage":
 			var op := _op_by_id(int(ev["actor_id"]))
 			if op != null:
 				return op.global_position
-		"spawn", "kill", "escape", "return_fire":
+		"spawn", "kill", "escape", "return_fire", "trip", "route_choice":
 			for e in enemies:
 				if e.label_id == int(ev["actor_id"]):
 					return e.global_position
@@ -2119,7 +2277,7 @@ func _pos_from_snapshot(snap: Dictionary, ev: Dictionary, fallback: Vector2) -> 
 	var data: Dictionary = snap["data"]
 	var typ := str(ev["type"])
 	var aid := int(ev.get("actor_id", -1))
-	if typ in ["fire", "empty", "op_down", "loot", "ambush_armed", "repack", "return_fire"]:
+	if typ in ["fire", "empty", "op_down", "loot", "ambush_armed", "repack", "return_fire", "no_engage"]:
 		var look_id := aid
 		if typ == "return_fire":
 			look_id = int(ev.get("target_id", aid))
@@ -2130,7 +2288,7 @@ func _pos_from_snapshot(snap: Dictionary, ev: Dictionary, fallback: Vector2) -> 
 		for o in data.get("ops", []):
 			if int(o["id"]) == look_id or int(o["id"]) == aid:
 				return o["pos"]
-	if typ in ["spawn", "kill", "escape", "fire"]:
+	if typ in ["spawn", "kill", "escape", "fire", "trip", "route_choice"]:
 		for e in data.get("enemies", []):
 			if int(e["id"]) == int(ev.get("target_id", -1)) and typ == "fire":
 				return e["pos"]
@@ -2219,10 +2377,60 @@ func _reset_escape_flash() -> void:
 func _reset_result_panel_pos() -> void:
 	if result_panel == null:
 		return
+	result_panel.set_anchors_preset(Control.PRESET_CENTER)
+	result_panel.anchor_left = 0.5
+	result_panel.anchor_top = 0.5
+	result_panel.anchor_right = 0.5
+	result_panel.anchor_bottom = 0.5
 	result_panel.offset_left = _result_panel_home.x
 	result_panel.offset_top = _result_panel_home.y
 	result_panel.offset_right = _result_panel_home.z
 	result_panel.offset_bottom = _result_panel_home.w
+	result_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	result_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+
+
+func _dock_fail_result_panel(keep_escape_visible: bool) -> void:
+	if result_panel == null:
+		return
+	# Escape mouth is south-east; dock bottom-left so the marker stays readable.
+	# Other fails dock bottom-right, above the command bar.
+	if keep_escape_visible:
+		result_panel.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+		result_panel.anchor_left = 0.0
+		result_panel.anchor_top = 1.0
+		result_panel.anchor_right = 0.0
+		result_panel.anchor_bottom = 1.0
+		result_panel.offset_left = 16.0
+		result_panel.offset_right = 420.0
+		result_panel.offset_top = -280.0
+		result_panel.offset_bottom = -100.0
+		result_panel.grow_horizontal = Control.GROW_DIRECTION_END
+		result_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	else:
+		result_panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		result_panel.anchor_left = 1.0
+		result_panel.anchor_top = 1.0
+		result_panel.anchor_right = 1.0
+		result_panel.anchor_bottom = 1.0
+		result_panel.offset_left = -400.0
+		result_panel.offset_right = -16.0
+		result_panel.offset_top = -280.0
+		result_panel.offset_bottom = -100.0
+		result_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+		result_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+
+
+func result_panel_covers_escape() -> bool:
+	if result_panel == null or not result_panel.visible or escape_marker == null:
+		return false
+	var panel_rect := result_panel.get_global_rect()
+	var esc: Vector2 = escape_marker.get_global_transform_with_canvas().origin
+	for ox in [-24.0, 0.0, 24.0]:
+		for oy in [-24.0, 0.0, 24.0]:
+			if panel_rect.has_point(esc + Vector2(ox, oy)):
+				return true
+	return false
 
 
 func _update_hud() -> void:
@@ -2235,7 +2443,7 @@ func _update_hud() -> void:
 	intel_label.text = "漏网记忆：%d   |   %s" % [intel.records.size(), _ammo_summary()]
 	var dep := _deployed_count()
 	if phase == Phase.SETUP:
-		help_label.text = "准备：左卡选步枪/机枪/侦察。青弧=掩体保护方向。黄锥=墙裁切射界。侦察观察环仅准备期。点掩体（%d/3）| 1/2/3 | A/D射界 | F开火 | G弹包 | B门 | Tab绊索 | M静音\n空格拉警报（锁死方案）。X中止留情报。时间轴复盘只读。R清空记忆。" % dep
+		help_label.text = "准备：左卡选步枪/机枪/侦察。青弧=掩体保护方向。黄锥=墙裁切射界。红线=选中队员可打到的路线。侦察观察环仅准备期。点掩体（%d/3）| 1/2/3 | A/D射界 | F开火 | G弹包 | B门 | Tab绊索 | M静音\n空格拉警报（锁死方案）。X中止留情报。时间轴复盘只读。R清空记忆。" % dep
 	elif phase == Phase.WATCHING:
 		var spd := "暂停" if sim.paused else ("2×" if sim.speed >= 1.5 else "1×")
 		help_label.text = "锁死看戏 t=%.1fs [%s]：优先打更接近逃逸口的目标；点事件可定位。X中止保留情报。暂停/变速只改观看。" % [sim.time_sec(), spd]

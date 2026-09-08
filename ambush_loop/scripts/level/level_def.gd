@@ -15,6 +15,8 @@ var ambush_zone: Rect2 = Rect2() # world-space, for 入伏再打
 var door_cell: Vector2i = Vector2i(-1, -1) # invalid = no door
 var door_blocks_route: String = "" # which route is blocked when locked
 var alternate_route_cells: Array = [] # used when door locked
+## Authored fork: enemies on door_blocks_route switch to alt here when locked.
+var decision_cell: Vector2i = Vector2i(-1, -1)
 var wall_extra: Array = [] # extra blocked cells
 var has_ammo_pack: bool = false
 var tutorial: String = ""
@@ -141,6 +143,7 @@ static func make_pump() -> LevelDef:
 	]
 	l.door_cell = Vector2i(28, 6)
 	l.door_blocks_route = "flank"
+	l.decision_cell = Vector2i(13, 5)
 	l.spawn_schedule = [
 		{"id": 1, "route": "main", "delay": 0.0, "loot": 1},
 		{"id": 2, "route": "flank", "delay": 0.6, "loot": 2},

@@ -32,6 +32,8 @@ var fire_permitted: bool = true
 var has_ammo_pack: bool = false
 var ammo_pack_used: bool = false
 var grid: AmbushGrid = null
+## Last no_engage reason per enemy id; log only when it changes.
+var last_deny: Dictionary = {}
 
 # Kit stats (filled by apply_role)
 var range_px: float = 220.0
@@ -127,6 +129,7 @@ func reset_loadout() -> void:
 	locked = false
 	ammo_pack_used = false
 	fire_permitted = fire_mode == FireMode.ENGAGE_ON_SIGHT
+	last_deny.clear()
 	if body:
 		body.color = body_color
 		body.modulate = Color.WHITE
@@ -236,12 +239,8 @@ func _rebuild_cone() -> void:
 				])
 
 
-func can_engage(target: Vector2, p_grid: AmbushGrid) -> bool:
-	if not alive or ammo <= 0 or not fire_permitted:
-		return false
-	var g := p_grid if p_grid != null else grid
-	if g == null:
-		return false
+func in_fire_geometry(target: Vector2, p_grid: AmbushGrid) -> bool:
+	## Range + cone + LOS only — ignore ammo, hold-fire, and alive.
 	var to_v := target - global_position
 	var dist := to_v.length()
 	if dist < 8.0 or dist > range_px:
@@ -249,7 +248,35 @@ func can_engage(target: Vector2, p_grid: AmbushGrid) -> bool:
 	var ang := rad_to_deg(atan2(to_v.y, to_v.x))
 	if absf(angle_diff_deg(facing_deg, ang)) > half_angle_deg:
 		return false
+	var g := p_grid if p_grid != null else grid
+	if g == null:
+		return false
 	return g.has_los(global_position, target)
+
+
+func engage_block_reason(target: Vector2, p_grid: AmbushGrid) -> String:
+	## "" | hold | ammo | range | cone | los
+	if not fire_permitted:
+		return "hold"
+	if ammo <= 0:
+		return "ammo"
+	var to_v := target - global_position
+	var dist := to_v.length()
+	if dist < 8.0 or dist > range_px:
+		return "range"
+	var ang := rad_to_deg(atan2(to_v.y, to_v.x))
+	if absf(angle_diff_deg(facing_deg, ang)) > half_angle_deg:
+		return "cone"
+	var g := p_grid if p_grid != null else grid
+	if g == null or not g.has_los(global_position, target):
+		return "los"
+	return ""
+
+
+func can_engage(target: Vector2, p_grid: AmbushGrid) -> bool:
+	if not alive:
+		return false
+	return engage_block_reason(target, p_grid) == ""
 
 
 func try_fire(target: EnemyRunner, p_grid: AmbushGrid) -> bool:

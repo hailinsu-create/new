@@ -15,6 +15,8 @@ const RETURN_INTERVAL := 0.28
 
 var route: PackedVector2Array = PackedVector2Array()
 var route_index: int = 0
+var spawn_route: String = ""
+var did_branch: bool = false
 var alive: bool = true
 var active: bool = false
 var alerted: bool = false
@@ -32,9 +34,11 @@ var returning_fire: bool = false
 @onready var hp_bar: Polygon2D = $HpBar
 
 
-func setup(id: int, p_route: PackedVector2Array, p_grid: AmbushGrid = null, p_loot: int = 2) -> void:
+func setup(id: int, p_route: PackedVector2Array, p_grid: AmbushGrid = null, p_loot: int = 2, p_route_name: String = "") -> void:
 	label_id = id
 	route = p_route.duplicate()
+	spawn_route = p_route_name
+	did_branch = false
 	grid = p_grid
 	loot_ammo = p_loot
 	alive = true
@@ -57,6 +61,35 @@ func setup(id: int, p_route: PackedVector2Array, p_grid: AmbushGrid = null, p_lo
 func activate() -> void:
 	active = true
 	route_index = 1 if route.size() > 1 else 0
+
+
+func maybe_branch(door_locked: bool, decision_world: Vector2, alt_world: PackedVector2Array, blocked_route: String) -> bool:
+	## At the authored decision cell, splice remaining polyline to the alt suffix once.
+	if did_branch or not active or not alive:
+		return false
+	if not door_locked or blocked_route == "" or spawn_route != blocked_route:
+		return false
+	if alt_world.is_empty():
+		return false
+	if global_position.distance_to(decision_world) > 18.0:
+		return false
+	var suffix := PackedVector2Array()
+	var seen_decision := false
+	for p in alt_world:
+		if not seen_decision:
+			if p.distance_to(decision_world) < 1.5:
+				seen_decision = true
+			continue
+		suffix.append(p)
+	if suffix.is_empty():
+		return false
+	var next := PackedVector2Array()
+	next.append(global_position)
+	next.append_array(suffix)
+	route = next
+	route_index = 1 if route.size() > 1 else 0
+	did_branch = true
+	return true
 
 
 func sim_step(delta: float) -> void:

@@ -14,14 +14,15 @@ var spent: bool = false
 @onready var visual: Polygon2D = $Visual
 
 
-func sim_check(active_enemies: Array) -> void:
+func sim_check(active_enemies: Array) -> EnemyRunner:
 	if not armed or spent:
-		return
+		return null
 	for node in active_enemies:
 		if node is EnemyRunner and node.alive and node.active:
 			if global_position.distance_to(node.global_position) <= RADIUS:
 				_trip(node)
-				return
+				return node
+	return null
 
 
 func _trip(enemy: EnemyRunner) -> void:
