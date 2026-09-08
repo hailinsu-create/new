@@ -47,6 +47,9 @@ func play(cue: String) -> void:
 	last_cue = cue
 	if muted:
 		return
+	# Dummy/headless play() leaves AudioStreamPlaybackWAV in ObjectDB.
+	if DisplayServer.get_name() == "headless":
+		return
 	var p: AudioStreamPlayer = _players.get(cue) as AudioStreamPlayer
 	if p == null or p.stream == null:
 		return

@@ -5,6 +5,8 @@ extends PanelContainer
 
 signal picked(idx: int)
 
+const RoleGlyphScript := preload("res://scripts/ui/role_glyph.gd")
+
 var idx: int = 0
 var _name: Label
 var _role: Label
@@ -12,7 +14,7 @@ var _hp: ProgressBar
 var _hp_txt: Label
 var _meta: Label
 var _slot: Label
-var _glyph: RoleGlyph
+var _glyph: Control
 var _fill_col: Color = Color(0, 0, 0, 0)
 var _normal: StyleBoxFlat
 var _hot: StyleBoxFlat
@@ -42,7 +44,7 @@ func setup(i: int) -> void:
 	name_row.add_theme_constant_override("separation", 6)
 	name_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(name_row)
-	_glyph = RoleGlyph.new()
+	_glyph = RoleGlyphScript.new()
 	_glyph.custom_minimum_size = Vector2(18, 18)
 	name_row.add_child(_glyph)
 	_name = Label.new()
@@ -95,7 +97,7 @@ func bind(op: OperatorUnit, is_sel: bool, can_pick: bool) -> void:
 	modulate = Color(1, 1, 1, 1) if can_pick else Color(1, 1, 1, 0.5)
 	add_theme_stylebox_override("panel", _hot if is_sel else _normal)
 	if _glyph:
-		_glyph.role = op.role
+		_glyph.set("role", op.role)
 	_name.text = op.display_name
 	_role.text = "%s · %s" % [OperatorUnit.role_display(op.role), _kit_short(op)]
 	var hp := op.hp if op.alive else 0.0
