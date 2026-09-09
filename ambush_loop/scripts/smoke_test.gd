@@ -915,6 +915,19 @@ func _assert_touch_parity(main) -> bool:
 		push_error("SMOKE_TOUCH_HUD_HIDDEN")
 		quit(44)
 		return false
+	if bool(main._event_log_open) or (main.event_log != null and main.event_log.visible):
+		push_error("SMOKE_LOG_NOT_COLLAPSED")
+		quit(44)
+		return false
+	if main.role_cards.is_empty() or (main.role_cards[0] as Control).custom_minimum_size.y < 48.0:
+		push_error("SMOKE_OPCARD_TOUCH_SIZE")
+		quit(44)
+		return false
+	var alarm_touch: Button = main.touch_hud._btns["alarm"] as Button
+	if alarm_touch == null or alarm_touch.custom_minimum_size.y < 48.0:
+		push_error("SMOKE_TOUCH_BTN_SIZE")
+		quit(44)
+		return false
 	main.handle_android_back()
 	if main.pause_overlay == null or not main.pause_overlay.is_open():
 		push_error("SMOKE_ANDROID_BACK_NO_MENU")
@@ -946,18 +959,63 @@ func _assert_touch_parity(main) -> bool:
 	ev.pressed = true
 	ev.position = xf * slot_pos
 	main._unhandled_input(ev)
-	if main.selected == null or main.selected.slot != main.cover_slots[1]:
-		push_error("SMOKE_TOUCH_DEPLOY_FAIL pos=%s screen=%s" % [slot_pos, ev.position])
-		quit(44)
-		return false
 	var ev2 := InputEventScreenTouch.new()
 	ev2.index = 0
 	ev2.pressed = false
 	ev2.position = ev.position
 	main._unhandled_input(ev2)
+	if main.selected == null or main.selected.slot != main.cover_slots[1]:
+		push_error("SMOKE_TOUCH_DEPLOY_FAIL pos=%s screen=%s" % [slot_pos, ev.position])
+		quit(44)
+		return false
+	var f_drag: float = float(main.selected.facing_deg)
+	var press_op := InputEventScreenTouch.new()
+	press_op.index = 0
+	press_op.pressed = true
+	press_op.position = xf * main.selected.global_position
+	main._unhandled_input(press_op)
+	var drag := InputEventScreenDrag.new()
+	drag.index = 0
+	drag.position = xf * (main.selected.global_position + Vector2(90, 0))
+	drag.relative = Vector2(40, 0)
+	main._unhandled_input(drag)
+	if is_equal_approx(float(main.selected.facing_deg), f_drag):
+		push_error("SMOKE_TOUCH_DRAG_FACE f=%s" % main.selected.facing_deg)
+		quit(44)
+		return false
+	var rel_op := InputEventScreenTouch.new()
+	rel_op.index = 0
+	rel_op.pressed = false
+	rel_op.position = drag.position
+	main._unhandled_input(rel_op)
 	main.apply_touch_command("clear")
 	if main._deployed_count() != 0:
 		push_error("SMOKE_TOUCH_CLEAR_FAIL n=%s" % main._deployed_count())
+		quit(44)
+		return false
+	var hold_slot = main.cover_slots[2]
+	var lp := InputEventScreenTouch.new()
+	lp.index = 0
+	lp.pressed = true
+	lp.position = xf * hold_slot.global_position
+	main._unhandled_input(lp)
+	main._cover_hold_msec = Time.get_ticks_msec() - 500
+	main._tick_cover_long_press()
+	if main._touch_preview_slot != hold_slot:
+		push_error("SMOKE_LONGPRESS_NO_PREVIEW")
+		quit(44)
+		return false
+	if hold_slot.protect_arc == null or not hold_slot.protect_arc.visible:
+		push_error("SMOKE_LONGPRESS_NO_ARC")
+		quit(44)
+		return false
+	var lp2 := InputEventScreenTouch.new()
+	lp2.index = 0
+	lp2.pressed = false
+	lp2.position = lp.position
+	main._unhandled_input(lp2)
+	if main._deployed_count() != 0:
+		push_error("SMOKE_LONGPRESS_DEPLOYED n=%s" % main._deployed_count())
 		quit(44)
 		return false
 	gs.force_touch_hud = false

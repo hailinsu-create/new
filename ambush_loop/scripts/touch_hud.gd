@@ -54,11 +54,13 @@ func _build() -> void:
 	var col := VBoxContainer.new()
 	col.alignment = BoxContainer.ALIGNMENT_END
 	col.add_theme_constant_override("separation", 6)
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_safe.add_child(col)
 
 	_row_setup = HBoxContainer.new()
 	_row_setup.alignment = BoxContainer.ALIGNMENT_CENTER
 	_row_setup.add_theme_constant_override("separation", 6)
+	_row_setup.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(_row_setup)
 	_add(_row_setup, "fire", "开火", Color(0.55, 0.48, 0.28))
 	_add(_row_setup, "pack", "弹包", Color(0.40, 0.55, 0.40))
@@ -72,6 +74,7 @@ func _build() -> void:
 	_row_watch = HBoxContainer.new()
 	_row_watch.alignment = BoxContainer.ALIGNMENT_CENTER
 	_row_watch.add_theme_constant_override("separation", 6)
+	_row_watch.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(_row_watch)
 	_add(_row_watch, "abort", "中止", Color(0.55, 0.20, 0.20))
 	_add(_row_watch, "pause", "暂停", Color(0.35, 0.38, 0.42))

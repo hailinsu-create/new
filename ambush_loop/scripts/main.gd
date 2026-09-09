@@ -9,6 +9,7 @@ enum Tool { DEPLOY, TRIPWIRE }
 const MAX_TRIPWIRES := 1
 const TRIPWIRE_ROUTE_DIST := 24.0
 const SNAPSHOT_EVERY := 6
+const COVER_LONGPRESS_MS := 400
 const PROGRESS_PATH := "user://ambush_loop.cfg"
 const LEVEL_ORDER := ["yard", "warehouse", "pump", "railcut"]
 const SfxBusScript := preload("res://scripts/sfx/sfx_bus.gd")
@@ -122,7 +123,8 @@ var _result_fade_tween: Tween = null
 var touch_hud: CanvasLayer = null
 var settings_button: Button = null
 var extra_bar: HBoxContainer = null
-var _event_log_open: bool = true
+var log_button: Button = null
+var _event_log_open: bool = false
 var _cam_pan: Vector2 = Vector2.ZERO
 var _cam_zoom: float = 1.0
 var _cam_punch: Vector2 = Vector2.ZERO
@@ -133,7 +135,12 @@ var _pinch_start_zoom: float = 1.0
 var _pinch_start_mid: Vector2 = Vector2.ZERO
 var _focus_paused_watch: bool = false
 var _touch_ate_click: bool = false
-var _phone_log_inited: bool = false
+var _cover_hold_slot: CoverSlot = null
+var _cover_hold_msec: int = 0
+var _touch_preview_slot: CoverSlot = null
+var _pending_setup_touch: bool = false
+var _pending_touch_world: Vector2 = Vector2.ZERO
+var _touch_dragged: bool = false
 
 
 func _ready() -> void:
@@ -201,6 +208,8 @@ func _resolve_optional_hud() -> void:
 	mute_button.pressed.connect(_toggle_mute)
 	settings_button = _make_hud_btn("SettingsButton", "菜单 Esc", extra)
 	settings_button.pressed.connect(_toggle_pause_menu)
+	log_button = _make_hud_btn("LogButton", "日志", extra)
+	log_button.pressed.connect(_toggle_event_log)
 
 	speed_button.pressed.connect(_on_speed_pressed)
 	pause_button.pressed.connect(_on_pause_pressed)
@@ -267,6 +276,7 @@ func _resolve_optional_hud() -> void:
 		box.add_child(list)
 		root.add_child(box)
 		event_log = box
+		event_log.visible = false
 		event_log_title = title
 		event_list = list
 	else:
@@ -506,28 +516,17 @@ func _apply_phone_chrome(on: bool) -> void:
 	if tut_label:
 		tut_label.visible = not on
 	if event_log:
-		if on:
-			if not _phone_log_inited:
-				_event_log_open = false
-				_phone_log_inited = true
-			event_log.visible = _event_log_open
-		else:
-			event_log.visible = true
-			_event_log_open = true
-			_phone_log_inited = false
+		event_log.visible = _event_log_open
 	var root: Control = get_node_or_null("HUD/Root") as Control
 	if root:
 		var pad := _safe_area_pad()
+		root.offset_left = pad.x
+		root.offset_top = pad.y
+		root.offset_right = -pad.z
 		if on:
-			root.offset_left = pad.x
-			root.offset_top = pad.y
-			root.offset_right = -pad.z
 			root.offset_bottom = -pad.w - 150.0
 		else:
-			root.offset_left = 0.0
-			root.offset_top = 0.0
-			root.offset_right = 0.0
-			root.offset_bottom = 0.0
+			root.offset_bottom = -pad.w
 	if role_box and on:
 		role_box.offset_bottom = 460.0
 	alarm_button.custom_minimum_size = Vector2(180, 48) if on else Vector2(180, 36)
@@ -575,6 +574,8 @@ func _toggle_event_log() -> void:
 	_event_log_open = not _event_log_open
 	if event_log:
 		event_log.visible = _event_log_open
+	if log_button:
+		log_button.text = "收日志" if _event_log_open else "日志"
 	_refresh_touch_hud()
 
 
@@ -1712,6 +1713,8 @@ func _handle_touch_gestures(event: InputEvent) -> bool:
 			_touches[st.index] = st.position
 			if _touches.size() >= 2:
 				_facing_touch = -1
+				_pending_setup_touch = false
+				_cover_hold_slot = null
 				var span: Dictionary = _touch_span()
 				_pinch_start_dist = float(span["dist"])
 				_pinch_start_zoom = _cam_zoom
@@ -1721,15 +1724,25 @@ func _handle_touch_gestures(event: InputEvent) -> bool:
 				return true
 			if phase == Phase.SETUP:
 				var world := _screen_to_world(st.position)
+				_touch_preview_slot = null
+				_pending_setup_touch = true
+				_pending_touch_world = world
+				_touch_dragged = false
+				_cover_hold_slot = _nearest_slot(world, 32.0)
+				_cover_hold_msec = Time.get_ticks_msec()
 				if selected and selected.visible and world.distance_to(selected.global_position) <= 44.0:
 					_facing_touch = st.index
-				_handle_setup_click(world)
 				_touch_ate_click = true
 			return true
 		_touches.erase(st.index)
 		if _facing_touch == st.index:
 			_facing_touch = -1
 		_pinch_start_dist = 0.0
+		if phase == Phase.SETUP and _pending_setup_touch:
+			if not _touch_dragged and _touch_preview_slot == null:
+				_handle_setup_click(_pending_touch_world)
+			_pending_setup_touch = false
+			_cover_hold_slot = null
 		return true
 	if event is InputEventScreenDrag:
 		var sd := event as InputEventScreenDrag
@@ -1752,6 +1765,14 @@ func _handle_touch_gestures(event: InputEvent) -> bool:
 				selected.set_facing(rad_to_deg(atan2(v.y, v.x)))
 				_announce_plan_edit()
 				_refresh_killzone_preview()
+				_touch_dragged = true
+				_cover_hold_slot = null
+			return true
+		if phase == Phase.SETUP and sd.relative.length() >= 8.0:
+			_touch_dragged = true
+			_cover_hold_slot = null
+			_cam_pan -= sd.relative / maxf(_cam_zoom, 0.01)
+			_apply_cam()
 			return true
 		return false
 	return false
@@ -2274,6 +2295,7 @@ func _on_return_fired(from: EnemyRunner, to: OperatorUnit) -> void:
 
 func _process(delta: float) -> void:
 	if phase == Phase.SETUP:
+		_tick_cover_long_press()
 		_update_cover_previews()
 		_update_tripwire_ghost()
 		return
@@ -3230,13 +3252,29 @@ func _update_hud() -> void:
 	_refresh_touch_hud()
 
 
+func _tick_cover_long_press() -> void:
+	if phase != Phase.SETUP:
+		return
+	if _cover_hold_slot == null or not is_instance_valid(_cover_hold_slot):
+		return
+	if Time.get_ticks_msec() - _cover_hold_msec < COVER_LONGPRESS_MS:
+		return
+	_touch_preview_slot = _cover_hold_slot
+	if status_label:
+		status_label.text = "保护弧朝%s（长按预览，松手不部署）" % _cover_hold_slot.protect_compass()
+	_update_cover_previews()
+
+
 func _update_cover_previews() -> void:
 	if cover_slots.is_empty():
 		return
 	var show := phase == Phase.SETUP or phase == Phase.WATCHING or phase == Phase.REPLAY or phase == Phase.FAILED
 	var hover: CoverSlot = null
 	if phase == Phase.SETUP:
-		hover = _nearest_slot(get_global_mouse_position(), 32.0)
+		if _touch_preview_slot != null and is_instance_valid(_touch_preview_slot):
+			hover = _touch_preview_slot
+		else:
+			hover = _nearest_slot(get_global_mouse_position(), 32.0)
 	for s in cover_slots:
 		if not show:
 			s.set_protect_preview(0)
