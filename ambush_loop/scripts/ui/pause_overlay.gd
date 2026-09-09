@@ -20,6 +20,7 @@ var _sfx_val: Label
 var _redeploy_btn: Button
 var _title_btn: Button
 var _touch_btn: Button
+var _quality_btn: Button
 var _wipe_btn: Button
 var _close_btn: Button
 var _wipe_armed: bool = false
@@ -39,8 +40,8 @@ func _ready() -> void:
 	_panel.set_anchors_preset(Control.PRESET_CENTER)
 	_panel.offset_left = -210.0
 	_panel.offset_right = 210.0
-	_panel.offset_top = -268.0
-	_panel.offset_bottom = 268.0
+	_panel.offset_top = -296.0
+	_panel.offset_bottom = 296.0
 	add_child(_panel)
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 18)
@@ -62,6 +63,9 @@ func _ready() -> void:
 	box.add_child(_mute_btn)
 	box.add_child(_make_vol_row("音乐", true))
 	box.add_child(_make_vol_row("音效", false))
+	_quality_btn = _fat_btn()
+	_quality_btn.pressed.connect(_on_quality_toggle)
+	box.add_child(_quality_btn)
 	_touch_btn = _fat_btn()
 	_touch_btn.pressed.connect(_on_touch_toggle)
 	box.add_child(_touch_btn)
@@ -151,6 +155,11 @@ func _refresh_audio() -> void:
 		mv = clampf(float(gs.get("music_volume")), 0.0, 1.0)
 		sv = clampf(float(gs.get("sfx_volume")), 0.0, 1.0)
 	_mute_btn.text = "静音：开" if muted else "静音：关"
+	if _quality_btn:
+		var saving := false
+		if gs and gs.has_method("is_power_saving"):
+			saving = bool(gs.is_power_saving())
+		_quality_btn.text = "画质：省电" if saving else "画质：标准"
 	if _touch_btn:
 		var touch_on := false
 		if gs and gs.has_method("want_touch_controls"):
@@ -195,6 +204,13 @@ func _on_sfx(v: float) -> void:
 			gs.set_volume(v)
 	if _sfx_val:
 		_sfx_val.text = "%d%%" % int(round(v * 100.0))
+
+
+func _on_quality_toggle() -> void:
+	var gs = _gs()
+	if gs and gs.has_method("toggle_quality_tier"):
+		gs.toggle_quality_tier()
+	_refresh_audio()
 
 
 func _on_touch_toggle() -> void:

@@ -946,6 +946,8 @@ func _load_level(level_id: String, keep_intel: bool, restore_plan: bool) -> void
 	map_draw.escape_cell = level.escape_cell
 	map_draw.barrel_cell = level.barrel_cell
 	map_draw.escape_flash = false
+	if map_draw.has_method("invalidate_static_cache"):
+		map_draw.invalidate_static_cache()
 	map_draw.queue_redraw()
 	_build_route_world()
 	_build_cover_slots()
@@ -2064,6 +2066,8 @@ func _on_door_pressed() -> void:
 		return
 	door_locked = not door_locked
 	grid.set_door_state(level.door_cell, door_locked)
+	if map_draw.has_method("invalidate_static_cache"):
+		map_draw.invalidate_static_cache()
 	map_draw.queue_redraw()
 	_refresh_door_visual()
 	for op in operators:

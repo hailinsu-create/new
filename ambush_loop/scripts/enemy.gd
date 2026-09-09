@@ -352,27 +352,36 @@ func _ensure_trail() -> void:
 	move_child(trail, 0)
 
 
+func _is_power_saving() -> bool:
+	var gs = get_node_or_null("/root/GameSettings")
+	return gs != null and gs.has_method("is_power_saving") and bool(gs.is_power_saving())
+
+
 func _tick_trail(delta: float) -> void:
 	_ensure_trail()
 	if trail == null:
 		return
+	var saving := _is_power_saving()
+	trail.width = 1.0 if saving else 2.0
 	if not alive or not active:
 		if _trail_world.size() > 0:
 			_trail_world = PackedVector2Array()
 			trail.points = PackedVector2Array()
 		return
+	var interval := 0.12 if saving else 0.05
+	var limit := 3 if saving else 9
 	_trail_acc += delta
-	if _trail_acc >= 0.05:
+	if _trail_acc >= interval:
 		_trail_acc = 0.0
 		_trail_world.append(global_position)
-		while _trail_world.size() > 9:
+		while _trail_world.size() > limit:
 			_trail_world.remove_at(0)
 	var local_pts := PackedVector2Array()
 	for p in _trail_world:
 		local_pts.append(p - global_position)
 	local_pts.append(Vector2.ZERO)
 	trail.points = local_pts
-	var a := 0.18 if alerted else 0.12
+	var a := 0.10 if saving else (0.18 if alerted else 0.12)
 	trail.default_color = Color(0.82, 0.18, 0.14, a)
 
 

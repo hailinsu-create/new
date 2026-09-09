@@ -36,6 +36,33 @@ func _ready() -> void:
 	_sparks.scale_amount_min = 0.4
 	_sparks.scale_amount_max = 1.1
 	add_child(_sparks)
+	var gs = get_node_or_null("/root/GameSettings")
+	if gs and gs.has_signal("changed") and not gs.changed.is_connected(_apply_quality_tier):
+		gs.changed.connect(_apply_quality_tier)
+	_apply_quality_tier()
+
+
+func _is_power_saving() -> bool:
+	var gs = get_node_or_null("/root/GameSettings")
+	return gs != null and gs.has_method("is_power_saving") and bool(gs.is_power_saving())
+
+
+func _apply_quality_tier() -> void:
+	var saving := _is_power_saving()
+	if _dust:
+		_dust.emitting = not saving
+		_dust.visible = not saving
+		if not saving:
+			_dust.restart()
+	if _sparks:
+		_sparks.emitting = not saving
+		_sparks.visible = not saving
+		if not saving:
+			_sparks.restart()
+	set_process(not saving)
+	if saving:
+		t = 0.0
+	queue_redraw()
 
 
 func _make_particles(amount: int, lifetime: float, col: Color, dir: Vector2, spread: float) -> CPUParticles2D:
@@ -94,11 +121,12 @@ func _draw() -> void:
 		if shifted.size() >= 2:
 			draw_polyline(shifted, cols[i % cols.size()], 2.2, true)
 	# Manual drifting sparks (readable even if particles are culled).
-	for i in 20:
-		var px := fposmod(sz.x * _frac(i + 3) + t * (7.0 + float(i) * 0.35), sz.x)
-		var py := fposmod(sz.y * _frac(i + 11) - t * (5.0 + float(i) * 0.18), sz.y)
-		var pa := 0.12 + 0.16 * _frac(i + 19)
-		draw_circle(Vector2(px, py), 1.0 + _frac(i) * 1.4, Color(0.90, 0.84, 0.42, pa))
+	if not _is_power_saving():
+		for i in 20:
+			var px := fposmod(sz.x * _frac(i + 3) + t * (7.0 + float(i) * 0.35), sz.x)
+			var py := fposmod(sz.y * _frac(i + 11) - t * (5.0 + float(i) * 0.18), sz.y)
+			var pa := 0.12 + 0.16 * _frac(i + 19)
+			draw_circle(Vector2(px, py), 1.0 + _frac(i) * 1.4, Color(0.90, 0.84, 0.42, pa))
 	# Soft vignette — darken edges, keep the wordmark readable.
 	for i in 10:
 		var inset := float(i) * 16.0

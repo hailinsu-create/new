@@ -47,6 +47,8 @@ func _run() -> void:
 		return
 	if not _assert_touch_parity(main):
 		return
+	if not _assert_perf_tier(main):
+		return
 	print("LEVEL=", main.level.level_id)
 
 	# Life 1: only one cover — expect flank escape
@@ -959,6 +961,69 @@ func _assert_touch_parity(main) -> bool:
 	gs.force_touch_hud = false
 	main._ensure_touch_hud()
 	print("SMOKE_OK_TOUCH_PARITY")
+	return true
+
+
+func _assert_perf_tier(main) -> bool:
+	var gs = root.get_node_or_null("GameSettings")
+	if gs == null or not gs.has_method("is_power_saving") or not gs.has_method("set_quality_tier"):
+		push_error("SMOKE_NO_QUALITY_TIER")
+		quit(46)
+		return false
+	if str(gs.QUALITY_POWER_SAVING) != "power_saving" or str(gs.QUALITY_STANDARD) != "standard":
+		push_error("SMOKE_QUALITY_CONST %s %s" % [gs.QUALITY_POWER_SAVING, gs.QUALITY_STANDARD])
+		quit(46)
+		return false
+	if str(gs.quality_tier) != "standard" or bool(gs.is_power_saving()):
+		push_error("SMOKE_QUALITY_DEFAULT %s" % gs.quality_tier)
+		quit(46)
+		return false
+	gs.set_quality_tier("power_saving")
+	if not gs.is_power_saving() or str(gs.quality_tier) != "power_saving":
+		push_error("SMOKE_QUALITY_SET_FAIL %s" % gs.quality_tier)
+		quit(46)
+		return false
+	if gs.has_method("quality_tier_label") and str(gs.quality_tier_label()) != "省电":
+		push_error("SMOKE_QUALITY_LABEL %s" % gs.quality_tier_label())
+		quit(46)
+		return false
+	var cfg := ConfigFile.new()
+	if cfg.load(SETTINGS_PATH) != OK or str(cfg.get_value("graphics", "quality_tier", "")) != "power_saving":
+		push_error("SMOKE_QUALITY_NOT_PERSISTED")
+		quit(46)
+		return false
+	if main.map_draw == null or not main.map_draw.has_method("uses_static_cache"):
+		push_error("SMOKE_NO_MAP_CACHE")
+		quit(46)
+		return false
+	if not bool(main.map_draw.uses_static_cache()):
+		push_error("SMOKE_MAP_CACHE_INACTIVE")
+		quit(46)
+		return false
+	if not main.map_draw.has_method("invalidate_static_cache"):
+		push_error("SMOKE_NO_MAP_CACHE_INVALIDATE")
+		quit(46)
+		return false
+	main.map_draw.invalidate_static_cache()
+	if main.map_draw.get_node_or_null("StaticCache") == null:
+		push_error("SMOKE_MAP_CACHE_NODE")
+		quit(46)
+		return false
+	if main.pause_overlay:
+		main.pause_overlay.present(false, false)
+		var qbtn: Button = main.pause_overlay._quality_btn as Button
+		if qbtn == null or str(qbtn.text).find("省电") < 0:
+			push_error("SMOKE_QUALITY_UI %s" % (qbtn.text if qbtn else "null"))
+			main.pause_overlay.dismiss()
+			quit(46)
+			return false
+		main.pause_overlay.dismiss()
+	gs.set_quality_tier("standard")
+	if gs.is_power_saving() or str(gs.quality_tier) != "standard":
+		push_error("SMOKE_QUALITY_RESTORE_FAIL %s" % gs.quality_tier)
+		quit(46)
+		return false
+	print("SMOKE_OK_PERF_TIER")
 	return true
 
 

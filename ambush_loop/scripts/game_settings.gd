@@ -5,6 +5,8 @@ extends Node
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
 const PROGRESS_PATH := "user://ambush_loop.cfg"
 const LEVEL_ORDER := ["yard", "warehouse", "pump", "railcut"]
+const QUALITY_STANDARD := "standard"
+const QUALITY_POWER_SAVING := "power_saving"
 
 signal changed
 
@@ -17,6 +19,8 @@ var seen_level_tutorials: Dictionary = {} # level_id -> bool
 var pending_level_id: String = ""
 ## Desktop override so smoke / playtest can force the phone command bar.
 var force_touch_hud: bool = false
+## "standard" keeps current FX; "power_saving" drops particles/trails and uses sparse map tiles.
+var quality_tier: String = QUALITY_STANDARD
 
 
 func want_touch_controls() -> bool:
@@ -35,6 +39,35 @@ func set_force_touch_hud(on: bool) -> void:
 	force_touch_hud = on
 	save_settings()
 	changed.emit()
+
+
+func is_power_saving() -> bool:
+	return _normalize_quality_tier(quality_tier) == QUALITY_POWER_SAVING
+
+
+func quality_tier_label() -> String:
+	return "省电" if is_power_saving() else "标准"
+
+
+func set_quality_tier(tier: String) -> void:
+	var next := _normalize_quality_tier(tier)
+	if quality_tier == next:
+		return
+	quality_tier = next
+	save_settings()
+	changed.emit()
+
+
+func toggle_quality_tier() -> String:
+	set_quality_tier(QUALITY_STANDARD if is_power_saving() else QUALITY_POWER_SAVING)
+	return quality_tier
+
+
+func _normalize_quality_tier(tier: String) -> String:
+	var t := tier.strip_edges().to_lower()
+	if t == QUALITY_POWER_SAVING or t == "省电" or t == "power-saving" or t == "low":
+		return QUALITY_POWER_SAVING
+	return QUALITY_STANDARD
 
 
 func _notification(what: int) -> void:
@@ -74,6 +107,7 @@ func load_settings() -> void:
 		music_volume = master_volume
 		sfx_volume = master_volume
 	force_touch_hud = bool(cfg.get_value("input", "force_touch_hud", false))
+	quality_tier = _normalize_quality_tier(str(cfg.get_value("graphics", "quality_tier", QUALITY_STANDARD)))
 	seen_tutorial = bool(cfg.get_value("onboarding", "seen_tutorial", false))
 	seen_level_tutorials.clear()
 	for id in LEVEL_ORDER:
@@ -88,6 +122,7 @@ func save_settings() -> void:
 	cfg.set_value("audio", "music_volume", music_volume)
 	cfg.set_value("audio", "sfx_volume", sfx_volume)
 	cfg.set_value("input", "force_touch_hud", force_touch_hud)
+	cfg.set_value("graphics", "quality_tier", _normalize_quality_tier(quality_tier))
 	cfg.set_value("onboarding", "seen_tutorial", seen_tutorial)
 	for id in LEVEL_ORDER:
 		if seen_level_tutorials.has(id):
@@ -104,6 +139,7 @@ func reset_to_defaults() -> void:
 	seen_level_tutorials.clear()
 	pending_level_id = ""
 	force_touch_hud = false
+	quality_tier = QUALITY_STANDARD
 	apply_audio()
 
 
