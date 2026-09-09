@@ -78,13 +78,31 @@ func _notification(what: int) -> void:
 		elif get_tree():
 			get_tree().quit()
 	elif what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		gate_background_audio(true)
 		var scene_out := get_tree().current_scene if get_tree() else null
 		if scene_out != null and scene_out.has_method("handle_app_focus_out"):
 			scene_out.handle_app_focus_out()
 	elif what == NOTIFICATION_APPLICATION_FOCUS_IN:
+		gate_background_audio(false)
 		var scene_in := get_tree().current_scene if get_tree() else null
 		if scene_in != null and scene_in.has_method("handle_app_focus_in"):
 			scene_in.handle_app_focus_in()
+
+
+func gate_background_audio(paused: bool) -> void:
+	var audio = get_node_or_null("/root/AudioDirector")
+	if audio == null:
+		return
+	if paused:
+		if audio.has_method("pause_for_background"):
+			audio.pause_for_background()
+		elif audio.has_method("set_background_muted"):
+			audio.set_background_muted(true)
+	else:
+		if audio.has_method("resume_from_background"):
+			audio.resume_from_background()
+		elif audio.has_method("set_background_muted"):
+			audio.set_background_muted(false)
 
 
 func _ready() -> void:

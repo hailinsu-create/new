@@ -47,6 +47,8 @@ func _run() -> void:
 		return
 	if not _assert_touch_parity(main):
 		return
+	if not _assert_lifecycle(main):
+		return
 	if not _assert_perf_tier(main):
 		return
 	print("LEVEL=", main.level.level_id)
@@ -961,6 +963,79 @@ func _assert_touch_parity(main) -> bool:
 	gs.force_touch_hud = false
 	main._ensure_touch_hud()
 	print("SMOKE_OK_TOUCH_PARITY")
+	return true
+
+
+func _assert_lifecycle(main) -> bool:
+	var audio = root.get_node_or_null("AudioDirector")
+	if audio == null:
+		push_error("SMOKE_NO_AUDIODIRECTOR")
+		quit(47)
+		return false
+	if not audio.has_method("pause_for_background") and not audio.has_method("set_background_muted"):
+		push_error("SMOKE_NO_BG_AUDIO_API")
+		quit(47)
+		return false
+	if not main.has_method("handle_app_focus_out") or not main.has_method("handle_app_focus_in"):
+		push_error("SMOKE_NO_FOCUS_API")
+		quit(47)
+		return false
+	var TitleScript = load("res://scripts/title.gd")
+	if TitleScript == null:
+		push_error("SMOKE_NO_TITLE_SCRIPT")
+		quit(47)
+		return false
+	var title_probe = TitleScript.new()
+	if title_probe == null or not title_probe.has_method("handle_app_focus_out") or not title_probe.has_method("handle_app_focus_in"):
+		push_error("SMOKE_NO_TITLE_FOCUS")
+		if title_probe:
+			title_probe.free()
+		quit(47)
+		return false
+	title_probe.free()
+	if main.phase != main.Phase.SETUP:
+		push_error("SMOKE_LIFECYCLE_NOT_SETUP")
+		quit(47)
+		return false
+	main._select_op(0)
+	main._deploy_selected_to(main.cover_slots[0], false)
+	main._on_alarm_pressed()
+	if main.phase != main.Phase.WATCHING:
+		push_error("SMOKE_LIFECYCLE_NO_WATCH phase=%s" % main.phase)
+		quit(47)
+		return false
+	if main.sim.paused:
+		push_error("SMOKE_LIFECYCLE_ALREADY_PAUSED")
+		quit(47)
+		return false
+	main.handle_app_focus_out()
+	if not main.sim.paused:
+		push_error("SMOKE_FOCUS_OUT_SIM_RUNS")
+		quit(47)
+		return false
+	if audio.music_player_playing():
+		push_error("SMOKE_FOCUS_OUT_MUSIC_LEAK")
+		quit(47)
+		return false
+	if audio.has_method("is_background_paused") and not bool(audio.is_background_paused()):
+		push_error("SMOKE_FOCUS_OUT_AUDIO_NOT_GATED")
+		quit(47)
+		return false
+	main.handle_app_focus_in()
+	if not main.sim.paused:
+		push_error("SMOKE_FOCUS_IN_AUTOPLAY")
+		quit(47)
+		return false
+	if audio.has_method("is_background_paused") and bool(audio.is_background_paused()):
+		push_error("SMOKE_FOCUS_IN_AUDIO_STUCK")
+		quit(47)
+		return false
+	main._start_setup(false, false)
+	if main.phase != main.Phase.SETUP or main.loop_index != 1:
+		push_error("SMOKE_LIFECYCLE_RESET phase=%s loop=%s" % [main.phase, main.loop_index])
+		quit(47)
+		return false
+	print("SMOKE_OK_LIFECYCLE")
 	return true
 
 

@@ -637,17 +637,36 @@ func handle_android_back() -> void:
 
 
 func handle_app_focus_out() -> void:
+	_gate_scene_audio(true)
+	# Freeze the sim clock whenever it can still step. Result panels are idle.
 	if phase == Phase.WATCHING and not sim.paused:
 		sim.paused = true
 		_focus_paused_watch = true
 		if pause_button:
 			pause_button.text = "继续"
-		_refresh_touch_hud()
+	elif phase != Phase.FAILED and phase != Phase.WON:
+		sim.paused = true
+	_refresh_touch_hud()
 
 
 func handle_app_focus_in() -> void:
-	# Stay paused after a home-button; player taps 继续.
+	_gate_scene_audio(false)
+	# Stay paused after a home-button; player taps 继续. Do not auto-unpause sim.
 	_refresh_touch_hud()
+
+
+func _gate_scene_audio(paused: bool) -> void:
+	var gs = _gs()
+	if gs and gs.has_method("gate_background_audio"):
+		gs.gate_background_audio(paused)
+		return
+	var audio = get_node_or_null("/root/AudioDirector")
+	if audio == null:
+		return
+	if paused and audio.has_method("pause_for_background"):
+		audio.pause_for_background()
+	elif (not paused) and audio.has_method("resume_from_background"):
+		audio.resume_from_background()
 
 
 func _on_memory_wipe_from_menu() -> void:

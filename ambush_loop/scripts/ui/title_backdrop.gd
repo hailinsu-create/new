@@ -6,6 +6,7 @@ var t: float = 0.0
 var _routes: Array[PackedVector2Array] = []
 var _dust: CPUParticles2D = null
 var _sparks: CPUParticles2D = null
+var _focus_paused: bool = false
 
 
 func _ready() -> void:
@@ -47,8 +48,17 @@ func _is_power_saving() -> bool:
 	return gs != null and gs.has_method("is_power_saving") and bool(gs.is_power_saving())
 
 
+func set_background_paused(on: bool) -> void:
+	_focus_paused = on
+	_apply_quality_tier()
+
+
+func _particles_suppressed() -> bool:
+	return _focus_paused or _is_power_saving()
+
+
 func _apply_quality_tier() -> void:
-	var saving := _is_power_saving()
+	var saving := _particles_suppressed()
 	if _dust:
 		_dust.emitting = not saving
 		_dust.visible = not saving
@@ -121,7 +131,7 @@ func _draw() -> void:
 		if shifted.size() >= 2:
 			draw_polyline(shifted, cols[i % cols.size()], 2.2, true)
 	# Manual drifting sparks (readable even if particles are culled).
-	if not _is_power_saving():
+	if not _particles_suppressed():
 		for i in 20:
 			var px := fposmod(sz.x * _frac(i + 3) + t * (7.0 + float(i) * 0.35), sz.x)
 			var py := fposmod(sz.y * _frac(i + 11) - t * (5.0 + float(i) * 0.18), sz.y)

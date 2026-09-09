@@ -124,6 +124,36 @@ func handle_android_back() -> void:
 	_on_back()
 
 
+func handle_app_focus_out() -> void:
+	_gate_title_audio(true)
+	_set_title_background_paused(true)
+
+
+func handle_app_focus_in() -> void:
+	_gate_title_audio(false)
+	_set_title_background_paused(false)
+
+
+func _gate_title_audio(paused: bool) -> void:
+	var gs = get_node_or_null("/root/GameSettings")
+	if gs and gs.has_method("gate_background_audio"):
+		gs.gate_background_audio(paused)
+		return
+	var audio = get_node_or_null("/root/AudioDirector")
+	if audio == null:
+		return
+	if paused and audio.has_method("pause_for_background"):
+		audio.pause_for_background()
+	elif (not paused) and audio.has_method("resume_from_background"):
+		audio.resume_from_background()
+
+
+func _set_title_background_paused(on: bool) -> void:
+	var back := get_node_or_null("Backdrop")
+	if back != null and back.has_method("set_background_paused"):
+		back.set_background_paused(on)
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.physical_keycode == KEY_M:

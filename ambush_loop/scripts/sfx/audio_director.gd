@@ -8,6 +8,8 @@ var _music: AudioStreamPlayer
 var _music_stream: AudioStreamWAV
 var _want_music: bool = true
 var _watch_bed: bool = false
+## Home-button / APPLICATION_FOCUS_OUT: stop bed + SFX without touching user mute.
+var _background_paused: bool = false
 
 
 func _ready() -> void:
@@ -34,7 +36,43 @@ func music_bus_ok() -> bool:
 
 
 func music_is_running() -> bool:
-	return (not muted) and music_player_playing()
+	return (not muted) and (not _background_paused) and music_player_playing()
+
+
+func is_background_paused() -> bool:
+	return _background_paused
+
+
+func pause_for_background() -> void:
+	set_background_muted(true)
+
+
+func resume_from_background() -> void:
+	set_background_muted(false)
+
+
+func set_background_muted(on: bool) -> void:
+	_background_paused = on
+	if on:
+		_stop_active_sfx()
+		if _music != null and is_instance_valid(_music) and _music.playing:
+			_music.stop()
+		return
+	_apply_music_mute()
+
+
+func play(cue: String) -> void:
+	if _background_paused:
+		last_cue = cue
+		return
+	super.play(cue)
+
+
+func _stop_active_sfx() -> void:
+	for k in _players:
+		var p: AudioStreamPlayer = _players[k]
+		if p != null and is_instance_valid(p) and p.playing:
+			p.stop()
 
 
 func music_player_playing() -> bool:
@@ -76,7 +114,7 @@ func _can_play_audio() -> bool:
 func _apply_music_mute() -> void:
 	if _music == null or not is_instance_valid(_music):
 		return
-	if muted or not _want_music or not _can_play_audio():
+	if muted or _background_paused or not _want_music or not _can_play_audio():
 		if _music.playing:
 			_music.stop()
 		return
