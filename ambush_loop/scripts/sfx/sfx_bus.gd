@@ -5,7 +5,8 @@ extends Node
 
 const MIX_RATE := 22050
 const CUES := [
-	"alarm", "alarm_stinger", "fire", "return_fire", "empty", "loot", "op_death", "escape", "win", "door",
+	"alarm", "alarm_stinger", "fire", "return_fire", "empty", "loot", "op_death", "escape", "win",
+	"win_stinger", "door",
 	"ambient_yard", "ambient_warehouse", "ambient_pump", "ambient_railcut", "ambient_depot"
 ]
 
@@ -113,6 +114,8 @@ func _gain(cue: String) -> float:
 			return -10.0
 		"win":
 			return -14.0
+		"win_stinger":
+			return -12.0
 		"escape", "op_death":
 			return -11.0
 		"fire", "return_fire":
@@ -153,6 +156,8 @@ func _build_stream(cue: String) -> AudioStreamWAV:
 			return _pcm(_escape())
 		"win":
 			return _pcm(_win())
+		"win_stinger":
+			return _pcm(_win_stinger())
 		"door":
 			return _pcm(_door())
 		"ambient_yard":
@@ -286,6 +291,16 @@ func _win() -> PackedFloat32Array:
 	return _concat([
 		_tone(523.0, 0.09, 0.14),
 		_tone(784.0, 0.12, 0.15),
+	])
+
+
+func _win_stinger() -> PackedFloat32Array:
+	## Brief major flourish — not the alarm descending pair.
+	return _concat([
+		_tone(392.0, 0.04, 0.11),
+		_tone(523.0, 0.05, 0.13),
+		_tone(659.0, 0.06, 0.15),
+		_tone(784.0, 0.10, 0.16),
 	])
 
 

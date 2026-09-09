@@ -159,6 +159,9 @@ var _cam_zoom: float = 1.0
 var _cam_punch: Vector2 = Vector2.ZERO
 var _cam_zoom_punch: float = 1.0
 var _stinger_tween: Tween = null
+var _win_stinger_tween: Tween = null
+var _sig_wash: ColorRect = null
+var _load_fade_tween: Tween = null
 var _touches: Dictionary = {}
 var _facing_touch: int = -1
 var _pinch_start_dist: float = 0.0
@@ -1107,6 +1110,14 @@ func _ensure_presentation_fx() -> void:
 		_alarm_vignette.color = Color(0.78, 0.05, 0.04, 0.0)
 		_alarm_vignette.z_index = 38
 		root.add_child(_alarm_vignette)
+	if _sig_wash == null or not is_instance_valid(_sig_wash):
+		_sig_wash = ColorRect.new()
+		_sig_wash.name = "SigWash"
+		_sig_wash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_sig_wash.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_sig_wash.color = Color(0.62, 0.74, 0.32, 0.0)
+		_sig_wash.z_index = 36
+		root.add_child(_sig_wash)
 
 
 func _is_power_saving() -> bool:
@@ -1148,6 +1159,43 @@ func _alarm_edge_flash() -> void:
 	_siren_phase_chip()
 	if not saving:
 		_camera_punch(Vector2(8, -5))
+
+
+func _win_stinger() -> void:
+	## Phase.WON: mission signature wash + procedural flourish. 省电 skips.
+	if _is_power_saving():
+		return
+	_sfx("win_stinger")
+	_ensure_presentation_fx()
+	var lid := level.level_id if level else "yard"
+	var sig: Color = LevelDef.signature_color(lid)
+	if _sig_wash:
+		_sig_wash.color = Color(sig.r, sig.g, sig.b, 0.0)
+	if _win_stinger_tween != null:
+		_win_stinger_tween.kill()
+	_win_stinger_tween = create_tween()
+	if _sig_wash:
+		_win_stinger_tween.tween_property(_sig_wash, "color:a", 0.40, 0.07)
+		_win_stinger_tween.tween_property(_sig_wash, "color:a", 0.0, 0.22)
+
+
+func _play_load_fade() -> void:
+	## 0.2s darken → map reveal after _load_level. Cheap modulate, both quality tiers.
+	if not has_node("World"):
+		return
+	if _load_fade_tween != null:
+		_load_fade_tween.kill()
+	$World.modulate = Color(0.11, 0.12, 0.13)
+	_load_fade_tween = create_tween()
+	_load_fade_tween.tween_property($World, "modulate", Color.WHITE, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+
+func load_fade_active() -> bool:
+	return _load_fade_tween != null and is_instance_valid(_load_fade_tween) and _load_fade_tween.is_running()
+
+
+func win_stinger_active() -> bool:
+	return _win_stinger_tween != null and is_instance_valid(_win_stinger_tween) and _win_stinger_tween.is_running()
 
 
 func _alarm_cam_stinger() -> void:
@@ -1272,6 +1320,14 @@ func _reset_presentation_fx() -> void:
 				(c as ColorRect).color.a = 0.0
 	if _alarm_vignette:
 		_alarm_vignette.color.a = 0.0
+	if _sig_wash:
+		_sig_wash.color.a = 0.0
+	if _win_stinger_tween != null:
+		_win_stinger_tween.kill()
+		_win_stinger_tween = null
+	if _load_fade_tween != null:
+		_load_fade_tween.kill()
+		_load_fade_tween = null
 	if result_panel:
 		result_panel.modulate = Color.WHITE
 
@@ -1336,6 +1392,7 @@ func _load_level(level_id: String, keep_intel: bool, restore_plan: bool) -> void
 	_start_setup(keep_intel, restore_plan)
 	_save_progress()
 	_maybe_show_tutorial()
+	_play_load_fade()
 
 
 func _ensure_mission_sky() -> void:
@@ -3978,6 +4035,7 @@ func _check_win() -> void:
 	battle_log.mark_terminal(sim.tick, "win")
 	_flash("零逃逸", Color(0.45, 0.9, 0.45))
 	_sfx("win")
+	_win_stinger()
 	_camera_punch()
 	pending_result = "win"
 

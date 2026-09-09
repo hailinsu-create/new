@@ -53,6 +53,8 @@ func _run() -> void:
 		return
 	if not _assert_alarm_stinger(main):
 		return
+	if not _assert_win_stinger(main):
+		return
 	if not _assert_perf_tier(main):
 		return
 	if not _assert_readability(main):
@@ -1656,6 +1658,70 @@ func _assert_alarm_stinger(main) -> bool:
 		main._cam_zoom_punch = 1.0
 		main._apply_cam()
 	print("SMOKE_OK_STINGER cue=alarm_stinger")
+	return true
+
+
+func _assert_win_stinger(main) -> bool:
+	if main.sfx == null or not main.sfx.has_cue("win_stinger"):
+		push_error("SMOKE_NO_WIN_STINGER_CUE")
+		quit(58)
+		return false
+	if not main.has_method("_win_stinger") or not main.has_method("_play_load_fade"):
+		push_error("SMOKE_NO_WIN_STINGER_API")
+		quit(58)
+		return false
+	var gs = root.get_node_or_null("GameSettings")
+	if gs and gs.has_method("set_quality_tier"):
+		gs.set_quality_tier("standard")
+	main._win_stinger()
+	if str(main.sfx.last_cue) != "win_stinger":
+		push_error("SMOKE_WIN_STINGER_NO_PLAY cue=%s" % main.sfx.last_cue)
+		quit(58)
+		return false
+	if not main.has_method("win_stinger_active") or not bool(main.win_stinger_active()):
+		push_error("SMOKE_WIN_STINGER_NO_TWEEN")
+		quit(58)
+		return false
+	if main._sig_wash == null or not is_instance_valid(main._sig_wash):
+		push_error("SMOKE_WIN_STINGER_NO_WASH")
+		quit(58)
+		return false
+	if gs and gs.has_method("set_quality_tier"):
+		gs.set_quality_tier("power_saving")
+		main.sfx.last_cue = ""
+		if main._win_stinger_tween != null:
+			main._win_stinger_tween.kill()
+			main._win_stinger_tween = null
+		if main._sig_wash:
+			main._sig_wash.color.a = 0.0
+		main._win_stinger()
+		if str(main.sfx.last_cue) == "win_stinger":
+			push_error("SMOKE_WIN_STINGER_IN_POWER_SAVE")
+			quit(58)
+			return false
+		if main.has_method("win_stinger_active") and bool(main.win_stinger_active()):
+			push_error("SMOKE_WIN_STINGER_TWEEN_IN_POWER_SAVE")
+			quit(58)
+			return false
+		gs.set_quality_tier("standard")
+	main._play_load_fade()
+	if not main.has_method("load_fade_active") or not bool(main.load_fade_active()):
+		push_error("SMOKE_NO_LOAD_FADE")
+		quit(58)
+		return false
+	var world: Node2D = main.get_node_or_null("World") as Node2D
+	if world == null or world.modulate.r > 0.35:
+		push_error("SMOKE_LOAD_FADE_NOT_DARK mod=%s" % (world.modulate if world else Color.WHITE))
+		quit(58)
+		return false
+	if main._load_fade_tween != null:
+		main._load_fade_tween.kill()
+		main._load_fade_tween = null
+	if world:
+		world.modulate = Color.WHITE
+	if main._sig_wash:
+		main._sig_wash.color.a = 0.0
+	print("SMOKE_OK_WIN_STINGER cue=win_stinger fade=0.2")
 	return true
 
 
