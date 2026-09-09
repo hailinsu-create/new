@@ -4,6 +4,7 @@ extends RefCounted
 ## In-code level definitions for the authored mission catalog (blueprint §6 + B1).
 
 var level_id: String = "yard"
+var atmosphere_id: String = "yard"
 var title: String = "院子：交叉封锁"
 var teaching: String = "掩体、射界与主/侧翼分工"
 var cover_defs: Array = []
@@ -38,6 +39,7 @@ static func by_id(id: String) -> LevelDef:
 static func make_yard() -> LevelDef:
 	var l := LevelDef.new()
 	l.level_id = "yard"
+	l.atmosphere_id = "yard"
 	l.title = "第1关 · 院子：交叉封锁"
 	l.teaching = "步枪补漏主路、机枪宽锥扫面、侦察长窄锁出口。主路和侧翼都要有射界；青色扇形朝向才有掩体减免，侧背无减免。三角=友军，菱形=敌军。"
 	l.tutorial = "左上角色卡选步枪手/机枪手/侦察兵（键盘 1/2/3）。点掩体部署；青色扇形=掩体保护方向（该方向来袭减伤 60%，侧背全伤）。黄锥是墙体裁切后的真实射界。侦察兵部署后有淡青「观察环」（仅准备期）。A/D、右键或底栏↺↻调朝向，空格或底栏警报。X / 底栏中止保留情报。手机返回键打开菜单。跑掉或全灭都会穿梭并恢复上轮计划。"
@@ -75,6 +77,7 @@ static func make_yard() -> LevelDef:
 static func make_warehouse() -> LevelDef:
 	var l := LevelDef.new()
 	l.level_id = "warehouse"
+	l.atmosphere_id = "warehouse"
 	l.title = "第2关 · 仓道：弹药窗口"
 	l.teaching = "F 入伏再打、G 弹包给最容易空的人；过早开火会空弹漏人。东廊橙色油桶在敌人靠近时自动引爆（伤及友军），不能在执行中点击引爆。"
 	l.tutorial = "G 把「备用弹包」交给一名已部署队员（空弹自动补一次，本轮不能转交）。F 切「入伏再打」，等敌人进入黄色伏击区再开火。东廊格子上的橙色「油桶」是关卡预置：敌人踩近才炸，准备期只能预览爆心，注意别把队员放进爆破圈。角色射界与青弧保护方向仍决定谁能活。X 中止保留情报；时间轴复盘只读。M 静音。"
@@ -114,6 +117,7 @@ static func make_warehouse() -> LevelDef:
 static func make_pump() -> LevelDef:
 	var l := LevelDef.new()
 	l.level_id = "pump"
+	l.atmosphere_id = "pump"
 	l.title = "第3关 · 泵站：关门之后"
 	l.teaching = "B 锁门会改写侧翼接近，不是稳赢按钮。关门后从西侧备用接近绕来，要重布保护弧与侦察锁线；侧背没罩住就是全伤。"
 	l.tutorial = "B 切换锁门。锁门后东廊关闭，侧翼改走作者写好的紫色备用接近——敌人不会自由寻路。注意侧背：青弧没罩住的方向是全伤。机枪侧背更危险；侦察适合锁出口（准备期可见观察环）。X 中止保留情报；时间轴复盘只读。M 静音。"
@@ -157,6 +161,7 @@ static func make_pump() -> LevelDef:
 static func make_railcut() -> LevelDef:
 	var l := LevelDef.new()
 	l.level_id = "railcut"
+	l.atmosphere_id = "railcut"
 	l.title = "第4关 · 信号楼：双走廊延迟"
 	l.teaching = "西廊先到、东廊延迟。核心墙挡住对向走廊，不能把三人全堆在南闸出口空弹；两条走廊都要有射界。绊索只能铺一条，弹包留给容易空的人。"
 	l.tutorial = "西廊敌人立刻出发，东廊晚几秒才从北过道折下东廊。核心设备挡住东西对射，南闸一个人罩不住两条走廊。机枪适合锁东廊北向等延迟侧翼，步枪补西廊，侦察锁南闸防漏。Tab 绊索只能铺一条走廊；G 弹包一人。没有门。X 中止保留情报；时间轴复盘只读。M 静音。"
@@ -196,6 +201,7 @@ static func make_railcut() -> LevelDef:
 static func make_depot() -> LevelDef:
 	var l := LevelDef.new()
 	l.level_id = "depot"
+	l.atmosphere_id = "depot"
 	l.title = "第5关 · 油库：三路合围"
 	l.teaching = "西暗道、主路、东廊同时有人。中间油罐挡住对射，三人罩不住三路，必须用唯一的绊索封一条；弹包留给容易空的人。"
 	l.tutorial = "西暗道敌人晚几秒才从西墙夹缝南下。别把三人全堆南闸——先到的主路和东廊会把弹药打空，暗道再从西面漏。步枪锁主路，机枪朝北等东廊，侦察看南闸；Tab 把绊索铺在西暗道。G 弹包一人。没有门、没有油桶。X 中止保留情报；时间轴复盘只读。M 静音。"

@@ -14,6 +14,7 @@ const PROGRESS_PATH := "user://ambush_loop.cfg"
 const LEVEL_ORDER := ["yard", "warehouse", "pump", "railcut", "depot"]
 const SfxBusScript := preload("res://scripts/sfx/sfx_bus.gd")
 const AmbushZoneFxScript := preload("res://scripts/fx/ambush_zone_fx.gd")
+const MissionSkyScript := preload("res://scripts/fx/mission_sky.gd")
 const TouchHudScript := preload("res://scripts/touch_hud.gd")
 
 var grid: AmbushGrid = AmbushGrid.new()
@@ -50,6 +51,7 @@ var return_fire_fx: Array = []
 var hud_tick: float = 0.0
 var ambush_zone_poly: Node2D = null
 var door_marker: Node2D = null
+var mission_sky: Node2D = null
 var all_spawns_done: bool = false
 var pending_result: String = "" # "" | "fail" | "win" — build panel after tick events/snapshot
 
@@ -983,6 +985,7 @@ func _load_level(level_id: String, keep_intel: bool, restore_plan: bool) -> void
 		push_error("LEVEL_GEO %s: %s" % [level.level_id, e])
 	escape_world = grid.cell_to_world_center(level.escape_cell)
 	escape_marker.position = escape_world
+	map_draw.atmosphere_id = level.atmosphere_id if level.atmosphere_id != "" else level.level_id
 	map_draw.set("grid", grid)
 	map_draw.escape_cell = level.escape_cell
 	map_draw.barrel_cell = level.barrel_cell
@@ -990,6 +993,7 @@ func _load_level(level_id: String, keep_intel: bool, restore_plan: bool) -> void
 	if map_draw.has_method("invalidate_static_cache"):
 		map_draw.invalidate_static_cache()
 	map_draw.queue_redraw()
+	_ensure_mission_sky()
 	_build_route_world()
 	_build_cover_slots()
 	_build_operators()
@@ -1000,6 +1004,19 @@ func _load_level(level_id: String, keep_intel: bool, restore_plan: bool) -> void
 	_start_setup(keep_intel, restore_plan)
 	_save_progress()
 	_maybe_show_tutorial()
+
+
+func _ensure_mission_sky() -> void:
+	if mission_sky == null or not is_instance_valid(mission_sky):
+		mission_sky = get_node_or_null("World/MissionSky")
+	if mission_sky == null or not is_instance_valid(mission_sky):
+		mission_sky = MissionSkyScript.new()
+		mission_sky.name = "MissionSky"
+		$World.add_child(mission_sky)
+		if map_draw:
+			$World.move_child(mission_sky, mini(map_draw.get_index() + 1, $World.get_child_count() - 1))
+	if mission_sky.has_method("setup"):
+		mission_sky.setup(level.atmosphere_id if level and level.atmosphere_id != "" else (level.level_id if level else "yard"))
 
 
 func _build_route_world() -> void:

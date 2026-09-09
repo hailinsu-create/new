@@ -483,6 +483,38 @@ func _assert_geometry(main, tag: String) -> bool:
 			push_error("SMOKE_GEO_%s %s" % [tag, e])
 		quit(20)
 		return false
+	if not _assert_atmosphere(main, tag):
+		return false
+	return true
+
+
+func _assert_atmosphere(main, tag: String) -> bool:
+	if main.level == null:
+		push_error("SMOKE_ATMO_NO_LEVEL %s" % tag)
+		quit(49)
+		return false
+	var want := str(main.level.level_id)
+	if str(main.level.atmosphere_id) != want:
+		push_error("SMOKE_ATMO_ID %s got=%s" % [want, main.level.atmosphere_id])
+		quit(49)
+		return false
+	if main.map_draw == null or str(main.map_draw.atmosphere_id) != want:
+		push_error(
+			"SMOKE_ATMO_MAP %s map=%s"
+			% [want, main.map_draw.atmosphere_id if main.map_draw else "null"]
+		)
+		quit(49)
+		return false
+	var sky = main.get_node_or_null("World/MissionSky")
+	if sky == null:
+		push_error("SMOKE_NO_MISSION_SKY %s" % tag)
+		quit(49)
+		return false
+	if str(sky.get("atmosphere_id")) != want:
+		push_error("SMOKE_SKY_ID %s got=%s" % [want, sky.get("atmosphere_id")])
+		quit(49)
+		return false
+	print("SMOKE_OK_ATMO ", want)
 	return true
 
 

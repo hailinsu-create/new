@@ -20,6 +20,12 @@ var grid: AmbushGrid:
 var escape_cell: Vector2i = Vector2i(-1, -1)
 var barrel_cell: Vector2i = Vector2i(-1, -1)
 var escape_flash: bool = false
+var atmosphere_id: String = "yard":
+	set(value):
+		if atmosphere_id == value:
+			return
+		atmosphere_id = value
+		invalidate_static_cache()
 var _flash_t: float = 0.0
 var _glow_t: float = 0.0
 
@@ -111,7 +117,10 @@ func _cache_signature() -> String:
 		geo = "%s:%d:%d:%d:%d" % [
 			grid.layout_id, grid.door_cell.x, grid.door_cell.y, int(grid.door_locked), h
 		]
-	return "%s|%s" % [geo, "p" if _is_power_saving() else "s"]
+	var atmo := atmosphere_id
+	if atmo == "" and grid != null:
+		atmo = grid.layout_id
+	return "%s|%s|%s" % [geo, "p" if _is_power_saving() else "s", atmo]
 
 
 func _is_power_saving() -> bool:
@@ -151,88 +160,217 @@ func _draw_static_into(c: CanvasItem) -> void:
 				_draw_wall_tile(c, rect, x, y)
 			else:
 				_draw_floor_tile(c, rect, x, y)
+	_draw_static_landmarks(c)
+
+
+func _atmo() -> String:
+	if atmosphere_id != "":
+		return atmosphere_id
+	if grid != null:
+		return grid.layout_id
+	return "yard"
+
+
+func _floor_palette() -> Dictionary:
+	match _atmo():
+		"warehouse":
+			return {
+				"a": Color(0.070, 0.062, 0.048),
+				"b": Color(0.056, 0.050, 0.038),
+				"grain": Color(0.22, 0.18, 0.10, 1),
+				"grid": Color(0.22, 0.18, 0.10, 0.12),
+			}
+		"pump":
+			return {
+				"a": Color(0.042, 0.078, 0.074),
+				"b": Color(0.034, 0.064, 0.062),
+				"grain": Color(0.18, 0.38, 0.32, 1),
+				"grid": Color(0.16, 0.32, 0.28, 0.12),
+			}
+		"railcut":
+			return {
+				"a": Color(0.058, 0.062, 0.060),
+				"b": Color(0.048, 0.052, 0.050),
+				"grain": Color(0.22, 0.20, 0.16, 1),
+				"grid": Color(0.20, 0.18, 0.14, 0.12),
+			}
+		"depot":
+			return {
+				"a": Color(0.072, 0.058, 0.038),
+				"b": Color(0.058, 0.046, 0.030),
+				"grain": Color(0.32, 0.20, 0.08, 1),
+				"grid": Color(0.28, 0.18, 0.08, 0.12),
+			}
+		_:
+			return {
+				"a": Color(0.058, 0.082, 0.100),
+				"b": Color(0.046, 0.068, 0.086),
+				"grain": Color(0.16, 0.22, 0.22, 1),
+				"grid": Color(0.16, 0.22, 0.22, 0.10),
+			}
+
+
+func _wall_palette() -> Dictionary:
+	match _atmo():
+		"warehouse":
+			return {
+				"base": Color(0.16, 0.12, 0.07),
+				"fill_a": Color(0.42, 0.32, 0.16),
+				"fill_b": Color(0.36, 0.26, 0.12),
+				"edge": Color(0.58, 0.46, 0.22, 0.85),
+				"rim": Color(0.78, 0.62, 0.32, 0.88),
+				"mortar": Color(0.12, 0.08, 0.04, 0.50),
+			}
+		"pump":
+			return {
+				"base": Color(0.06, 0.12, 0.10),
+				"fill_a": Color(0.18, 0.32, 0.26),
+				"fill_b": Color(0.14, 0.26, 0.22),
+				"edge": Color(0.32, 0.52, 0.42, 0.80),
+				"rim": Color(0.55, 0.82, 0.68, 0.78),
+				"mortar": Color(0.06, 0.12, 0.10, 0.55),
+			}
+		"railcut":
+			return {
+				"base": Color(0.10, 0.10, 0.09),
+				"fill_a": Color(0.28, 0.26, 0.22),
+				"fill_b": Color(0.22, 0.20, 0.17),
+				"edge": Color(0.48, 0.46, 0.38, 0.80),
+				"rim": Color(0.70, 0.68, 0.52, 0.82),
+				"mortar": Color(0.08, 0.08, 0.07, 0.50),
+			}
+		"depot":
+			return {
+				"base": Color(0.16, 0.08, 0.04),
+				"fill_a": Color(0.42, 0.22, 0.08),
+				"fill_b": Color(0.34, 0.16, 0.06),
+				"edge": Color(0.72, 0.42, 0.14, 0.82),
+				"rim": Color(0.90, 0.58, 0.22, 0.85),
+				"mortar": Color(0.14, 0.06, 0.03, 0.50),
+			}
+		_:
+			return {
+				"base": Color(0.14, 0.09, 0.05),
+				"fill_a": Color(0.38, 0.27, 0.13),
+				"fill_b": Color(0.33, 0.23, 0.10),
+				"edge": Color(0.48, 0.34, 0.14, 0.80),
+				"rim": Color(0.78, 0.62, 0.34, 0.88),
+				"mortar": Color(0.14, 0.09, 0.04, 0.50),
+			}
 
 
 func _draw_floor_tile(c: CanvasItem, rect: Rect2, x: int, y: int) -> void:
+	var pal := _floor_palette()
 	var checker := ((x + y) % 2) == 0
-	# Cooler night asphalt — teal-gray, never purple.
-	var base := Color(0.062, 0.086, 0.102) if checker else Color(0.050, 0.072, 0.088)
+	var base: Color = pal["a"] if checker else pal["b"]
 	var wobble := 0.012 * (_frac(x * 19 + y * 47) - 0.5)
-	base = Color(base.r, clampf(base.g + wobble * 0.4, 0.0, 1.0), clampf(base.b + wobble, 0.0, 1.0))
+	base = Color(
+		clampf(base.r + wobble * 0.3, 0.0, 1.0),
+		clampf(base.g + wobble * 0.4, 0.0, 1.0),
+		clampf(base.b + wobble, 0.0, 1.0)
+	)
 	c.draw_rect(rect, base)
 	var dense := not _is_power_saving()
+	var grain: Color = pal["grain"]
 	if dense:
 		var cx := rect.position.x
 		var cy := rect.position.y
 		var seed_n := x * 73 + y * 191
-		for i in 8:
+		var specks := 5 if _atmo() == "railcut" else 8
+		for i in specks:
 			var gx := cx + 3.0 + _frac(seed_n + i * 17) * 26.0
 			var gy := cy + 3.0 + _frac(seed_n + i * 41 + 9) * 26.0
 			var ga := 0.035 + _frac(seed_n + i * 7) * 0.07
 			var gw := 1.0 + _frac(seed_n + i * 13) * 2.0
-			c.draw_rect(Rect2(gx, gy, gw, 1.0 + _frac(seed_n + i * 3) * 1.5), Color(0.16, 0.20, 0.19, ga))
-		# Occasional tire / scrap scratch.
-		if (seed_n % 11) == 0:
+			c.draw_rect(
+				Rect2(gx, gy, gw, 1.0 + _frac(seed_n + i * 3) * 1.5),
+				Color(grain.r, grain.g, grain.b, ga)
+			)
+		if _atmo() == "warehouse" and (seed_n % 9) == 0:
+			# Oil sheen streak.
+			c.draw_line(
+				Vector2(cx + 4.0, cy + 18.0),
+				Vector2(cx + 26.0, cy + 22.0),
+				Color(0.22, 0.38, 0.32, 0.16),
+				1.6, true
+			)
+		elif _atmo() == "pump" and (seed_n % 8) == 0:
+			c.draw_circle(Vector2(cx + 16.0, cy + 18.0), 6.0, Color(0.18, 0.42, 0.38, 0.12))
+		elif _atmo() == "railcut" and (y == 5 or y == 6 or y == 16 or y == 17):
+			# Rail ties on the north/south connectors.
+			c.draw_rect(Rect2(cx + 2.0, cy + 12.0, 28.0, 6.0), Color(0.18, 0.12, 0.07, 0.55))
+			c.draw_rect(Rect2(cx + 2.0, cy + 13.0, 28.0, 1.5), Color(0.32, 0.22, 0.10, 0.35))
+		elif _atmo() == "depot" and ((x + y) % 6) == 0 and x > 14 and x < 25 and y > 14:
+			c.draw_rect(Rect2(cx + 2.0, cy + 14.0, 28.0, 5.0), Color(0.92, 0.62, 0.12, 0.18))
+		elif (seed_n % 11) == 0:
 			var sx := cx + 4.0 + _frac(seed_n + 3) * 8.0
 			var sy := cy + 6.0 + _frac(seed_n + 8) * 14.0
 			var sl := 10.0 + _frac(seed_n + 21) * 12.0
 			var sa := 0.07 + _frac(seed_n + 5) * 0.08
-			c.draw_line(Vector2(sx, sy), Vector2(sx + sl, sy + 2.0 * (_frac(seed_n) - 0.5)), Color(0.22, 0.24, 0.20, sa), 1.2, true)
+			c.draw_line(
+				Vector2(sx, sy),
+				Vector2(sx + sl, sy + 2.0 * (_frac(seed_n) - 0.5)),
+				Color(grain.r, grain.g, grain.b, sa),
+				1.2, true
+			)
 		elif (seed_n % 17) == 0:
 			var ox := cx + 8.0 + _frac(seed_n + 11) * 10.0
 			var oy := cy + 10.0
-			c.draw_arc(Vector2(ox, oy), 5.0, 0.2, 2.4, 6, Color(0.18, 0.20, 0.18, 0.08), 1.0, true)
-	c.draw_rect(rect, Color(0.14, 0.20, 0.19, 0.16), false, 1.0)
+			c.draw_arc(Vector2(ox, oy), 5.0, 0.2, 2.4, 6, Color(grain.r, grain.g, grain.b, 0.08), 1.0, true)
+	var grid_c: Color = pal["grid"]
+	c.draw_rect(rect, Color(grid_c.r, grid_c.g, grid_c.b, 0.16), false, 1.0)
 	if x % 4 == 0:
-		c.draw_line(rect.position, rect.position + Vector2(0, rect.size.y), Color(0.16, 0.22, 0.22, 0.10), 1.0)
+		c.draw_line(rect.position, rect.position + Vector2(0, rect.size.y), grid_c, 1.0)
 	if y % 4 == 0:
-		c.draw_line(rect.position, rect.position + Vector2(rect.size.x, 0), Color(0.16, 0.22, 0.22, 0.10), 1.0)
+		c.draw_line(rect.position, rect.position + Vector2(rect.size.x, 0), grid_c, 1.0)
 
 
 func _draw_wall_tile(c: CanvasItem, rect: Rect2, x: int, y: int) -> void:
-	# Umber masonry with north/west rim light so blocks read as crates/brick, not UI cards.
-	c.draw_rect(rect, Color(0.14, 0.09, 0.05))
+	var pal := _wall_palette()
+	c.draw_rect(rect, pal["base"])
 	var inset := rect.grow(-2.0)
-	var warm := Color(0.38, 0.27, 0.13) if ((x + y) % 2) == 0 else Color(0.33, 0.23, 0.10)
+	var warm: Color = pal["fill_a"] if ((x + y) % 2) == 0 else pal["fill_b"]
 	c.draw_rect(inset, warm)
 	if not _is_power_saving():
 		var y0 := inset.position.y + 5.0
 		var row := 0
+		var mortar: Color = pal["mortar"]
 		while y0 < inset.position.y + inset.size.y - 2.0:
 			c.draw_line(
 				Vector2(inset.position.x + 1.0, y0),
 				Vector2(inset.position.x + inset.size.x - 1.0, y0),
-				Color(0.14, 0.09, 0.04, 0.50),
+				mortar,
 				1.0
 			)
-			# Offset brick joints.
 			var joint_x := inset.position.x + (8.0 if (row % 2) == 0 else 16.0)
 			while joint_x < inset.position.x + inset.size.x - 2.0:
 				c.draw_line(
 					Vector2(joint_x, y0 - 5.0),
 					Vector2(joint_x, y0),
-					Color(0.12, 0.07, 0.04, 0.40),
+					Color(mortar.r * 0.85, mortar.g * 0.85, mortar.b, mortar.a * 0.8),
 					1.0
 				)
 				joint_x += 16.0
 			y0 += 7.0
 			row += 1
-	c.draw_rect(rect, Color(0.48, 0.34, 0.14, 0.80), false, 1.4)
-	c.draw_rect(inset, Color(0.20, 0.12, 0.05, 0.50), false, 1.0)
+	var edge: Color = pal["edge"]
+	c.draw_rect(rect, edge, false, 1.4)
+	c.draw_rect(inset, Color(pal["base"].r, pal["base"].g, pal["base"].b, 0.50), false, 1.0)
 	var north_open := y <= 0 or not grid.is_blocked(x, y - 1)
 	var west_open := x <= 0 or not grid.is_blocked(x - 1, y)
+	var rim: Color = pal["rim"]
 	if north_open:
 		c.draw_line(
 			rect.position + Vector2(1, 1),
 			rect.position + Vector2(rect.size.x - 1, 1),
-			Color(0.78, 0.62, 0.34, 0.88),
+			rim,
 			2.0
 		)
 	if west_open:
 		c.draw_line(
 			rect.position + Vector2(1, 1),
 			rect.position + Vector2(1, rect.size.y - 1),
-			Color(0.68, 0.52, 0.28, 0.78),
+			Color(rim.r * 0.88, rim.g * 0.85, rim.b * 0.82, rim.a * 0.9),
 			2.0
 		)
 	var south_open := y + 1 >= AmbushGrid.ROWS or not grid.is_blocked(x, y + 1)
@@ -288,6 +426,99 @@ func _draw_escape_mouth(erect: Rect2) -> void:
 	else:
 		draw_rect(erect, Color(0.42, 0.72, 0.16, 0.22 + 0.10 * breathe))
 		draw_rect(erect, Color(0.92, 0.88, 0.32, 0.70 + 0.18 * breathe), false, 2.2)
+
+
+func _draw_static_landmarks(c: CanvasItem) -> void:
+	## Decorative overlays on top of tiles. Never writes grid.blocked.
+	match _atmo():
+		"warehouse":
+			_landmark_warehouse(c)
+		"pump":
+			_landmark_pump(c)
+		"railcut":
+			_landmark_railcut(c)
+		"depot":
+			_landmark_depot(c)
+		_:
+			_landmark_yard(c)
+
+
+func _cell_rect(x: int, y: int, w: int = 1, h: int = 1) -> Rect2:
+	var t := AmbushGrid.TILE
+	return Rect2(x * t, y * t, w * t, h * t)
+
+
+func _landmark_yard(c: CanvasItem) -> void:
+	# Warm window in the NE interior wall — courtyard read.
+	var win := _cell_rect(33, 6, 2, 2)
+	c.draw_rect(win.grow(-6), Color(0.95, 0.68, 0.22, 0.55))
+	c.draw_rect(win.grow(-10), Color(1.0, 0.82, 0.40, 0.35))
+	c.draw_rect(win.grow(-6), Color(0.55, 0.32, 0.10, 0.8), false, 1.5)
+	# Courtyard crate-stack silhouette on the mid island (already blocked).
+	var crate := _cell_rect(19, 10, 3, 2)
+	c.draw_rect(crate.grow(-4), Color(0.28, 0.20, 0.10, 0.45))
+	c.draw_rect(Rect2(crate.position + Vector2(8, 6), Vector2(22, 14)), Color(0.38, 0.28, 0.12, 0.55))
+	c.draw_rect(Rect2(crate.position + Vector2(36, 10), Vector2(18, 18)), Color(0.32, 0.22, 0.10, 0.5))
+
+
+func _landmark_warehouse(c: CanvasItem) -> void:
+	# Shelf uprights on the mid stacks + sodium lamp housings.
+	for cell in [Vector2i(8, 11), Vector2i(20, 11), Vector2i(25, 9)]:
+		var r := _cell_rect(cell.x, cell.y)
+		c.draw_rect(r.grow(-8), Color(0.18, 0.12, 0.06, 0.55))
+		c.draw_rect(Rect2(r.position + Vector2(6, 4), Vector2(20, 3)), Color(0.55, 0.42, 0.18, 0.45))
+		c.draw_rect(Rect2(r.position + Vector2(6, 14), Vector2(20, 3)), Color(0.50, 0.38, 0.14, 0.4))
+	for lamp in [Vector2i(13, 5), Vector2i(24, 5), Vector2i(32, 8)]:
+		var p := Vector2(lamp.x * AmbushGrid.TILE + 16, lamp.y * AmbushGrid.TILE + 10)
+		c.draw_circle(p, 6.0, Color(0.22, 0.16, 0.08, 0.85))
+		c.draw_circle(p, 3.0, Color(0.95, 0.72, 0.22, 0.7))
+
+
+func _landmark_pump(c: CanvasItem) -> void:
+	# Teal pipe runs across the machinery — visual only.
+	var t := AmbushGrid.TILE
+	c.draw_rect(Rect2(7 * t + 8, 11 * t + 10, 12 * t, 8), Color(0.18, 0.42, 0.36, 0.55))
+	c.draw_rect(Rect2(7 * t + 8, 11 * t + 12, 12 * t, 4), Color(0.28, 0.62, 0.52, 0.35))
+	c.draw_rect(Rect2(18 * t + 10, 10 * t, 8, 3 * t), Color(0.16, 0.38, 0.32, 0.55))
+	c.draw_rect(Rect2(24 * t + 6, 11 * t + 4, 2 * t, 10), Color(0.18, 0.40, 0.34, 0.5))
+	# Valve wheels.
+	for p in [Vector2(18.4 * t, 11.2 * t), Vector2(25.2 * t, 12.2 * t)]:
+		c.draw_circle(p, 7.0, Color(0.22, 0.55, 0.42, 0.7))
+		c.draw_circle(p, 3.0, Color(0.10, 0.18, 0.14, 0.85))
+	# Puddle plates on walkable floor (not a collider).
+	c.draw_circle(Vector2(13.5 * t, 15.5 * t), 14.0, Color(0.12, 0.28, 0.26, 0.28))
+	c.draw_circle(Vector2(16.2 * t, 15.8 * t), 10.0, Color(0.12, 0.26, 0.24, 0.22))
+
+
+func _landmark_railcut(c: CanvasItem) -> void:
+	var t := AmbushGrid.TILE
+	# Signal tower on the core wall.
+	var base := Vector2(21.5 * t, 10.5 * t)
+	c.draw_rect(Rect2(base.x - 10, base.y - 36, 20, 40), Color(0.16, 0.16, 0.14, 0.75))
+	c.draw_rect(Rect2(base.x - 14, base.y - 44, 28, 10), Color(0.22, 0.20, 0.16, 0.8))
+	c.draw_circle(base + Vector2(0, -48), 6.0, Color(0.85, 0.42, 0.12, 0.85))
+	c.draw_rect(Rect2(base.x - 3, base.y - 20, 6, 22), Color(0.10, 0.10, 0.09, 0.7))
+	# Extra rail steel on the two corridors (ties are in floor tiles).
+	c.draw_rect(Rect2(12 * t, 5 * t + 10, 3 * t, 4), Color(0.42, 0.42, 0.38, 0.28))
+	c.draw_rect(Rect2(31 * t, 5 * t + 10, 3 * t, 4), Color(0.42, 0.42, 0.38, 0.28))
+
+
+func _landmark_depot(c: CanvasItem) -> void:
+	var t := AmbushGrid.TILE
+	# Fuel tank silhouettes on the mid blocked island.
+	var a := Vector2(18.5 * t, 11.0 * t)
+	var b := Vector2(21.5 * t, 10.5 * t)
+	c.draw_circle(a, 28.0, Color(0.22, 0.12, 0.06, 0.75))
+	c.draw_circle(a, 22.0, Color(0.38, 0.18, 0.08, 0.55))
+	c.draw_rect(Rect2(a.x - 6, a.y - 34, 12, 16), Color(0.18, 0.10, 0.05, 0.8))
+	c.draw_circle(b, 22.0, Color(0.20, 0.10, 0.05, 0.7))
+	c.draw_circle(b, 16.0, Color(0.34, 0.16, 0.06, 0.5))
+	# Hazard chevrons along the south face of the tanks.
+	for i in 5:
+		var x := 16.0 * t + float(i) * 18.0
+		var y := 14.0 * t + 4.0
+		var col := Color(0.92, 0.62, 0.10, 0.55) if (i % 2) == 0 else Color(0.08, 0.07, 0.05, 0.55)
+		c.draw_rect(Rect2(x, y, 16.0, 8.0), col)
 
 
 func _frac(n: int) -> float:

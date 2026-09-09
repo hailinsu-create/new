@@ -260,10 +260,42 @@ func _refresh_mission_rows() -> void:
 			badge = "可出击"
 		if bool(e["cleared"]):
 			badge = "首通"
-		btn.text = "%s\n%s" % [str(e["title"]), badge]
-		btn.modulate = Color(0.62, 0.64, 0.58) if btn.disabled else Color.WHITE
+		var glyph := _mission_glyph(str(e["id"]))
+		btn.text = "%s  %s\n%s" % [glyph, str(e["title"]), badge]
+		if btn.disabled:
+			btn.modulate = Color(0.62, 0.64, 0.58)
+		else:
+			btn.modulate = _mission_tint(str(e["id"]))
 		btn.set_meta("level_id", str(e["id"]))
 		btn.set_meta("unlocked", bool(e["unlocked"]))
+
+
+func _mission_glyph(id: String) -> String:
+	match id:
+		"warehouse":
+			return "灯"
+		"pump":
+			return "泵"
+		"railcut":
+			return "塔"
+		"depot":
+			return "罐"
+		_:
+			return "月"
+
+
+func _mission_tint(id: String) -> Color:
+	match id:
+		"warehouse":
+			return Color(1.08, 0.95, 0.62)
+		"pump":
+			return Color(0.72, 1.10, 0.96)
+		"railcut":
+			return Color(0.95, 1.02, 0.78)
+		"depot":
+			return Color(1.14, 0.82, 0.48)
+		_:
+			return Color(0.92, 1.04, 0.88)
 
 
 func _on_mission_picked(idx: int) -> void:
