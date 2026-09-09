@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Run the grok.com CLI with the session already logged in on this machine.
-# /grok is pinned to Grok 4.6 Extra High Fast. Fast is xAI priority processing
+# Always pinned to Grok 4.6 Extra High Fast. Fast is xAI priority processing
 # (no grok-4.6-fast slug exists).
 set -euo pipefail
 
@@ -170,7 +170,7 @@ usage: run.sh <command>
 
   status   Show grok binary and grok.com login state
   login    Start grok login --device-auth
-  run      Send a prompt to grok CLI (uses grok.com quota)
+  run      Send a prompt to grok CLI (grok-4.6 extra-high fast, grok.com quota)
 
   run --file PATH
   run PROMPT...
