@@ -55,6 +55,7 @@ var obs_fill: Polygon2D = null
 var obs_tag: Label = null
 var role_glyph: Polygon2D = null
 var body_outline: Polygon2D = null
+var role_rim: Line2D = null
 var weapon: Polygon2D = null
 var kit_gear: Polygon2D = null
 var kit_helm: Polygon2D = null
@@ -266,12 +267,14 @@ func _rebuild_cone() -> void:
 		var poly := _role_body_poly()
 		body.polygon = poly
 		_ensure_body_outline()
+		_ensure_role_rim()
 		_ensure_weapon()
 		_ensure_kit_bits()
 		if body_outline:
 			body_outline.rotation = body.rotation
-			body_outline.polygon = _inflate_poly(poly, 3.4)
+			body_outline.polygon = _inflate_poly(poly, _outline_pad())
 			body_outline.color = _outline_color()
+		_refresh_role_rim(poly)
 
 
 func in_fire_geometry(target: Vector2, p_grid: AmbushGrid) -> bool:
@@ -535,14 +538,28 @@ func _ensure_kit_bits() -> void:
 	kit_gear.modulate = dead_m
 
 
+func _outline_pad() -> float:
+	## Fixed +2px over the old 3.4 stroke, scaled slightly with viewport height.
+	var h := 720.0
+	var vp := get_viewport()
+	if vp:
+		h = maxf(vp.get_visible_rect().size.y, 360.0)
+	return 5.4 * clampf(720.0 / h, 0.9, 1.35)
+
+
 func _outline_color() -> Color:
-	match role:
-		Role.MG:
-			return Color(0.10, 0.12, 0.04, 0.98)
-		Role.SCOUT:
-			return Color(0.04, 0.12, 0.16, 0.98)
-		_:
-			return Color(0.05, 0.10, 0.16, 0.98)
+	var kit := role_kit_color(role)
+	return Color(
+		clampf(kit.r * 0.42 + 0.08, 0.0, 1.0),
+		clampf(kit.g * 0.48 + 0.10, 0.0, 1.0),
+		clampf(kit.b * 0.40 + 0.08, 0.0, 1.0),
+		1.0
+	)
+
+
+func _rim_color() -> Color:
+	var kit := role_kit_color(role)
+	return Color(kit.r, kit.g, kit.b, 0.95 if alive else 0.45)
 
 
 func _spawn_muzzle_flash() -> void:
@@ -608,6 +625,11 @@ func _apply_idle_bob() -> void:
 		body_outline.rotation = body.rotation if body else body_outline.rotation
 		if body:
 			body_outline.scale = body.scale
+	if role_rim:
+		role_rim.position = Vector2(0.0, bob) + _recoil_off
+		role_rim.rotation = body.rotation if body else role_rim.rotation
+		if body:
+			role_rim.scale = body.scale
 	if role_glyph:
 		role_glyph.position = Vector2(15, -13 + bob * 0.4)
 	if weapon and is_instance_valid(weapon):
@@ -699,11 +721,17 @@ func _play_death_fx() -> void:
 	_death_tween.tween_property(body, "scale", Vector2(1.22, 1.22), 0.05).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	if body_outline:
 		_death_tween.parallel().tween_property(body_outline, "scale", Vector2(1.22, 1.22), 0.05)
+	if role_rim:
+		_death_tween.parallel().tween_property(role_rim, "scale", Vector2(1.22, 1.22), 0.05)
 	_death_tween.tween_property(body, "scale", squash, 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	_death_tween.parallel().tween_property(body, "rotation", body.rotation + extra_rot, 0.16)
 	if body_outline:
 		_death_tween.parallel().tween_property(body_outline, "scale", squash, 0.16)
 		_death_tween.parallel().tween_property(body_outline, "rotation", body.rotation + extra_rot, 0.16)
+	if role_rim:
+		_death_tween.parallel().tween_property(role_rim, "scale", squash, 0.16)
+		_death_tween.parallel().tween_property(role_rim, "rotation", body.rotation + extra_rot, 0.16)
+		_death_tween.parallel().tween_property(role_rim, "modulate:a", 0.25, 0.18)
 	if role == Role.SCOUT:
 		_death_tween.parallel().tween_property(body, "modulate:a", 0.42, 0.22)
 
@@ -722,6 +750,10 @@ func _reset_present_fx() -> void:
 	if body_outline:
 		body_outline.scale = Vector2.ONE
 		body_outline.position = Vector2.ZERO
+	if role_rim:
+		role_rim.scale = Vector2.ONE
+		role_rim.position = Vector2.ZERO
+		role_rim.modulate = Color.WHITE
 	if death_mark != null and is_instance_valid(death_mark):
 		death_mark.visible = false
 	if weapon != null and is_instance_valid(weapon):
@@ -747,6 +779,39 @@ func _ensure_body_outline() -> void:
 		move_child(body_outline, body.get_index())
 
 
+func _ensure_role_rim() -> void:
+	if role_rim != null and is_instance_valid(role_rim):
+		return
+	role_rim = get_node_or_null("RoleRim") as Line2D
+	if role_rim == null:
+		role_rim = Line2D.new()
+		role_rim.name = "RoleRim"
+		role_rim.closed = true
+		role_rim.joint_mode = Line2D.LINE_JOINT_ROUND
+		role_rim.begin_cap_mode = Line2D.LINE_CAP_ROUND
+		role_rim.end_cap_mode = Line2D.LINE_CAP_ROUND
+		role_rim.z_index = 0
+		add_child(role_rim)
+		if body_outline != null and is_instance_valid(body_outline):
+			move_child(role_rim, body_outline.get_index() + 1)
+
+
+func _refresh_role_rim(poly: PackedVector2Array) -> void:
+	_ensure_role_rim()
+	if role_rim == null:
+		return
+	var pts := _inflate_poly(poly, _outline_pad() + 1.4)
+	if pts.size() > 0:
+		var loop := pts.duplicate()
+		loop.append(loop[0])
+		role_rim.points = loop
+	role_rim.width = 2.2 if _is_power_saving() else 2.8
+	role_rim.default_color = _rim_color()
+	role_rim.visible = true
+	if body:
+		role_rim.rotation = body.rotation
+
+
 func _inflate_poly(src: PackedVector2Array, pad: float) -> PackedVector2Array:
 	var out := PackedVector2Array()
 	for p in src:
@@ -764,6 +829,8 @@ func _apply_body_modulate() -> void:
 		body.modulate = Color(0.55, 0.55, 0.58, 0.78)
 		if body_outline:
 			body_outline.modulate = Color(0.5, 0.5, 0.5, 0.7)
+		if role_rim:
+			role_rim.modulate = Color(0.55, 0.55, 0.55, 0.55)
 		if weapon:
 			weapon.modulate = Color(0.5, 0.5, 0.52, 0.7)
 		if kit_helm:
@@ -775,6 +842,8 @@ func _apply_body_modulate() -> void:
 	body.modulate = flash
 	if body_outline:
 		body_outline.modulate = Color(1, 1, 1, 1).lerp(Color(1.4, 1.1, 0.4), _hit_flash)
+	if role_rim:
+		role_rim.modulate = Color(1, 1, 1, 1).lerp(Color(1.5, 1.2, 0.5), _hit_flash)
 	if weapon:
 		weapon.modulate = flash
 	if kit_helm:

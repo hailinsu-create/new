@@ -16,6 +16,7 @@ const PREVIEW_RAYS := 10
 
 var protect_arc: Polygon2D = null
 var _crate_bits: Array[Polygon2D] = []
+var _lock_mark: Label = null
 
 
 func setup(id: int, text: String, protect_face: float = 0.0) -> void:
@@ -131,6 +132,27 @@ func set_highlight(on: bool) -> void:
 	for bit in _crate_bits:
 		if bit != null and is_instance_valid(bit):
 			bit.modulate = Color(1.15, 1.2, 1.05) if on else Color.WHITE
+
+
+func set_plan_lock(on: bool) -> void:
+	if _lock_mark == null or not is_instance_valid(_lock_mark):
+		_lock_mark = get_node_or_null("LockMark") as Label
+	if _lock_mark == null:
+		_lock_mark = Label.new()
+		_lock_mark.name = "LockMark"
+		_lock_mark.text = "锁"
+		_lock_mark.position = Vector2(-10, -30)
+		_lock_mark.add_theme_font_size_override("font_size", 13)
+		_lock_mark.add_theme_color_override("font_color", Color(1.0, 0.28, 0.16))
+		_lock_mark.add_theme_color_override("font_shadow_color", Color(0.05, 0.02, 0.02, 0.95))
+		_lock_mark.add_theme_constant_override("shadow_offset_x", 1)
+		_lock_mark.add_theme_constant_override("shadow_offset_y", 1)
+		_lock_mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_lock_mark.z_index = 4
+		add_child(_lock_mark)
+	_lock_mark.visible = on
+	if on:
+		_lock_mark.modulate = Color(1.35, 0.55, 0.35)
 
 
 ## emphasis: 0 hidden, 1 idle map hint, 2 selected/hovered.

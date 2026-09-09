@@ -35,6 +35,7 @@ var _present_t: float = 0.0
 var _trail_acc: float = 0.0
 var _trail_world: PackedVector2Array = PackedVector2Array()
 var body_outline: Polygon2D = null
+var kind_rim: Line2D = null
 var chevron: Polygon2D = null
 var weapon: Polygon2D = null
 var kit_helm: Polygon2D = null
@@ -160,6 +161,8 @@ func _face_move(target: Vector2) -> void:
 	body.rotation = aim.angle() + PI * 0.5
 	if body_outline:
 		body_outline.rotation = body.rotation
+	if kind_rim:
+		kind_rim.rotation = body.rotation
 	if weapon and is_instance_valid(weapon):
 		weapon.rotation = _weapon_snap
 
@@ -328,13 +331,31 @@ func _kind_body_color() -> Color:
 
 
 func _kind_outline_color() -> Color:
+	var kit := _kind_rim_color()
+	return Color(
+		clampf(kit.r * 0.38 + 0.10, 0.0, 1.0),
+		clampf(kit.g * 0.32 + 0.06, 0.0, 1.0),
+		clampf(kit.b * 0.28 + 0.05, 0.0, 1.0),
+		1.0
+	)
+
+
+func _kind_rim_color() -> Color:
 	match kind_id():
 		"flank":
-			return Color(0.22, 0.08, 0.02, 0.96)
+			return Color(1.0, 0.62, 0.18, 0.95)
 		"sneak":
-			return Color(0.04, 0.08, 0.10, 0.96)
+			return Color(0.42, 0.82, 0.70, 0.92)
 		_:
-			return Color(0.18, 0.04, 0.04, 0.96)
+			return Color(1.0, 0.32, 0.22, 0.95)
+
+
+func _outline_pad() -> float:
+	var h := 720.0
+	var vp := get_viewport()
+	if vp:
+		h = maxf(vp.get_visible_rect().size.y, 360.0)
+	return 5.2 * clampf(720.0 / h, 0.9, 1.35)
 
 
 func _ensure_chevron() -> void:
@@ -442,7 +463,7 @@ func _apply_hostile_silhouette() -> void:
 		body_outline.name = "BodyOutline"
 		add_child(body_outline)
 		move_child(body_outline, body.get_index())
-	var pad := 3.2
+	var pad := _outline_pad()
 	var outline := PackedVector2Array()
 	for p in body.polygon:
 		var n := p
@@ -452,7 +473,71 @@ func _apply_hostile_silhouette() -> void:
 	body_outline.polygon = outline
 	body_outline.color = _kind_outline_color()
 	body_outline.rotation = body.rotation
+	_refresh_kind_rim()
 	_refresh_tag()
+
+
+func _refresh_kind_rim() -> void:
+	if body == null:
+		return
+	if kind_rim == null or not is_instance_valid(kind_rim):
+		kind_rim = get_node_or_null("KindRim") as Line2D
+	if kind_rim == null:
+		kind_rim = Line2D.new()
+		kind_rim.name = "KindRim"
+		kind_rim.closed = true
+		kind_rim.joint_mode = Line2D.LINE_JOINT_ROUND
+		kind_rim.begin_cap_mode = Line2D.LINE_CAP_ROUND
+		kind_rim.end_cap_mode = Line2D.LINE_CAP_ROUND
+		kind_rim.z_index = 0
+		add_child(kind_rim)
+		if body_outline != null and is_instance_valid(body_outline):
+			move_child(kind_rim, body_outline.get_index() + 1)
+	var pad := _outline_pad() + 1.4
+	var pts := PackedVector2Array()
+	for p in body.polygon:
+		var n := p
+		if n.length_squared() > 0.01:
+			n = n.normalized() * (p.length() + pad)
+		pts.append(n)
+	if pts.size() > 0:
+		var loop := pts.duplicate()
+		loop.append(loop[0])
+		kind_rim.points = loop
+	kind_rim.width = 2.2 if _is_power_saving() else 2.8
+	kind_rim.default_color = _kind_rim_color()
+	kind_rim.visible = true
+	kind_rim.rotation = body.rotation
+
+
+func _spawn_death_puff() -> void:
+	## Route-colored collapse puff. Standard tier only — 省电 keeps the X mark.
+	if _is_power_saving():
+		return
+	var puff := CPUParticles2D.new()
+	puff.name = "DeathPuff"
+	puff.emitting = false
+	puff.one_shot = true
+	puff.explosiveness = 1.0
+	puff.amount = 10
+	puff.lifetime = 0.28
+	puff.local_coords = false
+	puff.direction = Vector2(0, -1)
+	puff.spread = 80.0
+	puff.initial_velocity_min = 18.0
+	puff.initial_velocity_max = 46.0
+	puff.gravity = Vector2(0, 70)
+	puff.scale_amount_min = 0.6
+	puff.scale_amount_max = 1.6
+	var rc := _kind_rim_color()
+	puff.color = Color(rc.r, rc.g, rc.b, 0.72)
+	puff.z_index = 3
+	add_child(puff)
+	puff.emitting = true
+	puff.restart()
+	var tw := puff.create_tween()
+	tw.tween_interval(0.36)
+	tw.tween_callback(puff.queue_free)
 
 
 func _refresh_tag() -> void:
@@ -481,6 +566,8 @@ func _apply_body_modulate() -> void:
 		body.modulate = Color(0.62, 0.62, 0.64, 0.72)
 		if body_outline:
 			body_outline.modulate = Color(0.55, 0.55, 0.55, 0.7)
+		if kind_rim:
+			kind_rim.modulate = Color(0.55, 0.55, 0.55, 0.5)
 		if chevron:
 			chevron.modulate = Color(0.55, 0.55, 0.55, 0.65)
 		if weapon:
@@ -497,6 +584,8 @@ func _apply_body_modulate() -> void:
 	body.modulate = flash
 	if body_outline:
 		body_outline.modulate = Color(1, 1, 1, 1).lerp(Color(1.5, 1.2, 0.5), _hit_flash)
+	if kind_rim:
+		kind_rim.modulate = Color(1, 1, 1, 1).lerp(Color(1.6, 1.2, 0.4), _hit_flash)
 	if chevron:
 		chevron.modulate = flash
 	if weapon:
@@ -520,6 +609,11 @@ func _apply_walk_bob() -> void:
 		body_outline.position = Vector2(0.0, bob) + _recoil_off
 		if body:
 			body_outline.scale = body.scale
+	if kind_rim:
+		kind_rim.position = Vector2(0.0, bob) + _recoil_off
+		if body:
+			kind_rim.scale = body.scale
+		kind_rim.rotation = body.rotation if body else kind_rim.rotation
 	if weapon and is_instance_valid(weapon):
 		weapon.rotation = _weapon_snap
 
@@ -635,16 +729,16 @@ func _ensure_death_mark() -> void:
 	])
 	pool.color = Color(0.10, 0.06, 0.06, 0.8)
 	death_mark.add_child(pool)
-	var xc := _kind_outline_color()
+	var xc := _kind_rim_color()
 	var a := Line2D.new()
-	a.width = 2.6
-	a.default_color = Color(xc.r + 0.15, xc.g + 0.08, xc.b + 0.08, 0.95)
-	a.points = PackedVector2Array([Vector2(-7, -7), Vector2(7, 7)])
+	a.width = 3.4
+	a.default_color = Color(xc.r, xc.g, xc.b, 0.98)
+	a.points = PackedVector2Array([Vector2(-8, -8), Vector2(8, 8)])
 	death_mark.add_child(a)
 	var b := Line2D.new()
-	b.width = 2.6
+	b.width = 3.4
 	b.default_color = a.default_color
-	b.points = PackedVector2Array([Vector2(7, -7), Vector2(-7, 7)])
+	b.points = PackedVector2Array([Vector2(8, -8), Vector2(-8, 8)])
 	death_mark.add_child(b)
 	add_child(death_mark)
 
@@ -654,6 +748,7 @@ func _play_death_fx() -> void:
 		trail.points = PackedVector2Array()
 	_trail_world = PackedVector2Array()
 	_ensure_death_mark()
+	_spawn_death_puff()
 	if death_mark:
 		death_mark.visible = true
 		death_mark.modulate.a = 0.0
@@ -678,11 +773,17 @@ func _play_death_fx() -> void:
 	_death_tween.tween_property(body, "scale", Vector2(1.24, 1.24), 0.05)
 	if body_outline:
 		_death_tween.parallel().tween_property(body_outline, "scale", Vector2(1.24, 1.24), 0.05)
+	if kind_rim:
+		_death_tween.parallel().tween_property(kind_rim, "scale", Vector2(1.24, 1.24), 0.05)
 	_death_tween.tween_property(body, "scale", squash, 0.15)
 	_death_tween.parallel().tween_property(body, "rotation", body.rotation + extra, 0.15)
 	if body_outline:
 		_death_tween.parallel().tween_property(body_outline, "scale", squash, 0.15)
 		_death_tween.parallel().tween_property(body_outline, "rotation", body.rotation + extra, 0.15)
+	if kind_rim:
+		_death_tween.parallel().tween_property(kind_rim, "scale", squash, 0.15)
+		_death_tween.parallel().tween_property(kind_rim, "rotation", body.rotation + extra, 0.15)
+		_death_tween.parallel().tween_property(kind_rim, "modulate:a", 0.2, 0.18)
 	if kind_id() == "sneak":
 		_death_tween.parallel().tween_property(body, "modulate:a", 0.35, 0.20)
 
@@ -704,6 +805,10 @@ func _reset_present_fx() -> void:
 	if body_outline:
 		body_outline.scale = Vector2.ONE
 		body_outline.position = Vector2.ZERO
+	if kind_rim:
+		kind_rim.scale = Vector2.ONE
+		kind_rim.position = Vector2.ZERO
+		kind_rim.modulate = Color.WHITE
 	if death_mark != null and is_instance_valid(death_mark):
 		death_mark.visible = false
 	if trail:

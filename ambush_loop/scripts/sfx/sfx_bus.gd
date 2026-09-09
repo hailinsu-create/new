@@ -5,7 +5,7 @@ extends Node
 
 const MIX_RATE := 22050
 const CUES := [
-	"alarm", "fire", "return_fire", "empty", "loot", "op_death", "escape", "win"
+	"alarm", "fire", "return_fire", "empty", "loot", "op_death", "escape", "win", "door"
 ]
 
 var muted: bool = false
@@ -98,6 +98,8 @@ func _gain(cue: String) -> float:
 			return -11.0
 		"fire", "return_fire":
 			return -16.0
+		"door":
+			return -13.0
 		_:
 			return -15.0
 
@@ -120,6 +122,8 @@ func _build_stream(cue: String) -> AudioStreamWAV:
 			return _pcm(_escape())
 		"win":
 			return _pcm(_win())
+		"door":
+			return _pcm(_door())
 		_:
 			return _pcm(_crack(800.0, 0.04, 0.1))
 
@@ -233,4 +237,13 @@ func _win() -> PackedFloat32Array:
 	return _concat([
 		_tone(523.0, 0.09, 0.14),
 		_tone(784.0, 0.12, 0.15),
+	])
+
+
+func _door() -> PackedFloat32Array:
+	return _concat([
+		_tone(190.0, 0.045, 0.20, 0.10),
+		_tone(420.0, 0.035, 0.10, 0.04),
+		_silence(0.02),
+		_tone(140.0, 0.06, 0.14, 0.06),
 	])

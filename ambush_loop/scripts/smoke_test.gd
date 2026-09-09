@@ -51,6 +51,8 @@ func _run() -> void:
 		return
 	if not _assert_perf_tier(main):
 		return
+	if not _assert_readability(main):
+		return
 	print("LEVEL=", main.level.level_id)
 
 	# Life 1: only one cover — expect flank escape
@@ -1378,6 +1380,50 @@ func _assert_perf_tier(main) -> bool:
 		quit(46)
 		return false
 	print("SMOKE_OK_PERF_TIER")
+	return true
+
+
+func _assert_readability(main) -> bool:
+	if main.operators.is_empty():
+		push_error("SMOKE_READABILITY_NO_OPS")
+		quit(50)
+		return false
+	for op in main.operators:
+		op._rebuild_cone()
+	if main.has_method("_update_hud"):
+		main._update_hud()
+	for op in main.operators:
+		if op.body_outline == null or not is_instance_valid(op.body_outline):
+			push_error("SMOKE_NO_BODY_OUTLINE op=%s" % op.display_name)
+			quit(50)
+			return false
+		var rim = op.get_node_or_null("RoleRim")
+		if rim == null or not (rim is Line2D):
+			push_error("SMOKE_NO_ROLE_RIM op=%s" % op.display_name)
+			quit(50)
+			return false
+		if op.body_outline.polygon.size() < 5:
+			push_error("SMOKE_OUTLINE_TOO_SIMPLE n=%s" % op.body_outline.polygon.size())
+			quit(50)
+			return false
+	if main.phase != main.Phase.SETUP:
+		push_error("SMOKE_READABILITY_NOT_SETUP phase=%s" % main.phase)
+		quit(50)
+		return false
+	if main.route_legend == null or not main.route_legend.visible:
+		push_error("SMOKE_LEGEND_HIDDEN")
+		quit(50)
+		return false
+	if main.route_legend.get_child_count() < 2:
+		push_error("SMOKE_LEGEND_NO_CHIPS n=%s" % main.route_legend.get_child_count())
+		quit(50)
+		return false
+	var src := FileAccess.get_file_as_string("res://scripts/main.gd")
+	if src.find("WatchTracer") < 0 or src.find("_is_power_saving") < 0:
+		push_error("SMOKE_NO_TRACER_POOL")
+		quit(50)
+		return false
+	print("SMOKE_OK_READABILITY outlines=3 legend_chips=", main.route_legend.get_child_count())
 	return true
 
 

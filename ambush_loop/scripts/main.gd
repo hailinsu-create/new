@@ -89,7 +89,10 @@ var role_card_buttons: Array[Button] = []
 var role_cards: Array = []
 var plan_readout: Label = null
 var phase_chip: Label = null
-var route_legend: Label = null
+var route_legend: Control = null
+var _alarm_vignette: ColorRect = null
+var _tracer_pool: Array = []
+var _phase_chip_tween: Tween = null
 var replay_layer: Node2D = null
 var _flash_tween: Tween = null
 var event_list: ItemList = null
@@ -373,20 +376,14 @@ func _build_role_card_hud(root: Control) -> void:
 	phase_chip.add_theme_constant_override("shadow_offset_y", 1)
 	phase_chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(phase_chip)
-	route_legend = Label.new()
+	route_legend = HBoxContainer.new()
 	route_legend.name = "RouteLegend"
 	route_legend.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	route_legend.offset_left = 220.0
-	route_legend.offset_top = 78.0
+	route_legend.offset_top = 76.0
 	route_legend.offset_right = -16.0
-	route_legend.offset_bottom = 104.0
-	route_legend.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	route_legend.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	route_legend.add_theme_font_size_override("font_size", 14)
-	route_legend.add_theme_color_override("font_color", Color(0.92, 0.86, 0.58))
-	route_legend.add_theme_color_override("font_shadow_color", Color(0.02, 0.03, 0.02, 0.92))
-	route_legend.add_theme_constant_override("shadow_offset_x", 1)
-	route_legend.add_theme_constant_override("shadow_offset_y", 1)
+	route_legend.offset_bottom = 108.0
+	route_legend.add_theme_constant_override("separation", 6)
 	route_legend.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(route_legend)
 
@@ -567,13 +564,18 @@ func _apply_phone_chrome(on: bool) -> void:
 		else:
 			root.offset_bottom = -pad.w
 	if role_box and on:
-		role_box.offset_bottom = 460.0
+		role_box.offset_bottom = 480.0
+	if plan_readout:
+		plan_readout.visible = not on
+	if route_legend:
+		route_legend.offset_top = 72.0 if on else 76.0
+		route_legend.offset_bottom = 104.0 if on else 108.0
 	alarm_button.custom_minimum_size = Vector2(180, 48) if on else Vector2(180, 36)
 	clear_button.custom_minimum_size = Vector2(120, 48) if on else Vector2(120, 36)
 	tool_button.custom_minimum_size = Vector2(160, 48) if on else Vector2(160, 36)
 	for card in role_cards:
 		if card is Control:
-			(card as Control).custom_minimum_size = Vector2(210, 118) if on else Vector2(196, 108)
+			(card as Control).custom_minimum_size = Vector2(220, 128) if on else Vector2(210, 122)
 
 
 func _safe_area_pad() -> Vector4:
@@ -909,32 +911,66 @@ func _ensure_presentation_fx() -> void:
 		_tone_wash.color = Color(0.10, 0.09, 0.08, 0.0)
 		_tone_wash.z_index = 20
 		root.add_child(_tone_wash)
+	if _alarm_vignette == null or not is_instance_valid(_alarm_vignette):
+		_alarm_vignette = ColorRect.new()
+		_alarm_vignette.name = "AlarmVignette"
+		_alarm_vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_alarm_vignette.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_alarm_vignette.color = Color(0.78, 0.05, 0.04, 0.0)
+		_alarm_vignette.z_index = 38
+		root.add_child(_alarm_vignette)
+
+
+func _is_power_saving() -> bool:
+	var gs = _gs()
+	return gs != null and gs.has_method("is_power_saving") and bool(gs.is_power_saving())
 
 
 func _alarm_edge_flash() -> void:
 	_ensure_presentation_fx()
-	if _rim_flash == null:
-		return
 	if _rim_tween != null:
 		_rim_tween.kill()
-	for c in _rim_flash.get_children():
-		if c is ColorRect:
-			(c as ColorRect).color = Color(0.95, 0.28, 0.10, 0.0)
+	var saving := _is_power_saving()
+	var vig_peak := 0.16 if saving else 0.46
+	var edge_peak := 0.40 if saving else 0.88
+	if _rim_flash:
+		for c in _rim_flash.get_children():
+			if c is ColorRect:
+				(c as ColorRect).color = Color(0.95, 0.22, 0.08, 0.0)
+	if _alarm_vignette:
+		_alarm_vignette.color = Color(0.82, 0.04, 0.03, 0.0)
 	_rim_tween = create_tween()
-	# Two screen-edge pulses so the lock reads as an alarm, not a single blink.
-	for pulse_i in 2:
-		_rim_tween.set_parallel(true)
+	# Full-width red vignette, 0.3s total. 省电 keeps a thin wash.
+	_rim_tween.set_parallel(true)
+	if _alarm_vignette:
+		_rim_tween.tween_property(_alarm_vignette, "color:a", vig_peak, 0.06)
+	if _rim_flash:
 		for c in _rim_flash.get_children():
 			if c is ColorRect:
-				_rim_tween.tween_property(c, "color:a", 0.82 if pulse_i == 0 else 0.55, 0.05)
-		_rim_tween.chain()
-		_rim_tween.set_parallel(true)
+				_rim_tween.tween_property(c, "color:a", edge_peak, 0.06)
+	_rim_tween.chain()
+	_rim_tween.set_parallel(true)
+	if _alarm_vignette:
+		_rim_tween.tween_property(_alarm_vignette, "color:a", 0.0, 0.24)
+	if _rim_flash:
 		for c in _rim_flash.get_children():
 			if c is ColorRect:
-				_rim_tween.tween_property(c, "color:a", 0.0, 0.16)
-		_rim_tween.chain()
+				_rim_tween.tween_property(c, "color:a", 0.0, 0.24)
 	_flash_alarm_button()
-	_camera_punch(Vector2(8, -5))
+	_siren_phase_chip()
+	if not saving:
+		_camera_punch(Vector2(8, -5))
+
+
+func _siren_phase_chip() -> void:
+	if phase_chip == null:
+		return
+	phase_chip.add_theme_color_override("font_color", Color(1.0, 0.18, 0.12))
+	phase_chip.modulate = Color(1.45, 0.55, 0.40)
+	if _phase_chip_tween != null:
+		_phase_chip_tween.kill()
+	_phase_chip_tween = create_tween()
+	_phase_chip_tween.tween_property(phase_chip, "modulate", Color.WHITE, 0.42)
 
 
 func _flash_alarm_button() -> void:
@@ -981,6 +1017,8 @@ func _reset_presentation_fx() -> void:
 		for c in _rim_flash.get_children():
 			if c is ColorRect:
 				(c as ColorRect).color.a = 0.0
+	if _alarm_vignette:
+		_alarm_vignette.color.a = 0.0
 	if result_panel:
 		result_panel.modulate = Color.WHITE
 
@@ -1238,6 +1276,12 @@ func _make_operator(id: int, pname: String) -> OperatorUnit:
 	glyph.name = "RoleGlyph"
 	glyph.visible = true
 	op.add_child(glyph)
+	var rim := Line2D.new()
+	rim.name = "RoleRim"
+	rim.closed = true
+	rim.width = 2.8
+	rim.z_index = 0
+	op.add_child(rim)
 	return op
 
 
@@ -1358,12 +1402,15 @@ func _refresh_door_visual(animate: bool = false) -> void:
 				_door_tween.kill()
 			_door_tween = create_tween()
 			_door_tween.tween_property(leaf, "rotation", target_rot, 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-			var flash := Color(1.0, 0.92, 0.55, 1.0)
+			var flash := Color(1.7, 1.45, 0.55, 1.0) if door_locked else Color(1.45, 1.55, 0.85, 1.0)
 			leaf.modulate = flash
-			_door_tween.parallel().tween_property(leaf, "modulate", Color.WHITE, 0.22)
+			_door_tween.parallel().tween_property(leaf, "modulate", Color.WHITE, 0.28)
 			if pad:
 				pad.modulate = flash
-				_door_tween.parallel().tween_property(pad, "modulate", Color.WHITE, 0.22)
+				_door_tween.parallel().tween_property(pad, "modulate", Color.WHITE, 0.28)
+			if tag:
+				tag.modulate = flash
+				_door_tween.parallel().tween_property(tag, "modulate", Color.WHITE, 0.28)
 		else:
 			leaf.rotation = target_rot
 	if door_button:
@@ -1393,6 +1440,7 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 	_clear_tripwires()
 	_clear_loot()
 	_clear_return_fx()
+	_clear_tracer_pool()
 	if not keep_intel:
 		intel_paths.clear()
 		intel.clear()
@@ -2234,6 +2282,7 @@ func _on_door_pressed() -> void:
 	if map_draw.has_method("invalidate_static_cache"):
 		map_draw.invalidate_static_cache()
 	map_draw.queue_redraw()
+	_sfx("door")
 	_refresh_door_visual(true)
 	for op in operators:
 		if op.visible:
@@ -2374,6 +2423,12 @@ func _make_enemy(id: int) -> EnemyRunner:
 	var hp := Polygon2D.new()
 	hp.name = "HpBar"
 	e.add_child(hp)
+	var rim := Line2D.new()
+	rim.name = "KindRim"
+	rim.closed = true
+	rim.width = 2.8
+	rim.z_index = 0
+	e.add_child(rim)
 	e.escaped.connect(_on_enemy_escaped)
 	e.died.connect(_on_enemy_died)
 	return e
@@ -2409,16 +2464,7 @@ func _on_return_fired(from: EnemyRunner, to: OperatorUnit) -> void:
 	if not _watch_first_return:
 		_watch_first_return = true
 		_sfx("return_fire")
-	var line := Line2D.new()
-	line.width = 2.0
-	line.default_color = Color(1.0, 0.55, 0.15, 0.85)
-	line.points = PackedVector2Array([from.global_position, to.global_position])
-	entities.add_child(line)
-	return_fire_fx.append(line)
-	# Tween owned by the line so level reloads don't leave dangling captures.
-	var tw := line.create_tween()
-	tw.tween_property(line, "modulate:a", 0.0, 0.2)
-	tw.tween_callback(line.queue_free)
+	_spawn_watch_tracer(from.global_position, to.global_position, Color(1.0, 0.48, 0.14, 0.82), 1.6)
 
 
 func _process(delta: float) -> void:
@@ -2803,14 +2849,70 @@ func _on_abort_pressed() -> void:
 
 
 func _on_op_fired_shot(op: OperatorUnit, target_pos: Vector2) -> void:
-	var line := Line2D.new()
-	line.width = 1.5
-	line.default_color = Color(0.95, 0.9, 0.55, 0.75)
-	line.points = PackedVector2Array([op.global_position, target_pos])
-	entities.add_child(line)
+	var col := Color(0.95, 0.90, 0.55, 0.82)
+	var w := 1.35
+	if op != null:
+		match op.role:
+			OperatorUnit.Role.MG:
+				col = Color(1.0, 0.82, 0.38, 0.78)
+				w = 2.15
+			OperatorUnit.Role.SCOUT:
+				col = Color(0.82, 0.95, 1.0, 0.72)
+				w = 1.15
+	_spawn_watch_tracer(op.global_position, target_pos, col, w)
+
+
+func _spawn_watch_tracer(from: Vector2, to: Vector2, color: Color, width: float) -> void:
+	## Thin watching-phase tracer. Standard tier only; pooled Line2D.
+	if phase != Phase.WATCHING or _is_power_saving():
+		return
+	var line: Line2D = null
+	while _tracer_pool.size() > 0 and line == null:
+		var cand = _tracer_pool.pop_back()
+		if cand != null and is_instance_valid(cand):
+			line = cand as Line2D
+	if line == null:
+		line = Line2D.new()
+		line.name = "WatchTracer"
+		line.begin_cap_mode = Line2D.LINE_CAP_ROUND
+		line.end_cap_mode = Line2D.LINE_CAP_ROUND
+		line.z_index = 8
+	line.width = width
+	line.default_color = color
+	line.modulate = Color(1, 1, 1, 1)
+	line.visible = true
+	line.points = PackedVector2Array([from, to])
+	if line.get_parent() != entities:
+		if line.get_parent() != null:
+			line.get_parent().remove_child(line)
+		entities.add_child(line)
 	var tw := line.create_tween()
-	tw.tween_property(line, "modulate:a", 0.0, 0.12)
-	tw.tween_callback(line.queue_free)
+	tw.tween_property(line, "modulate:a", 0.0, 0.14)
+	tw.tween_callback(_recycle_tracer.bind(line))
+
+
+func _recycle_tracer(line: Line2D) -> void:
+	if line == null or not is_instance_valid(line):
+		return
+	var p := line.get_parent()
+	if p:
+		p.remove_child(line)
+	line.visible = false
+	if _tracer_pool.size() < 16:
+		_tracer_pool.append(line)
+	else:
+		line.queue_free()
+
+
+func _clear_tracer_pool() -> void:
+	if entities:
+		for c in entities.get_children():
+			if c is Line2D and str(c.name).begins_with("WatchTracer"):
+				c.queue_free()
+	for t in _tracer_pool:
+		if t != null and is_instance_valid(t):
+			t.queue_free()
+	_tracer_pool.clear()
 
 
 func _on_op_ammo_empty(op: OperatorUnit) -> void:
@@ -3437,8 +3539,8 @@ func _refresh_phase_chip() -> void:
 			phase_chip.text = "阶段 · 布置杀局"
 			phase_chip.add_theme_color_override("font_color", Color(0.82, 0.90, 0.52))
 		Phase.WATCHING:
-			phase_chip.text = "阶段 · 计划已锁死 · 只能观看"
-			phase_chip.add_theme_color_override("font_color", Color(1.0, 0.55, 0.28))
+			phase_chip.text = "阶段 · 锁 计划已锁死 · 只能观看"
+			phase_chip.add_theme_color_override("font_color", Color(1.0, 0.22, 0.14))
 		Phase.FAILED:
 			phase_chip.text = "阶段 · 失败穿梭"
 			phase_chip.add_theme_color_override("font_color", Color(1.0, 0.42, 0.28))
@@ -3459,17 +3561,72 @@ func _refresh_route_legend() -> void:
 	route_legend.visible = show
 	if not show:
 		return
-	match level.level_id:
-		"warehouse":
-			route_legend.text = "路线图例  红=主路巡卫  橙=侧翼奔袭  ·  过早开火会空弹"
-		"pump":
-			route_legend.text = "路线图例  红=主路  橙=侧翼  褐=关门后备用接近（陷阱）"
-		"railcut":
-			route_legend.text = "路线图例  红=西廊先到  橙=东廊延迟  ·  别把三人堆南闸"
-		"depot":
-			route_legend.text = "路线图例  红=主路  橙=东廊  绿=西暗道影探（延迟陷阱）"
-		_:
-			route_legend.text = "路线图例  红=主路巡卫  橙=侧翼奔袭  ·  两条都要有射界"
+	var chips: Array = [
+		{"id": "main", "icon": "主", "label": "主路", "color": Color(0.92, 0.28, 0.22)},
+	]
+	if level.route_cells.has("flank"):
+		chips.append({"id": "flank", "icon": "侧", "label": "侧翼", "color": Color(0.95, 0.55, 0.16)})
+	if level.route_cells.has("sneak"):
+		chips.append({"id": "sneak", "icon": "暗", "label": "暗道", "color": Color(0.38, 0.78, 0.52)})
+	if level.level_id == "pump" and not level.alternate_route_cells.is_empty():
+		chips.append({"id": "alt", "icon": "门", "label": "备用", "color": Color(0.72, 0.55, 0.28)})
+	_fill_route_chips(chips)
+
+
+func _fill_route_chips(chips: Array) -> void:
+	while route_legend.get_child_count() > chips.size():
+		var last := route_legend.get_child(route_legend.get_child_count() - 1)
+		route_legend.remove_child(last)
+		last.free()
+	while route_legend.get_child_count() < chips.size():
+		route_legend.add_child(_make_route_chip())
+	for i in chips.size():
+		_bind_route_chip(route_legend.get_child(i) as Control, chips[i])
+
+
+func _make_route_chip() -> PanelContainer:
+	var p := PanelContainer.new()
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 5)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(row)
+	var swatch := ColorRect.new()
+	swatch.name = "Swatch"
+	swatch.custom_minimum_size = Vector2(10, 10)
+	swatch.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(swatch)
+	var icon := Label.new()
+	icon.name = "Icon"
+	icon.add_theme_font_size_override("font_size", 13)
+	icon.add_theme_font_override("font", NightOps.ui_font_bold())
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(icon)
+	var lab := Label.new()
+	lab.name = "Lab"
+	lab.add_theme_font_size_override("font_size", 13)
+	lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(lab)
+	return p
+
+
+func _bind_route_chip(chip: Control, spec: Dictionary) -> void:
+	if chip == null:
+		return
+	var col: Color = spec["color"]
+	var sb := NightOps.flat(Color(col.r * 0.16, col.g * 0.12, col.b * 0.10, 0.88), col, 1, 8, 10)
+	chip.add_theme_stylebox_override("panel", sb)
+	var swatch := chip.find_child("Swatch", true, false) as ColorRect
+	if swatch:
+		swatch.color = col
+	var icon := chip.find_child("Icon", true, false) as Label
+	if icon:
+		icon.text = str(spec["icon"])
+		icon.add_theme_color_override("font_color", col.lightened(0.15))
+	var lab := chip.find_child("Lab", true, false) as Label
+	if lab:
+		lab.text = str(spec["label"])
+		lab.add_theme_color_override("font_color", Color(0.94, 0.90, 0.78))
 
 
 func _tick_cover_long_press() -> void:
@@ -3507,6 +3664,9 @@ func _update_cover_previews() -> void:
 		elif phase == Phase.WATCHING and s.occupied_by != null and is_instance_valid(s.occupied_by) and s.occupied_by.visible:
 			hot = true
 		s.set_protect_preview(2 if hot else 1)
+		var occupied := s.occupied_by != null and is_instance_valid(s.occupied_by) and s.occupied_by.visible
+		if s.has_method("set_plan_lock"):
+			s.set_plan_lock(phase == Phase.WATCHING and occupied)
 
 
 func _update_role_cards() -> void:

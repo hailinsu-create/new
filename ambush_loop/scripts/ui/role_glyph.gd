@@ -10,7 +10,7 @@ var role: int = 0:
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	custom_minimum_size = Vector2(22, 22)
+	custom_minimum_size = Vector2(28, 28)
 	size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
 

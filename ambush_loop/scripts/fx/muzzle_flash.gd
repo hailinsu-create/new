@@ -11,13 +11,14 @@ var style: String = "rifle"
 func _ready() -> void:
 	z_index = 8
 	var is_mg := style == "mg" or intensity >= 1.3
+	var is_rifle := style == "rifle" and not is_mg
 	var glow := Polygon2D.new()
 	glow.name = "Glow"
 	if is_mg:
 		glow.polygon = PackedVector2Array([
-			Vector2(18, 0), Vector2(6, 9), Vector2(-5, 3), Vector2(-5, -3), Vector2(6, -9)
+			Vector2(26, 0), Vector2(8, 13), Vector2(-6, 4), Vector2(-6, -4), Vector2(8, -13)
 		])
-		glow.color = Color(1.0, 0.62, 0.16, 0.72)
+		glow.color = Color(1.0, 0.58, 0.14, 0.78)
 	else:
 		glow.polygon = PackedVector2Array([
 			Vector2(14, 0), Vector2(4, 6), Vector2(-4, 2), Vector2(-4, -2), Vector2(4, -6)
@@ -28,7 +29,7 @@ func _ready() -> void:
 	core.name = "Core"
 	if is_mg:
 		core.polygon = PackedVector2Array([
-			Vector2(13, 0), Vector2(4, 4.4), Vector2(-3, 1.8), Vector2(-3, -1.8), Vector2(4, -4.4)
+			Vector2(16, 0), Vector2(5, 5.4), Vector2(-3, 2.0), Vector2(-3, -2.0), Vector2(5, -5.4)
 		])
 		core.color = Color(1.0, 0.98, 0.82, 1.0)
 	else:
@@ -41,16 +42,18 @@ func _ready() -> void:
 		var bloom := Polygon2D.new()
 		bloom.name = "Bloom"
 		bloom.polygon = PackedVector2Array([
-			Vector2(8, 0), Vector2(2, 10), Vector2(-1, 2), Vector2(-1, -2), Vector2(2, -10)
+			Vector2(10, 0), Vector2(2, 14), Vector2(-2, 3), Vector2(-2, -3), Vector2(2, -14)
 		])
-		bloom.color = Color(1.0, 0.85, 0.35, 0.35)
+		bloom.color = Color(1.0, 0.85, 0.35, 0.40)
 		add_child(bloom)
-	var s0 := 0.42 * intensity
-	var s1 := Vector2(1.4, 1.18) * intensity
+	var s0 := (0.50 if is_rifle else 0.42) * intensity
+	var s1 := (Vector2(1.55, 1.05) if is_rifle else (Vector2(1.72, 1.28) if is_mg else Vector2(1.4, 1.18))) * intensity
 	scale = Vector2(s0, s0)
 	var tw := create_tween()
-	tw.tween_property(self, "scale", s1, 0.04)
-	tw.parallel().tween_property(self, "modulate:a", 0.0, 0.08 if not is_mg else 0.10)
+	var pop := 0.028 if is_rifle else 0.04
+	var fade := 0.055 if is_rifle else (0.10 if is_mg else 0.08)
+	tw.tween_property(self, "scale", s1, pop)
+	tw.parallel().tween_property(self, "modulate:a", 0.0, fade)
 	tw.chain().tween_callback(queue_free)
 
 
