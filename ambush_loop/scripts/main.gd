@@ -1234,6 +1234,8 @@ func _play_mission_ambient() -> void:
 		return
 	if sfx.has_method("play_mission_ambient"):
 		sfx.play_mission_ambient(level.level_id)
+	if sfx.has_method("play_mission_mood"):
+		sfx.play_mission_mood(level.level_id)
 
 
 func _build_route_world() -> void:
@@ -1479,7 +1481,8 @@ func _build_ambush_zone_visual() -> void:
 	var zone_tag := "伏击区"
 	if level.beat_kind == "ambush_zone" and level.beat_text != "":
 		zone_tag = level.beat_text
-	fx.setup(level.ambush_zone, zone_tag)
+	var tint := LevelDef.signature_color(level.atmosphere_id if level.atmosphere_id != "" else level.level_id)
+	fx.setup(level.ambush_zone, zone_tag, tint)
 	$World.add_child(fx)
 	ambush_zone_poly = fx
 

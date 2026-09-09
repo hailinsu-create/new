@@ -540,6 +540,30 @@ func _assert_atmosphere(main, tag: String) -> bool:
 		push_error("SMOKE_NO_AMBIENT_CUE %s" % want)
 		quit(49)
 		return false
+	if not main.map_draw.has_method("signature_tint"):
+		push_error("SMOKE_NO_SIGNATURE_TINT %s" % want)
+		quit(49)
+		return false
+	var tint: Color = main.map_draw.signature_tint()
+	var want_c: Color = LevelDef.signature_color(want)
+	if absf(tint.r - want_c.r) > 0.03 or absf(tint.g - want_c.g) > 0.03 or absf(tint.b - want_c.b) > 0.03:
+		push_error("SMOKE_SIGNATURE_TINT %s got=%s want=%s" % [want, tint, want_c])
+		quit(49)
+		return false
+	if main.ambush_zone_poly != null and main.ambush_zone_poly.has_method("signature_tint"):
+		var zc: Color = main.ambush_zone_poly.signature_tint()
+		if absf(zc.r - want_c.r) > 0.03 or absf(zc.g - want_c.g) > 0.03:
+			push_error("SMOKE_ZONE_TINT %s got=%s" % [want, zc])
+			quit(49)
+			return false
+	if not audio.has_method("play_mission_mood") or not audio.has_method("has_mission_mood"):
+		push_error("SMOKE_NO_MOOD_API %s" % tag)
+		quit(49)
+		return false
+	if not bool(audio.has_mission_mood(want)):
+		push_error("SMOKE_NO_MOOD_BED %s" % want)
+		quit(49)
+		return false
 	print("SMOKE_OK_ATMO ", want)
 	return true
 
@@ -1573,6 +1597,10 @@ func _assert_props(main) -> bool:
 		push_error("SMOKE_PROPS_NO_ACCENT")
 		quit(51)
 		return false
+	if not md.has_method("_draw_signature_silhouette"):
+		push_error("SMOKE_PROPS_NO_SILHOUETTE")
+		quit(51)
+		return false
 	var sig := str(md._cache_signature())
 	if sig.find("yard") < 0:
 		push_error("SMOKE_PROPS_SIG_LAYOUT %s" % sig)
@@ -1585,6 +1613,7 @@ func _assert_props(main) -> bool:
 		"Warning triangle", "Valve wheels",
 		"signal mast", "Cable run", "Crossing gate",
 		"Fuel pipe", "Hazard cone", "Chain-link",
+		"yard tree", "roof peak", "pump chimney", "tower block", "tank farm",
 	]:
 		if src.find(token) < 0:
 			push_error("SMOKE_PROPS_TOKEN %s" % token)
@@ -1792,6 +1821,16 @@ func _assert_launch_bar() -> bool:
 		inst.free()
 		quit(43)
 		return false
+	var mood_want := ["初阵", "深仓", "闸站", "信号", "油库"]
+	for mi in mood_want.size():
+		if mi >= inst._mission_btns.size():
+			break
+		var row_txt := str(inst._mission_btns[mi].text)
+		if row_txt.find(mood_want[mi]) < 0:
+			push_error("SMOKE_MOOD_TAG %s row=%s" % [mood_want[mi], row_txt])
+			inst.free()
+			quit(43)
+			return false
 	inst._on_mission_picked(1)
 	await process_frame
 	if inst.briefing_visible() or inst.pending_mission_id() == "warehouse":

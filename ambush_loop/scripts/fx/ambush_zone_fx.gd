@@ -6,17 +6,19 @@ extends Node2D
 var zone: Rect2 = Rect2()
 var _t: float = 0.0
 var _tag: Label = null
+var _tint: Color = Color(0.95, 0.86, 0.28)
 
 
-func setup(r: Rect2, tag_text: String = "伏击区") -> void:
+func setup(r: Rect2, tag_text: String = "伏击区", tint: Color = Color(0.95, 0.86, 0.28)) -> void:
 	zone = r
+	_tint = tint
 	z_index = 1
 	if _tag == null or not is_instance_valid(_tag):
 		_tag = Label.new()
 		_tag.name = "Tag"
 		_tag.add_theme_font_size_override("font_size", 13)
 		_tag.add_theme_font_override("font", NightOps.ui_font_bold())
-		_tag.add_theme_color_override("font_color", Color(0.98, 0.88, 0.35, 0.88))
+		_tag.add_theme_color_override("font_color", Color(_tint.r, _tint.g, _tint.b, 0.90))
 		_tag.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.02, 0.9))
 		_tag.add_theme_constant_override("shadow_offset_x", 1)
 		_tag.add_theme_constant_override("shadow_offset_y", 1)
@@ -25,6 +27,10 @@ func setup(r: Rect2, tag_text: String = "伏击区") -> void:
 	_tag.text = tag_text if tag_text != "" else "伏击区"
 	_tag.position = r.position + Vector2(8, 4)
 	queue_redraw()
+
+
+func signature_tint() -> Color:
+	return _tint
 
 
 func _process(delta: float) -> void:
@@ -37,8 +43,8 @@ func _draw() -> void:
 		return
 	var wave := 0.5 + 0.5 * sin(_t * 2.35)
 	var fill_a := 0.045 + 0.035 * wave
-	draw_rect(zone, Color(0.92, 0.82, 0.22, fill_a))
-	var edge := Color(0.95, 0.86, 0.28, 0.28 + 0.22 * wave)
+	draw_rect(zone, Color(_tint.r, _tint.g, _tint.b, fill_a))
+	var edge := Color(_tint.r, _tint.g, _tint.b, 0.28 + 0.22 * wave)
 	var grown := zone.grow(1.2 * sin(_t * 2.35))
 	_dashed_rect(grown, edge, 1.6, 11.0, 6.0)
 

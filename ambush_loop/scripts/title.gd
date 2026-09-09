@@ -261,7 +261,8 @@ func _refresh_mission_rows() -> void:
 		if bool(e["cleared"]):
 			badge = "首通"
 		var glyph := _mission_glyph(str(e["id"]))
-		btn.text = "%s  %s\n%s" % [glyph, str(e["title"]), badge]
+		var mood := LevelDef.mood_tag(str(e["id"]))
+		btn.text = "%s  %s  「%s」\n%s" % [glyph, str(e["title"]), mood, badge]
 		if btn.disabled:
 			btn.modulate = Color(0.62, 0.64, 0.58)
 		else:

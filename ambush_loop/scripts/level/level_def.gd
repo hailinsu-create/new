@@ -76,6 +76,20 @@ static func signature_color(id: String) -> Color:
 			return Color(0.62, 0.74, 0.32) # olive
 
 
+static func mood_tag(id: String) -> String:
+	match str(id):
+		"warehouse":
+			return "深仓"
+		"pump":
+			return "闸站"
+		"railcut":
+			return "信号"
+		"depot":
+			return "油库"
+		_:
+			return "初阵"
+
+
 static func make_yard() -> LevelDef:
 	var l := LevelDef.new()
 	l.level_id = "yard"

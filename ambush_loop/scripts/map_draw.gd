@@ -53,6 +53,10 @@ func _exit_tree() -> void:
 	_cache_sig = ""
 
 
+func signature_tint() -> Color:
+	return LevelDef.signature_color(_atmo())
+
+
 func uses_static_cache() -> bool:
 	_ensure_cache_vp()
 	return _cache_vp != null and _cache_layer != null
@@ -451,12 +455,16 @@ func _draw_escape_mouth(erect: Rect2) -> void:
 	# Live overlay only — never baked into the static cache.
 	var cx := erect.get_center()
 	var breathe := 0.5 + 0.5 * sin(_glow_t * 2.15)
+	var sig := signature_tint()
 	var rings := 3 if _is_power_saving() else 6
 	for i in rings:
 		var r := 16.0 + float(rings - 1 - i) * 11.0 + breathe * 3.0
 		var a := (0.035 + float(i) * 0.040) * (0.82 + 0.28 * breathe)
-		draw_circle(cx, r, Color(0.72, 0.92, 0.28, a))
-	draw_circle(cx, 22.0 + breathe * 2.0, Color(0.95, 0.78, 0.22, 0.08 + 0.05 * breathe))
+		draw_circle(cx, r, Color(sig.r, sig.g, sig.b, a))
+	draw_circle(cx, 22.0 + breathe * 2.0, Color(sig.r, sig.g, sig.b, 0.08 + 0.05 * breathe))
+	# Signature rim — mission identity on the mouth, independent of the fail flash.
+	draw_rect(erect.grow(5.0), Color(sig.r, sig.g, sig.b, 0.16 + 0.08 * breathe), false, 3.4)
+	draw_rect(erect.grow(2.0), Color(sig.r, sig.g, sig.b, 0.55 + 0.20 * breathe), false, 2.0)
 	if escape_flash:
 		var pulse := 0.34 + 0.40 * (0.5 + 0.5 * sin(_flash_t * 9.0))
 		var wash := 42.0 + 18.0 * pulse
@@ -480,8 +488,8 @@ func _draw_escape_mouth(erect: Rect2) -> void:
 			2.4, true
 		)
 	else:
-		draw_rect(erect, Color(0.42, 0.72, 0.16, 0.22 + 0.10 * breathe))
-		draw_rect(erect, Color(0.92, 0.88, 0.32, 0.70 + 0.18 * breathe), false, 2.2)
+		draw_rect(erect, Color(sig.r, sig.g, sig.b, 0.20 + 0.10 * breathe))
+		draw_rect(erect, Color(sig.r, sig.g, sig.b, 0.78 + 0.16 * breathe), false, 2.4)
 
 
 func _draw_floor_accent_stripe(c: CanvasItem) -> void:
@@ -515,6 +523,7 @@ func _draw_static_landmarks(c: CanvasItem) -> void:
 			_landmark_depot(c)
 		_:
 			_landmark_yard(c)
+	_draw_signature_silhouette(c)
 
 
 func _cell_rect(x: int, y: int, w: int = 1, h: int = 1) -> Rect2:
@@ -665,6 +674,131 @@ func _landmark_depot(c: CanvasItem) -> void:
 	for i in 8:
 		var ly := 7.4 * t + float(i) * 22.0
 		c.draw_line(Vector2(8.2 * t, ly), Vector2(8.55 * t, ly + 14.0), Color(0.42, 0.48, 0.40, 0.22), 1.0)
+
+
+func _draw_signature_silhouette(c: CanvasItem) -> void:
+	## One large cached identity prop per mission. Overlay polygons only.
+	match _atmo():
+		"warehouse":
+			_silhouette_warehouse_roof(c)
+		"pump":
+			_silhouette_pump_chimney(c)
+		"railcut":
+			_silhouette_railcut_tower(c)
+		"depot":
+			_silhouette_depot_tanks(c)
+		_:
+			_silhouette_yard_tree(c)
+
+
+func _silhouette_yard_tree(c: CanvasItem) -> void:
+	# yard tree — west garden, off the spine (x=13) and bike wreck.
+	var t := AmbushGrid.TILE
+	var base := Vector2(5.4 * t, 15.6 * t)
+	c.draw_colored_polygon(
+		PackedVector2Array([
+			Vector2(base.x - 6, base.y + 8),
+			Vector2(base.x + 6, base.y + 8),
+			Vector2(base.x + 4, base.y - 18),
+			Vector2(base.x - 4, base.y - 18),
+		]),
+		Color(0.10, 0.08, 0.05, 0.70)
+	)
+	c.draw_colored_polygon(
+		PackedVector2Array([
+			Vector2(base.x, base.y - 78),
+			Vector2(base.x + 36, base.y - 18),
+			Vector2(base.x + 18, base.y - 14),
+			Vector2(base.x, base.y - 22),
+			Vector2(base.x - 18, base.y - 14),
+			Vector2(base.x - 36, base.y - 18),
+		]),
+		Color(0.12, 0.18, 0.10, 0.62)
+	)
+	c.draw_colored_polygon(
+		PackedVector2Array([
+			Vector2(base.x - 4, base.y - 70),
+			Vector2(base.x + 22, base.y - 32),
+			Vector2(base.x - 20, base.y - 28),
+		]),
+		Color(0.16, 0.24, 0.12, 0.40)
+	)
+
+
+func _silhouette_warehouse_roof(c: CanvasItem) -> void:
+	# warehouse roof peak — mid shelf island, already blocked.
+	var t := AmbushGrid.TILE
+	var origin := Vector2(19.2 * t, 9.2 * t)
+	c.draw_colored_polygon(
+		PackedVector2Array([
+			Vector2(origin.x, origin.y - 52),
+			Vector2(origin.x + 92, origin.y + 18),
+			Vector2(origin.x + 84, origin.y + 28),
+			Vector2(origin.x, origin.y - 8),
+			Vector2(origin.x - 84, origin.y + 28),
+			Vector2(origin.x - 92, origin.y + 18),
+		]),
+		Color(0.18, 0.12, 0.06, 0.55)
+	)
+	c.draw_colored_polygon(
+		PackedVector2Array([
+			Vector2(origin.x, origin.y - 52),
+			Vector2(origin.x + 92, origin.y + 18),
+			Vector2(origin.x, origin.y - 8),
+		]),
+		Color(0.42, 0.28, 0.10, 0.28)
+	)
+
+
+func _silhouette_pump_chimney(c: CanvasItem) -> void:
+	# pump chimney — east machinery face, blocked cells.
+	var t := AmbushGrid.TILE
+	var x := 25.35 * t
+	var y := 10.2 * t
+	c.draw_rect(Rect2(x, y - 88, 18.0, 96.0), Color(0.10, 0.18, 0.16, 0.72))
+	c.draw_rect(Rect2(x + 3, y - 88, 5.0, 96.0), Color(0.22, 0.40, 0.34, 0.28))
+	c.draw_rect(Rect2(x - 6, y - 98, 30.0, 12.0), Color(0.12, 0.22, 0.18, 0.80))
+	c.draw_circle(Vector2(x + 9, y - 104), 8.0, Color(0.16, 0.28, 0.24, 0.55))
+	c.draw_colored_polygon(
+		PackedVector2Array([
+			Vector2(x - 4, y - 110),
+			Vector2(x + 22, y - 110),
+			Vector2(x + 16, y - 128),
+			Vector2(x + 2, y - 128),
+		]),
+		Color(0.14, 0.22, 0.20, 0.45)
+	)
+
+
+func _silhouette_railcut_tower(c: CanvasItem) -> void:
+	# railcut tower block — core wall mass behind the signal lamp.
+	var t := AmbushGrid.TILE
+	var p := Vector2(21.5 * t, 10.6 * t)
+	c.draw_colored_polygon(
+		PackedVector2Array([
+			Vector2(p.x - 28, p.y + 18),
+			Vector2(p.x + 28, p.y + 18),
+			Vector2(p.x + 22, p.y - 70),
+			Vector2(p.x - 22, p.y - 70),
+		]),
+		Color(0.12, 0.12, 0.10, 0.78)
+	)
+	c.draw_rect(Rect2(p.x - 34, p.y - 82, 68.0, 14.0), Color(0.18, 0.16, 0.12, 0.82))
+	c.draw_rect(Rect2(p.x - 8, p.y - 118, 16.0, 36.0), Color(0.14, 0.14, 0.12, 0.75))
+	c.draw_rect(Rect2(p.x - 18, p.y - 126, 36.0, 10.0), Color(0.22, 0.18, 0.12, 0.80))
+
+
+func _silhouette_depot_tanks(c: CanvasItem) -> void:
+	# depot tank farm — extra tanks on the blocked island, west of existing pair.
+	var t := AmbushGrid.TILE
+	var a := Vector2(16.6 * t, 11.4 * t)
+	var b := Vector2(23.8 * t, 11.8 * t)
+	c.draw_circle(a, 34.0, Color(0.16, 0.08, 0.04, 0.70))
+	c.draw_circle(a, 26.0, Color(0.32, 0.14, 0.06, 0.42))
+	c.draw_rect(Rect2(a.x - 7, a.y - 42, 14.0, 18.0), Color(0.14, 0.08, 0.04, 0.8))
+	c.draw_circle(b, 26.0, Color(0.18, 0.08, 0.04, 0.65))
+	c.draw_circle(b, 18.0, Color(0.36, 0.16, 0.06, 0.38))
+	c.draw_rect(Rect2(17.4 * t, 13.6 * t, 7.2 * t, 8.0), Color(0.22, 0.10, 0.04, 0.45))
 
 
 func _frac(n: int) -> float:

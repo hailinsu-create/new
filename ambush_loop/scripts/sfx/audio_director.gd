@@ -10,6 +10,9 @@ var _want_music: bool = true
 var _watch_bed: bool = false
 ## Home-button / APPLICATION_FOCUS_OUT: stop bed + SFX without touching user mute.
 var _background_paused: bool = false
+var _mood: AudioStreamPlayer
+var _mood_id: String = ""
+var _want_mood: bool = false
 
 
 func _ready() -> void:
@@ -57,8 +60,11 @@ func set_background_muted(on: bool) -> void:
 		_stop_active_sfx()
 		if _music != null and is_instance_valid(_music) and _music.playing:
 			_music.stop()
+		if _mood != null and is_instance_valid(_mood) and _mood.playing:
+			_mood.stop()
 		return
 	_apply_music_mute()
+	_apply_mood_mute()
 
 
 func play(cue: String) -> void:
@@ -82,6 +88,7 @@ func music_player_playing() -> bool:
 func set_muted(on: bool) -> void:
 	super.set_muted(on)
 	_apply_music_mute()
+	_apply_mood_mute()
 
 
 func set_watch_bed(on: bool) -> void:
@@ -90,6 +97,7 @@ func set_watch_bed(on: bool) -> void:
 		return
 	_watch_bed = on
 	_apply_music_gain()
+	_apply_mood_params()
 
 
 func _apply_music_gain() -> void:
@@ -104,6 +112,7 @@ func _on_settings_changed() -> void:
 		set_muted(bool(gs.muted))
 	_apply_music_gain()
 	_apply_music_mute()
+	_apply_mood_mute()
 
 
 func _can_play_audio() -> bool:
@@ -128,7 +137,12 @@ func _stop_music_hard() -> void:
 	if _music != null and is_instance_valid(_music):
 		_music.stop()
 		_music.stream = null
+	if _mood != null and is_instance_valid(_mood):
+		_mood.stop()
+		_mood.stream = null
 	_music_stream = null
+	_want_mood = false
+	_mood_id = ""
 
 
 func _ensure_buses() -> void:
@@ -154,8 +168,95 @@ func _setup_music() -> void:
 	_music.bus = "Music" if AudioServer.get_bus_index("Music") >= 0 else "Master"
 	_apply_music_gain()
 	add_child(_music)
+	_mood = AudioStreamPlayer.new()
+	_mood.name = "MoodBed"
+	_mood.stream = _music_stream
+	_mood.bus = "Music" if AudioServer.get_bus_index("Music") >= 0 else "Master"
+	_mood.volume_db = -30.0
+	add_child(_mood)
 	if _can_play_audio():
 		_music.play()
+
+
+func has_mission_mood(level_id: String) -> bool:
+	return mission_mood_pitch(level_id) > 0.0
+
+
+func mission_mood_pitch(level_id: String) -> float:
+	match str(level_id):
+		"warehouse":
+			return 0.78
+		"pump":
+			return 0.64
+		"railcut":
+			return 1.14
+		"depot":
+			return 0.55
+		"yard":
+			return 0.92
+		_:
+			return 0.0
+
+
+func mission_mood_filter_hz(level_id: String) -> float:
+	## Soft cutoff encoded as pitch-adjacent filter; used for volume shading.
+	match str(level_id):
+		"warehouse":
+			return 720.0
+		"pump":
+			return 380.0
+		"railcut":
+			return 2100.0
+		"depot":
+			return 260.0
+		_:
+			return 1400.0
+
+
+func play_mission_mood(level_id: String) -> void:
+	_mood_id = str(level_id)
+	_want_mood = has_mission_mood(_mood_id)
+	_apply_mood_params()
+	_apply_mood_mute()
+
+
+func _mood_off_for_tier() -> bool:
+	var gs = get_node_or_null("/root/GameSettings")
+	return gs != null and gs.has_method("is_power_saving") and bool(gs.is_power_saving())
+
+
+func _apply_mood_params() -> void:
+	if _mood == null or not is_instance_valid(_mood):
+		return
+	if _music_stream != null and _mood.stream != _music_stream:
+		_mood.stream = _music_stream
+	var pitch := mission_mood_pitch(_mood_id)
+	_mood.pitch_scale = pitch if pitch > 0.0 else 1.0
+	# Quiet layer; 省电 is off entirely. Filter is expressed as extra attenuation
+	# on darker missions so we reuse the same procedural WAV.
+	var hz := mission_mood_filter_hz(_mood_id)
+	var dark := clampf((1600.0 - hz) / 1600.0, 0.0, 1.0)
+	_mood.volume_db = -30.0 - dark * 8.0
+	if _watch_bed:
+		_mood.volume_db -= 4.0
+
+
+func _apply_mood_mute() -> void:
+	if _mood == null or not is_instance_valid(_mood):
+		return
+	if (
+		muted
+		or _background_paused
+		or not _want_mood
+		or not _can_play_audio()
+		or _mood_off_for_tier()
+	):
+		if _mood.playing:
+			_mood.stop()
+		return
+	_apply_mood_params()
+	if not _mood.playing:
+		_mood.play()
 
 
 func _build_bed_wav() -> AudioStreamWAV:
