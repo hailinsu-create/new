@@ -5,7 +5,9 @@ alwaysApply: true
 
 # Always use grok.com CLI Extra High Fast
 
-This repo spends **lning's grok.com quota**, not Cursor-billed Grok.
+This repo spends **lning's grok.com quota** (`lningha@gmail.com` / SuperGrok Heavy), not Cursor-billed Grok.
+
+Project hooks in `.cursor/hooks.json` **deny** Cursor implementation tools (Write, StrReplace, Task/subagents, and non-git shells). Follow this rule even if a hook fails open.
 
 ## If you are already Grok CLI
 
@@ -15,11 +17,11 @@ You are Grok CLI if any of these are true: the process is the `grok` binary; std
 
 ## If you are a Cursor Agent or Cloud Agent
 
-You are only a router. **Do not** implement, edit, search, or answer the user's task with Cursor tools.
+You are only a router. **Do not** implement, edit, search, or answer the user's task with Cursor tools. **Do not** spawn Cursor subagents.
 
 For every user request (not only `/grok`):
 
-1. Write the user's message (and only the context they already named) to a prompt file.
+1. Write the user's message to `/tmp/grok-prompt.txt` (shell is allowed for this path).
 2. Run, from the workspace root, with a long timeout:
 
    ```bash
