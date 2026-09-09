@@ -106,9 +106,12 @@ func _play_intro() -> void:
 	tw.tween_property(wordmark, "offset_top", 118.0, 0.55).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	tw.tween_property(tagline, "modulate:a", 1.0, 0.7).set_delay(0.15)
 	tw.tween_property($UI/Menu, "modulate:a", 1.0, 0.5).set_delay(0.28)
+	start_btn.pivot_offset = Vector2(150, 24)
 	var pulse := create_tween().set_loops()
-	pulse.tween_property(start_btn, "modulate", Color(1.12, 1.14, 0.92), 0.85)
-	pulse.tween_property(start_btn, "modulate", Color.WHITE, 0.85)
+	pulse.tween_property(start_btn, "modulate", Color(1.28, 1.30, 0.88), 0.72)
+	pulse.parallel().tween_property(start_btn, "scale", Vector2(1.045, 1.045), 0.72)
+	pulse.tween_property(start_btn, "modulate", Color.WHITE, 0.72)
+	pulse.parallel().tween_property(start_btn, "scale", Vector2.ONE, 0.72)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -147,7 +150,7 @@ func _on_continue() -> void:
 
 func _show_mission_select() -> void:
 	_refresh_mission_rows()
-	_mission.visible = true
+	_reveal_modal(_mission)
 
 
 func _refresh_mission_rows() -> void:
@@ -187,7 +190,7 @@ func _show_briefing(level_id: String) -> void:
 	var def: LevelDef = LevelDef.by_id(level_id)
 	_brief_title.text = def.title
 	_brief_body.text = "%s\n\n%s" % [def.teaching, def.tutorial]
-	_brief.visible = true
+	_reveal_modal(_brief)
 
 
 func _enter_mission(level_id: String) -> void:
@@ -196,12 +199,12 @@ func _enter_mission(level_id: String) -> void:
 
 
 func _on_help() -> void:
-	_howto.visible = true
+	_reveal_modal(_howto)
 
 
 func _show_quit_confirm() -> void:
 	if _quit:
-		_quit.visible = true
+		_reveal_modal(_quit)
 
 
 func _confirm_quit() -> void:
@@ -243,6 +246,17 @@ func _modal_panel(layer: int, w: float, h: float) -> Dictionary:
 	box.add_theme_constant_override("separation", 12)
 	margin.add_child(box)
 	return {"root": root, "box": box}
+
+
+func _reveal_modal(layer: CanvasLayer) -> void:
+	if layer == null:
+		return
+	layer.visible = true
+	for c in layer.get_children():
+		if c is CanvasItem:
+			(c as CanvasItem).modulate.a = 0.0
+			var tw := create_tween()
+			tw.tween_property(c, "modulate:a", 1.0, 0.22)
 
 
 func _build_briefing() -> void:

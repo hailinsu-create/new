@@ -15,10 +15,15 @@ var _hp_txt: Label
 var _meta: Label
 var _slot: Label
 var _glyph: Control
+var _accent: ColorRect
 var _fill_col: Color = Color(0, 0, 0, 0)
 var _normal: StyleBoxFlat
 var _hot: StyleBoxFlat
-
+var _hovered: bool = false
+var _selected: bool = false
+var _can_pick: bool = true
+var _hp_shown: float = -1.0
+var _hp_target: float = 0.0
 
 
 func setup(i: int) -> void:
@@ -26,9 +31,31 @@ func setup(i: int) -> void:
 	custom_minimum_size = Vector2(196, 108)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_normal = NightOps.flat(Color(0.07, 0.09, 0.08, 0.92), Color(0.32, 0.38, 0.24), 1, 8, 4)
-	_hot = NightOps.flat(Color(0.12, 0.15, 0.09, 0.96), NightOps.OLIVE_HI, 2, 8, 4)
+	_hot = NightOps.flat(Color(0.14, 0.18, 0.10, 0.97), NightOps.OLIVE_HI, 2, 10, 4)
+	_hot.border_width_left = 5
+	_hot.content_margin_left = 12
 	add_theme_stylebox_override("panel", _normal)
 	gui_input.connect(_on_gui)
+	mouse_entered.connect(func() -> void:
+		_hovered = true
+		_refresh_chrome()
+	)
+	mouse_exited.connect(func() -> void:
+		_hovered = false
+		_refresh_chrome()
+	)
+	_accent = ColorRect.new()
+	_accent.name = "Accent"
+	_accent.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_accent.color = NightOps.OLIVE_HI
+	_accent.set_anchors_preset(Control.PRESET_LEFT_WIDE)
+	_accent.anchor_bottom = 1.0
+	_accent.offset_left = 0.0
+	_accent.offset_top = 4.0
+	_accent.offset_right = 4.0
+	_accent.offset_bottom = -4.0
+	_accent.visible = false
+	add_child(_accent)
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 8)
 	margin.add_theme_constant_override("margin_right", 8)
@@ -89,19 +116,32 @@ func setup(i: int) -> void:
 	box.add_child(_slot)
 
 
+func _process(delta: float) -> void:
+	if _hp == null:
+		return
+	if _hp_shown < 0.0:
+		_hp_shown = _hp_target
+	else:
+		_hp_shown = lerpf(_hp_shown, _hp_target, 1.0 - exp(-delta * 10.0))
+	_hp.value = _hp_shown
+
+
 func bind(op: OperatorUnit, is_sel: bool, can_pick: bool) -> void:
 	if op == null:
 		visible = false
 		return
 	visible = true
-	modulate = Color(1, 1, 1, 1) if can_pick else Color(1, 1, 1, 0.5)
-	add_theme_stylebox_override("panel", _hot if is_sel else _normal)
+	_selected = is_sel
+	_can_pick = can_pick
+	_refresh_chrome()
 	if _glyph:
 		_glyph.set("role", op.role)
 	_name.text = op.display_name
 	_role.text = "%s · %s" % [OperatorUnit.role_display(op.role), _kit_short(op)]
 	var hp := op.hp if op.alive else 0.0
-	_hp.value = hp
+	_hp_target = hp
+	if _hp_shown < 0.0:
+		_hp_shown = hp
 	var col := NightOps.hp_color(hp / OperatorUnit.MAX_HP)
 	if _fill_col != col:
 		_fill_col = col
@@ -114,6 +154,20 @@ func bind(op: OperatorUnit, is_sel: bool, can_pick: bool) -> void:
 	else:
 		_slot.text = op.slot.label_text
 		_slot.add_theme_color_override("font_color", NightOps.OLIVE_DIM)
+
+
+func _refresh_chrome() -> void:
+	add_theme_stylebox_override("panel", _hot if _selected else _normal)
+	if _accent:
+		_accent.visible = _selected
+	if not _can_pick:
+		modulate = Color(1, 1, 1, 0.5)
+	elif _hovered and not _selected:
+		modulate = Color(1.14, 1.16, 1.06)
+	elif _selected:
+		modulate = Color(1.08, 1.10, 1.02)
+	else:
+		modulate = Color.WHITE
 
 
 func _kit_short(op: OperatorUnit) -> String:

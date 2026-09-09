@@ -4,6 +4,8 @@ extends Node2D
 
 var t: float = 0.0
 var _routes: Array[PackedVector2Array] = []
+var _dust: CPUParticles2D = null
+var _sparks: CPUParticles2D = null
 
 
 func _ready() -> void:
@@ -20,6 +22,36 @@ func _ready() -> void:
 			Vector2(180, 70), Vector2(420, 130), Vector2(740, 110), Vector2(1080, 80)
 		]),
 	]
+	_dust = _make_particles(28, 7.5, Color(0.72, 0.76, 0.58, 0.28), Vector2(0.15, -1.0), 10.0)
+	_dust.initial_velocity_min = 3.0
+	_dust.initial_velocity_max = 12.0
+	_dust.gravity = Vector2(4.0, 6.0)
+	_dust.scale_amount_min = 0.5
+	_dust.scale_amount_max = 1.6
+	add_child(_dust)
+	_sparks = _make_particles(14, 3.2, Color(0.92, 0.84, 0.42, 0.55), Vector2(0.35, -1.0), 18.0)
+	_sparks.initial_velocity_min = 12.0
+	_sparks.initial_velocity_max = 28.0
+	_sparks.gravity = Vector2(2.0, 14.0)
+	_sparks.scale_amount_min = 0.4
+	_sparks.scale_amount_max = 1.1
+	add_child(_sparks)
+
+
+func _make_particles(amount: int, lifetime: float, col: Color, dir: Vector2, spread: float) -> CPUParticles2D:
+	var p := CPUParticles2D.new()
+	p.amount = amount
+	p.lifetime = lifetime
+	p.preprocess = 2.4
+	p.emitting = true
+	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	p.emission_rect_extents = Vector2(640, 360)
+	p.position = Vector2(640, 360)
+	p.direction = dir
+	p.spread = spread
+	p.color = col
+	p.local_coords = false
+	return p
 
 
 func _process(delta: float) -> void:
@@ -37,7 +69,6 @@ func _draw() -> void:
 			Rect2(0.0, sz.y - float(10 - i) * 22.0, sz.x, 22.0),
 			Color(0.12, 0.16, 0.08, a)
 		)
-	# Cooler top vignette.
 	draw_rect(Rect2(0.0, 0.0, sz.x, 90.0), Color(0.02, 0.03, 0.03, 0.35))
 	var step := 44.0
 	var drift := fmod(t * 6.0, step)
@@ -62,3 +93,22 @@ func _draw() -> void:
 			shifted.append(p + off * (0.65 + float(i) * 0.18))
 		if shifted.size() >= 2:
 			draw_polyline(shifted, cols[i % cols.size()], 2.2, true)
+	# Manual drifting sparks (readable even if particles are culled).
+	for i in 20:
+		var px := fposmod(sz.x * _frac(i + 3) + t * (7.0 + float(i) * 0.35), sz.x)
+		var py := fposmod(sz.y * _frac(i + 11) - t * (5.0 + float(i) * 0.18), sz.y)
+		var pa := 0.12 + 0.16 * _frac(i + 19)
+		draw_circle(Vector2(px, py), 1.0 + _frac(i) * 1.4, Color(0.90, 0.84, 0.42, pa))
+	# Soft vignette — darken edges, keep the wordmark readable.
+	for i in 10:
+		var inset := float(i) * 16.0
+		var va := 0.045
+		draw_rect(Rect2(0.0, 0.0, sz.x, inset), Color(0.01, 0.02, 0.02, va))
+		draw_rect(Rect2(0.0, sz.y - inset, sz.x, inset), Color(0.01, 0.02, 0.02, va))
+		draw_rect(Rect2(0.0, 0.0, inset, sz.y), Color(0.01, 0.02, 0.02, va))
+		draw_rect(Rect2(sz.x - inset, 0.0, inset, sz.y), Color(0.01, 0.02, 0.02, va))
+
+
+func _frac(n: int) -> float:
+	var s := sin(float(n) * 12.9898) * 43758.5453
+	return s - floor(s)

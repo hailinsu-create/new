@@ -11,6 +11,7 @@ const COVER_DAMAGE_MULT := 0.4
 const EXPOSED_DAMAGE_MULT := 1.0
 const LOOT_RANGE := 52.0
 const CONE_RAYS := 14
+const MuzzleFlashScript := preload("res://scripts/fx/muzzle_flash.gd")
 
 signal died(op: OperatorUnit)
 signal fired_shot(op: OperatorUnit, target_pos: Vector2)
@@ -54,7 +55,11 @@ var obs_fill: Polygon2D = null
 var obs_tag: Label = null
 var role_glyph: Polygon2D = null
 var body_outline: Polygon2D = null
+var weapon: Polygon2D = null
+var death_mark: Node2D = null
 var _hit_flash: float = 0.0
+var _present_t: float = 0.0
+var _death_tween: Tween = null
 
 
 static func role_for_id(id: int) -> int:
@@ -135,6 +140,7 @@ func reset_loadout() -> void:
 	fire_permitted = fire_mode == FireMode.ENGAGE_ON_SIGHT
 	last_deny.clear()
 	_hit_flash = 0.0
+	_reset_present_fx()
 	if body:
 		body.color = body_color
 	_apply_body_modulate()
@@ -233,6 +239,7 @@ func _rebuild_cone() -> void:
 		var poly := _role_body_poly()
 		body.polygon = poly
 		_ensure_body_outline()
+		_ensure_weapon()
 		if body_outline:
 			body_outline.rotation = body.rotation
 			body_outline.polygon = _inflate_poly(poly, 2.4)
@@ -288,6 +295,7 @@ func try_fire(target: EnemyRunner, p_grid: AmbushGrid) -> bool:
 	ammo = maxi(ammo - 1, 0)
 	fired_shot.emit(self, target.global_position)
 	target.apply_fire(damage_per_shot, self)
+	_spawn_muzzle_flash()
 	if ammo == 0:
 		var before := ammo
 		_try_ammo_pack()
@@ -327,10 +335,11 @@ func take_damage(amount: float, from_pos: Vector2 = Vector2.INF) -> void:
 
 
 func _process(delta: float) -> void:
-	if _hit_flash <= 0.0:
-		return
-	_hit_flash = maxf(_hit_flash - delta * 5.5, 0.0)
-	_apply_body_modulate()
+	_present_t += delta
+	if _hit_flash > 0.0:
+		_hit_flash = maxf(_hit_flash - delta * 5.5, 0.0)
+		_apply_body_modulate()
+	_apply_idle_bob()
 
 
 func _refresh_role_glyph() -> void:
@@ -369,6 +378,7 @@ func _die() -> void:
 	_rebuild_cone()
 	_refresh_tag()
 	_refresh_role_glyph()
+	_play_death_fx()
 	died.emit(self)
 
 
@@ -386,6 +396,107 @@ func _role_body_poly() -> PackedVector2Array:
 			return PackedVector2Array([
 				Vector2(0, -13), Vector2(9, 10), Vector2(-9, 10)
 			])
+
+
+func _ensure_weapon() -> void:
+	if body == null:
+		return
+	if weapon == null or not is_instance_valid(weapon):
+		weapon = get_node_or_null("Weapon") as Polygon2D
+	if weapon == null:
+		weapon = Polygon2D.new()
+		weapon.name = "Weapon"
+		weapon.z_index = 1
+		body.add_child(weapon)
+	match role:
+		Role.MG:
+			weapon.polygon = PackedVector2Array([
+				Vector2(-3.8, -6), Vector2(3.8, -6), Vector2(3.2, -20), Vector2(-1.2, -22), Vector2(-3.2, -20)
+			])
+			weapon.color = Color(0.16, 0.14, 0.10, 0.98)
+		Role.SCOUT:
+			weapon.polygon = PackedVector2Array([
+				Vector2(-1.05, -9), Vector2(1.05, -9), Vector2(0.7, -26), Vector2(-0.7, -26)
+			])
+			weapon.color = Color(0.12, 0.16, 0.20, 0.98)
+		_:
+			weapon.polygon = PackedVector2Array([
+				Vector2(-1.5, -7), Vector2(1.5, -7), Vector2(1.15, -24), Vector2(-1.15, -24)
+			])
+			weapon.color = Color(0.14, 0.16, 0.18, 0.98)
+	weapon.visible = true
+	weapon.modulate = Color(0.55, 0.55, 0.55, 0.75) if not alive else Color.WHITE
+
+
+func _spawn_muzzle_flash() -> void:
+	var rad := deg_to_rad(facing_deg)
+	var tip := Vector2(cos(rad), sin(rad)) * 20.0
+	MuzzleFlashScript.burst(self, tip, rad)
+
+
+func _apply_idle_bob() -> void:
+	var bob := 0.0
+	if alive and visible:
+		bob = sin(_present_t * 3.15 + float(op_id) * 1.7) * 1.45
+	if body:
+		body.position = Vector2(0.0, bob)
+	if body_outline:
+		body_outline.position = Vector2(0.0, bob)
+	if role_glyph:
+		role_glyph.position = Vector2(13, -11 + bob * 0.4)
+
+
+func _ensure_death_mark() -> void:
+	if death_mark != null and is_instance_valid(death_mark):
+		return
+	death_mark = Node2D.new()
+	death_mark.name = "DeathMark"
+	death_mark.z_index = 4
+	var a := Line2D.new()
+	a.width = 2.2
+	a.default_color = Color(0.12, 0.10, 0.09, 0.92)
+	a.points = PackedVector2Array([Vector2(-7, -7), Vector2(7, 7)])
+	death_mark.add_child(a)
+	var b := Line2D.new()
+	b.width = 2.2
+	b.default_color = Color(0.12, 0.10, 0.09, 0.92)
+	b.points = PackedVector2Array([Vector2(7, -7), Vector2(-7, 7)])
+	death_mark.add_child(b)
+	add_child(death_mark)
+
+
+func _play_death_fx() -> void:
+	_ensure_death_mark()
+	if death_mark:
+		death_mark.visible = true
+		death_mark.modulate.a = 0.0
+		var fade := death_mark.create_tween()
+		fade.tween_property(death_mark, "modulate:a", 1.0, 0.18)
+	if _death_tween != null:
+		_death_tween.kill()
+	if body == null:
+		return
+	_death_tween = create_tween()
+	_death_tween.tween_property(body, "scale", Vector2(1.12, 0.58), 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	if body_outline:
+		_death_tween.parallel().tween_property(body_outline, "scale", Vector2(1.12, 0.58), 0.16)
+
+
+func _reset_present_fx() -> void:
+	if _death_tween != null:
+		_death_tween.kill()
+		_death_tween = null
+	if body:
+		body.scale = Vector2.ONE
+		body.position = Vector2.ZERO
+	if body_outline:
+		body_outline.scale = Vector2.ONE
+		body_outline.position = Vector2.ZERO
+	if death_mark != null and is_instance_valid(death_mark):
+		death_mark.visible = false
+	if weapon != null and is_instance_valid(weapon):
+		weapon.modulate = Color.WHITE
+		weapon.visible = true
 
 
 func _ensure_body_outline() -> void:
@@ -415,14 +526,18 @@ func _apply_body_modulate() -> void:
 	if body == null:
 		return
 	if not alive:
-		body.modulate = Color(0.6, 0.6, 0.6, 0.85)
+		body.modulate = Color(0.55, 0.55, 0.58, 0.78)
 		if body_outline:
 			body_outline.modulate = Color(0.5, 0.5, 0.5, 0.7)
+		if weapon:
+			weapon.modulate = Color(0.5, 0.5, 0.52, 0.7)
 		return
 	var flash := Color(1.0, 1.0, 1.0).lerp(Color(1.85, 1.55, 0.55), _hit_flash)
 	body.modulate = flash
 	if body_outline:
 		body_outline.modulate = Color(1, 1, 1, 1).lerp(Color(1.4, 1.1, 0.4), _hit_flash)
+	if weapon:
+		weapon.modulate = flash
 
 
 func can_reach_loot(loot_pos: Vector2, p_grid: AmbushGrid) -> bool:

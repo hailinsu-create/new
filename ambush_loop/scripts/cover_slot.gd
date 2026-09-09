@@ -38,12 +38,31 @@ func _ensure_crate_look() -> void:
 	if pad.get_meta("crate_built", false):
 		return
 	pad.set_meta("crate_built", true)
-	# Stacked sandbag / crate: octagon body + plank + two bags. Pad stays the hit-tint target.
+	# Stacked sandbag / crate silhouette. Pad stays the hit-tint target.
 	pad.polygon = PackedVector2Array([
-		Vector2(-13, -10), Vector2(-8, -14), Vector2(8, -14), Vector2(13, -10),
-		Vector2(13, 10), Vector2(8, 14), Vector2(-8, 14), Vector2(-13, 10)
+		Vector2(-14, -11), Vector2(-8, -16), Vector2(8, -16), Vector2(14, -11),
+		Vector2(14, 11), Vector2(8, 16), Vector2(-8, 16), Vector2(-14, 11)
 	])
 	pad.color = Color(0.30, 0.38, 0.24, 0.92)
+	var shadow := Polygon2D.new()
+	shadow.name = "CrateShadow"
+	shadow.polygon = PackedVector2Array([
+		Vector2(-16, 8), Vector2(16, 8), Vector2(13, 18), Vector2(-13, 18)
+	])
+	shadow.color = Color(0.04, 0.05, 0.04, 0.40)
+	shadow.z_index = -1
+	shadow.show_behind_parent = true
+	add_child(shadow)
+	_crate_bits.append(shadow)
+	var rim := Polygon2D.new()
+	rim.name = "CrateRim"
+	rim.polygon = PackedVector2Array([
+		Vector2(-12, -15), Vector2(12, -15), Vector2(11, -11), Vector2(-11, -11)
+	])
+	rim.color = Color(0.55, 0.62, 0.38, 0.85)
+	rim.z_index = 1
+	add_child(rim)
+	_crate_bits.append(rim)
 	var plank := Polygon2D.new()
 	plank.name = "CratePlank"
 	plank.polygon = PackedVector2Array([
@@ -56,18 +75,18 @@ func _ensure_crate_look() -> void:
 	var bag_a := Polygon2D.new()
 	bag_a.name = "SandbagA"
 	bag_a.polygon = PackedVector2Array([
-		Vector2(-14, 4), Vector2(-2, 2), Vector2(1, 8), Vector2(-12, 12)
+		Vector2(-15, 3), Vector2(-1, 1), Vector2(2, 9), Vector2(-13, 13)
 	])
-	bag_a.color = Color(0.42, 0.38, 0.22, 0.9)
+	bag_a.color = Color(0.44, 0.40, 0.22, 0.92)
 	bag_a.z_index = 1
 	add_child(bag_a)
 	_crate_bits.append(bag_a)
 	var bag_b := Polygon2D.new()
 	bag_b.name = "SandbagB"
 	bag_b.polygon = PackedVector2Array([
-		Vector2(2, 2), Vector2(14, 4), Vector2(12, 12), Vector2(-1, 8)
+		Vector2(1, 1), Vector2(15, 3), Vector2(13, 13), Vector2(-1, 9)
 	])
-	bag_b.color = Color(0.38, 0.34, 0.18, 0.9)
+	bag_b.color = Color(0.38, 0.34, 0.18, 0.92)
 	bag_b.z_index = 1
 	add_child(bag_b)
 	_crate_bits.append(bag_b)

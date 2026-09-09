@@ -12,6 +12,7 @@ const SNAPSHOT_EVERY := 6
 const PROGRESS_PATH := "user://ambush_loop.cfg"
 const LEVEL_ORDER := ["yard", "warehouse", "pump", "railcut"]
 const SfxBusScript := preload("res://scripts/sfx/sfx_bus.gd")
+const AmbushZoneFxScript := preload("res://scripts/fx/ambush_zone_fx.gd")
 
 var grid: AmbushGrid = AmbushGrid.new()
 var phase: Phase = Phase.SETUP
@@ -45,7 +46,7 @@ var route_world: Dictionary = {} # name -> PackedVector2Array
 var escape_world: Vector2
 var return_fire_fx: Array = []
 var hud_tick: float = 0.0
-var ambush_zone_poly: Polygon2D = null
+var ambush_zone_poly: Node2D = null
 var door_marker: Node2D = null
 var all_spawns_done: bool = false
 var pending_result: String = "" # "" | "fail" | "win" — build panel after tick events/snapshot
@@ -112,6 +113,11 @@ var _campaign_complete: bool = false
 var title_return_button: Button = null
 var _punch_tween: Tween = null
 var _game_cam: Camera2D = null
+var _rim_flash: Control = null
+var _tone_wash: ColorRect = null
+var _rim_tween: Tween = null
+var _tone_tween: Tween = null
+var _result_fade_tween: Tween = null
 
 
 func _ready() -> void:
@@ -134,6 +140,7 @@ func _ready() -> void:
 	clear_button.text = "收回部署"
 	tool_button.text = "工具: 部署队员"
 	_bind_settings()
+	_ensure_presentation_fx()
 	_load_level(_resolve_start_level(), false, false)
 
 
@@ -574,6 +581,109 @@ func _camera_punch() -> void:
 	_punch_tween.tween_property(_game_cam, "offset", Vector2.ZERO, 0.14).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
 
+func _ensure_presentation_fx() -> void:
+	var root: Control = $HUD/Root
+	if _rim_flash == null or not is_instance_valid(_rim_flash):
+		_rim_flash = Control.new()
+		_rim_flash.name = "AlarmRim"
+		_rim_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_rim_flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_rim_flash.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		_rim_flash.grow_vertical = Control.GROW_DIRECTION_BOTH
+		_rim_flash.z_index = 40
+		root.add_child(_rim_flash)
+		var specs: Array = [
+			["Top", Control.PRESET_TOP_WIDE, 0.0, 0.0, 0.0, 16.0],
+			["Bottom", Control.PRESET_BOTTOM_WIDE, 0.0, -16.0, 0.0, 0.0],
+			["Left", Control.PRESET_LEFT_WIDE, 0.0, 0.0, 16.0, 0.0],
+			["Right", Control.PRESET_RIGHT_WIDE, -16.0, 0.0, 0.0, 0.0],
+		]
+		for spec in specs:
+			var edge := ColorRect.new()
+			edge.name = str(spec[0])
+			edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			edge.color = Color(0.95, 0.32, 0.12, 0.0)
+			edge.set_anchors_preset(int(spec[1]))
+			edge.offset_left = float(spec[2])
+			edge.offset_top = float(spec[3])
+			edge.offset_right = float(spec[4])
+			edge.offset_bottom = float(spec[5])
+			_rim_flash.add_child(edge)
+	if _tone_wash == null or not is_instance_valid(_tone_wash):
+		_tone_wash = ColorRect.new()
+		_tone_wash.name = "ToneWash"
+		_tone_wash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_tone_wash.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_tone_wash.color = Color(0.10, 0.09, 0.08, 0.0)
+		_tone_wash.z_index = 20
+		root.add_child(_tone_wash)
+
+
+func _alarm_edge_flash() -> void:
+	_ensure_presentation_fx()
+	if _rim_flash == null:
+		return
+	if _rim_tween != null:
+		_rim_tween.kill()
+	for c in _rim_flash.get_children():
+		if c is ColorRect:
+			(c as ColorRect).color = Color(0.95, 0.38, 0.12, 0.0)
+	_rim_tween = create_tween()
+	_rim_tween.set_parallel(true)
+	for c in _rim_flash.get_children():
+		if c is ColorRect:
+			_rim_tween.tween_property(c, "color:a", 0.72, 0.05)
+	_rim_tween.chain()
+	_rim_tween.set_parallel(true)
+	for c in _rim_flash.get_children():
+		if c is ColorRect:
+			_rim_tween.tween_property(c, "color:a", 0.0, 0.22)
+
+
+func _play_result_tone(win: bool) -> void:
+	_ensure_presentation_fx()
+	if _tone_tween != null:
+		_tone_tween.kill()
+	var world: Node2D = $World
+	var wash := Color(0.12, 0.10, 0.09, 0.28) if not win else Color(0.10, 0.14, 0.08, 0.18)
+	var world_col := Color(0.62, 0.60, 0.58) if not win else Color(0.86, 0.92, 0.80)
+	if _tone_wash:
+		_tone_wash.color = Color(wash.r, wash.g, wash.b, 0.0)
+	_tone_tween = create_tween()
+	_tone_tween.tween_property(world, "modulate", world_col, 0.32)
+	if _tone_wash:
+		_tone_tween.parallel().tween_property(_tone_wash, "color:a", wash.a, 0.32)
+
+
+func _reset_presentation_fx() -> void:
+	if _tone_tween != null:
+		_tone_tween.kill()
+		_tone_tween = null
+	if _rim_tween != null:
+		_rim_tween.kill()
+		_rim_tween = null
+	if has_node("World"):
+		$World.modulate = Color.WHITE
+	if _tone_wash:
+		_tone_wash.color.a = 0.0
+	if _rim_flash:
+		for c in _rim_flash.get_children():
+			if c is ColorRect:
+				(c as ColorRect).color.a = 0.0
+	if result_panel:
+		result_panel.modulate = Color.WHITE
+
+
+func _fade_result_panel() -> void:
+	if result_panel == null:
+		return
+	if _result_fade_tween != null:
+		_result_fade_tween.kill()
+	result_panel.modulate.a = 0.0
+	_result_fade_tween = create_tween()
+	_result_fade_tween.tween_property(result_panel, "modulate:a", 1.0, 0.22)
+
+
 func _load_level(level_id: String, keep_intel: bool, restore_plan: bool) -> void:
 	level = LevelDef.by_id(level_id)
 	var idx := LEVEL_ORDER.find(level.level_id)
@@ -840,24 +950,11 @@ func _build_ambush_zone_visual() -> void:
 	ambush_zone_poly = null
 	if level.ambush_zone.size == Vector2.ZERO:
 		return
-	var poly := Polygon2D.new()
-	poly.name = "AmbushZone"
-	var r := level.ambush_zone
-	poly.polygon = PackedVector2Array([
-		r.position,
-		r.position + Vector2(r.size.x, 0),
-		r.position + r.size,
-		r.position + Vector2(0, r.size.y),
-	])
-	poly.color = Color(0.95, 0.85, 0.2, 0.12)
-	routes_draw.add_child(poly)
-	ambush_zone_poly = poly
-	var tag := Label.new()
-	tag.text = "伏击区"
-	tag.position = r.position + Vector2(8, 4)
-	tag.add_theme_font_size_override("font_size", 12)
-	tag.add_theme_color_override("font_color", Color(0.95, 0.85, 0.35, 0.7))
-	routes_draw.add_child(tag)
+	var fx = AmbushZoneFxScript.new()
+	fx.name = "AmbushZone"
+	fx.setup(level.ambush_zone)
+	$World.add_child(fx)
+	ambush_zone_poly = fx
 
 
 func _build_door_marker() -> void:
@@ -980,6 +1077,7 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 		_punch_tween = null
 	if _game_cam != null:
 		_game_cam.offset = Vector2.ZERO
+	_reset_presentation_fx()
 	_update_event_log()
 	_update_hud()
 
@@ -1479,10 +1577,16 @@ func _make_tripwire(pos: Vector2) -> Tripwire:
 	var visual := Polygon2D.new()
 	visual.name = "Visual"
 	visual.polygon = PackedVector2Array([
-		Vector2(-14, -2.5), Vector2(14, -2.5), Vector2(14, 2.5), Vector2(-14, 2.5)
+		Vector2(-13, -1.2), Vector2(13, -1.2), Vector2(13, 1.2), Vector2(-13, 1.2)
 	])
-	visual.color = Color(0.42, 0.95, 0.52, 0.95)
+	visual.color = Color(0.55, 0.98, 0.58, 0.55)
 	t.add_child(visual)
+	var wire := Line2D.new()
+	wire.name = "Wire"
+	wire.width = 1.4
+	wire.default_color = Color(0.62, 0.98, 0.55, 0.92)
+	wire.points = PackedVector2Array([Vector2(-12, 0), Vector2(12, 0)])
+	t.add_child(wire)
 	var peg_a := Polygon2D.new()
 	peg_a.name = "PegA"
 	peg_a.polygon = PackedVector2Array([
@@ -1559,6 +1663,20 @@ func _make_barrel(pos: Vector2) -> Node2D:
 	])
 	band2.color = Color(0.12, 0.07, 0.04, 0.9)
 	b.add_child(band2)
+	var band3 := Polygon2D.new()
+	band3.name = "Band3"
+	band3.polygon = PackedVector2Array([
+		Vector2(-9, -9), Vector2(9, -9), Vector2(9, -6), Vector2(-9, -6)
+	])
+	band3.color = Color(0.12, 0.07, 0.04, 0.88)
+	b.add_child(band3)
+	var lid := Polygon2D.new()
+	lid.name = "Lid"
+	lid.polygon = PackedVector2Array([
+		Vector2(-8, -16), Vector2(8, -16), Vector2(7, -12), Vector2(-7, -12)
+	])
+	lid.color = Color(0.62, 0.32, 0.10, 0.96)
+	b.add_child(lid)
 	var blast := Polygon2D.new()
 	blast.name = "BlastPreview"
 	var pts := PackedVector2Array()
@@ -1680,6 +1798,7 @@ func _on_alarm_pressed() -> void:
 	_watch_first_fire = false
 	_watch_first_return = false
 	_sfx("alarm")
+	_alarm_edge_flash()
 	_update_observation_rings()
 	alarm_button.disabled = true
 	clear_button.disabled = true
@@ -2241,6 +2360,8 @@ func _show_fail_result() -> void:
 	status_label.text = "%s — 穿梭或打开时间轴复盘；点击事件定位" % reason_zh
 	_update_event_log()
 	_update_hud()
+	_play_result_tone(false)
+	_fade_result_panel()
 	# Re-dock after text layout so a tall summary cannot cover the south-east mouth.
 	if fail_reason == "escape":
 		_dock_fail_result_panel(true)
@@ -2280,6 +2401,8 @@ func _show_win_result() -> void:
 	_save_progress()
 	_update_event_log()
 	_update_hud()
+	_play_result_tone(true)
+	_fade_result_panel()
 
 
 func _on_replay_pressed() -> void:

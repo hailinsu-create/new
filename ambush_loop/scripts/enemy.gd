@@ -12,6 +12,7 @@ const MAX_HP := 100.0
 const RETURN_RANGE := 200.0
 const RETURN_DAMAGE := 14.0
 const RETURN_INTERVAL := 0.28
+const MuzzleFlashScript := preload("res://scripts/fx/muzzle_flash.gd")
 
 var route: PackedVector2Array = PackedVector2Array()
 var route_index: int = 0
@@ -29,7 +30,15 @@ var grid: AmbushGrid = null
 var return_cd: float = 0.0
 var returning_fire: bool = false
 var _hit_flash: float = 0.0
+var _return_flash: float = 0.0
+var _present_t: float = 0.0
+var _trail_acc: float = 0.0
+var _trail_world: PackedVector2Array = PackedVector2Array()
 var body_outline: Polygon2D = null
+var chevron: Polygon2D = null
+var trail: Line2D = null
+var death_mark: Node2D = null
+var _death_tween: Tween = null
 
 @onready var body: Polygon2D = $Body
 @onready var tag: Label = $Tag
@@ -54,6 +63,10 @@ func setup(id: int, p_route: PackedVector2Array, p_grid: AmbushGrid = null, p_lo
 	if tag:
 		tag.text = "敌%d" % id
 	_hit_flash = 0.0
+	_return_flash = 0.0
+	_present_t = 0.0
+	_trail_world = PackedVector2Array()
+	_reset_present_fx()
 	_apply_hostile_silhouette()
 	if route.size() > 0:
 		global_position = route[0]
@@ -145,6 +158,9 @@ func resolve_return_fire() -> void:
 		return
 	returning_fire = false
 	_try_return_fire()
+	if returning_fire:
+		_return_flash = 1.0
+		_spawn_return_muzzle()
 	if body:
 		if returning_fire:
 			body.color = Color(0.98, 0.48, 0.12)
@@ -198,9 +214,11 @@ func kill() -> void:
 	alerted = false
 	returning_fire = false
 	_hit_flash = 0.0
+	_return_flash = 0.0
 	if body:
 		body.color = Color(0.35, 0.35, 0.38, 0.7)
 	_apply_body_modulate()
+	_play_death_fx()
 	if tag:
 		tag.text = "敌%d 尸体" % label_id
 	died.emit(self)
@@ -229,16 +247,36 @@ func remaining_path_to_escape() -> float:
 
 
 func _process(delta: float) -> void:
-	if _hit_flash <= 0.0:
-		return
-	_hit_flash = maxf(_hit_flash - delta * 5.5, 0.0)
+	_present_t += delta
+	if _hit_flash > 0.0:
+		_hit_flash = maxf(_hit_flash - delta * 5.5, 0.0)
+	if _return_flash > 0.0:
+		_return_flash = maxf(_return_flash - delta * 8.0, 0.0)
+	_apply_walk_bob()
+	_tick_trail(delta)
 	_apply_body_modulate()
 
 
 func _hostile_diamond() -> PackedVector2Array:
 	return PackedVector2Array([
-		Vector2(0, -13), Vector2(9, 0), Vector2(0, 11), Vector2(-9, 0)
+		Vector2(0, -14), Vector2(9, 0), Vector2(0, 11), Vector2(-9, 0)
 	])
+
+
+func _ensure_chevron() -> void:
+	if body == null:
+		return
+	if chevron == null or not is_instance_valid(chevron):
+		chevron = get_node_or_null("Chevron") as Polygon2D
+	if chevron == null:
+		chevron = Polygon2D.new()
+		chevron.name = "Chevron"
+		chevron.z_index = 1
+		body.add_child(chevron)
+	chevron.polygon = PackedVector2Array([
+		Vector2(0, -11), Vector2(4.5, -1), Vector2(0, 1.5), Vector2(-4.5, -1)
+	])
+	chevron.color = Color(0.92, 0.28, 0.18, 0.95)
 
 
 func _apply_hostile_silhouette() -> void:
@@ -246,6 +284,8 @@ func _apply_hostile_silhouette() -> void:
 		return
 	body.polygon = _hostile_diamond()
 	body.color = Color(0.82, 0.16, 0.14)
+	_ensure_chevron()
+	_ensure_trail()
 	if body_outline == null or not is_instance_valid(body_outline):
 		body_outline = get_node_or_null("BodyOutline") as Polygon2D
 	if body_outline == null:
@@ -268,14 +308,136 @@ func _apply_body_modulate() -> void:
 	if body == null:
 		return
 	if not alive:
-		body.modulate = Color(0.7, 0.7, 0.7, 0.8)
+		body.modulate = Color(0.62, 0.62, 0.64, 0.72)
 		if body_outline:
 			body_outline.modulate = Color(0.55, 0.55, 0.55, 0.7)
+		if chevron:
+			chevron.modulate = Color(0.55, 0.55, 0.55, 0.65)
 		return
 	var flash := Color(1, 1, 1, 1).lerp(Color(1.9, 1.7, 1.15), _hit_flash)
+	if _return_flash > 0.0:
+		flash = flash.lerp(Color(1.6, 0.7, 0.25), _return_flash)
+	elif alerted:
+		var pulse := 0.5 + 0.5 * sin(_present_t * 7.5)
+		flash = flash.lerp(Color(1.35, 0.45, 0.22), 0.22 + 0.28 * pulse)
 	body.modulate = flash
 	if body_outline:
 		body_outline.modulate = Color(1, 1, 1, 1).lerp(Color(1.5, 1.2, 0.5), _hit_flash)
+	if chevron:
+		chevron.modulate = flash
+
+
+func _apply_walk_bob() -> void:
+	var bob := 0.0
+	if alive and active:
+		bob = sin(_present_t * 11.5 + float(label_id)) * 1.35
+	if body:
+		body.position = Vector2(0.0, bob)
+	if body_outline:
+		body_outline.position = Vector2(0.0, bob)
+
+
+func _ensure_trail() -> void:
+	if trail != null and is_instance_valid(trail):
+		return
+	trail = Line2D.new()
+	trail.name = "Trail"
+	trail.width = 2.0
+	trail.default_color = Color(0.82, 0.18, 0.14, 0.22)
+	trail.z_index = -1
+	trail.show_behind_parent = true
+	trail.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	trail.end_cap_mode = Line2D.LINE_CAP_ROUND
+	add_child(trail)
+	move_child(trail, 0)
+
+
+func _tick_trail(delta: float) -> void:
+	_ensure_trail()
+	if trail == null:
+		return
+	if not alive or not active:
+		if _trail_world.size() > 0:
+			_trail_world = PackedVector2Array()
+			trail.points = PackedVector2Array()
+		return
+	_trail_acc += delta
+	if _trail_acc >= 0.05:
+		_trail_acc = 0.0
+		_trail_world.append(global_position)
+		while _trail_world.size() > 9:
+			_trail_world.remove_at(0)
+	var local_pts := PackedVector2Array()
+	for p in _trail_world:
+		local_pts.append(p - global_position)
+	local_pts.append(Vector2.ZERO)
+	trail.points = local_pts
+	var a := 0.18 if alerted else 0.12
+	trail.default_color = Color(0.82, 0.18, 0.14, a)
+
+
+func _spawn_return_muzzle() -> void:
+	if focus_target == null or not is_instance_valid(focus_target):
+		return
+	var aim := focus_target.global_position - global_position
+	if aim.length_squared() < 0.01:
+		return
+	var rad := aim.angle()
+	MuzzleFlashScript.burst(self, Vector2(cos(rad), sin(rad)) * 12.0, rad, Color(1.0, 0.55, 0.2))
+
+
+func _ensure_death_mark() -> void:
+	if death_mark != null and is_instance_valid(death_mark):
+		return
+	death_mark = Node2D.new()
+	death_mark.name = "DeathMark"
+	death_mark.z_index = 4
+	var a := Line2D.new()
+	a.width = 2.0
+	a.default_color = Color(0.18, 0.12, 0.10, 0.9)
+	a.points = PackedVector2Array([Vector2(-6, -6), Vector2(6, 6)])
+	death_mark.add_child(a)
+	var b := Line2D.new()
+	b.width = 2.0
+	b.default_color = Color(0.18, 0.12, 0.10, 0.9)
+	b.points = PackedVector2Array([Vector2(6, -6), Vector2(-6, 6)])
+	death_mark.add_child(b)
+	add_child(death_mark)
+
+
+func _play_death_fx() -> void:
+	if trail:
+		trail.points = PackedVector2Array()
+	_trail_world = PackedVector2Array()
+	_ensure_death_mark()
+	if death_mark:
+		death_mark.visible = true
+		death_mark.modulate.a = 0.0
+		death_mark.create_tween().tween_property(death_mark, "modulate:a", 1.0, 0.16)
+	if _death_tween != null:
+		_death_tween.kill()
+	if body == null:
+		return
+	_death_tween = create_tween()
+	_death_tween.tween_property(body, "scale", Vector2(1.1, 0.55), 0.15)
+	if body_outline:
+		_death_tween.parallel().tween_property(body_outline, "scale", Vector2(1.1, 0.55), 0.15)
+
+
+func _reset_present_fx() -> void:
+	if _death_tween != null:
+		_death_tween.kill()
+		_death_tween = null
+	if body:
+		body.scale = Vector2.ONE
+		body.position = Vector2.ZERO
+	if body_outline:
+		body_outline.scale = Vector2.ONE
+		body_outline.position = Vector2.ZERO
+	if death_mark != null and is_instance_valid(death_mark):
+		death_mark.visible = false
+	if trail:
+		trail.points = PackedVector2Array()
 
 
 func _update_hp_bar() -> void:
