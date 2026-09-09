@@ -65,6 +65,7 @@ var _present_t: float = 0.0
 var _death_tween: Tween = null
 var _recoil_off: Vector2 = Vector2.ZERO
 var _weapon_snap: float = 0.0
+var _hit_punch: float = 0.0
 
 
 static func role_for_id(id: int) -> int:
@@ -355,6 +356,7 @@ func take_damage(amount: float, from_pos: Vector2 = Vector2.INF) -> void:
 		mult *= 1.15
 	hp -= amount * mult
 	_hit_flash = 1.0
+	_hit_punch = 1.0
 	_apply_body_modulate()
 	_refresh_tag()
 	if hp <= 0.0:
@@ -366,6 +368,12 @@ func _process(delta: float) -> void:
 	if _hit_flash > 0.0:
 		_hit_flash = maxf(_hit_flash - delta * 5.5, 0.0)
 		_apply_body_modulate()
+	if _hit_punch > 0.0:
+		_hit_punch = maxf(_hit_punch - delta * 7.0, 0.0)
+	_recoil_off = _recoil_off.lerp(Vector2.ZERO, 1.0 - exp(-delta * 16.0))
+	if _recoil_off.length_squared() < 0.04:
+		_recoil_off = Vector2.ZERO
+	_weapon_snap = move_toward(_weapon_snap, 0.0, delta * 7.5)
 	_apply_idle_bob()
 
 
@@ -539,15 +547,51 @@ func _outline_color() -> Color:
 
 func _spawn_muzzle_flash() -> void:
 	var rad := deg_to_rad(facing_deg)
-	var tip := Vector2(cos(rad), sin(rad)) * 20.0
-	MuzzleFlashScript.burst(self, tip, rad)
+	var tip_len := 22.0
+	var intensity := 1.0
+	var style := "rifle"
+	var tint := Color.WHITE
+	match role:
+		Role.MG:
+			tip_len = 20.0
+			intensity = 1.48
+			style = "mg"
+			tint = Color(1.0, 0.88, 0.55)
+		Role.SCOUT:
+			tip_len = 28.0
+			intensity = 0.82
+			style = "scout"
+			tint = Color(0.85, 0.95, 1.0)
+		_:
+			tip_len = 24.0
+			intensity = 1.05
+			style = "rifle"
+	var tip := Vector2(cos(rad), sin(rad)) * tip_len
+	MuzzleFlashScript.burst(self, tip, rad, tint, intensity, style)
+	apply_recoil_kick()
+
+
+func apply_recoil_kick() -> void:
+	var rad := deg_to_rad(facing_deg)
+	var back := Vector2(cos(rad), sin(rad)) * -1.0
+	match role:
+		Role.MG:
+			_recoil_off = back * 5.4
+			_weapon_snap = 0.28
+		Role.SCOUT:
+			_recoil_off = back * 2.6
+			_weapon_snap = 0.12
+		_:
+			_recoil_off = back * 3.8
+			_weapon_snap = 0.18
+	_hit_punch = maxf(_hit_punch, 0.35)
 
 
 func _apply_idle_bob() -> void:
 	var bob := 0.0
 	var lean := 0.0
 	if alive and visible:
-		var amp := 1.15 if _is_power_saving() else 1.55
+		var amp := 0.55 if _is_power_saving() else 2.65
 		bob = sin(_present_t * 3.15 + float(op_id) * 1.7) * amp
 		# Subtle aim lean only while planning (alarm lock_plan sets locked).
 		if not locked:
@@ -555,9 +599,15 @@ func _apply_idle_bob() -> void:
 	if body:
 		body.position = Vector2(0.0, bob) + _recoil_off
 		body.rotation = deg_to_rad(facing_deg + 90.0) + lean
+		if alive and (_death_tween == null or not is_instance_valid(_death_tween)):
+			var breath := 0.004 if _is_power_saving() else 0.016
+			var punch := 1.0 + _hit_punch * 0.16
+			body.scale = Vector2(punch, punch * (1.0 + sin(_present_t * 2.15 + float(op_id)) * breath))
 	if body_outline:
 		body_outline.position = Vector2(0.0, bob) + _recoil_off
 		body_outline.rotation = body.rotation if body else body_outline.rotation
+		if body:
+			body_outline.scale = body.scale
 	if role_glyph:
 		role_glyph.position = Vector2(15, -13 + bob * 0.4)
 	if weapon and is_instance_valid(weapon):
@@ -646,11 +696,14 @@ func _play_death_fx() -> void:
 		_:
 			squash = Vector2(1.18, 0.48)
 			extra_rot = 0.32
-	_death_tween.tween_property(body, "scale", squash, 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_death_tween.parallel().tween_property(body, "rotation", body.rotation + extra_rot, 0.18)
+	_death_tween.tween_property(body, "scale", Vector2(1.22, 1.22), 0.05).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	if body_outline:
-		_death_tween.parallel().tween_property(body_outline, "scale", squash, 0.18)
-		_death_tween.parallel().tween_property(body_outline, "rotation", body.rotation + extra_rot, 0.18)
+		_death_tween.parallel().tween_property(body_outline, "scale", Vector2(1.22, 1.22), 0.05)
+	_death_tween.tween_property(body, "scale", squash, 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_death_tween.parallel().tween_property(body, "rotation", body.rotation + extra_rot, 0.16)
+	if body_outline:
+		_death_tween.parallel().tween_property(body_outline, "scale", squash, 0.16)
+		_death_tween.parallel().tween_property(body_outline, "rotation", body.rotation + extra_rot, 0.16)
 	if role == Role.SCOUT:
 		_death_tween.parallel().tween_property(body, "modulate:a", 0.42, 0.22)
 
@@ -661,6 +714,7 @@ func _reset_present_fx() -> void:
 		_death_tween = null
 	_recoil_off = Vector2.ZERO
 	_weapon_snap = 0.0
+	_hit_punch = 0.0
 	if body:
 		body.scale = Vector2.ONE
 		body.position = Vector2.ZERO
@@ -717,7 +771,7 @@ func _apply_body_modulate() -> void:
 		if kit_gear:
 			kit_gear.modulate = Color(0.5, 0.5, 0.52, 0.7)
 		return
-	var flash := Color(1.0, 1.0, 1.0).lerp(Color(1.85, 1.55, 0.55), _hit_flash)
+	var flash := Color(1.55, 1.55, 1.55).lerp(Color(1.85, 0.22, 0.16), _hit_flash)
 	body.modulate = flash
 	if body_outline:
 		body_outline.modulate = Color(1, 1, 1, 1).lerp(Color(1.4, 1.1, 0.4), _hit_flash)

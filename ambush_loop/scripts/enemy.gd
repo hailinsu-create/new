@@ -44,7 +44,10 @@ var _death_tween: Tween = null
 var facing_deg: float = 90.0
 var _recoil_off: Vector2 = Vector2.ZERO
 var _weapon_snap: float = 0.0
+var _hit_punch: float = 0.0
 var _kind_color: Color = Color(0.82, 0.16, 0.14)
+var _foot_dust: CPUParticles2D = null
+var _dust_acc: float = 0.0
 
 @onready var body: Polygon2D = $Body
 @onready var tag: Label = $Tag
@@ -204,6 +207,7 @@ func apply_fire(amount: float, from: OperatorUnit = null) -> void:
 	hp -= amount
 	alerted = true
 	_hit_flash = 1.0
+	_hit_punch = 1.0
 	if from != null:
 		focus_target = from
 	_update_hp_bar()
@@ -258,8 +262,15 @@ func _process(delta: float) -> void:
 		_hit_flash = maxf(_hit_flash - delta * 5.5, 0.0)
 	if _return_flash > 0.0:
 		_return_flash = maxf(_return_flash - delta * 8.0, 0.0)
+	if _hit_punch > 0.0:
+		_hit_punch = maxf(_hit_punch - delta * 7.0, 0.0)
+	_recoil_off = _recoil_off.lerp(Vector2.ZERO, 1.0 - exp(-delta * 16.0))
+	if _recoil_off.length_squared() < 0.04:
+		_recoil_off = Vector2.ZERO
+	_weapon_snap = move_toward(_weapon_snap, 0.0, delta * 8.0)
 	_apply_walk_bob()
 	_tick_trail(delta)
+	_tick_foot_dust(delta)
 	_apply_body_modulate()
 
 
@@ -477,7 +488,7 @@ func _apply_body_modulate() -> void:
 		if kit_helm:
 			kit_helm.modulate = Color(0.5, 0.5, 0.52, 0.7)
 		return
-	var flash := Color(1, 1, 1, 1).lerp(Color(1.9, 1.7, 1.15), _hit_flash)
+	var flash := Color(1.55, 1.55, 1.55, 1).lerp(Color(1.9, 0.22, 0.16), _hit_flash)
 	if _return_flash > 0.0:
 		flash = flash.lerp(Color(1.6, 0.7, 0.25), _return_flash)
 	elif alerted:
@@ -502,8 +513,13 @@ func _apply_walk_bob() -> void:
 		bob = sin(_present_t * rate + float(label_id)) * amp
 	if body:
 		body.position = Vector2(0.0, bob) + _recoil_off
+		if alive and (_death_tween == null or not is_instance_valid(_death_tween)):
+			var punch := 1.0 + _hit_punch * 0.18
+			body.scale = Vector2(punch, punch)
 	if body_outline:
 		body_outline.position = Vector2(0.0, bob) + _recoil_off
+		if body:
+			body_outline.scale = body.scale
 	if weapon and is_instance_valid(weapon):
 		weapon.rotation = _weapon_snap
 
@@ -573,7 +589,37 @@ func _spawn_return_muzzle() -> void:
 	if aim.length_squared() < 0.01:
 		return
 	var rad := aim.angle()
-	MuzzleFlashScript.burst(self, Vector2(cos(rad), sin(rad)) * 14.0, rad, Color(1.0, 0.55, 0.2))
+	var style := "rifle"
+	var intensity := 0.95
+	match kind_id():
+		"flank":
+			style = "rifle"
+			intensity = 0.88
+		"sneak":
+			style = "scout"
+			intensity = 0.7
+		_:
+			style = "rifle"
+			intensity = 1.05
+	MuzzleFlashScript.burst(
+		self, Vector2(cos(rad), sin(rad)) * 14.0, rad, Color(1.0, 0.55, 0.2), intensity, style
+	)
+	apply_recoil_kick(rad)
+
+
+func apply_recoil_kick(aim_rad: float = INF) -> void:
+	var rad := aim_rad if aim_rad != INF else deg_to_rad(facing_deg)
+	var back := Vector2(cos(rad), sin(rad)) * -1.0
+	match kind_id():
+		"flank":
+			_recoil_off = back * 3.2
+			_weapon_snap = 0.16
+		"sneak":
+			_recoil_off = back * 1.8
+			_weapon_snap = 0.08
+		_:
+			_recoil_off = back * 4.0
+			_weapon_snap = 0.2
 
 
 func _ensure_death_mark() -> void:
@@ -629,11 +675,14 @@ func _play_death_fx() -> void:
 		_:
 			squash = Vector2(1.18, 0.48)
 			extra = 0.28
-	_death_tween.tween_property(body, "scale", squash, 0.16)
-	_death_tween.parallel().tween_property(body, "rotation", body.rotation + extra, 0.16)
+	_death_tween.tween_property(body, "scale", Vector2(1.24, 1.24), 0.05)
 	if body_outline:
-		_death_tween.parallel().tween_property(body_outline, "scale", squash, 0.16)
-		_death_tween.parallel().tween_property(body_outline, "rotation", body.rotation + extra, 0.16)
+		_death_tween.parallel().tween_property(body_outline, "scale", Vector2(1.24, 1.24), 0.05)
+	_death_tween.tween_property(body, "scale", squash, 0.15)
+	_death_tween.parallel().tween_property(body, "rotation", body.rotation + extra, 0.15)
+	if body_outline:
+		_death_tween.parallel().tween_property(body_outline, "scale", squash, 0.15)
+		_death_tween.parallel().tween_property(body_outline, "rotation", body.rotation + extra, 0.15)
 	if kind_id() == "sneak":
 		_death_tween.parallel().tween_property(body, "modulate:a", 0.35, 0.20)
 
@@ -644,6 +693,10 @@ func _reset_present_fx() -> void:
 		_death_tween = null
 	_recoil_off = Vector2.ZERO
 	_weapon_snap = 0.0
+	_hit_punch = 0.0
+	_dust_acc = 0.0
+	if _foot_dust != null and is_instance_valid(_foot_dust):
+		_foot_dust.emitting = false
 	if body:
 		body.scale = Vector2.ONE
 		body.position = Vector2.ZERO
@@ -658,6 +711,46 @@ func _reset_present_fx() -> void:
 	if weapon != null and is_instance_valid(weapon):
 		weapon.rotation = 0.0
 		weapon.modulate = Color.WHITE
+
+
+func _tick_foot_dust(delta: float) -> void:
+	## Sparse pooled puffs while walking. Standard tier only — 省电 skips particles.
+	if _is_power_saving() or not alive or not active:
+		if _foot_dust != null and is_instance_valid(_foot_dust):
+			_foot_dust.emitting = false
+		return
+	_dust_acc += delta
+	var interval := 0.18 if kind_id() == "flank" else (0.36 if kind_id() == "sneak" else 0.26)
+	if _dust_acc < interval:
+		return
+	_dust_acc = 0.0
+	_ensure_foot_dust()
+	if _foot_dust:
+		_foot_dust.restart()
+
+
+func _ensure_foot_dust() -> void:
+	if _foot_dust != null and is_instance_valid(_foot_dust):
+		return
+	_foot_dust = CPUParticles2D.new()
+	_foot_dust.name = "FootDust"
+	_foot_dust.emitting = false
+	_foot_dust.one_shot = true
+	_foot_dust.explosiveness = 0.92
+	_foot_dust.amount = 5
+	_foot_dust.lifetime = 0.34
+	_foot_dust.local_coords = false
+	_foot_dust.direction = Vector2(0, 1)
+	_foot_dust.spread = 48.0
+	_foot_dust.initial_velocity_min = 5.0
+	_foot_dust.initial_velocity_max = 14.0
+	_foot_dust.gravity = Vector2(0, 26)
+	_foot_dust.scale_amount_min = 0.35
+	_foot_dust.scale_amount_max = 1.05
+	_foot_dust.color = Color(0.52, 0.48, 0.36, 0.38)
+	_foot_dust.z_index = -1
+	_foot_dust.show_behind_parent = true
+	add_child(_foot_dust)
 
 
 func _update_hp_bar() -> void:

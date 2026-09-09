@@ -36,6 +36,8 @@ Esc / 返回键            标题：退出确认；战场：作战设置
 @onready var quit_btn: Button = $UI/Menu/QuitButton
 
 var pause_ui: PauseOverlay
+var _sway_tween: Tween = null
+var _sway_base_top: float = 118.0
 var _brief: CanvasLayer
 var _brief_title: Label
 var _brief_body: Label
@@ -67,6 +69,9 @@ func _ready() -> void:
 	pause_ui.return_to_title.connect(func() -> void: pause_ui.dismiss())
 	_play_intro()
 	_refresh_continue()
+	var gs = get_node_or_null("/root/GameSettings")
+	if gs and gs.has_signal("changed") and not gs.changed.is_connected(_on_settings_changed_title):
+		gs.changed.connect(_on_settings_changed_title)
 	continue_btn.custom_minimum_size = Vector2(300, 48)
 	help_btn.custom_minimum_size = Vector2(300, 48)
 	quit_btn.custom_minimum_size = Vector2(300, 48)
@@ -118,6 +123,40 @@ func _play_intro() -> void:
 	pulse.parallel().tween_property(start_btn, "scale", Vector2(1.045, 1.045), 0.72)
 	pulse.tween_property(start_btn, "modulate", Color.WHITE, 0.72)
 	pulse.parallel().tween_property(start_btn, "scale", Vector2.ONE, 0.72)
+	tw.chain().tween_callback(_start_wordmark_sway)
+
+
+func _on_settings_changed_title() -> void:
+	_start_wordmark_sway()
+
+
+func _title_fx_paused() -> bool:
+	var gs = get_node_or_null("/root/GameSettings")
+	if gs != null and gs.has_method("is_power_saving") and bool(gs.is_power_saving()):
+		return true
+	var back := get_node_or_null("Backdrop")
+	if back != null and bool(back.get("_focus_paused")):
+		return true
+	return false
+
+
+func _start_wordmark_sway() -> void:
+	if wordmark == null:
+		return
+	if _sway_tween != null:
+		_sway_tween.kill()
+		_sway_tween = null
+	wordmark.pivot_offset = Vector2(wordmark.size.x * 0.5, wordmark.size.y * 0.45)
+	wordmark.rotation = 0.0
+	wordmark.offset_top = _sway_base_top
+	if _title_fx_paused():
+		return
+	_sway_tween = create_tween().set_loops()
+	_sway_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_sway_tween.tween_property(wordmark, "rotation", 0.028, 1.7)
+	_sway_tween.parallel().tween_property(wordmark, "offset_top", _sway_base_top + 3.5, 1.7)
+	_sway_tween.tween_property(wordmark, "rotation", -0.028, 1.7)
+	_sway_tween.parallel().tween_property(wordmark, "offset_top", _sway_base_top - 2.5, 1.7)
 
 
 func handle_android_back() -> void:
@@ -152,6 +191,15 @@ func _set_title_background_paused(on: bool) -> void:
 	var back := get_node_or_null("Backdrop")
 	if back != null and back.has_method("set_background_paused"):
 		back.set_background_paused(on)
+	if on:
+		if _sway_tween != null:
+			_sway_tween.kill()
+			_sway_tween = null
+		if wordmark:
+			wordmark.rotation = 0.0
+			wordmark.offset_top = _sway_base_top
+	else:
+		_start_wordmark_sway()
 
 
 func _unhandled_input(event: InputEvent) -> void:

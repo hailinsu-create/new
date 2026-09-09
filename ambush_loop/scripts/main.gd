@@ -137,6 +137,8 @@ var _focus_paused_watch: bool = false
 var _touch_ate_click: bool = false
 var _cover_hold_slot: CoverSlot = null
 var _cover_hold_msec: int = 0
+var _alarm_btn_tween: Tween = null
+var _door_tween: Tween = null
 var _touch_preview_slot: CoverSlot = null
 var _pending_setup_touch: bool = false
 var _pending_touch_world: Vector2 = Vector2.ZERO
@@ -821,11 +823,11 @@ func _reset_cam_view() -> void:
 	_apply_cam()
 
 
-func _camera_punch() -> void:
+func _camera_punch(amount: Vector2 = Vector2(2, -1)) -> void:
 	_ensure_game_camera()
 	if _punch_tween != null:
 		_punch_tween.kill()
-	_cam_punch = Vector2(2, -1)
+	_cam_punch = amount
 	_apply_cam()
 	_punch_tween = create_tween()
 	_punch_tween.tween_method(func(v: Vector2) -> void:
@@ -880,17 +882,36 @@ func _alarm_edge_flash() -> void:
 		_rim_tween.kill()
 	for c in _rim_flash.get_children():
 		if c is ColorRect:
-			(c as ColorRect).color = Color(0.95, 0.38, 0.12, 0.0)
+			(c as ColorRect).color = Color(0.95, 0.28, 0.10, 0.0)
 	_rim_tween = create_tween()
-	_rim_tween.set_parallel(true)
-	for c in _rim_flash.get_children():
-		if c is ColorRect:
-			_rim_tween.tween_property(c, "color:a", 0.72, 0.05)
-	_rim_tween.chain()
-	_rim_tween.set_parallel(true)
-	for c in _rim_flash.get_children():
-		if c is ColorRect:
-			_rim_tween.tween_property(c, "color:a", 0.0, 0.22)
+	# Two screen-edge pulses so the lock reads as an alarm, not a single blink.
+	for pulse_i in 2:
+		_rim_tween.set_parallel(true)
+		for c in _rim_flash.get_children():
+			if c is ColorRect:
+				_rim_tween.tween_property(c, "color:a", 0.82 if pulse_i == 0 else 0.55, 0.05)
+		_rim_tween.chain()
+		_rim_tween.set_parallel(true)
+		for c in _rim_flash.get_children():
+			if c is ColorRect:
+				_rim_tween.tween_property(c, "color:a", 0.0, 0.16)
+		_rim_tween.chain()
+	_flash_alarm_button()
+	_camera_punch(Vector2(8, -5))
+
+
+func _flash_alarm_button() -> void:
+	if alarm_button == null:
+		return
+	if _alarm_btn_tween != null:
+		_alarm_btn_tween.kill()
+	alarm_button.modulate = Color(1.55, 0.45, 0.28)
+	alarm_button.pivot_offset = alarm_button.size * 0.5
+	_alarm_btn_tween = create_tween()
+	_alarm_btn_tween.tween_property(alarm_button, "scale", Vector2(1.08, 1.08), 0.06)
+	_alarm_btn_tween.parallel().tween_property(alarm_button, "modulate", Color(1.55, 0.45, 0.28), 0.06)
+	_alarm_btn_tween.tween_property(alarm_button, "scale", Vector2.ONE, 0.22)
+	_alarm_btn_tween.parallel().tween_property(alarm_button, "modulate", Color.WHITE, 0.28)
 
 
 func _play_result_tone(win: bool) -> void:
@@ -1227,12 +1248,29 @@ func _build_door_marker() -> void:
 	n.name = "DoorMarker"
 	n.position = grid.cell_to_world_center(level.door_cell)
 	var pad := Polygon2D.new()
+	pad.name = "Polygon2D"
 	pad.polygon = PackedVector2Array([
 		Vector2(-10, -14), Vector2(10, -14), Vector2(10, 14), Vector2(-10, 14)
 	])
 	pad.color = Color(0.55, 0.4, 0.25, 0.7)
 	n.add_child(pad)
+	var leaf := Polygon2D.new()
+	leaf.name = "DoorLeaf"
+	leaf.polygon = PackedVector2Array([
+		Vector2(0, -13), Vector2(18, -13), Vector2(18, 13), Vector2(0, 13)
+	])
+	leaf.position = Vector2(-10, 0)
+	leaf.color = Color(0.62, 0.42, 0.22, 0.92)
+	n.add_child(leaf)
+	var hinge := Polygon2D.new()
+	hinge.name = "Hinge"
+	hinge.polygon = PackedVector2Array([
+		Vector2(-12, -4), Vector2(-7, -4), Vector2(-7, 4), Vector2(-12, 4)
+	])
+	hinge.color = Color(0.18, 0.14, 0.10, 0.95)
+	n.add_child(hinge)
 	var tag := Label.new()
+	tag.name = "Tag"
 	tag.text = "门"
 	tag.position = Vector2(-10, -28)
 	tag.add_theme_font_size_override("font_size", 12)
@@ -1242,17 +1280,44 @@ func _build_door_marker() -> void:
 	_refresh_door_visual()
 
 
-func _refresh_door_visual() -> void:
+func _refresh_door_visual(animate: bool = false) -> void:
 	if door_marker == null or not is_instance_valid(door_marker):
 		return
 	var pad := door_marker.get_node_or_null("Polygon2D") as Polygon2D
 	if pad == null and door_marker.get_child_count() > 0:
 		pad = door_marker.get_child(0) as Polygon2D
+	var leaf := door_marker.get_node_or_null("DoorLeaf") as Polygon2D
+	var tag := door_marker.get_node_or_null("Tag") as Label
+	var locked_col := Color(0.88, 0.22, 0.16, 0.92)
+	var open_col := Color(0.55, 0.4, 0.25, 0.7)
+	var target_rot := 0.0 if door_locked else -1.15
 	if pad:
-		pad.color = Color(0.85, 0.25, 0.2, 0.85) if door_locked else Color(0.55, 0.4, 0.25, 0.7)
+		pad.color = locked_col if door_locked else open_col
+	if tag:
+		tag.text = "门·锁" if door_locked else "门·开"
+		tag.add_theme_color_override("font_color", Color(1.0, 0.45, 0.28) if door_locked else Color(0.85, 0.78, 0.55))
+	if leaf:
+		leaf.color = locked_col if door_locked else Color(0.62, 0.42, 0.22, 0.92)
+		if animate:
+			if _door_tween != null:
+				_door_tween.kill()
+			_door_tween = create_tween()
+			_door_tween.tween_property(leaf, "rotation", target_rot, 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			var flash := Color(1.0, 0.92, 0.55, 1.0)
+			leaf.modulate = flash
+			_door_tween.parallel().tween_property(leaf, "modulate", Color.WHITE, 0.22)
+			if pad:
+				pad.modulate = flash
+				_door_tween.parallel().tween_property(pad, "modulate", Color.WHITE, 0.22)
+		else:
+			leaf.rotation = target_rot
 	if door_button:
 		door_button.text = "门: 锁闭 (B)" if door_locked else "门: 畅通 (B)"
 		door_button.visible = level != null and level.door_cell.x >= 0
+		if animate:
+			door_button.modulate = Color(1.4, 0.7, 0.4) if door_locked else Color(0.85, 1.2, 0.7)
+			var bt := door_button.create_tween()
+			bt.tween_property(door_button, "modulate", Color.WHITE, 0.28)
 
 
 func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
@@ -2114,7 +2179,7 @@ func _on_door_pressed() -> void:
 	if map_draw.has_method("invalidate_static_cache"):
 		map_draw.invalidate_static_cache()
 	map_draw.queue_redraw()
-	_refresh_door_visual()
+	_refresh_door_visual(true)
 	for op in operators:
 		if op.visible:
 			op._rebuild_cone()

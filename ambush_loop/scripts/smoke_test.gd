@@ -1336,6 +1336,10 @@ func _assert_perf_tier(main) -> bool:
 		push_error("SMOKE_QUALITY_RESTORE_FAIL %s" % gs.quality_tier)
 		quit(46)
 		return false
+	if main.operators.is_empty() or not main.operators[0].has_method("apply_recoil_kick"):
+		push_error("SMOKE_NO_RECOIL_KICK")
+		quit(46)
+		return false
 	print("SMOKE_OK_PERF_TIER")
 	return true
 

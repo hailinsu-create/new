@@ -254,19 +254,37 @@ func _draw_wall_tile(c: CanvasItem, rect: Rect2, x: int, y: int) -> void:
 
 
 func _draw_escape_mouth(erect: Rect2) -> void:
-	# Warm lime/gold mouth — readable as an exit, never purple. Soft idle glow; fail flash kept.
+	# Live overlay only — never baked into the static cache.
 	var cx := erect.get_center()
 	var breathe := 0.5 + 0.5 * sin(_glow_t * 2.15)
-	var rings := 3 if _is_power_saving() else 5
+	var rings := 3 if _is_power_saving() else 6
 	for i in rings:
 		var r := 16.0 + float(rings - 1 - i) * 11.0 + breathe * 3.0
 		var a := (0.035 + float(i) * 0.040) * (0.82 + 0.28 * breathe)
 		draw_circle(cx, r, Color(0.72, 0.92, 0.28, a))
 	draw_circle(cx, 22.0 + breathe * 2.0, Color(0.95, 0.78, 0.22, 0.08 + 0.05 * breathe))
 	if escape_flash:
-		var pulse := 0.28 + 0.32 * (0.5 + 0.5 * sin(_flash_t * 9.0))
-		draw_rect(erect, Color(1.0, 0.18, 0.12, pulse))
-		draw_rect(erect, Color(1.0, 0.92, 0.35, 0.95), false, 3.0)
+		var pulse := 0.34 + 0.40 * (0.5 + 0.5 * sin(_flash_t * 9.0))
+		var wash := 42.0 + 18.0 * pulse
+		draw_circle(cx, wash, Color(1.0, 0.16, 0.10, 0.10 + 0.10 * pulse))
+		draw_circle(cx, 30.0 + 8.0 * pulse, Color(1.0, 0.55, 0.12, 0.16 + 0.12 * pulse))
+		draw_rect(erect.grow(8.0), Color(1.0, 0.18, 0.10, pulse * 0.55))
+		draw_rect(erect, Color(1.0, 0.22, 0.12, pulse))
+		draw_rect(erect, Color(1.0, 0.92, 0.35, 0.95), false, 3.4)
+		# Hazard X so the mouth stays readable under the red wash.
+		var inset := 6.0
+		draw_line(
+			erect.position + Vector2(inset, inset),
+			erect.position + erect.size - Vector2(inset, inset),
+			Color(1.0, 0.95, 0.45, 0.85),
+			2.4, true
+		)
+		draw_line(
+			erect.position + Vector2(erect.size.x - inset, inset),
+			erect.position + Vector2(inset, erect.size.y - inset),
+			Color(1.0, 0.95, 0.45, 0.85),
+			2.4, true
+		)
 	else:
 		draw_rect(erect, Color(0.42, 0.72, 0.16, 0.22 + 0.10 * breathe))
 		draw_rect(erect, Color(0.92, 0.88, 0.32, 0.70 + 0.18 * breathe), false, 2.2)

@@ -120,16 +120,18 @@ func _draw() -> void:
 		y += step
 	var off := Vector2(sin(t * 0.32) * 14.0, cos(t * 0.21) * 9.0)
 	var cols := [
-		Color(0.62, 0.70, 0.36, 0.28),
-		Color(0.50, 0.58, 0.32, 0.20),
-		Color(0.78, 0.72, 0.38, 0.16),
+		Color(0.82, 0.90, 0.42, 0.52),
+		Color(0.68, 0.78, 0.38, 0.40),
+		Color(0.95, 0.84, 0.42, 0.32),
 	]
 	for i in _routes.size():
 		var shifted := PackedVector2Array()
 		for p in _routes[i]:
 			shifted.append(p + off * (0.65 + float(i) * 0.18))
 		if shifted.size() >= 2:
-			draw_polyline(shifted, cols[i % cols.size()], 2.2, true)
+			if not _particles_suppressed():
+				draw_polyline(shifted, Color(cols[i % cols.size()].r, cols[i % cols.size()].g, cols[i % cols.size()].b, 0.16), 6.0, true)
+			draw_polyline(shifted, cols[i % cols.size()], 3.0, true)
 	# Manual drifting sparks (readable even if particles are culled).
 	if not _particles_suppressed():
 		for i in 20:
