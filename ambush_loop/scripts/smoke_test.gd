@@ -67,10 +67,11 @@ func _run() -> void:
 		return
 	print("LEVEL=", main.level.level_id)
 
-	# Life 1: only one cover — expect flank escape
+	# Life 1: 灰狼 on west cover, authored east face (0°) covers the spine so
+	# 敌1/敌2 die and flank 敌3 (delay 0.4s) is the leaker. South 90° covers neither.
 	main._select_op(0)
 	main._deploy_selected_to(main.cover_slots[0])
-	main.selected.set_facing(90.0)
+	main.selected.set_facing(0.0)
 	main._on_alarm_pressed()
 	print("LIFE1 deployed=", main._deployed_count())
 
@@ -131,6 +132,32 @@ func _run() -> void:
 				push_error("SMOKE_NO_NEXT_WAVE %s" % main.result_label.text)
 				quit(52)
 				return
+			if main.intel.records.is_empty():
+				push_error("SMOKE_NO_LEAKER_RECORD")
+				quit(56)
+				return
+			var leak_rec_fail: Dictionary = main.intel.records[main.intel.records.size() - 1]
+			var leak_id_fail: int = int(leak_rec_fail.get("leaker_id", -1))
+			var leak_route_fail := str(leak_rec_fail.get("route", ""))
+			var esc_ev: Dictionary = main.battle_log.last_of_type("escape") if main.battle_log.has_method("last_of_type") else {}
+			if leak_route_fail != "flank" or leak_id_fail != 3:
+				push_error(
+					"SMOKE_WRONG_LEAKER route=%s id=%s rec=%s"
+					% [leak_route_fail, leak_id_fail, str(leak_rec_fail)]
+				)
+				quit(56)
+				return
+			if esc_ev.is_empty() or int(esc_ev.get("actor_id", -1)) != leak_id_fail:
+				push_error(
+					"SMOKE_ESCAPE_ACTOR_MISMATCH log=%s intel=%s"
+					% [esc_ev.get("actor_id", -1), leak_id_fail]
+				)
+				quit(56)
+				return
+			if str(esc_ev.get("payload", {}).get("route", "")) != "flank":
+				push_error("SMOKE_ESCAPE_LOG_ROUTE %s" % str(esc_ev.get("payload", {})))
+				quit(56)
+				return
 			var fp_1x: String = main.battle_log.fingerprint()
 			var tick_1x: int = main.sim.tick
 			print("SMOKE_1X_FP tick=", tick_1x, " fp=", fp_1x)
@@ -165,14 +192,29 @@ func _run() -> void:
 				push_error("SMOKE_NO_LEAKER_ID rec=%s" % str(leak_rec))
 				quit(56)
 				return
+			if str(leak_rec.get("route", "")) != "flank" or leaker_id != 3:
+				push_error(
+					"SMOKE_LEAKER_NOT_FLANK3 route=%s id=%s"
+					% [leak_rec.get("route", ""), leaker_id]
+				)
+				quit(56)
+				return
 			if main.level == null or not main.level.has_method("delay_for_actor"):
 				push_error("SMOKE_NO_DELAY_FOR_ACTOR")
 				quit(56)
 				return
 			var actor_delay: float = float(main.level.delay_for_actor(leaker_id))
+			if absf(actor_delay - 0.4) > 0.001 or absf(float(main.level.delay_for_actor(3)) - 0.4) > 0.001:
+				push_error("SMOKE_FLANK3_DELAY %s" % actor_delay)
+				quit(56)
+				return
 			var advice_txt := str(main.leak_advice_text())
 			if advice_txt.find("敌") < 0 or advice_txt.find(str(leaker_id)) < 0:
 				push_error("SMOKE_LEAK_ADVICE_NO_ACTOR id=%s txt=%s" % [leaker_id, advice_txt])
+				quit(56)
+				return
+			if advice_txt.find("侧翼") < 0:
+				push_error("SMOKE_LEAK_ADVICE_NOT_FLANK txt=%s" % advice_txt)
 				quit(56)
 				return
 			var leak_tick_n: int = int(leak_rec.get("leak_tick", -1))

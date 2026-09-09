@@ -136,7 +136,8 @@ func sim_step(delta: float) -> void:
 	returning_fire = false
 
 	if route_index >= route.size():
-		mark_escaped()
+		# Standing on the last waypoint. Main resolves mouth escape after all movers
+		# so a dead runner (or a later spawn) cannot steal the leaker slot.
 		return
 
 	var speed := ALERT_SPEED if alerted else SPEED
@@ -149,11 +150,9 @@ func sim_step(delta: float) -> void:
 		_walk_phase += moved.length() * (0.28 if alerted else 0.18)
 	if global_position.distance_to(target) < 2.0:
 		route_index += 1
-		# Escape commits on the same tick the last waypoint is reached.
 		if route_index >= route.size():
 			if recorded.is_empty() or global_position.distance_to(recorded[recorded.size() - 1]) >= RECORD_DIST:
 				recorded.append(global_position)
-			mark_escaped()
 			return
 	if recorded.is_empty() or global_position.distance_to(recorded[recorded.size() - 1]) >= RECORD_DIST:
 		recorded.append(global_position)
@@ -249,13 +248,23 @@ func kill() -> void:
 	died.emit(self)
 
 
+func at_escape_mouth(mouth: Vector2, slop: float = 24.0) -> bool:
+	## Alive runner who finished the authored polyline and is actually at the mouth.
+	if not alive or not active:
+		return false
+	if route_index < route.size():
+		return false
+	return global_position.distance_to(mouth) <= slop
+
+
 func mark_escaped() -> void:
 	if not alive:
 		return
 	alive = false
 	active = false
 	returning_fire = false
-	recorded.append(global_position)
+	if recorded.is_empty() or global_position.distance_to(recorded[recorded.size() - 1]) >= 0.5:
+		recorded.append(global_position)
 	escaped.emit(self, recorded.duplicate())
 
 

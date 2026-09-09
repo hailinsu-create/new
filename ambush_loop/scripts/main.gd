@@ -3230,12 +3230,20 @@ func _sim_tick() -> void:
 	# 3) Ambush zone arming
 	_tick_ambush_zone()
 
-	# 4) Enemy move — branch at decision, then escape commits on last waypoint
+	# 4) Enemy move — branch at decision. Mouth escape is resolved after every
+	#    runner has stepped so spawn-order cannot beat the first body at the cell.
 	for enemy in enemies:
 		if enemy.alive and enemy.active:
 			_try_enemy_branch(enemy)
 			enemy.sim_step(SimClock.TICK_DT)
 			_try_enemy_branch(enemy)
+		if phase != Phase.WATCHING:
+			_finish_sim_tick()
+			return
+
+	# 4b) First alive runner at escape_cell wins; others stay disabled via the handler.
+	if phase == Phase.WATCHING:
+		_resolve_escapes()
 		if phase != Phase.WATCHING:
 			_finish_sim_tick()
 			return
@@ -3463,20 +3471,51 @@ func _try_assign_loot(loot: LootPickup) -> void:
 			return
 
 
+func _resolve_escapes() -> void:
+	## Among alive runners who actually reached the mouth this tick, the closest
+	## body wins (stable label_id on a tie). Dead / unfinished routes never leak.
+	if phase != Phase.WATCHING:
+		return
+	var best: EnemyRunner = null
+	var best_d := INF
+	var best_id := 999999
+	for enemy in enemies:
+		if enemy == null or not is_instance_valid(enemy):
+			continue
+		if not enemy.alive or not enemy.active:
+			continue
+		if not enemy.has_method("at_escape_mouth") or not bool(enemy.at_escape_mouth(escape_world)):
+			continue
+		var d := enemy.global_position.distance_to(escape_world)
+		if d < best_d - 0.01 or (absf(d - best_d) <= 0.01 and enemy.label_id < best_id):
+			best_d = d
+			best_id = enemy.label_id
+			best = enemy
+	if best == null:
+		return
+	best.mark_escaped()
+
+
 func _on_enemy_escaped(enemy: EnemyRunner, path: PackedVector2Array) -> void:
 	if phase != Phase.WATCHING:
 		return
+	if enemy == null or not is_instance_valid(enemy):
+		return
+	# Record THIS runner — label_id + spawn_route from the emitter, never spawn_schedule[0].
+	var route := str(enemy.spawn_route)
+	var lid := int(enemy.label_id)
 	fail_reason = "escape"
 	phase = Phase.FAILED
 	var hint := _escape_route_hint(enemy)
 	battle_log.add_event(
-		sim.tick, "escape", enemy.label_id, -1, enemy.global_position,
-		{"route": enemy.spawn_route, "kind": enemy.kind_short()}
+		sim.tick, "escape", lid, -1, enemy.global_position,
+		{"route": route, "kind": enemy.kind_short()}
 	)
 	battle_log.mark_terminal(sim.tick, "escape")
 	for e in enemies:
-		e.active = false
-	_remember_path(path, "escape", hint, enemy.spawn_route, enemy.label_id)
+		if e != null and is_instance_valid(e) and e != enemy:
+			e.active = false
+	_remember_path(path, "escape", hint, route, lid)
 	_mission_had_escape = true
 	_flash("逃逸！%s" % hint, Color(1.0, 0.35, 0.25))
 	_sfx("escape")
