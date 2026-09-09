@@ -15,7 +15,7 @@ top-down Godot vertical slice, not a Commandos clone.
 - **Read-only replay:** snapshot scrub, click-to-focus events. Does not re-simulate.
 - **Authored toys:** tripwire (1), ammo pack, door→alternate route, warehouse proximity barrel (sim-tick only).
 - **Watch-only speed:** 1× / 2× must match tick + event fingerprint (smoke).
-- **Procedural audio:** short pooled WAV beeps on the **SFX** bus; looping generator drone on **Music**. Mute with **M** (Master, both buses). Volume slider is master. No external audio assets.
+- **Procedural audio:** short pooled WAV beeps on the **SFX** bus; looping WAV drone on **Music**. Mute with **M** (Master, both buses). Pause overlay has Music / SFX sliders. WATCHING ducks the bed slightly. No `AudioStreamGenerator`. No external audio assets.
 - **Title / settings / onboarding:** night-ops title, **mission select** (lock / 首通), briefing, Esc quit confirm on title, in-game Esc settings, first-run 3-step yard tutorial, left operator cards with role glyphs, win debrief, campaign credits.
 - **Export presets:** Linux + Windows desktop in `export_presets.cfg` (manual export; see README).
 

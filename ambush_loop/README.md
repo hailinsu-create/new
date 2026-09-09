@@ -44,7 +44,7 @@ Presets live in `ambush_loop/export_presets.cfg` (Linux Desktop, Windows Desktop
 | Key / UI | Action |
 |----------|--------|
 | Title | 开始行动 → 任务列表（锁定/可出击/首通）→ 简报 / 继续进度 / 操作说明（全键表） / 退出（确认） |
-| Esc | 标题：退出确认（可进设置）；战场：暂停 / 设置（静音、音量、返回标题、布置期重新部署） |
+| Esc | 标题：退出确认（可进设置）；战场：暂停 / 设置（静音、音乐/音效、返回标题、布置期重新部署） |
 | 1 / 2 / 3 or left operator cards | Select 步枪手 / 机枪手 / 侦察兵 |
 | LMB cover | Deploy selected operator (cyan arc = cover protect direction) |
 | Hover cover | Preview that slot's protect arc |
@@ -58,26 +58,26 @@ Presets live in `ambush_loop/export_presets.cfg` (Linux Desktop, Windows Desktop
 | + / − or speed button | 1× / 2× watch speed (viewing only) |
 | X or 中止尝试 | Abort current attempt; keep intel up to now (counts as fail) |
 | 时间轴复盘 | Read-only snapshot scrub (←/→ or slider). Click an event log line to seek/highlight that actor. Does not re-simulate. Space restores the last plan. |
-| M or 音效 button | Mute / unmute (master: music bed + SFX) |
+| M or 音效 button | Mute / unmute (Music + SFX). Esc settings: separate Music / SFX sliders |
 | Clear btn | Clear deploy (keep intel + tripwires) |
 | R | Clear memory and restart |
 
 Alarm locks layout, facing, fire modes, door, and tools. Pause/speed/replay only change viewing. Escape **or** squad wipe fails the loop; abort is an intentional fail that still stores intel. On escape the exit cell flashes and the result panel stays docked so the mouth stays visible. After fail continue, the last plan restores with a slot/facing summary; further edits flash a diff vs that plan. Cross-loop keeps intel ghosts + last plan only.
 
-First yard visit shows a 3-page tutorial (cannot skip page 1 by clicking the dimmer). The bottom `tut_label` remains as a secondary tip.
+First visit to each mission shows a short tutorial (yard 3 pages; warehouse F/G/barrel; pump door/flank). Page 1 cannot be skipped by clicking the dimmer. The bottom `tut_label` remains as a secondary tip.
 
 ## Content
 
 | Piece | What ships |
 |-------|------------|
 | Title | Wordmark, Chinese tagline, start → mission list → briefing, continue, full key table, quit confirm |
-| Settings | Autoload `GameSettings`: mute, master volume, seen_tutorial (`user://ambush_loop_settings.cfg`) |
+| Settings | Autoload `GameSettings`: mute, Music/SFX volumes, per-level tutorials (`user://ambush_loop_settings.cfg`) |
 | Progress | `user://ambush_loop.cfg` current level + `cleared`; campaign complete → credits → title |
 | Roles | 步枪手 / 机枪手 / 侦察兵 kits, left-rail HP/ammo/mode/slot cards + role glyphs on card and map |
 | Levels | 院子, 仓道 (ammo pack + barrel), 泵站 (door → alternate route) |
 | Toys | Tripwire (1, lime pegs), killzone preview, scout observation ring (SETUP only) |
 | Loop | Alarm freezes plan; authored routes; escape/wipe fail; intel + last plan persist; win debrief before 下一关 |
-| Audio | Autoload `AudioDirector`: quiet looping drone (Music) + pooled SFX beeps (SFX); M mute; master volume |
+| Audio | Autoload `AudioDirector`: quiet looping drone (Music) + pooled SFX beeps (SFX); M mute; Music/SFX sliders; quieter bed while watching |
 | Export | Linux + Windows desktop presets (manual) |
 
 ## Roles
