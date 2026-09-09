@@ -8,17 +8,21 @@ var _t: float = 0.0
 var _tag: Label = null
 
 
-func setup(r: Rect2) -> void:
+func setup(r: Rect2, tag_text: String = "伏击区") -> void:
 	zone = r
 	z_index = 1
 	if _tag == null or not is_instance_valid(_tag):
 		_tag = Label.new()
 		_tag.name = "Tag"
-		_tag.text = "伏击区"
-		_tag.add_theme_font_size_override("font_size", 12)
-		_tag.add_theme_color_override("font_color", Color(0.95, 0.85, 0.35, 0.7))
+		_tag.add_theme_font_size_override("font_size", 13)
+		_tag.add_theme_font_override("font", NightOps.ui_font_bold())
+		_tag.add_theme_color_override("font_color", Color(0.98, 0.88, 0.35, 0.88))
+		_tag.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.02, 0.9))
+		_tag.add_theme_constant_override("shadow_offset_x", 1)
+		_tag.add_theme_constant_override("shadow_offset_y", 1)
 		_tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(_tag)
+	_tag.text = tag_text if tag_text != "" else "伏击区"
 	_tag.position = r.position + Vector2(8, 4)
 	queue_redraw()
 

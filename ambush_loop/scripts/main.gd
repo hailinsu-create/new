@@ -51,6 +51,9 @@ var return_fire_fx: Array = []
 var hud_tick: float = 0.0
 var ambush_zone_poly: Node2D = null
 var door_marker: Node2D = null
+var decision_marker: Node2D = null
+var barrel_hint: Node2D = null
+var route_timeline: Control = null
 var mission_sky: Node2D = null
 var all_spawns_done: bool = false
 var pending_result: String = "" # "" | "fail" | "win" — build panel after tick events/snapshot
@@ -823,6 +826,10 @@ func _apply_watch_layers() -> void:
 	if killzone_draw:
 		killzone_draw.modulate = Color.WHITE
 		killzone_draw.visible = phase == Phase.SETUP
+	if decision_marker and is_instance_valid(decision_marker):
+		decision_marker.visible = phase == Phase.SETUP
+	if barrel_hint and is_instance_valid(barrel_hint):
+		barrel_hint.visible = phase == Phase.SETUP
 	if entities:
 		entities.modulate = Color.WHITE
 	if ghosts:
@@ -1073,6 +1080,7 @@ func _load_level(level_id: String, keep_intel: bool, restore_plan: bool) -> void
 	_draw_fixed_routes()
 	_build_ambush_zone_visual()
 	_build_door_marker()
+	_build_decision_marker()
 	_build_barrels()
 	_start_setup(keep_intel, restore_plan)
 	_save_progress()
@@ -1332,7 +1340,10 @@ func _build_ambush_zone_visual() -> void:
 		return
 	var fx = AmbushZoneFxScript.new()
 	fx.name = "AmbushZone"
-	fx.setup(level.ambush_zone)
+	var zone_tag := "伏击区"
+	if level.beat_kind == "ambush_zone" and level.beat_text != "":
+		zone_tag = level.beat_text
+	fx.setup(level.ambush_zone, zone_tag)
 	$World.add_child(fx)
 	ambush_zone_poly = fx
 
@@ -1377,6 +1388,46 @@ func _build_door_marker() -> void:
 	routes_draw.add_child(n)
 	door_marker = n
 	_refresh_door_visual()
+
+
+func _build_decision_marker() -> void:
+	if decision_marker != null and is_instance_valid(decision_marker):
+		decision_marker.queue_free()
+	decision_marker = null
+	if level == null or level.decision_cell.x < 0:
+		return
+	var n := Node2D.new()
+	n.name = "DecisionMarker"
+	n.position = grid.cell_to_world_center(level.decision_cell)
+	n.z_index = 2
+	var pad := Polygon2D.new()
+	pad.polygon = PackedVector2Array([
+		Vector2(-12, -12), Vector2(12, -12), Vector2(12, 12), Vector2(-12, 12)
+	])
+	pad.color = Color(0.72, 0.52, 0.18, 0.28)
+	n.add_child(pad)
+	var ring := Line2D.new()
+	ring.width = 2.0
+	ring.closed = true
+	ring.default_color = Color(0.95, 0.72, 0.22, 0.85)
+	ring.points = PackedVector2Array([
+		Vector2(-13, -13), Vector2(13, -13), Vector2(13, 13), Vector2(-13, 13), Vector2(-13, -13)
+	])
+	n.add_child(ring)
+	var tag := Label.new()
+	tag.name = "Tag"
+	tag.text = level.beat_text if level.beat_kind == "decision" and level.beat_text != "" else "决策格"
+	tag.position = Vector2(-46, -30)
+	tag.add_theme_font_size_override("font_size", 12)
+	tag.add_theme_font_override("font", NightOps.ui_font_bold())
+	tag.add_theme_color_override("font_color", Color(0.98, 0.82, 0.32))
+	tag.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.02, 0.92))
+	tag.add_theme_constant_override("shadow_offset_x", 1)
+	tag.add_theme_constant_override("shadow_offset_y", 1)
+	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	n.add_child(tag)
+	routes_draw.add_child(n)
+	decision_marker = n
 
 
 func _refresh_door_visual(animate: bool = false) -> void:
@@ -1482,6 +1533,8 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 		speed_button.disabled = true
 		speed_button.text = "速度 1×"
 	result_panel.visible = false
+	if route_timeline:
+		route_timeline.visible = false
 	if abort_button:
 		abort_button.visible = false
 		abort_button.disabled = true
@@ -2147,6 +2200,32 @@ func _build_barrels() -> void:
 	var b := _make_barrel(grid.cell_to_world_center(level.barrel_cell))
 	entities.add_child(b)
 	barrels.append(b)
+	_build_barrel_hint(b.position)
+
+
+func _build_barrel_hint(pos: Vector2) -> void:
+	if barrel_hint != null and is_instance_valid(barrel_hint):
+		barrel_hint.queue_free()
+	barrel_hint = null
+	if level == null or level.beat_kind != "barrel":
+		return
+	var n := Node2D.new()
+	n.name = "BarrelHint"
+	n.position = pos
+	n.z_index = 3
+	var tag := Label.new()
+	tag.text = level.beat_text if level.beat_text != "" else "爆心"
+	tag.position = Vector2(-52, -36)
+	tag.add_theme_font_size_override("font_size", 12)
+	tag.add_theme_font_override("font", NightOps.ui_font_bold())
+	tag.add_theme_color_override("font_color", Color(1.0, 0.62, 0.22))
+	tag.add_theme_color_override("font_shadow_color", Color(0.05, 0.02, 0.02, 0.92))
+	tag.add_theme_constant_override("shadow_offset_x", 1)
+	tag.add_theme_constant_override("shadow_offset_y", 1)
+	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	n.add_child(tag)
+	$World.add_child(n)
+	barrel_hint = n
 
 
 func _clear_barrels() -> void:
@@ -2154,6 +2233,9 @@ func _clear_barrels() -> void:
 		if is_instance_valid(b):
 			b.queue_free()
 	barrels.clear()
+	if barrel_hint != null and is_instance_valid(barrel_hint):
+		barrel_hint.queue_free()
+	barrel_hint = null
 
 
 func _reset_barrels() -> void:
@@ -2958,15 +3040,18 @@ func _show_fail_result() -> void:
 	elif intel.latest_line() != "":
 		intel_line = "情报已记录 · %s" % intel.latest_line()
 	var shot := _first_shot_line()
-	result_label.text = "第 %d 世失败（%s）。\n%s\n%s\n%s\n穿梭后恢复上轮计划，满血满弹。\n%s\n\n—— 事件摘要（点击右侧日志定位）——\n%s" % [
+	var wave := _next_wave_line()
+	result_label.text = "第 %d 世失败（%s）。\n%s\n%s\n%s\n%s\n穿梭后恢复上轮计划，满血满弹。\n%s\n\n—— 事件摘要（点击右侧日志定位）——\n%s" % [
 		loop_index,
 		reason_zh,
 		epitaph,
 		intel_line,
 		shot,
+		wave,
 		"逃逸口已在地图上闪烁。" if fail_reason == "escape" else "",
 		summary,
 	]
+	_refresh_route_timeline(true)
 	continue_button.text = "带着情报穿梭回去"
 	if replay_button:
 		replay_button.visible = true
@@ -3009,6 +3094,7 @@ func _show_win_result() -> void:
 	var gs = _gs()
 	if gs and level:
 		gs.record_win(level.level_id)
+	_refresh_route_timeline(true)
 	if replay_button:
 		replay_button.visible = true
 	status_label.text = "计划奏效"
@@ -3185,12 +3271,100 @@ func _first_shot_line() -> String:
 	return "第一枪：%s → 敌%d" % [nm, int(ev.get("target_id", 0))]
 
 
+func _route_zh_short(route: String) -> String:
+	match route:
+		"flank":
+			return "侧翼"
+		"sneak":
+			return "暗道"
+		"alt":
+			return "备用"
+		_:
+			return "主路"
+
+
+func _next_wave_line() -> String:
+	## Seconds until the next authored spawn after now / last intel cut.
+	if level == null:
+		return "下一波：—"
+	var now := sim.time_sec()
+	var intel_cut := -1.0
+	if intel != null and intel.has_method("recent"):
+		var recs: Array = intel.recent(1)
+		if not recs.is_empty():
+			intel_cut = float(recs[0].get("cut_sec", -1.0))
+	var ref_t := now
+	if intel_cut >= 0.0:
+		ref_t = intel_cut
+	var next_d := INF
+	var next_route := ""
+	for spec in level.spawn_schedule:
+		var d := float(spec.get("delay", 0.0))
+		var spawned := false
+		for p in pending_spawns:
+			if int(p.get("id", -1)) == int(spec.get("id", -2)) and bool(p.get("spawned", false)):
+				spawned = true
+				break
+		if spawned:
+			continue
+		if d > ref_t + 0.05 and d < next_d:
+			next_d = d
+			next_route = str(spec.get("route", "main"))
+	if next_d == INF:
+		if intel_cut >= 0.0:
+			return "下一波：已全部进场（情报截止 %.1fs）" % intel_cut
+		return "下一波：已全部进场"
+	var remain := maxf(next_d - now, 0.0)
+	if intel_cut >= 0.0:
+		return "下一波：%s 还有 %.1fs（情报截止 %.1fs）" % [_route_zh_short(next_route), remain, intel_cut]
+	return "下一波：%s 还有 %.1fs" % [_route_zh_short(next_route), remain]
+
+
+func _refresh_route_timeline(show: bool) -> void:
+	_ensure_route_timeline()
+	if route_timeline == null:
+		return
+	route_timeline.visible = show and level != null
+	if not show or level == null:
+		return
+	var marks: Array = []
+	if level.has_method("route_spawn_marks"):
+		marks = level.route_spawn_marks()
+	route_timeline.set("marks", marks)
+	var tmax := 1.0
+	for m in marks:
+		tmax = maxf(tmax, float(m.get("delay", 0.0)) + 0.5)
+	tmax = maxf(tmax, sim.time_sec())
+	route_timeline.set("t_max", tmax)
+	route_timeline.queue_redraw()
+
+
+func _ensure_route_timeline() -> void:
+	if route_timeline != null and is_instance_valid(route_timeline):
+		return
+	var vbox := result_panel.get_node_or_null("Margin/VBox") as VBoxContainer
+	if vbox == null:
+		return
+	var strip := Control.new()
+	strip.name = "RouteTimeline"
+	strip.custom_minimum_size = Vector2(0, 40)
+	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	strip.set_script(load("res://scripts/ui/route_timeline.gd"))
+	vbox.add_child(strip)
+	vbox.move_child(strip, mini(1, vbox.get_child_count() - 1))
+	route_timeline = strip
+
+
 func _on_continue_pressed() -> void:
 	if phase == Phase.FAILED:
 		var intel_line := intel.latest_line()
+		var leak := intel.latest_hint()
 		loop_index += 1
 		_start_setup(true, true)
-		if intel_line != "":
+		if leak != "":
+			intel_label.text = "情报已记录 · %s" % leak
+			_flash("情报 · %s" % leak, Color(0.55, 0.85, 1.0))
+		elif intel_line != "":
 			intel_label.text = "情报已记录 · %s" % intel_line
 			_flash("情报已记录", Color(0.55, 0.85, 1.0))
 	elif phase == Phase.WON:
@@ -3562,15 +3736,24 @@ func _refresh_route_legend() -> void:
 	if not show:
 		return
 	var chips: Array = [
-		{"id": "main", "icon": "主", "label": "主路", "color": Color(0.92, 0.28, 0.22)},
+		{"id": "main", "icon": "主", "label": _route_chip_label("main", "主路"), "color": Color(0.92, 0.28, 0.22)},
 	]
 	if level.route_cells.has("flank"):
-		chips.append({"id": "flank", "icon": "侧", "label": "侧翼", "color": Color(0.95, 0.55, 0.16)})
+		chips.append({"id": "flank", "icon": "侧", "label": _route_chip_label("flank", "侧翼"), "color": Color(0.95, 0.55, 0.16)})
 	if level.route_cells.has("sneak"):
-		chips.append({"id": "sneak", "icon": "暗", "label": "暗道", "color": Color(0.38, 0.78, 0.52)})
+		chips.append({"id": "sneak", "icon": "暗", "label": _route_chip_label("sneak", "暗道"), "color": Color(0.38, 0.78, 0.52)})
 	if level.level_id == "pump" and not level.alternate_route_cells.is_empty():
 		chips.append({"id": "alt", "icon": "门", "label": "备用", "color": Color(0.72, 0.55, 0.28)})
 	_fill_route_chips(chips)
+
+
+func _route_chip_label(route: String, base: String) -> String:
+	if level == null or not level.has_method("first_route_delay"):
+		return base
+	var delay := float(level.first_route_delay(route))
+	if delay >= 1.0:
+		return "%s %.1fs" % [base, delay]
+	return base
 
 
 func _fill_route_chips(chips: Array) -> void:

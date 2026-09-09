@@ -55,6 +55,8 @@ func _run() -> void:
 		return
 	if not _assert_props(main):
 		return
+	if not _assert_teaching(main):
+		return
 	print("LEVEL=", main.level.level_id)
 
 	# Life 1: only one cover — expect flank escape
@@ -117,6 +119,10 @@ func _run() -> void:
 				quit(4)
 				return
 			print("SMOKE_OK_INTEL_RECORDED")
+			if str(main.result_label.text).find("下一波") < 0:
+				push_error("SMOKE_NO_NEXT_WAVE %s" % main.result_label.text)
+				quit(52)
+				return
 			var fp_1x: String = main.battle_log.fingerprint()
 			var tick_1x: int = main.sim.tick
 			print("SMOKE_1X_FP tick=", tick_1x, " fp=", fp_1x)
@@ -1475,6 +1481,49 @@ func _assert_props(main) -> bool:
 		quit(51)
 		return false
 	print("SMOKE_OK_PROPS landmarks=5 sig=", sig)
+	return true
+
+
+func _assert_teaching(main) -> bool:
+	var yard: LevelDef = LevelDef.by_id("yard")
+	if str(yard.beat_kind) != "ambush_zone" or str(yard.beat_text).find("侧翼") < 0:
+		push_error("SMOKE_YARD_BEAT %s %s" % [yard.beat_kind, yard.beat_text])
+		quit(52)
+		return false
+	var wh: LevelDef = LevelDef.by_id("warehouse")
+	if str(wh.beat_kind) != "barrel":
+		push_error("SMOKE_WAREHOUSE_BEAT %s" % wh.beat_kind)
+		quit(52)
+		return false
+	var pump: LevelDef = LevelDef.by_id("pump")
+	if str(pump.beat_kind) != "decision" or pump.decision_cell != Vector2i(13, 5):
+		push_error("SMOKE_PUMP_BEAT %s %s" % [pump.beat_kind, str(pump.decision_cell)])
+		quit(52)
+		return false
+	var rc: LevelDef = LevelDef.by_id("railcut")
+	if rc.first_route_delay("flank") < 3.0:
+		push_error("SMOKE_RAILCUT_BEAT_DELAY %s" % rc.first_route_delay("flank"))
+		quit(52)
+		return false
+	var dp: LevelDef = LevelDef.by_id("depot")
+	if dp.first_route_delay("sneak") < 1.6:
+		push_error("SMOKE_DEPOT_BEAT_DELAY %s" % dp.first_route_delay("sneak"))
+		quit(52)
+		return false
+	if not ResourceLoader.exists("res://scripts/ui/route_timeline.gd"):
+		push_error("SMOKE_NO_ROUTE_TIMELINE")
+		quit(52)
+		return false
+	if main.ambush_zone_poly == null:
+		push_error("SMOKE_NO_AMBUSH_ZONE")
+		quit(52)
+		return false
+	var zone_tag = main.ambush_zone_poly.get_node_or_null("Tag")
+	if zone_tag == null or str(zone_tag.text).find("侧翼") < 0:
+		push_error("SMOKE_ZONE_TAG %s" % (zone_tag.text if zone_tag else "null"))
+		quit(52)
+		return false
+	print("SMOKE_OK_TEACHING beats=5 timeline=1")
 	return true
 
 

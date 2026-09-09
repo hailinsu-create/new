@@ -23,6 +23,9 @@ var has_ammo_pack: bool = false
 var tutorial: String = ""
 ## Authored explosive; (-1,-1) = none. Detonates on enemy proximity during sim_tick only.
 var barrel_cell: Vector2i = Vector2i(-1, -1)
+## Authored teaching beat (no new mechanics): ambush_zone | barrel | decision | flank_delay | sneak_delay
+var beat_kind: String = ""
+var beat_text: String = ""
 
 
 static func catalog() -> Array:
@@ -34,6 +37,26 @@ static func by_id(id: String) -> LevelDef:
 		if l.level_id == id:
 			return l
 	return make_yard()
+
+
+func first_route_delay(route: String) -> float:
+	var best := INF
+	for spec in spawn_schedule:
+		if str(spec.get("route", "")) == route:
+			best = minf(best, float(spec.get("delay", 0.0)))
+	return 0.0 if best == INF else best
+
+
+func route_spawn_marks() -> Array:
+	## Authored spawn ticks for the debrief strip. Does not invent routes.
+	var out: Array = []
+	for spec in spawn_schedule:
+		out.append({
+			"route": str(spec.get("route", "main")),
+			"delay": float(spec.get("delay", 0.0)),
+			"id": int(spec.get("id", 0)),
+		})
+	return out
 
 
 static func make_yard() -> LevelDef:
@@ -71,6 +94,8 @@ static func make_yard() -> LevelDef:
 	]
 	l.ambush_zone = Rect2(320, 280, 400, 160)
 	l.has_ammo_pack = false
+	l.beat_kind = "ambush_zone"
+	l.beat_text = "侧翼从东廊随后到"
 	return l
 
 
@@ -111,6 +136,8 @@ static func make_warehouse() -> LevelDef:
 	]
 	l.ambush_zone = Rect2(360, 300, 360, 200)
 	l.has_ammo_pack = true
+	l.beat_kind = "barrel"
+	l.beat_text = "油桶靠近才炸 · 别站爆心"
 	return l
 
 
@@ -155,6 +182,8 @@ static func make_pump() -> LevelDef:
 	]
 	l.ambush_zone = Rect2(300, 250, 420, 220)
 	l.has_ammo_pack = true
+	l.beat_kind = "decision"
+	l.beat_text = "决策格 · 锁门改线"
 	return l
 
 
@@ -190,11 +219,13 @@ static func make_railcut() -> LevelDef:
 	l.spawn_schedule = [
 		{"id": 1, "route": "main", "delay": 0.0, "loot": 1},
 		{"id": 2, "route": "main", "delay": 0.7, "loot": 0},
-		{"id": 3, "route": "flank", "delay": 3.8, "loot": 2},
-		{"id": 4, "route": "flank", "delay": 4.6, "loot": 0},
+		{"id": 3, "route": "flank", "delay": 3.8, "loot": 2, "ambush_window": 3.8},
+		{"id": 4, "route": "flank", "delay": 4.6, "loot": 0, "ambush_window": 3.8},
 	]
 	l.ambush_zone = Rect2(280, 240, 500, 280)
 	l.has_ammo_pack = true
+	l.beat_kind = "flank_delay"
+	l.beat_text = "东廊延迟"
 	return l
 
 
@@ -232,9 +263,11 @@ static func make_depot() -> LevelDef:
 	l.spawn_schedule = [
 		{"id": 1, "route": "main", "delay": 0.0, "loot": 1},
 		{"id": 2, "route": "flank", "delay": 0.5, "loot": 0},
-		{"id": 3, "route": "sneak", "delay": 2.2, "loot": 2},
+		{"id": 3, "route": "sneak", "delay": 2.2, "loot": 2, "ambush_window": 2.2},
 		{"id": 4, "route": "main", "delay": 0.9, "loot": 0},
 	]
 	l.ambush_zone = Rect2(260, 230, 520, 280)
 	l.has_ammo_pack = true
+	l.beat_kind = "sneak_delay"
+	l.beat_text = "西暗道影探延迟"
 	return l
