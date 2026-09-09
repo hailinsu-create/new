@@ -108,19 +108,23 @@ func _ensure_cache_current() -> void:
 
 
 func _cache_signature() -> String:
+	## layout_id + atmosphere_id must both be in the key so a level switch rebuilds
+	## even if blocked-bit hashes collide.
 	var geo := "none"
+	var layout := ""
 	if grid != null:
 		var h := 0
 		var blocked := grid.blocked
 		for i in blocked.size():
 			h = ((h << 5) - h + int(blocked[i])) & 0x7fffffff
+		layout = str(grid.layout_id)
 		geo = "%s:%d:%d:%d:%d" % [
-			grid.layout_id, grid.door_cell.x, grid.door_cell.y, int(grid.door_locked), h
+			layout, grid.door_cell.x, grid.door_cell.y, int(grid.door_locked), h
 		]
 	var atmo := atmosphere_id
-	if atmo == "" and grid != null:
-		atmo = grid.layout_id
-	return "%s|%s|%s" % [geo, "p" if _is_power_saving() else "s", atmo]
+	if atmo == "" and layout != "":
+		atmo = layout
+	return "%s|%s|%s|%s" % [geo, "p" if _is_power_saving() else "s", atmo, layout]
 
 
 func _is_power_saving() -> bool:
@@ -297,12 +301,13 @@ func _draw_floor_tile(c: CanvasItem, rect: Rect2, x: int, y: int) -> void:
 		elif _atmo() == "pump" and (seed_n % 8) == 0:
 			c.draw_circle(Vector2(cx + 16.0, cy + 18.0), 6.0, Color(0.18, 0.42, 0.38, 0.12))
 		elif _atmo() == "railcut" and (y == 5 or y == 6 or y == 16 or y == 17):
-			# Rail ties on the north/south connectors.
+			# Rail ties only on railcut north/south connectors.
 			c.draw_rect(Rect2(cx + 2.0, cy + 12.0, 28.0, 6.0), Color(0.18, 0.12, 0.07, 0.55))
 			c.draw_rect(Rect2(cx + 2.0, cy + 13.0, 28.0, 1.5), Color(0.32, 0.22, 0.10, 0.35))
 		elif _atmo() == "depot" and ((x + y) % 6) == 0 and x > 14 and x < 25 and y > 14:
 			c.draw_rect(Rect2(cx + 2.0, cy + 14.0, 28.0, 5.0), Color(0.92, 0.62, 0.12, 0.18))
-		elif (seed_n % 11) == 0:
+		_draw_layout_decal(c, rect, x, y, seed_n)
+		if (seed_n % 11) == 0:
 			var sx := cx + 4.0 + _frac(seed_n + 3) * 8.0
 			var sy := cy + 6.0 + _frac(seed_n + 8) * 14.0
 			var sl := 10.0 + _frac(seed_n + 21) * 12.0
@@ -323,6 +328,46 @@ func _draw_floor_tile(c: CanvasItem, rect: Rect2, x: int, y: int) -> void:
 		c.draw_line(rect.position, rect.position + Vector2(0, rect.size.y), grid_c, 1.0)
 	if y % 4 == 0:
 		c.draw_line(rect.position, rect.position + Vector2(rect.size.x, 0), grid_c, 1.0)
+
+
+func _draw_layout_decal(c: CanvasItem, rect: Rect2, x: int, y: int, seed_n: int) -> void:
+	## Extra floor identity per layout_id. Visual only — never writes grid.blocked.
+	var cx := rect.position.x
+	var cy := rect.position.y
+	match _atmo():
+		"yard":
+			if (seed_n % 13) == 0:
+				c.draw_line(
+					Vector2(cx + 3.0, cy + 8.0 + _frac(seed_n) * 10.0),
+					Vector2(cx + 22.0, cy + 14.0),
+					Color(0.10, 0.14, 0.12, 0.22),
+					1.1, true
+				)
+			elif (seed_n % 19) == 0:
+				c.draw_arc(Vector2(cx + 18.0, cy + 20.0), 7.0, 0.4, 2.6, 5, Color(0.18, 0.28, 0.16, 0.12), 1.2, true)
+		"warehouse":
+			if y == 16 and x % 3 == 0:
+				c.draw_rect(Rect2(cx + 6.0, cy + 22.0, 20.0, 4.0), Color(0.55, 0.42, 0.12, 0.22))
+			elif (seed_n % 14) == 0:
+				c.draw_rect(Rect2(cx + 8.0, cy + 4.0, 14.0, 2.0), Color(0.32, 0.22, 0.08, 0.18))
+		"pump":
+			if (x + y) % 5 == 0:
+				c.draw_rect(Rect2(cx + 4.0, cy + 4.0, 24.0, 24.0), Color(0.08, 0.16, 0.14, 0.10), false, 1.0)
+				c.draw_line(Vector2(cx + 4.0, cy + 16.0), Vector2(cx + 28.0, cy + 16.0), Color(0.12, 0.28, 0.24, 0.16), 1.0)
+			elif (seed_n % 10) == 0:
+				c.draw_circle(Vector2(cx + 10.0, cy + 22.0), 4.0, Color(0.14, 0.32, 0.28, 0.14))
+		"railcut":
+			if y == 5 or y == 6 or y == 16 or y == 17:
+				c.draw_line(Vector2(cx, cy + 8.0), Vector2(cx + 32.0, cy + 8.0), Color(0.38, 0.36, 0.30, 0.22), 1.4)
+			elif (seed_n % 16) == 0:
+				c.draw_rect(Rect2(cx + 12.0, cy + 4.0, 6.0, 22.0), Color(0.16, 0.14, 0.10, 0.16))
+		"depot":
+			if (seed_n % 12) == 0:
+				c.draw_circle(Vector2(cx + 20.0, cy + 18.0), 5.0, Color(0.22, 0.10, 0.04, 0.20))
+			elif x > 15 and x < 24 and (y == 15 or y == 16):
+				c.draw_rect(Rect2(cx + 2.0, cy + 20.0, 28.0, 3.0), Color(0.18, 0.10, 0.04, 0.16))
+		_:
+			pass
 
 
 func _draw_wall_tile(c: CanvasItem, rect: Rect2, x: int, y: int) -> void:
@@ -459,6 +504,21 @@ func _landmark_yard(c: CanvasItem) -> void:
 	c.draw_rect(crate.grow(-4), Color(0.28, 0.20, 0.10, 0.45))
 	c.draw_rect(Rect2(crate.position + Vector2(8, 6), Vector2(22, 14)), Color(0.38, 0.28, 0.12, 0.55))
 	c.draw_rect(Rect2(crate.position + Vector2(36, 10), Vector2(18, 18)), Color(0.32, 0.22, 0.10, 0.5))
+	var t := AmbushGrid.TILE
+	# Clothesline across the west yard (overlay; does not block spine x=13).
+	c.draw_line(Vector2(8.2 * t, 7.15 * t), Vector2(17.6 * t, 7.05 * t), Color(0.22, 0.20, 0.14, 0.70), 1.6, true)
+	for i in 5:
+		var hx := 8.8 * t + float(i) * 22.0
+		c.draw_rect(Rect2(hx, 7.15 * t, 8.0, 16.0 + float(i % 3) * 4.0), Color(0.42, 0.48, 0.36, 0.28))
+	# Bicycle wreck west of the spine, south of the west crates.
+	var bike := Vector2(10.2 * t, 12.6 * t)
+	c.draw_circle(bike, 7.0, Color(0.10, 0.10, 0.08, 0.55))
+	c.draw_circle(bike + Vector2(16, 2), 7.0, Color(0.10, 0.10, 0.08, 0.50))
+	c.draw_line(bike + Vector2(-2, 0), bike + Vector2(16, 2), Color(0.18, 0.16, 0.12, 0.70), 2.0, true)
+	c.draw_line(bike + Vector2(8, -8), bike + Vector2(10, 6), Color(0.16, 0.14, 0.10, 0.65), 1.6, true)
+	# Gate shadow at the north entry (12-14,4) — wash only.
+	c.draw_rect(Rect2(12.0 * t, 4.0 * t, 3.0 * t, 18.0), Color(0.02, 0.03, 0.03, 0.22))
+	c.draw_rect(Rect2(12.2 * t, 3.7 * t, 2.6 * t, 6.0), Color(0.08, 0.10, 0.08, 0.35))
 
 
 func _landmark_warehouse(c: CanvasItem) -> void:
@@ -472,6 +532,20 @@ func _landmark_warehouse(c: CanvasItem) -> void:
 		var p := Vector2(lamp.x * AmbushGrid.TILE + 16, lamp.y * AmbushGrid.TILE + 10)
 		c.draw_circle(p, 6.0, Color(0.22, 0.16, 0.08, 0.85))
 		c.draw_circle(p, 3.0, Color(0.95, 0.72, 0.22, 0.7))
+	var t := AmbushGrid.TILE
+	# Forklift silhouette parked off the spine (open floor, not a collider).
+	var fk := Vector2(16.4 * t, 8.4 * t)
+	c.draw_rect(Rect2(fk.x, fk.y, 28.0, 16.0), Color(0.22, 0.16, 0.08, 0.55))
+	c.draw_rect(Rect2(fk.x + 22.0, fk.y - 10.0, 8.0, 12.0), Color(0.18, 0.14, 0.07, 0.55))
+	c.draw_circle(fk + Vector2(6, 16), 5.0, Color(0.10, 0.08, 0.05, 0.7))
+	c.draw_circle(fk + Vector2(22, 16), 5.0, Color(0.10, 0.08, 0.05, 0.7))
+	# Stacked pallet shadows beside the mid shelves.
+	c.draw_rect(Rect2(21.2 * t, 13.3 * t, 22.0, 10.0), Color(0.16, 0.12, 0.06, 0.40))
+	c.draw_rect(Rect2(21.5 * t, 13.05 * t, 16.0, 8.0), Color(0.28, 0.20, 0.10, 0.38))
+	c.draw_rect(Rect2(7.4 * t, 13.4 * t, 20.0, 9.0), Color(0.16, 0.12, 0.06, 0.36))
+	# Loading dock stripe on the south lane.
+	c.draw_rect(Rect2(18.0 * t, 17.15 * t, 10.0 * t, 8.0), Color(0.72, 0.48, 0.10, 0.22))
+	c.draw_rect(Rect2(18.0 * t, 17.15 * t, 10.0 * t, 8.0), Color(0.90, 0.72, 0.22, 0.35), false, 1.6)
 
 
 func _landmark_pump(c: CanvasItem) -> void:
@@ -482,9 +556,22 @@ func _landmark_pump(c: CanvasItem) -> void:
 	c.draw_rect(Rect2(18 * t + 10, 10 * t, 8, 3 * t), Color(0.16, 0.38, 0.32, 0.55))
 	c.draw_rect(Rect2(24 * t + 6, 11 * t + 4, 2 * t, 10), Color(0.18, 0.40, 0.34, 0.5))
 	# Valve wheels.
-	for p in [Vector2(18.4 * t, 11.2 * t), Vector2(25.2 * t, 12.2 * t)]:
-		c.draw_circle(p, 7.0, Color(0.22, 0.55, 0.42, 0.7))
+	for p in [Vector2(18.4 * t, 11.2 * t), Vector2(25.2 * t, 12.2 * t), Vector2(8.6 * t, 11.4 * t)]:
+		c.draw_circle(p, 8.0, Color(0.22, 0.55, 0.42, 0.72))
 		c.draw_circle(p, 3.0, Color(0.10, 0.18, 0.14, 0.85))
+		c.draw_line(p + Vector2(-7, 0), p + Vector2(7, 0), Color(0.10, 0.16, 0.12, 0.8), 1.4)
+		c.draw_line(p + Vector2(0, -7), p + Vector2(0, 7), Color(0.10, 0.16, 0.12, 0.8), 1.4)
+	# Warning triangle on the east machinery face.
+	var tri := PackedVector2Array([
+		Vector2(26.6 * t, 10.4 * t),
+		Vector2(27.6 * t, 12.1 * t),
+		Vector2(25.6 * t, 12.1 * t),
+	])
+	c.draw_colored_polygon(tri, Color(0.92, 0.72, 0.12, 0.72))
+	var tri_loop := tri.duplicate()
+	tri_loop.append(tri[0])
+	c.draw_polyline(tri_loop, Color(0.12, 0.10, 0.04, 0.85), 1.4, true)
+	c.draw_rect(Rect2(26.45 * t, 11.15 * t, 3.0, 8.0), Color(0.08, 0.08, 0.06, 0.85))
 	# Puddle plates on walkable floor (not a collider).
 	c.draw_circle(Vector2(13.5 * t, 15.5 * t), 14.0, Color(0.12, 0.28, 0.26, 0.28))
 	c.draw_circle(Vector2(16.2 * t, 15.8 * t), 10.0, Color(0.12, 0.26, 0.24, 0.22))
@@ -501,6 +588,18 @@ func _landmark_railcut(c: CanvasItem) -> void:
 	# Extra rail steel on the two corridors (ties are in floor tiles).
 	c.draw_rect(Rect2(12 * t, 5 * t + 10, 3 * t, 4), Color(0.42, 0.42, 0.38, 0.28))
 	c.draw_rect(Rect2(31 * t, 5 * t + 10, 3 * t, 4), Color(0.42, 0.42, 0.38, 0.28))
+	# Secondary signal mast on the west face of the core.
+	var mast := Vector2(16.2 * t, 8.2 * t)
+	c.draw_rect(Rect2(mast.x - 3, mast.y - 28, 6, 32), Color(0.14, 0.14, 0.12, 0.75))
+	c.draw_circle(mast + Vector2(0, -32), 5.0, Color(0.85, 0.22, 0.12, 0.8))
+	c.draw_circle(mast + Vector2(0, -24), 4.0, Color(0.18, 0.18, 0.12, 0.7))
+	# Cable run along the north face of the core.
+	c.draw_line(Vector2(15.2 * t, 7.25 * t), Vector2(28.4 * t, 7.35 * t), Color(0.12, 0.12, 0.10, 0.7), 2.2, true)
+	c.draw_line(Vector2(15.2 * t, 7.45 * t), Vector2(28.4 * t, 7.55 * t), Color(0.22, 0.18, 0.10, 0.4), 1.4, true)
+	# Crossing gate bar at the south mouth — overlay, not a collider.
+	c.draw_rect(Rect2(29.4 * t, 17.35 * t, 4.2 * t, 5.0), Color(0.72, 0.18, 0.12, 0.42))
+	c.draw_rect(Rect2(29.4 * t, 17.35 * t, 18.0, 5.0), Color(0.92, 0.82, 0.22, 0.45))
+	c.draw_rect(Rect2(31.6 * t, 16.6 * t, 5.0, 22.0), Color(0.16, 0.14, 0.10, 0.55))
 
 
 func _landmark_depot(c: CanvasItem) -> void:
@@ -519,6 +618,24 @@ func _landmark_depot(c: CanvasItem) -> void:
 		var y := 14.0 * t + 4.0
 		var col := Color(0.92, 0.62, 0.10, 0.55) if (i % 2) == 0 else Color(0.08, 0.07, 0.05, 0.55)
 		c.draw_rect(Rect2(x, y, 16.0, 8.0), col)
+	# Fuel pipe run from tanks toward the east wall (overlay on blocked core).
+	c.draw_rect(Rect2(22.2 * t, 10.7 * t, 6.0 * t, 7.0), Color(0.28, 0.14, 0.06, 0.55))
+	c.draw_rect(Rect2(22.2 * t, 10.85 * t, 6.0 * t, 3.0), Color(0.42, 0.22, 0.08, 0.35))
+	c.draw_circle(Vector2(28.0 * t, 10.95 * t), 6.0, Color(0.22, 0.12, 0.06, 0.6))
+	# Hazard cone row along the south connector, off the sneak alley.
+	for i in 6:
+		var cx := 16.5 * t + float(i) * 22.0
+		var cy := 15.55 * t
+		c.draw_colored_polygon(
+			PackedVector2Array([Vector2(cx, cy - 10), Vector2(cx + 7, cy + 6), Vector2(cx - 7, cy + 6)]),
+			Color(0.92, 0.48, 0.10, 0.62)
+		)
+		c.draw_rect(Rect2(cx - 3, cy + 5, 6.0, 3.0), Color(0.12, 0.08, 0.04, 0.55))
+	# Chain-link shadow along the west alley wall (x=8-9 is blocked; sneak is x=7).
+	c.draw_rect(Rect2(8.15 * t, 7.2 * t, 6.0, 6.2 * t), Color(0.08, 0.10, 0.08, 0.28))
+	for i in 8:
+		var ly := 7.4 * t + float(i) * 22.0
+		c.draw_line(Vector2(8.2 * t, ly), Vector2(8.55 * t, ly + 14.0), Color(0.42, 0.48, 0.40, 0.22), 1.0)
 
 
 func _frac(n: int) -> float:

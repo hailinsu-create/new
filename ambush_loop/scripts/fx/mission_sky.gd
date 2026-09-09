@@ -60,8 +60,17 @@ func _map_size() -> Vector2:
 	return Vector2(AmbushGrid.COLS * AmbushGrid.TILE, AmbushGrid.ROWS * AmbushGrid.TILE)
 
 
+func _draw_top_haze(col: Color, rows: int = 6) -> void:
+	var sz := _map_size()
+	var n := mini(rows, 3) if _is_power_saving() else rows
+	for i in n:
+		var a := col.a * (0.55 - float(i) * 0.07)
+		draw_rect(Rect2(0.0, float(i) * 18.0, sz.x, 22.0), Color(col.r, col.g, col.b, maxf(a, 0.02)))
+
+
 func _draw_yard() -> void:
 	var sz := _map_size()
+	_draw_top_haze(Color(0.55, 0.68, 0.52, 0.10), 5)
 	# Open courtyard: cool moon wash from the NE, never purple.
 	var moon := Vector2(sz.x * 0.82, 58.0)
 	var breathe := 0.5 + 0.5 * sin(_t * 0.55)
@@ -79,17 +88,20 @@ func _draw_yard() -> void:
 
 func _draw_warehouse() -> void:
 	var sz := _map_size()
+	_draw_top_haze(Color(0.62, 0.40, 0.08, 0.14), 6)
 	# Cold sodium canopy — horizontal bands, not a purple night.
 	var pulse := 0.5 + 0.5 * sin(_t * 1.15)
-	draw_rect(Rect2(0.0, 0.0, sz.x, 90.0), Color(0.55, 0.38, 0.08, 0.10 + 0.03 * pulse))
+	draw_rect(Rect2(0.0, 0.0, sz.x, 110.0), Color(0.62, 0.40, 0.08, 0.14 + 0.04 * pulse))
 	var lamps := [
 		Vector2(13.5 * AmbushGrid.TILE, 5.4 * AmbushGrid.TILE),
 		Vector2(24.5 * AmbushGrid.TILE, 5.4 * AmbushGrid.TILE),
 		Vector2(32.5 * AmbushGrid.TILE, 8.5 * AmbushGrid.TILE),
 	]
 	for p in lamps:
-		draw_circle(p, 36.0, Color(0.95, 0.62, 0.12, 0.10 + 0.04 * pulse))
-		draw_circle(p, 10.0, Color(1.0, 0.82, 0.28, 0.28 + 0.08 * pulse))
+		# Sodium pool on the floor under each lamp.
+		draw_circle(p + Vector2(0, 36), 52.0, Color(0.95, 0.58, 0.10, 0.10 + 0.04 * pulse))
+		draw_circle(p, 42.0, Color(0.95, 0.62, 0.12, 0.14 + 0.05 * pulse))
+		draw_circle(p, 12.0, Color(1.0, 0.82, 0.28, 0.34 + 0.10 * pulse))
 	# Oil-sheen glints along the south lane (cached sheen is static; this is the wet flicker).
 	if not _is_power_saving():
 		for i in 6:
@@ -100,6 +112,7 @@ func _draw_warehouse() -> void:
 
 func _draw_pump() -> void:
 	var sz := _map_size()
+	_draw_top_haze(Color(0.10, 0.32, 0.28, 0.12), 5)
 	draw_rect(Rect2(0.0, 0.0, sz.x, 70.0), Color(0.10, 0.28, 0.24, 0.10))
 	# Humming vent stripes over the machinery block.
 	var origin := Vector2(17.5 * AmbushGrid.TILE, 11.0 * AmbushGrid.TILE)
@@ -111,6 +124,13 @@ func _draw_pump() -> void:
 			Rect2(origin.x - 40.0, y, 88.0, 2.5),
 			Color(0.35, 0.92, 0.72, 0.08 + 0.04 * sin(_t * 4.0 + float(i)))
 		)
+	# Steam wisps — standard tier only; 省电 keeps static vents.
+	if not _is_power_saving():
+		for i in 4:
+			var wx := origin.x - 18.0 + float(i) * 16.0 + sin(_t * 1.4 + float(i)) * 6.0
+			var wy := origin.y - 28.0 - fmod(_t * 18.0 + float(i) * 11.0, 36.0)
+			var wa := 0.10 + 0.06 * sin(_t * 2.2 + float(i))
+			draw_circle(Vector2(wx, wy), 7.0 + float(i % 2) * 3.0, Color(0.72, 0.92, 0.82, wa))
 	# Puddle speculars on the south approach.
 	var puddle := Vector2(13.5 * AmbushGrid.TILE, 15.5 * AmbushGrid.TILE)
 	var shine := 0.08 + 0.05 * (0.5 + 0.5 * sin(_t * 2.4))
@@ -119,6 +139,7 @@ func _draw_pump() -> void:
 
 
 func _draw_railcut() -> void:
+	_draw_top_haze(Color(0.42, 0.52, 0.62, 0.10), 5)
 	# Signal tower beacon — rotating cone from the core block. Overlay only.
 	var tower := Vector2(21.5 * AmbushGrid.TILE, 10.5 * AmbushGrid.TILE)
 	var ang := _t * 0.85
@@ -142,14 +163,17 @@ func _draw_railcut() -> void:
 
 func _draw_depot() -> void:
 	var sz := _map_size()
+	_draw_top_haze(Color(0.55, 0.24, 0.06, 0.16), 7)
 	# Diesel haze along the top of the yard.
 	var haze_n := 4 if _is_power_saving() else 8
 	for i in haze_n:
-		var a := 0.05 + float(i) * 0.012
-		draw_rect(Rect2(0.0, float(i) * 16.0, sz.x, 18.0), Color(0.42, 0.22, 0.08, a))
+		var a := 0.06 + float(i) * 0.014
+		draw_rect(Rect2(0.0, float(i) * 16.0, sz.x, 18.0), Color(0.48, 0.22, 0.06, a))
 	var pulse := 0.5 + 0.5 * sin(_t * 0.9)
-	draw_rect(Rect2(0.0, 0.0, sz.x, 48.0), Color(0.55, 0.28, 0.08, 0.06 + 0.03 * pulse))
+	draw_rect(Rect2(0.0, 0.0, sz.x, 56.0), Color(0.62, 0.28, 0.06, 0.08 + 0.04 * pulse))
+	# Orange underglow along the south tanks / hazard row.
+	draw_rect(Rect2(14.0 * AmbushGrid.TILE, 13.5 * AmbushGrid.TILE, 12.0 * AmbushGrid.TILE, 70.0), Color(0.95, 0.38, 0.08, 0.07 + 0.03 * pulse))
 	# Warm tank glow over the mid-map silhouettes (cached tanks stay put).
 	var tank := Vector2(19.0 * AmbushGrid.TILE, 11.0 * AmbushGrid.TILE)
-	draw_circle(tank, 54.0, Color(0.95, 0.42, 0.10, 0.07 + 0.03 * pulse))
-	draw_circle(tank + Vector2(70, -8), 40.0, Color(0.90, 0.38, 0.10, 0.05 + 0.02 * pulse))
+	draw_circle(tank, 62.0, Color(0.95, 0.42, 0.10, 0.10 + 0.04 * pulse))
+	draw_circle(tank + Vector2(70, -8), 48.0, Color(0.90, 0.38, 0.10, 0.07 + 0.03 * pulse))

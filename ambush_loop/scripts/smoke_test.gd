@@ -53,6 +53,8 @@ func _run() -> void:
 		return
 	if not _assert_readability(main):
 		return
+	if not _assert_props(main):
+		return
 	print("LEVEL=", main.level.level_id)
 
 	# Life 1: only one cover — expect flank escape
@@ -1424,6 +1426,55 @@ func _assert_readability(main) -> bool:
 		quit(50)
 		return false
 	print("SMOKE_OK_READABILITY outlines=3 legend_chips=", main.route_legend.get_child_count())
+	return true
+
+
+func _assert_props(main) -> bool:
+	if main.map_draw == null:
+		push_error("SMOKE_PROPS_NO_MAP")
+		quit(51)
+		return false
+	var md = main.map_draw
+	for m in ["_landmark_yard", "_landmark_warehouse", "_landmark_pump", "_landmark_railcut", "_landmark_depot"]:
+		if not md.has_method(m):
+			push_error("SMOKE_PROPS_MISSING %s" % m)
+			quit(51)
+			return false
+	if not md.has_method("_cache_signature") or not md.has_method("_draw_layout_decal"):
+		push_error("SMOKE_PROPS_CACHE_OR_DECAL")
+		quit(51)
+		return false
+	var sig := str(md._cache_signature())
+	if sig.find("yard") < 0:
+		push_error("SMOKE_PROPS_SIG_LAYOUT %s" % sig)
+		quit(51)
+		return false
+	var src := FileAccess.get_file_as_string("res://scripts/map_draw.gd")
+	for token in [
+		"Clothesline", "Bicycle wreck", "Gate shadow",
+		"Forklift", "pallet", "Loading dock",
+		"Warning triangle", "Valve wheels",
+		"signal mast", "Cable run", "Crossing gate",
+		"Fuel pipe", "Hazard cone", "Chain-link",
+	]:
+		if src.find(token) < 0:
+			push_error("SMOKE_PROPS_TOKEN %s" % token)
+			quit(51)
+			return false
+	if src.find("layout_id") < 0 or src.find("atmosphere_id") < 0:
+		push_error("SMOKE_PROPS_CACHE_KEYS")
+		quit(51)
+		return false
+	var sky_src := FileAccess.get_file_as_string("res://scripts/fx/mission_sky.gd")
+	if sky_src.find("Steam wisps") < 0 or sky_src.find("sodium") < 0 or sky_src.find("underglow") < 0:
+		push_error("SMOKE_PROPS_SKY")
+		quit(51)
+		return false
+	if md.z_index > 1:
+		push_error("SMOKE_PROPS_Z %s" % md.z_index)
+		quit(51)
+		return false
+	print("SMOKE_OK_PROPS landmarks=5 sig=", sig)
 	return true
 
 
