@@ -184,3 +184,7 @@ func _on_gui(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		picked.emit(idx)
 		accept_event()
+		return
+	if event is InputEventScreenTouch and event.pressed:
+		picked.emit(idx)
+		accept_event()

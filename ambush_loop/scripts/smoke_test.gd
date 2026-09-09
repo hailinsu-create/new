@@ -45,6 +45,8 @@ func _run() -> void:
 		return
 	if not _assert_tripwire_tooling(main):
 		return
+	if not _assert_touch_parity(main):
+		return
 	print("LEVEL=", main.level.level_id)
 
 	# Life 1: only one cover — expect flank escape
@@ -880,6 +882,86 @@ func _assert_tripwire_tooling(main) -> bool:
 	return true
 
 
+func _assert_touch_parity(main) -> bool:
+	if not ResourceLoader.exists("res://scripts/touch_hud.gd"):
+		push_error("SMOKE_NO_TOUCH_HUD_SCRIPT")
+		quit(44)
+		return false
+	if main.get_node_or_null("TouchHud") == null:
+		push_error("SMOKE_NO_TOUCH_HUD")
+		quit(44)
+		return false
+	if not main.has_method("apply_touch_command") or not main.has_method("handle_android_back"):
+		push_error("SMOKE_NO_TOUCH_API")
+		quit(44)
+		return false
+	var proj := FileAccess.get_file_as_string("res://project.godot")
+	if proj.find("quit_on_go_back=false") < 0 or proj.find("gl_compatibility") < 0:
+		push_error("SMOKE_ANDROID_PROJECT_FLAGS")
+		quit(44)
+		return false
+	var gs = root.get_node_or_null("GameSettings")
+	if gs == null:
+		push_error("SMOKE_NO_GS_TOUCH")
+		quit(44)
+		return false
+	gs.force_touch_hud = true
+	main._ensure_touch_hud()
+	if main.touch_hud == null or not main.touch_hud.visible:
+		push_error("SMOKE_TOUCH_HUD_HIDDEN")
+		quit(44)
+		return false
+	main.handle_android_back()
+	if main.pause_overlay == null or not main.pause_overlay.is_open():
+		push_error("SMOKE_ANDROID_BACK_NO_MENU")
+		quit(44)
+		return false
+	main.handle_android_back()
+	if main.pause_overlay.is_open():
+		push_error("SMOKE_ANDROID_BACK_STUCK")
+		quit(44)
+		return false
+	main._select_op(0)
+	main._deploy_selected_to(main.cover_slots[0], false)
+	var f0: float = float(main.selected.facing_deg)
+	main.apply_touch_command("rotate_cw")
+	if is_equal_approx(float(main.selected.facing_deg), f0):
+		push_error("SMOKE_TOUCH_ROTATE_NOOP f=%s" % main.selected.facing_deg)
+		quit(44)
+		return false
+	var mode0 = main.selected.fire_mode
+	main.apply_touch_command("fire")
+	if main.selected.fire_mode == mode0:
+		push_error("SMOKE_TOUCH_FIRE_NOOP")
+		quit(44)
+		return false
+	var xf: Transform2D = main.get_viewport().get_canvas_transform()
+	var slot_pos: Vector2 = main.cover_slots[1].global_position
+	var ev := InputEventScreenTouch.new()
+	ev.index = 0
+	ev.pressed = true
+	ev.position = xf * slot_pos
+	main._unhandled_input(ev)
+	if main.selected == null or main.selected.slot != main.cover_slots[1]:
+		push_error("SMOKE_TOUCH_DEPLOY_FAIL pos=%s screen=%s" % [slot_pos, ev.position])
+		quit(44)
+		return false
+	var ev2 := InputEventScreenTouch.new()
+	ev2.index = 0
+	ev2.pressed = false
+	ev2.position = ev.position
+	main._unhandled_input(ev2)
+	main.apply_touch_command("clear")
+	if main._deployed_count() != 0:
+		push_error("SMOKE_TOUCH_CLEAR_FAIL n=%s" % main._deployed_count())
+		quit(44)
+		return false
+	gs.force_touch_hud = false
+	main._ensure_touch_hud()
+	print("SMOKE_OK_TOUCH_PARITY")
+	return true
+
+
 func _wipe_save() -> void:
 	if FileAccess.file_exists(SAVE_PATH):
 		DirAccess.remove_absolute(SAVE_PATH)
@@ -894,6 +976,15 @@ func _wipe_save() -> void:
 func _assert_launch_bar() -> bool:
 	if not ResourceLoader.exists("res://scenes/title.tscn"):
 		push_error("SMOKE_NO_TITLE_SCENE")
+		quit(42)
+		return false
+	if not FileAccess.file_exists("res://export_presets.cfg"):
+		push_error("SMOKE_NO_EXPORT_PRESETS")
+		quit(42)
+		return false
+	var presets := FileAccess.get_file_as_string("res://export_presets.cfg")
+	if presets.find("platform=\"Android\"") < 0 or presets.find("com.ambushloop.game") < 0:
+		push_error("SMOKE_NO_ANDROID_PRESET")
 		quit(42)
 		return false
 	var packed = load("res://scenes/title.tscn")
@@ -980,5 +1071,5 @@ func _assert_launch_bar() -> bool:
 	inst.free()
 	# Keep tutorial modal off so SETUP input/API matches the slice gate.
 	gs.seen_tutorial = true
-	print("SMOKE_OK_LAUNCH_BAR title+GameSettings+AudioDirector+missions")
+	print("SMOKE_OK_LAUNCH_BAR title+GameSettings+AudioDirector+missions+android_preset")
 	return true

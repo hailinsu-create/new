@@ -15,6 +15,43 @@ var sfx_volume: float = 1.0
 var seen_tutorial: bool = false
 var seen_level_tutorials: Dictionary = {} # level_id -> bool
 var pending_level_id: String = ""
+## Desktop override so smoke / playtest can force the phone command bar.
+var force_touch_hud: bool = false
+
+
+func want_touch_controls() -> bool:
+	if force_touch_hud:
+		return true
+	if OS.has_feature("android") or OS.has_feature("mobile"):
+		return true
+	return DisplayServer.is_touchscreen_available()
+
+
+func is_handheld() -> bool:
+	return OS.has_feature("android") or OS.has_feature("mobile")
+
+
+func set_force_touch_hud(on: bool) -> void:
+	force_touch_hud = on
+	save_settings()
+	changed.emit()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		var scene := get_tree().current_scene if get_tree() else null
+		if scene != null and scene.has_method("handle_android_back"):
+			scene.handle_android_back()
+		elif get_tree():
+			get_tree().quit()
+	elif what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		var scene_out := get_tree().current_scene if get_tree() else null
+		if scene_out != null and scene_out.has_method("handle_app_focus_out"):
+			scene_out.handle_app_focus_out()
+	elif what == NOTIFICATION_APPLICATION_FOCUS_IN:
+		var scene_in := get_tree().current_scene if get_tree() else null
+		if scene_in != null and scene_in.has_method("handle_app_focus_in"):
+			scene_in.handle_app_focus_in()
 
 
 func _ready() -> void:
@@ -36,6 +73,7 @@ func load_settings() -> void:
 		# Old single master slider: copy onto both buses.
 		music_volume = master_volume
 		sfx_volume = master_volume
+	force_touch_hud = bool(cfg.get_value("input", "force_touch_hud", false))
 	seen_tutorial = bool(cfg.get_value("onboarding", "seen_tutorial", false))
 	seen_level_tutorials.clear()
 	for id in LEVEL_ORDER:
@@ -49,6 +87,7 @@ func save_settings() -> void:
 	cfg.set_value("audio", "master_volume", clampf((music_volume + sfx_volume) * 0.5, 0.0, 1.0))
 	cfg.set_value("audio", "music_volume", music_volume)
 	cfg.set_value("audio", "sfx_volume", sfx_volume)
+	cfg.set_value("input", "force_touch_hud", force_touch_hud)
 	cfg.set_value("onboarding", "seen_tutorial", seen_tutorial)
 	for id in LEVEL_ORDER:
 		if seen_level_tutorials.has(id):
@@ -64,6 +103,7 @@ func reset_to_defaults() -> void:
 	seen_tutorial = false
 	seen_level_tutorials.clear()
 	pending_level_id = ""
+	force_touch_hud = false
 	apply_audio()
 
 

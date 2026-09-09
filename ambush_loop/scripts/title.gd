@@ -4,6 +4,9 @@ extends Control
 
 const HOWTO := """布置杀局，警报锁死，只能观看。失败穿梭并带回情报。
 
+【手机】点左侧作战卡选人 → 点掩体部署 → 底栏 ↺↻ 或拖队员调射界 → 点「警报」锁死。
+返回键打开菜单，不直接退出。中止 / 暂停 / 倍速 / 弹包 / 绊索 / 门锁都在底栏。清空记忆在设置里点两次。
+
 键 / 操作              作用
 1 / 2 / 3 或左侧卡片    选步枪手 / 机枪手 / 侦察兵
 左键点掩体              部署选中队员（青弧=保护方向）
@@ -19,8 +22,8 @@ P                       观看暂停
 X                       中止尝试，保留目前情报（算失败）
 时间轴复盘 / ← →        只读回放，点击事件定位
 M                       静音（音乐+音效一起关；设置里可分轨调音量）
-R                       清空记忆并重新布置
-Esc                     标题：退出确认；战场：作战设置
+R                       清空记忆并重新布置（手机：设置里确认）
+Esc / 返回键            标题：退出确认；战场：作战设置
 退出                    退出确认（进度留在本地）
 
 硬规则：警报后不能微操；敌人走作者路线；逃逸或全灭都算失败。"""
@@ -64,6 +67,9 @@ func _ready() -> void:
 	pause_ui.return_to_title.connect(func() -> void: pause_ui.dismiss())
 	_play_intro()
 	_refresh_continue()
+	continue_btn.custom_minimum_size = Vector2(300, 48)
+	help_btn.custom_minimum_size = Vector2(300, 48)
+	quit_btn.custom_minimum_size = Vector2(300, 48)
 
 
 func mission_row_count() -> int:
@@ -114,6 +120,10 @@ func _play_intro() -> void:
 	pulse.parallel().tween_property(start_btn, "scale", Vector2.ONE, 0.72)
 
 
+func handle_android_back() -> void:
+	_on_back()
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.physical_keycode == KEY_M:
@@ -123,19 +133,23 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 		if event.physical_keycode == KEY_ESCAPE:
-			if _quit != null and _quit.visible:
-				_quit.visible = false
-			elif _brief != null and _brief.visible:
-				_brief.visible = false
-			elif _howto != null and _howto.visible:
-				_howto.visible = false
-			elif _mission != null and _mission.visible:
-				_mission.visible = false
-			elif pause_ui != null and pause_ui.is_open():
-				pause_ui.dismiss()
-			else:
-				_show_quit_confirm()
+			_on_back()
 			get_viewport().set_input_as_handled()
+
+
+func _on_back() -> void:
+	if _quit != null and _quit.visible:
+		_quit.visible = false
+	elif _brief != null and _brief.visible:
+		_brief.visible = false
+	elif _howto != null and _howto.visible:
+		_howto.visible = false
+	elif _mission != null and _mission.visible:
+		_mission.visible = false
+	elif pause_ui != null and pause_ui.is_open():
+		pause_ui.dismiss()
+	else:
+		_show_quit_confirm()
 
 
 func _on_start() -> void:

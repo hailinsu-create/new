@@ -5,7 +5,7 @@ Godot 4.7.2 vertical slice — Commandos-style ambush prep + time-loop intel.
 Blueprint: `docs/Ambush_Loop_开发蓝图.md`  
 Launch criteria: `docs/LAUNCH_BAR.md`  
 Completeness: `docs/COMMANDOS_COMPLETE.md`  
-Roadmap: `docs/开发规划.md`
+Roadmap: `docs/开发规划.md`（**首发目标：安卓 APK 侧载**）
 
 ## Install Godot 4.7.2
 
@@ -27,17 +27,18 @@ The editor **Main Scene** is `scenes/title.tscn`. Smoke bypasses the title and l
 
 Reference wins: yard slots 1,2,5 facings 90/180/180; warehouse 1,3,5; pump 1,4,5 (open and locked door); railcut 1,4,5 facings 270/270/180.
 
-## Export (Linux + Windows)
+## Export (Linux + Windows + Android)
 
-Presets live in `ambush_loop/export_presets.cfg` (Linux Desktop, Windows Desktop, embed PCK, x86_64). CI does **not** build them; export locally.
+Desktop presets: `ambush_loop/export_presets.cfg` (Linux / Windows / **Android APK**). Phone play: see `docs/ANDROID.md`. Touch HUD appears on Android or when 设置 → 触控底栏.
 
 1. Install Godot **export templates** matching 4.7.2: Editor → Manage Export Templates → Download.
 2. Open the project: `godot --editor --path ambush_loop`
 3. Project → Export.
-4. **Linux Desktop** → Export Project → `build/linux/AmbushLoop.x86_64`
-5. **Windows Desktop** → Export Project → `build/windows/AmbushLoop.exe`
+4. **Linux Desktop** → `build/linux/AmbushLoop.x86_64`
+5. **Windows Desktop** → `build/windows/AmbushLoop.exe`
+6. **Android** preset **Android APK**: JDK 17 + Android SDK + matching **Android export templates**. Export → `build/android/AmbushLoop.apk` (arm64, minSdk 24, sideload). Play AAB is later (Gradle + release keystore). This cloud VM usually cannot emit a signed APK.
 
-`build/` is gitignored. You do not need export templates to *play* from the editor.
+`build/` is gitignored. You do not need export templates to *play* from the editor. This cloud VM often cannot produce a signed APK; export on a machine with the Android SDK.
 
 ## Controls
 
@@ -48,7 +49,7 @@ Presets live in `ambush_loop/export_presets.cfg` (Linux Desktop, Windows Desktop
 | 1 / 2 / 3 or left operator cards | Select 步枪手 / 机枪手 / 侦察兵 |
 | LMB cover | Deploy selected operator (cyan arc = cover protect direction) |
 | Hover cover | Preview that slot's protect arc |
-| A/D or RMB | Facing (fire cone is LOS-clipped by walls) |
+| A/D or RMB / phone ↺↻ or drag | Facing (fire cone is LOS-clipped by walls) |
 | F | Fire mode (见敌即打 / 入伏再打) |
 | G | Assign ammo pack (仓道 / 泵站 / 信号楼, one operator) |
 | B | Toggle door lock (level 3; switches flank to authored alternate route) |

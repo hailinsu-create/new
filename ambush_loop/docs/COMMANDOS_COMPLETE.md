@@ -17,7 +17,7 @@ top-down Godot vertical slice, not a Commandos clone.
 - **Watch-only speed:** 1× / 2× must match tick + event fingerprint (smoke).
 - **Procedural audio:** short pooled WAV beeps on the **SFX** bus; looping WAV drone on **Music**. Mute with **M** (Master, both buses). Pause overlay has Music / SFX sliders. WATCHING ducks the bed slightly. No `AudioStreamGenerator`. No external audio assets.
 - **Title / settings / onboarding:** night-ops title, **mission select** (lock / 首通), briefing, Esc quit confirm on title, in-game Esc settings, first-run 3-step yard tutorial, left operator cards with role glyphs, win debrief, campaign credits.
-- **Export presets:** Linux + Windows desktop in `export_presets.cfg` (manual export; see README).
+- **Export presets:** Linux + Windows desktop + **Android APK** (`com.ambushloop.game`, arm64, minSdk 24). Touch HUD + Android back. Sideload APK still needs local export templates (see `docs/ANDROID.md`).
 
 ## Deferred (not this slice)
 
@@ -31,7 +31,7 @@ top-down Godot vertical slice, not a Commandos clone.
 | Real audio mix / VO / soundtrack | Quiet drone + beeps; Dummy driver in headless |
 
 Launch-bar checklist: `docs/LAUNCH_BAR.md`.  
-Post-launch roadmap: `docs/开发规划.md`.
+Post-launch roadmap: `docs/开发规划.md`（v3：安卓 APK 首发）。
 
 ## Smoke gates that must stay green
 

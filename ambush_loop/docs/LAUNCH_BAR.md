@@ -33,7 +33,7 @@ Average similar-game launch: title that lists missions, keyboard legend, quit co
 | D11 | Left operator cards: name/role **glyph**, ammo, HP, fire mode, slot or 未部署; click select; highlight; matching glyph on the map | Done |
 | D12 | **Art/anim pass (procedural):** cooler night asphalt + noise/scrap, brick/crate walls with N/W rim light, breathing lime-gold escape, crate/sandbag pads, dashed ambush-zone edge; friend triangles + weapon stubs vs enemy diamond/chevron | Done |
 | D13 | Fail panels stay docked off the escape mouth; **win debrief** (loops used, 终局摘要, last 5 events, 下一关 / 返回标题) before advance; campaign win → credits; **briefing/result fade-in** | Done |
-| E14 | `export_presets.cfg` Linux + Windows Desktop (Godot 4.7), embed PCK | Done |
+| E14 | `export_presets.cfg` Linux + Windows Desktop + **Android APK** (arm64, minSdk 24). Touch HUD + 返回键 + mobile GL Compatibility | Done (sideload APK still needs local templates/SDK) |
 | E15 | README: Godot 4.7.2, run, export, controls, content | Done |
 | F17 | Smoke still `change_scene_to_file(main.tscn)`, `SMOKE_SLICE_COMPLETE` exit 0 | Done |
 | F18 | Smoke asserts title scene + GameSettings autoload | Done |
@@ -51,7 +51,7 @@ These are the honest blockers to a *strong* similar-game store page:
 | Real music mix / VO | Quiet procedural drone + beeps; Dummy driver in headless |
 | Fog of war / hidden enemies | Scout ring is SETUP-only on purpose |
 | Human playtest + balance pass | Smoke is the regression gate; Phase A teaching copy only |
-| Steam page, achievements, cloud saves, controller | Export presets exist; no store integration |
+| Steam / Play / sideload APK | Android **preset + touch HUD** in-repo. Sideload still needs Godot Android templates + SDK on the exporter machine. Play AAB later. |
 | Localization beyond ZH UI + EN README | Copy is Chinese-first, not a loc pipeline |
 | Mid-mission Commandos verbs | Climb, knife, distract, vehicles, multi-floor — out of design |
 | CI export artifacts | Templates + signing not in this environment |

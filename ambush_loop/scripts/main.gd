@@ -13,6 +13,7 @@ const PROGRESS_PATH := "user://ambush_loop.cfg"
 const LEVEL_ORDER := ["yard", "warehouse", "pump", "railcut"]
 const SfxBusScript := preload("res://scripts/sfx/sfx_bus.gd")
 const AmbushZoneFxScript := preload("res://scripts/fx/ambush_zone_fx.gd")
+const TouchHudScript := preload("res://scripts/touch_hud.gd")
 
 var grid: AmbushGrid = AmbushGrid.new()
 var phase: Phase = Phase.SETUP
@@ -118,6 +119,21 @@ var _tone_wash: ColorRect = null
 var _rim_tween: Tween = null
 var _tone_tween: Tween = null
 var _result_fade_tween: Tween = null
+var touch_hud: CanvasLayer = null
+var settings_button: Button = null
+var extra_bar: HBoxContainer = null
+var _event_log_open: bool = true
+var _cam_pan: Vector2 = Vector2.ZERO
+var _cam_zoom: float = 1.0
+var _cam_punch: Vector2 = Vector2.ZERO
+var _touches: Dictionary = {}
+var _facing_touch: int = -1
+var _pinch_start_dist: float = 0.0
+var _pinch_start_zoom: float = 1.0
+var _pinch_start_mid: Vector2 = Vector2.ZERO
+var _focus_paused_watch: bool = false
+var _touch_ate_click: bool = false
+var _phone_log_inited: bool = false
 
 
 func _ready() -> void:
@@ -141,6 +157,7 @@ func _ready() -> void:
 	tool_button.text = "工具: 部署队员"
 	_bind_settings()
 	_ensure_presentation_fx()
+	_ensure_touch_hud()
 	_load_level(_resolve_start_level(), false, false)
 
 
@@ -179,8 +196,11 @@ func _resolve_optional_hud() -> void:
 	if door_button == null:
 		door_button = _make_hud_btn("DoorButton", "门: 畅通 (B)", extra)
 
+	extra_bar = extra
 	mute_button = _make_hud_btn("MuteButton", "音效 M", extra)
 	mute_button.pressed.connect(_toggle_mute)
+	settings_button = _make_hud_btn("SettingsButton", "菜单 Esc", extra)
+	settings_button.pressed.connect(_toggle_pause_menu)
 
 	speed_button.pressed.connect(_on_speed_pressed)
 	pause_button.pressed.connect(_on_pause_pressed)
@@ -328,6 +348,10 @@ func _build_modals() -> void:
 	pause_overlay.closed.connect(_on_pause_overlay_closed)
 	pause_overlay.return_to_title.connect(_return_to_title)
 	pause_overlay.redeploy_requested.connect(_on_redeploy_from_menu)
+	if pause_overlay.has_signal("memory_wipe_requested"):
+		pause_overlay.memory_wipe_requested.connect(_on_memory_wipe_from_menu)
+	if pause_overlay.has_signal("touch_hud_toggled"):
+		pause_overlay.touch_hud_toggled.connect(_ensure_touch_hud)
 	tutorial_overlay = TutorialOverlay.new()
 	add_child(tutorial_overlay)
 	tutorial_overlay.dismissed.connect(_on_tutorial_dismissed)
@@ -352,6 +376,7 @@ func _sync_settings() -> void:
 	if gs:
 		sfx_muted = bool(gs.muted)
 	_apply_mute_state()
+	_ensure_touch_hud()
 
 
 func _modal_blocks_input() -> bool:
@@ -444,9 +469,193 @@ func _make_hud_btn(p_name: String, text: String, parent: Control) -> Button:
 	var b := Button.new()
 	b.name = p_name
 	b.text = text
-	b.custom_minimum_size = Vector2(120, 32)
+	var touch := _want_touch()
+	b.custom_minimum_size = Vector2(128, 48) if touch else Vector2(120, 32)
 	parent.add_child(b)
 	return b
+
+
+func _want_touch() -> bool:
+	var gs = _gs()
+	if gs and gs.has_method("want_touch_controls"):
+		return bool(gs.want_touch_controls())
+	return OS.has_feature("android") or OS.has_feature("mobile")
+
+
+func _ensure_touch_hud() -> void:
+	if touch_hud == null or not is_instance_valid(touch_hud):
+		touch_hud = TouchHudScript.new()
+		touch_hud.name = "TouchHud"
+		add_child(touch_hud)
+		if touch_hud.has_method("bind_host"):
+			touch_hud.bind_host(self)
+	var on := _want_touch()
+	touch_hud.visible = on
+	_apply_phone_chrome(on)
+	_refresh_touch_hud()
+
+
+func _apply_phone_chrome(on: bool) -> void:
+	var bar: Control = get_node_or_null("HUD/Root/BottomBar") as Control
+	if bar:
+		bar.visible = not on
+	if extra_bar:
+		extra_bar.visible = not on
+	if help_label:
+		help_label.visible = not on
+	if event_log:
+		if on:
+			if not _phone_log_inited:
+				_event_log_open = false
+				_phone_log_inited = true
+			event_log.visible = _event_log_open
+		else:
+			event_log.visible = true
+			_event_log_open = true
+			_phone_log_inited = false
+	var root: Control = get_node_or_null("HUD/Root") as Control
+	if root:
+		var pad := _safe_area_pad()
+		if on:
+			root.offset_left = pad.x
+			root.offset_top = pad.y
+			root.offset_right = -pad.z
+			root.offset_bottom = -pad.w - 150.0
+		else:
+			root.offset_left = 0.0
+			root.offset_top = 0.0
+			root.offset_right = 0.0
+			root.offset_bottom = 0.0
+	if role_box and on:
+		role_box.offset_bottom = 460.0
+	alarm_button.custom_minimum_size = Vector2(180, 48) if on else Vector2(180, 36)
+	clear_button.custom_minimum_size = Vector2(120, 48) if on else Vector2(120, 36)
+	tool_button.custom_minimum_size = Vector2(160, 48) if on else Vector2(160, 36)
+	for card in role_cards:
+		if card is Control:
+			(card as Control).custom_minimum_size = Vector2(210, 118) if on else Vector2(196, 108)
+
+
+func _safe_area_pad() -> Vector4:
+	var sa := DisplayServer.get_display_safe_area()
+	var wsz := DisplayServer.window_get_size()
+	if wsz.x <= 0 or wsz.y <= 0:
+		return Vector4(8, 8, 8, 8)
+	var vis := get_viewport().get_visible_rect().size
+	var left := sa.position.x * vis.x / float(wsz.x)
+	var top := sa.position.y * vis.y / float(wsz.y)
+	var right := (float(wsz.x) - sa.end.x) * vis.x / float(wsz.x)
+	var bottom := (float(wsz.y) - sa.end.y) * vis.y / float(wsz.y)
+	return Vector4(maxf(8.0, left), maxf(4.0, top), maxf(8.0, right), maxf(8.0, bottom))
+
+
+func _refresh_touch_hud() -> void:
+	if touch_hud == null or not touch_hud.has_method("refresh_phase"):
+		return
+	var phase_name := "SETUP"
+	match phase:
+		Phase.WATCHING:
+			phase_name = "WATCHING"
+		Phase.FAILED:
+			phase_name = "FAILED"
+		Phase.WON:
+			phase_name = "WON"
+		Phase.REPLAY:
+			phase_name = "REPLAY"
+		_:
+			phase_name = "SETUP"
+	var paused := phase == Phase.WATCHING and sim.paused
+	var hi := phase == Phase.WATCHING and sim.speed >= 1.5
+	touch_hud.refresh_phase(phase_name, paused, hi, sfx_muted, _event_log_open and event_log != null and event_log.visible)
+
+
+func _toggle_event_log() -> void:
+	_event_log_open = not _event_log_open
+	if event_log:
+		event_log.visible = _event_log_open
+	_refresh_touch_hud()
+
+
+func apply_touch_command(cmd: String) -> void:
+	if cmd == "settings":
+		_toggle_pause_menu()
+		_refresh_touch_hud()
+		return
+	if cmd == "mute":
+		_toggle_mute()
+		_refresh_touch_hud()
+		return
+	if cmd == "log":
+		_toggle_event_log()
+		return
+	if _modal_blocks_input():
+		return
+	match cmd:
+		"alarm":
+			if phase == Phase.REPLAY:
+				_exit_replay_to_setup()
+			else:
+				_on_alarm_pressed()
+		"abort":
+			_on_abort_pressed()
+		"pause":
+			_on_pause_pressed()
+		"speed":
+			_on_speed_pressed()
+		"fire":
+			_on_mode_pressed()
+		"pack":
+			_on_pack_pressed()
+		"trip":
+			_toggle_tool()
+		"door":
+			_on_door_pressed()
+		"clear":
+			_on_clear_pressed()
+		"rotate_cw":
+			if phase == Phase.SETUP and selected and selected.visible:
+				selected.rotate_by(15.0)
+				_announce_plan_edit()
+				_refresh_killzone_preview()
+		"rotate_ccw":
+			if phase == Phase.SETUP and selected and selected.visible:
+				selected.rotate_by(-15.0)
+				_announce_plan_edit()
+				_refresh_killzone_preview()
+	_update_hud()
+
+
+func handle_android_back() -> void:
+	if tutorial_overlay and tutorial_overlay.is_open():
+		return
+	if credits_overlay and credits_overlay.is_open():
+		_return_to_title()
+		return
+	_toggle_pause_menu()
+
+
+func handle_app_focus_out() -> void:
+	if phase == Phase.WATCHING and not sim.paused:
+		sim.paused = true
+		_focus_paused_watch = true
+		if pause_button:
+			pause_button.text = "继续"
+		_refresh_touch_hud()
+
+
+func handle_app_focus_in() -> void:
+	# Stay paused after a home-button; player taps 继续.
+	_refresh_touch_hud()
+
+
+func _on_memory_wipe_from_menu() -> void:
+	if pause_overlay:
+		pause_overlay.dismiss()
+	loop_index = 1
+	intel_paths.clear()
+	intel.clear()
+	last_plan.clear()
+	_start_setup(false, false)
 
 
 func _sfx(cue: String) -> void:
@@ -570,15 +779,37 @@ func _ensure_game_camera() -> void:
 	_game_cam.position = Vector2(640, 360)
 	_game_cam.enabled = true
 	add_child(_game_cam)
+	_apply_cam()
+
+
+func _apply_cam() -> void:
+	_ensure_game_camera()
+	_cam_zoom = clampf(_cam_zoom, 0.72, 1.65)
+	var max_pan := 220.0 * _cam_zoom
+	_cam_pan.x = clampf(_cam_pan.x, -max_pan, max_pan)
+	_cam_pan.y = clampf(_cam_pan.y, -max_pan, max_pan)
+	_game_cam.zoom = Vector2(_cam_zoom, _cam_zoom)
+	_game_cam.offset = _cam_pan + _cam_punch
+
+
+func _reset_cam_view() -> void:
+	_cam_pan = Vector2.ZERO
+	_cam_zoom = 1.0
+	_cam_punch = Vector2.ZERO
+	_apply_cam()
 
 
 func _camera_punch() -> void:
 	_ensure_game_camera()
 	if _punch_tween != null:
 		_punch_tween.kill()
-	_game_cam.offset = Vector2(2, -1)
+	_cam_punch = Vector2(2, -1)
+	_apply_cam()
 	_punch_tween = create_tween()
-	_punch_tween.tween_property(_game_cam, "offset", Vector2.ZERO, 0.14).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_punch_tween.tween_method(func(v: Vector2) -> void:
+		_cam_punch = v
+		_apply_cam()
+	, _cam_punch, Vector2.ZERO, 0.14).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
 
 func _ensure_presentation_fx() -> void:
@@ -1076,7 +1307,7 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 		_punch_tween.kill()
 		_punch_tween = null
 	if _game_cam != null:
-		_game_cam.offset = Vector2.ZERO
+		_reset_cam_view()
 	_reset_presentation_fx()
 	_update_event_log()
 	_update_hud()
@@ -1316,6 +1547,11 @@ func _toggle_tool() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and _touch_ate_click:
+		if not event.pressed:
+			_touch_ate_click = false
+		get_viewport().set_input_as_handled()
+		return
 	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_M:
 		_toggle_mute()
 		if pause_overlay and pause_overlay.is_open():
@@ -1331,6 +1567,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 		_toggle_pause_menu()
+		get_viewport().set_input_as_handled()
+		return
+	if _handle_touch_gestures(event):
 		get_viewport().set_input_as_handled()
 		return
 	if _modal_blocks_input():
@@ -1424,6 +1663,75 @@ func _unhandled_input(event: InputEvent) -> void:
 			_refresh_killzone_preview()
 		get_viewport().set_input_as_handled()
 		return
+
+
+func _screen_to_world(screen_pos: Vector2) -> Vector2:
+	return get_viewport().get_canvas_transform().affine_inverse() * screen_pos
+
+
+func _touch_span() -> Dictionary:
+	var keys: Array = _touches.keys()
+	if keys.size() < 2:
+		return {"dist": 0.0, "mid": Vector2.ZERO}
+	var a: Vector2 = _touches[keys[0]]
+	var b: Vector2 = _touches[keys[1]]
+	return {"dist": a.distance_to(b), "mid": (a + b) * 0.5}
+
+
+func _handle_touch_gestures(event: InputEvent) -> bool:
+	if event is InputEventMagnifyGesture:
+		_cam_zoom *= (event as InputEventMagnifyGesture).factor
+		_apply_cam()
+		return true
+	if event is InputEventScreenTouch:
+		var st := event as InputEventScreenTouch
+		if st.pressed:
+			_touches[st.index] = st.position
+			if _touches.size() >= 2:
+				_facing_touch = -1
+				var span: Dictionary = _touch_span()
+				_pinch_start_dist = float(span["dist"])
+				_pinch_start_zoom = _cam_zoom
+				_pinch_start_mid = span["mid"]
+				return true
+			if _modal_blocks_input():
+				return true
+			if phase == Phase.SETUP:
+				var world := _screen_to_world(st.position)
+				if selected and selected.visible and world.distance_to(selected.global_position) <= 44.0:
+					_facing_touch = st.index
+				_handle_setup_click(world)
+				_touch_ate_click = true
+			return true
+		_touches.erase(st.index)
+		if _facing_touch == st.index:
+			_facing_touch = -1
+		_pinch_start_dist = 0.0
+		return true
+	if event is InputEventScreenDrag:
+		var sd := event as InputEventScreenDrag
+		_touches[sd.index] = sd.position
+		if _touches.size() >= 2:
+			var span2: Dictionary = _touch_span()
+			var dist: float = float(span2["dist"])
+			if _pinch_start_dist > 8.0:
+				_cam_zoom = _pinch_start_zoom * (dist / _pinch_start_dist)
+			var mid: Vector2 = span2["mid"]
+			var mid_delta: Vector2 = mid - _pinch_start_mid
+			_pinch_start_mid = mid
+			_cam_pan -= mid_delta / maxf(_cam_zoom, 0.01)
+			_apply_cam()
+			return true
+		if phase == Phase.SETUP and sd.index == _facing_touch and selected and selected.visible and not selected.locked:
+			var world2 := _screen_to_world(sd.position)
+			var v := world2 - selected.global_position
+			if v.length() > 10.0:
+				selected.set_facing(rad_to_deg(atan2(v.y, v.x)))
+				_announce_plan_edit()
+				_refresh_killzone_preview()
+			return true
+		return false
+	return false
 
 
 func _select_op(idx: int) -> void:
@@ -2894,6 +3202,7 @@ func _update_hud() -> void:
 	if phase != Phase.SETUP:
 		_update_cover_previews()
 	_apply_watch_layers()
+	_refresh_touch_hud()
 
 
 func _update_cover_previews() -> void:
