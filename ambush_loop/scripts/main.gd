@@ -16,6 +16,7 @@ const SfxBusScript := preload("res://scripts/sfx/sfx_bus.gd")
 const AmbushZoneFxScript := preload("res://scripts/fx/ambush_zone_fx.gd")
 const MissionSkyScript := preload("res://scripts/fx/mission_sky.gd")
 const TouchHudScript := preload("res://scripts/touch_hud.gd")
+const IntelPathGhostScript := preload("res://scripts/fx/intel_path_ghost.gd")
 
 var grid: AmbushGrid = AmbushGrid.new()
 var phase: Phase = Phase.SETUP
@@ -130,6 +131,9 @@ var _menu_paused_sim: bool = false
 var _campaign_complete: bool = false
 var title_return_button: Button = null
 var result_headline: Label = null
+var _intel_ghost: Node2D = null
+var _intel_ghost_tween: Tween = null
+var _mission_had_escape: bool = false
 var _punch_tween: Tween = null
 var _game_cam: Camera2D = null
 var _rim_flash: Control = null
@@ -1168,6 +1172,8 @@ func _fade_result_panel() -> void:
 
 
 func _load_level(level_id: String, keep_intel: bool, restore_plan: bool) -> void:
+	_mission_had_escape = false
+	_clear_intel_path_ghost()
 	level = LevelDef.by_id(level_id)
 	var idx := LEVEL_ORDER.find(level.level_id)
 	if idx >= 0:
@@ -2658,6 +2664,7 @@ func _on_alarm_pressed() -> void:
 	run_id += 1
 	var this_run := run_id
 	phase = Phase.WATCHING
+	_clear_intel_path_ghost()
 	sim.reset()
 	battle_log.clear()
 	_watch_first_fire = false
@@ -3102,6 +3109,7 @@ func _on_enemy_escaped(enemy: EnemyRunner, path: PackedVector2Array) -> void:
 	for e in enemies:
 		e.active = false
 	_remember_path(path, "escape", hint, enemy.spawn_route)
+	_mission_had_escape = true
 	_flash("逃逸！%s" % hint, Color(1.0, 0.35, 0.25))
 	_sfx("escape")
 	_camera_punch()
@@ -3372,14 +3380,22 @@ func _show_win_result() -> void:
 	var shot := _first_shot_line()
 	if has_next:
 		_bind_result_headline("封锁成功")
-		result_label.text = "任务完成。\n本关用了 %d 世。\n%s\n%s\n\n—— 关键事件 ——\n%s" % [
-			loop_index, epitaph, shot, "\n".join(lines)
+		var next_id := str(LEVEL_ORDER[level_index + 1])
+		var unlock := "+解锁下一关 · 「%s」" % LevelDef.mood_tag(next_id)
+		var star := ""
+		if level and level.level_id == "yard" and not _mission_had_escape:
+			star = "\n★ 完美院子：零逃逸"
+		result_label.text = "任务完成。\n%s\n本关用了 %d 世。\n%s\n%s%s\n\n—— 关键事件 ——\n%s" % [
+			unlock, loop_index, epitaph, shot, star, "\n".join(lines)
 		]
 		continue_button.text = "下一关"
 	else:
 		_bind_result_headline("全部封锁")
-		result_label.text = "全部关卡封锁完成。\n本关用了 %d 世。\n%s\n%s\n\n—— 关键事件 ——\n%s" % [
-			loop_index, epitaph, shot, "\n".join(lines)
+		var last_star := ""
+		if level and level.level_id == "yard" and not _mission_had_escape:
+			last_star = "\n★ 完美院子：零逃逸"
+		result_label.text = "全部关卡封锁完成。\n本关用了 %d 世。\n%s\n%s%s\n\n—— 关键事件 ——\n%s" % [
+			loop_index, epitaph, shot, last_star, "\n".join(lines)
 		]
 		continue_button.text = "查看致谢"
 		_campaign_complete = true
@@ -3727,8 +3743,11 @@ func _on_continue_pressed() -> void:
 	if phase == Phase.FAILED:
 		var intel_line := intel.latest_line()
 		var leak := intel.latest_hint()
+		var was_escape := fail_reason == "escape"
 		loop_index += 1
 		_start_setup(true, true)
+		if was_escape:
+			_play_intel_path_ghost()
 		if leak != "":
 			intel_label.text = "情报已记录 · %s" % leak
 			var col := _intel_flash_color(intel.latest_route() if intel.has_method("latest_route") else "")
@@ -3748,6 +3767,49 @@ func _on_continue_pressed() -> void:
 			_show_credits()
 	elif phase == Phase.REPLAY:
 		_exit_replay_to_setup()
+
+
+func intel_path_ghost_active() -> bool:
+	return _intel_ghost != null and is_instance_valid(_intel_ghost)
+
+
+func _clear_intel_path_ghost() -> void:
+	if _intel_ghost_tween != null:
+		_intel_ghost_tween.kill()
+		_intel_ghost_tween = null
+	if _intel_ghost != null and is_instance_valid(_intel_ghost):
+		_intel_ghost.queue_free()
+	_intel_ghost = null
+
+
+func _play_intel_path_ghost() -> void:
+	## Snapshot dashed leaked path (intel color). Hold ~2s then fade. Presentation only.
+	_clear_intel_path_ghost()
+	if intel == null:
+		return
+	var recs: Array = intel.recent(1)
+	if recs.is_empty():
+		return
+	var path: PackedVector2Array = recs[0].get("path", PackedVector2Array())
+	if path.size() < 2:
+		return
+	var col := _intel_flash_color(str(recs[0].get("route", "")))
+	col.a = 0.92
+	var ghost: Node2D = IntelPathGhostScript.new()
+	ghost.name = "IntelPathGhost"
+	if ghost.has_method("setup"):
+		ghost.setup(path, col)
+	var world := get_node_or_null("World")
+	if world:
+		world.add_child(ghost)
+	else:
+		add_child(ghost)
+	_intel_ghost = ghost
+	ghost.modulate.a = 1.0
+	_intel_ghost_tween = ghost.create_tween()
+	_intel_ghost_tween.tween_interval(2.0)
+	_intel_ghost_tween.tween_property(ghost, "modulate:a", 0.0, 0.45)
+	_intel_ghost_tween.tween_callback(_clear_intel_path_ghost)
 
 
 func _redraw_ghosts() -> void:
@@ -4125,12 +4187,16 @@ func _refresh_route_legend() -> void:
 
 
 func _route_chip_label(route: String, base: String) -> String:
-	if level == null or not level.has_method("first_route_delay"):
-		return base
-	var delay := float(level.first_route_delay(route))
-	if delay >= 1.0:
-		return "%s %.1fs" % [base, delay]
-	return base
+	var lab := base
+	if level != null and level.has_method("first_route_delay"):
+		var delay := float(level.first_route_delay(route))
+		if delay >= 1.0:
+			lab = "%s %.1fs" % [base, delay]
+	if level != null and level.has_method("teaching_note_for"):
+		var note := str(level.teaching_note_for(route))
+		if note != "":
+			lab = "%s · %s" % [lab, note]
+	return lab
 
 
 func _fill_route_chips(chips: Array) -> void:

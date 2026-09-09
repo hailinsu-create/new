@@ -49,6 +49,17 @@ func first_route_delay(route: String) -> float:
 	return 0.0 if best == INF else best
 
 
+func teaching_note_for(route: String) -> String:
+	## First authored teaching_note on this route, if any. SETUP legend only.
+	for spec in spawn_schedule:
+		if str(spec.get("route", "")) != route:
+			continue
+		var note := str(spec.get("teaching_note", "")).strip_edges()
+		if note != "":
+			return note
+	return ""
+
+
 func route_spawn_marks() -> Array:
 	## Authored spawn ticks for the debrief strip. Does not invent routes.
 	var out: Array = []
@@ -121,7 +132,7 @@ static func make_yard() -> LevelDef:
 	l.spawn_schedule = [
 		{"id": 1, "route": "main", "delay": 0.0, "loot": 2},
 		{"id": 2, "route": "main", "delay": 0.8, "loot": 0},
-		{"id": 3, "route": "flank", "delay": 0.4, "loot": 2},
+		{"id": 3, "route": "flank", "delay": 0.4, "loot": 2, "teaching_note": "东廊绕出"},
 	]
 	l.ambush_zone = Rect2(320, 280, 400, 160)
 	l.has_ammo_pack = false
@@ -162,7 +173,7 @@ static func make_warehouse() -> LevelDef:
 	}
 	l.spawn_schedule = [
 		{"id": 1, "route": "main", "delay": 0.0, "loot": 1},
-		{"id": 2, "route": "flank", "delay": 0.5, "loot": 0},
+		{"id": 2, "route": "flank", "delay": 0.5, "loot": 0, "teaching_note": "别站爆心"},
 		{"id": 3, "route": "main", "delay": 1.2, "loot": 1},
 		{"id": 4, "route": "flank", "delay": 1.6, "loot": 0},
 	]
@@ -210,7 +221,7 @@ static func make_pump() -> LevelDef:
 	l.decision_cell = Vector2i(13, 5)
 	l.spawn_schedule = [
 		{"id": 1, "route": "main", "delay": 0.0, "loot": 1},
-		{"id": 2, "route": "flank", "delay": 0.6, "loot": 2},
+		{"id": 2, "route": "flank", "delay": 0.6, "loot": 2, "teaching_note": "锁门改线"},
 		{"id": 3, "route": "main", "delay": 1.0, "loot": 0},
 	]
 	l.ambush_zone = Rect2(300, 250, 420, 220)
@@ -253,7 +264,7 @@ static func make_railcut() -> LevelDef:
 	l.spawn_schedule = [
 		{"id": 1, "route": "main", "delay": 0.0, "loot": 1},
 		{"id": 2, "route": "main", "delay": 0.7, "loot": 0},
-		{"id": 3, "route": "flank", "delay": 3.8, "loot": 2, "ambush_window": 3.8},
+		{"id": 3, "route": "flank", "delay": 3.8, "loot": 2, "ambush_window": 3.8, "teaching_note": "晚到东廊"},
 		{"id": 4, "route": "flank", "delay": 4.6, "loot": 0, "ambush_window": 3.8},
 	]
 	l.ambush_zone = Rect2(280, 240, 500, 280)
@@ -298,7 +309,7 @@ static func make_depot() -> LevelDef:
 	l.spawn_schedule = [
 		{"id": 1, "route": "main", "delay": 0.0, "loot": 1},
 		{"id": 2, "route": "flank", "delay": 0.5, "loot": 0},
-		{"id": 3, "route": "sneak", "delay": 2.2, "loot": 2, "ambush_window": 2.2},
+		{"id": 3, "route": "sneak", "delay": 2.2, "loot": 2, "ambush_window": 2.2, "teaching_note": "西夹缝"},
 		{"id": 4, "route": "main", "delay": 0.9, "loot": 0},
 	]
 	l.ambush_zone = Rect2(260, 230, 520, 280)

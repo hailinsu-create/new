@@ -140,6 +140,11 @@ func _run() -> void:
 				quit(35)
 				return
 			print("SMOKE_OK_PLAN_RESTORE ", main.plan_restore_hint)
+			if not main.has_method("intel_path_ghost_active") or not bool(main.intel_path_ghost_active()):
+				push_error("SMOKE_NO_INTEL_GHOST")
+				quit(4)
+				return
+			print("SMOKE_OK_INTEL_GHOST")
 			# Same plan at 2× must match terminal tick + event fingerprint.
 			main._on_alarm_pressed()
 			main.sim.set_speed(2.0)
@@ -197,6 +202,14 @@ func _run() -> void:
 				return
 			if str(main.result_label.text).find("终局摘要") < 0:
 				push_error("SMOKE_DEBRIEF_SUMMARY")
+				quit(44)
+				return
+			if str(main.result_label.text).find("解锁下一关") < 0 or str(main.result_label.text).find("深仓") < 0:
+				push_error("SMOKE_DEBRIEF_UNLOCK %s" % main.result_label.text)
+				quit(44)
+				return
+			if str(main.result_label.text).find("完美院子") >= 0:
+				push_error("SMOKE_YARD_STAR_AFTER_ESCAPE")
 				quit(44)
 				return
 			var gs_win = root.get_node_or_null("GameSettings")
@@ -1710,6 +1723,22 @@ func _assert_teaching(main) -> bool:
 		push_error("SMOKE_NO_INTEL_COLOR")
 		quit(52)
 		return false
+	if not main.has_method("_play_intel_path_ghost"):
+		push_error("SMOKE_NO_INTEL_GHOST_API")
+		quit(52)
+		return false
+	for lid in ["yard", "warehouse", "pump", "railcut", "depot"]:
+		var def: LevelDef = LevelDef.by_id(lid)
+		var note := ""
+		if def.has_method("teaching_note_for"):
+			if lid == "depot":
+				note = str(def.teaching_note_for("sneak"))
+			else:
+				note = str(def.teaching_note_for("flank"))
+		if note == "":
+			push_error("SMOKE_NO_TEACHING_NOTE %s" % lid)
+			quit(52)
+			return false
 	var flank_c: Color = main._intel_flash_color("flank")
 	var sneak_c: Color = main._intel_flash_color("sneak")
 	var main_c: Color = main._intel_flash_color("main")
