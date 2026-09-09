@@ -212,6 +212,15 @@ func _run() -> void:
 				push_error("SMOKE_YARD_STAR_AFTER_ESCAPE")
 				quit(44)
 				return
+			if not main.has_method("result_stats_block_text") or str(main.result_stats_block_text()).strip_edges() == "":
+				push_error("SMOKE_NO_RESULT_STATS")
+				quit(54)
+				return
+			if str(main.result_stats_block_text()).find("世数") < 0 or str(main.result_stats_block_text()).find("用时") < 0:
+				push_error("SMOKE_RESULT_STATS_EMPTY %s" % main.result_stats_block_text())
+				quit(54)
+				return
+			print("SMOKE_OK_PRESENTATION stats=", main.result_stats_block_text().replace("\n", " | "))
 			var gs_win = root.get_node_or_null("GameSettings")
 			if gs_win == null or not gs_win.is_level_cleared("yard") or not gs_win.is_level_unlocked("warehouse"):
 				push_error("SMOKE_WIN_UNLOCK")
@@ -1887,6 +1896,21 @@ func _assert_launch_bar() -> bool:
 		push_error("SMOKE_YARD_BRIEFING_FAIL")
 		inst.free()
 		quit(43)
+		return false
+	if not inst.has_method("briefing_codename_text") or str(inst.briefing_codename_text()).find("行动") < 0:
+		push_error("SMOKE_NO_CODENAME %s" % (inst.briefing_codename_text() if inst.has_method("briefing_codename_text") else "no_api"))
+		inst.free()
+		quit(54)
+		return false
+	if not inst.has_method("mission_row_accent_exists") or not bool(inst.mission_row_accent_exists()):
+		push_error("SMOKE_NO_MISSION_ACCENT")
+		inst.free()
+		quit(54)
+		return false
+	if inst._brief_go == null or inst._brief_go.custom_minimum_size.y < 48.0:
+		push_error("SMOKE_BRIEF_CTA_SIZE")
+		inst.free()
+		quit(54)
 		return false
 	inst.free()
 	# Keep tutorial modal off so SETUP input/API matches the slice gate.

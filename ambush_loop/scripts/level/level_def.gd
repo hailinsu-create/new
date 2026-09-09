@@ -101,6 +101,21 @@ static func mood_tag(id: String) -> String:
 			return "初阵"
 
 
+static func operation_codename(id: String) -> String:
+	## Briefing dossier header. Presentation only.
+	match str(id):
+		"warehouse":
+			return "行动·深仓"
+		"pump":
+			return "行动·泵站"
+		"railcut":
+			return "行动·信号"
+		"depot":
+			return "行动·油库"
+		_:
+			return "行动·院子"
+
+
 static func make_yard() -> LevelDef:
 	var l := LevelDef.new()
 	l.level_id = "yard"

@@ -131,6 +131,8 @@ var _menu_paused_sim: bool = false
 var _campaign_complete: bool = false
 var title_return_button: Button = null
 var result_headline: Label = null
+var result_stats: Label = null
+var _result_columns: GridContainer = null
 var _intel_ghost: Node2D = null
 var _intel_ghost_tween: Tween = null
 var _mission_had_escape: bool = false
@@ -828,7 +830,7 @@ func _save_progress() -> void:
 
 
 func _ensure_debrief_buttons() -> void:
-	_ensure_result_headline()
+	_ensure_result_layout()
 	if title_return_button != null:
 		return
 	var vbox := result_panel.get_node_or_null("Margin/VBox") as VBoxContainer
@@ -843,22 +845,98 @@ func _ensure_debrief_buttons() -> void:
 
 
 func _ensure_result_headline() -> void:
-	if result_headline != null and is_instance_valid(result_headline):
-		return
+	_ensure_result_layout()
+
+
+func _ensure_result_layout() -> void:
 	var vbox := result_panel.get_node_or_null("Margin/VBox") as VBoxContainer
 	if vbox == null:
 		return
-	result_headline = vbox.get_node_or_null("ResultHeadline") as Label
-	if result_headline == null:
-		result_headline = Label.new()
-		result_headline.name = "ResultHeadline"
-		result_headline.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		result_headline.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		result_headline.add_theme_font_size_override("font_size", 30)
-		result_headline.add_theme_font_override("font", NightOps.display_font())
-		vbox.add_child(result_headline)
-		vbox.move_child(result_headline, 0)
-	result_headline.visible = false
+	if result_headline == null or not is_instance_valid(result_headline):
+		result_headline = vbox.get_node_or_null("ResultHeadline") as Label
+		if result_headline == null:
+			result_headline = Label.new()
+			result_headline.name = "ResultHeadline"
+			result_headline.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			result_headline.add_theme_font_size_override("font_size", 30)
+			result_headline.add_theme_font_override("font", NightOps.display_font())
+	if _result_columns == null or not is_instance_valid(_result_columns):
+		_result_columns = vbox.get_node_or_null("ResultColumns") as GridContainer
+		if _result_columns == null:
+			_result_columns = GridContainer.new()
+			_result_columns.name = "ResultColumns"
+			_result_columns.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			_result_columns.add_theme_constant_override("h_separation", 18)
+			_result_columns.add_theme_constant_override("v_separation", 8)
+			vbox.add_child(_result_columns)
+			vbox.move_child(_result_columns, 0)
+	if result_headline.get_parent() != _result_columns:
+		if result_headline.get_parent() != null:
+			result_headline.get_parent().remove_child(result_headline)
+		_result_columns.add_child(result_headline)
+		_result_columns.move_child(result_headline, 0)
+	if result_stats == null or not is_instance_valid(result_stats):
+		result_stats = _result_columns.get_node_or_null("ResultStats") as Label
+		if result_stats == null:
+			result_stats = Label.new()
+			result_stats.name = "ResultStats"
+			result_stats.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			result_stats.add_theme_font_size_override("font_size", 15)
+			result_stats.add_theme_color_override("font_color", NightOps.TEXT)
+			result_stats.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			_result_columns.add_child(result_stats)
+	_apply_result_columns()
+
+
+func _is_wide_result() -> bool:
+	var vp := get_viewport()
+	var w := 1280.0
+	if vp:
+		w = vp.get_visible_rect().size.x
+	if _want_touch() and w < 1100.0:
+		return false
+	return w >= 900.0
+
+
+func _apply_result_columns() -> void:
+	if _result_columns == null:
+		return
+	var wide := _is_wide_result()
+	_result_columns.columns = 2 if wide else 1
+	if result_headline:
+		result_headline.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if wide else HORIZONTAL_ALIGNMENT_CENTER
+		result_headline.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if result_stats:
+		result_stats.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		result_stats.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+
+func _fill_result_stats() -> void:
+	_ensure_result_layout()
+	if result_stats == null:
+		return
+	var shot := "—"
+	var ev: Dictionary = battle_log.first_of_type("fire") if battle_log else {}
+	if not ev.is_empty():
+		shot = str(ev.get("payload", {}).get("name", "")).strip_edges()
+		if shot == "":
+			var op := _op_by_id(int(ev.get("actor_id", -1)))
+			shot = op.display_name if op else ("队员%d" % int(ev.get("actor_id", 0)))
+	var esc := "无"
+	if phase == Phase.FAILED and fail_reason == "escape":
+		var route := intel.latest_route() if intel and intel.has_method("latest_route") else ""
+		esc = _route_zh_short(route) if route != "" else "有"
+	var ticks := battle_log.terminal_tick if battle_log and battle_log.terminal_tick >= 0 else sim.tick
+	var secs := float(ticks) / 60.0
+	result_stats.text = "世数  %d\n第一枪  %s\n逃逸  %s\n用时  %.1fs" % [loop_index, shot, esc, secs]
+	result_stats.visible = true
+	_apply_result_columns()
+
+
+func result_stats_block_text() -> String:
+	if result_stats == null or not is_instance_valid(result_stats):
+		return ""
+	return str(result_stats.text).strip_edges()
 
 
 func _mission_title_color() -> Color:
@@ -874,6 +952,7 @@ func _bind_result_headline(text: String) -> void:
 		return
 	result_headline.visible = true
 	result_headline.text = text
+	_apply_result_columns()
 	var col := _mission_title_color()
 	result_headline.add_theme_color_override("font_color", col)
 	result_headline.add_theme_color_override("font_shadow_color", Color(0.02, 0.03, 0.02, 0.85))
@@ -1168,7 +1247,7 @@ func _fade_result_panel() -> void:
 		_result_fade_tween.kill()
 	result_panel.modulate.a = 0.0
 	_result_fade_tween = create_tween()
-	_result_fade_tween.tween_property(result_panel, "modulate:a", 1.0, 0.22)
+	_result_fade_tween.tween_property(result_panel, "modulate:a", 1.0, 0.15)
 
 
 func _load_level(level_id: String, keep_intel: bool, restore_plan: bool) -> void:
@@ -1680,6 +1759,9 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 	result_panel.visible = false
 	if result_headline:
 		result_headline.visible = false
+	if result_stats:
+		result_stats.visible = false
+		result_stats.text = ""
 	if route_timeline:
 		route_timeline.visible = false
 	if watch_timeline:
@@ -3326,6 +3408,7 @@ func _show_fail_result() -> void:
 		title_return_button.visible = false
 	result_panel.visible = true
 	_bind_result_headline("失败 · %s" % BattleLog.reason_zh(fail_reason))
+	_fill_result_stats()
 	_dock_fail_result_panel(fail_reason == "escape")
 	var lines := battle_log.summary_lines(10)
 	var summary := "\n".join(lines)
@@ -3367,10 +3450,10 @@ func _show_win_result() -> void:
 	if abort_button:
 		abort_button.visible = false
 	_reset_result_panel_pos()
-	result_panel.offset_left = -300.0
-	result_panel.offset_right = 300.0
-	result_panel.offset_top = -230.0
-	result_panel.offset_bottom = 230.0
+	result_panel.offset_left = -340.0
+	result_panel.offset_right = 340.0
+	result_panel.offset_top = -240.0
+	result_panel.offset_bottom = 240.0
 	result_panel.visible = true
 	if title_return_button:
 		title_return_button.visible = true
@@ -3380,6 +3463,7 @@ func _show_win_result() -> void:
 	var shot := _first_shot_line()
 	if has_next:
 		_bind_result_headline("封锁成功")
+		_fill_result_stats()
 		var next_id := str(LEVEL_ORDER[level_index + 1])
 		var unlock := "+解锁下一关 · 「%s」" % LevelDef.mood_tag(next_id)
 		var star := ""
@@ -3391,6 +3475,7 @@ func _show_win_result() -> void:
 		continue_button.text = "下一关"
 	else:
 		_bind_result_headline("全部封锁")
+		_fill_result_stats()
 		var last_star := ""
 		if level and level.level_id == "yard" and not _mission_had_escape:
 			last_star = "\n★ 完美院子：零逃逸"
