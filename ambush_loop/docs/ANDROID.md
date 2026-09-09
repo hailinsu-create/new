@@ -2,6 +2,8 @@
 
 本游戏的**目标机是安卓手机**。云端桌面只是开发预览，不能代替真机。
 
+非 Gradle 导出不能改 `min_sdk` 字段（模板自带 24）。侧载用 **debug 签名 APK** 即可；release 还要单独的 release keystore。
+
 ## 现在仓库里有什么
 
 - `export_presets.cfg` 预设 **Android APK**
@@ -12,14 +14,13 @@
 
 ## 现在还没有什么
 
-云端代理虚机**通常编不出可安装的 APK**：需要本机安装
+云端虚机**看不到插在你电脑上的手机 USB**（`adb devices` 为空），所以不能替你点安装。可以在这台机器打出 APK，你拷到手机上点安装。
 
-1. Godot 4.7.2 **Android export templates**
-2. JDK 17
-3. Android SDK（API 与 `min_sdk=24` 对齐）
-4. 调试/发布 keystore（预设已指向用户目录下的 debug keystore；首次导出可让编辑器生成）
+Release 导出需要 release keystore；日常侧载用 debug 签名：
 
-没有上述工具时，在编辑器点 Export 会失败。这不是玩法缺关，是工具链缺件。
+```bash
+godot --headless --path ambush_loop --export-debug "Android APK" build/android/AmbushLoop-debug.apk
+```
 
 ## 本机导出 APK
 
@@ -32,8 +33,10 @@
 命令行：
 
 ```bash
-godot --headless --path ambush_loop --export-release "Android APK" build/android/AmbushLoop.apk
+godot --headless --path ambush_loop --export-debug "Android APK" build/android/AmbushLoop-debug.apk
 ```
+
+非 Gradle 预设不要填 `min_sdk` 覆盖，否则导出会失败。Release 需要 release keystore。
 
 ## 装进手机
 
