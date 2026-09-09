@@ -29,6 +29,8 @@ func rebuild(level_id: String) -> void:
 			_build_pump()
 		"railcut":
 			_build_railcut()
+		"depot":
+			_build_depot()
 		_:
 			_build_yard()
 	_apply_door()
@@ -102,6 +104,14 @@ func _build_railcut() -> void:
 	# North lane y=5-6 and south lane y=16-17 stay open so both authored routes walk.
 	_block_rect(6, 7, 9, 13)
 	_block_rect(15, 7, 28, 14)
+
+
+func _build_depot() -> void:
+	# Fuel tanks in the middle; west alley x=6-8 is the sneak. Spine x=12-14 and
+	# east x=31-33 stay open. North y=5-6 and south y=16-17 remain the connectors.
+	_block_rect(9, 7, 11, 13)
+	_block_rect(15, 8, 23, 14)
+	_block_rect(25, 8, 28, 12)
 
 
 func _block_rect(x0: int, y0: int, x1: int, y1: int) -> void:

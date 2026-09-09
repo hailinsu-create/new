@@ -46,6 +46,17 @@ const PUMP_STEPS := [
 	},
 ]
 
+const DEPOT_STEPS := [
+	{
+		"title": "油库 1 / 2  ·  三路",
+		"body": "西暗道、主路、东廊三条接近。中间油罐挡住对射，不能用一个锥罩住两路。三人不够同时锁三条，必须用绊索封一条。",
+	},
+	{
+		"title": "油库 2 / 2  ·  绊索换人",
+		"body": "西暗道敌人晚几秒才从西墙夹缝南下。步枪锁主路，机枪朝北等东廊，侦察看南闸；把唯一的绊索铺在西暗道。弹包一人。警报后不能微操。",
+	},
+]
+
 const RAILCUT_STEPS := [
 	{
 		"title": "信号楼 1 / 2  ·  双走廊",
@@ -145,6 +156,8 @@ static func pages_for(level_id: String) -> Array:
 			return PUMP_STEPS
 		"railcut":
 			return RAILCUT_STEPS
+		"depot":
+			return DEPOT_STEPS
 		_:
 			return YARD_STEPS
 

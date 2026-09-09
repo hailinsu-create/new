@@ -25,7 +25,7 @@ var barrel_cell: Vector2i = Vector2i(-1, -1)
 
 
 static func catalog() -> Array:
-	return [make_yard(), make_warehouse(), make_pump(), make_railcut()]
+	return [make_yard(), make_warehouse(), make_pump(), make_railcut(), make_depot()]
 
 
 static func by_id(id: String) -> LevelDef:
@@ -189,5 +189,46 @@ static func make_railcut() -> LevelDef:
 		{"id": 4, "route": "flank", "delay": 4.6, "loot": 0},
 	]
 	l.ambush_zone = Rect2(280, 240, 500, 280)
+	l.has_ammo_pack = true
+	return l
+
+
+static func make_depot() -> LevelDef:
+	var l := LevelDef.new()
+	l.level_id = "depot"
+	l.title = "第5关 · 油库：三路合围"
+	l.teaching = "西暗道、主路、东廊同时有人。中间油罐挡住对射，三人罩不住三路，必须用唯一的绊索封一条；弹包留给容易空的人。"
+	l.tutorial = "西暗道敌人晚几秒才从西墙夹缝南下。别把三人全堆南闸——先到的主路和东廊会把弹药打空，暗道再从西面漏。步枪锁主路，机枪朝北等东廊，侦察看南闸；Tab 把绊索铺在西暗道。G 弹包一人。没有门、没有油桶。X 中止保留情报；时间轴复盘只读。M 静音。"
+	l.escape_cell = Vector2i(31, 19)
+	l.cover_defs = [
+		{"cell": Vector2i(6, 10), "name": "西暗道", "face": 0.0, "protect": 0.0},
+		{"cell": Vector2i(13, 12), "name": "主路脊", "face": 270.0, "protect": 270.0},
+		{"cell": Vector2i(15, 16), "name": "南折", "face": 0.0, "protect": 180.0},
+		{"cell": Vector2i(22, 6), "name": "北过道", "face": 90.0, "protect": 270.0},
+		{"cell": Vector2i(32, 11), "name": "东廊", "face": 270.0, "protect": 270.0},
+		{"cell": Vector2i(29, 17), "name": "南闸", "face": 180.0, "protect": 0.0},
+	]
+	l.route_cells = {
+		"main": [
+			Vector2i(13, 3), Vector2i(13, 5), Vector2i(13, 9), Vector2i(13, 13),
+			Vector2i(13, 16), Vector2i(24, 17), Vector2i(31, 17), Vector2i(31, 19)
+		],
+		"flank": [
+			Vector2i(13, 3), Vector2i(13, 5), Vector2i(20, 5), Vector2i(28, 5),
+			Vector2i(32, 5), Vector2i(32, 10), Vector2i(32, 15), Vector2i(31, 17), Vector2i(31, 19)
+		],
+		"sneak": [
+			Vector2i(13, 3), Vector2i(13, 5), Vector2i(7, 5), Vector2i(7, 11),
+			Vector2i(7, 16), Vector2i(16, 17), Vector2i(31, 17), Vector2i(31, 19)
+		],
+	}
+	# Two on the spine immediately, east close behind, west alley delayed so a south-only stack dumps ammo first.
+	l.spawn_schedule = [
+		{"id": 1, "route": "main", "delay": 0.0, "loot": 1},
+		{"id": 2, "route": "flank", "delay": 0.5, "loot": 0},
+		{"id": 3, "route": "sneak", "delay": 2.2, "loot": 2},
+		{"id": 4, "route": "main", "delay": 0.9, "loot": 0},
+	]
+	l.ambush_zone = Rect2(260, 230, 520, 280)
 	l.has_ammo_pack = true
 	return l

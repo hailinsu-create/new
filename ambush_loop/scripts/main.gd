@@ -11,7 +11,7 @@ const TRIPWIRE_ROUTE_DIST := 24.0
 const SNAPSHOT_EVERY := 6
 const COVER_LONGPRESS_MS := 400
 const PROGRESS_PATH := "user://ambush_loop.cfg"
-const LEVEL_ORDER := ["yard", "warehouse", "pump", "railcut"]
+const LEVEL_ORDER := ["yard", "warehouse", "pump", "railcut", "depot"]
 const SfxBusScript := preload("res://scripts/sfx/sfx_bus.gd")
 const AmbushZoneFxScript := preload("res://scripts/fx/ambush_zone_fx.gd")
 const TouchHudScript := preload("res://scripts/touch_hud.gd")
@@ -1170,8 +1170,9 @@ func _draw_fixed_routes() -> void:
 	var colors := {
 		"main": Color(0.9, 0.4, 0.35, 0.35),
 		"flank": Color(0.95, 0.55, 0.2, 0.3),
+		"sneak": Color(0.55, 0.72, 0.38, 0.32),
 	}
-	var labels := {"main": "主路线", "flank": "侧翼路线"}
+	var labels := {"main": "主路线", "flank": "侧翼路线", "sneak": "西暗道"}
 	for key in route_world.keys():
 		var col: Color = colors.get(key, Color(0.7, 0.7, 0.4, 0.3))
 		_add_route_line(route_world[key], col, str(labels.get(key, key)))

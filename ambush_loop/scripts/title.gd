@@ -358,7 +358,7 @@ func _build_howto() -> void:
 
 
 func _build_mission_select() -> void:
-	var ui := _modal_panel(20, 560.0, 540.0)
+	var ui := _modal_panel(20, 560.0, 620.0)
 	_mission = ui["root"]
 	_mission_box = ui["box"]
 	var t := Label.new()
