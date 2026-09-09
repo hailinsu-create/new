@@ -115,6 +115,57 @@ func last_of_type(type_name: String) -> Dictionary:
 	return {}
 
 
+static func reason_zh(reason: String) -> String:
+	match reason:
+		"escape":
+			return "逃逸"
+		"wipe":
+			return "全灭"
+		"abort":
+			return "中止"
+		"win":
+			return "通关"
+		"empty":
+			return "空弹"
+		"route_choice":
+			return "改线"
+		"trip":
+			return "绊索"
+		_:
+			return reason
+
+
+func has_type(type_name: String) -> bool:
+	return not last_of_type(type_name).is_empty()
+
+
+func terminal_summary_line() -> String:
+	## One-line 终局摘要 from terminal reason + last meaningful events.
+	var bits: PackedStringArray = []
+	match terminal_reason:
+		"escape":
+			bits.append("敌军从逃逸口越界")
+		"wipe":
+			bits.append("参战小队全灭")
+		"abort":
+			bits.append("指挥官中止尝试")
+		"win":
+			bits.append("零逃逸，封锁成功")
+		_:
+			if terminal_reason != "":
+				bits.append(reason_zh(terminal_reason))
+	if has_type("empty") and terminal_reason != "win":
+		bits.append("有队员空弹")
+	if has_type("trip"):
+		var trip_ev := last_of_type("trip")
+		bits.append("绊索击毙敌%d" % int(trip_ev.get("actor_id", 0)))
+	if has_type("route_choice"):
+		bits.append("门锁后敌改走备用接近")
+	if bits.is_empty():
+		return "终局摘要：—"
+	return "终局摘要：" + "；".join(bits) + "。"
+
+
 func fingerprint() -> String:
 	var parts: PackedStringArray = []
 	for ev in events:

@@ -53,6 +53,8 @@ var obs_ring: Line2D = null
 var obs_fill: Polygon2D = null
 var obs_tag: Label = null
 var role_glyph: Polygon2D = null
+var body_outline: Polygon2D = null
+var _hit_flash: float = 0.0
 
 
 static func role_for_id(id: int) -> int:
@@ -132,9 +134,10 @@ func reset_loadout() -> void:
 	ammo_pack_used = false
 	fire_permitted = fire_mode == FireMode.ENGAGE_ON_SIGHT
 	last_deny.clear()
+	_hit_flash = 0.0
 	if body:
 		body.color = body_color
-		body.modulate = Color.WHITE
+	_apply_body_modulate()
 	_refresh_role_glyph()
 	_refresh_tag()
 	_rebuild_cone()
@@ -226,20 +229,14 @@ func _rebuild_cone() -> void:
 		cone.color = Color(0.95, 0.75, 0.25, 0.30)
 	if body:
 		body.rotation = deg_to_rad(facing_deg + 90.0)
-		# Distinct silhouettes per role (Commandos readability).
-		match role:
-			Role.MG:
-				body.polygon = PackedVector2Array([
-					Vector2(0, -10), Vector2(10, 8), Vector2(4, 10), Vector2(-4, 10), Vector2(-10, 8)
-				])
-			Role.SCOUT:
-				body.polygon = PackedVector2Array([
-					Vector2(0, -13), Vector2(6, 8), Vector2(-6, 8)
-				])
-			_:
-				body.polygon = PackedVector2Array([
-					Vector2(0, -11), Vector2(8, 9), Vector2(-8, 9)
-				])
+		# Friend triangles (scout tall / rifle mid / MG blocky) vs enemy diamonds.
+		var poly := _role_body_poly()
+		body.polygon = poly
+		_ensure_body_outline()
+		if body_outline:
+			body_outline.rotation = body.rotation
+			body_outline.polygon = _inflate_poly(poly, 2.4)
+			body_outline.color = Color(0.08, 0.14, 0.18, 0.95)
 
 
 func in_fire_geometry(target: Vector2, p_grid: AmbushGrid) -> bool:
@@ -322,9 +319,18 @@ func take_damage(amount: float, from_pos: Vector2 = Vector2.INF) -> void:
 	if role == Role.MG and mult >= EXPOSED_DAMAGE_MULT:
 		mult *= 1.15
 	hp -= amount * mult
+	_hit_flash = 1.0
+	_apply_body_modulate()
 	_refresh_tag()
 	if hp <= 0.0:
 		_die()
+
+
+func _process(delta: float) -> void:
+	if _hit_flash <= 0.0:
+		return
+	_hit_flash = maxf(_hit_flash - delta * 5.5, 0.0)
+	_apply_body_modulate()
 
 
 func _refresh_role_glyph() -> void:
@@ -356,13 +362,67 @@ func _refresh_role_glyph() -> void:
 func _die() -> void:
 	alive = false
 	hp = 0.0
+	_hit_flash = 0.0
 	if body:
 		body.color = Color(0.25, 0.28, 0.32)
-		body.modulate = Color(0.6, 0.6, 0.6, 0.85)
+	_apply_body_modulate()
 	_rebuild_cone()
 	_refresh_tag()
 	_refresh_role_glyph()
 	died.emit(self)
+
+
+func _role_body_poly() -> PackedVector2Array:
+	match role:
+		Role.MG:
+			return PackedVector2Array([
+				Vector2(0, -11), Vector2(11, 7), Vector2(5, 12), Vector2(-5, 12), Vector2(-11, 7)
+			])
+		Role.SCOUT:
+			return PackedVector2Array([
+				Vector2(0, -15), Vector2(6.5, 10), Vector2(-6.5, 10)
+			])
+		_:
+			return PackedVector2Array([
+				Vector2(0, -13), Vector2(9, 10), Vector2(-9, 10)
+			])
+
+
+func _ensure_body_outline() -> void:
+	if body_outline != null and is_instance_valid(body_outline):
+		return
+	body_outline = get_node_or_null("BodyOutline") as Polygon2D
+	if body_outline == null and body != null:
+		body_outline = Polygon2D.new()
+		body_outline.name = "BodyOutline"
+		body_outline.z_index = -1
+		body_outline.show_behind_parent = false
+		add_child(body_outline)
+		move_child(body_outline, body.get_index())
+
+
+func _inflate_poly(src: PackedVector2Array, pad: float) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for p in src:
+		var n := p
+		if n.length_squared() > 0.01:
+			n = n.normalized() * (p.length() + pad)
+		out.append(n)
+	return out
+
+
+func _apply_body_modulate() -> void:
+	if body == null:
+		return
+	if not alive:
+		body.modulate = Color(0.6, 0.6, 0.6, 0.85)
+		if body_outline:
+			body_outline.modulate = Color(0.5, 0.5, 0.5, 0.7)
+		return
+	var flash := Color(1.0, 1.0, 1.0).lerp(Color(1.85, 1.55, 0.55), _hit_flash)
+	body.modulate = flash
+	if body_outline:
+		body_outline.modulate = Color(1, 1, 1, 1).lerp(Color(1.4, 1.1, 0.4), _hit_flash)
 
 
 func can_reach_loot(loot_pos: Vector2, p_grid: AmbushGrid) -> bool:

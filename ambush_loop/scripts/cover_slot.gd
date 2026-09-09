@@ -15,6 +15,7 @@ const PREVIEW_RAYS := 10
 @onready var tag: Label = $Tag
 
 var protect_arc: Polygon2D = null
+var _crate_bits: Array[Polygon2D] = []
 
 
 func setup(id: int, text: String, protect_face: float = 0.0) -> void:
@@ -23,8 +24,53 @@ func setup(id: int, text: String, protect_face: float = 0.0) -> void:
 	protect_facing_deg = protect_face
 	if tag:
 		tag.text = text
+	_ensure_crate_look()
 	_ensure_protect_arc()
 	rebuild_protect_arc()
+	set_highlight(false)
+
+
+func _ensure_crate_look() -> void:
+	if pad == null:
+		pad = get_node_or_null("Pad") as Polygon2D
+	if pad == null:
+		return
+	if pad.get_meta("crate_built", false):
+		return
+	pad.set_meta("crate_built", true)
+	# Stacked sandbag / crate: octagon body + plank + two bags. Pad stays the hit-tint target.
+	pad.polygon = PackedVector2Array([
+		Vector2(-13, -10), Vector2(-8, -14), Vector2(8, -14), Vector2(13, -10),
+		Vector2(13, 10), Vector2(8, 14), Vector2(-8, 14), Vector2(-13, 10)
+	])
+	pad.color = Color(0.30, 0.38, 0.24, 0.92)
+	var plank := Polygon2D.new()
+	plank.name = "CratePlank"
+	plank.polygon = PackedVector2Array([
+		Vector2(-11, -3), Vector2(11, -3), Vector2(11, 3), Vector2(-11, 3)
+	])
+	plank.color = Color(0.18, 0.14, 0.08, 0.75)
+	plank.z_index = 1
+	add_child(plank)
+	_crate_bits.append(plank)
+	var bag_a := Polygon2D.new()
+	bag_a.name = "SandbagA"
+	bag_a.polygon = PackedVector2Array([
+		Vector2(-14, 4), Vector2(-2, 2), Vector2(1, 8), Vector2(-12, 12)
+	])
+	bag_a.color = Color(0.42, 0.38, 0.22, 0.9)
+	bag_a.z_index = 1
+	add_child(bag_a)
+	_crate_bits.append(bag_a)
+	var bag_b := Polygon2D.new()
+	bag_b.name = "SandbagB"
+	bag_b.polygon = PackedVector2Array([
+		Vector2(2, 2), Vector2(14, 4), Vector2(12, 12), Vector2(-1, 8)
+	])
+	bag_b.color = Color(0.38, 0.34, 0.18, 0.9)
+	bag_b.z_index = 1
+	add_child(bag_b)
+	_crate_bits.append(bag_b)
 
 
 func _ensure_protect_arc() -> void:
@@ -34,11 +80,13 @@ func _ensure_protect_arc() -> void:
 	if protect_arc == null:
 		protect_arc = Polygon2D.new()
 		protect_arc.name = "ProtectArc"
-		# Behind the pad, but keep the slot's world z so the cyan arc is not
-		# composited under MapDraw (z_index -1 + relative was hiding it).
+		# Behind the crate pad, but keep world z with the slot so the cyan
+		# fan stays above MapDraw (floor grain).
 		protect_arc.z_index = 0
+		protect_arc.z_as_relative = true
 		protect_arc.show_behind_parent = true
 		add_child(protect_arc)
+		move_child(protect_arc, 0)
 
 
 func rebuild_protect_arc() -> void:
@@ -58,8 +106,12 @@ func is_free() -> bool:
 
 
 func set_highlight(on: bool) -> void:
+	_ensure_crate_look()
 	if pad:
-		pad.color = Color(0.35, 0.7, 0.45, 0.55) if on else Color(0.25, 0.45, 0.35, 0.35)
+		pad.color = Color(0.42, 0.62, 0.34, 0.95) if on else Color(0.30, 0.38, 0.24, 0.92)
+	for bit in _crate_bits:
+		if bit != null and is_instance_valid(bit):
+			bit.modulate = Color(1.15, 1.2, 1.05) if on else Color.WHITE
 
 
 ## emphasis: 0 hidden, 1 idle map hint, 2 selected/hovered.
@@ -71,10 +123,10 @@ func set_protect_preview(emphasis: int) -> void:
 	match emphasis:
 		2:
 			protect_arc.visible = true
-			protect_arc.color = Color(0.25, 0.95, 0.7, 0.32)
+			protect_arc.color = Color(0.22, 0.95, 0.68, 0.38)
 		1:
 			protect_arc.visible = true
-			protect_arc.color = Color(0.25, 0.7, 0.55, 0.14)
+			protect_arc.color = Color(0.22, 0.78, 0.58, 0.20)
 		_:
 			protect_arc.visible = false
 

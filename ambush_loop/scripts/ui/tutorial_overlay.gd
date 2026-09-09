@@ -1,11 +1,11 @@
 class_name TutorialOverlay
 extends CanvasLayer
 
-## First-run yard SETUP: three pages. Page 1 cannot be dismissed accidentally.
+## Per-level SETUP pages. Page 1 cannot be dismissed accidentally.
 
 signal dismissed
 
-const STEPS := [
+const YARD_STEPS := [
 	{
 		"title": "1 / 3  ·  部署",
 		"body": "左侧三张作战卡是步枪手、机枪手、侦察兵。点选一张，再点地图上的掩体位——把三人放到能交叉封锁主路与侧翼的位置。",
@@ -20,13 +20,41 @@ const STEPS := [
 	},
 ]
 
+const WAREHOUSE_STEPS := [
+	{
+		"title": "仓道 1 / 3  ·  入伏再打（F）",
+		"body": "过早开火会把弹打空。选中已部署队员，按 F 切到「入伏再打」：黄锥变暗，等敌人走进黄色伏击区再开火。警报后不能再改开火条件。",
+	},
+	{
+		"title": "仓道 2 / 3  ·  弹包（G）",
+		"body": "G 把唯一的备用弹包交给一名已部署队员。空弹时自动补一次本轮起始弹药，不能转交。机枪手最容易空，步枪也可以吃包补漏。",
+	},
+	{
+		"title": "仓道 3 / 3  ·  油桶",
+		"body": "东廊橙色油桶是关卡预置：敌人靠近才在模拟结算里引爆，准备期只能预览爆心，执行中不能点击引爆。别把队员放进爆破圈。",
+	},
+]
+
+const PUMP_STEPS := [
+	{
+		"title": "泵站 1 / 2  ·  锁门（B）",
+		"body": "B 切换锁门。锁上后东廊关闭，不是稳赢按钮——侧翼敌人会在决策格改走作者写好的紫色备用接近，不会自由寻路。",
+	},
+	{
+		"title": "泵站 2 / 2  ·  侧背与出口",
+		"body": "备用接近从西侧绕来，青弧没罩住的方向是全伤；机枪侧背更危险。侦察适合锁出口。警报后计划冻结，只能观看。",
+	},
+]
+
 var _open: bool = false
 var _page: int = 0
+var _steps: Array = YARD_STEPS
 var _title: Label
 var _body: Label
 var _back: Button
 var _next: Button
 var _check: CheckBox
+var _level_id: String = "yard"
 
 
 func _ready() -> void:
@@ -43,8 +71,8 @@ func _ready() -> void:
 	panel.set_anchors_preset(Control.PRESET_CENTER)
 	panel.offset_left = -280.0
 	panel.offset_right = 280.0
-	panel.offset_top = -170.0
-	panel.offset_bottom = 190.0
+	panel.offset_top = -180.0
+	panel.offset_bottom = 200.0
 	add_child(panel)
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 22)
@@ -63,7 +91,7 @@ func _ready() -> void:
 	_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_body.add_theme_font_size_override("font_size", 16)
 	_body.add_theme_color_override("font_color", NightOps.TEXT)
-	_body.custom_minimum_size = Vector2(500, 120)
+	_body.custom_minimum_size = Vector2(500, 128)
 	box.add_child(_body)
 	_check = CheckBox.new()
 	_check.text = "不再显示"
@@ -88,7 +116,9 @@ func is_open() -> bool:
 	return _open
 
 
-func present() -> void:
+func present(level_id: String = "yard") -> void:
+	_level_id = level_id
+	_steps = pages_for(level_id)
 	_open = true
 	_page = 0
 	_check.button_pressed = false
@@ -96,15 +126,27 @@ func present() -> void:
 	_refresh()
 
 
+static func pages_for(level_id: String) -> Array:
+	match level_id:
+		"warehouse":
+			return WAREHOUSE_STEPS
+		"pump":
+			return PUMP_STEPS
+		_:
+			return YARD_STEPS
+
+
 func _refresh() -> void:
-	var step: Dictionary = STEPS[_page]
+	if _steps.is_empty():
+		_steps = YARD_STEPS
+	var step: Dictionary = _steps[_page]
 	_title.text = str(step["title"])
 	_body.text = str(step["body"])
 	_back.visible = _page > 0
-	_check.visible = _page == STEPS.size() - 1
+	_check.visible = _page == _steps.size() - 1
 	if _page == 0:
 		_next.text = "下一步"
-	elif _page < STEPS.size() - 1:
+	elif _page < _steps.size() - 1:
 		_next.text = "下一步"
 	else:
 		_next.text = "开始布置"
@@ -118,7 +160,7 @@ func _on_back() -> void:
 
 
 func _on_next() -> void:
-	if _page < STEPS.size() - 1:
+	if _page < _steps.size() - 1:
 		_page += 1
 		_refresh()
 		return

@@ -172,6 +172,10 @@ func _run() -> void:
 				push_error("SMOKE_DEBRIEF_EVENTS")
 				quit(44)
 				return
+			if str(main.result_label.text).find("终局摘要") < 0:
+				push_error("SMOKE_DEBRIEF_SUMMARY")
+				quit(44)
+				return
 			var gs_win = root.get_node_or_null("GameSettings")
 			if gs_win == null or not gs_win.is_level_cleared("yard") or not gs_win.is_level_unlocked("warehouse"):
 				push_error("SMOKE_WIN_UNLOCK")
@@ -749,6 +753,10 @@ func _assert_launch_bar() -> bool:
 	if gs == null:
 		push_error("SMOKE_NO_GAMESETTINGS")
 		quit(42)
+		return false
+	if absf(float(gs.get("music_volume")) - 1.0) > 0.02 or absf(float(gs.get("sfx_volume")) - 1.0) > 0.02:
+		push_error("SMOKE_AUDIO_BUS_DEFAULTS music=%s sfx=%s" % [gs.get("music_volume"), gs.get("sfx_volume")])
+		quit(43)
 		return false
 	var audio = root.get_node_or_null("AudioDirector")
 	if audio == null:

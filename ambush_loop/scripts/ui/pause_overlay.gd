@@ -1,7 +1,7 @@
 class_name PauseOverlay
 extends CanvasLayer
 
-## Shared pause / settings: mute, volume, return to title, redeploy (SETUP only).
+## Shared pause / settings: mute, Music/SFX volumes, return to title, redeploy (SETUP only).
 
 signal closed
 signal return_to_title
@@ -11,8 +11,10 @@ var _open: bool = false
 var _dim: ColorRect
 var _panel: PanelContainer
 var _mute_btn: Button
-var _vol: HSlider
-var _vol_val: Label
+var _music: HSlider
+var _music_val: Label
+var _sfx: HSlider
+var _sfx_val: Label
 var _redeploy_btn: Button
 var _title_btn: Button
 var _close_btn: Button
@@ -30,10 +32,10 @@ func _ready() -> void:
 	_panel = PanelContainer.new()
 	_panel.theme = NightOps.theme()
 	_panel.set_anchors_preset(Control.PRESET_CENTER)
-	_panel.offset_left = -190.0
-	_panel.offset_right = 190.0
-	_panel.offset_top = -168.0
-	_panel.offset_bottom = 168.0
+	_panel.offset_left = -200.0
+	_panel.offset_right = 200.0
+	_panel.offset_top = -210.0
+	_panel.offset_bottom = 210.0
 	add_child(_panel)
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 18)
@@ -53,23 +55,8 @@ func _ready() -> void:
 	_mute_btn = Button.new()
 	_mute_btn.pressed.connect(_on_mute)
 	box.add_child(_mute_btn)
-	var vol_row := HBoxContainer.new()
-	vol_row.add_theme_constant_override("separation", 8)
-	var vol_l := Label.new()
-	vol_l.text = "音量"
-	vol_l.custom_minimum_size = Vector2(48, 0)
-	vol_row.add_child(vol_l)
-	_vol = HSlider.new()
-	_vol.min_value = 0.0
-	_vol.max_value = 1.0
-	_vol.step = 0.05
-	_vol.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_vol.value_changed.connect(_on_vol)
-	vol_row.add_child(_vol)
-	_vol_val = Label.new()
-	_vol_val.custom_minimum_size = Vector2(44, 0)
-	vol_row.add_child(_vol_val)
-	box.add_child(vol_row)
+	box.add_child(_make_vol_row("音乐", true))
+	box.add_child(_make_vol_row("音效", false))
 	_redeploy_btn = Button.new()
 	_redeploy_btn.text = "重新部署"
 	_redeploy_btn.pressed.connect(func() -> void: redeploy_requested.emit())
@@ -82,6 +69,33 @@ func _ready() -> void:
 	_close_btn.text = "继续"
 	_close_btn.pressed.connect(dismiss)
 	box.add_child(_close_btn)
+
+
+func _make_vol_row(caption: String, is_music: bool) -> HBoxContainer:
+	var vol_row := HBoxContainer.new()
+	vol_row.add_theme_constant_override("separation", 8)
+	var vol_l := Label.new()
+	vol_l.text = caption
+	vol_l.custom_minimum_size = Vector2(48, 0)
+	vol_row.add_child(vol_l)
+	var sl := HSlider.new()
+	sl.min_value = 0.0
+	sl.max_value = 1.0
+	sl.step = 0.05
+	sl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var val := Label.new()
+	val.custom_minimum_size = Vector2(44, 0)
+	if is_music:
+		_music = sl
+		_music_val = val
+		sl.value_changed.connect(_on_music)
+	else:
+		_sfx = sl
+		_sfx_val = val
+		sl.value_changed.connect(_on_sfx)
+	vol_row.add_child(sl)
+	vol_row.add_child(val)
+	return vol_row
 
 
 func is_open() -> bool:
@@ -109,13 +123,21 @@ func dismiss() -> void:
 func _refresh_audio() -> void:
 	var gs = _gs()
 	var muted := false
-	var vol := 1.0
+	var mv := 1.0
+	var sv := 1.0
 	if gs:
 		muted = bool(gs.get("muted"))
-		vol = clampf(float(gs.get("master_volume")), 0.0, 1.0)
+		mv = clampf(float(gs.get("music_volume")), 0.0, 1.0)
+		sv = clampf(float(gs.get("sfx_volume")), 0.0, 1.0)
 	_mute_btn.text = "静音：开（M）" if muted else "静音：关（M）"
-	_vol.set_value_no_signal(vol)
-	_vol_val.text = "%d%%" % int(round(vol * 100.0))
+	if _music:
+		_music.set_value_no_signal(mv)
+	if _music_val:
+		_music_val.text = "%d%%" % int(round(mv * 100.0))
+	if _sfx:
+		_sfx.set_value_no_signal(sv)
+	if _sfx_val:
+		_sfx_val.text = "%d%%" % int(round(sv * 100.0))
 
 
 func _on_mute() -> void:
@@ -125,11 +147,26 @@ func _on_mute() -> void:
 	_refresh_audio()
 
 
-func _on_vol(v: float) -> void:
+func _on_music(v: float) -> void:
 	var gs = _gs()
 	if gs:
-		gs.set_volume(v)
-	_vol_val.text = "%d%%" % int(round(v * 100.0))
+		if gs.has_method("set_music_volume"):
+			gs.set_music_volume(v)
+		else:
+			gs.set_volume(v)
+	if _music_val:
+		_music_val.text = "%d%%" % int(round(v * 100.0))
+
+
+func _on_sfx(v: float) -> void:
+	var gs = _gs()
+	if gs:
+		if gs.has_method("set_sfx_volume"):
+			gs.set_sfx_volume(v)
+		else:
+			gs.set_volume(v)
+	if _sfx_val:
+		_sfx_val.text = "%d%%" % int(round(v * 100.0))
 
 
 func _gs():

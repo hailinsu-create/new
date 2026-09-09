@@ -1,6 +1,6 @@
 extends Node
 
-## Autoload: mute, master volume, tutorial flag, pending mission id, campaign list.
+## Autoload: mute, Music/SFX volumes, per-level tutorial flags, pending mission id.
 
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
 const PROGRESS_PATH := "user://ambush_loop.cfg"
@@ -10,7 +10,10 @@ signal changed
 
 var muted: bool = false
 var master_volume: float = 1.0
+var music_volume: float = 1.0
+var sfx_volume: float = 1.0
 var seen_tutorial: bool = false
+var seen_level_tutorials: Dictionary = {} # level_id -> bool
 var pending_level_id: String = ""
 
 
@@ -26,35 +29,62 @@ func load_settings() -> void:
 		return
 	muted = bool(cfg.get_value("audio", "muted", false))
 	master_volume = clampf(float(cfg.get_value("audio", "master_volume", 1.0)), 0.0, 1.0)
+	if cfg.has_section_key("audio", "music_volume") or cfg.has_section_key("audio", "sfx_volume"):
+		music_volume = clampf(float(cfg.get_value("audio", "music_volume", master_volume)), 0.0, 1.0)
+		sfx_volume = clampf(float(cfg.get_value("audio", "sfx_volume", master_volume)), 0.0, 1.0)
+	else:
+		# Old single master slider: copy onto both buses.
+		music_volume = master_volume
+		sfx_volume = master_volume
 	seen_tutorial = bool(cfg.get_value("onboarding", "seen_tutorial", false))
+	seen_level_tutorials.clear()
+	for id in LEVEL_ORDER:
+		if cfg.has_section_key("onboarding", "seen_" + id):
+			seen_level_tutorials[id] = bool(cfg.get_value("onboarding", "seen_" + id, false))
 
 
 func save_settings() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("audio", "muted", muted)
-	cfg.set_value("audio", "master_volume", master_volume)
+	cfg.set_value("audio", "master_volume", clampf((music_volume + sfx_volume) * 0.5, 0.0, 1.0))
+	cfg.set_value("audio", "music_volume", music_volume)
+	cfg.set_value("audio", "sfx_volume", sfx_volume)
 	cfg.set_value("onboarding", "seen_tutorial", seen_tutorial)
+	for id in LEVEL_ORDER:
+		if seen_level_tutorials.has(id):
+			cfg.set_value("onboarding", "seen_" + id, bool(seen_level_tutorials[id]))
 	cfg.save(SETTINGS_PATH)
 
 
 func reset_to_defaults() -> void:
 	muted = false
 	master_volume = 1.0
+	music_volume = 1.0
+	sfx_volume = 1.0
 	seen_tutorial = false
+	seen_level_tutorials.clear()
 	pending_level_id = ""
 	apply_audio()
 
 
 func apply_audio() -> void:
 	var idx := AudioServer.get_bus_index("Master")
-	if idx < 0:
-		return
-	AudioServer.set_bus_mute(idx, muted)
-	if master_volume <= 0.001:
-		AudioServer.set_bus_volume_db(idx, -80.0)
-	else:
-		AudioServer.set_bus_volume_db(idx, linear_to_db(master_volume))
+	if idx >= 0:
+		AudioServer.set_bus_mute(idx, muted)
+		AudioServer.set_bus_volume_db(idx, 0.0)
+	_set_bus_linear("Music", music_volume, -6.0)
+	_set_bus_linear("SFX", sfx_volume, 0.0)
 	changed.emit()
+
+
+func _set_bus_linear(bus_name: String, linear: float, extra_db: float) -> void:
+	var b := AudioServer.get_bus_index(bus_name)
+	if b < 0:
+		return
+	if linear <= 0.001:
+		AudioServer.set_bus_volume_db(b, -80.0)
+	else:
+		AudioServer.set_bus_volume_db(b, linear_to_db(linear) + extra_db)
 
 
 func set_muted(on: bool) -> void:
@@ -69,13 +99,44 @@ func toggle_mute() -> bool:
 
 
 func set_volume(v: float) -> void:
-	master_volume = clampf(v, 0.0, 1.0)
+	## Compat: old single slider drives both buses.
+	var n := clampf(v, 0.0, 1.0)
+	master_volume = n
+	music_volume = n
+	sfx_volume = n
 	save_settings()
 	apply_audio()
 
 
-func mark_tutorial_seen() -> void:
-	seen_tutorial = true
+func set_music_volume(v: float) -> void:
+	music_volume = clampf(v, 0.0, 1.0)
+	master_volume = clampf((music_volume + sfx_volume) * 0.5, 0.0, 1.0)
+	save_settings()
+	apply_audio()
+
+
+func set_sfx_volume(v: float) -> void:
+	sfx_volume = clampf(v, 0.0, 1.0)
+	master_volume = clampf((music_volume + sfx_volume) * 0.5, 0.0, 1.0)
+	save_settings()
+	apply_audio()
+
+
+func has_seen_tutorial(level_id: String = "yard") -> bool:
+	if bool(seen_level_tutorials.get(level_id, false)):
+		return true
+	# Legacy / smoke: old bool with no per-level keys means skip every modal.
+	if seen_level_tutorials.is_empty() and seen_tutorial:
+		return true
+	return false
+
+
+func mark_tutorial_seen(level_id: String = "yard") -> void:
+	if level_id == "":
+		level_id = "yard"
+	seen_level_tutorials[level_id] = true
+	if level_id == "yard":
+		seen_tutorial = true
 	save_settings()
 
 

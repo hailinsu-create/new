@@ -28,6 +28,8 @@ var loot_ammo: int = 2
 var grid: AmbushGrid = null
 var return_cd: float = 0.0
 var returning_fire: bool = false
+var _hit_flash: float = 0.0
+var body_outline: Polygon2D = null
 
 @onready var body: Polygon2D = $Body
 @onready var tag: Label = $Tag
@@ -51,6 +53,8 @@ func setup(id: int, p_route: PackedVector2Array, p_grid: AmbushGrid = null, p_lo
 	add_to_group("enemies")
 	if tag:
 		tag.text = "敌%d" % id
+	_hit_flash = 0.0
+	_apply_hostile_silhouette()
 	if route.size() > 0:
 		global_position = route[0]
 	recorded.clear()
@@ -58,6 +62,7 @@ func setup(id: int, p_route: PackedVector2Array, p_grid: AmbushGrid = null, p_lo
 	if route.size() > 1:
 		_face_move(route[1])
 	_update_hp_bar()
+	_apply_body_modulate()
 
 
 func activate() -> void:
@@ -129,8 +134,10 @@ func _face_move(target: Vector2) -> void:
 		aim = route[mini(route_index, route.size() - 1)] - route[route_index - 1]
 	if aim.length_squared() < 0.04:
 		return
-	# Body chevron tip is local -Y; rotate so the tip points along travel.
+	# Diamond/chevron tip is local -Y; rotate so the tip points along travel.
 	body.rotation = aim.angle() + PI * 0.5
+	if body_outline:
+		body_outline.rotation = body.rotation
 
 
 func resolve_return_fire() -> void:
@@ -139,7 +146,11 @@ func resolve_return_fire() -> void:
 	returning_fire = false
 	_try_return_fire()
 	if body:
-		body.color = Color(0.95, 0.45, 0.15) if returning_fire else Color(0.75, 0.22, 0.2)
+		if returning_fire:
+			body.color = Color(0.98, 0.48, 0.12)
+		elif alive:
+			body.color = Color(0.82, 0.16, 0.14)
+		_apply_body_modulate()
 
 
 func _try_return_fire() -> void:
@@ -168,9 +179,11 @@ func apply_fire(amount: float, from: OperatorUnit = null) -> void:
 		return
 	hp -= amount
 	alerted = true
+	_hit_flash = 1.0
 	if from != null:
 		focus_target = from
 	_update_hp_bar()
+	_apply_body_modulate()
 	if tag:
 		tag.text = "敌%d!" % label_id
 	if hp <= 0.0:
@@ -184,8 +197,10 @@ func kill() -> void:
 	active = false
 	alerted = false
 	returning_fire = false
+	_hit_flash = 0.0
 	if body:
 		body.color = Color(0.35, 0.35, 0.38, 0.7)
+	_apply_body_modulate()
 	if tag:
 		tag.text = "敌%d 尸体" % label_id
 	died.emit(self)
@@ -211,6 +226,56 @@ func remaining_path_to_escape() -> float:
 	for i in range(route_index, route.size() - 1):
 		dist += route[i].distance_to(route[i + 1])
 	return dist
+
+
+func _process(delta: float) -> void:
+	if _hit_flash <= 0.0:
+		return
+	_hit_flash = maxf(_hit_flash - delta * 5.5, 0.0)
+	_apply_body_modulate()
+
+
+func _hostile_diamond() -> PackedVector2Array:
+	return PackedVector2Array([
+		Vector2(0, -13), Vector2(9, 0), Vector2(0, 11), Vector2(-9, 0)
+	])
+
+
+func _apply_hostile_silhouette() -> void:
+	if body == null:
+		return
+	body.polygon = _hostile_diamond()
+	body.color = Color(0.82, 0.16, 0.14)
+	if body_outline == null or not is_instance_valid(body_outline):
+		body_outline = get_node_or_null("BodyOutline") as Polygon2D
+	if body_outline == null:
+		body_outline = Polygon2D.new()
+		body_outline.name = "BodyOutline"
+		add_child(body_outline)
+		move_child(body_outline, body.get_index())
+	var outline := PackedVector2Array()
+	for p in body.polygon:
+		var n := p
+		if n.length_squared() > 0.01:
+			n = n.normalized() * (p.length() + 2.6)
+		outline.append(n)
+	body_outline.polygon = outline
+	body_outline.color = Color(0.18, 0.04, 0.04, 0.95)
+	body_outline.rotation = body.rotation
+
+
+func _apply_body_modulate() -> void:
+	if body == null:
+		return
+	if not alive:
+		body.modulate = Color(0.7, 0.7, 0.7, 0.8)
+		if body_outline:
+			body_outline.modulate = Color(0.55, 0.55, 0.55, 0.7)
+		return
+	var flash := Color(1, 1, 1, 1).lerp(Color(1.9, 1.7, 1.15), _hit_flash)
+	body.modulate = flash
+	if body_outline:
+		body_outline.modulate = Color(1, 1, 1, 1).lerp(Color(1.5, 1.2, 0.5), _hit_flash)
 
 
 func _update_hp_bar() -> void:

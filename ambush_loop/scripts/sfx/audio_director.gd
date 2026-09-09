@@ -1,12 +1,13 @@
 extends "res://scripts/sfx/sfx_bus.gd"
 
-## Autoload: pooled SFX + looping procedural bed. Master volume/mute gate both.
+## Autoload: pooled SFX + looping procedural bed. Music/SFX buses; mute gates both.
 ## Bed is a reused looping WAV (not AudioStreamGenerator) so Dummy-driver
 ## headless quit does not leak AudioStreamGeneratorPlayback.
 
 var _music: AudioStreamPlayer
 var _music_stream: AudioStreamWAV
 var _want_music: bool = true
+var _watch_bed: bool = false
 
 
 func _ready() -> void:
@@ -45,12 +46,26 @@ func set_muted(on: bool) -> void:
 	_apply_music_mute()
 
 
+func set_watch_bed(on: bool) -> void:
+	## Quieter looping bed while WATCHING so cues and gunfire read.
+	if _watch_bed == on:
+		return
+	_watch_bed = on
+	_apply_music_gain()
+
+
+func _apply_music_gain() -> void:
+	if _music == null or not is_instance_valid(_music):
+		return
+	_music.volume_db = -18.0 if _watch_bed else -12.0
+
+
 func _on_settings_changed() -> void:
 	var gs = get_node_or_null("/root/GameSettings")
 	if gs:
 		set_muted(bool(gs.muted))
-	else:
-		_apply_music_mute()
+	_apply_music_gain()
+	_apply_music_mute()
 
 
 func _can_play_audio() -> bool:
@@ -99,7 +114,7 @@ func _setup_music() -> void:
 	_music.name = "MusicBed"
 	_music.stream = _music_stream
 	_music.bus = "Music" if AudioServer.get_bus_index("Music") >= 0 else "Master"
-	_music.volume_db = -12.0
+	_apply_music_gain()
 	add_child(_music)
 	if _can_play_audio():
 		_music.play()

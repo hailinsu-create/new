@@ -135,7 +135,6 @@ func _ready() -> void:
 	tool_button.text = "工具: 部署队员"
 	_bind_settings()
 	_load_level(_resolve_start_level(), false, false)
-	_maybe_show_tutorial()
 
 
 func _resolve_optional_hud() -> void:
@@ -278,6 +277,7 @@ func _resolve_optional_hud() -> void:
 		$World.add_child(killzone_draw)
 		$World.move_child(killzone_draw, routes_draw.get_index())
 	_ensure_tripwire_ghost()
+	_setup_world_layers()
 	_ensure_game_camera()
 	if replay_layer == null:
 		replay_layer = Node2D.new()
@@ -370,19 +370,29 @@ func _resolve_start_level() -> String:
 
 
 func _maybe_show_tutorial() -> void:
-	if level == null or level.level_id != "yard":
+	if level == null or tutorial_overlay == null:
+		return
+	if tutorial_overlay.is_open():
 		return
 	var gs = _gs()
-	if gs and gs.seen_tutorial:
+	var lid := level.level_id
+	if gs and gs.has_method("has_seen_tutorial"):
+		if gs.has_seen_tutorial(lid):
+			return
+	elif gs and bool(gs.get("seen_tutorial")):
 		return
-	if tutorial_overlay:
-		tutorial_overlay.present()
+	tutorial_overlay.present(lid)
 
 
 func _on_tutorial_dismissed() -> void:
 	var gs = _gs()
-	if gs:
-		gs.mark_tutorial_seen()
+	if gs == null:
+		return
+	var lid := level.level_id if level else "yard"
+	if gs.has_method("mark_tutorial_seen"):
+		gs.mark_tutorial_seen(lid)
+	else:
+		gs.set("seen_tutorial", true)
 
 
 func _toggle_pause_menu() -> void:
@@ -509,6 +519,39 @@ func _ensure_debrief_buttons() -> void:
 	vbox.add_child(title_return_button)
 
 
+func _setup_world_layers() -> void:
+	## Floor under routes/arcs; entities and FX sit above dimmed authored ink.
+	if map_draw:
+		map_draw.z_index = 0
+	if routes_draw:
+		routes_draw.z_index = 1
+	if covers:
+		covers.z_index = 2
+	if killzone_draw:
+		killzone_draw.z_index = 3
+	if ghosts:
+		ghosts.z_index = 4
+	if entities:
+		entities.z_index = 6
+	if escape_marker:
+		escape_marker.z_index = 7
+
+
+func _apply_watch_layers() -> void:
+	var dim_routes := phase != Phase.SETUP
+	if routes_draw:
+		routes_draw.modulate = Color(1, 1, 1, 0.32) if dim_routes else Color.WHITE
+	if killzone_draw:
+		killzone_draw.modulate = Color.WHITE
+		killzone_draw.visible = phase == Phase.SETUP
+	if entities:
+		entities.modulate = Color.WHITE
+	if ghosts:
+		ghosts.modulate = Color.WHITE
+	if sfx and sfx.has_method("set_watch_bed"):
+		sfx.set_watch_bed(phase == Phase.WATCHING)
+
+
 func _ensure_game_camera() -> void:
 	if _game_cam != null and is_instance_valid(_game_cam):
 		return
@@ -570,6 +613,7 @@ func _load_level(level_id: String, keep_intel: bool, restore_plan: bool) -> void
 	_build_barrels()
 	_start_setup(keep_intel, restore_plan)
 	_save_progress()
+	_maybe_show_tutorial()
 
 
 func _build_route_world() -> void:
@@ -681,9 +725,10 @@ func _make_slot(id: int, text: String, pos: Vector2) -> CoverSlot:
 	var pad := Polygon2D.new()
 	pad.name = "Pad"
 	pad.polygon = PackedVector2Array([
-		Vector2(-14, -14), Vector2(14, -14), Vector2(14, 14), Vector2(-14, 14)
+		Vector2(-13, -10), Vector2(-8, -14), Vector2(8, -14), Vector2(13, -10),
+		Vector2(13, 10), Vector2(8, 14), Vector2(-8, 14), Vector2(-13, 10)
 	])
-	pad.color = Color(0.25, 0.45, 0.35, 0.35)
+	pad.color = Color(0.30, 0.38, 0.24, 0.92)
 	s.add_child(pad)
 	var tag := Label.new()
 	tag.name = "Tag"
@@ -691,9 +736,11 @@ func _make_slot(id: int, text: String, pos: Vector2) -> CoverSlot:
 	tag.position = Vector2(-40, 16)
 	tag.add_theme_font_size_override("font_size", 11)
 	tag.add_theme_color_override("font_color", Color(0.65, 0.85, 0.7))
+	tag.z_index = 2
 	s.add_child(tag)
 	s.setup(id, text, 0.0)
-	s.z_index = 1
+	s.z_index = 0
+	s.z_as_relative = true
 	return s
 
 
@@ -725,10 +772,14 @@ func _make_operator(id: int, pname: String) -> OperatorUnit:
 	var op := OperatorUnit.new()
 	op.op_id = id
 	op.display_name = pname
+	var outline := Polygon2D.new()
+	outline.name = "BodyOutline"
+	outline.color = Color(0.08, 0.14, 0.18, 0.95)
+	op.add_child(outline)
 	var body := Polygon2D.new()
 	body.name = "Body"
 	body.polygon = PackedVector2Array([
-		Vector2(0, -11), Vector2(8, 9), Vector2(-8, 9)
+		Vector2(0, -13), Vector2(9, 10), Vector2(-9, 10)
 	])
 	body.color = Color(0.35, 0.65, 0.95)
 	op.add_child(body)
@@ -1704,10 +1755,14 @@ func _spawn_one(spec: Dictionary) -> void:
 
 func _make_enemy(id: int) -> EnemyRunner:
 	var e := EnemyRunner.new()
+	var outline := Polygon2D.new()
+	outline.name = "BodyOutline"
+	outline.color = Color(0.18, 0.04, 0.04, 0.95)
+	e.add_child(outline)
 	var body := Polygon2D.new()
 	body.name = "Body"
-	body.polygon = PackedVector2Array([Vector2(0, -10), Vector2(9, 8), Vector2(-9, 8)])
-	body.color = Color(0.75, 0.22, 0.2)
+	body.polygon = PackedVector2Array([Vector2(0, -13), Vector2(9, 0), Vector2(0, 11), Vector2(-9, 0)])
+	body.color = Color(0.82, 0.16, 0.14)
 	e.add_child(body)
 	var tag := Label.new()
 	tag.name = "Tag"
@@ -2171,14 +2226,12 @@ func _show_fail_result() -> void:
 	_dock_fail_result_panel(fail_reason == "escape")
 	var lines := battle_log.summary_lines(10)
 	var summary := "\n".join(lines)
-	var reason_zh: String = str({
-		"escape": "逃逸",
-		"wipe": "全灭",
-		"abort": "中止",
-	}.get(fail_reason, fail_reason))
-	result_label.text = "第 %d 世失败（%s）。\n穿梭后恢复上轮计划，满血满弹。\n%s\n\n—— 事件摘要（点击右侧日志定位）——\n%s" % [
+	var reason_zh: String = BattleLog.reason_zh(fail_reason)
+	var epitaph := battle_log.terminal_summary_line()
+	result_label.text = "第 %d 世失败（%s）。\n%s\n穿梭后恢复上轮计划，满血满弹。\n%s\n\n—— 事件摘要（点击右侧日志定位）——\n%s" % [
 		loop_index,
 		reason_zh,
+		epitaph,
 		"逃逸口已在地图上闪烁。" if fail_reason == "escape" else "",
 		summary,
 	]
@@ -2206,14 +2259,15 @@ func _show_win_result() -> void:
 		title_return_button.visible = true
 	var lines := battle_log.summary_lines(5)
 	var has_next := level_index + 1 < LEVEL_ORDER.size()
+	var epitaph := battle_log.terminal_summary_line()
 	if has_next:
-		result_label.text = "任务完成。\n本关用了 %d 世。\n\n—— 关键事件 ——\n%s" % [
-			loop_index, "\n".join(lines)
+		result_label.text = "任务完成。\n本关用了 %d 世。\n%s\n\n—— 关键事件 ——\n%s" % [
+			loop_index, epitaph, "\n".join(lines)
 		]
 		continue_button.text = "下一关"
 	else:
-		result_label.text = "全部关卡封锁完成。\n本关用了 %d 世。\n\n—— 关键事件 ——\n%s" % [
-			loop_index, "\n".join(lines)
+		result_label.text = "全部关卡封锁完成。\n本关用了 %d 世。\n%s\n\n—— 关键事件 ——\n%s" % [
+			loop_index, epitaph, "\n".join(lines)
 		]
 		continue_button.text = "查看致谢"
 		_campaign_complete = true
@@ -2414,10 +2468,11 @@ func _redraw_ghosts() -> void:
 		ghosts.add_child(line)
 		if path.size() > 0:
 			var tag := Label.new()
-			tag.text = "第%d世 · %.1fs · %s" % [int(rec["loop"]), float(rec["cut_sec"]), str(rec["reason"])]
+			var reason_zh := BattleLog.reason_zh(str(rec["reason"]))
+			tag.text = "第%d世 · %.1fs · %s" % [int(rec["loop"]), float(rec["cut_sec"]), reason_zh]
 			tag.position = path[mini(path.size() - 1, path.size() / 2)] + Vector2(6, -18)
 			tag.add_theme_font_size_override("font_size", 11)
-			tag.add_theme_color_override("font_color", Color(0.55, 0.85, 1.0, 0.85))
+			tag.add_theme_color_override("font_color", Color(0.55, 0.85, 1.0, 0.92))
 			ghosts.add_child(tag)
 		gi += 1
 
@@ -2715,6 +2770,7 @@ func _update_hud() -> void:
 	_update_observation_rings()
 	if phase != Phase.SETUP:
 		_update_cover_previews()
+	_apply_watch_layers()
 
 
 func _update_cover_previews() -> void:

@@ -24,13 +24,16 @@ func _draw() -> void:
 			])
 			draw_colored_polygon(pts, Color(0.62, 0.74, 0.38))
 			draw_rect(Rect2(c.x - 6, c.y - 1, 12, 2.5), Color(0.18, 0.20, 0.12, 0.85))
+			draw_polyline(pts + PackedVector2Array([pts[0]]), Color(0.12, 0.16, 0.08, 0.9), 1.2, true)
 		2:
 			pts = PackedVector2Array([
 				c + Vector2(0, -8), c + Vector2(7, 0), c + Vector2(0, 8), c + Vector2(-7, 0)
 			])
 			draw_colored_polygon(pts, Color(0.42, 0.78, 0.92))
+			draw_polyline(pts + PackedVector2Array([pts[0]]), Color(0.10, 0.22, 0.28, 0.9), 1.2, true)
 		_:
 			pts = PackedVector2Array([
 				c + Vector2(0, -8), c + Vector2(7, 7), c + Vector2(-7, 7)
 			])
 			draw_colored_polygon(pts, Color(0.42, 0.72, 0.96))
+			draw_polyline(pts + PackedVector2Array([pts[0]]), Color(0.08, 0.16, 0.28, 0.9), 1.2, true)

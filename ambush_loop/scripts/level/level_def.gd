@@ -39,7 +39,7 @@ static func make_yard() -> LevelDef:
 	var l := LevelDef.new()
 	l.level_id = "yard"
 	l.title = "第1关 · 院子：交叉封锁"
-	l.teaching = "步枪补漏、机枪扫面、侦察锁线。主路和侧翼都要有射界；青色扇形朝向才有掩体减免，侧背无减免。"
+	l.teaching = "步枪补漏主路、机枪宽锥扫面、侦察长窄锁出口。主路和侧翼都要有射界；青色扇形朝向才有掩体减免，侧背无减免。三角=友军，菱形=敌军。"
 	l.tutorial = "左上角色卡或 1/2/3 选步枪手/机枪手/侦察兵。点掩体部署；青色扇形=掩体保护方向（该方向来袭减伤 60%，侧背全伤）。黄锥是墙体裁切后的真实射界。侦察兵部署后有淡青「观察环」（仅准备期，不透视战斗）。A/D 或右键调朝向，空格拉警报。X 中止尝试并保留情报；失败后可开时间轴复盘。M 静音。跑掉或全灭都会穿梭并恢复上轮计划。"
 	l.escape_cell = Vector2i(31, 19)
 	# All covers on open cells (yard crates leave spine / lanes free).
@@ -76,7 +76,7 @@ static func make_warehouse() -> LevelDef:
 	var l := LevelDef.new()
 	l.level_id = "warehouse"
 	l.title = "第2关 · 仓道：弹药窗口"
-	l.teaching = "入伏再打与稀缺补给：过早开火会空弹。东廊橙色油桶在敌人靠近时自动引爆（伤及友军），不能在执行中点击引爆。"
+	l.teaching = "F 入伏再打、G 弹包给最容易空的人；过早开火会空弹漏人。东廊橙色油桶在敌人靠近时自动引爆（伤及友军），不能在执行中点击引爆。"
 	l.tutorial = "G 把「备用弹包」交给一名已部署队员（空弹自动补一次，本轮不能转交）。F 切「入伏再打」，等敌人进入黄色伏击区再开火。东廊格子上的橙色「油桶」是关卡预置：敌人踩近才炸，准备期只能预览爆心，注意别把队员放进爆破圈。角色射界与青弧保护方向仍决定谁能活。X 中止保留情报；时间轴复盘只读。M 静音。"
 	# East flank corridor — away from reference slots 1/3/5 so smoke stays a skill check.
 	l.barrel_cell = Vector2i(32, 10)
@@ -115,7 +115,7 @@ static func make_pump() -> LevelDef:
 	var l := LevelDef.new()
 	l.level_id = "pump"
 	l.title = "第3关 · 泵站：关门之后"
-	l.teaching = "锁门会改写侧翼接近方向，不是稳赢按钮。关门后从新方向接近，要重布保护弧与侦察锁线。"
+	l.teaching = "B 锁门会改写侧翼接近，不是稳赢按钮。关门后从西侧备用接近绕来，要重布保护弧与侦察锁线；侧背没罩住就是全伤。"
 	l.tutorial = "B 切换锁门。锁门后东廊关闭，侧翼改走作者写好的紫色备用接近——敌人不会自由寻路。注意侧背：青弧没罩住的方向是全伤。机枪侧背更危险；侦察适合锁出口（准备期可见观察环）。X 中止保留情报；时间轴复盘只读。M 静音。"
 	l.escape_cell = Vector2i(31, 19)
 	l.cover_defs = [
