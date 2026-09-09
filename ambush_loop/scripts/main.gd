@@ -503,6 +503,8 @@ func _apply_phone_chrome(on: bool) -> void:
 		extra_bar.visible = not on
 	if help_label:
 		help_label.visible = not on
+	if tut_label:
+		tut_label.visible = not on
 	if event_log:
 		if on:
 			if not _phone_log_inited:
