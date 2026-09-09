@@ -531,6 +531,15 @@ func _assert_atmosphere(main, tag: String) -> bool:
 		push_error("SMOKE_SKY_ID %s got=%s" % [want, sky.get("atmosphere_id")])
 		quit(49)
 		return false
+	var audio = root.get_node_or_null("AudioDirector")
+	if audio == null or not audio.has_method("play_mission_ambient"):
+		push_error("SMOKE_NO_AMBIENT_API %s" % tag)
+		quit(49)
+		return false
+	if not audio.has_method("has_mission_ambient") or not bool(audio.has_mission_ambient(want)):
+		push_error("SMOKE_NO_AMBIENT_CUE %s" % want)
+		quit(49)
+		return false
 	print("SMOKE_OK_ATMO ", want)
 	return true
 
@@ -1518,6 +1527,10 @@ func _assert_props(main) -> bool:
 		push_error("SMOKE_PROPS_CACHE_OR_DECAL")
 		quit(51)
 		return false
+	if not md.has_method("_draw_floor_accent_stripe"):
+		push_error("SMOKE_PROPS_NO_ACCENT")
+		quit(51)
+		return false
 	var sig := str(md._cache_signature())
 	if sig.find("yard") < 0:
 		push_error("SMOKE_PROPS_SIG_LAYOUT %s" % sig)
@@ -1542,6 +1555,16 @@ func _assert_props(main) -> bool:
 	var sky_src := FileAccess.get_file_as_string("res://scripts/fx/mission_sky.gd")
 	if sky_src.find("Steam wisps") < 0 or sky_src.find("sodium") < 0 or sky_src.find("underglow") < 0:
 		push_error("SMOKE_PROPS_SKY")
+		quit(51)
+		return false
+	if (
+		sky_src.find("Window flicker") < 0
+		or sky_src.find("flickering sodium") < 0
+		or sky_src.find("steam puff") < 0
+		or sky_src.find("gauge blink") < 0
+		or sky_src.find("_draw_contrast_wash") < 0
+	):
+		push_error("SMOKE_PROPS_SKY_MOTION")
 		quit(51)
 		return false
 	if md.z_index > 1:

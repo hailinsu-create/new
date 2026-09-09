@@ -165,6 +165,7 @@ func _draw_static_into(c: CanvasItem) -> void:
 			else:
 				_draw_floor_tile(c, rect, x, y)
 	_draw_static_landmarks(c)
+	_draw_floor_accent_stripe(c)
 
 
 func _atmo() -> String:
@@ -471,6 +472,24 @@ func _draw_escape_mouth(erect: Rect2) -> void:
 	else:
 		draw_rect(erect, Color(0.42, 0.72, 0.16, 0.22 + 0.10 * breathe))
 		draw_rect(erect, Color(0.92, 0.88, 0.32, 0.70 + 0.18 * breathe), false, 2.2)
+
+
+func _draw_floor_accent_stripe(c: CanvasItem) -> void:
+	## Cached per-mission floor color stripe. Overlay only — never writes grid.blocked.
+	var t := AmbushGrid.TILE
+	match _atmo():
+		"warehouse":
+			c.draw_rect(Rect2(10.0 * t, 16.85 * t, 22.0 * t, 6.0), Color(0.78, 0.48, 0.10, 0.10))
+		"pump":
+			c.draw_rect(Rect2(7.0 * t, 14.75 * t, 20.0 * t, 5.0), Color(0.12, 0.42, 0.36, 0.10))
+		"railcut":
+			c.draw_rect(Rect2(12.0 * t, 5.28 * t, 3.0 * t, 7.0), Color(0.42, 0.55, 0.68, 0.11))
+			c.draw_rect(Rect2(31.0 * t, 5.28 * t, 3.0 * t, 7.0), Color(0.42, 0.55, 0.68, 0.11))
+		"depot":
+			c.draw_rect(Rect2(14.0 * t, 14.15 * t, 14.0 * t, 6.0), Color(0.78, 0.34, 0.08, 0.11))
+		_:
+			c.draw_rect(Rect2(22.0 * t, 4.55 * t, 14.0 * t, 5.0), Color(0.62, 0.78, 0.52, 0.08))
+			c.draw_rect(Rect2(8.0 * t, 16.35 * t, 18.0 * t, 4.0), Color(0.16, 0.26, 0.16, 0.07))
 
 
 func _draw_static_landmarks(c: CanvasItem) -> void:

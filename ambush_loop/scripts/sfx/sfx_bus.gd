@@ -5,7 +5,8 @@ extends Node
 
 const MIX_RATE := 22050
 const CUES := [
-	"alarm", "fire", "return_fire", "empty", "loot", "op_death", "escape", "win", "door"
+	"alarm", "fire", "return_fire", "empty", "loot", "op_death", "escape", "win", "door",
+	"ambient_yard", "ambient_warehouse", "ambient_pump", "ambient_railcut", "ambient_depot"
 ]
 
 var muted: bool = false
@@ -76,6 +77,22 @@ func has_cue(cue: String) -> bool:
 	return _players.has(cue) and _players[cue] != null
 
 
+func ambient_cue_id(level_id: String) -> String:
+	match str(level_id):
+		"warehouse", "pump", "railcut", "depot":
+			return "ambient_%s" % level_id
+		_:
+			return "ambient_yard"
+
+
+func has_mission_ambient(level_id: String) -> bool:
+	return has_cue(ambient_cue_id(level_id))
+
+
+func play_mission_ambient(level_id: String) -> void:
+	play(ambient_cue_id(level_id))
+
+
 func _sfx_bus_name() -> String:
 	return "SFX" if AudioServer.get_bus_index("SFX") >= 0 else "Master"
 
@@ -100,6 +117,16 @@ func _gain(cue: String) -> float:
 			return -16.0
 		"door":
 			return -13.0
+		"ambient_yard":
+			return -28.0
+		"ambient_warehouse":
+			return -24.0
+		"ambient_pump":
+			return -26.0
+		"ambient_railcut":
+			return -24.0
+		"ambient_depot":
+			return -25.0
 		_:
 			return -15.0
 
@@ -124,6 +151,16 @@ func _build_stream(cue: String) -> AudioStreamWAV:
 			return _pcm(_win())
 		"door":
 			return _pcm(_door())
+		"ambient_yard":
+			return _pcm(_ambient_yard())
+		"ambient_warehouse":
+			return _pcm(_ambient_warehouse())
+		"ambient_pump":
+			return _pcm(_ambient_pump())
+		"ambient_railcut":
+			return _pcm(_ambient_railcut())
+		"ambient_depot":
+			return _pcm(_ambient_depot())
 		_:
 			return _pcm(_crack(800.0, 0.04, 0.1))
 
@@ -247,3 +284,62 @@ func _door() -> PackedFloat32Array:
 		_silence(0.02),
 		_tone(140.0, 0.06, 0.14, 0.06),
 	])
+
+
+func _rumble(sec: float, amp: float, freq: float) -> PackedFloat32Array:
+	var n := maxi(int(sec * MIX_RATE), 1)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var acc := 0.0
+	var phase := 0.0
+	var step := TAU * freq / float(MIX_RATE)
+	for i in n:
+		acc = acc * 0.96 + (randf() * 2.0 - 1.0) * 0.04
+		phase += step
+		out[i] = (acc * 3.2 + sin(phase) * 0.45) * amp * _env(i, n)
+	return out
+
+
+func _ambient_yard() -> PackedFloat32Array:
+	## Distant dog + cricket ticks. Very quiet bed sting.
+	return _concat([
+		_tone(4100.0, 0.028, 0.05, 0.03),
+		_silence(0.09),
+		_tone(3650.0, 0.022, 0.04, 0.02),
+		_silence(0.16),
+		_tone(150.0, 0.08, 0.06, 0.04),
+		_silence(0.10),
+		_tone(4300.0, 0.018, 0.035, 0.02),
+	])
+
+
+func _ambient_warehouse() -> PackedFloat32Array:
+	## Metal creak — slow down-sweep with grit.
+	return _concat([
+		_blip(240.0, 128.0, 0.22, 0.10),
+		_tone(90.0, 0.12, 0.05, 0.08),
+	])
+
+
+func _ambient_pump() -> PackedFloat32Array:
+	## Low electrical hum.
+	return _concat([
+		_tone(58.0, 0.42, 0.07, 0.015),
+		_tone(116.0, 0.28, 0.035, 0.01),
+	])
+
+
+func _ambient_railcut() -> PackedFloat32Array:
+	## Distant train wheel click.
+	return _concat([
+		_tone(210.0, 0.035, 0.10, 0.06),
+		_silence(0.07),
+		_tone(180.0, 0.03, 0.08, 0.05),
+		_silence(0.11),
+		_tone(195.0, 0.028, 0.07, 0.04),
+	])
+
+
+func _ambient_depot() -> PackedFloat32Array:
+	## Diesel idle rumble.
+	return _rumble(0.48, 0.09, 36.0)

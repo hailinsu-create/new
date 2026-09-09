@@ -1124,6 +1124,7 @@ func _load_level(level_id: String, keep_intel: bool, restore_plan: bool) -> void
 		map_draw.invalidate_static_cache()
 	map_draw.queue_redraw()
 	_ensure_mission_sky()
+	_play_mission_ambient()
 	_build_route_world()
 	_build_cover_slots()
 	_build_operators()
@@ -1148,6 +1149,13 @@ func _ensure_mission_sky() -> void:
 			$World.move_child(mission_sky, mini(map_draw.get_index() + 1, $World.get_child_count() - 1))
 	if mission_sky.has_method("setup"):
 		mission_sky.setup(level.atmosphere_id if level and level.atmosphere_id != "" else (level.level_id if level else "yard"))
+
+
+func _play_mission_ambient() -> void:
+	if sfx == null or level == null:
+		return
+	if sfx.has_method("play_mission_ambient"):
+		sfx.play_mission_ambient(level.level_id)
 
 
 func _build_route_world() -> void:
