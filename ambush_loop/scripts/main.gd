@@ -157,6 +157,8 @@ var _event_log_open: bool = false
 var _cam_pan: Vector2 = Vector2.ZERO
 var _cam_zoom: float = 1.0
 var _cam_punch: Vector2 = Vector2.ZERO
+var _cam_zoom_punch: float = 1.0
+var _stinger_tween: Tween = null
 var _touches: Dictionary = {}
 var _facing_touch: int = -1
 var _pinch_start_dist: float = 0.0
@@ -1032,7 +1034,8 @@ func _apply_cam() -> void:
 	var max_pan := 220.0 * _cam_zoom
 	_cam_pan.x = clampf(_cam_pan.x, -max_pan, max_pan)
 	_cam_pan.y = clampf(_cam_pan.y, -max_pan, max_pan)
-	_game_cam.zoom = Vector2(_cam_zoom, _cam_zoom)
+	var z := _cam_zoom * _cam_zoom_punch
+	_game_cam.zoom = Vector2(z, z)
 	_game_cam.offset = _cam_pan + _cam_punch
 
 
@@ -1040,6 +1043,10 @@ func _reset_cam_view() -> void:
 	_cam_pan = Vector2.ZERO
 	_cam_zoom = 1.0
 	_cam_punch = Vector2.ZERO
+	_cam_zoom_punch = 1.0
+	if _stinger_tween != null:
+		_stinger_tween.kill()
+		_stinger_tween = null
 	_apply_cam()
 
 
@@ -1141,6 +1148,27 @@ func _alarm_edge_flash() -> void:
 	_siren_phase_chip()
 	if not saving:
 		_camera_punch(Vector2(8, -5))
+
+
+func _alarm_cam_stinger() -> void:
+	## SETUP→WATCHING lock: 0.25s zoom punch + cue. 省电 skips (rim flash remains).
+	if _is_power_saving():
+		return
+	_sfx("alarm_stinger")
+	_ensure_game_camera()
+	if _stinger_tween != null:
+		_stinger_tween.kill()
+	_cam_zoom_punch = 1.0
+	_apply_cam()
+	_stinger_tween = create_tween()
+	_stinger_tween.tween_method(func(z: float) -> void:
+		_cam_zoom_punch = z
+		_apply_cam()
+	, 1.0, 1.04, 0.08).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_stinger_tween.tween_method(func(z: float) -> void:
+		_cam_zoom_punch = z
+		_apply_cam()
+	, 1.04, 1.0, 0.17).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 
 
 func _kill_edge_flash() -> void:
@@ -3010,6 +3038,7 @@ func _on_alarm_pressed() -> void:
 	_watch_first_return = false
 	_sfx("alarm")
 	_alarm_edge_flash()
+	_alarm_cam_stinger()
 	_update_observation_rings()
 	alarm_button.disabled = true
 	clear_button.disabled = true

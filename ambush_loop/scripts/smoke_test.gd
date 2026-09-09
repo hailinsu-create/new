@@ -51,6 +51,8 @@ func _run() -> void:
 		return
 	if not _assert_watch_juice(main):
 		return
+	if not _assert_alarm_stinger(main):
+		return
 	if not _assert_perf_tier(main):
 		return
 	if not _assert_readability(main):
@@ -1563,6 +1565,55 @@ func _assert_watch_juice(main) -> bool:
 		quit(53)
 		return false
 	print("SMOKE_OK_WATCH_JUICE tracer_pool timeline chip cone_freeze hp_bar")
+	return true
+
+
+func _assert_alarm_stinger(main) -> bool:
+	if main.sfx == null or not main.sfx.has_cue("alarm_stinger"):
+		push_error("SMOKE_NO_ALARM_STINGER_CUE")
+		quit(57)
+		return false
+	if not main.has_method("_alarm_cam_stinger"):
+		push_error("SMOKE_NO_ALARM_STINGER_API")
+		quit(57)
+		return false
+	var gs = root.get_node_or_null("GameSettings")
+	if gs and gs.has_method("set_quality_tier"):
+		gs.set_quality_tier("standard")
+	main._alarm_cam_stinger()
+	if str(main.sfx.last_cue) != "alarm_stinger":
+		push_error("SMOKE_STINGER_NO_PLAY cue=%s" % main.sfx.last_cue)
+		quit(57)
+		return false
+	if main._stinger_tween == null or not is_instance_valid(main._stinger_tween):
+		push_error("SMOKE_STINGER_NO_TWEEN")
+		quit(57)
+		return false
+	if main._game_cam == null:
+		push_error("SMOKE_STINGER_NO_CAM")
+		quit(57)
+		return false
+	if gs and gs.has_method("set_quality_tier"):
+		gs.set_quality_tier("power_saving")
+		main.sfx.last_cue = ""
+		if main._stinger_tween != null:
+			main._stinger_tween.kill()
+			main._stinger_tween = null
+		main._cam_zoom_punch = 1.0
+		main._apply_cam()
+		main._alarm_cam_stinger()
+		if str(main.sfx.last_cue) == "alarm_stinger":
+			push_error("SMOKE_STINGER_IN_POWER_SAVE")
+			quit(57)
+			return false
+		if main._stinger_tween != null and is_instance_valid(main._stinger_tween):
+			push_error("SMOKE_STINGER_TWEEN_IN_POWER_SAVE")
+			quit(57)
+			return false
+		gs.set_quality_tier("standard")
+		main._cam_zoom_punch = 1.0
+		main._apply_cam()
+	print("SMOKE_OK_STINGER cue=alarm_stinger")
 	return true
 
 
