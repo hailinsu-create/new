@@ -27,6 +27,7 @@ func _ready() -> void:
 func _build() -> void:
 	var root := Control.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# Full-rect host must ignore picks; only the command buttons take taps.
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
 

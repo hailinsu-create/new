@@ -57,8 +57,9 @@ var barrel_hint: Node2D = null
 var trap_callout: Node2D = null
 var _trap_callout_tween: Tween = null
 var spawn_teach_label: Label = null
-var checklist_strip: VBoxContainer = null
+var checklist_strip: Control = null
 var _checklist_labels: Array[Label] = []
+var _checklist_touch_layout: bool = false
 var _door_taught: bool = false
 var _decision_pulse_tween: Tween = null
 var leak_advice_shown: String = ""
@@ -604,8 +605,8 @@ func _apply_phone_chrome(on: bool) -> void:
 			root.offset_bottom = -pad.w - 150.0
 		else:
 			root.offset_bottom = -pad.w
-	if role_box and on:
-		role_box.offset_bottom = 480.0
+	if role_box:
+		role_box.offset_bottom = 480.0 if on else 430.0
 	if plan_readout:
 		plan_readout.visible = not on
 	if route_legend:
@@ -617,6 +618,7 @@ func _apply_phone_chrome(on: bool) -> void:
 	for card in role_cards:
 		if card is Control:
 			(card as Control).custom_minimum_size = Vector2(220, 128) if on else Vector2(210, 122)
+	_layout_checklist()
 
 
 func _safe_area_pad() -> Vector4:
@@ -1685,20 +1687,13 @@ func _ensure_checklist(root: Control = null) -> void:
 		host = get_node_or_null("HUD/Root") as Control
 	if host == null:
 		return
-	var box := VBoxContainer.new()
+	var box := BoxContainer.new()
 	box.name = "SetupChecklist"
+	box.vertical = true
 	box.add_theme_constant_override("separation", 4)
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if role_box != null and is_instance_valid(role_box):
-		role_box.add_child(box)
-	else:
-		box.set_anchors_preset(Control.PRESET_TOP_LEFT)
-		box.offset_left = 10.0
-		box.offset_top = 438.0
-		box.offset_right = 214.0
-		box.offset_bottom = 530.0
-		host.add_child(box)
+	box.size_flags_horizontal = Control.SIZE_SHRINK_END
+	host.add_child(box)
 	checklist_strip = box
 	_checklist_labels.clear()
 	var titles := ["已部署≥1", "射界覆盖主路", "侧路有火力"]
@@ -1713,6 +1708,73 @@ func _ensure_checklist(root: Control = null) -> void:
 		lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		box.add_child(lab)
 		_checklist_labels.append(lab)
+	_layout_checklist()
+
+
+func _checklist_use_touch_layout() -> bool:
+	return _want_touch()
+
+
+func _layout_checklist() -> void:
+	if checklist_strip == null or not is_instance_valid(checklist_strip):
+		return
+	var host := get_node_or_null("HUD/Root") as Control
+	if host != null and checklist_strip.get_parent() != host:
+		checklist_strip.get_parent().remove_child(checklist_strip)
+		host.add_child(checklist_strip)
+	checklist_strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for lab in _checklist_labels:
+		if lab:
+			lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var pad := _safe_area_pad()
+	var compact := _checklist_use_touch_layout()
+	_checklist_touch_layout = compact
+	var box := checklist_strip as BoxContainer
+	if compact:
+		if box:
+			box.vertical = false
+			box.alignment = BoxContainer.ALIGNMENT_END
+			box.add_theme_constant_override("separation", 10)
+		checklist_strip.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		checklist_strip.anchor_left = 1.0
+		checklist_strip.anchor_top = 0.0
+		checklist_strip.anchor_right = 1.0
+		checklist_strip.anchor_bottom = 0.0
+		# Below phase chip (10–36). DisplayServer safe-area on the strip itself.
+		checklist_strip.offset_left = -460.0
+		checklist_strip.offset_top = 38.0 + maxf(0.0, pad.y - 4.0)
+		checklist_strip.offset_right = -maxf(8.0, pad.z)
+		checklist_strip.offset_bottom = 72.0 + maxf(0.0, pad.y - 4.0)
+		checklist_strip.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+		checklist_strip.grow_vertical = Control.GROW_DIRECTION_END
+	else:
+		if box:
+			box.vertical = true
+			box.alignment = BoxContainer.ALIGNMENT_BEGIN
+			box.add_theme_constant_override("separation", 4)
+		checklist_strip.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		checklist_strip.anchor_left = 0.0
+		checklist_strip.anchor_top = 0.0
+		checklist_strip.anchor_right = 0.0
+		checklist_strip.anchor_bottom = 0.0
+		var top := 438.0
+		if role_box != null and is_instance_valid(role_box):
+			top = role_box.offset_bottom + 4.0
+		var vis_h := get_viewport().get_visible_rect().size.y
+		var parent_h := vis_h
+		if host:
+			parent_h = vis_h - host.offset_top + host.offset_bottom
+		# ExtraBar sits ~92px above the bottom; keep chips clear of it.
+		var max_bottom := parent_h - 100.0 - pad.w
+		checklist_strip.offset_left = 10.0 + maxf(0.0, pad.x - 8.0)
+		checklist_strip.offset_top = top
+		checklist_strip.offset_right = 214.0
+		checklist_strip.offset_bottom = minf(top + 96.0, max_bottom)
+		if checklist_strip.offset_bottom < checklist_strip.offset_top + 36.0:
+			checklist_strip.offset_top = maxf(78.0, max_bottom - 96.0)
+			checklist_strip.offset_bottom = max_bottom
+		checklist_strip.grow_horizontal = Control.GROW_DIRECTION_END
+		checklist_strip.grow_vertical = Control.GROW_DIRECTION_END
 
 
 func _side_route_key() -> String:
@@ -1752,6 +1814,7 @@ func _plan_covers_route(route_name: String) -> bool:
 
 func _refresh_checklist() -> void:
 	_ensure_checklist()
+	_layout_checklist()
 	if checklist_strip == null:
 		return
 	var show := phase == Phase.SETUP and level != null
@@ -1762,16 +1825,18 @@ func _refresh_checklist() -> void:
 	var main_ok := _plan_covers_route("main")
 	var side_key := _side_route_key()
 	var side_ok := side_key != "" and _plan_covers_route(side_key)
-	_paint_check_chip(_checklist_labels[0], "已部署≥1", deployed, deployed)
-	_paint_check_chip(_checklist_labels[1], "射界覆盖主路", main_ok, deployed)
-	_paint_check_chip(_checklist_labels[2], "侧路有火力", side_ok, deployed)
+	var compact := _checklist_use_touch_layout()
+	_paint_check_chip(_checklist_labels[0], "部署" if compact else "已部署≥1", deployed, deployed)
+	_paint_check_chip(_checklist_labels[1], "主路" if compact else "射界覆盖主路", main_ok, deployed)
+	_paint_check_chip(_checklist_labels[2], "侧路" if compact else "侧路有火力", side_ok, deployed)
 
 
 func _paint_check_chip(lab: Label, title: String, ok: bool, started: bool) -> void:
 	if lab == null:
 		return
 	var mark := "✓" if ok else ("·" if started else "○")
-	lab.text = "%s  %s" % [mark, title]
+	lab.text = "%s%s" % [mark, title] if _checklist_use_touch_layout() else "%s  %s" % [mark, title]
+	lab.add_theme_font_size_override("font_size", 14 if _checklist_use_touch_layout() else 13)
 	var col := Color(0.42, 0.78, 0.40)
 	if ok:
 		col = Color(0.42, 0.78, 0.40)

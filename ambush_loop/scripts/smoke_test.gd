@@ -61,7 +61,7 @@ func _run() -> void:
 		return
 	if not _assert_teaching(main):
 		return
-	if not _assert_checklist(main):
+	if not await _assert_checklist(main):
 		return
 	print("LEVEL=", main.level.level_id)
 
@@ -1736,6 +1736,65 @@ func _assert_checklist(main) -> bool:
 		push_error("SMOKE_NO_LEAK_TICK_API")
 		quit(56)
 		return false
+	var gs = root.get_node_or_null("GameSettings")
+	if gs == null:
+		push_error("SMOKE_NO_GS_CHECKLIST")
+		quit(56)
+		return false
+	var prev_touch: bool = bool(gs.force_touch_hud)
+	gs.force_touch_hud = true
+	main._ensure_touch_hud()
+	if main.has_method("_layout_checklist"):
+		main._layout_checklist()
+	elif main.has_method("_refresh_checklist"):
+		main._refresh_checklist()
+	await process_frame
+	await process_frame
+	var strip = main.checklist_strip
+	if strip == null or not is_instance_valid(strip):
+		push_error("SMOKE_CHECKLIST_GONE_TOUCH")
+		quit(56)
+		return false
+	if int(strip.mouse_filter) != int(Control.MOUSE_FILTER_IGNORE):
+		push_error("SMOKE_CHECKLIST_STEALS_TAPS filter=%s" % strip.mouse_filter)
+		quit(56)
+		return false
+	var vp_h: float = main.get_viewport().get_visible_rect().size.y
+	var top_anchored := is_equal_approx(float(strip.anchor_top), 0.0) and float(strip.anchor_bottom) < 0.5
+	var above_bar := float(strip.global_position.y) < vp_h - 160.0
+	var near_top := float(strip.offset_top) < 90.0 and float(strip.anchor_left) >= 0.99
+	if not above_bar and not top_anchored:
+		push_error(
+			"SMOKE_CHECKLIST_TOUCH_OVERLAP y=%s vp=%s top=%s bot=%s"
+			% [strip.global_position.y, vp_h, strip.anchor_top, strip.anchor_bottom]
+		)
+		quit(56)
+		return false
+	if not near_top:
+		push_error(
+			"SMOKE_CHECKLIST_NOT_TOP_RIGHT off_top=%s anchor_left=%s y=%s"
+			% [strip.offset_top, strip.anchor_left, strip.global_position.y]
+		)
+		quit(56)
+		return false
+	var box := strip as BoxContainer
+	if box != null and bool(box.vertical):
+		push_error("SMOKE_CHECKLIST_STILL_VBOX")
+		quit(56)
+		return false
+	var th = main.touch_hud
+	if th != null and th.get_child_count() > 0:
+		var th_root := th.get_child(0) as Control
+		if th_root != null and int(th_root.mouse_filter) != int(Control.MOUSE_FILTER_IGNORE):
+			push_error("SMOKE_TOUCHHUD_ROOT_FILTER %s" % th_root.mouse_filter)
+			quit(56)
+			return false
+	gs.force_touch_hud = prev_touch
+	main._ensure_touch_hud()
+	if main.has_method("_layout_checklist"):
+		main._layout_checklist()
+	if main.has_method("_refresh_checklist"):
+		main._refresh_checklist()
 	print("SMOKE_OK_CHECKLIST ", txt.replace("\n", " | "))
 	return true
 
