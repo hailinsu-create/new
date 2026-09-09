@@ -4,7 +4,7 @@ extends Node
 
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
 const PROGRESS_PATH := "user://ambush_loop.cfg"
-const LEVEL_ORDER := ["yard", "warehouse", "pump"]
+const LEVEL_ORDER := ["yard", "warehouse", "pump", "railcut"]
 
 signal changed
 

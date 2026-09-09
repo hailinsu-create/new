@@ -44,7 +44,7 @@ func _ready() -> void:
 	tag.add_theme_color_override("font_color", NightOps.OLIVE_DIM)
 	box.add_child(tag)
 	var body := Label.new()
-	body.text = "院子 / 仓道 / 泵站 全部封锁。\n情报已归档。计划锁死过的那些秒，就是这场胜负。\n\n感谢游玩。"
+	body.text = "院子 / 仓道 / 泵站 / 信号楼 全部封锁。\n情报已归档。计划锁死过的那些秒，就是这场胜负。\n\n感谢游玩。"
 	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	body.add_theme_font_size_override("font_size", 16)

@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Vertical-slice smoke: yard escape→restore→win, then warehouse+pump reference wins.
+## Vertical-slice smoke: yard escape→restore→win, warehouse+pump reference wins, then railcut.
 ## Isolates user:// save data so player progress cannot mask failures.
 ## Bypasses title via change_scene_to_file(main.tscn).
 
@@ -331,6 +331,54 @@ func _run() -> void:
 				quit(17)
 				return
 			print("SMOKE_OK pump_locked won tick=", main.sim.tick)
+			if not _assert_level_order(main, 4):
+				return
+			var gs_pump = root.get_node_or_null("GameSettings")
+			if gs_pump == null or not gs_pump.is_level_cleared("pump") or not gs_pump.is_level_unlocked("railcut"):
+				push_error(
+					"SMOKE_RAILCUT_UNLOCK cleared_pump=%s unlocked=%s"
+					% [
+						gs_pump.is_level_cleared("pump") if gs_pump else false,
+						gs_pump.is_level_unlocked("railcut") if gs_pump else false,
+					]
+				)
+				quit(45)
+				return
+			var entries_after: Array = gs_pump.mission_entries()
+			if entries_after.size() != 4 or not bool(entries_after[3]["unlocked"]) or str(entries_after[3]["id"]) != "railcut":
+				push_error("SMOKE_RAILCUT_MISSION_ENTRY %s" % str(entries_after.size()))
+				quit(45)
+				return
+			print("SMOKE_OK_RAILCUT_UNLOCK")
+			main._on_continue_pressed()
+			await process_frame
+			await process_frame
+			if main.level.level_id != "railcut":
+				push_error("SMOKE_BAD_ADVANCE expected=railcut got=%s" % main.level.level_id)
+				quit(45)
+				return
+			if not _assert_save_level("railcut"):
+				return
+			if not _assert_geometry(main, "railcut"):
+				return
+			if not _assert_railcut_contract(main):
+				return
+			# Reference win (documented): rifle 西廊脊 slot1 face 270 (north up west spine),
+			# MG 东廊 slot4 face 270 (north up delayed east corridor), scout 南闸 slot5 face 180 (west).
+			# Core walls block cross-corridor LOS; ignoring the delayed east pair escapes (probe).
+			_deploy_ref(main, [1, 4, 5], [270.0, 270.0, 180.0])
+			main.sim.set_speed(2.0)
+			main._on_alarm_pressed()
+			main.sim.set_speed(2.0)
+			var rc: bool = await _wait_phase(main, main.Phase.WON, 60 * 240)
+			if not rc:
+				push_error(
+					"SMOKE_RAILCUT_FAIL phase=%s reason=%s tick=%s"
+					% [main.phase, main.fail_reason, main.sim.tick]
+				)
+				quit(45)
+				return
+			print("SMOKE_OK railcut won tick=", main.sim.tick)
 			print("SMOKE_SLICE_COMPLETE")
 			quit(0)
 			return
@@ -379,6 +427,110 @@ func _assert_geometry(main, tag: String) -> bool:
 			push_error("SMOKE_GEO_%s %s" % [tag, e])
 		quit(20)
 		return false
+	return true
+
+
+func _assert_level_order(main, n: int) -> bool:
+	var gs = root.get_node_or_null("GameSettings")
+	if gs == null or gs.LEVEL_ORDER.size() != n or main.LEVEL_ORDER.size() != n:
+		push_error(
+			"SMOKE_LEVEL_ORDER_LEN gs=%s main=%s want=%s"
+			% [gs.LEVEL_ORDER.size() if gs else -1, main.LEVEL_ORDER.size(), n]
+		)
+		quit(45)
+		return false
+	if str(gs.LEVEL_ORDER[n - 1]) != "railcut" or str(main.LEVEL_ORDER[n - 1]) != "railcut":
+		push_error("SMOKE_LEVEL_ORDER_LAST gs=%s main=%s" % [gs.LEVEL_ORDER, main.LEVEL_ORDER])
+		quit(45)
+		return false
+	var cat: Array = LevelDef.catalog()
+	if cat.size() != n or str(cat[n - 1].level_id) != "railcut":
+		push_error("SMOKE_CATALOG_LEN %s" % cat.size())
+		quit(45)
+		return false
+	return true
+
+
+func _assert_railcut_contract(main) -> bool:
+	if main.cover_slots.size() != 6:
+		push_error("SMOKE_RAILCUT_COVERS n=%s" % main.cover_slots.size())
+		quit(45)
+		return false
+	if main.level.door_cell.x >= 0:
+		push_error("SMOKE_RAILCUT_HAS_DOOR %s" % str(main.level.door_cell))
+		quit(45)
+		return false
+	if main.door_button != null and main.door_button.visible:
+		push_error("SMOKE_RAILCUT_DOOR_BUTTON")
+		quit(45)
+		return false
+	if not main.level.has_ammo_pack:
+		push_error("SMOKE_RAILCUT_NO_PACK")
+		quit(45)
+		return false
+	if main.barrels.size() != 0 or main.level.barrel_cell.x >= 0:
+		push_error("SMOKE_RAILCUT_BARREL")
+		quit(45)
+		return false
+	if not main.level.route_cells.has("main") or not main.level.route_cells.has("flank"):
+		push_error("SMOKE_RAILCUT_ROUTES")
+		quit(45)
+		return false
+	if main._active_routes().size() != 2:
+		push_error("SMOKE_RAILCUT_ACTIVE_ROUTES n=%s" % main._active_routes().size())
+		quit(45)
+		return false
+	if str(main.level.title).find("信号楼") < 0:
+		push_error("SMOKE_RAILCUT_TITLE %s" % main.level.title)
+		quit(45)
+		return false
+	var pages: Array = TutorialOverlay.pages_for("railcut")
+	if pages.size() != 2:
+		push_error("SMOKE_RAILCUT_TUTORIAL n=%s" % pages.size())
+		quit(45)
+		return false
+	var west: Vector2 = main.grid.cell_to_world_center(Vector2i(13, 12))
+	var east: Vector2 = main.grid.cell_to_world_center(Vector2i(32, 11))
+	if not main._near_any_route_segment(west, main.TRIPWIRE_ROUTE_DIST):
+		push_error("SMOKE_RAILCUT_TRIP_WEST")
+		quit(45)
+		return false
+	if not main._near_any_route_segment(east, main.TRIPWIRE_ROUTE_DIST):
+		push_error("SMOKE_RAILCUT_TRIP_EAST")
+		quit(45)
+		return false
+	if not main.grid.is_blocked(20, 10):
+		push_error("SMOKE_RAILCUT_CORE_OPEN")
+		quit(45)
+		return false
+	if main.grid.is_blocked(13, 12) or main.grid.is_blocked(32, 11):
+		push_error("SMOKE_RAILCUT_CORRIDOR_BLOCKED")
+		quit(45)
+		return false
+	var max_main := 0.0
+	var min_flank := 999.0
+	var flank_n := 0
+	var main_n := 0
+	for spec in main.level.spawn_schedule:
+		var delay := float(spec["delay"])
+		if str(spec["route"]) == "main":
+			main_n += 1
+			max_main = maxf(max_main, delay)
+		elif str(spec["route"]) == "flank":
+			flank_n += 1
+			min_flank = minf(min_flank, delay)
+	if main_n < 1 or flank_n < 1:
+		push_error("SMOKE_RAILCUT_SPAWN_SPLIT main=%s flank=%s" % [main_n, flank_n])
+		quit(45)
+		return false
+	if min_flank < 3.0 or min_flank <= max_main + 1.5:
+		push_error("SMOKE_RAILCUT_FLANK_NOT_DELAYED main_max=%s flank_min=%s" % [max_main, min_flank])
+		quit(45)
+		return false
+	print(
+		"SMOKE_OK_RAILCUT_CONTRACT covers=6 no_door delayed_flank=", min_flank,
+		" trip_west/east"
+	)
 	return true
 
 
@@ -772,11 +924,15 @@ func _assert_launch_bar() -> bool:
 		quit(43)
 		return false
 	var entries: Array = gs.mission_entries()
-	if entries.size() != 3:
+	if entries.size() != 4:
 		push_error("SMOKE_MISSION_COUNT %s" % entries.size())
 		quit(43)
 		return false
-	if not bool(entries[0]["unlocked"]) or bool(entries[1]["unlocked"]) or bool(entries[0]["cleared"]):
+	if str(gs.LEVEL_ORDER[3]) != "railcut" or gs.LEVEL_ORDER.size() != 4:
+		push_error("SMOKE_LEVEL_ORDER %s" % str(gs.LEVEL_ORDER))
+		quit(43)
+		return false
+	if not bool(entries[0]["unlocked"]) or bool(entries[1]["unlocked"]) or bool(entries[3]["unlocked"]) or bool(entries[0]["cleared"]):
 		push_error("SMOKE_MISSION_UNLOCK_FRESH")
 		quit(43)
 		return false
@@ -788,7 +944,7 @@ func _assert_launch_bar() -> bool:
 	root.add_child(inst)
 	await process_frame
 	await process_frame
-	if inst.mission_row_count() != 3:
+	if inst.mission_row_count() != 4:
 		push_error("SMOKE_TITLE_MISSION_ROWS %s" % inst.mission_row_count())
 		inst.free()
 		quit(43)
@@ -804,6 +960,13 @@ func _assert_launch_bar() -> bool:
 	await process_frame
 	if inst.briefing_visible() or inst.pending_mission_id() == "warehouse":
 		push_error("SMOKE_SKIPPED_LOCKED_MISSION")
+		inst.free()
+		quit(43)
+		return false
+	inst._on_mission_picked(3)
+	await process_frame
+	if inst.briefing_visible() or inst.pending_mission_id() == "railcut":
+		push_error("SMOKE_SKIPPED_LOCKED_RAILCUT")
 		inst.free()
 		quit(43)
 		return false

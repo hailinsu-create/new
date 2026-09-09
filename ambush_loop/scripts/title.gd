@@ -10,7 +10,7 @@ const HOWTO := """布置杀局，警报锁死，只能观看。失败穿梭并�
 悬停掩体                预览该位保护弧
 A / D 或右键            调整射界（黄锥被墙裁切）
 F                       开火条件：见敌即打 / 入伏再打
-G                       弹包交给已部署队员（仓道、泵站）
+G                       弹包交给已部署队员（仓道、泵站、信号楼）
 B                       门锁（泵站；侧翼改走备用接近）
 Tab                     绊索工具（路线附近，限额 1）
 空格                    拉响警报并锁死计划 / 观看时暂停 / 退出复盘
@@ -300,7 +300,7 @@ func _build_howto() -> void:
 
 
 func _build_mission_select() -> void:
-	var ui := _modal_panel(20, 560.0, 430.0)
+	var ui := _modal_panel(20, 560.0, 540.0)
 	_mission = ui["root"]
 	_mission_box = ui["box"]
 	var t := Label.new()
@@ -314,10 +314,10 @@ func _build_mission_select() -> void:
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_mission_box.add_child(hint)
 	_mission_btns.clear()
-	for i in 3:
+	for i in GameSettings.LEVEL_ORDER.size():
 		var btn := Button.new()
-		btn.custom_minimum_size = Vector2(500, 72)
-		btn.add_theme_font_size_override("font_size", 16)
+		btn.custom_minimum_size = Vector2(500, 68)
+		btn.add_theme_font_size_override("font_size", 15)
 		btn.clip_text = false
 		var idx := i
 		btn.pressed.connect(func() -> void: _on_mission_picked(idx))

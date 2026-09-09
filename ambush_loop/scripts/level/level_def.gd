@@ -1,7 +1,7 @@
 class_name LevelDef
 extends RefCounted
 
-## In-code level definitions for the 3-mission vertical slice (blueprint §6).
+## In-code level definitions for the authored mission catalog (blueprint §6 + B1).
 
 var level_id: String = "yard"
 var title: String = "院子：交叉封锁"
@@ -25,7 +25,7 @@ var barrel_cell: Vector2i = Vector2i(-1, -1)
 
 
 static func catalog() -> Array:
-	return [make_yard(), make_warehouse(), make_pump()]
+	return [make_yard(), make_warehouse(), make_pump(), make_railcut()]
 
 
 static func by_id(id: String) -> LevelDef:
@@ -150,5 +150,44 @@ static func make_pump() -> LevelDef:
 		{"id": 3, "route": "main", "delay": 1.0, "loot": 0},
 	]
 	l.ambush_zone = Rect2(300, 250, 420, 220)
+	l.has_ammo_pack = true
+	return l
+
+
+static func make_railcut() -> LevelDef:
+	var l := LevelDef.new()
+	l.level_id = "railcut"
+	l.title = "第4关 · 信号楼：双走廊延迟"
+	l.teaching = "西廊先到、东廊延迟。核心墙挡住对向走廊，不能把三人全堆在南闸出口空弹；两条走廊都要有射界。绊索只能铺一条，弹包留给容易空的人。"
+	l.tutorial = "西廊敌人立刻出发，东廊晚几秒才从北过道折下东廊。核心设备挡住东西对射，南闸一个人罩不住两条走廊。机枪适合锁东廊北向等延迟侧翼，步枪补西廊，侦察锁南闸防漏。Tab 绊索只能铺一条走廊；G 弹包一人。没有门。X 中止保留情报；时间轴复盘只读。M 静音。"
+	l.escape_cell = Vector2i(31, 19)
+	# Six slots on open cells: west spine, east corridor, south mouth. No door (pump already teaches B).
+	l.cover_defs = [
+		{"cell": Vector2i(11, 8), "name": "西窗", "face": 0.0, "protect": 180.0},
+		{"cell": Vector2i(13, 12), "name": "西廊脊", "face": 270.0, "protect": 270.0},
+		{"cell": Vector2i(15, 16), "name": "南折", "face": 0.0, "protect": 180.0},
+		{"cell": Vector2i(22, 6), "name": "北过道", "face": 90.0, "protect": 270.0},
+		{"cell": Vector2i(32, 11), "name": "东廊", "face": 270.0, "protect": 270.0},
+		{"cell": Vector2i(29, 17), "name": "南闸", "face": 180.0, "protect": 0.0},
+	]
+	# Main: west spine then south lane to the shared mouth. Flank: north lane then east spine.
+	l.route_cells = {
+		"main": [
+			Vector2i(13, 3), Vector2i(13, 5), Vector2i(13, 9), Vector2i(13, 13),
+			Vector2i(13, 16), Vector2i(24, 17), Vector2i(31, 17), Vector2i(31, 19)
+		],
+		"flank": [
+			Vector2i(13, 3), Vector2i(13, 5), Vector2i(20, 5), Vector2i(28, 5),
+			Vector2i(32, 5), Vector2i(32, 10), Vector2i(32, 15), Vector2i(31, 17), Vector2i(31, 19)
+		],
+	}
+	# Delayed east pair: first wave is west-only; dumping all fire at the mouth empties ammo / misses the east spine.
+	l.spawn_schedule = [
+		{"id": 1, "route": "main", "delay": 0.0, "loot": 1},
+		{"id": 2, "route": "main", "delay": 0.7, "loot": 0},
+		{"id": 3, "route": "flank", "delay": 3.8, "loot": 2},
+		{"id": 4, "route": "flank", "delay": 4.6, "loot": 0},
+	]
+	l.ambush_zone = Rect2(280, 240, 500, 280)
 	l.has_ammo_pack = true
 	return l

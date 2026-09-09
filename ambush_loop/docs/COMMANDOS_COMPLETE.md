@@ -37,4 +37,4 @@ Post-launch roadmap: `docs/开发规划.md`.
 
 `godot --headless --path ambush_loop -s res://scripts/smoke_test.gd` prints `SMOKE_SLICE_COMPLETE` and `SMOKE_OK_LAUNCH_BAR` and exits 0.
 
-Includes: title scene + GameSettings + AudioDirector autoloads; mission list lock; yard escape → restore → 1×/2× fingerprint match → reference win + debrief; warehouse barrel present; pump open + locked alternate route; roles with distinct ranges; LOS clip.
+Includes: title scene + GameSettings + AudioDirector autoloads; mission list lock (4 yards); yard escape → restore → 1×/2× fingerprint match → reference win + debrief; warehouse barrel present; pump open + locked alternate route; railcut geometry + delayed-flank contract + reference win; roles with distinct ranges; LOS clip.

@@ -10,7 +10,7 @@ const MAX_TRIPWIRES := 1
 const TRIPWIRE_ROUTE_DIST := 24.0
 const SNAPSHOT_EVERY := 6
 const PROGRESS_PATH := "user://ambush_loop.cfg"
-const LEVEL_ORDER := ["yard", "warehouse", "pump"]
+const LEVEL_ORDER := ["yard", "warehouse", "pump", "railcut"]
 const SfxBusScript := preload("res://scripts/sfx/sfx_bus.gd")
 
 var grid: AmbushGrid = AmbushGrid.new()

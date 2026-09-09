@@ -46,6 +46,17 @@ const PUMP_STEPS := [
 	},
 ]
 
+const RAILCUT_STEPS := [
+	{
+		"title": "信号楼 1 / 2  ·  双走廊",
+		"body": "西廊与东廊被中间的信号设备隔开，对向射不过去。不要把三人全放在南闸：出口一个人罩不住两条走廊，先到的西廊会把弹药打空。",
+	},
+	{
+		"title": "信号楼 2 / 2  ·  延迟侧翼",
+		"body": "东廊敌人晚几秒才从北过道折下来。机枪适合朝北锁东廊等他们；步枪补西廊；侦察锁南闸防漏。Tab 绊索只能铺一条走廊；G 弹包一人。警报后不能微操。",
+	},
+]
+
 var _open: bool = false
 var _page: int = 0
 var _steps: Array = YARD_STEPS
@@ -132,6 +143,8 @@ static func pages_for(level_id: String) -> Array:
 			return WAREHOUSE_STEPS
 		"pump":
 			return PUMP_STEPS
+		"railcut":
+			return RAILCUT_STEPS
 		_:
 			return YARD_STEPS
 
