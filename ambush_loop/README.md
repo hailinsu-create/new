@@ -4,7 +4,8 @@ Godot 4.7.2 vertical slice — Commandos-style ambush prep + time-loop intel.
 
 Blueprint: `docs/Ambush_Loop_开发蓝图.md`  
 Launch criteria: `docs/LAUNCH_BAR.md`  
-Completeness: `docs/COMMANDOS_COMPLETE.md`
+Completeness: `docs/COMMANDOS_COMPLETE.md`  
+Roadmap: `docs/开发规划.md`
 
 ## Install Godot 4.7.2
 
