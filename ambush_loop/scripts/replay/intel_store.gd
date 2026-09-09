@@ -19,7 +19,8 @@ func add_path(
 	reason: String,
 	hint: String = "",
 	route: String = "",
-	leak_tick: int = -1
+	leak_tick: int = -1,
+	leaker_id: int = -1
 ) -> void:
 	if path.size() < 2:
 		return
@@ -37,6 +38,7 @@ func add_path(
 		"hint": hint,
 		"route": route,
 		"leak_tick": tick,
+		"leaker_id": leaker_id,
 		"summary": summary,
 	})
 	while records.size() > MAX_RECORDS:
@@ -74,15 +76,30 @@ func latest_leak_tick() -> int:
 	return int(records[records.size() - 1].get("leak_tick", -1))
 
 
-func leak_advice_line(spawn_delay_sec: float, route_zh: String) -> String:
-	## Presentation math: how long the leaker walked after their authored spawn.
+func latest_leaker_id() -> int:
+	if records.is_empty():
+		return -1
+	return int(records[records.size() - 1].get("leaker_id", -1))
+
+
+func leak_advice_line(level, route_zh: String) -> String:
+	## Presentation math: how long that leaker walked after their authored spawn.
 	if records.is_empty():
 		return ""
 	var rec: Dictionary = records[records.size() - 1]
 	if str(rec.get("reason", "")) != "escape":
 		return ""
+	var route := str(rec.get("route", ""))
+	var lid := int(rec.get("leaker_id", -1))
+	var spawn_d := 0.0
+	if level != null and lid >= 1 and level.has_method("delay_for_actor"):
+		spawn_d = float(level.delay_for_actor(lid))
+	elif level != null and route != "" and level.has_method("first_route_delay"):
+		spawn_d = float(level.first_route_delay(route))
 	var tick := int(rec.get("leak_tick", -1))
 	var leak_sec := float(tick) / 60.0 if tick >= 0 else float(rec.get("cut_sec", 0.0))
-	var ahead := maxf(0.1, leak_sec - spawn_delay_sec)
+	var ahead := maxf(0.1, leak_sec - spawn_d)
 	var wing := route_zh if route_zh != "" else "侧翼"
+	if lid >= 1:
+		return "建议在 %.1f 秒前加强%s（敌%d）" % [ahead, wing, lid]
 	return "建议在 %.1f 秒前加强%s" % [ahead, wing]

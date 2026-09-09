@@ -1901,8 +1901,7 @@ func _leak_advice_line() -> String:
 	if intel == null or level == null or not intel.has_method("leak_advice_line"):
 		return ""
 	var route := intel.latest_route() if intel.has_method("latest_route") else ""
-	var spawn_d := level.first_route_delay(route) if route != "" else 0.0
-	return str(intel.leak_advice_line(spawn_d, _route_zh_short(route)))
+	return str(intel.leak_advice_line(level, _route_zh_short(route)))
 
 
 func leak_advice_text() -> String:
@@ -3448,7 +3447,7 @@ func _on_enemy_escaped(enemy: EnemyRunner, path: PackedVector2Array) -> void:
 	battle_log.mark_terminal(sim.tick, "escape")
 	for e in enemies:
 		e.active = false
-	_remember_path(path, "escape", hint, enemy.spawn_route)
+	_remember_path(path, "escape", hint, enemy.spawn_route, enemy.label_id)
 	_mission_had_escape = true
 	_flash("逃逸！%s" % hint, Color(1.0, 0.35, 0.25))
 	_sfx("escape")
@@ -3505,8 +3504,8 @@ func _fail_squad_wipe() -> void:
 	pending_result = "fail"
 
 
-func _remember_path(path: PackedVector2Array, reason: String, hint: String = "", route: String = "") -> void:
-	intel.add_path(loop_index, path, sim.time_sec(), reason, hint, route, sim.tick)
+func _remember_path(path: PackedVector2Array, reason: String, hint: String = "", route: String = "", leaker_id: int = -1) -> void:
+	intel.add_path(loop_index, path, sim.time_sec(), reason, hint, route, sim.tick, leaker_id)
 	intel_paths.clear()
 	for rec in intel.records:
 		intel_paths.append(rec["path"])

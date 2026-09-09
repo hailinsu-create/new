@@ -153,7 +153,65 @@ func _run() -> void:
 				push_error("SMOKE_NO_LEAK_ADVICE %s" % (main.leak_advice_text() if main.has_method("leak_advice_text") else "no_api"))
 				quit(56)
 				return
-			print("SMOKE_OK_LEAK_ADVICE ", main.leak_advice_text())
+			if main.intel.records.is_empty():
+				push_error("SMOKE_NO_LEAKER_RECORD")
+				quit(56)
+				return
+			var leak_rec: Dictionary = main.intel.records[main.intel.records.size() - 1]
+			var leaker_id: int = int(leak_rec.get("leaker_id", -1))
+			if leaker_id < 1:
+				push_error("SMOKE_NO_LEAKER_ID rec=%s" % str(leak_rec))
+				quit(56)
+				return
+			if main.level == null or not main.level.has_method("delay_for_actor"):
+				push_error("SMOKE_NO_DELAY_FOR_ACTOR")
+				quit(56)
+				return
+			var actor_delay: float = float(main.level.delay_for_actor(leaker_id))
+			var advice_txt := str(main.leak_advice_text())
+			if advice_txt.find("敌") < 0 or advice_txt.find(str(leaker_id)) < 0:
+				push_error("SMOKE_LEAK_ADVICE_NO_ACTOR id=%s txt=%s" % [leaker_id, advice_txt])
+				quit(56)
+				return
+			var leak_tick_n: int = int(leak_rec.get("leak_tick", -1))
+			var leak_sec_n: float = float(leak_tick_n) / 60.0 if leak_tick_n >= 0 else float(leak_rec.get("cut_sec", 0.0))
+			var expect_ahead := maxf(0.1, leak_sec_n - actor_delay)
+			if advice_txt.find("%.1f" % expect_ahead) < 0:
+				push_error(
+					"SMOKE_LEAK_ADVICE_WRONG_DELAY id=%s delay=%s ahead=%s txt=%s"
+					% [leaker_id, actor_delay, expect_ahead, advice_txt]
+				)
+				quit(56)
+				return
+			# Authored per-runner delay (railcut 敌4 = 4.6s) must beat first_route_delay (3.8s).
+			var rc_def: LevelDef = LevelDef.by_id("railcut")
+			if not rc_def.has_method("delay_for_actor"):
+				push_error("SMOKE_RAILCUT_NO_ACTOR_DELAY")
+				quit(56)
+				return
+			var d4: float = float(rc_def.delay_for_actor(4))
+			var d_flank: float = float(rc_def.first_route_delay("flank"))
+			if d4 <= 0.0 or d4 <= d_flank + 0.01:
+				push_error("SMOKE_ACTOR_DELAY_NOT_PER_RUNNER d4=%s first=%s" % [d4, d_flank])
+				quit(56)
+				return
+			var store := IntelStore.new()
+			store.add_path(
+				1,
+				PackedVector2Array([Vector2.ZERO, Vector2(40, 0)]),
+				6.0,
+				"escape",
+				"侧翼奔袭从东廊漏出",
+				"flank",
+				360,
+				4
+			)
+			var unit_line := str(store.leak_advice_line(rc_def, "侧翼"))
+			if unit_line.find("1.4") < 0 or unit_line.find("敌4") < 0 or unit_line.find("2.2") >= 0:
+				push_error("SMOKE_PER_RUNNER_ADVICE_MATH %s" % unit_line)
+				quit(56)
+				return
+			print("SMOKE_OK_LEAK_ADVICE ", advice_txt, " leaker=", leaker_id, " delay=", actor_delay)
 			# Same plan at 2× must match terminal tick + event fingerprint.
 			main._on_alarm_pressed()
 			main.sim.set_speed(2.0)

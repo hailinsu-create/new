@@ -49,6 +49,13 @@ func first_route_delay(route: String) -> float:
 	return 0.0 if best == INF else best
 
 
+func delay_for_actor(id: int) -> float:
+	for spec in spawn_schedule:
+		if int(spec.get("id", 0)) == id:
+			return float(spec.get("delay", 0.0))
+	return 0.0
+
+
 func teaching_note_for(route: String) -> String:
 	## First authored teaching_note on this route, if any. SETUP legend only.
 	for spec in spawn_schedule:
