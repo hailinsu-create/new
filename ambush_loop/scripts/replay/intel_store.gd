@@ -17,7 +17,8 @@ func add_path(
 	path: PackedVector2Array,
 	cut_sec: float,
 	reason: String,
-	hint: String = ""
+	hint: String = "",
+	route: String = ""
 ) -> void:
 	if path.size() < 2:
 		return
@@ -30,6 +31,7 @@ func add_path(
 		"cut_sec": cut_sec,
 		"reason": reason,
 		"hint": hint,
+		"route": route,
 		"summary": summary,
 	})
 	while records.size() > MAX_RECORDS:
@@ -53,3 +55,9 @@ func latest_hint() -> String:
 	if records.is_empty():
 		return ""
 	return str(records[records.size() - 1].get("hint", ""))
+
+
+func latest_route() -> String:
+	if records.is_empty():
+		return ""
+	return str(records[records.size() - 1].get("route", ""))

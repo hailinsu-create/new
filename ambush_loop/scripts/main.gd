@@ -53,6 +53,9 @@ var ambush_zone_poly: Node2D = null
 var door_marker: Node2D = null
 var decision_marker: Node2D = null
 var barrel_hint: Node2D = null
+var trap_callout: Node2D = null
+var _trap_callout_tween: Tween = null
+var spawn_teach_label: Label = null
 var route_timeline: Control = null
 var watch_timeline: Control = null
 var mission_sky: Node2D = null
@@ -312,9 +315,9 @@ func _resolve_optional_hud() -> void:
 		tut_label.name = "TutLabel"
 		tut_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 		tut_label.offset_left = 220.0
-		tut_label.offset_top = 108.0
+		tut_label.offset_top = 140.0
 		tut_label.offset_right = 940.0
-		tut_label.offset_bottom = 168.0
+		tut_label.offset_bottom = 200.0
 		tut_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		tut_label.add_theme_font_size_override("font_size", 13)
 		tut_label.add_theme_color_override("font_color", Color(0.8, 0.78, 0.65))
@@ -392,6 +395,22 @@ func _build_role_card_hud(root: Control) -> void:
 	route_legend.add_theme_constant_override("separation", 6)
 	route_legend.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(route_legend)
+	spawn_teach_label = Label.new()
+	spawn_teach_label.name = "SpawnTeach"
+	spawn_teach_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	spawn_teach_label.offset_left = 220.0
+	spawn_teach_label.offset_top = 108.0
+	spawn_teach_label.offset_right = -16.0
+	spawn_teach_label.offset_bottom = 136.0
+	spawn_teach_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	spawn_teach_label.add_theme_font_size_override("font_size", 13)
+	spawn_teach_label.add_theme_font_override("font", NightOps.ui_font_bold())
+	spawn_teach_label.add_theme_color_override("font_color", Color(0.98, 0.82, 0.38))
+	spawn_teach_label.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.02, 0.92))
+	spawn_teach_label.add_theme_constant_override("shadow_offset_x", 1)
+	spawn_teach_label.add_theme_constant_override("shadow_offset_y", 1)
+	spawn_teach_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(spawn_teach_label)
 
 
 func _build_modals() -> void:
@@ -557,6 +576,9 @@ func _apply_phone_chrome(on: bool) -> void:
 		help_label.visible = not on
 	if tut_label:
 		tut_label.visible = not on
+	if spawn_teach_label:
+		spawn_teach_label.offset_top = 104.0 if on else 108.0
+		spawn_teach_label.offset_bottom = 132.0 if on else 136.0
 	if event_log:
 		event_log.visible = _event_log_open
 	var root: Control = get_node_or_null("HUD/Root") as Control
@@ -835,6 +857,12 @@ func _apply_watch_layers() -> void:
 		decision_marker.visible = phase == Phase.SETUP
 	if barrel_hint and is_instance_valid(barrel_hint):
 		barrel_hint.visible = phase == Phase.SETUP
+	if trap_callout and is_instance_valid(trap_callout):
+		if phase != Phase.SETUP:
+			trap_callout.visible = false
+		else:
+			trap_callout.visible = true
+			trap_callout.modulate.a = 1.0
 	if entities:
 		entities.modulate = Color.WHITE
 	if ghosts:
@@ -1133,6 +1161,7 @@ func _load_level(level_id: String, keep_intel: bool, restore_plan: bool) -> void
 	_build_door_marker()
 	_build_decision_marker()
 	_build_barrels()
+	_build_trap_callout()
 	_start_setup(keep_intel, restore_plan)
 	_save_progress()
 	_maybe_show_tutorial()
@@ -1621,6 +1650,14 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 	if _game_cam != null:
 		_reset_cam_view()
 	_reset_presentation_fx()
+	if _trap_callout_tween != null:
+		_trap_callout_tween.kill()
+		_trap_callout_tween = null
+	if trap_callout != null and is_instance_valid(trap_callout):
+		trap_callout.visible = true
+		trap_callout.modulate.a = 1.0
+	if intel_label:
+		intel_label.add_theme_color_override("font_color", Color(0.75, 0.9, 0.82))
 	_update_event_log()
 	_update_hud()
 
@@ -2265,6 +2302,103 @@ func _build_barrels() -> void:
 	_build_barrel_hint(b.position)
 
 
+func _trap_callout_pos() -> Vector2:
+	if level == null:
+		return Vector2.ZERO
+	match level.beat_kind:
+		"barrel":
+			return grid.cell_to_world_center(level.barrel_cell) + Vector2(8, -18)
+		"decision":
+			return grid.cell_to_world_center(level.decision_cell) + Vector2(14, 18)
+		"flank_delay":
+			return grid.cell_to_world_center(Vector2i(32, 11)) + Vector2(-10, -22)
+		"sneak_delay":
+			return grid.cell_to_world_center(Vector2i(7, 11)) + Vector2(12, -22)
+		_:
+			if level.ambush_zone.size != Vector2.ZERO:
+				return level.ambush_zone.get_center() + Vector2(-40, -8)
+			return escape_world
+
+
+func _trap_callout_text() -> String:
+	if level == null:
+		return ""
+	if level.beat_text != "":
+		return level.beat_text
+	if not level.spawn_teaching.is_empty():
+		return str(level.spawn_teaching[0])
+	return ""
+
+
+func _build_trap_callout() -> void:
+	if trap_callout != null and is_instance_valid(trap_callout):
+		trap_callout.queue_free()
+	trap_callout = null
+	var text := _trap_callout_text()
+	if text == "":
+		return
+	var n := Node2D.new()
+	n.name = "TrapCallout"
+	n.position = _trap_callout_pos()
+	n.z_index = 8
+	var plate := Polygon2D.new()
+	plate.name = "Plate"
+	plate.polygon = PackedVector2Array([
+		Vector2(-8, -6), Vector2(132, -6), Vector2(132, 22), Vector2(-8, 22)
+	])
+	plate.color = Color(0.06, 0.07, 0.04, 0.72)
+	n.add_child(plate)
+	var lab := Label.new()
+	lab.name = "Tag"
+	lab.text = text
+	lab.position = Vector2(-4, -4)
+	lab.add_theme_font_size_override("font_size", 13)
+	lab.add_theme_font_override("font", NightOps.ui_font_bold())
+	lab.add_theme_color_override("font_color", Color(1.0, 0.86, 0.32))
+	lab.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.02, 0.94))
+	lab.add_theme_constant_override("shadow_offset_x", 1)
+	lab.add_theme_constant_override("shadow_offset_y", 1)
+	lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	n.add_child(lab)
+	$World.add_child(n)
+	trap_callout = n
+
+
+func _fade_trap_callout() -> void:
+	if trap_callout == null or not is_instance_valid(trap_callout):
+		return
+	if _trap_callout_tween != null:
+		_trap_callout_tween.kill()
+	_trap_callout_tween = trap_callout.create_tween()
+	_trap_callout_tween.tween_property(trap_callout, "modulate:a", 0.0, 0.28)
+	_trap_callout_tween.tween_callback(func() -> void:
+		if trap_callout != null and is_instance_valid(trap_callout):
+			trap_callout.visible = false
+	)
+
+
+func _intel_flash_color(route: String) -> Color:
+	## Leaked-route flash: main=red, flank=orange, sneak=purple.
+	match route:
+		"flank":
+			return Color(0.98, 0.58, 0.16)
+		"sneak":
+			return Color(0.68, 0.32, 0.92)
+		"main":
+			return Color(0.95, 0.28, 0.22)
+		_:
+			return Color(0.55, 0.85, 1.0)
+
+
+func _refresh_spawn_teach() -> void:
+	if spawn_teach_label == null:
+		return
+	var show := phase == Phase.SETUP and level != null and not level.spawn_teaching.is_empty()
+	spawn_teach_label.visible = show
+	if show:
+		spawn_teach_label.text = str(level.spawn_teaching[0])
+
+
 func _build_barrel_hint(pos: Vector2) -> void:
 	if barrel_hint != null and is_instance_valid(barrel_hint):
 		barrel_hint.queue_free()
@@ -2508,6 +2642,7 @@ func _on_alarm_pressed() -> void:
 	if speed_button:
 		speed_button.disabled = false
 	status_label.text = "方案锁死 — 暂停/变速仅改变观看。跑掉或全灭均失败。中止(X)保留截止情报。"
+	_fade_trap_callout()
 	_update_event_log()
 	_refresh_watch_timeline()
 	_update_hud()
@@ -2912,7 +3047,7 @@ func _on_enemy_escaped(enemy: EnemyRunner, path: PackedVector2Array) -> void:
 	battle_log.mark_terminal(sim.tick, "escape")
 	for e in enemies:
 		e.active = false
-	_remember_path(path, "escape", hint)
+	_remember_path(path, "escape", hint, enemy.spawn_route)
 	_flash("逃逸！%s" % hint, Color(1.0, 0.35, 0.25))
 	_sfx("escape")
 	_camera_punch()
@@ -2968,8 +3103,8 @@ func _fail_squad_wipe() -> void:
 	pending_result = "fail"
 
 
-func _remember_path(path: PackedVector2Array, reason: String, hint: String = "") -> void:
-	intel.add_path(loop_index, path, sim.time_sec(), reason, hint)
+func _remember_path(path: PackedVector2Array, reason: String, hint: String = "", route: String = "") -> void:
+	intel.add_path(loop_index, path, sim.time_sec(), reason, hint, route)
 	intel_paths.clear()
 	for rec in intel.records:
 		intel_paths.append(rec["path"])
@@ -3510,7 +3645,9 @@ func _on_continue_pressed() -> void:
 		_start_setup(true, true)
 		if leak != "":
 			intel_label.text = "情报已记录 · %s" % leak
-			_flash("情报 · %s" % leak, Color(0.55, 0.85, 1.0))
+			var col := _intel_flash_color(intel.latest_route() if intel.has_method("latest_route") else "")
+			intel_label.add_theme_color_override("font_color", col)
+			_flash("情报 · %s" % leak, col)
 		elif intel_line != "":
 			intel_label.text = "情报已记录 · %s" % intel_line
 			_flash("情报已记录", Color(0.55, 0.85, 1.0))
@@ -3536,7 +3673,10 @@ func _redraw_ghosts() -> void:
 		var path: PackedVector2Array = rec["path"]
 		var line := Line2D.new()
 		line.width = 3.0
-		line.default_color = Color(0.35, 0.75, 1.0, 0.55 - minf(0.15, float(gi) * 0.05))
+		var route := str(rec.get("route", ""))
+		var gcol := _intel_flash_color(route)
+		gcol.a = 0.55 - minf(0.15, float(gi) * 0.05)
+		line.default_color = gcol
 		line.points = path
 		ghosts.add_child(line)
 		if path.size() > 0:
@@ -3545,7 +3685,7 @@ func _redraw_ghosts() -> void:
 			tag.text = "第%d世 · %.1fs · %s" % [int(rec["loop"]), float(rec["cut_sec"]), reason_zh]
 			tag.position = path[mini(path.size() - 1, path.size() / 2)] + Vector2(6, -18)
 			tag.add_theme_font_size_override("font_size", 11)
-			tag.add_theme_color_override("font_color", Color(0.55, 0.85, 1.0, 0.92))
+			tag.add_theme_color_override("font_color", Color(gcol.r, gcol.g, gcol.b, 0.92))
 			ghosts.add_child(tag)
 		gi += 1
 
@@ -3823,6 +3963,7 @@ func _update_hud() -> void:
 		level_label.text = lv_title
 	if tut_label and level:
 		tut_label.text = level.tutorial if phase == Phase.SETUP else level.teaching
+	_refresh_spawn_teach()
 	var intel_txt := "漏网记忆：%d   |   %s" % [intel.records.size(), _ammo_summary()]
 	if intel.latest_line() != "" and (phase == Phase.SETUP or phase == Phase.FAILED):
 		intel_txt += "   ·   %s" % intel.latest_line()

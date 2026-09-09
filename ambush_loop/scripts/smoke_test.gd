@@ -1614,7 +1614,54 @@ func _assert_teaching(main) -> bool:
 		push_error("SMOKE_ZONE_TAG %s" % (zone_tag.text if zone_tag else "null"))
 		quit(52)
 		return false
-	print("SMOKE_OK_TEACHING beats=5 timeline=1")
+	if rc.spawn_teaching.is_empty() or str(rc.spawn_teaching[0]).find("3.8") < 0:
+		push_error("SMOKE_RAILCUT_SPAWN_TEACH %s" % str(rc.spawn_teaching))
+		quit(52)
+		return false
+	if dp.spawn_teaching.is_empty() or str(dp.spawn_teaching[0]).find("2.2") < 0:
+		push_error("SMOKE_DEPOT_SPAWN_TEACH %s" % str(dp.spawn_teaching))
+		quit(52)
+		return false
+	if main.trap_callout == null or not main.trap_callout.visible:
+		push_error("SMOKE_NO_TRAP_CALLOUT")
+		quit(52)
+		return false
+	var call_tag = main.trap_callout.get_node_or_null("Tag")
+	if call_tag == null or str(call_tag.text).find("侧翼") < 0:
+		push_error("SMOKE_TRAP_CALLOUT_TEXT %s" % (call_tag.text if call_tag else "null"))
+		quit(52)
+		return false
+	if main.spawn_teach_label == null or not main.spawn_teach_label.visible:
+		push_error("SMOKE_NO_SPAWN_TEACH_HUD")
+		quit(52)
+		return false
+	if not main.has_method("_intel_flash_color"):
+		push_error("SMOKE_NO_INTEL_COLOR")
+		quit(52)
+		return false
+	var flank_c: Color = main._intel_flash_color("flank")
+	var sneak_c: Color = main._intel_flash_color("sneak")
+	var main_c: Color = main._intel_flash_color("main")
+	if flank_c.r < 0.8 or flank_c.g < 0.4 or flank_c.g > 0.75:
+		push_error("SMOKE_INTEL_FLANK_COLOR %s" % str(flank_c))
+		quit(52)
+		return false
+	if sneak_c.b < 0.7 or sneak_c.r < 0.4:
+		push_error("SMOKE_INTEL_SNEAK_COLOR %s" % str(sneak_c))
+		quit(52)
+		return false
+	if main_c.r < 0.8 or main_c.g > 0.45:
+		push_error("SMOKE_INTEL_MAIN_COLOR %s" % str(main_c))
+		quit(52)
+		return false
+	for lid in ["yard", "warehouse", "pump", "railcut", "depot"]:
+		var pages: Array = TutorialOverlay.pages_for(lid)
+		var last: Dictionary = pages[pages.size() - 1]
+		if str(last.get("body", "")).find("陷阱路线") < 0:
+			push_error("SMOKE_TUTORIAL_TRAP %s" % lid)
+			quit(52)
+			return false
+	print("SMOKE_OK_TEACHING beats=5 timeline=1 callout=1 spawn_teach=1")
 	return true
 
 

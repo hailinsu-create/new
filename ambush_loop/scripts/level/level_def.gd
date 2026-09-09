@@ -26,6 +26,8 @@ var barrel_cell: Vector2i = Vector2i(-1, -1)
 ## Authored teaching beat (no new mechanics): ambush_zone | barrel | decision | flank_delay | sneak_delay
 var beat_kind: String = ""
 var beat_text: String = ""
+## SETUP HUD one-liners (delayed flank/sneak timing, trap route). Not a sixth mission.
+var spawn_teaching: Array = []
 
 
 static func catalog() -> Array:
@@ -96,6 +98,7 @@ static func make_yard() -> LevelDef:
 	l.has_ammo_pack = false
 	l.beat_kind = "ambush_zone"
 	l.beat_text = "侧翼从东廊随后到"
+	l.spawn_teaching = ["陷阱路线：橙线侧翼从东廊随后到 — 只锁红线主路会漏。"]
 	return l
 
 
@@ -138,6 +141,7 @@ static func make_warehouse() -> LevelDef:
 	l.has_ammo_pack = true
 	l.beat_kind = "barrel"
 	l.beat_text = "油桶靠近才炸 · 别站爆心"
+	l.spawn_teaching = ["陷阱路线：过早开火打空弹药，橙线侧翼从东廊漏出。"]
 	return l
 
 
@@ -184,6 +188,7 @@ static func make_pump() -> LevelDef:
 	l.has_ammo_pack = true
 	l.beat_kind = "decision"
 	l.beat_text = "决策格 · 锁门改线"
+	l.spawn_teaching = ["陷阱路线：锁门后橙线在决策格改走西侧紫备用接近。"]
 	return l
 
 
@@ -226,6 +231,7 @@ static func make_railcut() -> LevelDef:
 	l.has_ammo_pack = true
 	l.beat_kind = "flank_delay"
 	l.beat_text = "东廊延迟"
+	l.spawn_teaching = ["东廊奔袭晚 3.8 秒才折下 — 南闸堆人会先被西廊打空弹药。"]
 	return l
 
 
@@ -270,4 +276,5 @@ static func make_depot() -> LevelDef:
 	l.has_ammo_pack = true
 	l.beat_kind = "sneak_delay"
 	l.beat_text = "西暗道影探延迟"
+	l.spawn_teaching = ["西暗道影探晚 2.2 秒 — 先到的主路/东廊会打空南闸，绊索封暗道。"]
 	return l
