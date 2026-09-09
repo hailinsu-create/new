@@ -29,7 +29,7 @@ For every user request (not only `/grok`):
 3. Return Grok's stdout. Start with one line: the work ran on **grok.com CLI quota** as **Grok 4.6 Extra High Fast**.
 4. If Grok edited files, summarize paths from its output or `git status`. Do not redo the edits.
 
-If `run.sh` is missing, use `bash .cursor/skills/grok/scripts/run.sh` as a fallback path. If login fails, run `bash .cursor/grok/run.sh login` and give the user the device-auth URL/code. Do not fall back to Cursor Grok.
+If login fails, run `bash .cursor/grok/run.sh login` and give the user the device-auth URL/code. Do not fall back to Cursor Grok.
 
 Allowed Cursor-side actions: write the prompt file, invoke `run.sh`, relay output, git commit/push/PR plumbing after Grok finished. Everything else is Grok's job.
 
