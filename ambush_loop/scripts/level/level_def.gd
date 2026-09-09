@@ -61,6 +61,21 @@ func route_spawn_marks() -> Array:
 	return out
 
 
+static func signature_color(id: String) -> Color:
+	## Per-mission title/identity tint. Visual only — not a gameplay flag.
+	match str(id):
+		"warehouse":
+			return Color(0.94, 0.68, 0.18) # amber
+		"pump":
+			return Color(0.18, 0.74, 0.70) # teal
+		"railcut":
+			return Color(0.92, 0.16, 0.16) # signal red
+		"depot":
+			return Color(0.98, 0.48, 0.10) # hazard orange
+		_:
+			return Color(0.62, 0.74, 0.32) # olive
+
+
 static func make_yard() -> LevelDef:
 	var l := LevelDef.new()
 	l.level_id = "yard"

@@ -27,6 +27,9 @@ var _hp_target: float = 0.0
 var _pips: HBoxContainer = null
 var _glow: ColorRect = null
 var _hurt_flash: float = 0.0
+var _watching: bool = false
+var _deployed: bool = false
+var _fire_pulse: float = 0.0
 
 
 func setup(i: int) -> void:
@@ -153,15 +156,26 @@ func _process(delta: float) -> void:
 		_hp.modulate = Color(1.0, 1.0, 1.0).lerp(Color(1.55, 0.62, 0.38), _hurt_flash)
 	else:
 		_hp.modulate = Color.WHITE
+	if _fire_pulse > 0.0:
+		_fire_pulse = maxf(_fire_pulse - delta * 3.8, 0.0)
+		_refresh_chrome()
 
 
-func bind(op: OperatorUnit, is_sel: bool, can_pick: bool) -> void:
+func pulse_fire() -> void:
+	## Muzzle-linked punch on the card while WATCHING.
+	_fire_pulse = 1.0
+	_refresh_chrome()
+
+
+func bind(op: OperatorUnit, is_sel: bool, can_pick: bool, watching: bool = false) -> void:
 	if op == null:
 		visible = false
 		return
 	visible = true
 	_selected = is_sel
 	_can_pick = can_pick
+	_watching = watching
+	_deployed = op.visible and op.slot != null and op.alive
 	_refresh_chrome()
 	if _glyph:
 		_glyph.set("role", op.role)
@@ -208,7 +222,11 @@ func _refresh_chrome() -> void:
 		_accent.visible = _selected
 	if _glow:
 		_glow.color.a = 0.22 if _selected else 0.0
-	if not _can_pick:
+	if _watching and not _deployed:
+		modulate = Color(0.46, 0.46, 0.48, 0.42)
+	elif _fire_pulse > 0.04:
+		modulate = Color(1.0, 1.0, 1.0).lerp(Color(1.42, 1.28, 0.72), _fire_pulse)
+	elif not _can_pick:
 		modulate = Color(1, 1, 1, 0.5)
 	elif _hovered and not _selected:
 		modulate = Color(1.14, 1.16, 1.06)

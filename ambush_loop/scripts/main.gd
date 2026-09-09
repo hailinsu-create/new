@@ -129,6 +129,7 @@ var credits_overlay: CreditsOverlay = null
 var _menu_paused_sim: bool = false
 var _campaign_complete: bool = false
 var title_return_button: Button = null
+var result_headline: Label = null
 var _punch_tween: Tween = null
 var _game_cam: Camera2D = null
 var _rim_flash: Control = null
@@ -637,6 +638,14 @@ func _refresh_touch_hud() -> void:
 	var paused := phase == Phase.WATCHING and sim.paused
 	var hi := phase == Phase.WATCHING and sim.speed >= 1.5
 	touch_hud.refresh_phase(phase_name, paused, hi, sfx_muted, _event_log_open and event_log != null and event_log.visible)
+	if touch_hud.has_method("set_next_wave"):
+		var show_wave := phase == Phase.WATCHING
+		var chip := ""
+		if show_wave:
+			var info := _next_wave_info()
+			if bool(info.get("pending", false)):
+				chip = "下一波 %.1fs" % float(info.get("remain", 0.0))
+		touch_hud.set_next_wave(chip, show_wave and chip != "")
 
 
 func _toggle_event_log() -> void:
@@ -815,6 +824,7 @@ func _save_progress() -> void:
 
 
 func _ensure_debrief_buttons() -> void:
+	_ensure_result_headline()
 	if title_return_button != null:
 		return
 	var vbox := result_panel.get_node_or_null("Margin/VBox") as VBoxContainer
@@ -826,6 +836,45 @@ func _ensure_debrief_buttons() -> void:
 	title_return_button.visible = false
 	title_return_button.pressed.connect(_return_to_title)
 	vbox.add_child(title_return_button)
+
+
+func _ensure_result_headline() -> void:
+	if result_headline != null and is_instance_valid(result_headline):
+		return
+	var vbox := result_panel.get_node_or_null("Margin/VBox") as VBoxContainer
+	if vbox == null:
+		return
+	result_headline = vbox.get_node_or_null("ResultHeadline") as Label
+	if result_headline == null:
+		result_headline = Label.new()
+		result_headline.name = "ResultHeadline"
+		result_headline.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		result_headline.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		result_headline.add_theme_font_size_override("font_size", 30)
+		result_headline.add_theme_font_override("font", NightOps.display_font())
+		vbox.add_child(result_headline)
+		vbox.move_child(result_headline, 0)
+	result_headline.visible = false
+
+
+func _mission_title_color() -> Color:
+	var id := ""
+	if level:
+		id = level.atmosphere_id if level.atmosphere_id != "" else level.level_id
+	return LevelDef.signature_color(id)
+
+
+func _bind_result_headline(text: String) -> void:
+	_ensure_result_headline()
+	if result_headline == null:
+		return
+	result_headline.visible = true
+	result_headline.text = text
+	var col := _mission_title_color()
+	result_headline.add_theme_color_override("font_color", col)
+	result_headline.add_theme_color_override("font_shadow_color", Color(0.02, 0.03, 0.02, 0.85))
+	result_headline.add_theme_constant_override("shadow_offset_x", 1)
+	result_headline.add_theme_constant_override("shadow_offset_y", 1)
 
 
 func _setup_world_layers() -> void:
@@ -1620,6 +1669,8 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 		speed_button.disabled = true
 		speed_button.text = "速度 1×"
 	result_panel.visible = false
+	if result_headline:
+		result_headline.visible = false
 	if route_timeline:
 		route_timeline.visible = false
 	if watch_timeline:
@@ -3150,6 +3201,11 @@ func _on_op_fired_shot(op: OperatorUnit, target_pos: Vector2) -> void:
 			OperatorUnit.Role.SCOUT:
 				col = Color(0.88, 0.98, 1.0, 0.92)
 				w = 1.85
+		for i in operators.size():
+			if operators[i] == op and i < role_cards.size():
+				var card = role_cards[i]
+				if card != null and card.has_method("pulse_fire"):
+					card.pulse_fire()
 	_spawn_watch_tracer(op.global_position, target_pos, col, w)
 
 
@@ -3258,6 +3314,7 @@ func _show_fail_result() -> void:
 	if title_return_button:
 		title_return_button.visible = false
 	result_panel.visible = true
+	_bind_result_headline("失败 · %s" % BattleLog.reason_zh(fail_reason))
 	_dock_fail_result_panel(fail_reason == "escape")
 	var lines := battle_log.summary_lines(10)
 	var summary := "\n".join(lines)
@@ -3311,11 +3368,13 @@ func _show_win_result() -> void:
 	var epitaph := battle_log.terminal_summary_line()
 	var shot := _first_shot_line()
 	if has_next:
+		_bind_result_headline("封锁成功")
 		result_label.text = "任务完成。\n本关用了 %d 世。\n%s\n%s\n\n—— 关键事件 ——\n%s" % [
 			loop_index, epitaph, shot, "\n".join(lines)
 		]
 		continue_button.text = "下一关"
 	else:
+		_bind_result_headline("全部封锁")
 		result_label.text = "全部关卡封锁完成。\n本关用了 %d 世。\n%s\n%s\n\n—— 关键事件 ——\n%s" % [
 			loop_index, epitaph, shot, "\n".join(lines)
 		]
@@ -3513,18 +3572,27 @@ func _route_zh_short(route: String) -> String:
 			return "主路"
 
 
-func _next_wave_line() -> String:
-	## Seconds until the next authored spawn after now / last intel cut.
+func _next_wave_info() -> Dictionary:
+	## Shared pending-wave clock for fail panel and the WATCHING touch chip.
+	var out := {
+		"pending": false,
+		"remain": 0.0,
+		"route": "",
+		"intel_cut": -1.0,
+		"now": 0.0,
+	}
 	if level == null:
-		return "下一波：—"
+		return out
 	var now := sim.time_sec()
+	out["now"] = now
 	var intel_cut := -1.0
 	if intel != null and intel.has_method("recent"):
 		var recs: Array = intel.recent(1)
 		if not recs.is_empty():
 			intel_cut = float(recs[0].get("cut_sec", -1.0))
+	out["intel_cut"] = intel_cut
 	var ref_t := now
-	if intel_cut >= 0.0:
+	if intel_cut >= 0.0 and phase != Phase.WATCHING:
 		ref_t = intel_cut
 	var next_d := INF
 	var next_route := ""
@@ -3541,10 +3609,25 @@ func _next_wave_line() -> String:
 			next_d = d
 			next_route = str(spec.get("route", "main"))
 	if next_d == INF:
+		return out
+	out["pending"] = true
+	out["route"] = next_route
+	out["remain"] = maxf(next_d - now, 0.0)
+	return out
+
+
+func _next_wave_line() -> String:
+	## Seconds until the next authored spawn after now / last intel cut.
+	var info := _next_wave_info()
+	if level == null:
+		return "下一波：—"
+	var intel_cut := float(info.get("intel_cut", -1.0))
+	if not bool(info.get("pending", false)):
 		if intel_cut >= 0.0:
 			return "下一波：已全部进场（情报截止 %.1fs）" % intel_cut
 		return "下一波：已全部进场"
-	var remain := maxf(next_d - now, 0.0)
+	var remain := float(info.get("remain", 0.0))
+	var next_route := str(info.get("route", "main"))
 	if intel_cut >= 0.0:
 		return "下一波：%s 还有 %.1fs（情报截止 %.1fs）" % [_route_zh_short(next_route), remain, intel_cut]
 	return "下一波：%s 还有 %.1fs" % [_route_zh_short(next_route), remain]
@@ -4152,7 +4235,7 @@ func _update_role_cards() -> void:
 			card.visible = false
 			continue
 		var op: OperatorUnit = operators[i]
-		card.bind(op, op == selected, phase != Phase.REPLAY)
+		card.bind(op, op == selected, phase != Phase.REPLAY, phase == Phase.WATCHING)
 	if plan_readout == null:
 		return
 	if selected == null:

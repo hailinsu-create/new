@@ -43,6 +43,16 @@ func _ready() -> void:
 	invalidate_static_cache()
 
 
+func _exit_tree() -> void:
+	## Drop the static SubViewport so headless quit does not leak CanvasItem RIDs.
+	if _cache_vp != null and is_instance_valid(_cache_vp):
+		_cache_vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
+		_cache_vp.queue_free()
+	_cache_vp = null
+	_cache_layer = null
+	_cache_sig = ""
+
+
 func uses_static_cache() -> bool:
 	_ensure_cache_vp()
 	return _cache_vp != null and _cache_layer != null

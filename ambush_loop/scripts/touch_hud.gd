@@ -8,6 +8,8 @@ var _row_setup: HBoxContainer = null
 var _row_watch: HBoxContainer = null
 var _safe: MarginContainer = null
 var _btns: Dictionary = {}
+var _wave_chip: PanelContainer = null
+var _wave_lab: Label = null
 
 
 func bind_host(host: Node) -> void:
@@ -79,9 +81,48 @@ func _build() -> void:
 	_add(_row_watch, "abort", "中止", Color(0.55, 0.20, 0.20))
 	_add(_row_watch, "pause", "暂停", Color(0.35, 0.38, 0.42))
 	_add(_row_watch, "speed", "倍速", Color(0.35, 0.38, 0.42))
+	_add_wave_chip(_row_watch)
 	_add(_row_watch, "mute", "静音", Color(0.35, 0.38, 0.42))
 	_add(_row_watch, "log", "日志", Color(0.32, 0.42, 0.44))
 	_add(_row_watch, "settings", "菜单", Color(0.32, 0.36, 0.40))
+
+
+func _add_wave_chip(row: HBoxContainer) -> void:
+	var p := PanelContainer.new()
+	p.name = "WaveChip"
+	p.visible = false
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.custom_minimum_size = Vector2(108, 56)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.10, 0.12, 0.08, 0.92)
+	sb.border_color = Color(0.82, 0.78, 0.38, 0.85)
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(8)
+	sb.content_margin_left = 10
+	sb.content_margin_right = 10
+	sb.content_margin_top = 8
+	sb.content_margin_bottom = 8
+	p.add_theme_stylebox_override("panel", sb)
+	var lab := Label.new()
+	lab.name = "Lab"
+	lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lab.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lab.add_theme_font_size_override("font_size", 14)
+	lab.add_theme_color_override("font_color", Color(0.92, 0.88, 0.52))
+	lab.text = "下一波 —"
+	lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(lab)
+	row.add_child(p)
+	_wave_chip = p
+	_wave_lab = lab
+
+
+func set_next_wave(text: String, show: bool) -> void:
+	if _wave_chip == null:
+		return
+	_wave_chip.visible = show and text != ""
+	if _wave_lab:
+		_wave_lab.text = text
 
 
 func _add(row: HBoxContainer, cmd: String, label: String, tint: Color) -> void:
@@ -158,3 +199,5 @@ func refresh_phase(phase_name: String, watching_paused: bool, speed_hi: bool, mu
 		_btns["rotate_ccw"].disabled = phase_name != "SETUP"
 	if _btns.has("abort"):
 		_btns["abort"].disabled = phase_name != "WATCHING"
+	if phase_name != "WATCHING" and _wave_chip:
+		_wave_chip.visible = false

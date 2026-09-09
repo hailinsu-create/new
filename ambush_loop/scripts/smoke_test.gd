@@ -1369,6 +1369,48 @@ func _assert_watch_juice(main) -> bool:
 		push_error("SMOKE_WATCH_TIMELINE_HIDDEN")
 		quit(53)
 		return false
+	var watch_op: OperatorUnit = main.operators[0]
+	if not watch_op.has_method("watching_cone_frozen") or not bool(watch_op.watching_cone_frozen()):
+		push_error(
+			"SMOKE_WATCH_CONE_NOT_FROZEN locked=%s col=%s"
+			% [watch_op.locked, watch_op.cone.color if watch_op.cone else Color()]
+		)
+		quit(53)
+		return false
+	var probe: EnemyRunner = main._make_enemy(99)
+	main.entities.add_child(probe)
+	probe.setup(
+		99,
+		PackedVector2Array([Vector2(80, 80), Vector2(120, 80)]),
+		main.grid,
+		0,
+		"main"
+	)
+	probe.activate()
+	probe._update_hp_bar()
+	if not probe.has_method("hp_bar_watch_visible") or not bool(probe.hp_bar_watch_visible()):
+		push_error("SMOKE_ENEMY_HP_BAR_HIDDEN")
+		probe.queue_free()
+		quit(53)
+		return false
+	var hp_col: Color = probe.hp_bar.color
+	if hp_col.r < 0.7:
+		push_error("SMOKE_ENEMY_HP_BAR_NOT_ROUTE %s" % str(hp_col))
+		probe.queue_free()
+		quit(53)
+		return false
+	if gs:
+		gs.set_quality_tier("power_saving")
+		probe._update_hp_bar()
+		if probe.hp_bar_watch_visible():
+			push_error("SMOKE_ENEMY_HP_BAR_IN_POWER_SAVE")
+			probe.queue_free()
+			gs.set_quality_tier("standard")
+			quit(53)
+			return false
+		gs.set_quality_tier("standard")
+		probe._update_hp_bar()
+	probe.queue_free()
 	var chip := str(main.phase_chip.text) if main.phase_chip else ""
 	if chip.find("t=") < 0 or (chip.find("1×") < 0 and chip.find("2×") < 0 and chip.find("暂停") < 0):
 		push_error("SMOKE_WATCH_CHIP %s" % chip)
@@ -1397,7 +1439,7 @@ func _assert_watch_juice(main) -> bool:
 		push_error("SMOKE_WATCH_JUICE_RESET phase=%s" % main.phase)
 		quit(53)
 		return false
-	print("SMOKE_OK_WATCH_JUICE tracer_pool timeline chip")
+	print("SMOKE_OK_WATCH_JUICE tracer_pool timeline chip cone_freeze hp_bar")
 	return true
 
 

@@ -71,6 +71,7 @@ var hp_bar: Polygon2D = null
 var shield_glyph: Polygon2D = null
 var _hp_pulse: float = 0.0
 var _shield_pulse: float = 0.0
+var _cone_plan_color: Color = Color(0.95, 0.75, 0.25, 0.30)
 
 
 static func role_for_id(id: int) -> int:
@@ -219,6 +220,8 @@ func rotate_by(delta_deg: float) -> void:
 
 
 func lock_plan() -> void:
+	# Snapshot the SETUP cone tint, then freeze it for WATCHING (no alarm-red swap).
+	_rebuild_cone()
 	locked = true
 	fire_permitted = fire_mode == FireMode.ENGAGE_ON_SIGHT
 	_rebuild_cone()
@@ -263,14 +266,20 @@ func _rebuild_cone() -> void:
 	cone.polygon = pts
 	if not alive:
 		cone.color = Color(0.2, 0.2, 0.2, 0.12)
-	elif not fire_permitted:
-		cone.color = Color(0.55, 0.55, 0.2, 0.22)
-	elif ammo <= 0:
-		cone.color = Color(0.45, 0.45, 0.5, 0.18)
 	elif locked:
-		cone.color = Color(0.85, 0.35, 0.2, 0.24)
+		var frozen := _cone_plan_color
+		frozen.a = clampf(minf(frozen.a, 0.16), 0.10, 0.18)
+		cone.color = frozen
+		cone.visible = true
 	else:
-		cone.color = Color(0.95, 0.75, 0.25, 0.30)
+		if not fire_permitted:
+			cone.color = Color(0.55, 0.55, 0.2, 0.22)
+		elif ammo <= 0:
+			cone.color = Color(0.45, 0.45, 0.5, 0.18)
+		else:
+			cone.color = Color(0.95, 0.75, 0.25, 0.30)
+		_cone_plan_color = cone.color
+		cone.visible = true
 	if body:
 		body.rotation = deg_to_rad(facing_deg + 90.0)
 		# Distinct Commandos-lite kits: rifle lean, MG wide+bipod, scout slim+binocs.
@@ -1087,6 +1096,16 @@ func _refresh_shield() -> void:
 
 func hit_feedback() -> float:
 	return _hp_pulse
+
+
+func watching_cone_frozen() -> bool:
+	## WATCHING keeps the SETUP cone hue, faint, so cover arcs stay readable.
+	if not locked or cone == null or not is_instance_valid(cone):
+		return false
+	if not cone.visible or cone.polygon.size() < 4:
+		return false
+	var c := cone.color
+	return c.a >= 0.08 and c.a <= 0.22 and c.g > 0.40
 
 
 func _refresh_tag() -> void:

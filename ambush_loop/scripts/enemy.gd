@@ -49,6 +49,7 @@ var _hit_punch: float = 0.0
 var _kind_color: Color = Color(0.82, 0.16, 0.14)
 var _foot_dust: CPUParticles2D = null
 var _dust_acc: float = 0.0
+var hp_track: Polygon2D = null
 
 @onready var body: Polygon2D = $Body
 @onready var tag: Label = $Tag
@@ -275,6 +276,7 @@ func _process(delta: float) -> void:
 	_tick_trail(delta)
 	_tick_foot_dust(delta)
 	_apply_body_modulate()
+	_update_hp_bar()
 
 
 func kind_id() -> String:
@@ -616,6 +618,10 @@ func _apply_walk_bob() -> void:
 		kind_rim.rotation = body.rotation if body else kind_rim.rotation
 	if weapon and is_instance_valid(weapon):
 		weapon.rotation = _weapon_snap
+	if hp_bar:
+		hp_bar.position = Vector2(0.0, bob * 0.25)
+	if hp_track:
+		hp_track.position = Vector2(0.0, bob * 0.25)
 
 
 func _ensure_trail() -> void:
@@ -858,11 +864,50 @@ func _ensure_foot_dust() -> void:
 	add_child(_foot_dust)
 
 
+func hp_bar_watch_visible() -> bool:
+	## Smoke / HUD hook: route-colored watch bar above the body (省电 hides).
+	return hp_bar != null and is_instance_valid(hp_bar) and hp_bar.visible
+
+
+func _ensure_hp_track() -> void:
+	if hp_track != null and is_instance_valid(hp_track):
+		return
+	hp_track = get_node_or_null("HpTrack") as Polygon2D
+	if hp_track == null:
+		hp_track = Polygon2D.new()
+		hp_track.name = "HpTrack"
+		hp_track.z_index = 5
+		add_child(hp_track)
+		if hp_bar != null and is_instance_valid(hp_bar):
+			move_child(hp_track, hp_bar.get_index())
+
+
 func _update_hp_bar() -> void:
+	if hp_bar == null or not is_instance_valid(hp_bar):
+		hp_bar = get_node_or_null("HpBar") as Polygon2D
 	if hp_bar == null:
 		return
-	var w := 24.0 * clampf(hp / MAX_HP, 0.0, 1.0)
+	_ensure_hp_track()
+	var saving := _is_power_saving()
+	var shown := alive and not saving
+	hp_bar.visible = shown
+	if hp_track:
+		hp_track.visible = shown
+	if not shown:
+		return
+	var y0 := -28.0
+	var h := 2.2
+	var full := 26.0
+	var w := full * clampf(hp / MAX_HP, 0.0, 1.0)
+	if hp_track:
+		hp_track.polygon = PackedVector2Array([
+			Vector2(-13, y0), Vector2(13, y0), Vector2(13, y0 + h), Vector2(-13, y0 + h)
+		])
+		hp_track.color = Color(0.05, 0.05, 0.05, 0.78)
+		hp_track.z_index = 5
 	hp_bar.polygon = PackedVector2Array([
-		Vector2(-12, -18), Vector2(-12 + w, -18), Vector2(-12 + w, -15), Vector2(-12, -15)
+		Vector2(-13, y0), Vector2(-13 + w, y0), Vector2(-13 + w, y0 + h), Vector2(-13, y0 + h)
 	])
-	hp_bar.color = Color(0.2, 0.85, 0.35) if hp > 40.0 else Color(0.9, 0.25, 0.2)
+	var rc := _kind_rim_color()
+	hp_bar.color = Color(rc.r, rc.g, rc.b, 1.0)
+	hp_bar.z_index = 6
