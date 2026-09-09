@@ -3639,13 +3639,13 @@ func _recycle_tracer(line: Line2D) -> void:
 	var idx := _tracer_live.find(line)
 	if idx >= 0:
 		_tracer_live.remove_at(idx)
-	var p := line.get_parent()
-	if p:
-		p.remove_child(line)
+	# Stay parented under entities so headless quit does not leak a CanvasItem RID.
 	line.visible = false
 	line.modulate = Color.WHITE
+	line.points = PackedVector2Array()
 	if _tracer_pool.size() < 12:
-		_tracer_pool.append(line)
+		if not _tracer_pool.has(line):
+			_tracer_pool.append(line)
 	else:
 		line.queue_free()
 
@@ -3660,6 +3660,10 @@ func _clear_tracer_pool() -> void:
 			t.queue_free()
 	_tracer_pool.clear()
 	_tracer_live.clear()
+
+
+func _exit_tree() -> void:
+	_clear_tracer_pool()
 
 
 func _on_op_ammo_empty(op: OperatorUnit) -> void:

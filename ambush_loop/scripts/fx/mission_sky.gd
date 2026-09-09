@@ -37,6 +37,13 @@ func _apply_process() -> void:
 		_t = 0.0
 
 
+func _exit_tree() -> void:
+	set_process(false)
+	var gs = get_node_or_null("/root/GameSettings")
+	if gs and gs.has_signal("changed") and gs.changed.is_connected(_on_settings_changed):
+		gs.changed.disconnect(_on_settings_changed)
+
+
 func _process(delta: float) -> void:
 	_t += delta
 	queue_redraw()

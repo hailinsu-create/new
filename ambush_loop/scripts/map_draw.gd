@@ -44,12 +44,31 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
-	## Drop the static SubViewport so headless quit does not leak CanvasItem RIDs.
+	set_process(false)
+	var gs = get_node_or_null("/root/GameSettings")
+	if gs and gs.has_signal("changed") and gs.changed.is_connected(_on_settings_changed):
+		gs.changed.disconnect(_on_settings_changed)
+	_teardown_static_cache()
+
+
+func _teardown_static_cache() -> void:
+	## Immediate free so headless quit does not leak SubViewport CanvasItem RIDs.
+	if _cache_layer != null and is_instance_valid(_cache_layer):
+		_cache_layer.map = null
+		var lp := _cache_layer.get_parent()
+		if lp:
+			lp.remove_child(_cache_layer)
+		_cache_layer.free()
+	_cache_layer = null
 	if _cache_vp != null and is_instance_valid(_cache_vp):
 		_cache_vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
-		_cache_vp.queue_free()
+		var vp := _cache_vp
+		_cache_vp = null
+		var pp := vp.get_parent()
+		if pp:
+			pp.remove_child(vp)
+		vp.free()
 	_cache_vp = null
-	_cache_layer = null
 	_cache_sig = ""
 
 
