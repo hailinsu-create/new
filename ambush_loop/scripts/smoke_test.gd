@@ -61,6 +61,8 @@ func _run() -> void:
 		return
 	if not _assert_teaching(main):
 		return
+	if not _assert_checklist(main):
+		return
 	print("LEVEL=", main.level.level_id)
 
 	# Life 1: only one cover — expect flank escape
@@ -147,6 +149,11 @@ func _run() -> void:
 				quit(4)
 				return
 			print("SMOKE_OK_INTEL_GHOST")
+			if not main.has_method("leak_advice_text") or str(main.leak_advice_text()).find("建议") < 0 or str(main.leak_advice_text()).find("秒前") < 0:
+				push_error("SMOKE_NO_LEAK_ADVICE %s" % (main.leak_advice_text() if main.has_method("leak_advice_text") else "no_api"))
+				quit(56)
+				return
+			print("SMOKE_OK_LEAK_ADVICE ", main.leak_advice_text())
 			# Same plan at 2× must match terminal tick + event fingerprint.
 			main._on_alarm_pressed()
 			main.sim.set_speed(2.0)
@@ -296,8 +303,18 @@ func _run() -> void:
 			main.level_index = 2
 			main._load_level("pump", false, false)
 			await process_frame
+			if not main.has_method("decision_pulse_active") or not bool(main.decision_pulse_active()):
+				push_error("SMOKE_NO_DECISION_PULSE")
+				quit(56)
+				return
 			if not main.door_locked:
 				main._on_door_pressed()
+			await process_frame
+			if bool(main.decision_pulse_active()):
+				push_error("SMOKE_PULSE_AFTER_DOOR")
+				quit(56)
+				return
+			print("SMOKE_OK_DECISION_PULSE")
 			if not main.door_locked:
 				push_error("SMOKE_DOOR_NOT_LOCKED")
 				quit(15)
@@ -1702,6 +1719,24 @@ func _assert_props(main) -> bool:
 		quit(51)
 		return false
 	print("SMOKE_OK_PROPS landmarks=5 sig=", sig)
+	return true
+
+
+func _assert_checklist(main) -> bool:
+	if not main.has_method("checklist_visible") or not bool(main.checklist_visible()):
+		push_error("SMOKE_NO_CHECKLIST")
+		quit(56)
+		return false
+	var txt := str(main.checklist_strip_text()) if main.has_method("checklist_strip_text") else ""
+	if txt.find("已部署") < 0 or txt.find("射界覆盖主路") < 0 or txt.find("侧路有火力") < 0:
+		push_error("SMOKE_CHECKLIST_LABELS %s" % txt)
+		quit(56)
+		return false
+	if main.intel == null or not main.intel.has_method("latest_leak_tick"):
+		push_error("SMOKE_NO_LEAK_TICK_API")
+		quit(56)
+		return false
+	print("SMOKE_OK_CHECKLIST ", txt.replace("\n", " | "))
 	return true
 
 

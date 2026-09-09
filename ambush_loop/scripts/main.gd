@@ -57,6 +57,11 @@ var barrel_hint: Node2D = null
 var trap_callout: Node2D = null
 var _trap_callout_tween: Tween = null
 var spawn_teach_label: Label = null
+var checklist_strip: VBoxContainer = null
+var _checklist_labels: Array[Label] = []
+var _door_taught: bool = false
+var _decision_pulse_tween: Tween = null
+var leak_advice_shown: String = ""
 var route_timeline: Control = null
 var watch_timeline: Control = null
 var mission_sky: Node2D = null
@@ -418,6 +423,7 @@ func _build_role_card_hud(root: Control) -> void:
 	spawn_teach_label.add_theme_constant_override("shadow_offset_y", 1)
 	spawn_teach_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(spawn_teach_label)
+	_ensure_checklist(root)
 
 
 func _build_modals() -> void:
@@ -1252,6 +1258,7 @@ func _fade_result_panel() -> void:
 
 func _load_level(level_id: String, keep_intel: bool, restore_plan: bool) -> void:
 	_mission_had_escape = false
+	_door_taught = false
 	_clear_intel_path_ghost()
 	level = LevelDef.by_id(level_id)
 	var idx := LEVEL_ORDER.find(level.level_id)
@@ -1650,8 +1657,191 @@ func _build_decision_marker() -> void:
 	tag.add_theme_constant_override("shadow_offset_y", 1)
 	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	n.add_child(tag)
+	var pulse := Line2D.new()
+	pulse.name = "PulseRing"
+	pulse.width = 2.5
+	pulse.closed = true
+	pulse.default_color = Color(0.22, 0.92, 0.78, 0.92)
+	pulse.z_index = 3
+	var pts := PackedVector2Array()
+	for i in 18:
+		var ang := TAU * float(i) / 18.0
+		pts.append(Vector2(cos(ang), sin(ang)) * 24.0)
+	if pts.size() > 0:
+		pts.append(pts[0])
+	pulse.points = pts
+	pulse.visible = false
+	n.add_child(pulse)
 	routes_draw.add_child(n)
 	decision_marker = n
+	_refresh_decision_pulse()
+
+
+func _ensure_checklist(root: Control = null) -> void:
+	if checklist_strip != null and is_instance_valid(checklist_strip):
+		return
+	var host: Control = root
+	if host == null:
+		host = get_node_or_null("HUD/Root") as Control
+	if host == null:
+		return
+	var box := VBoxContainer.new()
+	box.name = "SetupChecklist"
+	box.add_theme_constant_override("separation", 4)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if role_box != null and is_instance_valid(role_box):
+		role_box.add_child(box)
+	else:
+		box.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		box.offset_left = 10.0
+		box.offset_top = 438.0
+		box.offset_right = 214.0
+		box.offset_bottom = 530.0
+		host.add_child(box)
+	checklist_strip = box
+	_checklist_labels.clear()
+	var titles := ["已部署≥1", "射界覆盖主路", "侧路有火力"]
+	for title in titles:
+		var lab := Label.new()
+		lab.text = title
+		lab.add_theme_font_size_override("font_size", 13)
+		lab.add_theme_font_override("font", NightOps.ui_font_bold())
+		lab.add_theme_color_override("font_shadow_color", Color(0.02, 0.03, 0.02, 0.9))
+		lab.add_theme_constant_override("shadow_offset_x", 1)
+		lab.add_theme_constant_override("shadow_offset_y", 1)
+		lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_child(lab)
+		_checklist_labels.append(lab)
+
+
+func _side_route_key() -> String:
+	if level == null:
+		return ""
+	if door_locked and not level.alternate_route_cells.is_empty():
+		return "alt"
+	if route_world.has("flank") and not (door_locked and level.door_blocks_route == "flank"):
+		return "flank"
+	if route_world.has("sneak"):
+		return "sneak"
+	return ""
+
+
+func _route_polyline_named(route_name: String) -> PackedVector2Array:
+	if route_name == "alt":
+		if level == null or level.alternate_route_cells.is_empty():
+			return PackedVector2Array()
+		return _cells_to_world(level.alternate_route_cells)
+	if route_world.has(route_name):
+		return route_world[route_name]
+	return PackedVector2Array()
+
+
+func _plan_covers_route(route_name: String) -> bool:
+	var poly := _route_polyline_named(route_name)
+	if poly.is_empty():
+		return false
+	for op in operators:
+		if op == null or not op.visible or not op.alive:
+			continue
+		for p in _sample_polyline(poly, 20.0):
+			if op.in_fire_geometry(p, grid):
+				return true
+	return false
+
+
+func _refresh_checklist() -> void:
+	_ensure_checklist()
+	if checklist_strip == null:
+		return
+	var show := phase == Phase.SETUP and level != null
+	checklist_strip.visible = show
+	if not show or _checklist_labels.size() < 3:
+		return
+	var deployed := _deployed_count() >= 1
+	var main_ok := _plan_covers_route("main")
+	var side_key := _side_route_key()
+	var side_ok := side_key != "" and _plan_covers_route(side_key)
+	_paint_check_chip(_checklist_labels[0], "已部署≥1", deployed, deployed)
+	_paint_check_chip(_checklist_labels[1], "射界覆盖主路", main_ok, deployed)
+	_paint_check_chip(_checklist_labels[2], "侧路有火力", side_ok, deployed)
+
+
+func _paint_check_chip(lab: Label, title: String, ok: bool, started: bool) -> void:
+	if lab == null:
+		return
+	var mark := "✓" if ok else ("·" if started else "○")
+	lab.text = "%s  %s" % [mark, title]
+	var col := Color(0.42, 0.78, 0.40)
+	if ok:
+		col = Color(0.42, 0.78, 0.40)
+	elif started:
+		col = Color(0.90, 0.72, 0.28)
+	else:
+		col = Color(0.82, 0.36, 0.22)
+	lab.add_theme_color_override("font_color", col)
+
+
+func checklist_strip_text() -> String:
+	if checklist_strip == null or not checklist_strip.visible:
+		return ""
+	var bits: PackedStringArray = PackedStringArray()
+	for lab in _checklist_labels:
+		if lab:
+			bits.append(lab.text)
+	return " / ".join(bits)
+
+
+func checklist_visible() -> bool:
+	return checklist_strip != null and is_instance_valid(checklist_strip) and checklist_strip.visible
+
+
+func _refresh_decision_pulse() -> void:
+	if decision_marker == null or not is_instance_valid(decision_marker):
+		return
+	var ring := decision_marker.get_node_or_null("PulseRing") as Line2D
+	if ring == null:
+		return
+	var on := phase == Phase.SETUP and level != null and level.decision_cell.x >= 0 and not _door_taught
+	ring.visible = on
+	if not on:
+		if _decision_pulse_tween != null:
+			_decision_pulse_tween.kill()
+			_decision_pulse_tween = null
+		ring.scale = Vector2.ONE
+		return
+	if _decision_pulse_tween != null and is_instance_valid(_decision_pulse_tween):
+		return
+	if _is_power_saving():
+		ring.scale = Vector2(1.18, 1.18)
+		ring.modulate.a = 0.85
+		return
+	ring.scale = Vector2.ONE
+	ring.modulate.a = 0.95
+	_decision_pulse_tween = create_tween().set_loops()
+	_decision_pulse_tween.tween_property(ring, "scale", Vector2(1.42, 1.42), 0.55).set_trans(Tween.TRANS_SINE)
+	_decision_pulse_tween.parallel().tween_property(ring, "modulate:a", 0.18, 0.55)
+	_decision_pulse_tween.tween_property(ring, "scale", Vector2.ONE, 0.55).set_trans(Tween.TRANS_SINE)
+	_decision_pulse_tween.parallel().tween_property(ring, "modulate:a", 0.95, 0.55)
+
+
+func decision_pulse_active() -> bool:
+	if decision_marker == null or not is_instance_valid(decision_marker):
+		return false
+	var ring := decision_marker.get_node_or_null("PulseRing") as Line2D
+	return ring != null and ring.visible and not _door_taught
+
+
+func _leak_advice_line() -> String:
+	if intel == null or level == null or not intel.has_method("leak_advice_line"):
+		return ""
+	var route := intel.latest_route() if intel.has_method("latest_route") else ""
+	var spawn_d := level.first_route_delay(route) if route != "" else 0.0
+	return str(intel.leak_advice_line(spawn_d, _route_zh_short(route)))
+
+
+func leak_advice_text() -> String:
+	return leak_advice_shown
 
 
 func _refresh_door_visual(animate: bool = false) -> void:
@@ -1722,6 +1912,7 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 		loop_index = 1
 		last_plan.clear()
 		door_locked = false
+		leak_advice_shown = ""
 	if restore_plan and not last_plan.deployments.is_empty():
 		_restore_last_plan()
 	else:
@@ -2699,6 +2890,7 @@ func _on_door_pressed() -> void:
 	if phase != Phase.SETUP or level == null or level.door_cell.x < 0:
 		return
 	door_locked = not door_locked
+	_door_taught = true
 	grid.set_door_state(level.door_cell, door_locked)
 	if map_draw.has_method("invalidate_static_cache"):
 		map_draw.invalidate_static_cache()
@@ -2746,6 +2938,7 @@ func _on_alarm_pressed() -> void:
 	run_id += 1
 	var this_run := run_id
 	phase = Phase.WATCHING
+	leak_advice_shown = ""
 	_clear_intel_path_ghost()
 	sim.reset()
 	battle_log.clear()
@@ -3248,7 +3441,7 @@ func _fail_squad_wipe() -> void:
 
 
 func _remember_path(path: PackedVector2Array, reason: String, hint: String = "", route: String = "") -> void:
-	intel.add_path(loop_index, path, sim.time_sec(), reason, hint, route)
+	intel.add_path(loop_index, path, sim.time_sec(), reason, hint, route, sim.tick)
 	intel_paths.clear()
 	for rec in intel.records:
 		intel_paths.append(rec["path"])
@@ -3829,15 +4022,20 @@ func _on_continue_pressed() -> void:
 		var intel_line := intel.latest_line()
 		var leak := intel.latest_hint()
 		var was_escape := fail_reason == "escape"
+		var advice := _leak_advice_line() if was_escape else ""
+		leak_advice_shown = advice
 		loop_index += 1
 		_start_setup(true, true)
 		if was_escape:
 			_play_intel_path_ghost()
 		if leak != "":
-			intel_label.text = "情报已记录 · %s" % leak
+			var line := "情报已记录 · %s" % leak
+			if advice != "":
+				line += "  ·  %s" % advice
+			intel_label.text = line
 			var col := _intel_flash_color(intel.latest_route() if intel.has_method("latest_route") else "")
 			intel_label.add_theme_color_override("font_color", col)
-			_flash("情报 · %s" % leak, col)
+			_flash(advice if advice != "" else ("情报 · %s" % leak), col)
 		elif intel_line != "":
 			intel_label.text = "情报已记录 · %s" % intel_line
 			_flash("情报已记录", Color(0.55, 0.85, 1.0))
@@ -4200,10 +4398,14 @@ func _update_hud() -> void:
 	var intel_txt := "漏网记忆：%d   |   %s" % [intel.records.size(), _ammo_summary()]
 	if intel.latest_line() != "" and (phase == Phase.SETUP or phase == Phase.FAILED):
 		intel_txt += "   ·   %s" % intel.latest_line()
+	if leak_advice_shown != "" and phase == Phase.SETUP:
+		intel_txt += "   ·   %s" % leak_advice_shown
 	intel_label.text = intel_txt
 	_refresh_phase_chip()
 	_refresh_route_legend()
 	_refresh_watch_timeline()
+	_refresh_checklist()
+	_refresh_decision_pulse()
 	var dep := _deployed_count()
 	if phase == Phase.SETUP:
 		help_label.text = "准备：左卡选灰狼/铁砧/夜枭。青弧=掩体保护方向。黄锥=墙裁切射界。红线=选中队员可打到的路线。观察环仅准备期。点掩体（%d/3）| 1/2/3 | A/D射界 | F开火 | G弹包 | B门 | Tab绊索 | M静音 | Esc菜单\n空格拉警报（锁死方案）。X中止留情报。时间轴复盘只读。R清空记忆。" % dep
