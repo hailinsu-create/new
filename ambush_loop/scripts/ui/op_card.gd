@@ -26,6 +26,7 @@ var _hp_shown: float = -1.0
 var _hp_target: float = 0.0
 var _pips: HBoxContainer = null
 var _glow: ColorRect = null
+var _hurt_flash: float = 0.0
 
 
 func setup(i: int) -> void:
@@ -147,6 +148,11 @@ func _process(delta: float) -> void:
 	else:
 		_hp_shown = lerpf(_hp_shown, _hp_target, 1.0 - exp(-delta * 10.0))
 	_hp.value = _hp_shown
+	if _hurt_flash > 0.0:
+		_hurt_flash = maxf(_hurt_flash - delta * 4.2, 0.0)
+		_hp.modulate = Color(1.0, 1.0, 1.0).lerp(Color(1.55, 0.62, 0.38), _hurt_flash)
+	else:
+		_hp.modulate = Color.WHITE
 
 
 func bind(op: OperatorUnit, is_sel: bool, can_pick: bool) -> void:
@@ -174,6 +180,10 @@ func bind(op: OperatorUnit, is_sel: bool, can_pick: bool) -> void:
 	_role.add_theme_color_override("font_color", kit.lerp(NightOps.MUTED, 0.35))
 	var hp := op.hp if op.alive else 0.0
 	_hp_target = hp
+	if op.has_method("hit_feedback"):
+		var pulse := float(op.hit_feedback())
+		if pulse > 0.12:
+			_hurt_flash = maxf(_hurt_flash, pulse)
 	if _hp_shown < 0.0:
 		_hp_shown = hp
 	var col := NightOps.hp_color(hp / OperatorUnit.MAX_HP)

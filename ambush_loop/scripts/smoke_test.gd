@@ -49,6 +49,8 @@ func _run() -> void:
 		return
 	if not _assert_lifecycle(main):
 		return
+	if not _assert_watch_juice(main):
+		return
 	if not _assert_perf_tier(main):
 		return
 	if not _assert_readability(main):
@@ -1321,6 +1323,72 @@ func _assert_lifecycle(main) -> bool:
 		quit(47)
 		return false
 	print("SMOKE_OK_LIFECYCLE")
+	return true
+
+
+func _assert_watch_juice(main) -> bool:
+	if not main.has_method("_spawn_watch_tracer") or not main.has_method("_kill_edge_flash"):
+		push_error("SMOKE_NO_WATCH_JUICE_API")
+		quit(53)
+		return false
+	if not main.has_method("_shake_for_explosion") or not main.has_method("_ensure_watch_timeline"):
+		push_error("SMOKE_NO_WATCH_SHAKE_OR_TIMELINE")
+		quit(53)
+		return false
+	var src := FileAccess.get_file_as_string("res://scripts/main.gd")
+	if src.find("_tracer_pool.size() < 12") < 0 or src.find("_trim_live_tracers") < 0:
+		push_error("SMOKE_TRACER_POOL_CAP")
+		quit(53)
+		return false
+	if main.operators.is_empty() or not main.operators[0].has_method("hit_feedback"):
+		push_error("SMOKE_NO_OP_HIT_FEEDBACK")
+		quit(53)
+		return false
+	var gs = root.get_node_or_null("GameSettings")
+	if gs:
+		gs.set_quality_tier("standard")
+	if main.phase != main.Phase.SETUP:
+		main._start_setup(false, false)
+	main._select_op(0)
+	main._deploy_selected_to(main.cover_slots[0], false)
+	main._on_alarm_pressed()
+	if main.phase != main.Phase.WATCHING:
+		push_error("SMOKE_WATCH_JUICE_NO_WATCH phase=%s" % main.phase)
+		quit(53)
+		return false
+	if main.watch_timeline == null or not main.watch_timeline.visible:
+		push_error("SMOKE_WATCH_TIMELINE_HIDDEN")
+		quit(53)
+		return false
+	var chip := str(main.phase_chip.text) if main.phase_chip else ""
+	if chip.find("t=") < 0 or (chip.find("1×") < 0 and chip.find("2×") < 0 and chip.find("暂停") < 0):
+		push_error("SMOKE_WATCH_CHIP %s" % chip)
+		quit(53)
+		return false
+	if typeof(main._tracer_pool) != TYPE_ARRAY:
+		push_error("SMOKE_TRACER_POOL_TYPE")
+		quit(53)
+		return false
+	if gs:
+		gs.set_quality_tier("power_saving")
+		main._spawn_watch_tracer(Vector2(40, 40), Vector2(80, 80), Color.WHITE, 2.0)
+		var n_tr := 0
+		if main.entities:
+			for c in main.entities.get_children():
+				if c is Line2D and str(c.name).begins_with("WatchTracer"):
+					n_tr += 1
+		if n_tr != 0:
+			push_error("SMOKE_TRACER_IN_POWER_SAVE n=%s" % n_tr)
+			quit(53)
+			return false
+		gs.set_quality_tier("standard")
+	main._kill_edge_flash()
+	main._start_setup(false, false)
+	if main.phase != main.Phase.SETUP:
+		push_error("SMOKE_WATCH_JUICE_RESET phase=%s" % main.phase)
+		quit(53)
+		return false
+	print("SMOKE_OK_WATCH_JUICE tracer_pool timeline chip")
 	return true
 
 

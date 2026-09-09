@@ -54,6 +54,7 @@ var door_marker: Node2D = null
 var decision_marker: Node2D = null
 var barrel_hint: Node2D = null
 var route_timeline: Control = null
+var watch_timeline: Control = null
 var mission_sky: Node2D = null
 var all_spawns_done: bool = false
 var pending_result: String = "" # "" | "fail" | "win" — build panel after tick events/snapshot
@@ -95,7 +96,9 @@ var phase_chip: Label = null
 var route_legend: Control = null
 var _alarm_vignette: ColorRect = null
 var _tracer_pool: Array = []
+var _tracer_live: Array = []
 var _phase_chip_tween: Tween = null
+var _kill_tween: Tween = null
 var replay_layer: Node2D = null
 var _flash_tween: Tween = null
 var event_list: ItemList = null
@@ -620,6 +623,8 @@ func _toggle_event_log() -> void:
 		event_log.visible = _event_log_open
 	if log_button:
 		log_button.text = "收日志" if _event_log_open else "日志"
+	if _event_log_open:
+		_update_event_log()
 	_refresh_touch_hud()
 
 
@@ -836,6 +841,7 @@ func _apply_watch_layers() -> void:
 		ghosts.modulate = Color.WHITE
 	if sfx and sfx.has_method("set_watch_bed"):
 		sfx.set_watch_bed(phase == Phase.WATCHING)
+	_refresh_watch_timeline()
 
 
 func _ensure_game_camera() -> void:
@@ -969,6 +975,47 @@ func _alarm_edge_flash() -> void:
 		_camera_punch(Vector2(8, -5))
 
 
+func _kill_edge_flash() -> void:
+	## Brief green rim on a confirmed kill. Standard tier only — 省电 skips the wash.
+	if _is_power_saving():
+		return
+	_ensure_presentation_fx()
+	if _rim_tween != null:
+		_rim_tween.kill()
+		_rim_tween = null
+	if _kill_tween != null:
+		_kill_tween.kill()
+	if _rim_flash == null:
+		return
+	for c in _rim_flash.get_children():
+		if c is ColorRect:
+			(c as ColorRect).color = Color(0.28, 0.95, 0.42, 0.0)
+	_kill_tween = create_tween()
+	_kill_tween.set_parallel(true)
+	for c in _rim_flash.get_children():
+		if c is ColorRect:
+			_kill_tween.tween_property(c, "color:a", 0.62, 0.05)
+	_kill_tween.chain()
+	_kill_tween.set_parallel(true)
+	for c in _rim_flash.get_children():
+		if c is ColorRect:
+			_kill_tween.tween_property(c, "color:a", 0.0, 0.18)
+
+
+func _shake_for_explosion(world_pos: Vector2) -> void:
+	## Micro camera punch when a barrel pops near a living operator. Standard only.
+	if _is_power_saving() or phase != Phase.WATCHING:
+		return
+	var near := false
+	for op in operators:
+		if op.visible and op.alive and op.global_position.distance_to(world_pos) <= 280.0:
+			near = true
+			break
+	if not near:
+		return
+	_camera_punch(Vector2(5, -4))
+
+
 func _siren_phase_chip() -> void:
 	if phase_chip == null:
 		return
@@ -1016,6 +1063,9 @@ func _reset_presentation_fx() -> void:
 	if _rim_tween != null:
 		_rim_tween.kill()
 		_rim_tween = null
+	if _kill_tween != null:
+		_kill_tween.kill()
+		_kill_tween = null
 	if has_node("World"):
 		$World.modulate = Color.WHITE
 	if _tone_wash:
@@ -1535,6 +1585,10 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 	result_panel.visible = false
 	if route_timeline:
 		route_timeline.visible = false
+	if watch_timeline:
+		watch_timeline.visible = false
+		if watch_timeline.has_method("set_live"):
+			watch_timeline.set_live(false)
 	if abort_button:
 		abort_button.visible = false
 		abort_button.disabled = true
@@ -2309,6 +2363,7 @@ func _on_barrel_detonated(barrel: Node2D) -> void:
 	if phase == Phase.WATCHING or pending_result != "":
 		battle_log.add_event(sim.tick, "barrel", -1, -1, barrel.global_position)
 	_flash("油桶爆炸", Color(1.0, 0.45, 0.2))
+	_shake_for_explosion(barrel.global_position)
 	_update_event_log()
 
 
@@ -2382,6 +2437,8 @@ func _on_speed_pressed() -> void:
 	sim.set_speed(1.0 if sim.speed >= 1.5 else 2.0)
 	if speed_button:
 		speed_button.text = "速度 2×" if sim.speed >= 1.5 else "速度 1×"
+	_refresh_phase_chip()
+	_refresh_touch_hud()
 
 
 func _on_pause_pressed() -> void:
@@ -2390,6 +2447,8 @@ func _on_pause_pressed() -> void:
 	sim.toggle_pause()
 	if pause_button:
 		pause_button.text = "继续" if sim.paused else "暂停"
+	_refresh_phase_chip()
+	_refresh_touch_hud()
 
 
 func _on_alarm_pressed() -> void:
@@ -2442,6 +2501,7 @@ func _on_alarm_pressed() -> void:
 		speed_button.disabled = false
 	status_label.text = "方案锁死 — 暂停/变速仅改变观看。跑掉或全灭均失败。中止(X)保留截止情报。"
 	_update_event_log()
+	_refresh_watch_timeline()
 	_update_hud()
 
 
@@ -2546,7 +2606,8 @@ func _on_return_fired(from: EnemyRunner, to: OperatorUnit) -> void:
 	if not _watch_first_return:
 		_watch_first_return = true
 		_sfx("return_fire")
-	_spawn_watch_tracer(from.global_position, to.global_position, Color(1.0, 0.48, 0.14, 0.82), 1.6)
+	_spawn_watch_tracer(from.global_position, to.global_position, Color(1.0, 0.58, 0.22, 0.94), 2.4)
+	_update_event_log()
 
 
 func _process(delta: float) -> void:
@@ -2563,11 +2624,13 @@ func _process(delta: float) -> void:
 			break
 		_sim_tick()
 	hud_tick += delta
-	if hud_tick >= 0.35:
+	_refresh_phase_chip()
+	if hud_tick >= 0.20:
 		hud_tick = 0.0
 		_update_hud()
 	else:
 		_update_role_cards()
+		_refresh_watch_timeline()
 
 
 func _sim_tick() -> void:
@@ -2658,6 +2721,7 @@ func _sim_tick() -> void:
 						_sfx("fire")
 					if op.ammo <= 0:
 						battle_log.add_event(sim.tick, "empty", op.op_id)
+					_update_event_log()
 				if phase != Phase.WATCHING:
 					_finish_sim_tick()
 					return
@@ -2855,6 +2919,8 @@ func _on_enemy_died(enemy: EnemyRunner) -> void:
 	if phase == Phase.WATCHING or pending_result != "":
 		battle_log.add_event(sim.tick, "kill", enemy.label_id)
 	_spawn_loot_at(enemy.global_position, enemy.loot_ammo)
+	if phase == Phase.WATCHING:
+		_kill_edge_flash()
 	_update_event_log()
 	if phase == Phase.WATCHING:
 		_check_win()
@@ -2931,23 +2997,24 @@ func _on_abort_pressed() -> void:
 
 
 func _on_op_fired_shot(op: OperatorUnit, target_pos: Vector2) -> void:
-	var col := Color(0.95, 0.90, 0.55, 0.82)
-	var w := 1.35
+	var col := Color(1.0, 0.96, 0.62, 0.95)
+	var w := 2.15
 	if op != null:
 		match op.role:
 			OperatorUnit.Role.MG:
-				col = Color(1.0, 0.82, 0.38, 0.78)
-				w = 2.15
+				col = Color(1.0, 0.88, 0.40, 0.96)
+				w = 2.95
 			OperatorUnit.Role.SCOUT:
-				col = Color(0.82, 0.95, 1.0, 0.72)
-				w = 1.15
+				col = Color(0.88, 0.98, 1.0, 0.92)
+				w = 1.85
 	_spawn_watch_tracer(op.global_position, target_pos, col, w)
 
 
 func _spawn_watch_tracer(from: Vector2, to: Vector2, color: Color, width: float) -> void:
-	## Thin watching-phase tracer. Standard tier only; pooled Line2D.
+	## Watching-phase tracer. Standard tier only; pooled Line2D, max 12 live/pool.
 	if phase != Phase.WATCHING or _is_power_saving():
 		return
+	_trim_live_tracers()
 	var line: Line2D = null
 	while _tracer_pool.size() > 0 and line == null:
 		var cand = _tracer_pool.pop_back()
@@ -2960,27 +3027,46 @@ func _spawn_watch_tracer(from: Vector2, to: Vector2, color: Color, width: float)
 		line.end_cap_mode = Line2D.LINE_CAP_ROUND
 		line.z_index = 8
 	line.width = width
-	line.default_color = color
-	line.modulate = Color(1, 1, 1, 1)
+	line.default_color = Color(color.r, color.g, color.b, minf(color.a + 0.08, 1.0))
+	line.modulate = Color(1.15, 1.12, 1.05, 1)
 	line.visible = true
 	line.points = PackedVector2Array([from, to])
 	if line.get_parent() != entities:
 		if line.get_parent() != null:
 			line.get_parent().remove_child(line)
 		entities.add_child(line)
+	_tracer_live.append(line)
 	var tw := line.create_tween()
-	tw.tween_property(line, "modulate:a", 0.0, 0.14)
+	tw.tween_property(line, "modulate:a", 0.0, 0.16)
 	tw.tween_callback(_recycle_tracer.bind(line))
+
+
+func _trim_live_tracers() -> void:
+	var i := 0
+	while i < _tracer_live.size():
+		var c = _tracer_live[i]
+		if c == null or not is_instance_valid(c):
+			_tracer_live.remove_at(i)
+			continue
+		i += 1
+	while _tracer_live.size() >= 12:
+		var oldest: Line2D = _tracer_live[0] as Line2D
+		_tracer_live.remove_at(0)
+		_recycle_tracer(oldest)
 
 
 func _recycle_tracer(line: Line2D) -> void:
 	if line == null or not is_instance_valid(line):
 		return
+	var idx := _tracer_live.find(line)
+	if idx >= 0:
+		_tracer_live.remove_at(idx)
 	var p := line.get_parent()
 	if p:
 		p.remove_child(line)
 	line.visible = false
-	if _tracer_pool.size() < 16:
+	line.modulate = Color.WHITE
+	if _tracer_pool.size() < 12:
 		_tracer_pool.append(line)
 	else:
 		line.queue_free()
@@ -2995,6 +3081,7 @@ func _clear_tracer_pool() -> void:
 		if t != null and is_instance_valid(t):
 			t.queue_free()
 	_tracer_pool.clear()
+	_tracer_live.clear()
 
 
 func _on_op_ammo_empty(op: OperatorUnit) -> void:
@@ -3326,6 +3413,8 @@ func _refresh_route_timeline(show: bool) -> void:
 		return
 	route_timeline.visible = show and level != null
 	if not show or level == null:
+		if route_timeline.has_method("set_live"):
+			route_timeline.set_live(false)
 		return
 	var marks: Array = []
 	if level.has_method("route_spawn_marks"):
@@ -3336,7 +3425,57 @@ func _refresh_route_timeline(show: bool) -> void:
 		tmax = maxf(tmax, float(m.get("delay", 0.0)) + 0.5)
 	tmax = maxf(tmax, sim.time_sec())
 	route_timeline.set("t_max", tmax)
+	route_timeline.set("elapsed", sim.time_sec())
+	if route_timeline.has_method("set_live"):
+		route_timeline.set_live(false)
 	route_timeline.queue_redraw()
+
+
+func _ensure_watch_timeline() -> void:
+	if watch_timeline != null and is_instance_valid(watch_timeline):
+		return
+	var root: Control = get_node_or_null("HUD/Root") as Control
+	if root == null:
+		return
+	var strip := Control.new()
+	strip.name = "WatchTimeline"
+	strip.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	strip.offset_left = 220.0
+	strip.offset_top = 76.0
+	strip.offset_right = -16.0
+	strip.offset_bottom = 120.0
+	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	strip.set_script(load("res://scripts/ui/route_timeline.gd"))
+	root.add_child(strip)
+	watch_timeline = strip
+
+
+func _refresh_watch_timeline() -> void:
+	_ensure_watch_timeline()
+	if watch_timeline == null:
+		return
+	var show := phase == Phase.WATCHING and level != null
+	var touch := _want_touch()
+	watch_timeline.offset_top = 72.0 if touch else 76.0
+	watch_timeline.offset_bottom = 116.0 if touch else 120.0
+	watch_timeline.visible = show
+	if not show:
+		if watch_timeline.has_method("set_live"):
+			watch_timeline.set_live(false)
+		return
+	var marks: Array = []
+	if level.has_method("route_spawn_marks"):
+		marks = level.route_spawn_marks()
+	watch_timeline.set("marks", marks)
+	var tmax := 1.0
+	for m in marks:
+		tmax = maxf(tmax, float(m.get("delay", 0.0)) + 0.5)
+	tmax = maxf(tmax, sim.time_sec())
+	watch_timeline.set("t_max", tmax)
+	watch_timeline.set("elapsed", sim.time_sec())
+	if watch_timeline.has_method("set_live"):
+		watch_timeline.set_live(true)
+	watch_timeline.queue_redraw()
 
 
 func _ensure_route_timeline() -> void:
@@ -3436,7 +3575,8 @@ func _fill_event_list(evs: Array, max_count: int, title: String) -> void:
 		var ev: Dictionary = evs[i]
 		_event_list_items.append(ev)
 		event_list.add_item(battle_log.format_event(ev))
-	if _event_list_items.size() > 0:
+	var log_open := _event_log_open and event_log != null and event_log.visible
+	if log_open and _event_list_items.size() > 0:
 		event_list.select(_event_list_items.size() - 1)
 		event_list.ensure_current_is_visible()
 	_set_event_log_interactive(phase != Phase.SETUP and _event_list_items.size() > 0)
@@ -3681,6 +3821,7 @@ func _update_hud() -> void:
 	intel_label.text = intel_txt
 	_refresh_phase_chip()
 	_refresh_route_legend()
+	_refresh_watch_timeline()
 	var dep := _deployed_count()
 	if phase == Phase.SETUP:
 		help_label.text = "准备：左卡选灰狼/铁砧/夜枭。青弧=掩体保护方向。黄锥=墙裁切射界。红线=选中队员可打到的路线。观察环仅准备期。点掩体（%d/3）| 1/2/3 | A/D射界 | F开火 | G弹包 | B门 | Tab绊索 | M静音 | Esc菜单\n空格拉警报（锁死方案）。X中止留情报。时间轴复盘只读。R清空记忆。" % dep
@@ -3713,7 +3854,8 @@ func _refresh_phase_chip() -> void:
 			phase_chip.text = "阶段 · 布置杀局"
 			phase_chip.add_theme_color_override("font_color", Color(0.82, 0.90, 0.52))
 		Phase.WATCHING:
-			phase_chip.text = "阶段 · 锁 计划已锁死 · 只能观看"
+			var spd := "暂停" if sim.paused else ("2×" if sim.speed >= 1.5 else "1×")
+			phase_chip.text = "锁死观战  %s  t=%.1fs" % [spd, sim.time_sec()]
 			phase_chip.add_theme_color_override("font_color", Color(1.0, 0.22, 0.14))
 		Phase.FAILED:
 			phase_chip.text = "阶段 · 失败穿梭"

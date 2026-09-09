@@ -67,6 +67,10 @@ var _death_tween: Tween = null
 var _recoil_off: Vector2 = Vector2.ZERO
 var _weapon_snap: float = 0.0
 var _hit_punch: float = 0.0
+var hp_bar: Polygon2D = null
+var shield_glyph: Polygon2D = null
+var _hp_pulse: float = 0.0
+var _shield_pulse: float = 0.0
 
 
 static func role_for_id(id: int) -> int:
@@ -117,6 +121,8 @@ func setup(id: int, pname: String, p_grid: AmbushGrid = null) -> void:
 	grid = p_grid
 	_apply_role_kit()
 	_ensure_observation_visual()
+	_ensure_hp_bar()
+	_ensure_shield()
 	_refresh_role_glyph()
 	reset_loadout()
 	set_observation_ring(false)
@@ -168,6 +174,8 @@ func reset_loadout() -> void:
 	fire_permitted = fire_mode == FireMode.ENGAGE_ON_SIGHT
 	last_deny.clear()
 	_hit_flash = 0.0
+	_hp_pulse = 0.0
+	_shield_pulse = 0.0
 	_reset_present_fx()
 	if body:
 		body.color = body_color
@@ -175,6 +183,8 @@ func reset_loadout() -> void:
 	_refresh_role_glyph()
 	_refresh_tag()
 	_rebuild_cone()
+	_update_hp_bar()
+	_refresh_shield()
 
 
 func set_fire_mode(mode: int) -> void:
@@ -360,8 +370,13 @@ func take_damage(amount: float, from_pos: Vector2 = Vector2.INF) -> void:
 	hp -= amount * mult
 	_hit_flash = 1.0
 	_hit_punch = 1.0
+	_hp_pulse = 1.0
+	if slot != null and from_pos != Vector2.INF and slot.protects_from(from_pos):
+		_shield_pulse = 1.0
 	_apply_body_modulate()
 	_refresh_tag()
+	_update_hp_bar()
+	_refresh_shield()
 	if hp <= 0.0:
 		_die()
 
@@ -373,6 +388,14 @@ func _process(delta: float) -> void:
 		_apply_body_modulate()
 	if _hit_punch > 0.0:
 		_hit_punch = maxf(_hit_punch - delta * 7.0, 0.0)
+	if _hp_pulse > 0.0:
+		_hp_pulse = maxf(_hp_pulse - delta * 5.0, 0.0)
+		_update_hp_bar()
+	if _shield_pulse > 0.0:
+		_shield_pulse = maxf(_shield_pulse - delta * 3.6, 0.0)
+		_refresh_shield()
+	elif shield_glyph != null and is_instance_valid(shield_glyph) and shield_glyph.visible:
+		shield_glyph.visible = false
 	_recoil_off = _recoil_off.lerp(Vector2.ZERO, 1.0 - exp(-delta * 16.0))
 	if _recoil_off.length_squared() < 0.04:
 		_recoil_off = Vector2.ZERO
@@ -411,12 +434,16 @@ func _die() -> void:
 	alive = false
 	hp = 0.0
 	_hit_flash = 0.0
+	_hp_pulse = 0.0
+	_shield_pulse = 0.0
 	if body:
 		body.color = Color(0.25, 0.28, 0.32)
 	_apply_body_modulate()
 	_rebuild_cone()
 	_refresh_tag()
 	_refresh_role_glyph()
+	_update_hp_bar()
+	_refresh_shield()
 	_play_death_fx()
 	died.emit(self)
 
@@ -634,6 +661,10 @@ func _apply_idle_bob() -> void:
 		role_glyph.position = Vector2(15, -13 + bob * 0.4)
 	if weapon and is_instance_valid(weapon):
 		weapon.rotation = _weapon_snap
+	if hp_bar:
+		hp_bar.position = Vector2(0.0, bob * 0.2)
+	if shield_glyph:
+		shield_glyph.position = Vector2(-20, -8 + bob * 0.3)
 	_ensure_tag_plate(bob)
 
 
@@ -764,6 +795,12 @@ func _reset_present_fx() -> void:
 		kit_helm.modulate = Color.WHITE
 	if kit_gear != null and is_instance_valid(kit_gear):
 		kit_gear.modulate = Color.WHITE
+	_hp_pulse = 0.0
+	_shield_pulse = 0.0
+	if shield_glyph != null and is_instance_valid(shield_glyph):
+		shield_glyph.visible = false
+		shield_glyph.scale = Vector2.ONE
+	_update_hp_bar()
 
 
 func _ensure_body_outline() -> void:
@@ -982,6 +1019,74 @@ func kit_card_text() -> String:
 		facing_compass(),
 		int(facing_deg),
 	]
+
+
+func _ensure_hp_bar() -> void:
+	if hp_bar != null and is_instance_valid(hp_bar):
+		return
+	hp_bar = get_node_or_null("HpBar") as Polygon2D
+	if hp_bar == null:
+		hp_bar = Polygon2D.new()
+		hp_bar.name = "HpBar"
+		hp_bar.z_index = 5
+		add_child(hp_bar)
+
+
+func _update_hp_bar() -> void:
+	_ensure_hp_bar()
+	if hp_bar == null:
+		return
+	var shown := visible and alive
+	hp_bar.visible = shown
+	if not shown:
+		return
+	var w := 26.0 * clampf(hp / MAX_HP, 0.0, 1.0)
+	hp_bar.polygon = PackedVector2Array([
+		Vector2(-13, -16), Vector2(-13 + w, -16), Vector2(-13 + w, -13), Vector2(-13, -13)
+	])
+	var pulse := 1.0 + _hp_pulse * 0.42
+	hp_bar.scale = Vector2(pulse, pulse)
+	if _hp_pulse > 0.05:
+		hp_bar.color = Color(1.0, 0.55, 0.28).lerp(
+			Color(0.22, 0.90, 0.42) if hp > 40.0 else Color(0.95, 0.28, 0.18),
+			1.0 - _hp_pulse
+		)
+	else:
+		hp_bar.color = Color(0.22, 0.88, 0.40) if hp > 40.0 else Color(0.92, 0.28, 0.18)
+
+
+func _ensure_shield() -> void:
+	if shield_glyph != null and is_instance_valid(shield_glyph):
+		return
+	shield_glyph = get_node_or_null("CoverShield") as Polygon2D
+	if shield_glyph == null:
+		shield_glyph = Polygon2D.new()
+		shield_glyph.name = "CoverShield"
+		shield_glyph.z_index = 6
+		shield_glyph.polygon = PackedVector2Array([
+			Vector2(0, -9), Vector2(8, -4), Vector2(6, 6), Vector2(0, 10), Vector2(-6, 6), Vector2(-8, -4)
+		])
+		shield_glyph.color = Color(0.55, 0.88, 0.95, 0.92)
+		add_child(shield_glyph)
+	shield_glyph.position = Vector2(-20, -8)
+
+
+func _refresh_shield() -> void:
+	_ensure_shield()
+	if shield_glyph == null:
+		return
+	if _shield_pulse <= 0.02 or not alive or not visible:
+		shield_glyph.visible = false
+		shield_glyph.scale = Vector2.ONE
+		return
+	shield_glyph.visible = true
+	var s := 1.0 + _shield_pulse * 0.28
+	shield_glyph.scale = Vector2(s, s)
+	shield_glyph.modulate = Color(1.25, 1.35, 1.2, 0.35 + 0.65 * _shield_pulse)
+
+
+func hit_feedback() -> float:
+	return _hp_pulse
 
 
 func _refresh_tag() -> void:
