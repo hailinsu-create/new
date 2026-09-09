@@ -384,7 +384,7 @@ func _reveal_modal(layer: CanvasLayer) -> void:
 
 
 func _build_briefing() -> void:
-	var ui := _modal_panel(20, 640.0, 420.0)
+	var ui := _modal_panel(20, 680.0, 500.0)
 	_brief = ui["root"]
 	var box: VBoxContainer = ui["box"]
 	var kicker := Label.new()
@@ -398,7 +398,7 @@ func _build_briefing() -> void:
 	box.add_child(_brief_title)
 	_brief_body = Label.new()
 	_brief_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_brief_body.custom_minimum_size = Vector2(580, 180)
+	_brief_body.custom_minimum_size = Vector2(620, 240)
 	box.add_child(_brief_body)
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_END

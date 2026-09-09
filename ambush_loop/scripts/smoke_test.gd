@@ -108,6 +108,11 @@ func _run() -> void:
 				quit(39)
 				return
 			print("SMOKE_OK_ESCAPE_PANEL_CLEAR")
+			if str(main.result_label.text).find("情报已记录") < 0:
+				push_error("SMOKE_NO_INTEL_RECORDED %s" % main.result_label.text)
+				quit(4)
+				return
+			print("SMOKE_OK_INTEL_RECORDED")
 			var fp_1x: String = main.battle_log.fingerprint()
 			var tick_1x: int = main.sim.tick
 			print("SMOKE_1X_FP tick=", tick_1x, " fp=", fp_1x)

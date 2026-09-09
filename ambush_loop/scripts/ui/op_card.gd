@@ -93,7 +93,7 @@ func setup(i: int) -> void:
 	_hp.min_value = 0.0
 	_hp.max_value = OperatorUnit.MAX_HP
 	_hp.show_percentage = false
-	_hp.custom_minimum_size = Vector2(110, 10)
+	_hp.custom_minimum_size = Vector2(110, 12)
 	_hp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_hp.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var bg := NightOps.flat(Color(0.08, 0.10, 0.09), Color(0.18, 0.20, 0.16), 1, 0, 2)
@@ -152,8 +152,9 @@ func bind(op: OperatorUnit, is_sel: bool, can_pick: bool) -> void:
 	if _fill_col != col:
 		_fill_col = col
 		_hp.add_theme_stylebox_override("fill", NightOps.flat(col, Color(0, 0, 0, 0), 0, 0, 2))
-	_hp_txt.text = "0" if not op.alive else str(int(round(hp)))
-	_meta.text = "弹药 %d/%d    %s" % [op.ammo, op.max_ammo, op.fire_mode_label()]
+	_hp_txt.text = "HP 0" if not op.alive else "HP %d" % int(round(hp))
+	var ammo_mark := "●" if op.ammo > 0 else "○"
+	_meta.text = "%s 弹 %d/%d    %s" % [ammo_mark, op.ammo, op.max_ammo, op.fire_mode_label()]
 	if not op.visible or op.slot == null:
 		_slot.text = "未部署"
 		_slot.add_theme_color_override("font_color", Color(0.72, 0.55, 0.32))

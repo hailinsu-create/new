@@ -47,6 +47,9 @@ func format_event(ev: Dictionary) -> String:
 		"spawn":
 			return "%.1fs  敌%d 进入战场" % [t, ev["actor_id"]]
 		"fire":
+			var shooter := str(ev.get("payload", {}).get("name", ""))
+			if shooter != "":
+				return "%.1fs  %s 开火 → 敌%d" % [t, shooter, ev["target_id"]]
 			return "%.1fs  队员%d 开火 → 敌%d" % [t, ev["actor_id"], ev["target_id"]]
 		"return_fire":
 			return "%.1fs  敌%d 还击 → 队员%d" % [t, ev["actor_id"], ev["target_id"]]
@@ -59,6 +62,9 @@ func format_event(ev: Dictionary) -> String:
 		"op_down":
 			return "%.1fs  队员%d 阵亡" % [t, ev["actor_id"]]
 		"escape":
+			var route_zh := _route_zh(str(ev.get("payload", {}).get("route", "")))
+			if route_zh != "":
+				return "%.1fs  敌%d 沿%s越界逃逸" % [t, ev["actor_id"], route_zh]
 			return "%.1fs  敌%d 越界逃逸" % [t, ev["actor_id"]]
 		"abort":
 			return "%.1fs  指挥官中止尝试" % t
@@ -139,12 +145,38 @@ func has_type(type_name: String) -> bool:
 	return not last_of_type(type_name).is_empty()
 
 
+func _route_zh(route: String) -> String:
+	match route:
+		"main":
+			return "主路"
+		"flank":
+			return "侧翼"
+		"sneak":
+			return "西暗道"
+		"alt":
+			return "备用接近"
+		_:
+			return ""
+
+
+func first_of_type(type_name: String) -> Dictionary:
+	for ev in events:
+		if str(ev["type"]) == type_name:
+			return ev
+	return {}
+
+
 func terminal_summary_line() -> String:
 	## One-line 终局摘要 from terminal reason + last meaningful events.
 	var bits: PackedStringArray = []
 	match terminal_reason:
 		"escape":
-			bits.append("敌军从逃逸口越界")
+			var esc := last_of_type("escape")
+			var route_zh := _route_zh(str(esc.get("payload", {}).get("route", "")))
+			if route_zh != "":
+				bits.append("敌军沿%s从逃逸口越界" % route_zh)
+			else:
+				bits.append("敌军从逃逸口越界")
 		"wipe":
 			bits.append("参战小队全灭")
 		"abort":
@@ -154,6 +186,13 @@ func terminal_summary_line() -> String:
 		_:
 			if terminal_reason != "":
 				bits.append(reason_zh(terminal_reason))
+	var first_fire := first_of_type("fire")
+	if not first_fire.is_empty():
+		var nm := str(first_fire.get("payload", {}).get("name", ""))
+		if nm != "":
+			bits.append("第一枪 %s" % nm)
+		else:
+			bits.append("第一枪 队员%d" % int(first_fire.get("actor_id", 0)))
 	if has_type("empty") and terminal_reason != "win":
 		bits.append("有队员空弹")
 	if has_type("trip"):

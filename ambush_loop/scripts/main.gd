@@ -88,6 +88,8 @@ var role_box: Control = null
 var role_card_buttons: Array[Button] = []
 var role_cards: Array = []
 var plan_readout: Label = null
+var phase_chip: Label = null
+var route_legend: Label = null
 var replay_layer: Node2D = null
 var _flash_tween: Tween = null
 var event_list: ItemList = null
@@ -354,6 +356,39 @@ func _build_role_card_hud(root: Control) -> void:
 	plan_readout.add_theme_color_override("font_color", Color(0.7, 0.85, 0.78))
 	plan_readout.custom_minimum_size = Vector2(196, 48)
 	dock.add_child(plan_readout)
+	phase_chip = Label.new()
+	phase_chip.name = "PhaseChip"
+	phase_chip.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	phase_chip.anchor_left = 1.0
+	phase_chip.anchor_right = 1.0
+	phase_chip.offset_left = -420.0
+	phase_chip.offset_right = -16.0
+	phase_chip.offset_top = 10.0
+	phase_chip.offset_bottom = 36.0
+	phase_chip.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	phase_chip.add_theme_font_size_override("font_size", 16)
+	phase_chip.add_theme_color_override("font_color", Color(0.95, 0.92, 0.62))
+	phase_chip.add_theme_color_override("font_shadow_color", Color(0.02, 0.03, 0.02, 0.9))
+	phase_chip.add_theme_constant_override("shadow_offset_x", 1)
+	phase_chip.add_theme_constant_override("shadow_offset_y", 1)
+	phase_chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(phase_chip)
+	route_legend = Label.new()
+	route_legend.name = "RouteLegend"
+	route_legend.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	route_legend.offset_left = 220.0
+	route_legend.offset_top = 78.0
+	route_legend.offset_right = -16.0
+	route_legend.offset_bottom = 104.0
+	route_legend.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	route_legend.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	route_legend.add_theme_font_size_override("font_size", 14)
+	route_legend.add_theme_color_override("font_color", Color(0.92, 0.86, 0.58))
+	route_legend.add_theme_color_override("font_shadow_color", Color(0.02, 0.03, 0.02, 0.92))
+	route_legend.add_theme_constant_override("shadow_offset_x", 1)
+	route_legend.add_theme_constant_override("shadow_offset_y", 1)
+	route_legend.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(route_legend)
 
 
 func _build_modals() -> void:
@@ -1214,7 +1249,7 @@ func _draw_fixed_routes() -> void:
 		"flank": Color(0.95, 0.55, 0.2, 0.3),
 		"sneak": Color(0.55, 0.72, 0.38, 0.32),
 	}
-	var labels := {"main": "主路线", "flank": "侧翼路线", "sneak": "西暗道"}
+	var labels := {"main": "主路·巡卫", "flank": "侧翼·奔袭", "sneak": "西暗道·影探"}
 	for key in route_world.keys():
 		var col: Color = colors.get(key, Color(0.7, 0.7, 0.4, 0.3))
 		_add_route_line(route_world[key], col, str(labels.get(key, key)))
@@ -1222,7 +1257,7 @@ func _draw_fixed_routes() -> void:
 		_add_route_line(
 			_cells_to_world(level.alternate_route_cells),
 			Color(0.62, 0.52, 0.28, 0.32),
-			"备用接近"
+			"备用接近·陷阱"
 		)
 
 
@@ -1236,9 +1271,12 @@ func _add_route_line(points: PackedVector2Array, color: Color, label: String) ->
 		var t := Label.new()
 		t.text = label
 		var idx := mini(2, points.size() - 1)
-		t.position = points[idx] + Vector2(8, -18)
-		t.add_theme_font_size_override("font_size", 12)
-		t.add_theme_color_override("font_color", color)
+		t.position = points[idx] + Vector2(8, -20)
+		t.add_theme_font_size_override("font_size", 14)
+		t.add_theme_color_override("font_color", Color(color.r, color.g, color.b, 0.95))
+		t.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.02, 0.92))
+		t.add_theme_constant_override("shadow_offset_x", 1)
+		t.add_theme_constant_override("shadow_offset_y", 1)
 		routes_draw.add_child(t)
 
 
@@ -2482,7 +2520,10 @@ func _sim_tick() -> void:
 					best_id = enemy.label_id
 					best = enemy
 			if best != null and op.shot_cd <= 0.0 and op.can_engage(best.global_position, grid):
-				battle_log.add_event(sim.tick, "fire", op.op_id, best.label_id, op.global_position)
+				battle_log.add_event(
+					sim.tick, "fire", op.op_id, best.label_id, op.global_position,
+					{"name": op.display_name, "role": op.role_short}
+				)
 				if op.try_fire(best, grid):
 					if not _watch_first_fire:
 						_watch_first_fire = true
@@ -2663,12 +2704,16 @@ func _on_enemy_escaped(enemy: EnemyRunner, path: PackedVector2Array) -> void:
 		return
 	fail_reason = "escape"
 	phase = Phase.FAILED
-	battle_log.add_event(sim.tick, "escape", enemy.label_id, -1, enemy.global_position)
+	var hint := _escape_route_hint(enemy)
+	battle_log.add_event(
+		sim.tick, "escape", enemy.label_id, -1, enemy.global_position,
+		{"route": enemy.spawn_route, "kind": enemy.kind_short()}
+	)
 	battle_log.mark_terminal(sim.tick, "escape")
 	for e in enemies:
 		e.active = false
-	_remember_path(path, "escape")
-	_flash("逃逸！出口已标记", Color(1.0, 0.35, 0.25))
+	_remember_path(path, "escape", hint)
+	_flash("逃逸！%s" % hint, Color(1.0, 0.35, 0.25))
 	_sfx("escape")
 	_camera_punch()
 	_begin_escape_flash()
@@ -2721,11 +2766,23 @@ func _fail_squad_wipe() -> void:
 	pending_result = "fail"
 
 
-func _remember_path(path: PackedVector2Array, reason: String) -> void:
-	intel.add_path(loop_index, path, sim.time_sec(), reason)
+func _remember_path(path: PackedVector2Array, reason: String, hint: String = "") -> void:
+	intel.add_path(loop_index, path, sim.time_sec(), reason, hint)
 	intel_paths.clear()
 	for rec in intel.records:
 		intel_paths.append(rec["path"])
+
+
+func _escape_route_hint(enemy: EnemyRunner) -> String:
+	if enemy == null:
+		return "漏网路线已标在地图上"
+	match enemy.spawn_route:
+		"flank":
+			return "侧翼奔袭从东廊漏出"
+		"sneak":
+			return "西暗道影探从夹缝漏出"
+		_:
+			return "主路巡卫从南闸漏出"
 
 
 func _on_abort_pressed() -> void:
@@ -2792,10 +2849,19 @@ func _show_fail_result() -> void:
 	var summary := "\n".join(lines)
 	var reason_zh: String = BattleLog.reason_zh(fail_reason)
 	var epitaph := battle_log.terminal_summary_line()
-	result_label.text = "第 %d 世失败（%s）。\n%s\n穿梭后恢复上轮计划，满血满弹。\n%s\n\n—— 事件摘要（点击右侧日志定位）——\n%s" % [
+	var intel_line := "情报已记录"
+	if fail_reason == "escape":
+		var hint := intel.latest_hint()
+		intel_line = "情报已记录 · %s" % (hint if hint != "" else "漏网路线已标在地图上")
+	elif intel.latest_line() != "":
+		intel_line = "情报已记录 · %s" % intel.latest_line()
+	var shot := _first_shot_line()
+	result_label.text = "第 %d 世失败（%s）。\n%s\n%s\n%s\n穿梭后恢复上轮计划，满血满弹。\n%s\n\n—— 事件摘要（点击右侧日志定位）——\n%s" % [
 		loop_index,
 		reason_zh,
 		epitaph,
+		intel_line,
+		shot,
 		"逃逸口已在地图上闪烁。" if fail_reason == "escape" else "",
 		summary,
 	]
@@ -2826,14 +2892,15 @@ func _show_win_result() -> void:
 	var lines := battle_log.summary_lines(5)
 	var has_next := level_index + 1 < LEVEL_ORDER.size()
 	var epitaph := battle_log.terminal_summary_line()
+	var shot := _first_shot_line()
 	if has_next:
-		result_label.text = "任务完成。\n本关用了 %d 世。\n%s\n\n—— 关键事件 ——\n%s" % [
-			loop_index, epitaph, "\n".join(lines)
+		result_label.text = "任务完成。\n本关用了 %d 世。\n%s\n%s\n\n—— 关键事件 ——\n%s" % [
+			loop_index, epitaph, shot, "\n".join(lines)
 		]
 		continue_button.text = "下一关"
 	else:
-		result_label.text = "全部关卡封锁完成。\n本关用了 %d 世。\n%s\n\n—— 关键事件 ——\n%s" % [
-			loop_index, epitaph, "\n".join(lines)
+		result_label.text = "全部关卡封锁完成。\n本关用了 %d 世。\n%s\n%s\n\n—— 关键事件 ——\n%s" % [
+			loop_index, epitaph, shot, "\n".join(lines)
 		]
 		continue_button.text = "查看致谢"
 		_campaign_complete = true
@@ -3005,10 +3072,25 @@ func _check_win() -> void:
 	pending_result = "win"
 
 
+func _first_shot_line() -> String:
+	var ev := battle_log.first_of_type("fire")
+	if ev.is_empty():
+		return "第一枪：本世无人开火"
+	var nm := str(ev.get("payload", {}).get("name", ""))
+	if nm == "":
+		var op := _op_by_id(int(ev.get("actor_id", -1)))
+		nm = op.display_name if op else ("队员%d" % int(ev.get("actor_id", 0)))
+	return "第一枪：%s → 敌%d" % [nm, int(ev.get("target_id", 0))]
+
+
 func _on_continue_pressed() -> void:
 	if phase == Phase.FAILED:
+		var intel_line := intel.latest_line()
 		loop_index += 1
 		_start_setup(true, true)
+		if intel_line != "":
+			intel_label.text = "情报已记录 · %s" % intel_line
+			_flash("情报已记录", Color(0.55, 0.85, 1.0))
 	elif phase == Phase.WON:
 		if level_index + 1 < LEVEL_ORDER.size():
 			level_index += 1
@@ -3317,15 +3399,20 @@ func _update_hud() -> void:
 		level_label.text = lv_title
 	if tut_label and level:
 		tut_label.text = level.tutorial if phase == Phase.SETUP else level.teaching
-	intel_label.text = "漏网记忆：%d   |   %s" % [intel.records.size(), _ammo_summary()]
+	var intel_txt := "漏网记忆：%d   |   %s" % [intel.records.size(), _ammo_summary()]
+	if intel.latest_line() != "" and (phase == Phase.SETUP or phase == Phase.FAILED):
+		intel_txt += "   ·   %s" % intel.latest_line()
+	intel_label.text = intel_txt
+	_refresh_phase_chip()
+	_refresh_route_legend()
 	var dep := _deployed_count()
 	if phase == Phase.SETUP:
-		help_label.text = "准备：左卡选步枪/机枪/侦察。青弧=掩体保护方向。黄锥=墙裁切射界。红线=选中队员可打到的路线。侦察观察环仅准备期。点掩体（%d/3）| 1/2/3 | A/D射界 | F开火 | G弹包 | B门 | Tab绊索 | M静音 | Esc菜单\n空格拉警报（锁死方案）。X中止留情报。时间轴复盘只读。R清空记忆。" % dep
+		help_label.text = "准备：左卡选灰狼/铁砧/夜枭。青弧=掩体保护方向。黄锥=墙裁切射界。红线=选中队员可打到的路线。观察环仅准备期。点掩体（%d/3）| 1/2/3 | A/D射界 | F开火 | G弹包 | B门 | Tab绊索 | M静音 | Esc菜单\n空格拉警报（锁死方案）。X中止留情报。时间轴复盘只读。R清空记忆。" % dep
 	elif phase == Phase.WATCHING:
 		var spd := "暂停" if sim.paused else ("2×" if sim.speed >= 1.5 else "1×")
 		help_label.text = "锁死看戏 t=%.1fs [%s]：优先打更接近逃逸口的目标；点事件可定位。X中止保留情报。暂停/变速只改观看。" % [sim.time_sec(), spd]
 	elif phase == Phase.FAILED:
-		help_label.text = "失败原因：%s。点击右侧事件定位对象；逃逸口在失败时闪烁。打开时间轴或改朝向/掩体/开火条件后再警报。" % fail_reason
+		help_label.text = "失败原因：%s。情报已记录。点击右侧事件定位对象；逃逸口在失败时闪烁。打开时间轴或改朝向/掩体/开火条件后再警报。" % fail_reason
 	elif phase == Phase.WON:
 		help_label.text = "战前准备决定战斗。可回看只读时间轴；点击事件定位。"
 	elif phase == Phase.REPLAY:
@@ -3340,6 +3427,49 @@ func _update_hud() -> void:
 		_update_cover_previews()
 	_apply_watch_layers()
 	_refresh_touch_hud()
+
+
+func _refresh_phase_chip() -> void:
+	if phase_chip == null:
+		return
+	match phase:
+		Phase.SETUP:
+			phase_chip.text = "阶段 · 布置杀局"
+			phase_chip.add_theme_color_override("font_color", Color(0.82, 0.90, 0.52))
+		Phase.WATCHING:
+			phase_chip.text = "阶段 · 计划已锁死 · 只能观看"
+			phase_chip.add_theme_color_override("font_color", Color(1.0, 0.55, 0.28))
+		Phase.FAILED:
+			phase_chip.text = "阶段 · 失败穿梭"
+			phase_chip.add_theme_color_override("font_color", Color(1.0, 0.42, 0.28))
+		Phase.WON:
+			phase_chip.text = "阶段 · 封锁成功"
+			phase_chip.add_theme_color_override("font_color", Color(0.55, 0.92, 0.48))
+		Phase.REPLAY:
+			phase_chip.text = "阶段 · 只读复盘"
+			phase_chip.add_theme_color_override("font_color", Color(0.72, 0.85, 0.95))
+		_:
+			phase_chip.text = ""
+
+
+func _refresh_route_legend() -> void:
+	if route_legend == null:
+		return
+	var show := phase == Phase.SETUP and level != null
+	route_legend.visible = show
+	if not show:
+		return
+	match level.level_id:
+		"warehouse":
+			route_legend.text = "路线图例  红=主路巡卫  橙=侧翼奔袭  ·  过早开火会空弹"
+		"pump":
+			route_legend.text = "路线图例  红=主路  橙=侧翼  褐=关门后备用接近（陷阱）"
+		"railcut":
+			route_legend.text = "路线图例  红=西廊先到  橙=东廊延迟  ·  别把三人堆南闸"
+		"depot":
+			route_legend.text = "路线图例  红=主路  橙=东廊  绿=西暗道影探（延迟陷阱）"
+		_:
+			route_legend.text = "路线图例  红=主路巡卫  橙=侧翼奔袭  ·  两条都要有射界"
 
 
 func _tick_cover_long_press() -> void:
