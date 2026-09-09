@@ -68,6 +68,17 @@ func _run() -> void:
 	if not await _assert_checklist(main):
 		return
 	print("LEVEL=", main.level.level_id)
+	if main.has_method("_refresh_watch_timeline"):
+		main._refresh_watch_timeline()
+	if not main.has_method("setup_spawn_preview_visible") or not bool(main.setup_spawn_preview_visible()):
+		push_error("SMOKE_NO_SPAWN_PREVIEW")
+		quit(59)
+		return
+	if not main.has_method("setup_spawn_preview_count") or int(main.setup_spawn_preview_count()) < 2:
+		push_error("SMOKE_SPAWN_PREVIEW_COUNT %s" % (main.setup_spawn_preview_count() if main.has_method("setup_spawn_preview_count") else -1))
+		quit(59)
+		return
+	print("SMOKE_OK_SPAWN_PREVIEW n=", main.setup_spawn_preview_count())
 
 	# Life 1: 灰狼 on west cover, authored east face (0°) covers the spine so
 	# 敌1/敌2 die and flank 敌3 (delay 0.4s) is the leaker. South 90° covers neither.
@@ -134,6 +145,17 @@ func _run() -> void:
 				push_error("SMOKE_NO_NEXT_WAVE %s" % main.result_label.text)
 				quit(52)
 				return
+			var leak_line_txt := str(main.result_label.text)
+			if (
+				leak_line_txt.find("漏网：") < 0
+				or leak_line_txt.find("侧翼") < 0
+				or leak_line_txt.find("敌3") < 0
+				or leak_line_txt.find("0.4") < 0
+			):
+				push_error("SMOKE_NO_LEAK_RESULT_LINE %s" % leak_line_txt)
+				quit(59)
+				return
+			print("SMOKE_OK_LEAK_RESULT_LINE")
 			if main.intel.records.is_empty():
 				push_error("SMOKE_NO_LEAKER_RECORD")
 				quit(56)

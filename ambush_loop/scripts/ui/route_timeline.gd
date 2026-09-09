@@ -6,6 +6,7 @@ var marks: Array = []
 var t_max: float = 1.0
 var elapsed: float = 0.0
 var live: bool = false
+var preview_upcoming: int = 0
 var _pulse: float = 0.0
 
 
@@ -27,6 +28,28 @@ func _process(delta: float) -> void:
 		return
 	_pulse += delta
 	queue_redraw()
+
+
+func upcoming_marks(n: int) -> Array:
+	## Soonest authored spawns at or after elapsed. SETUP uses this for 下一波 dots.
+	if n <= 0:
+		return []
+	var sorted: Array = marks.duplicate()
+	sorted.sort_custom(func(a, b) -> bool:
+		return float(a.get("delay", 0.0)) < float(b.get("delay", 0.0))
+	)
+	var out: Array = []
+	for m in sorted:
+		if float(m.get("delay", 0.0)) + 0.05 < elapsed:
+			continue
+		out.append(m)
+		if out.size() >= n:
+			break
+	return out
+
+
+func preview_count() -> int:
+	return upcoming_marks(preview_upcoming).size()
 
 
 func active_route() -> String:
@@ -58,6 +81,8 @@ func _draw() -> void:
 	var y := h * 0.58
 	draw_line(Vector2(8, y), Vector2(w - 8, y), Color(0.55, 0.58, 0.42, 0.55), 2.0)
 	var caption := "路线时间轴 · 观战" if live else "路线时间轴"
+	if preview_upcoming > 0 and not live:
+		caption = "路线时间轴 · 下一波"
 	draw_string(ThemeDB.fallback_font, Vector2(8, 12), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.82, 0.84, 0.62, 0.9))
 	var tmax := maxf(t_max, 0.5)
 	if live:
@@ -65,6 +90,11 @@ func _draw() -> void:
 		draw_line(Vector2(px, y - 11), Vector2(px, y + 11), Color(0.95, 0.92, 0.55, 0.82), 1.5)
 	var active := active_route() if live else ""
 	var pulse := 0.5 + 0.5 * sin(_pulse * 7.2)
+	var preview := upcoming_marks(preview_upcoming) if preview_upcoming > 0 and not live else []
+	var preview_ids: Dictionary = {}
+	for pm in preview:
+		preview_ids[int(pm.get("id", -1))] = true
+	var first_preview := true
 	for m in marks:
 		var route := str(m.get("route", "main"))
 		var t := float(m.get("delay", 0.0))
@@ -79,14 +109,21 @@ func _draw() -> void:
 				col = Color(0.38, 0.78, 0.52)
 				lab = "暗"
 		var is_active := live and route == active
+		var is_preview := preview_ids.has(int(m.get("id", -2)))
 		if is_active:
 			draw_circle(Vector2(x, y), 8.2 + 3.2 * pulse, Color(col.r, col.g, col.b, 0.22 + 0.28 * pulse))
-		draw_circle(Vector2(x, y), 6.2 if is_active else 5.5, col)
-		draw_circle(Vector2(x, y), 6.2 if is_active else 5.5, Color(0.05, 0.05, 0.04, 0.85), false, 1.1)
+		elif is_preview:
+			draw_circle(Vector2(x, y), 7.4, Color(col.r, col.g, col.b, 0.28))
+		draw_circle(Vector2(x, y), 6.2 if (is_active or is_preview) else 5.5, col)
+		draw_circle(Vector2(x, y), 6.2 if (is_active or is_preview) else 5.5, Color(0.05, 0.05, 0.04, 0.85), false, 1.1)
+		var tag := "%s%.1f" % [lab, t]
+		if is_preview and first_preview:
+			tag = "下一波"
+			first_preview = false
 		draw_string(
 			ThemeDB.fallback_font,
 			Vector2(x - 10, y + 16),
-			"%s%.1f" % [lab, t],
+			tag,
 			HORIZONTAL_ALIGNMENT_LEFT,
 			-1,
 			10,

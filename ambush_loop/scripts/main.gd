@@ -1989,6 +1989,23 @@ func _leak_advice_line() -> String:
 	return str(intel.leak_advice_line(level, _route_zh_short(route)))
 
 
+func _leak_result_line() -> String:
+	## Fail-panel one-liner from the recorded leaker, not spawn_schedule[0].
+	if intel == null or intel.records.is_empty():
+		return ""
+	var rec: Dictionary = intel.records[intel.records.size() - 1]
+	if str(rec.get("reason", "")) != "escape":
+		return ""
+	var route := str(rec.get("route", ""))
+	var lid := int(rec.get("leaker_id", -1))
+	if lid < 1:
+		return ""
+	var delay := 0.0
+	if level != null and level.has_method("delay_for_actor"):
+		delay = float(level.delay_for_actor(lid))
+	return "漏网：%s · 敌%d · %.1fs出发" % [_route_zh_short(route), lid, delay]
+
+
 func leak_advice_text() -> String:
 	return leak_advice_shown
 
@@ -3808,11 +3825,14 @@ func _show_fail_result() -> void:
 		intel_line = "情报已记录 · %s" % intel.latest_line()
 	var shot := _first_shot_line()
 	var wave := _next_wave_line()
-	result_label.text = "第 %d 世失败（%s）。\n%s\n%s\n%s\n%s\n穿梭后恢复上轮计划，满血满弹。\n%s\n\n—— 事件摘要（点击右侧日志定位）——\n%s" % [
+	var leak_line := _leak_result_line() if fail_reason == "escape" else ""
+	var leak_block := ("%s\n" % leak_line) if leak_line != "" else ""
+	result_label.text = "第 %d 世失败（%s）。\n%s\n%s\n%s%s\n%s\n穿梭后恢复上轮计划，满血满弹。\n%s\n\n—— 事件摘要（点击右侧日志定位）——\n%s" % [
 		loop_index,
 		reason_zh,
 		epitaph,
 		intel_line,
+		leak_block,
 		shot,
 		wave,
 		"逃逸口已在地图上闪烁。" if fail_reason == "escape" else "",
@@ -4171,12 +4191,13 @@ func _refresh_watch_timeline() -> void:
 	_ensure_watch_timeline()
 	if watch_timeline == null:
 		return
-	var show := phase == Phase.WATCHING and level != null
+	var show := (phase == Phase.WATCHING or phase == Phase.SETUP) and level != null
 	var touch := _want_touch()
 	watch_timeline.offset_top = 72.0 if touch else 76.0
 	watch_timeline.offset_bottom = 116.0 if touch else 120.0
 	watch_timeline.visible = show
 	if not show:
+		watch_timeline.set("preview_upcoming", 0)
 		if watch_timeline.has_method("set_live"):
 			watch_timeline.set_live(false)
 		return
@@ -4189,10 +4210,35 @@ func _refresh_watch_timeline() -> void:
 		tmax = maxf(tmax, float(m.get("delay", 0.0)) + 0.5)
 	tmax = maxf(tmax, sim.time_sec())
 	watch_timeline.set("t_max", tmax)
-	watch_timeline.set("elapsed", sim.time_sec())
-	if watch_timeline.has_method("set_live"):
-		watch_timeline.set_live(true)
+	if phase == Phase.SETUP:
+		watch_timeline.set("elapsed", 0.0)
+		watch_timeline.set("preview_upcoming", 2)
+		if watch_timeline.has_method("set_live"):
+			watch_timeline.set_live(false)
+	else:
+		watch_timeline.set("elapsed", sim.time_sec())
+		watch_timeline.set("preview_upcoming", 0)
+		if watch_timeline.has_method("set_live"):
+			watch_timeline.set_live(true)
 	watch_timeline.queue_redraw()
+
+
+func setup_spawn_preview_visible() -> bool:
+	return (
+		phase == Phase.SETUP
+		and watch_timeline != null
+		and is_instance_valid(watch_timeline)
+		and watch_timeline.visible
+		and int(watch_timeline.get("preview_upcoming")) >= 1
+	)
+
+
+func setup_spawn_preview_count() -> int:
+	if watch_timeline == null or not is_instance_valid(watch_timeline):
+		return 0
+	if watch_timeline.has_method("preview_count"):
+		return int(watch_timeline.preview_count())
+	return 0
 
 
 func _ensure_route_timeline() -> void:
