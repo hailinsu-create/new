@@ -1115,9 +1115,9 @@ func _build_operators() -> void:
 			o.queue_free()
 	operators.clear()
 	var defs := [
-		{"id": 1, "name": "步枪手"},
-		{"id": 2, "name": "机枪手"},
-		{"id": 3, "name": "侦察兵"},
+		{"id": 1, "name": OperatorUnit.role_codename(OperatorUnit.Role.RIFLE)},
+		{"id": 2, "name": OperatorUnit.role_codename(OperatorUnit.Role.MG)},
+		{"id": 3, "name": OperatorUnit.role_codename(OperatorUnit.Role.SCOUT)},
 	]
 	for d in defs:
 		var op := _make_operator(int(d["id"]), str(d["name"]))
@@ -1154,12 +1154,16 @@ func _make_operator(id: int, pname: String) -> OperatorUnit:
 	var tag := Label.new()
 	tag.name = "Tag"
 	tag.text = pname
-	tag.position = Vector2(-28, -30)
+	tag.position = Vector2(-30, -32)
 	tag.add_theme_font_size_override("font_size", 12)
-	tag.add_theme_color_override("font_color", Color(0.8, 0.9, 1.0))
+	tag.add_theme_color_override("font_color", OperatorUnit.role_kit_color(OperatorUnit.role_for_id(id)))
+	tag.add_theme_color_override("font_shadow_color", Color(0.02, 0.03, 0.03, 0.9))
+	tag.add_theme_constant_override("shadow_offset_x", 1)
+	tag.add_theme_constant_override("shadow_offset_y", 1)
 	op.add_child(tag)
 	var glyph := Polygon2D.new()
 	glyph.name = "RoleGlyph"
+	glyph.visible = true
 	op.add_child(glyph)
 	return op
 
@@ -2241,8 +2245,11 @@ func _make_enemy(id: int) -> EnemyRunner:
 	var tag := Label.new()
 	tag.name = "Tag"
 	tag.text = "敌%d" % id
-	tag.position = Vector2(-12, -34)
+	tag.position = Vector2(-16, -36)
 	tag.add_theme_font_size_override("font_size", 12)
+	tag.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.02, 0.9))
+	tag.add_theme_constant_override("shadow_offset_x", 1)
+	tag.add_theme_constant_override("shadow_offset_y", 1)
 	e.add_child(tag)
 	var hp := Polygon2D.new()
 	hp.name = "HpBar"

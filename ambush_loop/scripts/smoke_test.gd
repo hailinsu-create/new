@@ -818,6 +818,58 @@ func _assert_roles_and_cover(main) -> bool:
 		" scout_range=", scout.range_px,
 		" protect=", slot.protect_compass()
 	)
+	if not _assert_operator_identity(main, rifle, mg, scout):
+		return false
+	return true
+
+
+func _assert_operator_identity(main, rifle: OperatorUnit, mg: OperatorUnit, scout: OperatorUnit) -> bool:
+	if rifle.display_name.strip_edges() == "" or rifle.display_name == "队员":
+		push_error("SMOKE_OP_NO_DISPLAY_NAME %s" % rifle.display_name)
+		quit(32)
+		return false
+	if rifle.display_name == mg.display_name or mg.display_name == scout.display_name:
+		push_error(
+			"SMOKE_OP_NAMES_COLLIDE rifle=%s mg=%s scout=%s"
+			% [rifle.display_name, mg.display_name, scout.display_name]
+		)
+		quit(32)
+		return false
+	if rifle.role_glyph == null or not is_instance_valid(rifle.role_glyph):
+		push_error("SMOKE_NO_ROLE_GLYPH")
+		quit(32)
+		return false
+	main._select_op(0)
+	main._deploy_selected_to(main.cover_slots[0], false)
+	if not rifle.visible:
+		push_error("SMOKE_RIFLE_NOT_VISIBLE")
+		quit(32)
+		return false
+	if not rifle.role_glyph.visible:
+		push_error("SMOKE_ROLE_GLYPH_HIDDEN")
+		quit(32)
+		return false
+	if rifle.body == null or rifle.body.polygon.size() < 5:
+		push_error("SMOKE_RIFLE_BODY_TOO_SIMPLE n=%s" % (rifle.body.polygon.size() if rifle.body else -1))
+		quit(32)
+		return false
+	if mg.body == null or mg.body.polygon.size() < 5:
+		push_error("SMOKE_MG_BODY_TOO_SIMPLE")
+		quit(32)
+		return false
+	if scout.body == null or scout.body.polygon.size() < 5:
+		push_error("SMOKE_SCOUT_BODY_TOO_SIMPLE")
+		quit(32)
+		return false
+	if rifle.body.polygon == mg.body.polygon or mg.body.polygon == scout.body.polygon:
+		push_error("SMOKE_BODY_POLYS_IDENTICAL")
+		quit(32)
+		return false
+	main._on_clear_pressed()
+	print(
+		"SMOKE_OK_IDENTITY rifle=%s mg=%s scout=%s glyph=1"
+		% [rifle.display_name, mg.display_name, scout.display_name]
+	)
 	return true
 
 

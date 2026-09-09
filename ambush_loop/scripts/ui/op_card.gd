@@ -72,10 +72,10 @@ func setup(i: int) -> void:
 	name_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(name_row)
 	_glyph = RoleGlyphScript.new()
-	_glyph.custom_minimum_size = Vector2(18, 18)
+	_glyph.custom_minimum_size = Vector2(22, 22)
 	name_row.add_child(_glyph)
 	_name = Label.new()
-	_name.add_theme_font_size_override("font_size", 15)
+	_name.add_theme_font_size_override("font_size", 16)
 	_name.add_theme_color_override("font_color", NightOps.OLIVE_HI)
 	_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -136,8 +136,14 @@ func bind(op: OperatorUnit, is_sel: bool, can_pick: bool) -> void:
 	_refresh_chrome()
 	if _glyph:
 		_glyph.set("role", op.role)
+		_glyph.visible = true
+	var kit := OperatorUnit.role_kit_color(op.role)
 	_name.text = op.display_name
+	_name.add_theme_color_override("font_color", kit)
+	if _accent:
+		_accent.color = kit
 	_role.text = "%s · %s" % [OperatorUnit.role_display(op.role), _kit_short(op)]
+	_role.add_theme_color_override("font_color", kit.lerp(NightOps.MUTED, 0.35))
 	var hp := op.hp if op.alive else 0.0
 	_hp_target = hp
 	if _hp_shown < 0.0:
@@ -173,11 +179,11 @@ func _refresh_chrome() -> void:
 func _kit_short(op: OperatorUnit) -> String:
 	match op.role:
 		OperatorUnit.Role.MG:
-			return "宽锥短距"
+			return "铁砧 · 宽锥短距"
 		OperatorUnit.Role.SCOUT:
-			return "长窄锁线"
+			return "夜枭 · 长窄锁线"
 		_:
-			return "均衡补漏"
+			return "灰狼 · 均衡补漏"
 
 
 func _on_gui(event: InputEvent) -> void:

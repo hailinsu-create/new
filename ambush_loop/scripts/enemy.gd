@@ -36,9 +36,15 @@ var _trail_acc: float = 0.0
 var _trail_world: PackedVector2Array = PackedVector2Array()
 var body_outline: Polygon2D = null
 var chevron: Polygon2D = null
+var weapon: Polygon2D = null
+var kit_helm: Polygon2D = null
 var trail: Line2D = null
 var death_mark: Node2D = null
 var _death_tween: Tween = null
+var facing_deg: float = 90.0
+var _recoil_off: Vector2 = Vector2.ZERO
+var _weapon_snap: float = 0.0
+var _kind_color: Color = Color(0.82, 0.16, 0.14)
 
 @onready var body: Polygon2D = $Body
 @onready var tag: Label = $Tag
@@ -60,14 +66,13 @@ func setup(id: int, p_route: PackedVector2Array, p_grid: AmbushGrid = null, p_lo
 	focus_target = null
 	return_cd = 0.0
 	add_to_group("enemies")
-	if tag:
-		tag.text = "敌%d" % id
 	_hit_flash = 0.0
 	_return_flash = 0.0
 	_present_t = 0.0
 	_trail_world = PackedVector2Array()
 	_reset_present_fx()
 	_apply_hostile_silhouette()
+	_refresh_tag()
 	if route.size() > 0:
 		global_position = route[0]
 	recorded.clear()
@@ -147,10 +152,13 @@ func _face_move(target: Vector2) -> void:
 		aim = route[mini(route_index, route.size() - 1)] - route[route_index - 1]
 	if aim.length_squared() < 0.04:
 		return
-	# Diamond/chevron tip is local -Y; rotate so the tip points along travel.
+	# Kit tip is local -Y; rotate so the silhouette points along travel.
+	facing_deg = rad_to_deg(aim.angle())
 	body.rotation = aim.angle() + PI * 0.5
 	if body_outline:
 		body_outline.rotation = body.rotation
+	if weapon and is_instance_valid(weapon):
+		weapon.rotation = _weapon_snap
 
 
 func resolve_return_fire() -> void:
@@ -165,7 +173,7 @@ func resolve_return_fire() -> void:
 		if returning_fire:
 			body.color = Color(0.98, 0.48, 0.12)
 		elif alive:
-			body.color = Color(0.82, 0.16, 0.14)
+			body.color = _kind_color
 		_apply_body_modulate()
 
 
@@ -200,8 +208,7 @@ func apply_fire(amount: float, from: OperatorUnit = null) -> void:
 		focus_target = from
 	_update_hp_bar()
 	_apply_body_modulate()
-	if tag:
-		tag.text = "敌%d!" % label_id
+	_refresh_tag()
 	if hp <= 0.0:
 		kill()
 
@@ -219,8 +226,7 @@ func kill() -> void:
 		body.color = Color(0.35, 0.35, 0.38, 0.7)
 	_apply_body_modulate()
 	_play_death_fx()
-	if tag:
-		tag.text = "敌%d 尸体" % label_id
+	_refresh_tag()
 	died.emit(self)
 
 
@@ -257,10 +263,67 @@ func _process(delta: float) -> void:
 	_apply_body_modulate()
 
 
-func _hostile_diamond() -> PackedVector2Array:
-	return PackedVector2Array([
-		Vector2(0, -14), Vector2(9, 0), Vector2(0, 11), Vector2(-9, 0)
-	])
+func kind_id() -> String:
+	match spawn_route:
+		"flank":
+			return "flank"
+		"sneak":
+			return "sneak"
+		_:
+			return "main"
+
+
+func kind_short() -> String:
+	match kind_id():
+		"flank":
+			return "奔"
+		"sneak":
+			return "影"
+		_:
+			return "巡"
+
+
+func _hostile_body_poly() -> PackedVector2Array:
+	match kind_id():
+		"flank":
+			# Runner: elongated diamond, lean forward.
+			return PackedVector2Array([
+				Vector2(0, -17), Vector2(6.2, -5), Vector2(5.4, 12),
+				Vector2(0, 9), Vector2(-5.4, 12), Vector2(-6.2, -5)
+			])
+		"sneak":
+			# Shadow: low, wide, no helmet peak.
+			return PackedVector2Array([
+				Vector2(0, -9), Vector2(11, -2), Vector2(9, 8),
+				Vector2(0, 10), Vector2(-9, 8), Vector2(-11, -2)
+			])
+		_:
+			# Patrol rifleman: helmet block + torso diamond.
+			return PackedVector2Array([
+				Vector2(-4.5, -16), Vector2(4.5, -16), Vector2(7.5, -8),
+				Vector2(9.5, 1), Vector2(5.5, 12), Vector2(-5.5, 12),
+				Vector2(-9.5, 1), Vector2(-7.5, -8)
+			])
+
+
+func _kind_body_color() -> Color:
+	match kind_id():
+		"flank":
+			return Color(0.90, 0.42, 0.12)
+		"sneak":
+			return Color(0.16, 0.20, 0.24)
+		_:
+			return Color(0.82, 0.16, 0.14)
+
+
+func _kind_outline_color() -> Color:
+	match kind_id():
+		"flank":
+			return Color(0.22, 0.08, 0.02, 0.96)
+		"sneak":
+			return Color(0.04, 0.08, 0.10, 0.96)
+		_:
+			return Color(0.18, 0.04, 0.04, 0.96)
 
 
 func _ensure_chevron() -> void:
@@ -273,18 +336,93 @@ func _ensure_chevron() -> void:
 		chevron.name = "Chevron"
 		chevron.z_index = 1
 		body.add_child(chevron)
-	chevron.polygon = PackedVector2Array([
-		Vector2(0, -11), Vector2(4.5, -1), Vector2(0, 1.5), Vector2(-4.5, -1)
-	])
-	chevron.color = Color(0.92, 0.28, 0.18, 0.95)
+	match kind_id():
+		"flank":
+			chevron.polygon = PackedVector2Array([
+				Vector2(0, -13), Vector2(5.5, -2), Vector2(0, 1), Vector2(-5.5, -2)
+			])
+			chevron.color = Color(1.0, 0.72, 0.22, 0.95)
+		"sneak":
+			chevron.polygon = PackedVector2Array([
+				Vector2(0, -6), Vector2(3.2, 0), Vector2(0, 2), Vector2(-3.2, 0)
+			])
+			chevron.color = Color(0.42, 0.72, 0.62, 0.85)
+		_:
+			chevron.polygon = PackedVector2Array([
+				Vector2(0, -12), Vector2(4.8, -1), Vector2(0, 2), Vector2(-4.8, -1)
+			])
+			chevron.color = Color(0.95, 0.28, 0.18, 0.95)
+
+
+func _ensure_weapon() -> void:
+	if body == null:
+		return
+	if weapon == null or not is_instance_valid(weapon):
+		weapon = get_node_or_null("Weapon") as Polygon2D
+	if weapon == null:
+		weapon = Polygon2D.new()
+		weapon.name = "Weapon"
+		weapon.z_index = 2
+		body.add_child(weapon)
+	weapon.rotation = _weapon_snap
+	match kind_id():
+		"flank":
+			weapon.polygon = PackedVector2Array([
+				Vector2(-1.3, -6), Vector2(1.3, -6), Vector2(1.0, -20), Vector2(-1.0, -20)
+			])
+			weapon.color = Color(0.12, 0.10, 0.08, 0.96)
+			weapon.visible = true
+		"sneak":
+			weapon.polygon = PackedVector2Array([
+				Vector2(-0.7, -4), Vector2(0.7, -4), Vector2(0.5, -12), Vector2(-0.5, -12)
+			])
+			weapon.color = Color(0.08, 0.10, 0.12, 0.9)
+			weapon.visible = true
+		_:
+			weapon.polygon = PackedVector2Array([
+				Vector2(-1.4, -5), Vector2(1.4, -5), Vector2(1.1, -24),
+				Vector2(0.3, -27), Vector2(-0.3, -27), Vector2(-1.1, -24)
+			])
+			weapon.color = Color(0.14, 0.12, 0.10, 0.98)
+			weapon.visible = true
+
+
+func _ensure_helm() -> void:
+	if body == null:
+		return
+	if kit_helm == null or not is_instance_valid(kit_helm):
+		kit_helm = get_node_or_null("KitHelm") as Polygon2D
+	if kit_helm == null:
+		kit_helm = Polygon2D.new()
+		kit_helm.name = "KitHelm"
+		kit_helm.z_index = 1
+		body.add_child(kit_helm)
+	match kind_id():
+		"flank":
+			kit_helm.polygon = PackedVector2Array([
+				Vector2(-3.2, -18), Vector2(3.2, -18), Vector2(2.6, -13), Vector2(-2.6, -13)
+			])
+			kit_helm.color = Color(0.28, 0.12, 0.06, 0.95)
+			kit_helm.visible = true
+		"sneak":
+			kit_helm.visible = false
+		_:
+			kit_helm.polygon = PackedVector2Array([
+				Vector2(-5.2, -17), Vector2(5.2, -17), Vector2(4.4, -12), Vector2(-4.4, -12)
+			])
+			kit_helm.color = Color(0.22, 0.10, 0.08, 0.96)
+			kit_helm.visible = true
 
 
 func _apply_hostile_silhouette() -> void:
 	if body == null:
 		return
-	body.polygon = _hostile_diamond()
-	body.color = Color(0.82, 0.16, 0.14)
+	_kind_color = _kind_body_color()
+	body.polygon = _hostile_body_poly()
+	body.color = _kind_color
 	_ensure_chevron()
+	_ensure_weapon()
+	_ensure_helm()
 	_ensure_trail()
 	if body_outline == null or not is_instance_valid(body_outline):
 		body_outline = get_node_or_null("BodyOutline") as Polygon2D
@@ -293,15 +431,36 @@ func _apply_hostile_silhouette() -> void:
 		body_outline.name = "BodyOutline"
 		add_child(body_outline)
 		move_child(body_outline, body.get_index())
+	var pad := 3.2
 	var outline := PackedVector2Array()
 	for p in body.polygon:
 		var n := p
 		if n.length_squared() > 0.01:
-			n = n.normalized() * (p.length() + 2.6)
+			n = n.normalized() * (p.length() + pad)
 		outline.append(n)
 	body_outline.polygon = outline
-	body_outline.color = Color(0.18, 0.04, 0.04, 0.95)
+	body_outline.color = _kind_outline_color()
 	body_outline.rotation = body.rotation
+	_refresh_tag()
+
+
+func _refresh_tag() -> void:
+	if tag == null:
+		return
+	tag.add_theme_font_size_override("font_size", 12)
+	tag.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.02, 0.9))
+	tag.add_theme_constant_override("shadow_offset_x", 1)
+	tag.add_theme_constant_override("shadow_offset_y", 1)
+	if not alive:
+		tag.text = "%s%d 尸体" % [kind_short(), label_id]
+		tag.add_theme_color_override("font_color", Color(0.58, 0.56, 0.54))
+		return
+	var bang := "!" if alerted else ""
+	tag.text = "%s%d%s" % [kind_short(), label_id, bang]
+	var col := _kind_color.lightened(0.25)
+	if kind_id() == "sneak":
+		col = Color(0.62, 0.78, 0.72)
+	tag.add_theme_color_override("font_color", col)
 
 
 func _apply_body_modulate() -> void:
@@ -313,6 +472,10 @@ func _apply_body_modulate() -> void:
 			body_outline.modulate = Color(0.55, 0.55, 0.55, 0.7)
 		if chevron:
 			chevron.modulate = Color(0.55, 0.55, 0.55, 0.65)
+		if weapon:
+			weapon.modulate = Color(0.5, 0.5, 0.52, 0.7)
+		if kit_helm:
+			kit_helm.modulate = Color(0.5, 0.5, 0.52, 0.7)
 		return
 	var flash := Color(1, 1, 1, 1).lerp(Color(1.9, 1.7, 1.15), _hit_flash)
 	if _return_flash > 0.0:
@@ -325,16 +488,24 @@ func _apply_body_modulate() -> void:
 		body_outline.modulate = Color(1, 1, 1, 1).lerp(Color(1.5, 1.2, 0.5), _hit_flash)
 	if chevron:
 		chevron.modulate = flash
+	if weapon:
+		weapon.modulate = flash
+	if kit_helm:
+		kit_helm.modulate = flash
 
 
 func _apply_walk_bob() -> void:
 	var bob := 0.0
 	if alive and active:
-		bob = sin(_present_t * 11.5 + float(label_id)) * 1.35
+		var amp := 0.7 if _is_power_saving() else 1.45
+		var rate := 9.2 if kind_id() == "sneak" else (13.5 if kind_id() == "flank" else 11.5)
+		bob = sin(_present_t * rate + float(label_id)) * amp
 	if body:
-		body.position = Vector2(0.0, bob)
+		body.position = Vector2(0.0, bob) + _recoil_off
 	if body_outline:
-		body_outline.position = Vector2(0.0, bob)
+		body_outline.position = Vector2(0.0, bob) + _recoil_off
+	if weapon and is_instance_valid(weapon):
+		weapon.rotation = _weapon_snap
 
 
 func _ensure_trail() -> void:
@@ -343,7 +514,7 @@ func _ensure_trail() -> void:
 	trail = Line2D.new()
 	trail.name = "Trail"
 	trail.width = 2.0
-	trail.default_color = Color(0.82, 0.18, 0.14, 0.22)
+	trail.default_color = _trail_color(0.22)
 	trail.z_index = -1
 	trail.show_behind_parent = true
 	trail.begin_cap_mode = Line2D.LINE_CAP_ROUND
@@ -382,7 +553,17 @@ func _tick_trail(delta: float) -> void:
 	local_pts.append(Vector2.ZERO)
 	trail.points = local_pts
 	var a := 0.10 if saving else (0.18 if alerted else 0.12)
-	trail.default_color = Color(0.82, 0.18, 0.14, a)
+	trail.default_color = _trail_color(a)
+
+
+func _trail_color(a: float) -> Color:
+	match kind_id():
+		"flank":
+			return Color(0.95, 0.48, 0.14, a)
+		"sneak":
+			return Color(0.32, 0.48, 0.42, a * 0.7)
+		_:
+			return Color(0.82, 0.18, 0.14, a)
 
 
 func _spawn_return_muzzle() -> void:
@@ -392,7 +573,7 @@ func _spawn_return_muzzle() -> void:
 	if aim.length_squared() < 0.01:
 		return
 	var rad := aim.angle()
-	MuzzleFlashScript.burst(self, Vector2(cos(rad), sin(rad)) * 12.0, rad, Color(1.0, 0.55, 0.2))
+	MuzzleFlashScript.burst(self, Vector2(cos(rad), sin(rad)) * 14.0, rad, Color(1.0, 0.55, 0.2))
 
 
 func _ensure_death_mark() -> void:
@@ -401,15 +582,23 @@ func _ensure_death_mark() -> void:
 	death_mark = Node2D.new()
 	death_mark.name = "DeathMark"
 	death_mark.z_index = 4
+	var pool := Polygon2D.new()
+	pool.name = "Pool"
+	pool.polygon = PackedVector2Array([
+		Vector2(-10, 5), Vector2(10, 5), Vector2(7, 13), Vector2(-7, 13)
+	])
+	pool.color = Color(0.10, 0.06, 0.06, 0.8)
+	death_mark.add_child(pool)
+	var xc := _kind_outline_color()
 	var a := Line2D.new()
-	a.width = 2.0
-	a.default_color = Color(0.18, 0.12, 0.10, 0.9)
-	a.points = PackedVector2Array([Vector2(-6, -6), Vector2(6, 6)])
+	a.width = 2.6
+	a.default_color = Color(xc.r + 0.15, xc.g + 0.08, xc.b + 0.08, 0.95)
+	a.points = PackedVector2Array([Vector2(-7, -7), Vector2(7, 7)])
 	death_mark.add_child(a)
 	var b := Line2D.new()
-	b.width = 2.0
-	b.default_color = Color(0.18, 0.12, 0.10, 0.9)
-	b.points = PackedVector2Array([Vector2(6, -6), Vector2(-6, 6)])
+	b.width = 2.6
+	b.default_color = a.default_color
+	b.points = PackedVector2Array([Vector2(7, -7), Vector2(-7, 7)])
 	death_mark.add_child(b)
 	add_child(death_mark)
 
@@ -428,18 +617,37 @@ func _play_death_fx() -> void:
 	if body == null:
 		return
 	_death_tween = create_tween()
-	_death_tween.tween_property(body, "scale", Vector2(1.1, 0.55), 0.15)
+	var squash := Vector2(1.12, 0.52)
+	var extra := 0.22
+	match kind_id():
+		"flank":
+			squash = Vector2(1.05, 0.40)
+			extra = 0.72
+		"sneak":
+			squash = Vector2(1.22, 0.38)
+			extra = 0.08
+		_:
+			squash = Vector2(1.18, 0.48)
+			extra = 0.28
+	_death_tween.tween_property(body, "scale", squash, 0.16)
+	_death_tween.parallel().tween_property(body, "rotation", body.rotation + extra, 0.16)
 	if body_outline:
-		_death_tween.parallel().tween_property(body_outline, "scale", Vector2(1.1, 0.55), 0.15)
+		_death_tween.parallel().tween_property(body_outline, "scale", squash, 0.16)
+		_death_tween.parallel().tween_property(body_outline, "rotation", body.rotation + extra, 0.16)
+	if kind_id() == "sneak":
+		_death_tween.parallel().tween_property(body, "modulate:a", 0.35, 0.20)
 
 
 func _reset_present_fx() -> void:
 	if _death_tween != null:
 		_death_tween.kill()
 		_death_tween = null
+	_recoil_off = Vector2.ZERO
+	_weapon_snap = 0.0
 	if body:
 		body.scale = Vector2.ONE
 		body.position = Vector2.ZERO
+		body.modulate.a = 1.0
 	if body_outline:
 		body_outline.scale = Vector2.ONE
 		body_outline.position = Vector2.ZERO
@@ -447,6 +655,9 @@ func _reset_present_fx() -> void:
 		death_mark.visible = false
 	if trail:
 		trail.points = PackedVector2Array()
+	if weapon != null and is_instance_valid(weapon):
+		weapon.rotation = 0.0
+		weapon.modulate = Color.WHITE
 
 
 func _update_hp_bar() -> void:
