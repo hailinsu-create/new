@@ -30,7 +30,8 @@ top-down Godot vertical slice, not a Commandos clone.
 | Mid-mission Commandos verbs | Climb, knife, distract, vehicles, multi-floor — explicitly out of design |
 | Real audio mix / VO / soundtrack | Quiet drone + beeps; Dummy driver in headless |
 
-Launch-bar checklist: `docs/LAUNCH_BAR.md`.
+Launch-bar checklist: `docs/LAUNCH_BAR.md`.  
+Post-launch roadmap: `docs/开发规划.md`.
 
 ## Smoke gates that must stay green
 
