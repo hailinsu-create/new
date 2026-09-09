@@ -55,6 +55,8 @@ func _run() -> void:
 		return
 	if not _assert_readability(main):
 		return
+	if not _assert_unit_anim(main):
+		return
 	if not _assert_props(main):
 		return
 	if not _assert_teaching(main):
@@ -1553,6 +1555,41 @@ func _assert_perf_tier(main) -> bool:
 		quit(46)
 		return false
 	print("SMOKE_OK_PERF_TIER")
+	return true
+
+
+func _assert_unit_anim(main) -> bool:
+	if main.operators.is_empty():
+		push_error("SMOKE_ANIM_NO_OPS")
+		quit(55)
+		return false
+	var op: OperatorUnit = main.operators[0]
+	if op.weapon == null or not is_instance_valid(op.weapon):
+		op._rebuild_cone()
+	if op.weapon == null or not is_instance_valid(op.weapon):
+		push_error("SMOKE_NO_WEAPON")
+		quit(55)
+		return false
+	var probe: EnemyRunner = main._make_enemy(98)
+	main.entities.add_child(probe)
+	probe.setup(
+		98,
+		PackedVector2Array([Vector2(80, 80), Vector2(200, 80)]),
+		main.grid,
+		0,
+		"main"
+	)
+	if not probe.has_method("walk_bob_hook"):
+		probe.queue_free()
+		push_error("SMOKE_NO_WALK_BOB_HOOK")
+		quit(55)
+		return false
+	probe.activate()
+	probe.sim_step(0.08)
+	probe._apply_walk_bob()
+	var _bob := float(probe.walk_bob_hook())
+	probe.queue_free()
+	print("SMOKE_OK_ANIM walk_bob_hook weapon=1")
 	return true
 
 

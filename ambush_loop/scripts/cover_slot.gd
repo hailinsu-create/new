@@ -17,6 +17,7 @@ const PREVIEW_RAYS := 10
 var protect_arc: Polygon2D = null
 var _crate_bits: Array[Polygon2D] = []
 var _lock_mark: Label = null
+var _fire_lean: Vector2 = Vector2.ZERO
 
 
 func setup(id: int, text: String, protect_face: float = 0.0) -> void:
@@ -29,6 +30,7 @@ func setup(id: int, text: String, protect_face: float = 0.0) -> void:
 	_ensure_protect_arc()
 	rebuild_protect_arc()
 	set_highlight(false)
+	set_process(false)
 
 
 func _ensure_crate_look() -> void:
@@ -181,6 +183,25 @@ func protect_compass() -> String:
 	if d < 225.0:
 		return "西"
 	return "北"
+
+
+func kick_fire_lean(facing_deg: float, heavy: bool = false) -> void:
+	## Visual peek: crate shifts toward the occupant's facing on a burst. Does not move the slot.
+	var dist := 2.2 if heavy else 1.35
+	var rad := deg_to_rad(facing_deg)
+	_fire_lean = Vector2(cos(rad), sin(rad)) * dist
+	set_process(true)
+
+
+func _process(delta: float) -> void:
+	_fire_lean = _fire_lean.lerp(Vector2.ZERO, 1.0 - exp(-delta * 10.0))
+	if pad:
+		pad.position = _fire_lean
+	if _fire_lean.length_squared() < 0.04:
+		_fire_lean = Vector2.ZERO
+		if pad:
+			pad.position = Vector2.ZERO
+		set_process(false)
 
 
 func protects_from(attack_from: Vector2) -> bool:

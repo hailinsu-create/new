@@ -50,6 +50,12 @@ var _kind_color: Color = Color(0.82, 0.16, 0.14)
 var _foot_dust: CPUParticles2D = null
 var _dust_acc: float = 0.0
 var hp_track: Polygon2D = null
+var _walk_phase: float = 0.0
+var _walk_bob: float = 0.0
+var _base_poly: PackedVector2Array = PackedVector2Array()
+var _last_move_dir: Vector2 = Vector2(0, 1)
+var _outline_boost: bool = false
+var _fade_corpse: bool = false
 
 @onready var body: Polygon2D = $Body
 @onready var tag: Label = $Tag
@@ -135,7 +141,12 @@ func sim_step(delta: float) -> void:
 
 	var speed := ALERT_SPEED if alerted else SPEED
 	var target: Vector2 = route[route_index]
+	var prev := global_position
 	global_position = global_position.move_toward(target, speed * delta)
+	var moved: Vector2 = global_position - prev
+	if moved.length_squared() > 0.0001:
+		_last_move_dir = moved.normalized()
+		_walk_phase += moved.length() * (0.28 if alerted else 0.18)
 	if global_position.distance_to(target) < 2.0:
 		route_index += 1
 		# Escape commits on the same tick the last waypoint is reached.
@@ -273,10 +284,12 @@ func _process(delta: float) -> void:
 		_recoil_off = Vector2.ZERO
 	_weapon_snap = move_toward(_weapon_snap, 0.0, delta * 8.0)
 	_apply_walk_bob()
+	_tick_outline_boost()
 	_tick_trail(delta)
 	_tick_foot_dust(delta)
 	_apply_body_modulate()
 	_update_hp_bar()
+	_tick_chevron_pulse()
 
 
 func kind_id() -> String:
@@ -357,7 +370,10 @@ func _outline_pad() -> float:
 	var vp := get_viewport()
 	if vp:
 		h = maxf(vp.get_visible_rect().size.y, 360.0)
-	return 5.2 * clampf(720.0 / h, 0.9, 1.35)
+	var pad := 5.2 * clampf(720.0 / h, 0.9, 1.35)
+	if _outline_boost:
+		pad += 1.0
+	return pad
 
 
 func _ensure_chevron() -> void:
@@ -452,7 +468,8 @@ func _apply_hostile_silhouette() -> void:
 	if body == null:
 		return
 	_kind_color = _kind_body_color()
-	body.polygon = _hostile_body_poly()
+	_base_poly = _hostile_body_poly()
+	body.polygon = _base_poly
 	body.color = _kind_color
 	_ensure_chevron()
 	_ensure_weapon()
@@ -565,6 +582,21 @@ func _apply_body_modulate() -> void:
 	if body == null:
 		return
 	if not alive:
+		if _death_tween != null and is_instance_valid(_death_tween) and _death_tween.is_running():
+			return
+		if _fade_corpse:
+			body.modulate = Color(0.62, 0.62, 0.64, 0.0)
+			if body_outline:
+				body_outline.modulate = Color(0.55, 0.55, 0.55, 0.0)
+			if kind_rim:
+				kind_rim.modulate = Color(0.55, 0.55, 0.55, 0.0)
+			if chevron:
+				chevron.modulate = Color(0.55, 0.55, 0.55, 0.0)
+			if weapon:
+				weapon.modulate = Color(0.5, 0.5, 0.52, 0.0)
+			if kit_helm:
+				kit_helm.modulate = Color(0.5, 0.5, 0.52, 0.0)
+			return
 		body.modulate = Color(0.62, 0.62, 0.64, 0.72)
 		if body_outline:
 			body_outline.modulate = Color(0.55, 0.55, 0.55, 0.7)
@@ -596,17 +628,30 @@ func _apply_body_modulate() -> void:
 		kit_helm.modulate = flash
 
 
+func walk_bob_hook() -> float:
+	## Smoke / presentation hook: last applied walk-cycle bob (px).
+	return _walk_bob
+
+
 func _apply_walk_bob() -> void:
 	var bob := 0.0
 	if alive and active:
-		var amp := 0.7 if _is_power_saving() else 1.45
-		var rate := 9.2 if kind_id() == "sneak" else (13.5 if kind_id() == "flank" else 11.5)
-		bob = sin(_present_t * rate + float(label_id)) * amp
+		var amp := 0.55 if _is_power_saving() else 1.45
+		if alerted:
+			amp *= 1.25
+		var kind_rate := 1.15 if kind_id() == "sneak" else (1.45 if kind_id() == "flank" else 1.25)
+		if alerted:
+			kind_rate *= 1.55
+		bob = sin(_walk_phase * kind_rate + float(label_id)) * amp
+	_walk_bob = bob
 	if body:
 		body.position = Vector2(0.0, bob) + _recoil_off
 		if alive and (_death_tween == null or not is_instance_valid(_death_tween)):
 			var punch := 1.0 + _hit_punch * 0.18
 			body.scale = Vector2(punch, punch)
+		if alive and active and not _is_power_saving() and _base_poly.size() >= 4:
+			var stride_amp := 1.35 if alerted else 0.85
+			body.polygon = _offset_walk_poly(_base_poly, _walk_phase, stride_amp)
 	if body_outline:
 		body_outline.position = Vector2(0.0, bob) + _recoil_off
 		if body:
@@ -622,6 +667,21 @@ func _apply_walk_bob() -> void:
 		hp_bar.position = Vector2(0.0, bob * 0.25)
 	if hp_track:
 		hp_track.position = Vector2(0.0, bob * 0.25)
+
+
+func _offset_walk_poly(src: PackedVector2Array, phase: float, amp: float) -> PackedVector2Array:
+	## Opposite-leg vertex offset so the silhouette reads as a stride at distance.
+	var out := PackedVector2Array()
+	var stride := sin(phase)
+	var sway := cos(phase)
+	for p in src:
+		var q := p
+		if p.y > 1.5:
+			var side := 1.0 if p.x >= 0.0 else -1.0
+			q.y += stride * amp * side
+			q.x += sway * amp * 0.4 * side
+		out.append(q)
+	return out
 
 
 func _ensure_trail() -> void:
@@ -754,44 +814,45 @@ func _play_death_fx() -> void:
 		trail.points = PackedVector2Array()
 	_trail_world = PackedVector2Array()
 	_ensure_death_mark()
+	if _death_tween != null:
+		_death_tween.kill()
+	if _is_power_saving():
+		_fade_corpse = true
+		if death_mark:
+			death_mark.visible = true
+			death_mark.modulate.a = 1.0
+		if body:
+			body.modulate.a = 0.0
+		if body_outline:
+			body_outline.modulate.a = 0.0
+		if kind_rim:
+			kind_rim.modulate.a = 0.0
+		return
 	_spawn_death_puff()
 	if death_mark:
 		death_mark.visible = true
 		death_mark.modulate.a = 0.0
 		death_mark.create_tween().tween_property(death_mark, "modulate:a", 1.0, 0.16)
-	if _death_tween != null:
-		_death_tween.kill()
 	if body == null:
 		return
 	_death_tween = create_tween()
-	var squash := Vector2(1.12, 0.52)
-	var extra := 0.22
-	match kind_id():
-		"flank":
-			squash = Vector2(1.05, 0.40)
-			extra = 0.72
-		"sneak":
-			squash = Vector2(1.22, 0.38)
-			extra = 0.08
-		_:
-			squash = Vector2(1.18, 0.48)
-			extra = 0.28
-	_death_tween.tween_property(body, "scale", Vector2(1.24, 1.24), 0.05)
+	var dir := _last_move_dir
+	if dir.length_squared() < 0.04:
+		dir = Vector2(0, 1)
+	else:
+		dir = dir.normalized()
+	var dest: Vector2 = global_position + dir * 8.0
+	_death_tween.tween_property(self, "global_position", dest, 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_death_tween.tween_callback(func() -> void: _fade_corpse = true)
+	_death_tween.tween_property(body, "modulate:a", 0.0, 0.20)
 	if body_outline:
-		_death_tween.parallel().tween_property(body_outline, "scale", Vector2(1.24, 1.24), 0.05)
+		_death_tween.parallel().tween_property(body_outline, "modulate:a", 0.0, 0.20)
 	if kind_rim:
-		_death_tween.parallel().tween_property(kind_rim, "scale", Vector2(1.24, 1.24), 0.05)
-	_death_tween.tween_property(body, "scale", squash, 0.15)
-	_death_tween.parallel().tween_property(body, "rotation", body.rotation + extra, 0.15)
-	if body_outline:
-		_death_tween.parallel().tween_property(body_outline, "scale", squash, 0.15)
-		_death_tween.parallel().tween_property(body_outline, "rotation", body.rotation + extra, 0.15)
-	if kind_rim:
-		_death_tween.parallel().tween_property(kind_rim, "scale", squash, 0.15)
-		_death_tween.parallel().tween_property(kind_rim, "rotation", body.rotation + extra, 0.15)
-		_death_tween.parallel().tween_property(kind_rim, "modulate:a", 0.2, 0.18)
-	if kind_id() == "sneak":
-		_death_tween.parallel().tween_property(body, "modulate:a", 0.35, 0.20)
+		_death_tween.parallel().tween_property(kind_rim, "modulate:a", 0.0, 0.18)
+	if chevron:
+		_death_tween.parallel().tween_property(chevron, "modulate:a", 0.0, 0.16)
+	if weapon:
+		_death_tween.parallel().tween_property(weapon, "modulate:a", 0.0, 0.16)
 
 
 func _reset_present_fx() -> void:
@@ -802,12 +863,19 @@ func _reset_present_fx() -> void:
 	_weapon_snap = 0.0
 	_hit_punch = 0.0
 	_dust_acc = 0.0
+	_walk_phase = 0.0
+	_walk_bob = 0.0
+	_outline_boost = false
+	_fade_corpse = false
+	modulate.a = 1.0
 	if _foot_dust != null and is_instance_valid(_foot_dust):
 		_foot_dust.emitting = false
 	if body:
 		body.scale = Vector2.ONE
 		body.position = Vector2.ZERO
 		body.modulate.a = 1.0
+		if _base_poly.size() >= 3:
+			body.polygon = _base_poly
 	if body_outline:
 		body_outline.scale = Vector2.ONE
 		body_outline.position = Vector2.ZERO
@@ -822,6 +890,9 @@ func _reset_present_fx() -> void:
 	if weapon != null and is_instance_valid(weapon):
 		weapon.rotation = 0.0
 		weapon.modulate = Color.WHITE
+	if chevron != null and is_instance_valid(chevron):
+		chevron.scale = Vector2.ONE
+		chevron.modulate.a = 1.0
 
 
 func _tick_foot_dust(delta: float) -> void:
@@ -862,6 +933,43 @@ func _ensure_foot_dust() -> void:
 	_foot_dust.z_index = -1
 	_foot_dust.show_behind_parent = true
 	add_child(_foot_dust)
+
+
+func _cam_center_world() -> Vector2:
+	var vp := get_viewport()
+	if vp:
+		var cam := vp.get_camera_2d()
+		if cam:
+			return cam.get_screen_center_position()
+	return Vector2(640, 360)
+
+
+func _tick_outline_boost() -> void:
+	var near := global_position.distance_to(_cam_center_world()) <= 120.0
+	if near == _outline_boost:
+		return
+	_outline_boost = near
+	if body and _base_poly.size() >= 3:
+		var pad := _outline_pad()
+		var outline := PackedVector2Array()
+		for p in _base_poly:
+			var n := p
+			if n.length_squared() > 0.01:
+				n = n.normalized() * (p.length() + pad)
+			outline.append(n)
+		if body_outline:
+			body_outline.polygon = outline
+		_refresh_kind_rim()
+
+
+func _tick_chevron_pulse() -> void:
+	if chevron == null or not is_instance_valid(chevron):
+		return
+	if not alive or not alerted or _is_power_saving():
+		chevron.scale = Vector2.ONE
+		return
+	var pulse := 0.5 + 0.5 * sin(_present_t * 8.5)
+	chevron.scale = Vector2.ONE * (1.0 + 0.28 * pulse)
 
 
 func hp_bar_watch_visible() -> bool:

@@ -72,6 +72,8 @@ var shield_glyph: Polygon2D = null
 var _hp_pulse: float = 0.0
 var _shield_pulse: float = 0.0
 var _cone_plan_color: Color = Color(0.95, 0.75, 0.25, 0.30)
+var _cover_lean: Vector2 = Vector2.ZERO
+var _outline_boost: bool = false
 
 
 static func role_for_id(id: int) -> int:
@@ -409,7 +411,11 @@ func _process(delta: float) -> void:
 	if _recoil_off.length_squared() < 0.04:
 		_recoil_off = Vector2.ZERO
 	_weapon_snap = move_toward(_weapon_snap, 0.0, delta * 7.5)
+	_cover_lean = _cover_lean.lerp(Vector2.ZERO, 1.0 - exp(-delta * 11.0))
+	if _cover_lean.length_squared() < 0.04:
+		_cover_lean = Vector2.ZERO
 	_apply_idle_bob()
+	_tick_outline_boost()
 
 
 func _refresh_role_glyph() -> void:
@@ -580,7 +586,10 @@ func _outline_pad() -> float:
 	var vp := get_viewport()
 	if vp:
 		h = maxf(vp.get_visible_rect().size.y, 360.0)
-	return 5.4 * clampf(720.0 / h, 0.9, 1.35)
+	var pad := 5.4 * clampf(720.0 / h, 0.9, 1.35)
+	if _outline_boost:
+		pad += 1.0
+	return pad
 
 
 func _outline_color() -> Color:
@@ -638,6 +647,10 @@ func apply_recoil_kick() -> void:
 			_recoil_off = back * 3.8
 			_weapon_snap = 0.18
 	_hit_punch = maxf(_hit_punch, 0.35)
+	var lean_px := 4.6 if role == Role.MG else 3.0
+	_cover_lean = Vector2(cos(rad), sin(rad)) * lean_px
+	if slot != null and is_instance_valid(slot) and slot.has_method("kick_fire_lean"):
+		slot.kick_fire_lean(facing_deg, role == Role.MG)
 
 
 func _apply_idle_bob() -> void:
@@ -650,26 +663,29 @@ func _apply_idle_bob() -> void:
 		if not locked:
 			lean = deg_to_rad(sin(_present_t * 1.85 + float(op_id)) * 3.4)
 	if body:
-		body.position = Vector2(0.0, bob) + _recoil_off
+		body.position = Vector2(0.0, bob) + _recoil_off + _cover_lean
 		body.rotation = deg_to_rad(facing_deg + 90.0) + lean
 		if alive and (_death_tween == null or not is_instance_valid(_death_tween)):
 			var breath := 0.004 if _is_power_saving() else 0.016
 			var punch := 1.0 + _hit_punch * 0.16
 			body.scale = Vector2(punch, punch * (1.0 + sin(_present_t * 2.15 + float(op_id)) * breath))
 	if body_outline:
-		body_outline.position = Vector2(0.0, bob) + _recoil_off
+		body_outline.position = Vector2(0.0, bob) + _recoil_off + _cover_lean
 		body_outline.rotation = body.rotation if body else body_outline.rotation
 		if body:
 			body_outline.scale = body.scale
 	if role_rim:
-		role_rim.position = Vector2(0.0, bob) + _recoil_off
+		role_rim.position = Vector2(0.0, bob) + _recoil_off + _cover_lean
 		role_rim.rotation = body.rotation if body else role_rim.rotation
 		if body:
 			role_rim.scale = body.scale
 	if role_glyph:
 		role_glyph.position = Vector2(15, -13 + bob * 0.4)
 	if weapon and is_instance_valid(weapon):
-		weapon.rotation = _weapon_snap
+		var sway := 0.0
+		if alive and visible and not locked:
+			sway = deg_to_rad(sin(_present_t * 1.65 + float(op_id) * 0.7) * 2.0)
+		weapon.rotation = _weapon_snap + sway
 	if hp_bar:
 		hp_bar.position = Vector2(0.0, bob * 0.2)
 	if shield_glyph:
@@ -747,30 +763,27 @@ func _play_death_fx() -> void:
 		return
 	_death_tween = create_tween()
 	var squash := Vector2(1.12, 0.58)
-	var extra_rot := 0.18
 	match role:
 		Role.MG:
 			squash = Vector2(1.32, 0.42)
-			extra_rot = 0.08
 		Role.SCOUT:
 			squash = Vector2(0.82, 0.52)
-			extra_rot = 0.55
 		_:
 			squash = Vector2(1.18, 0.48)
-			extra_rot = 0.32
+	var collapse := deg_to_rad(-15.0)
 	_death_tween.tween_property(body, "scale", Vector2(1.22, 1.22), 0.05).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	if body_outline:
 		_death_tween.parallel().tween_property(body_outline, "scale", Vector2(1.22, 1.22), 0.05)
 	if role_rim:
 		_death_tween.parallel().tween_property(role_rim, "scale", Vector2(1.22, 1.22), 0.05)
 	_death_tween.tween_property(body, "scale", squash, 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_death_tween.parallel().tween_property(body, "rotation", body.rotation + extra_rot, 0.16)
+	_death_tween.parallel().tween_property(body, "rotation", body.rotation + collapse, 0.16)
 	if body_outline:
 		_death_tween.parallel().tween_property(body_outline, "scale", squash, 0.16)
-		_death_tween.parallel().tween_property(body_outline, "rotation", body.rotation + extra_rot, 0.16)
+		_death_tween.parallel().tween_property(body_outline, "rotation", body.rotation + collapse, 0.16)
 	if role_rim:
 		_death_tween.parallel().tween_property(role_rim, "scale", squash, 0.16)
-		_death_tween.parallel().tween_property(role_rim, "rotation", body.rotation + extra_rot, 0.16)
+		_death_tween.parallel().tween_property(role_rim, "rotation", body.rotation + collapse, 0.16)
 		_death_tween.parallel().tween_property(role_rim, "modulate:a", 0.25, 0.18)
 	if role == Role.SCOUT:
 		_death_tween.parallel().tween_property(body, "modulate:a", 0.42, 0.22)
@@ -783,6 +796,8 @@ func _reset_present_fx() -> void:
 	_recoil_off = Vector2.ZERO
 	_weapon_snap = 0.0
 	_hit_punch = 0.0
+	_cover_lean = Vector2.ZERO
+	_outline_boost = false
 	if body:
 		body.scale = Vector2.ONE
 		body.position = Vector2.ZERO
@@ -885,6 +900,9 @@ func _apply_body_modulate() -> void:
 			kit_gear.modulate = Color(0.5, 0.5, 0.52, 0.7)
 		return
 	var flash := Color(1.55, 1.55, 1.55).lerp(Color(1.85, 0.22, 0.16), _hit_flash)
+	if hp < MAX_HP * 0.5:
+		var wound := clampf((MAX_HP * 0.5 - hp) / (MAX_HP * 0.5), 0.0, 1.0)
+		flash = flash.lerp(Color(1.28, 0.30, 0.22), 0.32 + 0.38 * wound)
 	body.modulate = flash
 	if body_outline:
 		body_outline.modulate = Color(1, 1, 1, 1).lerp(Color(1.4, 1.1, 0.4), _hit_flash)
@@ -1096,6 +1114,27 @@ func _refresh_shield() -> void:
 
 func hit_feedback() -> float:
 	return _hp_pulse
+
+
+func _cam_center_world() -> Vector2:
+	var vp := get_viewport()
+	if vp:
+		var cam := vp.get_camera_2d()
+		if cam:
+			return cam.get_screen_center_position()
+	return Vector2(640, 360)
+
+
+func _tick_outline_boost() -> void:
+	var near := global_position.distance_to(_cam_center_world()) <= 120.0
+	if near == _outline_boost:
+		return
+	_outline_boost = near
+	if body:
+		var poly := body.polygon
+		if body_outline:
+			body_outline.polygon = _inflate_poly(poly, _outline_pad())
+		_refresh_role_rim(poly)
 
 
 func watching_cone_frozen() -> bool:
