@@ -4,8 +4,12 @@ extends RefCounted
 ## Per-level collision/LOS geometry. Rebuilt on every level load.
 
 const TILE := 32
-const COLS := 40
-const ROWS := 22
+const COLS := 20
+const ROWS := 24
+## The logical map is 640x768 and sits below the portrait header.
+## Simulation positions, route points, and rendered map cells all use this
+## same root-space origin so screen taps and LOS share one coordinate system.
+const WORLD_ORIGIN := Vector2(40, 144)
 
 var blocked: PackedByteArray = PackedByteArray()
 var layout_id: String = "yard"
@@ -20,6 +24,10 @@ func _init() -> void:
 
 func rebuild(level_id: String) -> void:
 	layout_id = level_id
+	# A layout rebuild starts from a clean door state.  Keeping the previous
+	# door cell alive here could leave an old pump gate blocked after a reload.
+	door_cell = Vector2i(-1, -1)
+	door_locked = false
 	blocked.fill(0)
 	_build_shell()
 	match level_id:
@@ -33,11 +41,16 @@ func rebuild(level_id: String) -> void:
 
 
 func set_door_state(cell: Vector2i, locked: bool) -> void:
-	door_cell = cell
-	door_locked = locked
+	# Rebuild without the previous gate first, then apply only the requested
+	# state.  This prevents stale blocked cells when returning to the yard or
+	# switching between open and locked pump plans.
+	var requested_cell := cell
+	var requested_locked := locked
+	door_cell = Vector2i(-1, -1)
+	door_locked = false
 	rebuild(layout_id)
-	door_cell = cell
-	door_locked = locked
+	door_cell = requested_cell
+	door_locked = requested_locked
 	_apply_door()
 
 
@@ -57,42 +70,38 @@ func _build_shell() -> void:
 	for y in ROWS:
 		set_blocked(0, y, true)
 		set_blocked(COLS - 1, y, true)
-	for x in range(4, 36):
-		set_blocked(x, 4, true)
-		set_blocked(x, 18, true)
-	for y in range(4, 19):
-		set_blocked(4, y, true)
-		set_blocked(35, y, true)
-	# North entry
-	set_blocked(12, 4, false)
-	set_blocked(13, 4, false)
-	set_blocked(14, 4, false)
-	# South escape mouth
-	set_blocked(30, 18, false)
-	set_blocked(31, 18, false)
-	set_blocked(32, 18, false)
+	# North entry and south escape mouth.
+	set_blocked(9, 0, false)
+	set_blocked(10, 0, false)
+	set_blocked(9, ROWS - 1, false)
+	set_blocked(10, ROWS - 1, false)
 
 
 func _build_yard() -> void:
-	# Interior crates — leave spine x=12-14 and east lane x=31-33 open.
-	_block_rect(8, 8, 11, 10)
-	_block_rect(18, 9, 22, 12)
-	_block_rect(27, 8, 30, 10)
-	_block_rect(16, 14, 20, 16)
+	_block_rect(2, 4, 5, 7)
+	_block_rect(13, 4, 16, 6)
+	_block_rect(3, 11, 6, 14)
+	_block_rect(12, 12, 15, 15)
+	_block_rect(3, 18, 5, 20)
+	_block_rect(13, 18, 16, 20)
 
 
 func _build_warehouse() -> void:
-	# Shelves leave spine x=13, north lane y=5-6, and east x=32 open.
-	_block_rect(7, 10, 9, 13)
-	_block_rect(19, 10, 21, 13)
-	_block_rect(25, 8, 26, 11)
+	_block_rect(3, 5, 6, 7)
+	_block_rect(12, 5, 16, 6)
+	_block_rect(3, 11, 6, 13)
+	_block_rect(12, 11, 16, 13)
+	_block_rect(5, 17, 8, 19)
+	_block_rect(12, 17, 15, 19)
 
 
 func _build_pump() -> void:
-	# Machinery; keep west approach, spine, and east corridor clear unless door locks.
-	_block_rect(7, 10, 8, 13)
-	_block_rect(17, 10, 19, 12)
-	_block_rect(24, 11, 26, 13)
+	_block_rect(3, 5, 6, 8)
+	_block_rect(12, 4, 16, 6)
+	_block_rect(3, 12, 6, 16)
+	_block_rect(12, 12, 16, 15)
+	_block_rect(7, 18, 10, 20)
+	_block_rect(12, 18, 15, 20)
 
 
 func _block_rect(x0: int, y0: int, x1: int, y1: int) -> void:
@@ -121,11 +130,14 @@ func set_blocked(x: int, y: int, value: bool) -> void:
 
 
 func world_to_cell(pos: Vector2) -> Vector2i:
-	return Vector2i(int(pos.x / TILE), int(pos.y / TILE))
+	return Vector2i(
+		floori((pos.x - WORLD_ORIGIN.x) / TILE),
+		floori((pos.y - WORLD_ORIGIN.y) / TILE)
+	)
 
 
 func cell_to_world_center(cell: Vector2i) -> Vector2:
-	return Vector2((cell.x + 0.5) * TILE, (cell.y + 0.5) * TILE)
+	return WORLD_ORIGIN + Vector2((cell.x + 0.5) * TILE, (cell.y + 0.5) * TILE)
 
 
 func has_los(from: Vector2, to: Vector2) -> bool:

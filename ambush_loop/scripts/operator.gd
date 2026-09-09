@@ -119,6 +119,12 @@ func _rebuild_cone() -> void:
 		cone.color = Color(0.95, 0.75, 0.25, 0.28)
 	if body:
 		body.rotation = deg_to_rad(facing_deg + 90.0)
+	# The presentation children share the body orientation, while the cone above
+	# remains in simulation coordinates.  This cannot affect aiming or damage.
+	for visual_name in ["Outline", "Weapon"]:
+		var visual := get_node_or_null(visual_name) as Node2D
+		if visual != null:
+			visual.rotation = deg_to_rad(facing_deg + 90.0)
 
 
 func can_engage(target: Vector2, grid: AmbushGrid) -> bool:

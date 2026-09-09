@@ -5,12 +5,16 @@ extends Node2D
 
 enum Phase { SETUP, WATCHING, FAILED, WON, REPLAY }
 enum Tool { DEPLOY, TRIPWIRE }
+enum AppScreen { MENU, GAME }
 
 const MAX_TRIPWIRES := 1
 const TRIPWIRE_ROUTE_DIST := 24.0
+const MAP_TOUCH_HIT_RADIUS := 40.0
 const SNAPSHOT_EVERY := 6
-const PROGRESS_PATH := "user://ambush_loop.cfg"
+const DEFAULT_PROGRESS_PATH := "user://ambush_loop.cfg"
+const PROGRESS_PATH_SETTING := "application/config/ambush_progress_path"
 const LEVEL_ORDER := ["yard", "warehouse", "pump"]
+const SAVE_SCHEMA_VERSION := 2
 
 var grid: AmbushGrid = AmbushGrid.new()
 var phase: Phase = Phase.SETUP
@@ -26,6 +30,7 @@ var sim: SimClock = SimClock.new()
 var battle_log: BattleLog = BattleLog.new()
 var last_plan: PlanState = PlanState.new()
 var door_locked: bool = false
+var plan_locked: bool = false
 
 var cover_slots: Array[CoverSlot] = []
 var operators: Array[OperatorUnit] = []
@@ -43,6 +48,55 @@ var ambush_zone_poly: Polygon2D = null
 var door_marker: Node2D = null
 var all_spawns_done: bool = false
 var pending_result: String = "" # "" | "fail" | "win" — build panel after tick events/snapshot
+var progress_path: String = DEFAULT_PROGRESS_PATH
+var save_store := AmbushSaveStore.new()
+var save_state: Dictionary = {}
+var best_stars: Dictionary = {}
+var level_failures: Dictionary = {}
+var last_stars := 0
+var last_rating := ""
+var settings_volume := 0.75
+var haptics_enabled := true
+var touch_feedback_enabled := true
+var tutorial_seen := false
+var test_mode := false
+var app_screen: AppScreen = AppScreen.MENU
+var tutorial_active := false
+var tutorial_step := 0
+var tutorial_watch_ticks := 0
+var lifecycle_paused := false
+var frontend_overlay: Control = null
+var menu_panel: PanelContainer = null
+var settings_panel: PanelContainer = null
+var about_panel: PanelContainer = null
+var confirm_panel: PanelContainer = null
+var menu_title: Label = null
+var menu_status: Label = null
+var menu_continue_button: Button = null
+var menu_new_button: Button = null
+var menu_start_button: Button = null
+var settings_volume_button: Button = null
+var settings_haptics_button: Button = null
+var settings_touch_button: Button = null
+var settings_close_button: Button = null
+var about_close_button: Button = null
+var confirm_label: Label = null
+var confirm_yes_button: Button = null
+var confirm_no_button: Button = null
+var frontend_active_button: Button = null
+var frontend_touch_blocking := false
+var frontend_return: String = "menu"
+var confirm_action := ""
+var audio_feedback: AmbushAudioFeedback = null
+var frontend_background: ColorRect = null
+var guide_layer: Control = null
+var guide_panel: PanelContainer = null
+var guide_title: Label = null
+var guide_body: Label = null
+var guide_step_label: Label = null
+var guide_next_button: Button = null
+var guide_skip_button: Button = null
+var guide_highlight: Panel = null
 
 @onready var map_draw: Node2D = $World/MapDraw
 @onready var entities: Node2D = $World/Entities
@@ -53,92 +107,114 @@ var pending_result: String = "" # "" | "fail" | "win" — build panel after tick
 @onready var title_label: Label = $HUD/Root/TopBar/Title
 @onready var status_label: Label = $HUD/Root/TopBar/Status
 @onready var intel_label: Label = $HUD/Root/TopBar/Intel
-@onready var help_label: Label = $HUD/Root/Help
-@onready var alarm_button: Button = $HUD/Root/BottomBar/AlarmButton
-@onready var clear_button: Button = $HUD/Root/BottomBar/ClearButton
-@onready var tool_button: Button = $HUD/Root/BottomBar/ToolButton
+@onready var help_label: Label = get_node_or_null("HUD/Root/Help") as Label
 @onready var result_panel: PanelContainer = $HUD/Root/ResultPanel
 @onready var result_label: Label = $HUD/Root/ResultPanel/Margin/VBox/ResultLabel
+@onready var battlefield_button: Button = $HUD/Root/ResultPanel/Margin/VBox/BattlefieldButton
 @onready var continue_button: Button = $HUD/Root/ResultPanel/Margin/VBox/ContinueButton
+@onready var touch_hud: TouchHUD = $HUD/TouchHUD
 
 var speed_button: Button = null
 var pause_button: Button = null
 var mode_button: Button = null
 var door_button: Button = null
 var pack_button: Button = null
+var alarm_button: Button = null
+var clear_button: Button = null
+var tool_button: Button = null
 var event_log: Control = null
 var level_label: Label = null
 var tut_label: Label = null
+var aim_mode: bool = false
+var active_pointer_id: int = -1
+var active_touch_target: int = 0 # 0=map/ignored, 1=HUD button, 2=result button
+var active_result_button: Button = null
+var safe_rect := Rect2()
+var safe_area_source := "fallback"
+var _safe_area_refresh_queued := false
 
 
 func _ready() -> void:
+	_resolve_progress_path()
 	_resolve_optional_hud()
-	alarm_button.pressed.connect(_on_alarm_pressed)
-	clear_button.pressed.connect(_on_clear_pressed)
-	tool_button.pressed.connect(_toggle_tool)
+	_build_frontend_ui()
+	audio_feedback = AmbushAudioFeedback.new()
+	audio_feedback.name = "AudioFeedback"
+	add_child(audio_feedback)
+	if not get_viewport().size_changed.is_connected(_on_viewport_size_changed):
+		get_viewport().size_changed.connect(_on_viewport_size_changed)
+	battlefield_button.pressed.connect(_on_battlefield_view_pressed)
 	continue_button.pressed.connect(_on_continue_pressed)
 	result_panel.visible = false
 	clear_button.text = "收回部署"
 	tool_button.text = "工具: 部署队员"
 	_load_progress()
-	_load_level(LEVEL_ORDER[level_index], false, false)
+	_load_level(LEVEL_ORDER[level_index], true, true)
+	if test_mode:
+		app_screen = AppScreen.GAME
+		frontend_overlay.visible = false
+	else:
+		_show_main_menu()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		_handle_back_pressed()
+		return
+	if what == NOTIFICATION_WM_WINDOW_FOCUS_OUT or what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		_reset_active_pointer_for_layout()
+		if phase == Phase.WATCHING and not sim.paused:
+			sim.toggle_pause()
+			lifecycle_paused = true
+			status_label.text = "应用已暂停，回到前台后点击“继续”观看。"
+			_update_hud()
+		return
+	if what == NOTIFICATION_WM_SIZE_CHANGED or what == NOTIFICATION_WM_WINDOW_FOCUS_IN or what == NOTIFICATION_APPLICATION_FOCUS_IN:
+		_queue_safe_area_refresh()
+		if what == NOTIFICATION_WM_WINDOW_FOCUS_IN or what == NOTIFICATION_APPLICATION_FOCUS_IN:
+			if lifecycle_paused and phase == Phase.WATCHING:
+				status_label.text = "已暂停等待继续。计划仍然锁死。"
+				_update_hud()
+
+
+func _resolve_progress_path() -> void:
+	var injected := str(ProjectSettings.get_setting(PROGRESS_PATH_SETTING, DEFAULT_PROGRESS_PATH))
+	if injected.begins_with("user://") and not injected.is_empty():
+		progress_path = injected
+	else:
+		progress_path = DEFAULT_PROGRESS_PATH
+	test_mode = injected.begins_with("user://test/")
 
 
 func _resolve_optional_hud() -> void:
 	var root: Control = $HUD/Root
-	var bar: HBoxContainer = $HUD/Root/BottomBar
-	speed_button = get_node_or_null("HUD/Root/BottomBar/SpeedButton") as Button
-	pause_button = get_node_or_null("HUD/Root/BottomBar/PauseButton") as Button
-	mode_button = get_node_or_null("HUD/Root/BottomBar/ModeButton") as Button
-	door_button = get_node_or_null("HUD/Root/BottomBar/DoorButton") as Button
-	pack_button = get_node_or_null("HUD/Root/BottomBar/PackButton") as Button
+	touch_hud.build()
+	alarm_button = touch_hud.alarm_button
+	clear_button = touch_hud.clear_button
+	tool_button = touch_hud.tripwire_button
+	speed_button = touch_hud.speed_button
+	pause_button = touch_hud.pause_button
+	mode_button = touch_hud.mode_button
+	door_button = touch_hud.door_button
+	pack_button = touch_hud.pack_button
+	touch_hud.card_selected.connect(_on_touch_card_selected)
+	touch_hud.facing_requested.connect(_on_touch_facing)
+	touch_hud.aim_requested.connect(_on_aim_pressed)
+	touch_hud.tripwire_requested.connect(_toggle_tool)
+	touch_hud.clear_requested.connect(_on_clear_pressed)
+	touch_hud.mode_requested.connect(_on_mode_pressed)
+	touch_hud.pack_requested.connect(_on_pack_pressed)
+	touch_hud.door_requested.connect(_on_door_pressed)
+	touch_hud.alarm_requested.connect(_on_alarm_pressed)
+	touch_hud.pause_requested.connect(_on_pause_pressed)
+	touch_hud.speed_requested.connect(_on_speed_pressed)
+	touch_hud.log_requested.connect(_on_log_requested)
+	touch_hud.safe_area_changed.connect(_on_safe_area_changed)
+	touch_hud.safe_area_refresh_requested.connect(_queue_safe_area_refresh)
 	event_log = get_node_or_null("HUD/Root/EventLog") as Control
 	level_label = get_node_or_null("HUD/Root/TopBar/LevelLabel") as Label
 	tut_label = get_node_or_null("HUD/Root/TutLabel") as Label
-
-	var extra := HBoxContainer.new()
-	extra.name = "ExtraBar"
-	extra.alignment = BoxContainer.ALIGNMENT_CENTER
-	extra.add_theme_constant_override("separation", 8)
-	extra.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	extra.offset_left = -400.0
-	extra.offset_right = 400.0
-	extra.offset_top = -92.0
-	extra.offset_bottom = -56.0
-	root.add_child(extra)
-
-	if speed_button == null:
-		speed_button = _make_hud_btn("SpeedButton", "速度 1×", bar)
-	if pause_button == null:
-		pause_button = _make_hud_btn("PauseButton", "暂停", bar)
-	if mode_button == null:
-		mode_button = _make_hud_btn("ModeButton", "开火: 见敌即打 (F)", extra)
-	if pack_button == null:
-		pack_button = _make_hud_btn("PackButton", "弹包 (G)", extra)
-	if door_button == null:
-		door_button = _make_hud_btn("DoorButton", "门: 畅通 (B)", extra)
-
-	speed_button.pressed.connect(_on_speed_pressed)
-	pause_button.pressed.connect(_on_pause_pressed)
-	mode_button.pressed.connect(_on_mode_pressed)
-	pack_button.pressed.connect(_on_pack_pressed)
-	door_button.pressed.connect(_on_door_pressed)
-
-	if event_log == null:
-		var rtl := RichTextLabel.new()
-		rtl.name = "EventLog"
-		rtl.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-		rtl.offset_left = -320.0
-		rtl.offset_top = 120.0
-		rtl.offset_right = -16.0
-		rtl.offset_bottom = 320.0
-		rtl.bbcode_enabled = true
-		rtl.fit_content = false
-		rtl.scroll_active = true
-		rtl.add_theme_font_size_override("normal_font_size", 12)
-		rtl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		root.add_child(rtl)
-		event_log = rtl
+	help_label = get_node_or_null("HUD/Root/Help") as Label
 
 	if level_label == null:
 		level_label = Label.new()
@@ -153,13 +229,557 @@ func _resolve_optional_hud() -> void:
 		tut_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 		tut_label.offset_left = 16.0
 		tut_label.offset_top = 118.0
-		tut_label.offset_right = 520.0
-		tut_label.offset_bottom = 170.0
+		tut_label.offset_right = 690.0
+		tut_label.offset_bottom = 108.0
 		tut_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		tut_label.add_theme_font_size_override("font_size", 13)
 		tut_label.add_theme_color_override("font_color", Color(0.8, 0.78, 0.65))
 		tut_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		root.add_child(tut_label)
+
+	if help_label == null:
+		help_label = Label.new()
+		help_label.name = "Help"
+		help_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		help_label.offset_left = 16.0
+		help_label.offset_top = 916.0
+		help_label.offset_right = 704.0
+		help_label.offset_bottom = 938.0
+		help_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		help_label.add_theme_font_size_override("font_size", 12)
+		help_label.add_theme_color_override("font_color", Color(0.62, 0.68, 0.75))
+		help_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		root.add_child(help_label)
+	_queue_safe_area_refresh()
+
+
+func _frontend_button(parent: Control, text: String, name: String = "", min_size := Vector2(0, 96)) -> Button:
+	var button := Button.new()
+	button.text = text
+	if not name.is_empty():
+		button.name = name
+	button.custom_minimum_size = min_size
+	button.add_theme_font_size_override("font_size", 22)
+	button.focus_mode = Control.FOCUS_NONE
+	button.add_to_group("frontend_button")
+	parent.add_child(button)
+	return button
+
+
+func _frontend_label(parent: Control, text: String, font_size: int, color := Color.WHITE) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", color)
+	parent.add_child(label)
+	return label
+
+
+func _frontend_style(color := Color(0.045, 0.06, 0.085, 0.98), border := Color(0.25, 0.38, 0.48, 1.0)) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = color
+	style.border_width_left = 2
+	style.border_width_top = 2
+	style.border_width_right = 2
+	style.border_width_bottom = 2
+	style.border_color = border
+	style.corner_radius_top_left = 12
+	style.corner_radius_top_right = 12
+	style.corner_radius_bottom_left = 12
+	style.corner_radius_bottom_right = 12
+	style.content_margin_left = 24
+	style.content_margin_top = 24
+	style.content_margin_right = 24
+	style.content_margin_bottom = 24
+	return style
+
+
+func _center_frontend_panel(panel: Control, panel_size: Vector2) -> void:
+	panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	panel.size = panel_size
+	panel.position = (get_viewport_rect().size - panel_size) * 0.5
+
+
+func _build_frontend_ui() -> void:
+	frontend_overlay = Control.new()
+	frontend_overlay.name = "FrontendOverlay"
+	frontend_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	frontend_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	$HUD.add_child(frontend_overlay)
+	frontend_background = ColorRect.new()
+	frontend_background.name = "Background"
+	frontend_background.set_anchors_preset(Control.PRESET_FULL_RECT)
+	frontend_background.color = Color(0.025, 0.04, 0.065, 0.99)
+	frontend_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frontend_overlay.add_child(frontend_background)
+	_build_menu_panel()
+	_build_settings_panel()
+	_build_about_panel()
+	_build_confirm_panel()
+	_build_guide_panel()
+	settings_panel.visible = false
+	about_panel.visible = false
+	confirm_panel.visible = false
+	guide_panel.visible = false
+
+
+func _build_menu_panel() -> void:
+	menu_panel = PanelContainer.new()
+	menu_panel.name = "MainMenu"
+	menu_panel.add_theme_stylebox_override("panel", _frontend_style(Color(0.045, 0.07, 0.105, 0.99), Color(0.85, 0.55, 0.25, 0.9)))
+	frontend_overlay.add_child(menu_panel)
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 16)
+	menu_panel.add_child(body)
+	menu_title = _frontend_label(body, "AMBUSH LOOP", 42, Color(0.95, 0.86, 0.68))
+	menu_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var subtitle := _frontend_label(body, "警报之前，先赢一次", 22, Color(0.55, 0.78, 0.95))
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	menu_status = _frontend_label(body, "离线单机 · 中文首发 · 方案锁死后观看战斗", 16, Color(0.7, 0.76, 0.82))
+	menu_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	menu_start_button = _frontend_button(body, "开始游戏", "StartGame")
+	menu_start_button.pressed.connect(_on_menu_start_pressed)
+	menu_continue_button = _frontend_button(body, "继续", "ContinueGame")
+	menu_continue_button.pressed.connect(_on_menu_continue_pressed)
+	menu_new_button = _frontend_button(body, "新游戏", "NewGame")
+	menu_new_button.pressed.connect(_on_menu_new_pressed)
+	var settings_button := _frontend_button(body, "设置", "Settings")
+	settings_button.pressed.connect(_show_settings)
+	var about_button := _frontend_button(body, "关于 / 隐私", "AboutPrivacy")
+	about_button.pressed.connect(_show_about)
+	var hint := _frontend_label(body, "第一次玩：跟随高亮完成教学。失败会留下路线记忆，零逃逸才算胜利。", 16, Color(0.65, 0.72, 0.78))
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_center_frontend_panel(menu_panel, Vector2(minf(620.0, get_viewport_rect().size.x - 32.0), 920.0))
+
+
+func _build_settings_panel() -> void:
+	settings_panel = PanelContainer.new()
+	settings_panel.name = "SettingsPanel"
+	settings_panel.add_theme_stylebox_override("panel", _frontend_style())
+	frontend_overlay.add_child(settings_panel)
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 14)
+	settings_panel.add_child(body)
+	var title := _frontend_label(body, "设置", 32, Color(0.95, 0.86, 0.68))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	settings_volume_button = _frontend_button(body, "音量", "VolumeSetting")
+	settings_volume_button.pressed.connect(_cycle_volume)
+	settings_haptics_button = _frontend_button(body, "震动：开", "HapticsSetting")
+	settings_haptics_button.pressed.connect(_toggle_haptics)
+	settings_touch_button = _frontend_button(body, "触控反馈：开", "TouchFeedbackSetting")
+	settings_touch_button.pressed.connect(_toggle_touch_feedback)
+	var language := _frontend_label(body, "语言：中文首发（首发版本不提供切换）", 18, Color(0.72, 0.78, 0.84))
+	language.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	settings_close_button = _frontend_button(body, "返回", "SettingsClose")
+	settings_close_button.pressed.connect(_close_overlay_to_return)
+	_center_frontend_panel(settings_panel, Vector2(minf(620.0, get_viewport_rect().size.x - 32.0), 700.0))
+
+
+func _build_about_panel() -> void:
+	about_panel = PanelContainer.new()
+	about_panel.name = "AboutPrivacyPanel"
+	about_panel.add_theme_stylebox_override("panel", _frontend_style())
+	frontend_overlay.add_child(about_panel)
+	var body := VBoxContainer.new()
+	body.name = "AboutBody"
+	body.add_theme_constant_override("separation", 14)
+	about_panel.add_child(body)
+	var title := _frontend_label(body, "关于 / 隐私", 32, Color(0.95, 0.86, 0.68))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var copy := _frontend_label(body, "Ambush Loop 是离线单机的计划与观看游戏。进度、失败路线、计划、评价和设置只保存在本机。\n\n当前版本没有广告、分析或联网功能，也不会把你的数据上传到服务器。\n\n版本 0.1.0\n正式发行页面会提供支持渠道和完整隐私政策。", 18, Color(0.78, 0.82, 0.86))
+	copy.name = "PrivacyCopy"
+	copy.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	about_close_button = _frontend_button(body, "返回", "AboutClose")
+	about_close_button.pressed.connect(_close_overlay_to_return)
+	_center_frontend_panel(about_panel, Vector2(minf(650.0, get_viewport_rect().size.x - 32.0), 760.0))
+
+
+func _build_confirm_panel() -> void:
+	confirm_panel = PanelContainer.new()
+	confirm_panel.name = "ConfirmPanel"
+	confirm_panel.add_theme_stylebox_override("panel", _frontend_style(Color(0.08, 0.055, 0.05, 0.99), Color(0.9, 0.35, 0.25, 0.9)))
+	frontend_overlay.add_child(confirm_panel)
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 16)
+	confirm_panel.add_child(body)
+	confirm_label = _frontend_label(body, "确定吗？", 24, Color(0.95, 0.86, 0.68))
+	confirm_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	body.add_child(row)
+	confirm_yes_button = _frontend_button(row, "确认", "ConfirmYes", Vector2(0, 96))
+	confirm_yes_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	confirm_yes_button.pressed.connect(_confirm_yes)
+	confirm_no_button = _frontend_button(row, "取消", "ConfirmNo", Vector2(0, 96))
+	confirm_no_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	confirm_no_button.pressed.connect(_confirm_no)
+	_center_frontend_panel(confirm_panel, Vector2(minf(600.0, get_viewport_rect().size.x - 32.0), 300.0))
+
+
+func _build_guide_panel() -> void:
+	guide_layer = Control.new()
+	guide_layer.name = "GuideLayer"
+	guide_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	guide_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frontend_overlay.add_child(guide_layer)
+	guide_highlight = Panel.new()
+	guide_highlight.name = "GuideHighlight"
+	guide_highlight.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var highlight_style := StyleBoxFlat.new()
+	highlight_style.bg_color = Color(0.2, 0.85, 0.65, 0.12)
+	highlight_style.border_width_left = 4
+	highlight_style.border_width_top = 4
+	highlight_style.border_width_right = 4
+	highlight_style.border_width_bottom = 4
+	highlight_style.border_color = Color(0.35, 0.95, 0.75, 0.9)
+	guide_highlight.add_theme_stylebox_override("panel", highlight_style)
+	guide_layer.add_child(guide_highlight)
+	guide_panel = PanelContainer.new()
+	guide_panel.name = "TutorialGuide"
+	guide_panel.add_theme_stylebox_override("panel", _frontend_style(Color(0.04, 0.12, 0.16, 0.96), Color(0.25, 0.78, 0.95, 0.95)))
+	guide_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	guide_layer.add_child(guide_panel)
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 8)
+	guide_panel.add_child(body)
+	guide_step_label = _frontend_label(body, "新手教学", 18, Color(0.55, 0.9, 1.0))
+	guide_title = _frontend_label(body, "跟随高亮完成第一局", 24, Color(0.95, 0.86, 0.68))
+	guide_body = _frontend_label(body, "", 18, Color(0.84, 0.9, 0.94))
+	guide_next_button = _frontend_button(body, "知道了", "GuideNext", Vector2(0, 96))
+	guide_next_button.pressed.connect(_guide_next)
+	guide_skip_button = _frontend_button(body, "跳过教学", "GuideSkip", Vector2(0, 96))
+	guide_skip_button.pressed.connect(_guide_skip)
+	_center_frontend_panel(guide_panel, Vector2(minf(680.0, get_viewport_rect().size.x - 24.0), 430.0))
+
+
+func _hide_frontend_panels() -> void:
+	if menu_panel != null:
+		menu_panel.visible = false
+	if settings_panel != null:
+		settings_panel.visible = false
+	if about_panel != null:
+		about_panel.visible = false
+	if confirm_panel != null:
+		confirm_panel.visible = false
+	if guide_layer != null:
+		guide_layer.visible = false
+	if frontend_background != null:
+		frontend_background.visible = true
+
+
+func _show_main_menu() -> void:
+	app_screen = AppScreen.MENU
+	frontend_return = "menu"
+	_hide_frontend_panels()
+	if frontend_overlay != null:
+		frontend_overlay.visible = true
+	if menu_panel != null:
+		menu_panel.visible = true
+	if frontend_background != null:
+		frontend_background.visible = true
+	$World.visible = false
+	$HUD/Root.visible = false
+	if menu_continue_button != null:
+		menu_continue_button.disabled = not FileAccess.file_exists(progress_path)
+	if menu_status != null:
+		menu_status.text = "离线单机 · 中文首发 · 方案锁死后观看战斗"
+
+
+func _enter_game_from_frontend(show_tutorial := false) -> void:
+	app_screen = AppScreen.GAME
+	frontend_return = "game"
+	_hide_frontend_panels()
+	if frontend_overlay != null:
+		frontend_overlay.visible = false
+	$World.visible = true
+	$HUD/Root.visible = true
+	_update_hud()
+	if show_tutorial:
+		_start_tutorial()
+
+
+func _on_menu_start_pressed() -> void:
+	if audio_feedback != null:
+		audio_feedback.beep("select")
+	_enter_game_from_frontend(not tutorial_seen)
+
+
+func _on_menu_continue_pressed() -> void:
+	if audio_feedback != null:
+		audio_feedback.beep("select")
+	_load_progress()
+	_load_level(LEVEL_ORDER[level_index], true, true)
+	_enter_game_from_frontend(false)
+
+
+func _on_menu_new_pressed() -> void:
+	confirm_action = "new_game"
+	confirm_label.text = "清空当前记忆并从院子重新开始？"
+	frontend_return = "menu"
+	_hide_frontend_panels()
+	confirm_panel.visible = true
+
+
+func _show_settings() -> void:
+	frontend_return = "menu" if app_screen == AppScreen.MENU else "game"
+	_hide_frontend_panels()
+	if frontend_overlay != null:
+		frontend_overlay.visible = true
+	settings_panel.visible = true
+	_update_settings_labels()
+
+
+func _show_about() -> void:
+	frontend_return = "menu" if app_screen == AppScreen.MENU else "game"
+	_hide_frontend_panels()
+	if frontend_overlay != null:
+		frontend_overlay.visible = true
+	about_panel.visible = true
+
+
+func _close_overlay_to_return() -> void:
+	if frontend_return == "game":
+		_enter_game_from_frontend(false)
+	else:
+		_show_main_menu()
+
+
+func _update_settings_labels() -> void:
+	if settings_volume_button != null:
+		settings_volume_button.text = "音量：%d%%" % int(round(settings_volume * 100.0))
+	if settings_haptics_button != null:
+		settings_haptics_button.text = "震动：%s" % ("开" if haptics_enabled else "关")
+	if settings_touch_button != null:
+		settings_touch_button.text = "触控反馈：%s" % ("开" if touch_feedback_enabled else "关")
+
+
+func _cycle_volume() -> void:
+	var values := [0.0, 0.35, 0.7, 1.0]
+	var next_index := 0
+	for i in values.size():
+		if settings_volume < float(values[i]) - 0.01:
+			next_index = i
+			break
+		if i == values.size() - 1:
+			next_index = 0
+	settings_volume = float(values[next_index])
+	if audio_feedback != null:
+		audio_feedback.configure(settings_volume)
+	_update_settings_labels()
+	_save_progress()
+
+
+func _toggle_haptics() -> void:
+	haptics_enabled = not haptics_enabled
+	_update_settings_labels()
+	_save_progress()
+
+
+func _toggle_touch_feedback() -> void:
+	touch_feedback_enabled = not touch_feedback_enabled
+	_update_settings_labels()
+	_save_progress()
+
+
+func _confirm_yes() -> void:
+	if confirm_action == "new_game":
+		level_index = 0
+		loop_index = 1
+		intel_paths.clear()
+		last_plan.clear()
+		best_stars.clear()
+		level_failures.clear()
+		tutorial_seen = false
+		door_locked = false
+		_load_level(LEVEL_ORDER[0], false, false)
+		_save_progress()
+		_enter_game_from_frontend(true)
+	confirm_action = ""
+
+
+func _confirm_no() -> void:
+	confirm_action = ""
+	_close_overlay_to_return()
+
+
+func _start_tutorial() -> void:
+	tutorial_active = true
+	tutorial_step = 0
+	tutorial_watch_ticks = 0
+	if frontend_overlay != null:
+		frontend_overlay.visible = true
+	if frontend_background != null:
+		frontend_background.visible = false
+	if guide_layer != null:
+		guide_layer.visible = true
+	_update_tutorial()
+
+
+func _update_tutorial() -> void:
+	if guide_body == null:
+		return
+	var steps := [
+		"先点队员卡，再点绿色掩体完成部署。",
+		"用左右按钮调整射界；也可以进入点地图瞄准。",
+		"需要时放置绊索、切换开火模式或准备弹包。",
+		"准备完成后按红色警报。警报后计划锁死，只能观看。",
+	]
+	var idx := clampi(tutorial_step, 0, steps.size() - 1)
+	guide_step_label.text = "新手教学  %d / %d" % [idx + 1, steps.size()]
+	guide_body.text = steps[idx]
+	guide_next_button.text = "完成" if idx == steps.size() - 1 else "下一步"
+	var target: Control = null
+	if touch_hud != null:
+		match idx:
+			0:
+				if not touch_hud.card_buttons.is_empty():
+					target = touch_hud.card_buttons[0]
+			1:
+				target = touch_hud.left_button
+			2:
+				target = touch_hud.tripwire_button
+			3:
+				target = touch_hud.alarm_button
+	if target != null and target.is_visible_in_tree():
+		var rect := target.get_global_rect().grow(8.0)
+		guide_highlight.position = rect.position
+		guide_highlight.size = rect.size
+		guide_highlight.visible = true
+	else:
+		guide_highlight.visible = false
+
+
+func _advance_tutorial_to(next_step: int) -> void:
+	if not tutorial_active:
+		return
+	if next_step <= tutorial_step:
+		return
+	tutorial_step = mini(next_step, 3)
+	_update_tutorial()
+
+
+func _guide_next() -> void:
+	tutorial_step += 1
+	if tutorial_step >= 4:
+		_guide_skip()
+		return
+	_update_tutorial()
+
+
+func _guide_skip() -> void:
+	tutorial_active = false
+	tutorial_seen = true
+	guide_layer.visible = false
+	frontend_overlay.visible = false
+	frontend_background.visible = true
+	_save_progress()
+	_update_hud()
+
+
+
+func _on_viewport_size_changed() -> void:
+	_queue_safe_area_refresh()
+
+
+func _queue_safe_area_refresh() -> void:
+	if _safe_area_refresh_queued:
+		return
+	_safe_area_refresh_queued = true
+	call_deferred("_refresh_safe_area_layout")
+
+
+func _refresh_safe_area_layout() -> void:
+	_safe_area_refresh_queued = false
+	if touch_hud == null:
+		return
+	var resolved := _collect_production_safe_rect()
+	touch_hud.set_safe_rect(resolved.rect, str(resolved.source))
+
+
+func _collect_production_safe_rect() -> Dictionary:
+	var viewport_size := touch_hud.size
+	if viewport_size.x <= 1.0 or viewport_size.y <= 1.0:
+		viewport_size = touch_hud.get_viewport_rect().size
+	var viewport_rect := Rect2(Vector2.ZERO, viewport_size)
+	if not TouchHUD.is_valid_safe_rect(viewport_rect):
+		return {"rect": Rect2(), "source": "invalid_viewport_fallback"}
+
+	var mobile := OS.get_name() == "Android" or OS.get_name() == "iOS"
+	if not mobile:
+		return {"rect": viewport_rect, "source": "non_mobile_fallback"}
+
+	var display_safe_area := DisplayServer.get_display_safe_area()
+	var display_rect := Rect2(Vector2(display_safe_area.position), Vector2(display_safe_area.size))
+	if not TouchHUD.is_valid_safe_rect(display_rect):
+		return {"rect": viewport_rect, "source": "invalid_display_fallback"}
+
+	var screen_to_hud := touch_hud.get_screen_transform().affine_inverse()
+	var mapped_safe_rect := TouchHUD.map_rect(display_rect, screen_to_hud)
+	var clipped_safe_rect := mapped_safe_rect.intersection(viewport_rect)
+	if not TouchHUD.is_valid_safe_rect(clipped_safe_rect):
+		return {"rect": viewport_rect, "source": "offscreen_display_fallback"}
+	return {"rect": clipped_safe_rect, "source": "display_safe_area"}
+
+
+func _on_safe_area_changed(next_safe_rect: Rect2, source: String) -> void:
+	safe_rect = next_safe_rect
+	safe_area_source = source
+	_reset_active_pointer_for_layout()
+	_apply_safe_area_layout(next_safe_rect)
+	print("MAIN_SAFE_AREA_LAYOUT source=%s safe_rect=%s" % [source, next_safe_rect])
+
+
+func _reset_active_pointer_for_layout() -> void:
+	active_pointer_id = -1
+	active_touch_target = 0
+	active_result_button = null
+	frontend_active_button = null
+	if touch_hud != null:
+		touch_hud.clear_active_pointer()
+
+
+func _apply_safe_area_layout(next_safe_rect: Rect2) -> void:
+	var root: Control = $HUD/Root
+	var viewport_size := root.size
+	if viewport_size.x <= 1.0 or viewport_size.y <= 1.0:
+		viewport_size = get_viewport_rect().size
+	var viewport_rect := Rect2(Vector2.ZERO, viewport_size)
+	var effective_safe_rect := next_safe_rect.intersection(viewport_rect)
+	if not TouchHUD.is_valid_safe_rect(effective_safe_rect):
+		effective_safe_rect = viewport_rect
+	var top_bar := get_node("HUD/Root/TopBar") as Control
+	top_bar.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	top_bar.position = Vector2(effective_safe_rect.position.x + 16.0, effective_safe_rect.position.y + 12.0)
+	top_bar.size = Vector2(maxf(effective_safe_rect.size.x - 32.0, 1.0), 92.0)
+
+	var tutorial_top := effective_safe_rect.position.y + 108.0
+	var tutorial_bottom := minf(effective_safe_rect.end.y - 8.0, tutorial_top + 56.0)
+	if tutorial_bottom <= tutorial_top:
+		tutorial_bottom = tutorial_top + 1.0
+	if tut_label != null:
+		tut_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		tut_label.position = Vector2(effective_safe_rect.position.x + 16.0, tutorial_top)
+		tut_label.size = Vector2(maxf(effective_safe_rect.size.x - 32.0, 1.0), tutorial_bottom - tutorial_top)
+
+	var metrics := TouchHUD.layout_metrics(viewport_size, effective_safe_rect)
+	var hud_panel_rect: Rect2 = metrics["panel_rect"]
+	if help_label != null:
+		var help_bottom := hud_panel_rect.position.y - 8.0
+		var help_top := maxf(tutorial_bottom + 8.0, help_bottom - 40.0)
+		if help_top >= help_bottom:
+			help_top = maxf(effective_safe_rect.position.y, help_bottom - 1.0)
+		help_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		help_label.position = Vector2(effective_safe_rect.position.x + 16.0, help_top)
+		help_label.size = Vector2(maxf(effective_safe_rect.size.x - 32.0, 1.0), maxf(help_bottom - help_top, 1.0))
+
+	var result_size := Vector2(
+		minf(600.0, maxf(effective_safe_rect.size.x - 32.0, 1.0)),
+		minf(420.0, maxf(effective_safe_rect.size.y - 32.0, 1.0))
+	)
+	result_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	result_panel.position = effective_safe_rect.position + (effective_safe_rect.size - result_size) * 0.5
+	result_panel.size = result_size
 
 
 func _make_hud_btn(p_name: String, text: String, parent: Control) -> Button:
@@ -171,24 +791,202 @@ func _make_hud_btn(p_name: String, text: String, parent: Control) -> Button:
 	return b
 
 
-func _load_progress() -> void:
-	var cfg := ConfigFile.new()
-	if cfg.load(PROGRESS_PATH) != OK:
-		level_index = 0
+func _on_touch_card_selected(index: int) -> void:
+	if _plan_editable():
+		_select_op(index)
+		if touch_feedback_enabled and audio_feedback != null:
+			audio_feedback.beep("select")
+		if haptics_enabled:
+			Input.vibrate_handheld(18)
+
+
+func _input(event: InputEvent) -> void:
+	if frontend_overlay != null and frontend_overlay.visible and event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		# The tutorial overlay only owns its own buttons. During the guide the
+		# highlighted map and HUD remain live so the player can perform the step.
+		var tutorial_touch := guide_layer != null and guide_layer.visible
+		if not tutorial_touch or _frontend_button_at(touch.position) != null:
+			_handle_frontend_screen_touch(touch)
+			get_viewport().set_input_as_handled()
+			return
+	if not event is InputEventScreenTouch:
 		return
-	var id := str(cfg.get_value("progress", "level_id", "yard"))
-	level_index = LEVEL_ORDER.find(id)
+	var touch := event as InputEventScreenTouch
+	if touch.canceled:
+		if touch.index == active_pointer_id:
+			active_pointer_id = -1
+			active_touch_target = 0
+			active_result_button = null
+			if touch_hud != null:
+				touch_hud.cancel_screen_touch()
+			get_viewport().set_input_as_handled()
+		return
+	if touch.pressed:
+		if active_pointer_id != -1:
+			get_viewport().set_input_as_handled()
+			return
+		active_pointer_id = touch.index
+		active_touch_target = 0
+		active_result_button = null
+		if touch_hud != null and touch_hud.handle_screen_touch(touch.position, true):
+			active_touch_target = 1
+			get_viewport().set_input_as_handled()
+			return
+		if result_panel.visible:
+			for button in [battlefield_button, continue_button]:
+				if button.visible and not button.disabled and button.get_global_rect().has_point(touch.position):
+					active_result_button = button
+					active_touch_target = 2
+					get_viewport().set_input_as_handled()
+					return
+		if phase == Phase.SETUP:
+			_handle_setup_click(_screen_to_world(touch.position))
+		get_viewport().set_input_as_handled()
+		return
+	# Release: activate only the button that claimed this pointer on press.
+	if touch.index == active_pointer_id:
+		if active_touch_target == 1 and touch_hud != null:
+			touch_hud.handle_screen_touch(touch.position, false)
+		elif active_touch_target == 2 and active_result_button != null:
+			var button := active_result_button
+			active_result_button = null
+			if is_instance_valid(button) and button.visible and not button.disabled and button.get_global_rect().has_point(touch.position):
+				button.emit_signal("pressed")
+		active_pointer_id = -1
+		active_touch_target = 0
+		get_viewport().set_input_as_handled()
+
+
+func _frontend_button_at(point: Vector2) -> Button:
+	var buttons := get_tree().get_nodes_in_group("frontend_button")
+	for i in range(buttons.size() - 1, -1, -1):
+		var button := buttons[i] as Button
+		if button != null and button.is_visible_in_tree() and not button.disabled and button.get_global_rect().has_point(point):
+			return button
+	return null
+
+
+func _handle_frontend_screen_touch(touch: InputEventScreenTouch) -> void:
+	if touch.canceled:
+		frontend_active_button = null
+		active_pointer_id = -1
+		active_touch_target = 0
+		return
+	if touch.pressed:
+		if frontend_active_button != null:
+			return
+		frontend_active_button = _frontend_button_at(touch.position)
+		active_pointer_id = touch.index
+		active_touch_target = 3
+		return
+	if touch.index != active_pointer_id:
+		return
+	var button := frontend_active_button
+	frontend_active_button = null
+	active_pointer_id = -1
+	active_touch_target = 0
+	if button != null and is_instance_valid(button) and button.is_visible_in_tree() and not button.disabled and button.get_global_rect().has_point(touch.position):
+		button.emit_signal("pressed")
+
+
+func _on_touch_facing(delta_deg: float) -> void:
+	if _plan_editable() and selected != null and selected.visible:
+		selected.rotate_by(delta_deg)
+		_advance_tutorial_to(2)
+		_update_hud()
+
+
+func _on_log_requested() -> void:
+	if touch_hud == null:
+		return
+	print("LOG_REQUEST open=%s return=%s phase=%s result_visible=%s active_pointer=%s" % [touch_hud.is_event_log_open(), touch_hud.is_log_return_to_result(), phase, result_panel.visible, active_pointer_id])
+	if touch_hud.is_event_log_open():
+		var return_to_result := touch_hud.is_log_return_to_result()
+		touch_hud.close_event_log()
+		if return_to_result and (phase == Phase.FAILED or phase == Phase.WON or phase == Phase.REPLAY):
+			result_panel.visible = true
+		return
+	touch_hud.open_event_log(false)
+
+
+func _on_battlefield_view_pressed() -> void:
+	if not result_panel.visible or touch_hud == null:
+		return
+	result_panel.visible = false
+	touch_hud.open_event_log(true)
+
+
+func _on_aim_pressed() -> void:
+	if not _plan_editable() or selected == null or not selected.visible:
+		return
+	aim_mode = not aim_mode
+	if aim_mode:
+		tool = Tool.DEPLOY
+	status_label.text = "点地图设置 %s 朝向" % selected.display_name if aim_mode else "已取消点地图瞄准"
+	_update_hud()
+
+
+func _load_progress() -> void:
+	save_state = save_store.load_state(progress_path)
+	var id := str(save_state.get("level_id", "yard"))
+	level_index = int(save_state.get("level_index", LEVEL_ORDER.find(id)))
 	if level_index < 0:
 		level_index = 0
+	level_index = mini(level_index, LEVEL_ORDER.size() - 1)
+	loop_index = maxi(1, int(save_state.get("loop", 1)))
+	intel_paths.clear()
+	for raw_path in save_state.get("intel_paths", []) as Array:
+		if raw_path is PackedVector2Array and (raw_path as PackedVector2Array).size() >= 2:
+			intel_paths.append(raw_path as PackedVector2Array)
+	best_stars = save_state.get("best_stars", {}).duplicate(true)
+	level_failures = save_state.get("failure_counts", {}).duplicate(true)
+	var raw_plan: Dictionary = save_state.get("last_plan", {})
+	last_plan.clear()
+	last_plan.deployments = raw_plan.get("deployments", []).duplicate(true)
+	var loaded_tripwire_positions: Array[Vector2] = []
+	for raw_position in raw_plan.get("tripwire_positions", []) as Array:
+		if raw_position is Vector2:
+			loaded_tripwire_positions.append(raw_position as Vector2)
+	last_plan.tripwire_positions = loaded_tripwire_positions
+	last_plan.door_locked = bool(raw_plan.get("door_locked", false))
+	door_locked = last_plan.door_locked
+	tutorial_seen = bool(save_state.get("tutorial_seen", false))
+	var settings: Dictionary = save_state.get("settings", {})
+	settings_volume = clampf(float(settings.get("volume", 0.75)), 0.0, 1.0)
+	haptics_enabled = bool(settings.get("haptics", true))
+	touch_feedback_enabled = bool(settings.get("touch_feedback", true))
+	if audio_feedback != null:
+		audio_feedback.configure(settings_volume)
 
 
-func _save_progress() -> void:
-	var cfg := ConfigFile.new()
-	cfg.load(PROGRESS_PATH)
-	cfg.set_value("progress", "level_id", level.level_id if level else "yard")
-	cfg.set_value("progress", "level_index", level_index)
-	cfg.set_value("progress", "loop_index", loop_index)
-	cfg.save(PROGRESS_PATH)
+func _save_progress() -> int:
+	_capture_plan()
+	save_state = {
+		"level_id": level.level_id if level else "yard",
+		"level_index": level_index,
+		"loop": loop_index,
+		"intel_paths": intel_paths,
+		"last_plan": {
+			"deployments": last_plan.deployments,
+			"tripwire_positions": last_plan.tripwire_positions,
+			"door_locked": last_plan.door_locked,
+		},
+		"best_stars": best_stars,
+		"failure_counts": level_failures,
+		"tutorial_seen": tutorial_seen,
+		"settings": {
+			"volume": settings_volume,
+			"haptics": haptics_enabled,
+			"touch_feedback": touch_feedback_enabled,
+			"language": "zh-CN",
+		},
+	}
+	var save_error := save_store.save_state(save_state, progress_path)
+	print("SAVE_PROGRESS_RESULT path=%s cfg_save=%s file_exists=%s note=%s" % [progress_path, save_error, FileAccess.file_exists(progress_path), save_store.last_note])
+	if save_error != OK:
+		push_error("SAVE_PROGRESS_FAILED path=%s error=%s" % [progress_path, save_error])
+	return save_error
 
 
 func _load_level(level_id: String, keep_intel: bool, restore_plan: bool) -> void:
@@ -224,6 +1022,8 @@ func _load_level(level_id: String, keep_intel: bool, restore_plan: bool) -> void
 	_build_ambush_zone_visual()
 	_build_door_marker()
 	_start_setup(keep_intel, restore_plan)
+	if touch_hud != null:
+		touch_hud.close_event_log()
 
 
 func _build_route_world() -> void:
@@ -271,10 +1071,16 @@ func _make_slot(id: int, text: String, pos: Vector2) -> CoverSlot:
 	var pad := Polygon2D.new()
 	pad.name = "Pad"
 	pad.polygon = PackedVector2Array([
-		Vector2(-14, -14), Vector2(14, -14), Vector2(14, 14), Vector2(-14, 14)
+		Vector2(-18, -12), Vector2(-10, -18), Vector2(18, -12), Vector2(18, 12), Vector2(-10, 18), Vector2(-18, 12)
 	])
-	pad.color = Color(0.25, 0.45, 0.35, 0.35)
+	pad.color = Color(0.22, 0.58, 0.42, 0.42)
 	s.add_child(pad)
+	var edge := Line2D.new()
+	edge.name = "CoverEdge"
+	edge.width = 3.0
+	edge.default_color = Color(0.56, 0.8, 0.66, 0.95)
+	edge.points = PackedVector2Array([Vector2(-14, -12), Vector2(14, -12)])
+	s.add_child(edge)
 	var tag := Label.new()
 	tag.name = "Tag"
 	tag.text = text
@@ -314,10 +1120,21 @@ func _make_operator(id: int, pname: String) -> OperatorUnit:
 	var body := Polygon2D.new()
 	body.name = "Body"
 	body.polygon = PackedVector2Array([
-		Vector2(0, -11), Vector2(8, 9), Vector2(-8, 9)
+		Vector2(0, -13), Vector2(9, -3), Vector2(7, 11), Vector2(-7, 11), Vector2(-9, -3)
 	])
-	body.color = Color(0.35, 0.65, 0.95)
+	body.color = Color(0.2, 0.72, 0.72)
 	op.add_child(body)
+	var outline := Line2D.new()
+	outline.name = "Outline"
+	outline.width = 2.0
+	outline.default_color = Color(0.78, 1.0, 0.94, 0.9)
+	outline.points = PackedVector2Array([Vector2(0, -13), Vector2(9, -3), Vector2(7, 11), Vector2(-7, 11), Vector2(-9, -3), Vector2(0, -13)])
+	op.add_child(outline)
+	var weapon := Polygon2D.new()
+	weapon.name = "Weapon"
+	weapon.polygon = PackedVector2Array([Vector2(-2, -17), Vector2(2, -17), Vector2(2, -4), Vector2(-2, -4)])
+	weapon.color = Color(0.82, 0.9, 0.88)
+	op.add_child(weapon)
 	var cone := Polygon2D.new()
 	cone.name = "Cone"
 	op.add_child(cone)
@@ -430,9 +1247,42 @@ func _refresh_door_visual() -> void:
 		door_button.visible = level != null and level.door_cell.x >= 0
 
 
+func _handle_back_pressed() -> void:
+	if touch_hud != null and touch_hud.is_event_log_open():
+		var return_to_result := touch_hud.is_log_return_to_result()
+		touch_hud.close_event_log()
+		if return_to_result:
+			result_panel.visible = true
+		return
+	if frontend_overlay != null and frontend_overlay.visible:
+		if guide_layer != null and guide_layer.visible:
+			_guide_skip()
+		elif menu_panel != null and menu_panel.visible:
+			_save_progress()
+			get_tree().quit()
+		else:
+			_close_overlay_to_return()
+		return
+	if phase == Phase.WATCHING:
+		if not sim.paused:
+			sim.toggle_pause()
+			lifecycle_paused = true
+			status_label.text = "已暂停。再次点击继续观看，计划仍然锁死。"
+			_update_hud()
+			return
+		_save_progress()
+		_show_main_menu()
+		return
+	_save_progress()
+	_show_main_menu()
+
+
 func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 	phase = Phase.SETUP
+	plan_locked = false
 	tool = Tool.DEPLOY
+	aim_mode = false
+	active_pointer_id = -1
 	fail_reason = ""
 	pending_result = ""
 	run_id += 1
@@ -475,14 +1325,17 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 	if speed_button:
 		speed_button.disabled = true
 		speed_button.text = "速度 1×"
+	if touch_hud != null:
+		touch_hud.close_event_log()
 	result_panel.visible = false
 	_update_event_log()
 	_update_hud()
 
 
 func _on_clear_pressed() -> void:
-	if phase != Phase.SETUP:
+	if not _plan_editable():
 		return
+	aim_mode = false
 	_clear_deployments()
 	status_label.text = "已收回部署（记忆与绊索保留）"
 	_update_hud()
@@ -595,21 +1448,37 @@ func _clear_return_fx() -> void:
 
 
 func _toggle_tool() -> void:
-	if phase != Phase.SETUP:
+	if not _plan_editable():
 		return
-	tool = Tool.TRIPWIRE if tool == Tool.DEPLOY else Tool.DEPLOY
-	tool_button.text = "工具: 部署队员" if tool == Tool.DEPLOY else "工具: 绊索(后勤)"
-	status_label.text = "部署到掩体位，A/D 调整射界" if tool == Tool.DEPLOY else "在路线线段附近放绊索（最多1）"
+	aim_mode = false
+	if tool == Tool.TRIPWIRE:
+		if not tripwires.is_empty():
+			_clear_tripwires()
+			status_label.text = "已撤回绊索"
+		else:
+			status_label.text = "已取消绊索工具"
+		tool = Tool.DEPLOY
+	else:
+		tool = Tool.TRIPWIRE
+		status_label.text = "在路线线段附近放绊索（再点按钮可撤回）"
 	_update_hud()
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		_handle_back_pressed()
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("reset_run"):
+		# R is a preparation-only restart.  Consume it after the alarm as a
+		# deliberate no-op so it cannot clear intel/plan or reopen SETUP.
+		get_viewport().set_input_as_handled()
+		if not _plan_editable():
+			return
 		loop_index = 1
 		intel_paths.clear()
 		last_plan.clear()
 		_start_setup(false, false)
-		get_viewport().set_input_as_handled()
 		return
 
 	if phase == Phase.WATCHING:
@@ -628,7 +1497,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		return
 
-	if phase != Phase.SETUP:
+	if not _plan_editable():
 		return
 
 	if event.is_action_pressed("sound_alarm"):
@@ -660,22 +1529,27 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		_handle_setup_click(get_global_mouse_position())
+		_handle_setup_click(_screen_to_world(get_viewport().get_mouse_position()))
 		get_viewport().set_input_as_handled()
 		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 		if selected and selected.visible and not selected.locked:
-			var v := get_global_mouse_position() - selected.global_position
+			var v := _screen_to_world(get_viewport().get_mouse_position()) - selected.global_position
 			selected.set_facing(rad_to_deg(atan2(v.y, v.x)))
 		get_viewport().set_input_as_handled()
 		return
 
 
+func _screen_to_world(screen_pos: Vector2) -> Vector2:
+	return get_viewport().get_canvas_transform().affine_inverse() * screen_pos
+
+
 func _select_op(idx: int) -> void:
-	if idx < 0 or idx >= operators.size():
+	if not _plan_editable() or idx < 0 or idx >= operators.size():
 		return
 	selected = operators[idx]
 	tool = Tool.DEPLOY
+	aim_mode = false
 	tool_button.text = "工具: 部署队员"
 	_refresh_selection_visual()
 	_refresh_mode_pack_buttons()
@@ -701,10 +1575,25 @@ func _refresh_mode_pack_buttons() -> void:
 
 
 func _handle_setup_click(world_pos: Vector2) -> void:
+	if not _plan_editable():
+		return
+	var map_rect := Rect2(AmbushGrid.WORLD_ORIGIN, Vector2(AmbushGrid.COLS * AmbushGrid.TILE, AmbushGrid.ROWS * AmbushGrid.TILE))
+	if not map_rect.has_point(world_pos):
+		return
+	if aim_mode:
+		if selected != null and selected.visible and not selected.locked:
+			var to_point := world_pos - selected.global_position
+			if to_point.length_squared() > 1.0:
+				selected.set_facing(rad_to_deg(atan2(to_point.y, to_point.x)))
+				aim_mode = false
+				_advance_tutorial_to(2)
+				status_label.text = "%s 已按地图点调整射界" % selected.display_name
+				_update_hud()
+		return
 	if tool == Tool.TRIPWIRE:
 		_try_place_tripwire(world_pos)
 		return
-	var slot := _nearest_slot(world_pos, 28.0)
+	var slot := _nearest_slot(world_pos, MAP_TOUCH_HIT_RADIUS)
 	if slot:
 		_deploy_selected_to(slot, true)
 		return
@@ -730,7 +1619,7 @@ func _nearest_slot(world_pos: Vector2, max_dist: float) -> CoverSlot:
 
 
 func _deploy_selected_to(slot: CoverSlot, announce: bool = true) -> void:
-	if selected == null:
+	if not _plan_editable() or slot == null or selected == null:
 		return
 	if selected.slot:
 		selected.slot.occupied_by = null
@@ -750,6 +1639,7 @@ func _deploy_selected_to(slot: CoverSlot, announce: bool = true) -> void:
 	selected.set_facing(face)
 	_refresh_selection_visual()
 	_refresh_mode_pack_buttons()
+	_advance_tutorial_to(1)
 	if announce:
 		status_label.text = "%s →「%s」弹%d 掩体减伤60%%" % [selected.display_name, slot.label_text, selected.ammo]
 	_update_hud()
@@ -765,6 +1655,7 @@ func _try_place_tripwire(world_pos: Vector2) -> void:
 	var tw := _make_tripwire(world_pos)
 	entities.add_child(tw)
 	tripwires.append(tw)
+	_advance_tutorial_to(3)
 	status_label.text = "绊索已埋伏"
 	_update_hud()
 
@@ -818,16 +1709,17 @@ func _deployed_count() -> int:
 
 
 func _on_mode_pressed() -> void:
-	if phase != Phase.SETUP or selected == null or not selected.visible:
+	if not _plan_editable() or selected == null or not selected.visible:
 		return
 	selected.cycle_fire_mode()
+	_advance_tutorial_to(3)
 	_refresh_mode_pack_buttons()
 	status_label.text = "%s 开火模式：%s" % [selected.display_name, selected.fire_mode_label()]
 	_update_hud()
 
 
 func _on_pack_pressed() -> void:
-	if phase != Phase.SETUP or level == null or not level.has_ammo_pack:
+	if not _plan_editable() or level == null or not level.has_ammo_pack:
 		return
 	if selected == null or not selected.visible:
 		status_label.text = "先部署并选中一名队员再分配弹包"
@@ -846,12 +1738,13 @@ func _on_pack_pressed() -> void:
 		selected.reset_loadout()
 		selected.set_facing(selected.facing_deg)
 		status_label.text = "%s 携带备用弹包（空弹自动补一次）" % selected.display_name
+	_advance_tutorial_to(3)
 	_refresh_mode_pack_buttons()
 	_update_hud()
 
 
 func _on_door_pressed() -> void:
-	if phase != Phase.SETUP or level == null or level.door_cell.x < 0:
+	if not _plan_editable() or level == null or level.door_cell.x < 0:
 		return
 	door_locked = not door_locked
 	grid.set_door_state(level.door_cell, door_locked)
@@ -878,13 +1771,20 @@ func _on_pause_pressed() -> void:
 
 
 func _on_alarm_pressed() -> void:
-	if phase != Phase.SETUP:
+	if not _plan_editable():
 		return
 	if _deployed_count() < 1:
 		status_label.text = "至少部署一名队员到掩体"
 		return
+	if tutorial_active:
+		# The alarm is the final guided action. Close the overlay before the
+		# locked watch phase so it cannot cover the battle or event log.
+		_guide_skip()
 	_capture_plan()
+	aim_mode = false
+	active_pointer_id = -1
 	run_id += 1
+	plan_locked = true
 	var this_run := run_id
 	phase = Phase.WATCHING
 	sim.reset()
@@ -905,6 +1805,8 @@ func _on_alarm_pressed() -> void:
 	for op in operators:
 		if op.visible:
 			op.lock_plan()
+	if audio_feedback != null:
+		audio_feedback.beep("alarm")
 	battle_log.add_event(0, "door", -1, -1, Vector2.ZERO, {"locked": door_locked})
 	_queue_spawns(this_run)
 	status_label.text = "方案锁死 — 暂停/变速仅改变观看。跑掉或全灭均失败。"
@@ -954,9 +1856,15 @@ func _make_enemy(id: int) -> EnemyRunner:
 	var e := EnemyRunner.new()
 	var body := Polygon2D.new()
 	body.name = "Body"
-	body.polygon = PackedVector2Array([Vector2(0, -10), Vector2(9, 8), Vector2(-9, 8)])
-	body.color = Color(0.75, 0.22, 0.2)
+	body.polygon = PackedVector2Array([Vector2(0, -12), Vector2(10, -2), Vector2(7, 10), Vector2(-7, 10), Vector2(-10, -2)])
+	body.color = Color(0.9, 0.32, 0.18)
 	e.add_child(body)
+	var outline := Line2D.new()
+	outline.name = "Outline"
+	outline.width = 2.0
+	outline.default_color = Color(1.0, 0.76, 0.48, 0.9)
+	outline.points = PackedVector2Array([Vector2(0, -12), Vector2(10, -2), Vector2(7, 10), Vector2(-7, 10), Vector2(-10, -2), Vector2(0, -12)])
+	e.add_child(outline)
 	var tag := Label.new()
 	tag.name = "Tag"
 	tag.text = "敌%d" % id
@@ -1004,6 +1912,8 @@ func _on_return_fired(from: EnemyRunner, to: OperatorUnit) -> void:
 	line.points = PackedVector2Array([from.global_position, to.global_position])
 	entities.add_child(line)
 	return_fire_fx.append(line)
+	if audio_feedback != null:
+		audio_feedback.beep("enemy_fire")
 	# Tween owned by the line so level reloads don't leave dangling captures.
 	var tw := line.create_tween()
 	tw.tween_property(line, "modulate:a", 0.0, 0.2)
@@ -1088,8 +1998,13 @@ func _sim_tick() -> void:
 			if best != null and op.shot_cd <= 0.0 and op.can_engage(best.global_position, grid):
 				battle_log.add_event(sim.tick, "fire", op.op_id, best.label_id, op.global_position)
 				if op.try_fire(best, grid):
+					_spawn_shot_fx(op.global_position, best.global_position, Color(0.28, 0.96, 0.82, 0.95))
+					if audio_feedback != null:
+						audio_feedback.beep("friendly_fire")
 					if op.ammo <= 0:
 						battle_log.add_event(sim.tick, "empty", op.op_id)
+						if audio_feedback != null:
+							audio_feedback.beep("empty")
 				if phase != Phase.WATCHING:
 					_finish_sim_tick()
 					return
@@ -1181,6 +2096,8 @@ func _try_assign_loot(loot: LootPickup) -> void:
 		if gained > 0:
 			loot.collect()
 			battle_log.add_event(sim.tick, "loot", op.op_id, -1, loot.global_position, {"amount": gained})
+			if audio_feedback != null:
+				audio_feedback.beep("loot")
 			status_label.text = "%s 搜刮 +%d弹" % [op.display_name, gained]
 			_update_event_log()
 			return
@@ -1197,6 +2114,8 @@ func _on_enemy_escaped(enemy: EnemyRunner, path: PackedVector2Array) -> void:
 		e.active = false
 	intel_paths.append(path)
 	_redraw_ghosts()
+	if audio_feedback != null:
+		audio_feedback.beep("escape")
 	pending_result = "fail"
 
 
@@ -1206,9 +2125,9 @@ func _on_enemy_died(enemy: EnemyRunner) -> void:
 	if phase == Phase.WATCHING or pending_result != "":
 		battle_log.add_event(sim.tick, "kill", enemy.label_id)
 	_spawn_loot_at(enemy.global_position, enemy.loot_ammo)
+	if audio_feedback != null:
+		audio_feedback.beep("hit")
 	_update_event_log()
-	if phase == Phase.WATCHING:
-		_check_win()
 
 
 func _on_operator_died(op: OperatorUnit) -> void:
@@ -1240,19 +2159,25 @@ func _fail_squad_wipe() -> void:
 		if e.recorded.size() > 1:
 			intel_paths.append(e.recorded.duplicate())
 	_redraw_ghosts()
+	if audio_feedback != null:
+		audio_feedback.beep("fail")
 	pending_result = "fail"
 
 
 func _show_fail_result() -> void:
 	result_panel.visible = true
+	level_failures[level.level_id] = int(level_failures.get(level.level_id, 0)) + 1
 	var lines := battle_log.summary_lines(10)
 	var summary := "\n".join(lines)
 	var reason_zh := "逃逸" if fail_reason == "escape" else "全灭"
-	result_label.text = "第 %d 世失败（%s）。\n穿梭后恢复上轮计划，满血满弹。\n\n—— 事件摘要 ——\n%s" % [loop_index, reason_zh, summary]
+	var fact := "有敌人走出封锁区；这条路线已留下为幽灵线。" if fail_reason == "escape" else "小队已失去全部战斗力；本轮计划会被保留。"
+	var advice := "下一世可沿幽灵线补一名队员、收窄射界，或在路线前段放置绊索。" if fail_reason == "escape" else "下一世可调整到保护方向正确的掩体，缩短暴露射线，或改为入伏再打并准备弹包。"
+	result_label.text = "第 %d 世失败（%s）。\n%s\n\n建议：%s\n\n穿梭后恢复上轮计划，满血满弹。\n\n—— 事件摘要 ——\n%s" % [loop_index, reason_zh, fact, advice, summary]
 	continue_button.text = "带着情报穿梭回去"
 	status_label.text = "%s — 穿梭" % reason_zh
 	_update_event_log()
 	_update_hud()
+	_save_progress()
 
 
 func _check_win() -> void:
@@ -1273,23 +2198,67 @@ func _check_win() -> void:
 
 func _show_win_result() -> void:
 	result_panel.visible = true
+	last_stars = _calculate_stars()
+	best_stars[level.level_id] = maxi(int(best_stars.get(level.level_id, 0)), last_stars)
+	last_rating = "★".repeat(last_stars) + "☆".repeat(3 - last_stars)
 	var lines := battle_log.summary_lines(8)
 	var has_next := level_index + 1 < LEVEL_ORDER.size()
 	if has_next:
-		result_label.text = "零逃逸。埋伏成立。\n用了 %d 世。\n\n%s\n\n—— 事件 ——\n%s" % [
+		result_label.text = "零逃逸。埋伏成立。  %s\n用了 %d 世。\n\n%s\n\n—— 事件 ——\n%s" % [
+			last_rating,
 			loop_index, level.teaching, "\n".join(lines)
 		]
 		continue_button.text = "下一关"
 	else:
-		result_label.text = "全部关卡封锁完成。\n总世数记忆保留于存档。\n\n%s" % "\n".join(lines)
+		result_label.text = "全部关卡封锁完成。  %s\n总世数记忆保留于存档。\n\n%s" % [last_rating, "\n".join(lines)]
 		continue_button.text = "再玩一局（清空记忆）"
 	status_label.text = "计划奏效"
+	if audio_feedback != null:
+		audio_feedback.beep("success")
 	_save_progress()
 	_update_event_log()
 	_update_hud()
 
 
+func _calculate_stars() -> int:
+	var survivors := _living_ops()
+	if survivors >= 3:
+		return 3
+	if survivors >= 2:
+		return 2
+	return 1
+
+
+func _spawn_shot_fx(from: Vector2, to: Vector2, color: Color) -> void:
+	# Presentation is transient: combat has already been settled by SimClock.
+	var line := Line2D.new()
+	line.width = 3.0
+	line.default_color = color
+	line.points = PackedVector2Array([from, to])
+	line.z_index = 5
+	entities.add_child(line)
+	var flash := Polygon2D.new()
+	flash.polygon = PackedVector2Array([Vector2(-5, 0), Vector2(0, -5), Vector2(5, 0), Vector2(0, 5)])
+	flash.color = Color(1.0, 0.9, 0.55, 0.95)
+	flash.global_position = to
+	flash.z_index = 6
+	entities.add_child(flash)
+	var tw := line.create_tween()
+	tw.set_pause_mode(Tween.TWEEN_PAUSE_STOP)
+	tw.tween_property(line, "modulate:a", 0.0, 0.12)
+	tw.tween_callback(line.queue_free)
+	var flash_tw := flash.create_tween()
+	flash_tw.set_pause_mode(Tween.TWEEN_PAUSE_STOP)
+	flash_tw.tween_property(flash, "scale", Vector2(1.9, 1.9), 0.08)
+	flash_tw.parallel().tween_property(flash, "modulate:a", 0.0, 0.12)
+	flash_tw.tween_callback(flash.queue_free)
+
+
 func _on_continue_pressed() -> void:
+	# Result actions reopen a fresh preparation phase only from a terminal
+	# result and only while the prior plan is still explicitly locked.
+	if not plan_locked or (phase != Phase.FAILED and phase != Phase.WON and phase != Phase.REPLAY):
+		return
 	if phase == Phase.FAILED:
 		loop_index += 1
 		_start_setup(true, true)
@@ -1304,6 +2273,10 @@ func _on_continue_pressed() -> void:
 			_save_progress()
 	elif phase == Phase.REPLAY:
 		_start_setup(true, true)
+
+
+func _plan_editable() -> bool:
+	return phase == Phase.SETUP and not plan_locked
 
 func _redraw_ghosts() -> void:
 	for c in ghosts.get_children():
@@ -1332,9 +2305,12 @@ func _ammo_summary() -> String:
 
 
 func _update_event_log() -> void:
+	var lines := battle_log.summary_lines(14)
+	if touch_hud != null:
+		touch_hud.set_event_lines(lines)
+		return
 	if event_log == null:
 		return
-	var lines := battle_log.summary_lines(14)
 	var text := "[b]事件日志[/b]\n" + "\n".join(lines)
 	if event_log is RichTextLabel:
 		(event_log as RichTextLabel).text = text
@@ -1364,3 +2340,30 @@ func _update_hud() -> void:
 		help_label.text = "复盘：只读事件，不重演模拟。"
 	_refresh_door_visual()
 	_refresh_mode_pack_buttons()
+	if touch_hud != null:
+		var card_data: Array = []
+		var selected_index := -1
+		for i in operators.size():
+			var op: OperatorUnit = operators[i]
+			var card := op.display_name
+			if op.visible:
+				card += "\n" + ("阵亡" if not op.alive else ("部署\n%d弹" % op.ammo))
+			else:
+				card += "\n空位"
+			card_data.append(card)
+			if op == selected:
+				selected_index = i
+		touch_hud.update_display(
+			card_data,
+			selected_index,
+			phase == Phase.SETUP,
+			phase == Phase.WATCHING,
+			level != null and level.door_cell.x >= 0,
+			door_locked,
+			mode_button.text if mode_button != null else "开火模式",
+			pack_button.text if pack_button != null else "弹包",
+			("工具: 部署队员" if tool == Tool.DEPLOY else "工具: 绊索（再点撤回）"),
+			aim_mode,
+			sim.paused,
+			sim.speed
+		)
