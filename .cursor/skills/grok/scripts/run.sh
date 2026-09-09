@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 # Run the grok.com CLI with the session already logged in on this machine.
+# /grok is pinned to Grok 4.6 Extra High Fast. Fast is xAI priority processing
+# (no grok-4.6-fast slug exists).
 set -euo pipefail
 
 export PATH="${HOME}/.grok/bin:${PATH}"
+
+PINNED_MODEL="grok-4.6"
+PINNED_EFFORT="xhigh"
+PINNED_FAST_HEADER="x-grok-service-tier"
+PINNED_FAST_VALUE="priority"
 
 die() {
   echo "grok-cli: $*" >&2
@@ -36,11 +43,29 @@ ensure_install() {
 }
 
 logged_in() {
-  local grok out
-  grok="$(find_grok)" || return 1
   [[ -f "${HOME}/.grok/auth.json" ]] || return 1
-  out="$("$grok" models 2>&1 || true)"
-  grep -qiE 'logged in|you are logged in' <<<"$out"
+  python3 - <<'PY'
+import json, os, sys
+from datetime import datetime, timezone
+path = os.path.expanduser("~/.grok/auth.json")
+try:
+    data = json.load(open(path))
+except Exception:
+    sys.exit(1)
+now = datetime.now(timezone.utc)
+for value in data.values() if isinstance(data, dict) else []:
+    if not isinstance(value, dict) or not value.get("key"):
+        continue
+    exp = value.get("expires_at")
+    if not exp:
+        sys.exit(0)
+    try:
+        dt = datetime.fromisoformat(exp.replace("Z", "+00:00"))
+    except Exception:
+        sys.exit(0)
+    sys.exit(0 if dt > now else 1)
+sys.exit(1)
+PY
 }
 
 cmd_status() {
@@ -49,9 +74,10 @@ cmd_status() {
   grok="$(find_grok)"
   echo "binary: ${grok}"
   "$grok" --version
+  echo "profile: ${PINNED_MODEL} extra-high fast (effort=${PINNED_EFFORT}, ${PINNED_FAST_HEADER}=${PINNED_FAST_VALUE})"
   if logged_in; then
     echo "auth: grok.com session present"
-    "$grok" models
+    "$grok" models || true
     return 0
   fi
   echo "auth: not logged in"
@@ -74,15 +100,28 @@ cmd_run() {
   fi
 
   local cwd="${GROK_CLI_CWD:-$(pwd)}"
+  if [[ -z "${GROK_CONFIG:-}" ]]; then
+    export GROK_CONFIG="$(python3 - <<PY
+import json
+print(json.dumps({
+    "models": {
+        "default": "${PINNED_MODEL}",
+        "default_reasoning_effort": "${PINNED_EFFORT}",
+        "extra_headers": {"${PINNED_FAST_HEADER}": "${PINNED_FAST_VALUE}"},
+    }
+}))
+PY
+)"
+  fi
   local extra=(
     --always-approve
     --no-auto-update
     --output-format plain
     --cwd "${cwd}"
+    -m "${PINNED_MODEL}"
+    --effort "${PINNED_EFFORT}"
   )
-  if [[ -n "${GROK_CLI_MODEL:-}" ]]; then
-    extra+=(-m "${GROK_CLI_MODEL}")
-  fi
+  echo "grok-cli: using ${PINNED_MODEL} extra-high fast" >&2
 
   local prompt_file=""
   local cleanup=0
