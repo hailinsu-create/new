@@ -313,6 +313,7 @@ func _rebuild_cone() -> void:
 		_ensure_role_rim()
 		_ensure_weapon()
 		_ensure_kit_bits()
+		_ensure_contact_shadow()
 		if body_outline:
 			body_outline.rotation = body.rotation
 			body_outline.polygon = _inflate_poly(poly, _outline_pad())
@@ -815,6 +816,41 @@ func _ensure_body_outline() -> void:
 		body_outline.show_behind_parent = false
 		add_child(body_outline)
 		move_child(body_outline, body.get_index())
+
+
+func _ensure_contact_shadow() -> void:
+	var sh := get_node_or_null("ContactShadow") as Polygon2D
+	if sh == null:
+		sh = Polygon2D.new()
+		sh.name = "ContactShadow"
+		sh.z_index = -4
+		sh.show_behind_parent = true
+		add_child(sh)
+		move_child(sh, 0)
+	var rx := 11.0
+	var ry := 5.2
+	match role:
+		Role.MG:
+			rx = 13.6
+			ry = 6.1
+		Role.SCOUT:
+			rx = 9.4
+			ry = 4.5
+		_:
+			rx = 11.2
+			ry = 5.2
+	var pts := PackedVector2Array()
+	for i in 14:
+		var a := TAU * float(i) / 14.0
+		pts.append(Vector2(cos(a) * rx, sin(a) * ry + 11.2))
+	sh.polygon = pts
+	sh.rotation = 0.0
+	sh.position = Vector2.ZERO
+	var a0 := 0.46 if alive else 0.20
+	if _is_power_saving():
+		a0 *= 0.7
+	sh.color = Color(0.03, 0.04, 0.02, a0)
+	sh.visible = visible
 
 
 func _ensure_role_rim() -> void:
