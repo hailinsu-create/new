@@ -709,9 +709,9 @@ func _ensure_death_mark() -> void:
 	var pool := Polygon2D.new()
 	pool.name = "Pool"
 	pool.polygon = PackedVector2Array([
-		Vector2(-11, 6), Vector2(11, 6), Vector2(8, 14), Vector2(-8, 14)
+		Vector2(-14, 5), Vector2(14, 5), Vector2(10, 16), Vector2(-10, 16)
 	])
-	pool.color = Color(0.10, 0.08, 0.08, 0.78)
+	pool.color = Color(0.08, 0.06, 0.05, 0.82)
 	death_mark.add_child(pool)
 	var mark_c := role_kit_color(role).darkened(0.45)
 	var a := Line2D.new()
@@ -852,17 +852,33 @@ func _ensure_contact_shadow() -> void:
 			rx = 11.2
 			ry = 5.2
 	var pts := PackedVector2Array()
-	for i in 14:
-		var a := TAU * float(i) / 14.0
-		pts.append(Vector2(cos(a) * rx, sin(a) * ry + 11.2))
+	for i in 16:
+		var a := TAU * float(i) / 16.0
+		pts.append(Vector2(cos(a) * rx, sin(a) * ry + 11.6))
 	sh.polygon = pts
 	sh.rotation = 0.0
-	sh.position = Vector2.ZERO
-	var a0 := 0.46 if alive else 0.20
+	sh.position = Vector2(2.6, 2.0)
+	var a0 := 0.52 if alive else 0.22
 	if _is_power_saving():
-		a0 *= 0.7
-	sh.color = Color(0.03, 0.04, 0.02, a0)
+		a0 *= 0.65
+	sh.color = Color(0.02, 0.03, 0.02, a0)
 	sh.visible = visible
+	var core := get_node_or_null("ContactShadowCore") as Polygon2D
+	if core == null:
+		core = Polygon2D.new()
+		core.name = "ContactShadowCore"
+		core.z_index = -3
+		core.show_behind_parent = true
+		add_child(core)
+		move_child(core, mini(1, get_child_count() - 1))
+	var cpts := PackedVector2Array()
+	for i in 10:
+		var a := TAU * float(i) / 10.0
+		cpts.append(Vector2(cos(a) * rx * 0.55, sin(a) * ry * 0.55 + 11.2))
+	core.polygon = cpts
+	core.position = Vector2(1.2, 1.0)
+	core.color = Color(0.01, 0.02, 0.01, a0 * 1.25)
+	core.visible = visible and not _is_power_saving()
 
 
 func _ensure_role_rim() -> void:
@@ -926,8 +942,8 @@ func _refresh_moon_rim(poly: PackedVector2Array) -> void:
 	if lit.size() < 3:
 		lit = pts
 	moon_rim.points = lit
-	moon_rim.width = 1.2 if _is_power_saving() else 1.7
-	moon_rim.default_color = Color(0.88, 0.94, 0.72, 0.78 if alive else 0.28)
+	moon_rim.width = 1.4 if _is_power_saving() else 2.1
+	moon_rim.default_color = Color(0.90, 0.96, 0.74, 0.88 if alive else 0.28)
 	moon_rim.visible = alive
 	if body:
 		moon_rim.rotation = body.rotation
@@ -983,7 +999,7 @@ func _apply_body_modulate() -> void:
 func _tint_figure_parts(flash: Color) -> void:
 	if body == null:
 		return
-	for nam in ["Head", "Visor", "LegL", "LegR", "ShoulderL", "ShoulderR", "TorsoShade", "ArmGun", "Cape", "FrontSight", "Sight"]:
+	for nam in ["Head", "Visor", "LegL", "LegR", "ShoulderL", "ShoulderR", "TorsoShade", "ArmGun", "Cape", "FrontSight", "Sight", "BootL", "BootR", "Hip", "Pack", "Collar", "MoonFill", "KitHelm", "KitGear"]:
 		var n := body.get_node_or_null(nam)
 		if n is CanvasItem:
 			(n as CanvasItem).modulate = flash
