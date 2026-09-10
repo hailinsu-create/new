@@ -96,9 +96,10 @@ func _draw_yard() -> void:
 	# Open courtyard: cool moon wash from the NE, never purple.
 	var moon := Vector2(sz.x * 0.82, 58.0)
 	var breathe := 0.5 + 0.5 * sin(_t * 0.55)
-	draw_circle(moon, 38.0 + breathe * 4.0, Color(0.82, 0.88, 0.72, 0.16 + 0.04 * breathe))
-	draw_circle(moon, 14.0, Color(0.92, 0.95, 0.82, 0.55 + 0.08 * breathe))
-	draw_circle(moon, 7.0, Color(0.98, 0.98, 0.90, 0.85))
+	draw_circle(moon, 48.0 + breathe * 5.0, Color(0.82, 0.88, 0.72, 0.12 + 0.04 * breathe))
+	draw_circle(moon, 22.0 + breathe * 2.0, Color(0.86, 0.92, 0.74, 0.20 + 0.05 * breathe))
+	draw_circle(moon, 14.0, Color(0.92, 0.95, 0.82, 0.58 + 0.08 * breathe))
+	draw_circle(moon, 7.0, Color(0.98, 0.98, 0.90, 0.88))
 	# Soft ground wash toward the yard interior.
 	draw_rect(Rect2(sz.x * 0.55, 0.0, sz.x * 0.45, 160.0), Color(0.72, 0.78, 0.58, 0.05 + 0.02 * breathe))
 	# Window flicker — standard tier only; 省电 keeps a static warm pool.

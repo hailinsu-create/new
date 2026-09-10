@@ -20,15 +20,15 @@ func _grade_color(id: String) -> Color:
 	var mild := 0.12 if saving else 0.0
 	match id:
 		"warehouse":
-			return Color(0.88 + mild, 0.74 + mild * 0.5, 0.52, 1.0)
+			return Color(0.86 + mild, 0.72 + mild * 0.5, 0.50, 1.0)
 		"pump":
-			return Color(0.68 + mild, 0.86, 0.78, 1.0)
+			return Color(0.66 + mild, 0.84, 0.74, 1.0)
 		"railcut":
-			return Color(0.70 + mild, 0.80, 0.92, 1.0)
+			return Color(0.68 + mild, 0.78, 0.86, 1.0)
 		"depot":
-			return Color(0.90, 0.76 + mild * 0.4, 0.58, 1.0)
+			return Color(0.88, 0.74 + mild * 0.4, 0.54, 1.0)
 		_:
-			return Color(0.72 + mild, 0.82, 0.70, 1.0)
+			return Color(0.70 + mild, 0.80, 0.66, 1.0)
 
 
 func _ensure_keys() -> void:
