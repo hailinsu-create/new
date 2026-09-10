@@ -115,11 +115,11 @@ static func timeline_tag(kind: String) -> String:
 			return "★"
 
 
-static func timeline_marks(log) -> Array:
+static func timeline_marks(log: Variant) -> Array:
 	var out: Array = []
-	if log == null:
+	if log == null or not log.has_method("first_of_type"):
 		return out
-	var first_fire := log.first_of_type("fire")
+	var first_fire: Dictionary = log.first_of_type("fire")
 	if not first_fire.is_empty():
 		var nm := str(first_fire.get("payload", {}).get("name", "")).strip_edges()
 		out.append({
@@ -127,15 +127,15 @@ static func timeline_marks(log) -> Array:
 			"kind": "first_fire",
 			"label": "枪" if nm == "" else nm.substr(0, 1),
 		})
-	var combo_ticks := _combo_peak_ticks(log)
+	var combo_ticks: Array = _combo_peak_ticks(log)
 	for t in combo_ticks:
 		out.append({"t": float(t) / 60.0, "kind": "combo", "label": "连"})
 	for typ in ["trip", "barrel", "ambush_armed", "repack", "route_choice"]:
-		var ev := log.first_of_type(typ)
+		var ev: Dictionary = log.first_of_type(str(typ))
 		if ev.is_empty():
 			continue
-		var kind := typ
-		if typ == "ambush_armed":
+		var kind: String = str(typ)
+		if kind == "ambush_armed":
 			kind = "ambush"
 		out.append({
 			"t": float(ev.get("tick", 0)) / 60.0,
@@ -145,7 +145,7 @@ static func timeline_marks(log) -> Array:
 	return out
 
 
-static func highlight_result_line(level, log, won: bool) -> String:
+static func highlight_result_line(level: Variant, log: Variant, won: bool) -> String:
 	if level == null:
 		return ""
 	var hook := str(level.highlight_hook).strip_edges()
@@ -161,7 +161,7 @@ static func highlight_result_line(level, log, won: bool) -> String:
 	return "没打中：%s" % hook
 
 
-static func hook_hit(level, log) -> bool:
+static func hook_hit(level: Variant, log: Variant) -> bool:
 	if level == null or log == null:
 		return false
 	match str(level.level_id):
@@ -177,7 +177,7 @@ static func hook_hit(level, log) -> bool:
 			return log.has_type("fire")
 
 
-static func leak_road_name(level, route: String, branched: bool = false) -> String:
+static func leak_road_name(level: Variant, route: String, branched: bool = false) -> String:
 	if branched:
 		return "西侧紫备用接近"
 	match route:
@@ -193,7 +193,7 @@ static func leak_road_name(level, route: String, branched: bool = false) -> Stri
 			return "主路南闸"
 
 
-static func max_kill_combo(log, window_ticks: int = -1) -> int:
+static func max_kill_combo(log: Variant, window_ticks: int = -1) -> int:
 	if log == null:
 		return 0
 	if log.has_method("max_kill_combo"):
@@ -202,14 +202,15 @@ static func max_kill_combo(log, window_ticks: int = -1) -> int:
 	return 0
 
 
-static func _combo_peak_ticks(log) -> Array:
+static func _combo_peak_ticks(log: Variant) -> Array:
 	var ticks: Array = []
 	if log == null:
 		return ticks
 	var win := combo_window_ticks()
 	var run := 0
 	var last := -99999
-	for ev in log.events:
+	for raw in log.events:
+		var ev: Dictionary = raw
 		if str(ev.get("type", "")) != "kill":
 			continue
 		var t := int(ev.get("tick", 0))
@@ -223,16 +224,21 @@ static func _combo_peak_ticks(log) -> Array:
 	return ticks
 
 
-static func _barrel_hit_someone(log) -> bool:
-	var ev := log.first_of_type("barrel")
+static func _barrel_hit_someone(log: Variant) -> bool:
+	if log == null or not log.has_method("first_of_type"):
+		return false
+	var ev: Dictionary = log.first_of_type("barrel")
 	if ev.is_empty():
 		return false
 	return int(ev.get("payload", {}).get("hits", 0)) > 0
 
 
-static func _delayed_flank_shot(log, delay_sec: float) -> bool:
+static func _delayed_flank_shot(log: Variant, delay_sec: float) -> bool:
+	if log == null:
+		return false
 	var min_tick := int(round(delay_sec * 60.0))
-	for ev in log.events:
+	for raw in log.events:
+		var ev: Dictionary = raw
 		if str(ev.get("type", "")) != "fire":
 			continue
 		if int(ev.get("tick", 0)) < min_tick:
