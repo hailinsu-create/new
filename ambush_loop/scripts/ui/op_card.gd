@@ -17,6 +17,7 @@ var _slot: Label
 var _why: Label
 var _glyph: Control
 var _accent: ColorRect
+var _rail: ColorRect
 var _fill_col: Color = Color(0, 0, 0, 0)
 var _normal: StyleBoxFlat
 var _hot: StyleBoxFlat
@@ -26,7 +27,6 @@ var _can_pick: bool = true
 var _hp_shown: float = -1.0
 var _hp_target: float = 0.0
 var _pips: HBoxContainer = null
-var _glow: ColorRect = null
 var _hurt_flash: float = 0.0
 var _watching: bool = false
 var _deployed: bool = false
@@ -35,15 +35,18 @@ var _fire_pulse: float = 0.0
 
 func setup(i: int) -> void:
 	idx = i
-	custom_minimum_size = Vector2(210, 138)
+	custom_minimum_size = Vector2(204, 108)
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	_normal = NightOps.flat(Color(0.07, 0.09, 0.08, 0.92), Color(0.32, 0.38, 0.24), 1, 8, 4)
-	_hot = NightOps.flat(Color(0.16, 0.20, 0.10, 0.98), NightOps.OLIVE_HI, 3, 10, 4)
-	_hot.border_width_left = 6
+	_normal = NightOps.flat(Color(0.055, 0.072, 0.062, 0.94), Color(0.28, 0.34, 0.22), 1, 8, 3)
+	_normal.border_width_top = 2
+	_normal.content_margin_left = 10
+	_hot = NightOps.flat(Color(0.10, 0.14, 0.08, 0.98), NightOps.OLIVE_HI, 1, 8, 3)
+	_hot.border_width_left = 5
+	_hot.border_width_top = 3
 	_hot.content_margin_left = 12
-	_hot.shadow_size = 10
-	_hot.shadow_color = Color(0.78, 0.84, 0.40, 0.48)
-	_hot.shadow_offset = Vector2(0, 0)
+	_hot.shadow_size = 6
+	_hot.shadow_color = Color(0.62, 0.72, 0.32, 0.28)
+	_hot.shadow_offset = Vector2(0, 2)
 	add_theme_stylebox_override("panel", _normal)
 	gui_input.connect(_on_gui)
 	mouse_entered.connect(func() -> void:
@@ -54,16 +57,17 @@ func setup(i: int) -> void:
 		_hovered = false
 		_refresh_chrome()
 	)
-	_glow = ColorRect.new()
-	_glow.name = "SelGlow"
-	_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_glow.color = Color(0.78, 0.84, 0.40, 0.0)
-	_glow.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_glow.offset_left = -3.0
-	_glow.offset_top = -3.0
-	_glow.offset_right = 3.0
-	_glow.offset_bottom = 3.0
-	add_child(_glow)
+	_rail = ColorRect.new()
+	_rail.name = "TopRail"
+	_rail.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_rail.color = NightOps.RAIL
+	_rail.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_rail.offset_left = 6.0
+	_rail.offset_top = 0.0
+	_rail.offset_right = -6.0
+	_rail.offset_bottom = 3.0
+	_rail.visible = false
+	add_child(_rail)
 	_accent = ColorRect.new()
 	_accent.name = "Accent"
 	_accent.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -71,20 +75,19 @@ func setup(i: int) -> void:
 	_accent.set_anchors_preset(Control.PRESET_LEFT_WIDE)
 	_accent.anchor_bottom = 1.0
 	_accent.offset_left = 0.0
-	_accent.offset_top = 4.0
-	_accent.offset_right = 5.0
-	_accent.offset_bottom = -4.0
-	_accent.visible = false
+	_accent.offset_top = 3.0
+	_accent.offset_right = 4.0
+	_accent.offset_bottom = -3.0
 	add_child(_accent)
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 8)
+	margin.add_theme_constant_override("margin_left", 10)
 	margin.add_theme_constant_override("margin_right", 8)
 	margin.add_theme_constant_override("margin_top", 6)
-	margin.add_theme_constant_override("margin_bottom", 6)
+	margin.add_theme_constant_override("margin_bottom", 5)
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(margin)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 3)
+	box.add_theme_constant_override("separation", 2)
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_child(box)
 	var name_row := HBoxContainer.new()
@@ -92,10 +95,10 @@ func setup(i: int) -> void:
 	name_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(name_row)
 	_glyph = RoleGlyphScript.new()
-	_glyph.custom_minimum_size = Vector2(28, 28)
+	_glyph.custom_minimum_size = Vector2(26, 26)
 	name_row.add_child(_glyph)
 	_name = Label.new()
-	_name.add_theme_font_size_override("font_size", 17)
+	_name.add_theme_font_size_override("font_size", 16)
 	_name.add_theme_font_override("font", NightOps.ui_font_bold())
 	_name.add_theme_color_override("font_color", NightOps.OLIVE_HI)
 	_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -114,7 +117,7 @@ func setup(i: int) -> void:
 	_hp.min_value = 0.0
 	_hp.max_value = OperatorUnit.MAX_HP
 	_hp.show_percentage = false
-	_hp.custom_minimum_size = Vector2(110, 16)
+	_hp.custom_minimum_size = Vector2(110, 12)
 	_hp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_hp.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var bg := NightOps.flat(Color(0.08, 0.10, 0.09), Color(0.18, 0.20, 0.16), 1, 0, 2)
@@ -123,32 +126,39 @@ func setup(i: int) -> void:
 	_hp.add_theme_stylebox_override("fill", fill)
 	hp_row.add_child(_hp)
 	_hp_txt = Label.new()
-	_hp_txt.add_theme_font_size_override("font_size", 12)
+	_hp_txt.add_theme_font_size_override("font_size", 11)
 	_hp_txt.add_theme_font_override("font", NightOps.ui_font_bold())
 	_hp_txt.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hp_row.add_child(_hp_txt)
 	_pips = HBoxContainer.new()
 	_pips.name = "AmmoPips"
-	_pips.add_theme_constant_override("separation", 3)
+	_pips.add_theme_constant_override("separation", 2)
 	_pips.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(_pips)
 	_meta = Label.new()
-	_meta.add_theme_font_size_override("font_size", 12)
+	_meta.add_theme_font_size_override("font_size", 11)
 	_meta.add_theme_font_override("font", NightOps.ui_font_bold())
 	_meta.add_theme_color_override("font_color", NightOps.TEXT)
 	_meta.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(_meta)
+	var slot_row := HBoxContainer.new()
+	slot_row.add_theme_constant_override("separation", 8)
+	slot_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(slot_row)
 	_slot = Label.new()
-	_slot.add_theme_font_size_override("font_size", 12)
+	_slot.add_theme_font_size_override("font_size", 11)
 	_slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(_slot)
+	_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slot_row.add_child(_slot)
 	_why = Label.new()
 	_why.add_theme_font_size_override("font_size", 11)
 	_why.add_theme_font_override("font", NightOps.ui_font_bold())
 	_why.add_theme_color_override("font_color", NightOps.OLIVE_HI)
 	_why.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_why.autowrap_mode = TextServer.AUTOWRAP_OFF
-	box.add_child(_why)
+	_why.clip_text = true
+	_why.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slot_row.add_child(_why)
 
 
 func _process(delta: float) -> void:
@@ -190,16 +200,17 @@ func bind(op: OperatorUnit, is_sel: bool, can_pick: bool, watching: bool = false
 		_glyph.visible = true
 	var kit := OperatorUnit.role_kit_color(op.role)
 	_name.text = op.display_name
-	_name.add_theme_color_override("font_color", kit)
+	_name.add_theme_color_override("font_color", kit.lerp(NightOps.OLIVE_HI, 0.35))
 	if _accent:
 		_accent.color = kit
-	if _glow:
-		_glow.color = Color(kit.r, kit.g, kit.b, 0.22 if _selected else 0.0)
+		_accent.visible = true
+	if _rail:
+		_rail.color = Color(kit.r, kit.g, kit.b, 0.85)
 	if _hot:
-		_hot.border_color = kit.lightened(0.15)
-		_hot.shadow_color = Color(kit.r, kit.g, kit.b, 0.50)
+		_hot.border_color = kit.lerp(NightOps.OLIVE_HI, 0.40)
+		_hot.shadow_color = Color(kit.r * 0.4 + 0.35, kit.g * 0.4 + 0.38, kit.b * 0.25 + 0.18, 0.32)
 	_role.text = "%s · %s" % [OperatorUnit.role_display(op.role), _kit_short(op)]
-	_role.add_theme_color_override("font_color", kit.lerp(NightOps.MUTED, 0.35))
+	_role.add_theme_color_override("font_color", kit.lerp(NightOps.MUTED, 0.45))
 	var hp := op.hp if op.alive else 0.0
 	_hp_target = hp
 	if op.has_method("hit_feedback"):
@@ -227,26 +238,27 @@ func bind(op: OperatorUnit, is_sel: bool, can_pick: bool, watching: bool = false
 		if line == "":
 			line = _default_why(op)
 		_why.text = line
-		_why.visible = line != ""
-		_why.add_theme_color_override("font_color", kit.lerp(NightOps.OLIVE_HI, 0.35))
+		_why.visible = line != "" and not watching
+		_why.add_theme_color_override("font_color", kit.lerp(NightOps.OLIVE_HI, 0.45))
 
 
 func _refresh_chrome() -> void:
 	add_theme_stylebox_override("panel", _hot if _selected else _normal)
 	if _accent:
-		_accent.visible = _selected
-	if _glow:
-		_glow.color.a = 0.22 if _selected else 0.0
+		_accent.visible = true
+		_accent.offset_right = 6.0 if _selected else 4.0
+	if _rail:
+		_rail.visible = _selected
 	if _watching and not _deployed:
-		modulate = Color(0.46, 0.46, 0.48, 0.42)
+		modulate = Color(0.50, 0.50, 0.48, 0.48)
 	elif _fire_pulse > 0.04:
-		modulate = Color(1.0, 1.0, 1.0).lerp(Color(1.42, 1.28, 0.72), _fire_pulse)
+		modulate = Color(1.0, 1.0, 1.0).lerp(Color(1.28, 1.22, 0.78), _fire_pulse)
 	elif not _can_pick:
 		modulate = Color(1, 1, 1, 0.5)
 	elif _hovered and not _selected:
-		modulate = Color(1.14, 1.16, 1.06)
+		modulate = Color(1.10, 1.12, 1.04)
 	elif _selected:
-		modulate = Color(1.18, 1.20, 1.08)
+		modulate = Color(1.08, 1.10, 1.04)
 	else:
 		modulate = Color.WHITE
 
@@ -261,7 +273,7 @@ func _refresh_ammo_pips(op: OperatorUnit) -> void:
 		last.free()
 	while _pips.get_child_count() < n:
 		var pip := ColorRect.new()
-		pip.custom_minimum_size = Vector2(9, 8)
+		pip.custom_minimum_size = Vector2(8, 7)
 		pip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_pips.add_child(pip)
 	var filled := int(round(float(maxi(op.ammo, 0)) / float(maxi(op.max_ammo, 1)) * float(n)))
@@ -273,9 +285,9 @@ func _refresh_ammo_pips(op: OperatorUnit) -> void:
 		if pip == null:
 			continue
 		if i < filled:
-			pip.color = Color(kit.r, kit.g, kit.b, 0.95)
+			pip.color = Color(kit.r, kit.g, kit.b, 0.92).lerp(NightOps.OLIVE_HI, 0.18)
 		else:
-			pip.color = Color(0.18, 0.20, 0.16, 0.85)
+			pip.color = Color(0.16, 0.18, 0.14, 0.85)
 
 
 func _kit_short(op: OperatorUnit) -> String:
