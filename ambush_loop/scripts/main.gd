@@ -114,6 +114,8 @@ var route_legend: Control = null
 var _alarm_vignette: ColorRect = null
 var _watch_letterbox: Control = null
 var _watch_vignette: Control = null
+var _fail_static: Control = null
+var _fail_static_tween: Tween = null
 var _tracer_pool: Array = []
 var _tracer_live: Array = []
 var _phase_chip_tween: Tween = null
@@ -1177,6 +1179,7 @@ func _ensure_presentation_fx() -> void:
 		_sig_wash.z_index = 36
 		root.add_child(_sig_wash)
 	_ensure_watch_cinema()
+	_ensure_fail_static()
 
 
 func _ensure_tut_plate(root: Control) -> void:
@@ -1298,6 +1301,54 @@ func _ensure_watch_cinema() -> void:
 			edge.offset_bottom = float(spec[5])
 			_watch_vignette.add_child(edge)
 		_watch_vignette.visible = false
+
+
+func _ensure_fail_static() -> void:
+	var root: Control = $HUD/Root
+	if _fail_static != null and is_instance_valid(_fail_static):
+		return
+	_fail_static = Control.new()
+	_fail_static.name = "FailStatic"
+	_fail_static.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_fail_static.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_fail_static.z_index = 44
+	root.add_child(_fail_static)
+	var wash := ColorRect.new()
+	wash.name = "Wash"
+	wash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	wash.set_anchors_preset(Control.PRESET_FULL_RECT)
+	wash.color = Color(0.08, 0.10, 0.08, 0.22)
+	_fail_static.add_child(wash)
+	for i in 7:
+		var line := ColorRect.new()
+		line.name = "Scan%d" % i
+		line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		line.color = Color(0.78, 0.82, 0.62, 0.07)
+		line.set_anchors_preset(Control.PRESET_TOP_WIDE)
+		line.offset_top = 70.0 + float(i) * 88.0
+		line.offset_bottom = line.offset_top + 3.0
+		_fail_static.add_child(line)
+	_fail_static.visible = false
+	_fail_static.modulate.a = 0.0
+
+
+func _play_fail_static() -> void:
+	_ensure_fail_static()
+	if _fail_static == null:
+		return
+	if _fail_static_tween != null:
+		_fail_static_tween.kill()
+	_fail_static.visible = true
+	_fail_static.modulate.a = 0.0
+	var dur := 0.18 if _is_power_saving() else 0.42
+	_fail_static_tween = _fail_static.create_tween()
+	_fail_static_tween.tween_property(_fail_static, "modulate:a", 1.0, 0.06)
+	_fail_static_tween.tween_interval(dur)
+	_fail_static_tween.tween_property(_fail_static, "modulate:a", 0.0, 0.20)
+	_fail_static_tween.tween_callback(func() -> void:
+		if _fail_static:
+			_fail_static.visible = false
+	)
 
 
 func _is_power_saving() -> bool:
@@ -4274,6 +4325,7 @@ func _spawn_payoff_callout(pos: Vector2, text: String, color: Color) -> void:
 
 
 func _show_fail_result() -> void:
+	_play_fail_static()
 	if abort_button:
 		abort_button.visible = false
 	if title_return_button:
