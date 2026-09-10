@@ -59,6 +59,15 @@ func _ready() -> void:
 	smoke.z_index = -1
 	smoke.show_behind_parent = true
 	add_child(smoke)
+	var spark := Line2D.new()
+	spark.name = "Spark"
+	spark.width = 1.8 if is_mg else 1.3
+	spark.default_color = Color(1.0, 0.98, 0.82, 0.95)
+	spark.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	spark.end_cap_mode = Line2D.LINE_CAP_ROUND
+	var reach := 22.0 if is_mg else (16.0 if is_rifle else 20.0)
+	spark.points = PackedVector2Array([Vector2(2, 0), Vector2(reach, 0)])
+	add_child(spark)
 	var tw := create_tween()
 	var pop := 0.028 if is_rifle else 0.04
 	var fade := 0.055 if is_rifle else (0.10 if is_mg else 0.08)

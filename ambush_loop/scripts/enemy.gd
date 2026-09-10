@@ -14,6 +14,7 @@ const RETURN_DAMAGE := 14.0
 const RETURN_INTERVAL := 0.28
 const MuzzleFlashScript := preload("res://scripts/fx/muzzle_flash.gd")
 const CombatFxScript := preload("res://scripts/fx/combat_fx.gd")
+const Silhouette := preload("res://scripts/fx/enemy_silhouette.gd")
 
 var route: PackedVector2Array = PackedVector2Array()
 var route_index: int = 0
@@ -326,26 +327,7 @@ func kind_short() -> String:
 
 
 func _hostile_body_poly() -> PackedVector2Array:
-	match kind_id():
-		"flank":
-			# Runner: elongated diamond, lean forward.
-			return PackedVector2Array([
-				Vector2(0, -17), Vector2(6.2, -5), Vector2(5.4, 12),
-				Vector2(0, 9), Vector2(-5.4, 12), Vector2(-6.2, -5)
-			])
-		"sneak":
-			# Shadow: low, wide, no helmet peak.
-			return PackedVector2Array([
-				Vector2(0, -9), Vector2(11, -2), Vector2(9, 8),
-				Vector2(0, 10), Vector2(-9, 8), Vector2(-11, -2)
-			])
-		_:
-			# Patrol rifleman: helmet block + torso diamond.
-			return PackedVector2Array([
-				Vector2(-4.5, -16), Vector2(4.5, -16), Vector2(7.5, -8),
-				Vector2(9.5, 1), Vector2(5.5, 12), Vector2(-5.5, 12),
-				Vector2(-9.5, 1), Vector2(-7.5, -8)
-			])
+	return Silhouette.body_poly(kind_id())
 
 
 func _kind_body_color() -> Color:
@@ -420,61 +402,20 @@ func _ensure_chevron() -> void:
 func _ensure_weapon() -> void:
 	if body == null:
 		return
+	Silhouette.mount(body, kind_id())
 	if weapon == null or not is_instance_valid(weapon):
-		weapon = get_node_or_null("Weapon") as Polygon2D
-	if weapon == null:
-		weapon = Polygon2D.new()
-		weapon.name = "Weapon"
-		weapon.z_index = 2
-		body.add_child(weapon)
-	weapon.rotation = _weapon_snap
-	match kind_id():
-		"flank":
-			weapon.polygon = PackedVector2Array([
-				Vector2(-1.3, -6), Vector2(1.3, -6), Vector2(1.0, -20), Vector2(-1.0, -20)
-			])
-			weapon.color = Color(0.12, 0.10, 0.08, 0.96)
-			weapon.visible = true
-		"sneak":
-			weapon.polygon = PackedVector2Array([
-				Vector2(-0.7, -4), Vector2(0.7, -4), Vector2(0.5, -12), Vector2(-0.5, -12)
-			])
-			weapon.color = Color(0.08, 0.10, 0.12, 0.9)
-			weapon.visible = true
-		_:
-			weapon.polygon = PackedVector2Array([
-				Vector2(-1.4, -5), Vector2(1.4, -5), Vector2(1.1, -24),
-				Vector2(0.3, -27), Vector2(-0.3, -27), Vector2(-1.1, -24)
-			])
-			weapon.color = Color(0.14, 0.12, 0.10, 0.98)
-			weapon.visible = true
+		weapon = body.get_node_or_null("Weapon") as Polygon2D
+	if weapon:
+		weapon.rotation = _weapon_snap
+		weapon.visible = true
 
 
 func _ensure_helm() -> void:
 	if body == null:
 		return
+	Silhouette.mount(body, kind_id())
 	if kit_helm == null or not is_instance_valid(kit_helm):
-		kit_helm = get_node_or_null("KitHelm") as Polygon2D
-	if kit_helm == null:
-		kit_helm = Polygon2D.new()
-		kit_helm.name = "KitHelm"
-		kit_helm.z_index = 1
-		body.add_child(kit_helm)
-	match kind_id():
-		"flank":
-			kit_helm.polygon = PackedVector2Array([
-				Vector2(-3.2, -18), Vector2(3.2, -18), Vector2(2.6, -13), Vector2(-2.6, -13)
-			])
-			kit_helm.color = Color(0.28, 0.12, 0.06, 0.95)
-			kit_helm.visible = true
-		"sneak":
-			kit_helm.visible = false
-		_:
-			kit_helm.polygon = PackedVector2Array([
-				Vector2(-5.2, -17), Vector2(5.2, -17), Vector2(4.4, -12), Vector2(-4.4, -12)
-			])
-			kit_helm.color = Color(0.22, 0.10, 0.08, 0.96)
-			kit_helm.visible = true
+		kit_helm = body.get_node_or_null("KitHelm") as Polygon2D
 
 
 func _apply_hostile_silhouette() -> void:
@@ -609,6 +550,7 @@ func _apply_body_modulate() -> void:
 				weapon.modulate = Color(0.5, 0.5, 0.52, 0.0)
 			if kit_helm:
 				kit_helm.modulate = Color(0.5, 0.5, 0.52, 0.0)
+			_tint_figure_parts(Color(0.62, 0.62, 0.64, 0.0))
 			return
 		body.modulate = Color(0.62, 0.62, 0.64, 0.72)
 		if body_outline:
@@ -621,6 +563,7 @@ func _apply_body_modulate() -> void:
 			weapon.modulate = Color(0.5, 0.5, 0.52, 0.7)
 		if kit_helm:
 			kit_helm.modulate = Color(0.5, 0.5, 0.52, 0.7)
+		_tint_figure_parts(Color(0.62, 0.62, 0.64, 0.72))
 		return
 	var flash := Color(1.55, 1.55, 1.55, 1).lerp(Color(1.9, 0.22, 0.16), _hit_flash)
 	if _return_flash > 0.0:
@@ -639,6 +582,16 @@ func _apply_body_modulate() -> void:
 		weapon.modulate = flash
 	if kit_helm:
 		kit_helm.modulate = flash
+	_tint_figure_parts(flash)
+
+
+func _tint_figure_parts(flash: Color) -> void:
+	if body == null:
+		return
+	for nam in ["Head", "Visor", "LegL", "LegR", "ShoulderL", "ShoulderR", "TorsoShade", "Cape", "FrontSight", "Sight"]:
+		var n := body.get_node_or_null(nam)
+		if n is CanvasItem:
+			(n as CanvasItem).modulate = flash
 
 
 func walk_bob_hook() -> float:
@@ -676,6 +629,15 @@ func _apply_walk_bob() -> void:
 		kind_rim.rotation = body.rotation if body else kind_rim.rotation
 	if weapon and is_instance_valid(weapon):
 		weapon.rotation = _weapon_snap
+	if body:
+		Silhouette.pose_parts(body, kind_id(), {
+			"phase": _walk_phase,
+			"alive": alive,
+			"active": active,
+			"alerted": alerted,
+			"saving": _is_power_saving(),
+			"recoil": _weapon_snap,
+		})
 	if hp_bar:
 		hp_bar.position = Vector2(0.0, bob * 0.25)
 	if hp_track:
@@ -856,6 +818,11 @@ func _play_death_fx() -> void:
 		dir = dir.normalized()
 	var dest: Vector2 = global_position + dir * 8.0
 	_death_tween.tween_property(self, "global_position", dest, 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_death_tween.parallel().tween_property(body, "rotation", body.rotation + deg_to_rad(70.0), 0.16)
+	_death_tween.parallel().tween_property(body, "scale", Vector2(1.22, 0.42), 0.16)
+	if body_outline:
+		_death_tween.parallel().tween_property(body_outline, "rotation", body.rotation + deg_to_rad(70.0), 0.16)
+		_death_tween.parallel().tween_property(body_outline, "scale", Vector2(1.22, 0.42), 0.16)
 	_death_tween.tween_callback(func() -> void: _fade_corpse = true)
 	_death_tween.tween_property(body, "modulate:a", 0.0, 0.20)
 	if body_outline:

@@ -13,6 +13,7 @@ const LOOT_RANGE := 52.0
 const CONE_RAYS := 14
 const MuzzleFlashScript := preload("res://scripts/fx/muzzle_flash.gd")
 const CombatFxScript := preload("res://scripts/fx/combat_fx.gd")
+const Silhouette := preload("res://scripts/fx/operator_silhouette.gd")
 
 signal died(op: OperatorUnit)
 signal fired_shot(op: OperatorUnit, target_pos: Vector2)
@@ -305,7 +306,7 @@ func _rebuild_cone() -> void:
 	_rebuild_cone_edge(pts)
 	if body:
 		body.rotation = deg_to_rad(facing_deg + 90.0)
-		# Distinct Commandos-lite kits: rifle lean, MG wide+bipod, scout slim+binocs.
+		# Human silhouette: head / shoulders / torso / two legs + kit.
 		var poly := _role_body_poly()
 		body.polygon = poly
 		_ensure_body_outline()
@@ -506,120 +507,38 @@ func _die() -> void:
 
 
 func _role_body_poly() -> PackedVector2Array:
-	match role:
-		Role.MG:
-			# Wide shoulders, flat helmet, blocky hips — readable as the heavy.
-			return PackedVector2Array([
-				Vector2(-5.5, -14), Vector2(5.5, -14),
-				Vector2(8.5, -10), Vector2(13, -3), Vector2(13, 5),
-				Vector2(9, 12), Vector2(4.5, 14), Vector2(-4.5, 14),
-				Vector2(-9, 12), Vector2(-13, 5), Vector2(-13, -3), Vector2(-8.5, -10)
-			])
-		Role.SCOUT:
-			# Slim diamond with a binocular bump on the right temple.
-			return PackedVector2Array([
-				Vector2(0, -17), Vector2(2.8, -14), Vector2(6.2, -12),
-				Vector2(4.4, -7), Vector2(5.2, 7), Vector2(2.4, 13),
-				Vector2(-2.4, 13), Vector2(-4.8, 7), Vector2(-3.8, -7), Vector2(-2.6, -14)
-			])
-		_:
-			# Lean rifleman: narrow shoulders, long silhouette.
-			return PackedVector2Array([
-				Vector2(0, -16), Vector2(3.4, -13), Vector2(4.4, -7),
-				Vector2(6.8, -1), Vector2(5.6, 8), Vector2(3.0, 13),
-				Vector2(-1.6, 13), Vector2(-5.2, 8), Vector2(-6.2, -1),
-				Vector2(-4.2, -7), Vector2(-3.0, -13)
-			])
+	return Silhouette.body_poly(role)
 
 
 func _ensure_weapon() -> void:
 	if body == null:
 		return
+	Silhouette.mount(body, role)
 	if weapon == null or not is_instance_valid(weapon):
-		weapon = get_node_or_null("Weapon") as Polygon2D
+		weapon = body.get_node_or_null("Weapon") as Polygon2D
 	if weapon == null:
-		weapon = Polygon2D.new()
-		weapon.name = "Weapon"
-		weapon.z_index = 2
-		body.add_child(weapon)
-	# Local -Y is aim after body.rotation = facing+90°. Recoil snap is extra local rot.
-	weapon.rotation = _weapon_snap
-	match role:
-		Role.MG:
-			weapon.polygon = PackedVector2Array([
-				Vector2(-3.6, -2), Vector2(3.8, -2), Vector2(3.2, -18),
-				Vector2(1.2, -24), Vector2(-1.4, -24), Vector2(-3.0, -18)
-			])
-			weapon.color = Color(0.14, 0.12, 0.08, 0.98)
-		Role.SCOUT:
-			weapon.polygon = PackedVector2Array([
-				Vector2(-0.95, -8), Vector2(0.95, -8), Vector2(0.7, -30),
-				Vector2(0.2, -33), Vector2(-0.2, -33), Vector2(-0.7, -30)
-			])
-			weapon.color = Color(0.10, 0.14, 0.18, 0.98)
-		_:
-			weapon.polygon = PackedVector2Array([
-				Vector2(-1.35, -5), Vector2(1.35, -5), Vector2(1.05, -26),
-				Vector2(0.35, -30), Vector2(-0.35, -30), Vector2(-1.05, -26)
-			])
-			weapon.color = Color(0.12, 0.14, 0.16, 0.98)
-	weapon.visible = true
-	weapon.modulate = Color(0.55, 0.55, 0.55, 0.75) if not alive else Color.WHITE
+		weapon = get_node_or_null("Weapon") as Polygon2D
+	if weapon:
+		weapon.rotation = _weapon_snap
+		weapon.visible = true
+		weapon.modulate = Color(0.55, 0.55, 0.55, 0.75) if not alive else Color.WHITE
 
 
 func _ensure_kit_bits() -> void:
 	if body == null:
 		return
+	Silhouette.mount(body, role)
 	if kit_helm == null or not is_instance_valid(kit_helm):
-		kit_helm = get_node_or_null("KitHelm") as Polygon2D
-	if kit_helm == null:
-		kit_helm = Polygon2D.new()
-		kit_helm.name = "KitHelm"
-		kit_helm.z_index = 1
-		body.add_child(kit_helm)
+		kit_helm = body.get_node_or_null("KitHelm") as Polygon2D
 	if kit_gear == null or not is_instance_valid(kit_gear):
-		kit_gear = get_node_or_null("KitGear") as Polygon2D
-	if kit_gear == null:
-		kit_gear = Polygon2D.new()
-		kit_gear.name = "KitGear"
-		kit_gear.z_index = 3
-		body.add_child(kit_gear)
-	match role:
-		Role.MG:
-			kit_helm.polygon = PackedVector2Array([
-				Vector2(-6.5, -15), Vector2(6.5, -15), Vector2(5.5, -10), Vector2(-5.5, -10)
-			])
-			kit_helm.color = Color(0.22, 0.24, 0.14, 0.96)
-			# Single bipod block (U) under the barrel — one polygon, no split fill.
-			kit_gear.polygon = PackedVector2Array([
-				Vector2(-8.5, -17), Vector2(8.5, -17), Vector2(10.0, -5), Vector2(6.2, -5),
-				Vector2(2.2, -14), Vector2(-2.2, -14), Vector2(-6.2, -5), Vector2(-10.0, -5)
-			])
-			kit_gear.color = Color(0.18, 0.16, 0.10, 0.95)
-		Role.SCOUT:
-			kit_helm.polygon = PackedVector2Array([
-				Vector2(-3.2, -18), Vector2(3.2, -18), Vector2(2.6, -13), Vector2(-2.6, -13)
-			])
-			kit_helm.color = Color(0.12, 0.22, 0.26, 0.96)
-			# Binocular tube on the right temple.
-			kit_gear.polygon = PackedVector2Array([
-				Vector2(4.0, -15.5), Vector2(8.4, -15.5), Vector2(8.4, -6.0), Vector2(4.0, -6.0)
-			])
-			kit_gear.color = Color(0.18, 0.28, 0.32, 0.96)
-		_:
-			kit_helm.polygon = PackedVector2Array([
-				Vector2(-3.6, -17), Vector2(3.6, -17), Vector2(3.0, -12.5), Vector2(-3.0, -12.5)
-			])
-			kit_helm.color = Color(0.16, 0.22, 0.28, 0.96)
-			kit_gear.polygon = PackedVector2Array([
-				Vector2(-2.2, 2), Vector2(2.2, 2), Vector2(1.6, 8), Vector2(-1.6, 8)
-			])
-			kit_gear.color = Color(0.22, 0.28, 0.24, 0.85)
-	kit_helm.visible = true
-	kit_gear.visible = true
+		kit_gear = body.get_node_or_null("KitGear") as Polygon2D
 	var dead_m := Color(0.55, 0.55, 0.55, 0.75) if not alive else Color.WHITE
-	kit_helm.modulate = dead_m
-	kit_gear.modulate = dead_m
+	if kit_helm:
+		kit_helm.visible = true
+		kit_helm.modulate = dead_m
+	if kit_gear:
+		kit_gear.visible = true
+		kit_gear.modulate = dead_m
 
 
 func _outline_pad() -> float:
@@ -651,23 +570,20 @@ func _rim_color() -> Color:
 
 func _spawn_muzzle_flash() -> void:
 	var rad := deg_to_rad(facing_deg)
-	var tip_len := 22.0
+	var tip_len := absf(Silhouette.barrel_tip_y(role))
 	var intensity := 1.0
 	var style := "rifle"
 	var tint := Color.WHITE
 	match role:
 		Role.MG:
-			tip_len = 20.0
 			intensity = 1.48
 			style = "mg"
 			tint = Color(1.0, 0.88, 0.55)
 		Role.SCOUT:
-			tip_len = 28.0
 			intensity = 0.82
 			style = "scout"
 			tint = Color(0.85, 0.95, 1.0)
 		_:
-			tip_len = 24.0
 			intensity = 1.05
 			style = "rifle"
 	var tip := Vector2(cos(rad), sin(rad)) * tip_len
@@ -729,6 +645,15 @@ func _apply_idle_bob() -> void:
 		if alive and visible and not locked:
 			sway = deg_to_rad(sin(_present_t * 1.65 + float(op_id) * 0.7) * 2.0)
 		weapon.rotation = _weapon_snap + sway
+	if body:
+		Silhouette.pose_parts(body, role, {
+			"t": _present_t,
+			"recoil": _weapon_snap,
+			"hit": _hit_punch,
+			"alive": alive and visible,
+			"saving": _is_power_saving(),
+			"id": float(op_id),
+		})
 	if hp_bar:
 		hp_bar.position = Vector2(0.0, bob * 0.2)
 	if shield_glyph:
@@ -805,15 +730,15 @@ func _play_death_fx() -> void:
 	if body == null:
 		return
 	_death_tween = create_tween()
-	var squash := Vector2(1.12, 0.58)
+	var squash := Vector2(1.28, 0.42)
 	match role:
 		Role.MG:
-			squash = Vector2(1.32, 0.42)
+			squash = Vector2(1.46, 0.36)
 		Role.SCOUT:
-			squash = Vector2(0.82, 0.52)
+			squash = Vector2(1.08, 0.40)
 		_:
-			squash = Vector2(1.18, 0.48)
-	var collapse := deg_to_rad(-15.0)
+			squash = Vector2(1.32, 0.38)
+	var collapse := deg_to_rad(-72.0 if role == Role.SCOUT else (-58.0 if role == Role.MG else -64.0))
 	_death_tween.tween_property(body, "scale", Vector2(1.22, 1.22), 0.05).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	if body_outline:
 		_death_tween.parallel().tween_property(body_outline, "scale", Vector2(1.22, 1.22), 0.05)
@@ -871,6 +796,9 @@ func _reset_present_fx() -> void:
 		shield_glyph.scale = Vector2.ONE
 	if sel_ring:
 		sel_ring.visible = false
+	var br := get_node_or_null("SelBracket") as Node2D
+	if br:
+		br.visible = false
 	if face_chip:
 		face_chip.visible = false
 	_update_hp_bar()
@@ -947,6 +875,7 @@ func _apply_body_modulate() -> void:
 			kit_helm.modulate = Color(0.5, 0.5, 0.52, 0.7)
 		if kit_gear:
 			kit_gear.modulate = Color(0.5, 0.5, 0.52, 0.7)
+		_tint_figure_parts(Color(0.55, 0.55, 0.58, 0.78))
 		return
 	var flash := Color(1.55, 1.55, 1.55).lerp(Color(1.85, 0.22, 0.16), _hit_flash)
 	if hp < MAX_HP * 0.5:
@@ -963,6 +892,16 @@ func _apply_body_modulate() -> void:
 		kit_helm.modulate = flash
 	if kit_gear:
 		kit_gear.modulate = flash
+	_tint_figure_parts(flash)
+
+
+func _tint_figure_parts(flash: Color) -> void:
+	if body == null:
+		return
+	for nam in ["Head", "Visor", "LegL", "LegR", "ShoulderL", "ShoulderR", "TorsoShade", "ArmGun", "Cape", "FrontSight", "Sight"]:
+		var n := body.get_node_or_null(nam)
+		if n is CanvasItem:
+			(n as CanvasItem).modulate = flash
 
 
 func can_reach_loot(loot_pos: Vector2, p_grid: AmbushGrid) -> bool:
@@ -1232,21 +1171,47 @@ func _rebuild_cone_edge(pts: PackedVector2Array) -> void:
 
 
 func _ensure_sel_ring() -> void:
-	if sel_ring != null and is_instance_valid(sel_ring):
+	if sel_ring == null or not is_instance_valid(sel_ring):
+		sel_ring = get_node_or_null("SelRing") as Line2D
+		if sel_ring == null:
+			sel_ring = Line2D.new()
+			sel_ring.name = "SelRing"
+			sel_ring.width = 2.0
+			sel_ring.closed = true
+			sel_ring.z_index = 4
+			var pts := PackedVector2Array()
+			for i in 20:
+				var a := TAU * float(i) / 20.0
+				pts.append(Vector2(cos(a), sin(a)) * 22.0)
+			sel_ring.points = pts
+			add_child(sel_ring)
+	_ensure_sel_brackets()
+
+
+func _ensure_sel_brackets() -> void:
+	if get_node_or_null("SelBracket") != null:
 		return
-	sel_ring = get_node_or_null("SelRing") as Line2D
-	if sel_ring == null:
-		sel_ring = Line2D.new()
-		sel_ring.name = "SelRing"
-		sel_ring.width = 2.0
-		sel_ring.closed = true
-		sel_ring.z_index = 4
-		var pts := PackedVector2Array()
-		for i in 20:
-			var a := TAU * float(i) / 20.0
-			pts.append(Vector2(cos(a), sin(a)) * 20.0)
-		sel_ring.points = pts
-		add_child(sel_ring)
+	var host := Node2D.new()
+	host.name = "SelBracket"
+	host.z_index = 5
+	add_child(host)
+	var s := 18.0
+	var arm := 7.5
+	var col := Color(1.0, 0.92, 0.42, 0.9)
+	var corners: Array = [
+		[Vector2(-s + arm, -s), Vector2(-s, -s), Vector2(-s, -s + arm)],
+		[Vector2(-s, s - arm), Vector2(-s, s), Vector2(-s + arm, s)],
+		[Vector2(s - arm, s), Vector2(s, s), Vector2(s, s - arm)],
+		[Vector2(s, -s + arm), Vector2(s, -s), Vector2(s - arm, -s)],
+	]
+	for pts in corners:
+		var ln := Line2D.new()
+		ln.width = 2.3
+		ln.default_color = col
+		ln.begin_cap_mode = Line2D.LINE_CAP_BOX
+		ln.end_cap_mode = Line2D.LINE_CAP_BOX
+		ln.points = PackedVector2Array(pts)
+		host.add_child(ln)
 
 
 func _tick_sel_ring() -> void:
@@ -1255,12 +1220,21 @@ func _tick_sel_ring() -> void:
 		return
 	var on := _selected_visual and alive and visible and not locked
 	sel_ring.visible = on
+	var br := get_node_or_null("SelBracket") as Node2D
+	if br:
+		br.visible = on
 	if not on:
 		return
 	var wave := 0.5 + 0.5 * sin(_present_t * 5.2)
 	sel_ring.default_color = Color(0.98, 0.88, 0.38, 0.40 + 0.40 * wave)
 	sel_ring.scale = Vector2.ONE * (1.0 + wave * 0.08)
-	sel_ring.width = 2.0 + wave * 1.1
+	sel_ring.width = 2.4 + wave * 1.2
+	if br:
+		br.scale = Vector2.ONE * (1.0 + wave * 0.05)
+		var col := Color(1.0, 0.92, 0.42, 0.70 + 0.28 * wave)
+		for c in br.get_children():
+			if c is Line2D:
+				(c as Line2D).default_color = col
 
 
 func _refresh_face_chip() -> void:
@@ -1310,6 +1284,7 @@ func _refresh_tag() -> void:
 	if tag == null:
 		return
 	tag.add_theme_font_size_override("font_size", 12)
+	tag.add_theme_font_override("font", NightOps.ui_font_bold())
 	if not alive:
 		tag.text = "%s 阵亡" % display_name
 		tag.add_theme_color_override("font_color", Color(0.62, 0.62, 0.64))

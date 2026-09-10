@@ -19,6 +19,8 @@ const TouchHudScript := preload("res://scripts/touch_hud.gd")
 const IntelPathGhostScript := preload("res://scripts/fx/intel_path_ghost.gd")
 const KillzoneOverlayScript := preload("res://scripts/fx/killzone_overlay.gd")
 const CombatFxScript := preload("res://scripts/fx/combat_fx.gd")
+const OperatorSilhouetteScript := preload("res://scripts/fx/operator_silhouette.gd")
+const EnemySilhouetteScript := preload("res://scripts/fx/enemy_silhouette.gd")
 
 var grid: AmbushGrid = AmbushGrid.new()
 var phase: Phase = Phase.SETUP
@@ -209,6 +211,17 @@ func _ready() -> void:
 func _resolve_optional_hud() -> void:
 	var root: Control = $HUD/Root
 	root.theme = NightOps.theme()
+	if title_label:
+		title_label.add_theme_font_size_override("font_size", 28)
+		title_label.add_theme_font_override("font", NightOps.display_font())
+	if status_label:
+		status_label.add_theme_font_size_override("font_size", 16)
+		status_label.add_theme_font_override("font", NightOps.ui_font_bold())
+	if intel_label:
+		intel_label.add_theme_font_size_override("font_size", 13)
+	if help_label:
+		help_label.add_theme_font_size_override("font_size", 12)
+		help_label.add_theme_color_override("font_color", Color(0.68, 0.72, 0.66))
 	var bar: HBoxContainer = $HUD/Root/BottomBar
 	speed_button = get_node_or_null("HUD/Root/BottomBar/SpeedButton") as Button
 	pause_button = get_node_or_null("HUD/Root/BottomBar/PauseButton") as Button
@@ -399,7 +412,8 @@ func _build_role_card_hud(root: Control) -> void:
 	phase_chip.offset_top = 10.0
 	phase_chip.offset_bottom = 36.0
 	phase_chip.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	phase_chip.add_theme_font_size_override("font_size", 16)
+	phase_chip.add_theme_font_size_override("font_size", 18)
+	phase_chip.add_theme_font_override("font", NightOps.ui_font_bold())
 	phase_chip.add_theme_color_override("font_color", Color(0.95, 0.92, 0.62))
 	phase_chip.add_theme_color_override("font_shadow_color", Color(0.02, 0.03, 0.02, 0.9))
 	phase_chip.add_theme_constant_override("shadow_offset_x", 1)
@@ -1600,9 +1614,7 @@ func _make_operator(id: int, pname: String) -> OperatorUnit:
 	op.add_child(outline)
 	var body := Polygon2D.new()
 	body.name = "Body"
-	body.polygon = PackedVector2Array([
-		Vector2(0, -13), Vector2(9, 10), Vector2(-9, 10)
-	])
+	body.polygon = OperatorSilhouetteScript.body_poly(OperatorUnit.role_for_id(id))
 	body.color = Color(0.35, 0.65, 0.95)
 	op.add_child(body)
 	var cone := Polygon2D.new()
@@ -1699,22 +1711,59 @@ func _build_door_marker() -> void:
 	var pad := Polygon2D.new()
 	pad.name = "Polygon2D"
 	pad.polygon = PackedVector2Array([
-		Vector2(-10, -14), Vector2(10, -14), Vector2(10, 14), Vector2(-10, 14)
+		Vector2(-12, -16), Vector2(12, -16), Vector2(12, 16), Vector2(-12, 16)
 	])
 	pad.color = Color(0.55, 0.4, 0.25, 0.7)
 	n.add_child(pad)
+	var jamb_l := Polygon2D.new()
+	jamb_l.name = "JambL"
+	jamb_l.polygon = PackedVector2Array([
+		Vector2(-14, -17), Vector2(-10, -17), Vector2(-10, 17), Vector2(-14, 17)
+	])
+	jamb_l.color = Color(0.22, 0.16, 0.10, 0.95)
+	n.add_child(jamb_l)
+	var jamb_r := Polygon2D.new()
+	jamb_r.name = "JambR"
+	jamb_r.polygon = PackedVector2Array([
+		Vector2(10, -17), Vector2(14, -17), Vector2(14, 17), Vector2(10, 17)
+	])
+	jamb_r.color = Color(0.22, 0.16, 0.10, 0.95)
+	n.add_child(jamb_r)
+	var thresh := Polygon2D.new()
+	thresh.name = "Threshold"
+	thresh.polygon = PackedVector2Array([
+		Vector2(-12, 14), Vector2(12, 14), Vector2(14, 18), Vector2(-14, 18)
+	])
+	thresh.color = Color(0.16, 0.12, 0.08, 0.88)
+	n.add_child(thresh)
 	var leaf := Polygon2D.new()
 	leaf.name = "DoorLeaf"
 	leaf.polygon = PackedVector2Array([
-		Vector2(0, -13), Vector2(18, -13), Vector2(18, 13), Vector2(0, 13)
+		Vector2(0, -14), Vector2(20, -14), Vector2(20, 14), Vector2(0, 14)
 	])
 	leaf.position = Vector2(-10, 0)
 	leaf.color = Color(0.62, 0.42, 0.22, 0.92)
 	n.add_child(leaf)
+	var panel := Polygon2D.new()
+	panel.name = "DoorPanel"
+	panel.polygon = PackedVector2Array([
+		Vector2(3, -10), Vector2(17, -10), Vector2(17, 10), Vector2(3, 10)
+	])
+	panel.position = Vector2(-10, 0)
+	panel.color = Color(0.42, 0.28, 0.14, 0.75)
+	n.add_child(panel)
+	var handle := Polygon2D.new()
+	handle.name = "Handle"
+	handle.polygon = PackedVector2Array([
+		Vector2(15, -2), Vector2(18, -2), Vector2(18, 2), Vector2(15, 2)
+	])
+	handle.position = Vector2(-10, 0)
+	handle.color = Color(0.82, 0.72, 0.32, 0.95)
+	n.add_child(handle)
 	var hinge := Polygon2D.new()
 	hinge.name = "Hinge"
 	hinge.polygon = PackedVector2Array([
-		Vector2(-12, -4), Vector2(-7, -4), Vector2(-7, 4), Vector2(-12, 4)
+		Vector2(-14, -5), Vector2(-8, -5), Vector2(-8, 5), Vector2(-14, 5)
 	])
 	hinge.color = Color(0.18, 0.14, 0.10, 0.95)
 	n.add_child(hinge)
@@ -2038,6 +2087,8 @@ func _refresh_door_visual(animate: bool = false) -> void:
 	if pad == null and door_marker.get_child_count() > 0:
 		pad = door_marker.get_child(0) as Polygon2D
 	var leaf := door_marker.get_node_or_null("DoorLeaf") as Polygon2D
+	var panel := door_marker.get_node_or_null("DoorPanel") as Polygon2D
+	var handle := door_marker.get_node_or_null("Handle") as Polygon2D
 	var tag := door_marker.get_node_or_null("Tag") as Label
 	var locked_col := Color(0.88, 0.22, 0.16, 0.92)
 	var open_col := Color(0.55, 0.4, 0.25, 0.7)
@@ -2054,6 +2105,10 @@ func _refresh_door_visual(animate: bool = false) -> void:
 				_door_tween.kill()
 			_door_tween = create_tween()
 			_door_tween.tween_property(leaf, "rotation", target_rot, 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			if panel:
+				_door_tween.parallel().tween_property(panel, "rotation", target_rot, 0.18)
+			if handle:
+				_door_tween.parallel().tween_property(handle, "rotation", target_rot, 0.18)
 			var flash := Color(1.7, 1.45, 0.55, 1.0) if door_locked else Color(1.45, 1.55, 0.85, 1.0)
 			leaf.modulate = flash
 			_door_tween.parallel().tween_property(leaf, "modulate", Color.WHITE, 0.28)
@@ -2065,6 +2120,10 @@ func _refresh_door_visual(animate: bool = false) -> void:
 				_door_tween.parallel().tween_property(tag, "modulate", Color.WHITE, 0.28)
 		else:
 			leaf.rotation = target_rot
+			if panel:
+				panel.rotation = target_rot
+			if handle:
+				handle.rotation = target_rot
 	if door_button:
 		door_button.text = "门: 锁闭 (B)" if door_locked else "门: 畅通 (B)"
 		door_button.visible = level != null and level.door_cell.x >= 0
@@ -3226,7 +3285,7 @@ func _make_enemy(id: int) -> EnemyRunner:
 	e.add_child(outline)
 	var body := Polygon2D.new()
 	body.name = "Body"
-	body.polygon = PackedVector2Array([Vector2(0, -13), Vector2(9, 0), Vector2(0, 11), Vector2(-9, 0)])
+	body.polygon = EnemySilhouetteScript.body_poly("main")
 	body.color = Color(0.82, 0.16, 0.14)
 	e.add_child(body)
 	var tag := Label.new()

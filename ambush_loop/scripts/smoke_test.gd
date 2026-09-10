@@ -1114,6 +1114,33 @@ func _assert_operator_identity(main, rifle: OperatorUnit, mg: OperatorUnit, scou
 		push_error("SMOKE_BODY_POLYS_IDENTICAL")
 		quit(32)
 		return false
+	rifle._rebuild_cone()
+	mg._rebuild_cone()
+	scout._rebuild_cone()
+	for op in [rifle, mg, scout]:
+		if op.body.polygon.size() < 12:
+			push_error("SMOKE_BODY_NOT_HUMAN op=%s n=%s" % [op.display_name, op.body.polygon.size()])
+			quit(32)
+			return false
+		if op.body.get_node_or_null("Head") == null:
+			push_error("SMOKE_NO_HEAD op=%s" % op.display_name)
+			quit(32)
+			return false
+		if op.body.get_node_or_null("LegL") == null or op.body.get_node_or_null("LegR") == null:
+			push_error("SMOKE_NO_LEGS op=%s" % op.display_name)
+			quit(32)
+			return false
+		if op.weapon == null or not is_instance_valid(op.weapon):
+			push_error("SMOKE_NO_WEAPON_ON_IDENTITY op=%s" % op.display_name)
+			quit(32)
+			return false
+		var tip_y := 0.0
+		for p in op.weapon.polygon:
+			tip_y = minf(tip_y, p.y)
+		if tip_y > -16.0:
+			push_error("SMOKE_BARREL_TOO_SHORT op=%s tip=%s" % [op.display_name, tip_y])
+			quit(32)
+			return false
 	main._on_clear_pressed()
 	print(
 		"SMOKE_OK_IDENTITY rifle=%s mg=%s scout=%s glyph=1"
@@ -1844,7 +1871,32 @@ func _assert_unit_anim(main) -> bool:
 	probe.sim_step(0.08)
 	probe._apply_walk_bob()
 	var _bob := float(probe.walk_bob_hook())
+	if probe.body == null or probe.body.polygon.size() < 12:
+		probe.queue_free()
+		push_error("SMOKE_ENEMY_BODY_TOO_SIMPLE")
+		quit(55)
+		return false
+	if probe.body.get_node_or_null("Head") == null or probe.body.get_node_or_null("LegL") == null:
+		probe.queue_free()
+		push_error("SMOKE_ENEMY_NOT_HUMAN")
+		quit(55)
+		return false
+	var flank: EnemyRunner = main._make_enemy(97)
+	main.entities.add_child(flank)
+	flank.setup(97, PackedVector2Array([Vector2(80, 80), Vector2(200, 80)]), main.grid, 0, "flank")
+	var sneak: EnemyRunner = main._make_enemy(96)
+	main.entities.add_child(sneak)
+	sneak.setup(96, PackedVector2Array([Vector2(80, 80), Vector2(200, 80)]), main.grid, 0, "sneak")
+	if probe.body.polygon == flank.body.polygon or flank.body.polygon == sneak.body.polygon:
+		probe.queue_free()
+		flank.queue_free()
+		sneak.queue_free()
+		push_error("SMOKE_ENEMY_KINDS_IDENTICAL")
+		quit(55)
+		return false
 	probe.queue_free()
+	flank.queue_free()
+	sneak.queue_free()
 	print("SMOKE_OK_ANIM walk_bob_hook weapon=1")
 	return true
 
@@ -1929,6 +1981,7 @@ func _assert_props(main) -> bool:
 		"signal mast", "Cable run", "Crossing gate",
 		"Fuel pipe", "Hazard cone", "Chain-link",
 		"yard tree", "roof peak", "pump chimney", "tower block", "tank farm",
+		"Doorway jamb",
 	]:
 		if src.find(token) < 0:
 			push_error("SMOKE_PROPS_TOKEN %s" % token)

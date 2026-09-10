@@ -28,6 +28,17 @@ static func impact(host: Node2D, world_pos: Vector2, tint: Color = Color(1.0, 0.
 	core.polygon = _star(4 if saving else 6, 2.2, 5.5 if heavy else 4.0)
 	core.color = Color(1.0, 0.96, 0.78, 0.95)
 	n.add_child(core)
+	if not saving:
+		var halo := Line2D.new()
+		halo.width = 1.6
+		halo.closed = true
+		halo.default_color = Color(tint.r, tint.g, tint.b, 0.70)
+		var hpts := PackedVector2Array()
+		for i in 8:
+			var ha := TAU * float(i) / 8.0
+			hpts.append(Vector2(cos(ha), sin(ha)) * (6.5 if heavy else 5.0))
+		halo.points = hpts
+		n.add_child(halo)
 	var dur := 0.09 if saving else (0.18 if heavy else 0.13)
 	var tw := n.create_tween()
 	tw.tween_property(n, "scale", Vector2(1.55, 1.55) if heavy else Vector2(1.28, 1.28), dur * 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
@@ -163,6 +174,12 @@ static func ambush_arm(host: Node2D, world_pos: Vector2) -> void:
 		pts.append(Vector2(cos(a), sin(a)) * 10.0)
 	ring.points = pts
 	n.add_child(ring)
+	var gem := Polygon2D.new()
+	gem.polygon = PackedVector2Array([
+		Vector2(0, -7), Vector2(5, 0), Vector2(0, 7), Vector2(-5, 0)
+	])
+	gem.color = Color(0.98, 0.88, 0.32, 0.72)
+	n.add_child(gem)
 	var tw := n.create_tween()
 	tw.tween_property(n, "scale", Vector2(2.4, 2.4), 0.28).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.parallel().tween_property(n, "modulate:a", 0.0, 0.28)

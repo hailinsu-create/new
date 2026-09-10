@@ -49,16 +49,16 @@ func _ensure_crate_look() -> void:
 	pad.set_meta("crate_built", true)
 	# Stacked sandbag / crate silhouette. Pad stays the hit-tint target.
 	pad.polygon = PackedVector2Array([
-		Vector2(-14, -11), Vector2(-8, -16), Vector2(8, -16), Vector2(14, -11),
-		Vector2(14, 11), Vector2(8, 16), Vector2(-8, 16), Vector2(-14, 11)
+		Vector2(-16, -12), Vector2(-9, -18), Vector2(9, -18), Vector2(16, -12),
+		Vector2(16, 13), Vector2(9, 18), Vector2(-9, 18), Vector2(-16, 13)
 	])
 	pad.color = Color(0.30, 0.38, 0.24, 0.92)
 	var shadow := Polygon2D.new()
 	shadow.name = "CrateShadow"
 	shadow.polygon = PackedVector2Array([
-		Vector2(-16, 8), Vector2(16, 8), Vector2(13, 18), Vector2(-13, 18)
+		Vector2(-18, 8), Vector2(18, 8), Vector2(15, 22), Vector2(-15, 22)
 	])
-	shadow.color = Color(0.04, 0.05, 0.04, 0.40)
+	shadow.color = Color(0.04, 0.05, 0.04, 0.48)
 	shadow.z_index = -1
 	shadow.show_behind_parent = true
 	add_child(shadow)
@@ -99,6 +99,15 @@ func _ensure_crate_look() -> void:
 	bag_b.z_index = 1
 	add_child(bag_b)
 	_crate_bits.append(bag_b)
+	var bag_c := Polygon2D.new()
+	bag_c.name = "SandbagC"
+	bag_c.polygon = PackedVector2Array([
+		Vector2(-10, -8), Vector2(10, -10), Vector2(9, -2), Vector2(-9, -1)
+	])
+	bag_c.color = Color(0.40, 0.36, 0.20, 0.90)
+	bag_c.z_index = 1
+	add_child(bag_c)
+	_crate_bits.append(bag_c)
 
 
 func _ensure_protect_arc() -> void:
@@ -174,7 +183,7 @@ func set_protect_preview(emphasis: int) -> void:
 	match emphasis:
 		2:
 			protect_arc.visible = true
-			protect_arc.color = Color(0.22, 0.95, 0.68, 0.38)
+			protect_arc.color = Color(0.22, 0.95, 0.68, 0.46)
 			if _arc_edge:
 				_arc_edge.visible = true
 			if _arc_arrow:
@@ -182,13 +191,13 @@ func set_protect_preview(emphasis: int) -> void:
 			set_process(true)
 		1:
 			protect_arc.visible = true
-			protect_arc.color = Color(0.22, 0.78, 0.58, 0.20)
+			protect_arc.color = Color(0.22, 0.78, 0.58, 0.26)
 			if _arc_edge:
 				_arc_edge.visible = true
-				_arc_edge.default_color = Color(0.32, 0.92, 0.68, 0.42)
+				_arc_edge.default_color = Color(0.32, 0.92, 0.68, 0.55)
 			if _arc_arrow:
 				_arc_arrow.visible = true
-				_arc_arrow.color = Color(0.32, 0.88, 0.62, 0.55)
+				_arc_arrow.color = Color(0.32, 0.88, 0.62, 0.62)
 		_:
 			protect_arc.visible = false
 			if _arc_edge:
@@ -258,7 +267,7 @@ func _rebuild_arc_edge(fan: PackedVector2Array) -> void:
 	if _arc_edge == null or not is_instance_valid(_arc_edge):
 		_arc_edge = Line2D.new()
 		_arc_edge.name = "ProtectEdge"
-		_arc_edge.width = 1.8
+		_arc_edge.width = 2.6
 		_arc_edge.begin_cap_mode = Line2D.LINE_CAP_ROUND
 		_arc_edge.end_cap_mode = Line2D.LINE_CAP_ROUND
 		_arc_edge.joint_mode = Line2D.LINE_JOINT_ROUND
@@ -273,7 +282,7 @@ func _rebuild_arc_edge(fan: PackedVector2Array) -> void:
 		loop.append(fan[i])
 	loop.append(Vector2.ZERO)
 	_arc_edge.points = loop
-	_arc_edge.default_color = Color(0.28, 0.95, 0.72, 0.62 if _emphasis >= 2 else 0.38)
+	_arc_edge.default_color = Color(0.28, 0.95, 0.72, 0.78 if _emphasis >= 2 else 0.50)
 	_arc_edge.visible = _emphasis > 0
 	if _arc_arrow == null or not is_instance_valid(_arc_arrow):
 		_arc_arrow = Polygon2D.new()
