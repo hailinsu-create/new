@@ -134,6 +134,18 @@ func present(show_redeploy: bool, show_title: bool) -> void:
 	if _wipe_btn:
 		_wipe_btn.visible = show_title
 	_refresh_audio()
+	if _panel:
+		_panel.pivot_offset = Vector2(210, 296)
+		_panel.scale = Vector2(0.92, 0.92)
+		_panel.modulate.a = 0.0
+		var tw := create_tween()
+		tw.set_parallel(true)
+		tw.tween_property(_panel, "scale", Vector2.ONE, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tw.tween_property(_panel, "modulate:a", 1.0, 0.12)
+	if _dim:
+		_dim.modulate.a = 0.0
+		var dtw := create_tween()
+		dtw.tween_property(_dim, "modulate:a", 1.0, 0.12)
 
 
 func dismiss() -> void:
@@ -142,6 +154,11 @@ func dismiss() -> void:
 	_open = false
 	_wipe_armed = false
 	visible = false
+	if _panel:
+		_panel.scale = Vector2.ONE
+		_panel.modulate.a = 1.0
+	if _dim:
+		_dim.modulate.a = 1.0
 	closed.emit()
 
 

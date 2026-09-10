@@ -49,6 +49,25 @@ func _ready() -> void:
 	var s0 := (0.50 if is_rifle else 0.42) * intensity
 	var s1 := (Vector2(1.55, 1.05) if is_rifle else (Vector2(1.72, 1.28) if is_mg else Vector2(1.4, 1.18))) * intensity
 	scale = Vector2(s0, s0)
+	# Soft smoke blob behind the spark so a burst reads as a shot, not a sticker.
+	var smoke := Polygon2D.new()
+	smoke.name = "Smoke"
+	smoke.polygon = PackedVector2Array([
+		Vector2(2, -5), Vector2(10, -7), Vector2(16, -2), Vector2(12, 5), Vector2(3, 4), Vector2(-2, 1)
+	])
+	smoke.color = Color(0.82, 0.78, 0.62, 0.28 if is_mg else 0.18)
+	smoke.z_index = -1
+	smoke.show_behind_parent = true
+	add_child(smoke)
+	var spark := Line2D.new()
+	spark.name = "Spark"
+	spark.width = 1.8 if is_mg else 1.3
+	spark.default_color = Color(1.0, 0.98, 0.82, 0.95)
+	spark.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	spark.end_cap_mode = Line2D.LINE_CAP_ROUND
+	var reach := 22.0 if is_mg else (16.0 if is_rifle else 20.0)
+	spark.points = PackedVector2Array([Vector2(2, 0), Vector2(reach, 0)])
+	add_child(spark)
 	var tw := create_tween()
 	var pop := 0.028 if is_rifle else 0.04
 	var fade := 0.055 if is_rifle else (0.10 if is_mg else 0.08)

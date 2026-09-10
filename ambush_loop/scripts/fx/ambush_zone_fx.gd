@@ -7,6 +7,14 @@ var zone: Rect2 = Rect2()
 var _t: float = 0.0
 var _tag: Label = null
 var _tint: Color = Color(0.95, 0.86, 0.28)
+var hot: bool = false
+
+
+func set_hot(on: bool) -> void:
+	if hot == on:
+		return
+	hot = on
+	queue_redraw()
 
 
 func setup(r: Rect2, tag_text: String = "伏击区", tint: Color = Color(0.95, 0.86, 0.28)) -> void:
@@ -41,12 +49,27 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	if zone.size == Vector2.ZERO:
 		return
-	var wave := 0.5 + 0.5 * sin(_t * 2.35)
-	var fill_a := 0.045 + 0.035 * wave
+	var rate := 4.4 if hot else 2.35
+	var wave := 0.5 + 0.5 * sin(_t * rate)
+	var fill_a := (0.08 + 0.06 * wave) if hot else (0.045 + 0.035 * wave)
 	draw_rect(zone, Color(_tint.r, _tint.g, _tint.b, fill_a))
-	var edge := Color(_tint.r, _tint.g, _tint.b, 0.28 + 0.22 * wave)
-	var grown := zone.grow(1.2 * sin(_t * 2.35))
-	_dashed_rect(grown, edge, 1.6, 11.0, 6.0)
+	if hot:
+		draw_rect(zone.grow(4.0), Color(_tint.r, _tint.g, _tint.b, 0.06 + 0.05 * wave))
+	var edge := Color(_tint.r, _tint.g, _tint.b, (0.48 + 0.32 * wave) if hot else (0.28 + 0.22 * wave))
+	var grown := zone.grow((2.4 if hot else 1.2) * sin(_t * rate))
+	_dashed_rect(grown, edge, 2.1 if hot else 1.6, 11.0, 6.0)
+	# Corner ticks so the authored rectangle reads as a kill box, not a wash.
+	var tick := 10.0
+	var corners: Array[Vector2] = [
+		zone.position,
+		zone.position + Vector2(zone.size.x, 0.0),
+		zone.position + zone.size,
+		zone.position + Vector2(0.0, zone.size.y),
+	]
+	var tick_col := Color(_tint.r, _tint.g, _tint.b, 0.55 + 0.25 * wave)
+	for p in corners:
+		var inward: Vector2 = (zone.get_center() - p).normalized()
+		draw_line(p, p + inward * tick, tick_col, 2.0, true)
 
 
 func _dashed_rect(r: Rect2, col: Color, width: float, dash: float, gap: float) -> void:
