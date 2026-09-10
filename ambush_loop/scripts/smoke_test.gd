@@ -298,6 +298,22 @@ func _run() -> void:
 				quit(56)
 				return
 			print("SMOKE_OK_LEAK_ADVICE ", advice_txt, " leaker=", leaker_id, " delay=", actor_delay)
+			if main.has_method("_refresh_checklist"):
+				main._refresh_checklist()
+			if not main.has_method("leak_cover_ok") or bool(main.leak_cover_ok()):
+				push_error("SMOKE_LEAK_COVER_NOT_RED %s" % (main.checklist_strip_text() if main.has_method("checklist_strip_text") else ""))
+				quit(56)
+				return
+			var leak_chip_txt := str(main.checklist_strip_text()) if main.has_method("checklist_strip_text") else ""
+			if leak_chip_txt.find("漏网") < 0:
+				push_error("SMOKE_NO_LEAK_CHIP %s" % leak_chip_txt)
+				quit(56)
+				return
+			if main.alarm_button == null or bool(main.alarm_button.disabled):
+				push_error("SMOKE_LEAK_CHIP_HARD_GATE")
+				quit(56)
+				return
+			print("SMOKE_OK_LEAK_COVER_RED chip=", leak_chip_txt.replace("\n", " | "))
 			# Same plan at 2× must match terminal tick + event fingerprint.
 			main._on_alarm_pressed()
 			main.sim.set_speed(2.0)
@@ -327,6 +343,13 @@ func _run() -> void:
 				push_error("SMOKE_SCOUT_OBS_MISSING_SETUP")
 				quit(37)
 				return
+			if main.has_method("_refresh_checklist"):
+				main._refresh_checklist()
+			if not main.has_method("leak_cover_ok") or not bool(main.leak_cover_ok()):
+				push_error("SMOKE_LEAK_COVER_NOT_GREEN %s" % (main.checklist_strip_text() if main.has_method("checklist_strip_text") else ""))
+				quit(56)
+				return
+			print("SMOKE_OK_LEAK_COVER_GREEN")
 			main._on_alarm_pressed()
 			if main.operators[2].observation_ring_visible():
 				push_error("SMOKE_SCOUT_OBS_DURING_WATCH")
@@ -1127,9 +1150,16 @@ func _assert_depot_contract(main) -> bool:
 		push_error("SMOKE_DEPOT_SNEAK_NOT_DELAYED main_max=%s sneak_min=%s" % [max_main, min_sneak])
 		quit(48)
 		return false
+	if main.has_method("_refresh_checklist"):
+		main._refresh_checklist()
+	var depot_chip := str(main.checklist_strip_text()) if main.has_method("checklist_strip_text") else ""
+	if depot_chip.find("暗道") < 0 and depot_chip.find("sneak") < 0:
+		push_error("SMOKE_DEPOT_NO_SNEAK_CHIP %s" % depot_chip)
+		quit(48)
+		return false
 	print(
 		"SMOKE_OK_DEPOT_CONTRACT covers=6 routes=3 delayed_sneak=", min_sneak,
-		" trip_west_alley"
+		" trip_west_alley sneak_chip"
 	)
 	return true
 
@@ -2237,7 +2267,7 @@ func _assert_checklist(main) -> bool:
 		quit(56)
 		return false
 	var txt := str(main.checklist_strip_text()) if main.has_method("checklist_strip_text") else ""
-	if txt.find("已部署") < 0 or txt.find("射界覆盖主路") < 0 or txt.find("侧路有火力") < 0:
+	if txt.find("已部署") < 0 or txt.find("射界覆盖主路") < 0 or txt.find("侧翼") < 0:
 		push_error("SMOKE_CHECKLIST_LABELS %s" % txt)
 		quit(56)
 		return false
