@@ -94,20 +94,20 @@ text = "记忆中的逃逸路径：0"
 
 [node name="Help" type="Label" parent="HUD/Root"]
 layout_mode = 1
-anchors_preset = 12
+anchors_preset = 2
 anchor_top = 1.0
-anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = -120.0
-offset_right = -16.0
-offset_bottom = -64.0
-grow_horizontal = 2
+offset_left = 10.0
+offset_top = -52.0
+offset_right = 214.0
+offset_bottom = -16.0
+grow_horizontal = 0
 grow_vertical = 0
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.75, 0.78, 0.82, 1)
-theme_override_font_sizes/font_size = 14
-text = "操作说明"
+clip_text = true
+theme_override_colors/font_color = Color(0.70, 0.74, 0.66, 0.9)
+theme_override_font_sizes/font_size = 12
+text = "点掩体 · 空格警报"
 
 [node name="BottomBar" type="HBoxContainer" parent="HUD/Root"]
 layout_mode = 1

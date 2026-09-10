@@ -49,16 +49,16 @@ func _ensure_crate_look() -> void:
 	pad.set_meta("crate_built", true)
 	# Stacked sandbag / crate silhouette. Pad stays the hit-tint target.
 	pad.polygon = PackedVector2Array([
-		Vector2(-16, -12), Vector2(-9, -18), Vector2(9, -18), Vector2(16, -12),
-		Vector2(16, 13), Vector2(9, 18), Vector2(-9, 18), Vector2(-16, 13)
+		Vector2(-17, -13), Vector2(-10, -19), Vector2(10, -19), Vector2(17, -13),
+		Vector2(17, 14), Vector2(10, 19), Vector2(-10, 19), Vector2(-17, 14)
 	])
-	pad.color = Color(0.30, 0.38, 0.24, 0.92)
+	pad.color = Color(0.28, 0.36, 0.22, 0.94)
 	var shadow := Polygon2D.new()
 	shadow.name = "CrateShadow"
 	shadow.polygon = PackedVector2Array([
-		Vector2(-18, 8), Vector2(18, 8), Vector2(15, 22), Vector2(-15, 22)
+		Vector2(-16, 8), Vector2(20, 8), Vector2(16, 24), Vector2(-14, 24)
 	])
-	shadow.color = Color(0.04, 0.05, 0.04, 0.48)
+	shadow.color = Color(0.03, 0.04, 0.03, 0.55)
 	shadow.z_index = -1
 	shadow.show_behind_parent = true
 	add_child(shadow)
@@ -108,6 +108,24 @@ func _ensure_crate_look() -> void:
 	bag_c.z_index = 1
 	add_child(bag_c)
 	_crate_bits.append(bag_c)
+	var bag_d := Polygon2D.new()
+	bag_d.name = "SandbagD"
+	bag_d.polygon = PackedVector2Array([
+		Vector2(-8, -16), Vector2(8, -17), Vector2(7, -11), Vector2(-7, -10)
+	])
+	bag_d.color = Color(0.46, 0.42, 0.24, 0.90)
+	bag_d.z_index = 2
+	add_child(bag_d)
+	_crate_bits.append(bag_d)
+	var strap := Polygon2D.new()
+	strap.name = "BagStrap"
+	strap.polygon = PackedVector2Array([
+		Vector2(-2, -17), Vector2(2, -17), Vector2(2, 12), Vector2(-2, 12)
+	])
+	strap.color = Color(0.16, 0.12, 0.07, 0.55)
+	strap.z_index = 2
+	add_child(strap)
+	_crate_bits.append(strap)
 
 
 func _ensure_protect_arc() -> void:

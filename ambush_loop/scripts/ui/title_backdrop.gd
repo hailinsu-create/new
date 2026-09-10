@@ -1,6 +1,6 @@
 extends Node2D
 
-## Asphalt night grid + drifting route traces for the title screen.
+## Asphalt night courtyard + drifting route traces for the title screen.
 
 var t: float = 0.0
 var _routes: Array[PackedVector2Array] = []
@@ -98,27 +98,41 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	var sz := get_viewport_rect().size
-	draw_rect(Rect2(Vector2.ZERO, sz), NightOps.BG)
-	# Bottom olive wash (not a purple gradient).
+	draw_rect(Rect2(Vector2.ZERO, sz), Color(0.022, 0.032, 0.026))
+	# Sky bands, olive not purple.
 	for i in 10:
-		var a := 0.035 + float(i) * 0.008
+		var a := 0.035 + float(i) * 0.010
+		draw_rect(Rect2(0.0, float(i) * 18.0, sz.x, 22.0), Color(0.04, 0.06, 0.04, a))
+	for i in 16:
+		var a := 0.050 + float(i) * 0.014
 		draw_rect(
-			Rect2(0.0, sz.y - float(10 - i) * 22.0, sz.x, 22.0),
-			Color(0.12, 0.16, 0.08, a)
+			Rect2(0.0, sz.y - float(16 - i) * 18.0, sz.x, 20.0),
+			Color(0.08, 0.11, 0.06, a)
 		)
-	draw_rect(Rect2(0.0, 0.0, sz.x, 90.0), Color(0.02, 0.03, 0.03, 0.35))
+	var moon := Vector2(sz.x * 0.84, 74.0)
+	var breathe := 0.0 if _particles_suppressed() else (0.5 + 0.5 * sin(t * 0.55))
+	draw_circle(moon, 92.0 + breathe * 6.0, Color(0.78, 0.86, 0.64, 0.07 + 0.03 * breathe))
+	draw_circle(moon, 48.0, Color(0.86, 0.92, 0.70, 0.14 + 0.04 * breathe))
+	draw_circle(moon, 22.0, Color(0.92, 0.96, 0.80, 0.42 + 0.08 * breathe))
+	draw_circle(moon, 11.0, Color(0.97, 0.98, 0.88, 0.82))
+	draw_circle(moon + Vector2(-4, 3), 3.2, Color(0.78, 0.82, 0.68, 0.35))
+	draw_circle(moon + Vector2(5, -2), 2.0, Color(0.80, 0.84, 0.70, 0.28))
+	# Cloud bands across the moon.
+	draw_rect(Rect2(sz.x * 0.62, 48.0, sz.x * 0.34, 14.0), Color(0.04, 0.06, 0.04, 0.22))
+	draw_rect(Rect2(sz.x * 0.70, 92.0, sz.x * 0.28, 10.0), Color(0.05, 0.07, 0.05, 0.18))
+	_draw_courtyard(sz)
 	var step := 44.0
-	var drift := fmod(t * 6.0, step)
-	var grid_c := Color(0.22, 0.28, 0.18, 0.11)
+	var drift := 0.0 if _particles_suppressed() else fmod(t * 6.0, step)
+	var grid_c := Color(0.22, 0.28, 0.18, 0.10)
 	var x := -step + drift * 0.25
 	while x < sz.x + step:
-		draw_line(Vector2(x, 0.0), Vector2(x, sz.y), grid_c, 1.0)
+		draw_line(Vector2(x, sz.y * 0.42), Vector2(x, sz.y), grid_c, 1.0)
 		x += step
-	var y := -step + drift * 0.12
+	var y := sz.y * 0.42 - step + drift * 0.12
 	while y < sz.y + step:
 		draw_line(Vector2(0.0, y), Vector2(sz.x, y), grid_c, 1.0)
 		y += step
-	var off := Vector2(sin(t * 0.32) * 14.0, cos(t * 0.21) * 9.0)
+	var off := Vector2.ZERO if _particles_suppressed() else Vector2(sin(t * 0.32) * 14.0, cos(t * 0.21) * 9.0)
 	var cols := [
 		Color(0.82, 0.90, 0.42, 0.52),
 		Color(0.68, 0.78, 0.38, 0.40),
@@ -132,21 +146,105 @@ func _draw() -> void:
 			if not _particles_suppressed():
 				draw_polyline(shifted, Color(cols[i % cols.size()].r, cols[i % cols.size()].g, cols[i % cols.size()].b, 0.16), 6.0, true)
 			draw_polyline(shifted, cols[i % cols.size()], 3.0, true)
-	# Manual drifting sparks (readable even if particles are culled).
+	_draw_ops_stamps(sz)
 	if not _particles_suppressed():
 		for i in 20:
 			var px := fposmod(sz.x * _frac(i + 3) + t * (7.0 + float(i) * 0.35), sz.x)
 			var py := fposmod(sz.y * _frac(i + 11) - t * (5.0 + float(i) * 0.18), sz.y)
 			var pa := 0.12 + 0.16 * _frac(i + 19)
 			draw_circle(Vector2(px, py), 1.0 + _frac(i) * 1.4, Color(0.90, 0.84, 0.42, pa))
-	# Soft vignette — darken edges, keep the wordmark readable.
-	for i in 10:
+	for i in 16:
 		var inset := float(i) * 16.0
-		var va := 0.045
+		var va := 0.055
 		draw_rect(Rect2(0.0, 0.0, sz.x, inset), Color(0.01, 0.02, 0.02, va))
 		draw_rect(Rect2(0.0, sz.y - inset, sz.x, inset), Color(0.01, 0.02, 0.02, va))
 		draw_rect(Rect2(0.0, 0.0, inset, sz.y), Color(0.01, 0.02, 0.02, va))
 		draw_rect(Rect2(sz.x - inset, 0.0, inset, sz.y), Color(0.01, 0.02, 0.02, va))
+
+
+func _draw_courtyard(sz: Vector2) -> void:
+	# Far wall mass.
+	draw_rect(Rect2(0.0, sz.y * 0.38, sz.x, 28.0), Color(0.10, 0.08, 0.05, 0.55))
+	draw_rect(Rect2(0.0, sz.y * 0.38, sz.x, 4.0), Color(0.42, 0.34, 0.16, 0.45))
+	# Building blocks left / right.
+	draw_rect(Rect2(0.0, sz.y * 0.22, 210.0, sz.y * 0.18), Color(0.07, 0.06, 0.04, 0.70))
+	draw_rect(Rect2(sz.x - 240.0, sz.y * 0.18, 240.0, sz.y * 0.22), Color(0.08, 0.06, 0.04, 0.68))
+	# Windows, warm sodium. 省电 keeps them static.
+	var flick := 1.0
+	if not _particles_suppressed():
+		flick = 0.72 + 0.28 * abs(sin(t * 1.4))
+		if fmod(t * 3.1, 1.0) > 0.88:
+			flick *= 0.35
+	var wins := [
+		Vector2(48, sz.y * 0.28), Vector2(92, sz.y * 0.28), Vector2(136, sz.y * 0.28),
+		Vector2(sz.x - 190, sz.y * 0.24), Vector2(sz.x - 140, sz.y * 0.24), Vector2(sz.x - 90, sz.y * 0.24),
+	]
+	for i in wins.size():
+		var p: Vector2 = wins[i]
+		var a := 0.38 * (0.7 if i == 2 and not _particles_suppressed() else flick)
+		draw_rect(Rect2(p.x, p.y, 22.0, 14.0), Color(0.95, 0.72, 0.28, a))
+		draw_rect(Rect2(p.x + 2.0, p.y + 2.0, 18.0, 10.0), Color(1.0, 0.84, 0.42, a * 0.55))
+	# Gate shadow at the south.
+	draw_rect(Rect2(sz.x * 0.38, sz.y * 0.78, sz.x * 0.24, 18.0), Color(0.02, 0.03, 0.02, 0.40))
+	# Tree mass, west.
+	draw_colored_polygon(
+		PackedVector2Array([
+			Vector2(70, sz.y * 0.72), Vector2(110, sz.y * 0.72),
+			Vector2(98, sz.y * 0.52), Vector2(82, sz.y * 0.52)
+		]),
+		Color(0.08, 0.07, 0.04, 0.70)
+	)
+	draw_colored_polygon(
+		PackedVector2Array([
+			Vector2(90, sz.y * 0.40), Vector2(150, sz.y * 0.58),
+			Vector2(90, sz.y * 0.54), Vector2(30, sz.y * 0.58)
+		]),
+		Color(0.10, 0.16, 0.08, 0.55)
+	)
+
+
+func _draw_ops_stamps(sz: Vector2) -> void:
+	var base_y := sz.y * 0.86
+	_stamp_figure(Vector2(sz.x * 0.18, base_y), Color(0.40, 0.55, 0.48), 0)
+	_stamp_figure(Vector2(sz.x * 0.50, base_y), Color(0.48, 0.56, 0.28), 1)
+	_stamp_figure(Vector2(sz.x * 0.82, base_y), Color(0.26, 0.44, 0.38), 2)
+
+
+func _stamp_figure(c: Vector2, kit: Color, kind: int) -> void:
+	draw_colored_polygon(
+		PackedVector2Array([
+			c + Vector2(-18, 10), c + Vector2(18, 10), c + Vector2(12, 18), c + Vector2(-12, 18)
+		]),
+		Color(0.02, 0.03, 0.02, 0.50)
+	)
+	if kind == 2:
+		draw_colored_polygon(
+			PackedVector2Array([
+				c + Vector2(-10, -18), c + Vector2(10, -18),
+				c + Vector2(22, 8), c + Vector2(0, 14), c + Vector2(-22, 8)
+			]),
+			Color(0.08, 0.16, 0.14, 0.80)
+		)
+	var w := 14.0 if kind == 1 else (9.0 if kind == 2 else 11.0)
+	draw_colored_polygon(
+		PackedVector2Array([
+			c + Vector2(0, -28), c + Vector2(-w * 0.45, -24), c + Vector2(-w, -12),
+			c + Vector2(-w * 0.85, 2), c + Vector2(-w * 0.7, 16), c + Vector2(-5, 16),
+			c + Vector2(-3, 4), c + Vector2(0, 1), c + Vector2(3, 4),
+			c + Vector2(5, 16), c + Vector2(w * 0.7, 16), c + Vector2(w * 0.85, 2),
+			c + Vector2(w, -12), c + Vector2(w * 0.45, -24)
+		]),
+		kit
+	)
+	draw_circle(c + Vector2(0, -26), 5.2 if kind == 1 else 4.2, kit.darkened(0.28))
+	if kind == 1:
+		draw_rect(Rect2(c.x - 8, c.y - 32, 16, 5), kit.darkened(0.35))
+		draw_rect(Rect2(c.x - 2.2, c.y - 22, 4.4, 18), Color(0.14, 0.12, 0.08, 0.95))
+	elif kind == 2:
+		draw_rect(Rect2(c.x - 3.2, c.y - 28, 6.4, 2.2), Color(0.42, 0.78, 0.52, 0.90))
+		draw_rect(Rect2(c.x - 0.8, c.y - 22, 1.6, 20), Color(0.10, 0.14, 0.12, 0.95))
+	else:
+		draw_rect(Rect2(c.x + 1.0, c.y - 20, 2.4, 22), Color(0.12, 0.14, 0.12, 0.95))
 
 
 func _frac(n: int) -> float:

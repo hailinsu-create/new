@@ -22,6 +22,7 @@ const KillzoneOverlayScript := preload("res://scripts/fx/killzone_overlay.gd")
 const CombatFxScript := preload("res://scripts/fx/combat_fx.gd")
 const OperatorSilhouetteScript := preload("res://scripts/fx/operator_silhouette.gd")
 const EnemySilhouetteScript := preload("res://scripts/fx/enemy_silhouette.gd")
+const NightGradeScript := preload("res://scripts/fx/night_grade.gd")
 
 var grid: AmbushGrid = AmbushGrid.new()
 var phase: Phase = Phase.SETUP
@@ -71,6 +72,7 @@ var leak_advice_shown: String = ""
 var route_timeline: Control = null
 var watch_timeline: Control = null
 var mission_sky: Node2D = null
+var night_grade: CanvasModulate = null
 var all_spawns_done: bool = false
 var pending_result: String = "" # "" | "fail" | "win" — build panel after tick events/snapshot
 
@@ -110,6 +112,10 @@ var plan_readout: Label = null
 var phase_chip: Label = null
 var route_legend: Control = null
 var _alarm_vignette: ColorRect = null
+var _watch_letterbox: Control = null
+var _watch_vignette: Control = null
+var _fail_static: Control = null
+var _fail_static_tween: Tween = null
 var _tracer_pool: Array = []
 var _tracer_live: Array = []
 var _phase_chip_tween: Tween = null
@@ -125,6 +131,7 @@ var replay_focus_type: String = ""
 var _escape_tween: Tween = null
 var _result_panel_home: Vector4 = Vector4(-180, -90, 180, 90)
 var killzone_draw: Node2D = null
+var _leak_miss_draw: Node2D = null
 var tripwire_ghost: Node2D = null
 
 var sfx = null
@@ -268,6 +275,7 @@ func _resolve_optional_hud() -> void:
 	settings_button.pressed.connect(_toggle_pause_menu)
 	log_button = _make_hud_btn("LogButton", "日志", extra)
 	log_button.pressed.connect(_toggle_event_log)
+	_dock_setup_help()
 
 	speed_button.pressed.connect(_on_speed_pressed)
 	pause_button.pressed.connect(_on_pause_pressed)
@@ -301,11 +309,17 @@ func _resolve_optional_hud() -> void:
 	flash_label.offset_top = 72.0
 	flash_label.offset_bottom = 104.0
 	flash_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	flash_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	flash_label.add_theme_font_override("font", NightOps.ui_font_bold())
 	flash_label.add_theme_font_size_override("font_size", 18)
 	flash_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.35))
+	flash_label.add_theme_color_override("font_shadow_color", Color(0.02, 0.03, 0.02, 0.9))
+	flash_label.add_theme_constant_override("shadow_offset_x", 1)
+	flash_label.add_theme_constant_override("shadow_offset_y", 1)
 	flash_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	flash_label.text = ""
 	root.add_child(flash_label)
+	_ensure_flash_plate(root)
 
 	if event_log == null:
 		var box := VBoxContainer.new()
@@ -353,16 +367,19 @@ func _resolve_optional_hud() -> void:
 	if tut_label == null:
 		tut_label = Label.new()
 		tut_label.name = "TutLabel"
-		tut_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-		tut_label.offset_left = 220.0
-		tut_label.offset_top = 140.0
-		tut_label.offset_right = 940.0
-		tut_label.offset_bottom = 200.0
+		tut_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+		tut_label.offset_left = 236.0
+		tut_label.offset_top = 96.0
+		tut_label.offset_right = -16.0
+		tut_label.offset_bottom = 132.0
 		tut_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		tut_label.add_theme_font_size_override("font_size", 13)
-		tut_label.add_theme_color_override("font_color", Color(0.8, 0.78, 0.65))
+		tut_label.add_theme_font_override("font", NightOps.ui_font())
+		tut_label.add_theme_font_size_override("font_size", 12)
+		tut_label.add_theme_color_override("font_color", NightOps.MUTED)
 		tut_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tut_label.clip_text = true
 		root.add_child(tut_label)
+	_ensure_tut_plate(root)
 
 	_build_role_card_hud(root)
 	_build_modals()
@@ -372,6 +389,7 @@ func _resolve_optional_hud() -> void:
 		killzone_draw.set_script(KillzoneOverlayScript)
 		$World.add_child(killzone_draw)
 		$World.move_child(killzone_draw, routes_draw.get_index())
+	_play_ensure_leak_miss_draw()
 	_ensure_tripwire_ghost()
 	_setup_world_layers()
 	_ensure_game_camera()
@@ -616,7 +634,8 @@ func _apply_phone_chrome(on: bool) -> void:
 	if extra_bar:
 		extra_bar.visible = not on
 	if help_label:
-		help_label.visible = not on
+		# Docked one-liner stays in ExtraBar's band; never a south map wall.
+		help_label.visible = (not on) and phase == Phase.SETUP
 	if tut_label:
 		tut_label.visible = not on
 	if spawn_teach_label:
@@ -1045,6 +1064,20 @@ func _apply_watch_layers() -> void:
 		ghosts.modulate = Color.WHITE
 	if sfx and sfx.has_method("set_watch_bed"):
 		sfx.set_watch_bed(phase == Phase.WATCHING)
+	_ensure_watch_cinema()
+	var cinema := phase == Phase.WATCHING
+	if _watch_letterbox:
+		_watch_letterbox.visible = cinema
+		var banner := _watch_letterbox.get_node_or_null("WatchBanner") as Label
+		if banner:
+			var spd := "暂停" if sim.paused else ("2×" if sim.speed >= 1.5 else "1×")
+			banner.text = "锁死观战  ·  %s  ·  t=%.1fs" % [spd, sim.time_sec()]
+	if _watch_vignette:
+		_watch_vignette.visible = cinema
+	if title_label:
+		title_label.visible = not cinema
+	if phase_chip:
+		phase_chip.visible = not cinema
 	_refresh_watch_timeline()
 
 
@@ -1149,6 +1182,203 @@ func _ensure_presentation_fx() -> void:
 		_sig_wash.color = Color(0.62, 0.74, 0.32, 0.0)
 		_sig_wash.z_index = 36
 		root.add_child(_sig_wash)
+	_ensure_watch_cinema()
+	_ensure_fail_static()
+
+
+func _dock_setup_help() -> void:
+	## Collapse the old full-width south paragraph into a one-line hint that
+	## sits in the left extra-bar band. Role cards, map callouts, and buttons
+	## already teach; the courtyard (南廊 / 中庭 / 逃逸口) must stay readable.
+	if help_label == null:
+		return
+	help_label.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	help_label.anchor_left = 0.0
+	help_label.anchor_top = 1.0
+	help_label.anchor_right = 0.0
+	help_label.anchor_bottom = 1.0
+	help_label.offset_left = 10.0
+	help_label.offset_right = 214.0
+	help_label.offset_top = -52.0
+	help_label.offset_bottom = -16.0
+	help_label.grow_horizontal = Control.GROW_DIRECTION_END
+	help_label.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	help_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	help_label.clip_text = true
+	help_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	help_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	help_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	help_label.add_theme_font_size_override("font_size", 12)
+	help_label.add_theme_color_override("font_color", Color(0.70, 0.74, 0.66, 0.90))
+
+
+func _ensure_tut_plate(root: Control) -> void:
+	if root == null or tut_label == null:
+		return
+	var plate := root.get_node_or_null("TutPlate") as ColorRect
+	if plate == null:
+		plate = ColorRect.new()
+		plate.name = "TutPlate"
+		plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		plate.color = Color(0.04, 0.05, 0.04, 0.78)
+		plate.set_anchors_preset(Control.PRESET_TOP_WIDE)
+		plate.offset_left = 228.0
+		plate.offset_top = 90.0
+		plate.offset_right = -12.0
+		plate.offset_bottom = 136.0
+		plate.z_index = -1
+		root.add_child(plate)
+		root.move_child(plate, tut_label.get_index())
+
+
+func _ensure_flash_plate(root: Control) -> void:
+	if root == null or flash_label == null:
+		return
+	var plate := root.get_node_or_null("FlashPlate") as ColorRect
+	if plate == null:
+		plate = ColorRect.new()
+		plate.name = "FlashPlate"
+		plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		plate.color = Color(0.05, 0.06, 0.03, 0.82)
+		plate.set_anchors_preset(Control.PRESET_CENTER_TOP)
+		plate.offset_left = -300.0
+		plate.offset_right = 300.0
+		plate.offset_top = 70.0
+		plate.offset_bottom = 106.0
+		plate.z_index = 0
+		root.add_child(plate)
+		root.move_child(plate, flash_label.get_index())
+		plate.modulate.a = 0.0
+
+
+func _ensure_watch_cinema() -> void:
+	var root: Control = $HUD/Root
+	var top_h := 18.0 if _is_power_saving() else 30.0
+	var bot_h := 6.0 if _is_power_saving() else 10.0
+	if _watch_letterbox == null or not is_instance_valid(_watch_letterbox):
+		_watch_letterbox = Control.new()
+		_watch_letterbox.name = "WatchLetterbox"
+		_watch_letterbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_watch_letterbox.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_watch_letterbox.z_index = 42
+		root.add_child(_watch_letterbox)
+		var top := ColorRect.new()
+		top.name = "LetterboxTop"
+		top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		top.color = Color(0.015, 0.025, 0.018, 0.94)
+		top.set_anchors_preset(Control.PRESET_TOP_WIDE)
+		top.offset_bottom = top_h
+		_watch_letterbox.add_child(top)
+		var banner := Label.new()
+		banner.name = "WatchBanner"
+		banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		banner.text = "锁死观战"
+		banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		banner.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		banner.set_anchors_preset(Control.PRESET_TOP_WIDE)
+		banner.offset_bottom = top_h
+		banner.add_theme_font_override("font", NightOps.ui_font_bold())
+		banner.add_theme_font_size_override("font_size", 14)
+		banner.add_theme_color_override("font_color", NightOps.OLIVE_HI)
+		_watch_letterbox.add_child(banner)
+		var top_line := ColorRect.new()
+		top_line.name = "LetterboxTopLine"
+		top_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		top_line.color = Color(0.62, 0.72, 0.38, 0.55)
+		top_line.set_anchors_preset(Control.PRESET_TOP_WIDE)
+		top_line.offset_top = top_h - 2.0
+		top_line.offset_bottom = top_h
+		_watch_letterbox.add_child(top_line)
+		var bot := ColorRect.new()
+		bot.name = "LetterboxBot"
+		bot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bot.color = Color(0.015, 0.025, 0.018, 0.94)
+		bot.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+		bot.offset_top = -bot_h
+		_watch_letterbox.add_child(bot)
+		var bot_line := ColorRect.new()
+		bot_line.name = "LetterboxBotLine"
+		bot_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bot_line.color = Color(0.62, 0.72, 0.38, 0.45)
+		bot_line.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+		bot_line.offset_top = -bot_h
+		bot_line.offset_bottom = -bot_h + 2.0
+		_watch_letterbox.add_child(bot_line)
+		_watch_letterbox.visible = false
+	if _watch_vignette == null or not is_instance_valid(_watch_vignette):
+		_watch_vignette = Control.new()
+		_watch_vignette.name = "WatchVignette"
+		_watch_vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_watch_vignette.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_watch_vignette.z_index = 34
+		root.add_child(_watch_vignette)
+		var specs: Array = [
+			["VigTop", Control.PRESET_TOP_WIDE, 0.0, 0.0, 0.0, 90.0],
+			["VigBot", Control.PRESET_BOTTOM_WIDE, 0.0, -110.0, 0.0, 0.0],
+			["VigLeft", Control.PRESET_LEFT_WIDE, 0.0, 0.0, 70.0, 0.0],
+			["VigRight", Control.PRESET_RIGHT_WIDE, -70.0, 0.0, 0.0, 0.0],
+		]
+		var va := 0.16 if _is_power_saving() else 0.28
+		for spec in specs:
+			var edge := ColorRect.new()
+			edge.name = str(spec[0])
+			edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			edge.color = Color(0.02, 0.03, 0.02, va)
+			edge.set_anchors_preset(int(spec[1]))
+			edge.offset_left = float(spec[2])
+			edge.offset_top = float(spec[3])
+			edge.offset_right = float(spec[4])
+			edge.offset_bottom = float(spec[5])
+			_watch_vignette.add_child(edge)
+		_watch_vignette.visible = false
+
+
+func _ensure_fail_static() -> void:
+	var root: Control = $HUD/Root
+	if _fail_static != null and is_instance_valid(_fail_static):
+		return
+	_fail_static = Control.new()
+	_fail_static.name = "FailStatic"
+	_fail_static.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_fail_static.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_fail_static.z_index = 44
+	root.add_child(_fail_static)
+	var wash := ColorRect.new()
+	wash.name = "Wash"
+	wash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	wash.set_anchors_preset(Control.PRESET_FULL_RECT)
+	wash.color = Color(0.08, 0.10, 0.08, 0.22)
+	_fail_static.add_child(wash)
+	for i in 7:
+		var line := ColorRect.new()
+		line.name = "Scan%d" % i
+		line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		line.color = Color(0.78, 0.82, 0.62, 0.07)
+		line.set_anchors_preset(Control.PRESET_TOP_WIDE)
+		line.offset_top = 70.0 + float(i) * 88.0
+		line.offset_bottom = line.offset_top + 3.0
+		_fail_static.add_child(line)
+	_fail_static.visible = false
+	_fail_static.modulate.a = 0.0
+
+
+func _play_fail_static() -> void:
+	_ensure_fail_static()
+	if _fail_static == null:
+		return
+	if _fail_static_tween != null:
+		_fail_static_tween.kill()
+	_fail_static.visible = true
+	_fail_static.modulate.a = 0.0
+	var dur := 0.18 if _is_power_saving() else 0.42
+	_fail_static_tween = _fail_static.create_tween()
+	_fail_static_tween.tween_property(_fail_static, "modulate:a", 1.0, 0.06)
+	_fail_static_tween.tween_interval(dur)
+	_fail_static_tween.tween_property(_fail_static, "modulate:a", 0.0, 0.20)
+	_fail_static_tween.tween_callback(func() -> void:
+		if _fail_static:
+			_fail_static.visible = false
+	)
 
 
 func _is_power_saving() -> bool:
@@ -1410,6 +1640,7 @@ func _load_level(level_id: String, keep_intel: bool, restore_plan: bool) -> void
 		map_draw.invalidate_static_cache()
 	map_draw.queue_redraw()
 	_ensure_mission_sky()
+	_ensure_night_grade()
 	_play_mission_ambient()
 	_build_route_world()
 	_build_cover_slots()
@@ -1437,6 +1668,23 @@ func _ensure_mission_sky() -> void:
 			$World.move_child(mission_sky, mini(map_draw.get_index() + 1, $World.get_child_count() - 1))
 	if mission_sky.has_method("setup"):
 		mission_sky.setup(level.atmosphere_id if level and level.atmosphere_id != "" else (level.level_id if level else "yard"))
+
+
+func _ensure_night_grade() -> void:
+	if night_grade == null or not is_instance_valid(night_grade):
+		night_grade = get_node_or_null("NightGrade") as CanvasModulate
+	if night_grade == null or not is_instance_valid(night_grade):
+		night_grade = get_node_or_null("World/NightGrade") as CanvasModulate
+	if night_grade == null or not is_instance_valid(night_grade):
+		night_grade = NightGradeScript.new() as CanvasModulate
+		night_grade.name = "NightGrade"
+		add_child(night_grade)
+		move_child(night_grade, 0)
+	var atmo := "yard"
+	if level:
+		atmo = level.atmosphere_id if level.atmosphere_id != "" else level.level_id
+	if night_grade.has_method("setup"):
+		night_grade.setup(atmo)
 
 
 func _play_mission_ambient() -> void:
@@ -1935,27 +2183,179 @@ func _layout_checklist() -> void:
 			parent_h = vis_h - host.offset_top + host.offset_bottom
 		# ExtraBar sits ~92px above the bottom; keep chips clear of it.
 		var max_bottom := parent_h - 100.0 - pad.w
+		var chip_n := maxi(_checklist_labels.size(), 3)
+		var box_h := 36.0 + float(chip_n) * 20.0
 		checklist_strip.offset_left = 10.0 + maxf(0.0, pad.x - 8.0)
 		checklist_strip.offset_top = top
 		checklist_strip.offset_right = 214.0
-		checklist_strip.offset_bottom = minf(top + 96.0, max_bottom)
+		checklist_strip.offset_bottom = minf(top + box_h, max_bottom)
 		if checklist_strip.offset_bottom < checklist_strip.offset_top + 36.0:
-			checklist_strip.offset_top = maxf(78.0, max_bottom - 96.0)
+			checklist_strip.offset_top = maxf(78.0, max_bottom - box_h)
 			checklist_strip.offset_bottom = max_bottom
 		checklist_strip.grow_horizontal = Control.GROW_DIRECTION_END
 		checklist_strip.grow_vertical = Control.GROW_DIRECTION_END
 
 
 func _side_route_key() -> String:
-	if level == null:
-		return ""
-	if door_locked and not level.alternate_route_cells.is_empty():
-		return "alt"
-	if route_world.has("flank") and not (door_locked and level.door_blocks_route == "flank"):
-		return "flank"
-	if route_world.has("sneak"):
-		return "sneak"
+	var keys := _play_active_route_keys()
+	for k in keys:
+		if str(k) != "main":
+			return str(k)
 	return ""
+
+
+func _play_active_route_keys() -> PackedStringArray:
+	var keys := PackedStringArray()
+	if level == null:
+		return keys
+	keys.append("main")
+	if door_locked and not level.alternate_route_cells.is_empty():
+		keys.append("alt")
+		return keys
+	if route_world.has("flank") and not (door_locked and level.door_blocks_route == "flank"):
+		keys.append("flank")
+	if route_world.has("sneak"):
+		keys.append("sneak")
+	return keys
+
+
+func _play_route_chip_title(key: String, compact: bool) -> String:
+	match key:
+		"main":
+			return "主路" if compact else "射界覆盖主路"
+		"flank":
+			return "侧翼"
+		"sneak":
+			return "暗道"
+		"alt":
+			return "紫备用"
+		_:
+			return key
+
+
+func _play_ensure_leak_miss_draw() -> void:
+	if _leak_miss_draw != null and is_instance_valid(_leak_miss_draw):
+		return
+	var n := Node2D.new()
+	n.name = "LeakMissDraw"
+	n.set_script(KillzoneOverlayScript)
+	n.z_index = 6
+	var world := get_node_or_null("World")
+	if world:
+		world.add_child(n)
+	else:
+		add_child(n)
+	_leak_miss_draw = n
+
+
+func _play_has_leak_object() -> bool:
+	if intel == null or intel.records.is_empty():
+		return false
+	var rec: Dictionary = intel.records[intel.records.size() - 1]
+	if str(rec.get("reason", "")) != "escape":
+		return false
+	return not _play_leak_samples().is_empty()
+
+
+func _play_leak_samples() -> PackedVector2Array:
+	var out := PackedVector2Array()
+	if intel == null or intel.records.is_empty():
+		return out
+	var rec: Dictionary = intel.records[intel.records.size() - 1]
+	if str(rec.get("reason", "")) != "escape":
+		return out
+	var path: PackedVector2Array = rec.get("path", PackedVector2Array())
+	if path.size() < 2:
+		return out
+	var leak_pos: Vector2 = path[path.size() - 1]
+	var skip: Array = []
+	var main_poly := _route_polyline_named("main")
+	if not main_poly.is_empty():
+		skip.append(main_poly)
+	if str(rec.get("route", "")) == "alt" and route_world.has("flank"):
+		skip.append(route_world["flank"])
+	for p in _sample_polyline(path, 20.0):
+		if p.distance_to(leak_pos) <= 96.0:
+			continue
+		var shared := false
+		for poly in skip:
+			if _dist_to_polyline(p, poly) <= 28.0:
+				shared = true
+				break
+		if shared:
+			continue
+		out.append(p)
+	if out.is_empty():
+		for p in _sample_polyline(path, 20.0):
+			if p.distance_to(leak_pos) <= 140.0:
+				out.append(p)
+	return out
+
+
+func _play_point_covered(p: Vector2) -> bool:
+	for op in operators:
+		if op == null or not op.visible or not op.alive:
+			continue
+		if op.in_fire_geometry(p, grid):
+			return true
+	for tw in tripwires:
+		if tw == null or not is_instance_valid(tw):
+			continue
+		if tw.spent or not tw.armed:
+			continue
+		if tw.global_position.distance_to(p) <= Tripwire.RADIUS:
+			return true
+	return false
+
+
+func _play_leak_uncovered_samples() -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for p in _play_leak_samples():
+		if not _play_point_covered(p):
+			out.append(p)
+	return out
+
+
+func leak_cover_ok() -> bool:
+	var samples := _play_leak_samples()
+	if samples.is_empty():
+		return true
+	for p in samples:
+		if _play_point_covered(p):
+			return true
+	return false
+
+
+func _play_refresh_leak_miss() -> void:
+	_play_ensure_leak_miss_draw()
+	if _leak_miss_draw == null:
+		return
+	var pts := PackedVector2Array()
+	if phase == Phase.SETUP and _play_has_leak_object():
+		pts = _play_leak_uncovered_samples()
+	if _leak_miss_draw.has_method("set_miss_samples"):
+		_leak_miss_draw.call("set_miss_samples", pts)
+	_leak_miss_draw.visible = phase == Phase.SETUP and not pts.is_empty()
+
+
+func _play_ensure_checklist_count(n: int) -> void:
+	_ensure_checklist()
+	if checklist_strip == null:
+		return
+	while _checklist_labels.size() < n:
+		var lab := Label.new()
+		lab.add_theme_font_size_override("font_size", 13)
+		lab.add_theme_font_override("font", NightOps.ui_font_bold())
+		lab.add_theme_color_override("font_shadow_color", Color(0.02, 0.03, 0.02, 0.9))
+		lab.add_theme_constant_override("shadow_offset_x", 1)
+		lab.add_theme_constant_override("shadow_offset_y", 1)
+		lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		checklist_strip.add_child(lab)
+		_checklist_labels.append(lab)
+	while _checklist_labels.size() > n:
+		var extra: Label = _checklist_labels.pop_back()
+		if extra:
+			extra.queue_free()
 
 
 func _route_polyline_named(route_name: String) -> PackedVector2Array:
@@ -1968,36 +2368,77 @@ func _route_polyline_named(route_name: String) -> PackedVector2Array:
 	return PackedVector2Array()
 
 
-func _plan_covers_route(route_name: String) -> bool:
+func _play_distinct_route_samples(route_name: String) -> PackedVector2Array:
 	var poly := _route_polyline_named(route_name)
+	var out := PackedVector2Array()
 	if poly.is_empty():
-		return false
-	for op in operators:
-		if op == null or not op.visible or not op.alive:
+		return out
+	var others: Array = []
+	for k in _play_active_route_keys():
+		if str(k) == route_name:
 			continue
-		for p in _sample_polyline(poly, 20.0):
-			if op.in_fire_geometry(p, grid):
-				return true
+		var other := _route_polyline_named(str(k))
+		if not other.is_empty():
+			others.append(other)
+	if route_name == "alt" and route_world.has("flank"):
+		others.append(route_world["flank"])
+	for p in _sample_polyline(poly, 20.0):
+		var shared := false
+		for other in others:
+			if _dist_to_polyline(p, other) <= 28.0:
+				shared = true
+				break
+		if not shared:
+			out.append(p)
+	return out
+
+
+func _plan_covers_route(route_name: String) -> bool:
+	var samples := _play_distinct_route_samples(route_name)
+	if samples.is_empty():
+		var poly := _route_polyline_named(route_name)
+		if poly.is_empty():
+			return false
+		samples = _sample_polyline(poly, 20.0)
+	for p in samples:
+		if _play_point_covered(p):
+			return true
 	return false
 
 
 func _refresh_checklist() -> void:
 	_ensure_checklist()
-	_layout_checklist()
 	if checklist_strip == null:
 		return
 	var show := phase == Phase.SETUP and level != null
 	checklist_strip.visible = show
-	if not show or _checklist_labels.size() < 3:
+	if not show:
+		_play_refresh_leak_miss()
 		return
+	var keys := _play_active_route_keys()
+	var leak_on := _play_has_leak_object()
+	_play_ensure_checklist_count(1 + keys.size() + (1 if leak_on else 0))
+	_layout_checklist()
 	var deployed := _deployed_count() >= 1
-	var main_ok := _plan_covers_route("main")
-	var side_key := _side_route_key()
-	var side_ok := side_key != "" and _plan_covers_route(side_key)
 	var compact := _checklist_use_touch_layout()
-	_paint_check_chip(_checklist_labels[0], "部署" if compact else "已部署≥1", deployed, deployed)
-	_paint_check_chip(_checklist_labels[1], "主路" if compact else "射界覆盖主路", main_ok, deployed)
-	_paint_check_chip(_checklist_labels[2], "侧路" if compact else "侧路有火力", side_ok, deployed)
+	var i := 0
+	_paint_check_chip(_checklist_labels[i], "部署" if compact else "已部署≥1", deployed, deployed)
+	i += 1
+	for key in keys:
+		var ok := _plan_covers_route(str(key))
+		_paint_check_chip(_checklist_labels[i], _play_route_chip_title(str(key), compact), ok, deployed)
+		i += 1
+	if leak_on and i < _checklist_labels.size():
+		var leak_ok := leak_cover_ok()
+		_paint_check_chip(
+			_checklist_labels[i],
+			"漏网" if compact else "漏网已罩住",
+			leak_ok,
+			true
+		)
+		if not leak_ok:
+			_checklist_labels[i].add_theme_color_override("font_color", Color(0.90, 0.28, 0.22))
+	_play_refresh_leak_miss()
 
 
 func _paint_check_chip(lab: Label, title: String, ok: bool, started: bool) -> void:
@@ -3133,6 +3574,20 @@ func _deployed_count() -> int:
 	return n
 
 
+func _play_hold_pack(op_index: int) -> void:
+	if phase != Phase.SETUP:
+		return
+	if op_index < 0 or op_index >= operators.size():
+		return
+	_select_op(op_index)
+	if selected == null or not selected.visible:
+		return
+	if selected.fire_mode != OperatorUnit.FireMode.HOLD_FOR_AMBUSH:
+		_on_mode_pressed()
+	if level != null and level.has_ammo_pack and not selected.has_ammo_pack:
+		_on_pack_pressed()
+
+
 func _on_mode_pressed() -> void:
 	if phase != Phase.SETUP or selected == null or not selected.visible:
 		return
@@ -3728,6 +4183,8 @@ func _on_enemy_escaped(enemy: EnemyRunner, path: PackedVector2Array) -> void:
 		return
 	# Record THIS runner — label_id + spawn_route from the emitter, never spawn_schedule[0].
 	var route := str(enemy.spawn_route)
+	if bool(enemy.did_branch):
+		route = "alt"
 	var lid := int(enemy.label_id)
 	fail_reason = "escape"
 	phase = Phase.FAILED
@@ -3876,7 +4333,15 @@ func _on_op_fired_shot(op: OperatorUnit, target_pos: Vector2) -> void:
 				var card = role_cards[i]
 				if card != null and card.has_method("pulse_fire"):
 					card.pulse_fire()
-	_spawn_watch_tracer(op.global_position, target_pos, col, w)
+	_spawn_watch_tracer(_muzzle_world(op), target_pos, col, w)
+
+
+func _muzzle_world(op: OperatorUnit) -> Vector2:
+	if op == null:
+		return Vector2.ZERO
+	var rad := deg_to_rad(op.facing_deg)
+	var tip := absf(OperatorSilhouetteScript.barrel_tip_y(op.role))
+	return op.global_position + Vector2(cos(rad), sin(rad)) * tip
 
 
 func _spawn_watch_tracer(from: Vector2, to: Vector2, color: Color, width: float) -> void:
@@ -3986,9 +4451,19 @@ func _flash(text: String, color: Color) -> void:
 	flash_label.modulate = Color(1, 1, 1, 1)
 	flash_label.pivot_offset = Vector2(200.0, 14.0)
 	flash_label.scale = Vector2(1.12, 1.12)
+	var plate := get_node_or_null("HUD/Root/FlashPlate") as ColorRect
+	if plate:
+		plate.offset_top = flash_label.offset_top - 2.0
+		plate.offset_bottom = flash_label.offset_bottom + 2.0
+		plate.modulate.a = 1.0
+		_flash_tween = flash_label.create_tween()
+		_flash_tween.tween_property(flash_label, "scale", Vector2.ONE, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		_flash_tween.parallel().tween_property(flash_label, "modulate:a", 0.0, 1.45)
+		_flash_tween.parallel().tween_property(plate, "modulate:a", 0.0, 1.45)
+		return
 	_flash_tween = flash_label.create_tween()
 	_flash_tween.tween_property(flash_label, "scale", Vector2.ONE, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	_flash_tween.parallel().tween_property(flash_label, "modulate:a", 0.0, 1.2)
+	_flash_tween.parallel().tween_property(flash_label, "modulate:a", 0.0, 1.45)
 
 
 func _fix_one_line() -> String:
@@ -4089,6 +4564,7 @@ func _spawn_payoff_callout(pos: Vector2, text: String, color: Color) -> void:
 
 
 func _show_fail_result() -> void:
+	_play_fail_static()
 	if abort_button:
 		abort_button.visible = false
 	if title_return_button:
@@ -4932,6 +5408,15 @@ func _update_hud() -> void:
 		level_label.text = lv_title
 	if tut_label and level:
 		tut_label.text = level.tutorial if phase == Phase.SETUP else level.teaching
+		# Duplicate of help_label + tutorial overlay. Keep the string for smoke/debug, hide the plate.
+		tut_label.visible = false
+		var plate := get_node_or_null("HUD/Root/TutPlate") as ColorRect
+		if plate:
+			plate.visible = false
+	if help_label:
+		# One-line in the bottom-left chrome. Hidden while watching so the
+		# letterbox and escape mouth stay clear. Never a paragraph over the map.
+		help_label.visible = phase == Phase.SETUP and not _want_touch()
 	_refresh_spawn_teach()
 	var intel_txt := "漏网记忆：%d   |   %s" % [intel.records.size(), _ammo_summary()]
 	if intel.latest_line() != "" and (phase == Phase.SETUP or phase == Phase.FAILED):
@@ -4946,20 +5431,16 @@ func _update_hud() -> void:
 	_refresh_decision_pulse()
 	var dep := _deployed_count()
 	if phase == Phase.SETUP:
-		var must := ""
-		if level != null:
-			must = str(level.must_bring).strip_edges()
-		var must_bit := ("必须带：%s " % must) if must != "" else ""
-		help_label.text = "准备：左卡选灰狼/铁砧/夜枭（卡上写本关身份）。%s青弧=掩体保护方向。黄锥=墙裁切射界。红线=选中队员可打到的路线。观察环仅准备期。点掩体（%d/3）| 1/2/3 | A/D射界 | F开火 | G弹包 | B门 | Tab绊索 | M静音 | Esc菜单\n空格拉警报（锁死方案）。X中止留情报。时间轴复盘只读。R清空记忆。" % [must_bit, dep]
+		help_label.text = "点掩体 %d/3 · A/D射界 · 空格警报" % dep
 	elif phase == Phase.WATCHING:
 		var spd := "暂停" if sim.paused else ("2×" if sim.speed >= 1.5 else "1×")
-		help_label.text = "锁死看戏 t=%.1fs [%s]：第一枪/连击/绊索/油桶/改线会喊出来。优先打更接近逃逸口的目标；点事件可定位。X中止保留情报。暂停/变速只改观看。" % [sim.time_sec(), spd]
+		help_label.text = "锁死 t=%.1fs %s" % [sim.time_sec(), spd]
 	elif phase == Phase.FAILED:
-		help_label.text = "失败原因：%s。情报已记录。点击右侧事件定位对象；逃逸口在失败时闪烁。打开时间轴或改朝向/掩体/开火条件后再警报。" % fail_reason
+		help_label.text = "失败：%s" % fail_reason
 	elif phase == Phase.WON:
-		help_label.text = "战前准备决定战斗。可回看只读时间轴；点击事件定位。"
+		help_label.text = "封锁成功 · 时间轴只读"
 	elif phase == Phase.REPLAY:
-		help_label.text = "复盘只读 t=%.1fs / %.1fs — 点击事件定位并跳到该时刻。不重演模拟、不改写下一世计划。空格返回。Esc 菜单。" % [
+		help_label.text = "复盘 t=%.1fs / %.1fs" % [
 			float(replay.scrub_tick) / 60.0, float(replay.max_tick()) / 60.0
 		]
 	_refresh_door_visual()

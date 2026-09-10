@@ -34,22 +34,38 @@ func _ensure_pack_look() -> void:
 		return
 	visual.set_meta("pack_built", true)
 	visual.polygon = PackedVector2Array([
-		Vector2(-8, -6), Vector2(8, -6), Vector2(7, 8), Vector2(-7, 8)
+		Vector2(-9, -7), Vector2(9, -7), Vector2(8, 9), Vector2(-8, 9)
 	])
-	visual.color = Color(0.78, 0.62, 0.18, 0.96)
+	visual.color = Color(0.72, 0.58, 0.16, 0.96)
 	var strap := Polygon2D.new()
 	strap.name = "Strap"
 	strap.polygon = PackedVector2Array([
-		Vector2(-6, -2), Vector2(6, -2), Vector2(6, 1), Vector2(-6, 1)
+		Vector2(-7, -2), Vector2(7, -2), Vector2(7, 1.4), Vector2(-7, 1.4)
 	])
-	strap.color = Color(0.22, 0.16, 0.08, 0.9)
+	strap.color = Color(0.20, 0.14, 0.07, 0.92)
 	add_child(strap)
+	var brass := Polygon2D.new()
+	brass.name = "Brass"
+	brass.polygon = PackedVector2Array([
+		Vector2(-5, 2), Vector2(-2, 2), Vector2(-2, 7), Vector2(-5, 7)
+	])
+	brass.color = Color(0.92, 0.74, 0.28, 0.95)
+	brass.z_index = 1
+	add_child(brass)
+	var brass2 := Polygon2D.new()
+	brass2.name = "Brass2"
+	brass2.polygon = PackedVector2Array([
+		Vector2(1, 2), Vector2(4, 2), Vector2(4, 7), Vector2(1, 7)
+	])
+	brass2.color = Color(0.86, 0.68, 0.22, 0.95)
+	brass2.z_index = 1
+	add_child(brass2)
 	var glow := Polygon2D.new()
 	glow.name = "Glow"
 	glow.polygon = PackedVector2Array([
-		Vector2(-11, 6), Vector2(11, 6), Vector2(8, 12), Vector2(-8, 12)
+		Vector2(-12, 6), Vector2(12, 6), Vector2(9, 13), Vector2(-9, 13)
 	])
-	glow.color = Color(0.95, 0.82, 0.28, 0.28)
+	glow.color = Color(0.95, 0.82, 0.28, 0.32)
 	glow.z_index = -1
 	glow.show_behind_parent = true
 	add_child(glow)

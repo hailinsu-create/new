@@ -1,7 +1,7 @@
 extends RefCounted
 
-## Top-down operator figure. Local -Y is facing after body.rotation = facing+90°.
-## Head / shoulders / torso / two legs — not a chevron. Presentation only.
+## Top-down operator as stacked volumes. Local -Y is facing after body.rotation = facing+90°.
+## 灰狼 rifle / 铁砧 brick MG / 夜枭 hooded scout. Presentation only.
 
 
 static func body_poly(role: int) -> PackedVector2Array:
@@ -17,66 +17,69 @@ static func body_poly(role: int) -> PackedVector2Array:
 static func weapon_poly(role: int) -> PackedVector2Array:
 	match role:
 		1:
-			# 铁砧 — thick receiver + stubby barrel (bipod is KitGear).
 			return PackedVector2Array([
-				Vector2(-4.2, 2.5), Vector2(4.4, 2.5), Vector2(3.8, -4.0),
-				Vector2(2.6, -16.0), Vector2(1.4, -22.5), Vector2(-1.2, -22.5),
-				Vector2(-2.6, -16.0), Vector2(-3.6, -4.0)
+				Vector2(-4.6, 3.2), Vector2(4.8, 3.2), Vector2(4.0, -3.6),
+				Vector2(2.8, -15.2), Vector2(1.6, -22.8), Vector2(-1.4, -22.8),
+				Vector2(-2.8, -15.2), Vector2(-3.8, -3.6)
 			])
 		2:
-			# 夜枭 — long thin barrel past the hood.
 			return PackedVector2Array([
-				Vector2(-1.05, -6.0), Vector2(1.05, -6.0), Vector2(0.85, -28.0),
-				Vector2(0.45, -34.0), Vector2(-0.45, -34.0), Vector2(-0.85, -28.0)
+				Vector2(-1.15, -5.2), Vector2(1.15, -5.2), Vector2(0.90, -27.4),
+				Vector2(0.48, -34.2), Vector2(-0.48, -34.2), Vector2(-0.90, -27.4)
 			])
 		_:
-			# 灰狼 — rifle stock + long barrel.
 			return PackedVector2Array([
-				Vector2(-1.6, 3.5), Vector2(1.7, 3.5), Vector2(1.5, -6.0),
-				Vector2(1.15, -22.0), Vector2(0.55, -30.5), Vector2(-0.55, -30.5),
-				Vector2(-1.15, -22.0), Vector2(-1.4, -6.0)
+				Vector2(-1.8, 4.0), Vector2(1.9, 4.0), Vector2(1.6, -5.4),
+				Vector2(1.20, -21.6), Vector2(0.58, -30.8), Vector2(-0.58, -30.8),
+				Vector2(-1.20, -21.6), Vector2(-1.5, -5.4)
 			])
 
 
 static func weapon_color(role: int) -> Color:
 	match role:
 		1:
-			return Color(0.14, 0.12, 0.08, 0.98)
+			return Color(0.16, 0.14, 0.08, 0.98)
 		2:
-			return Color(0.10, 0.14, 0.18, 0.98)
+			return Color(0.10, 0.13, 0.12, 0.98)
 		_:
-			return Color(0.12, 0.14, 0.16, 0.98)
+			return Color(0.12, 0.14, 0.12, 0.98)
 
 
 static func barrel_tip_y(role: int) -> float:
 	match role:
 		1:
-			return -22.5
+			return -22.8
 		2:
-			return -34.0
+			return -34.2
 		_:
-			return -30.5
+			return -30.8
 
 
 static func mount(body: Polygon2D, role: int) -> void:
 	if body == null:
 		return
-	var cape := _poly(body, "Cape", _cape_poly(role), _cape_color(role), -1, role == 2)
+	var saving := _saving()
+	var cape := _poly(body, "Cape", _cape_poly(role), _cape_color(role), -2)
 	cape.visible = role == 2
-	_poly(body, "ShoulderL", _shoulder_l(role), _shade(role, 0.78), 0, true)
-	_poly(body, "ShoulderR", _shoulder_r(role), _shade(role, 0.92), 0, true)
-	_poly(body, "TorsoShade", _torso(role), _shade(role, 0.70), 0, true)
-	_poly(body, "LegL", _leg_l(role), _shade(role, 0.62), 0, true)
-	_poly(body, "LegR", _leg_r(role), _shade(role, 0.74), 0, true)
-	_poly(body, "Head", _head(role), _head_color(role), 1, true)
-	_poly(body, "Visor", _visor(role), _visor_color(role), 2, true)
-	_poly(body, "ArmGun", _arm_gun(role), _shade(role, 0.80), 3, true)
-	var helm := _poly(body, "KitHelm", _helm(role), _helm_color(role), 2, true)
-	helm.visible = true
-	var gear := _poly(body, "KitGear", _gear(role), _gear_color(role), 3, true)
-	gear.visible = true
-	var weap := _poly(body, "Weapon", weapon_poly(role), weapon_color(role), 4, true)
-	weap.visible = true
+	cape.show_behind_parent = true
+	_poly(body, "Pack", _pack(role), _pack_color(role), -1).visible = not saving or role != 2
+	_poly(body, "BootL", _boot_l(role), _boot_color(role, 0.78), 0)
+	_poly(body, "BootR", _boot_r(role), _boot_color(role, 0.92), 0)
+	_poly(body, "LegL", _leg_l(role), _shade(role, 0.58), 0)
+	_poly(body, "LegR", _leg_r(role), _shade(role, 0.72), 0)
+	_poly(body, "Hip", _hip(role), _shade(role, 0.66), 0)
+	_poly(body, "TorsoShade", _torso(role), _shade(role, 0.62), 0)
+	_poly(body, "ShoulderL", _shoulder_l(role), _shade(role, 0.74), 1)
+	_poly(body, "ShoulderR", _shoulder_r(role), _shade(role, 0.96), 1)
+	_poly(body, "Collar", _collar(role), _head_color(role).lightened(0.08), 1)
+	_poly(body, "ArmGun", _arm_gun(role), _shade(role, 0.82), 3)
+	_poly(body, "Head", _head(role), _head_color(role), 2)
+	_poly(body, "Visor", _visor(role), _visor_color(role), 3)
+	_poly(body, "KitHelm", _helm(role), _helm_color(role), 3).visible = true
+	_poly(body, "KitGear", _gear(role), _gear_color(role), 4).visible = true
+	_poly(body, "Weapon", weapon_poly(role), weapon_color(role), 5).visible = true
+	var moon := _poly(body, "MoonFill", _moon_fill(role), Color(0.88, 0.94, 0.70, 0.34 if not saving else 0.16), 4)
+	moon.visible = not saving
 	_sight(body, role)
 
 
@@ -92,75 +95,120 @@ static func pose_parts(body: Polygon2D, role: int, pose: Dictionary) -> void:
 	var stride := 0.0
 	var sway := 0.0
 	if alive and not saving:
-		stride = sin(t * 3.15 + op_id * 1.7) * 0.85
-		sway = cos(t * 1.85 + op_id) * 0.35
-	var kick := recoil * (2.4 if role == 1 else 1.6)
-	var punch := hit * 0.8
-	_shift(body, "LegL", Vector2(-sway * 0.4 - punch * 0.2, stride + kick * 0.35))
-	_shift(body, "LegR", Vector2(sway * 0.4 + punch * 0.2, -stride + kick * 0.15))
-	_shift(body, "Head", Vector2(sway * 0.25, -absf(stride) * 0.2 - punch * 0.4))
-	_shift(body, "Visor", Vector2(sway * 0.25, -absf(stride) * 0.2 - punch * 0.4))
-	_shift(body, "ShoulderL", Vector2(-kick * 0.15, kick * 0.2))
-	_shift(body, "ShoulderR", Vector2(kick * 0.1, kick * 0.2))
+		var gait := 3.35 if role == 1 else (2.85 if role == 2 else 3.15)
+		stride = sin(t * gait + op_id * 1.7)
+		sway = cos(t * 1.85 + op_id)
+	var kick := recoil * (2.8 if role == 1 else (1.4 if role == 2 else 1.8))
+	var punch := hit * 0.9
+	var leg_amp := 2.4 if role == 1 else (1.6 if role == 2 else 2.0)
+	if saving:
+		leg_amp *= 0.35
+	if not alive:
+		_shift(body, "LegL", Vector2(-3.2, 2.4))
+		_shift(body, "LegR", Vector2(3.6, 1.6))
+		_rot(body, "LegL", 0.55)
+		_rot(body, "LegR", -0.42)
+		_shift(body, "BootL", Vector2(-3.6, 3.2))
+		_shift(body, "BootR", Vector2(4.0, 2.2))
+		_shift(body, "Head", Vector2(2.4, 5.0))
+		_shift(body, "Visor", Vector2(2.4, 5.0))
+		_shift(body, "KitHelm", Vector2(2.2, 4.6))
+		_rot(body, "Head", 0.35)
+		_rot(body, "Cape", 0.22)
+		_rot(body, "Weapon", 0.55)
+		return
+	_shift(body, "LegL", Vector2(-sway * 0.55 - punch * 0.2, stride * leg_amp + kick * 0.28))
+	_shift(body, "LegR", Vector2(sway * 0.55 + punch * 0.2, -stride * leg_amp + kick * 0.12))
+	_rot(body, "LegL", stride * 0.28)
+	_rot(body, "LegR", -stride * 0.28)
+	_shift(body, "BootL", Vector2(-sway * 0.6, stride * (leg_amp + 0.6) + maxf(0.0, stride) * 0.8))
+	_shift(body, "BootR", Vector2(sway * 0.6, -stride * (leg_amp + 0.6) + maxf(0.0, -stride) * 0.8))
+	_shift(body, "Hip", Vector2(sway * 0.35, absf(stride) * 0.2))
+	_shift(body, "Head", Vector2(sway * 0.28, -absf(stride) * 0.35 - punch * 0.5 - kick * 0.12))
+	_shift(body, "Visor", Vector2(sway * 0.28, -absf(stride) * 0.35 - punch * 0.5 - kick * 0.12))
+	_shift(body, "KitHelm", Vector2(sway * 0.22, -absf(stride) * 0.32 - punch * 0.4))
+	_shift(body, "Collar", Vector2(sway * 0.18, -absf(stride) * 0.2))
+	_shift(body, "ShoulderL", Vector2(-kick * 0.22 - stride * 0.4, kick * 0.28))
+	_shift(body, "ShoulderR", Vector2(kick * 0.16 + stride * 0.4, kick * 0.28))
+	_rot(body, "ShoulderL", -stride * 0.12 - recoil * 0.4)
+	_rot(body, "ShoulderR", stride * 0.12 + recoil * 0.15)
 	var arm := body.get_node_or_null("ArmGun") as Polygon2D
 	if arm:
-		arm.rotation = recoil
-		arm.position = Vector2(0.0, kick * 0.15)
+		arm.rotation = recoil * 1.15
+		arm.position = Vector2(-kick * 0.15, kick * 0.45)
+	var weap := body.get_node_or_null("Weapon") as Polygon2D
+	if weap:
+		weap.rotation = recoil
+		weap.position = Vector2(0.0, kick * 0.55)
 	var cape := body.get_node_or_null("Cape") as Polygon2D
 	if cape:
 		cape.visible = role == 2
 		if role == 2 and alive and not saving:
-			cape.rotation = deg_to_rad(sin(t * 2.1 + op_id) * 4.0)
+			cape.rotation = deg_to_rad(sin(t * 2.1 + op_id) * 7.0)
+			cape.position = Vector2(sway * 0.4, absf(stride) * 0.3)
 		else:
 			cape.rotation = 0.0
+			cape.position = Vector2.ZERO
+	var pack := body.get_node_or_null("Pack") as Polygon2D
+	if pack:
+		pack.position = Vector2(-sway * 0.2, absf(stride) * 0.15)
 	var sight := body.get_node_or_null("Sight") as Line2D
 	if sight:
 		sight.visible = alive
-		sight.rotation = recoil * 0.6
+		sight.rotation = recoil * 0.7
+		sight.position = Vector2(0.0, kick * 0.4)
+	var bead := body.get_node_or_null("FrontSight") as Polygon2D
+	if bead:
+		bead.rotation = recoil * 0.7
+		bead.position = Vector2(0.0, kick * 0.4)
+	var moon := body.get_node_or_null("MoonFill") as Polygon2D
+	if moon:
+		moon.visible = alive and not saving
+		moon.position = Vector2(sway * 0.1, -absf(stride) * 0.1)
 
 
 static func _rifle_body() -> PackedVector2Array:
-	## Lean rifleman: helmet, narrow shoulders, two boots.
+	## 灰狼 — helmet oval, medium shoulders, two boots. 26 verts.
 	return PackedVector2Array([
-		Vector2(0.0, -18.0), Vector2(-3.2, -16.8), Vector2(-3.8, -13.4),
-		Vector2(-2.2, -11.6), Vector2(-7.4, -10.0), Vector2(-8.6, -6.2),
-		Vector2(-6.8, -3.6), Vector2(-5.6, 1.2), Vector2(-6.4, 5.2),
-		Vector2(-6.8, 11.0), Vector2(-6.0, 16.4), Vector2(-2.8, 16.4),
-		Vector2(-2.2, 9.0), Vector2(0.0, 6.8), Vector2(2.2, 9.0),
-		Vector2(2.8, 16.4), Vector2(6.0, 16.4), Vector2(6.8, 11.0),
-		Vector2(6.4, 5.2), Vector2(5.6, 1.2), Vector2(6.8, -3.6),
-		Vector2(8.6, -6.2), Vector2(7.4, -10.0), Vector2(2.2, -11.6),
-		Vector2(3.8, -13.4), Vector2(3.2, -16.8)
+		Vector2(0.0, -18.4), Vector2(-3.4, -17.0), Vector2(-4.0, -13.2),
+		Vector2(-2.4, -11.4), Vector2(-7.8, -10.2), Vector2(-9.2, -5.8),
+		Vector2(-7.2, -2.8), Vector2(-5.8, 1.6), Vector2(-6.6, 6.0),
+		Vector2(-7.2, 11.4), Vector2(-6.6, 16.8), Vector2(-3.2, 17.2),
+		Vector2(-2.4, 9.4), Vector2(0.0, 7.0), Vector2(2.4, 9.4),
+		Vector2(3.2, 17.2), Vector2(6.6, 16.8), Vector2(7.2, 11.4),
+		Vector2(6.6, 6.0), Vector2(5.8, 1.6), Vector2(7.2, -2.8),
+		Vector2(9.2, -5.8), Vector2(7.8, -10.2), Vector2(2.4, -11.4),
+		Vector2(4.0, -13.2), Vector2(3.4, -17.0)
 	])
 
 
 static func _mg_body() -> PackedVector2Array:
-	## 铁砧 — brick helmet, wide shoulders, thick thighs.
+	## 铁砧 — brick helm, wide plate, thick thighs. 22 verts.
 	return PackedVector2Array([
-		Vector2(-4.6, -16.6), Vector2(4.6, -16.6), Vector2(5.2, -12.4),
-		Vector2(3.4, -10.8), Vector2(11.2, -8.4), Vector2(12.4, -3.2),
-		Vector2(10.0, 1.6), Vector2(8.4, 6.0), Vector2(8.8, 11.6),
-		Vector2(7.6, 16.2), Vector2(3.4, 16.2), Vector2(2.6, 9.2),
-		Vector2(0.0, 7.0), Vector2(-2.6, 9.2), Vector2(-3.4, 16.2),
-		Vector2(-7.6, 16.2), Vector2(-8.8, 11.6), Vector2(-8.4, 6.0),
-		Vector2(-10.0, 1.6), Vector2(-12.4, -3.2), Vector2(-11.2, -8.4),
-		Vector2(-3.4, -10.8), Vector2(-5.2, -12.4)
+		Vector2(-5.0, -17.0), Vector2(5.0, -17.0), Vector2(5.6, -12.6),
+		Vector2(3.6, -10.8), Vector2(12.0, -8.6), Vector2(13.2, -2.8),
+		Vector2(10.6, 2.2), Vector2(8.8, 6.6), Vector2(9.2, 12.0),
+		Vector2(8.0, 16.8), Vector2(3.6, 17.0), Vector2(2.8, 9.4),
+		Vector2(0.0, 7.2), Vector2(-2.8, 9.4), Vector2(-3.6, 17.0),
+		Vector2(-8.0, 16.8), Vector2(-9.2, 12.0), Vector2(-8.8, 6.6),
+		Vector2(-10.6, 2.2), Vector2(-13.2, -2.8), Vector2(-12.0, -8.6),
+		Vector2(-3.6, -10.8)
 	])
 
 
 static func _scout_body() -> PackedVector2Array:
-	## 夜枭 — hooded head, narrow chest, cloak hem, slim legs.
+	## 夜枭 — pointed hood, narrow chest, cloak hem, slim legs. 28 verts.
 	return PackedVector2Array([
-		Vector2(0.0, -17.6), Vector2(-2.6, -16.2), Vector2(-3.4, -13.0),
-		Vector2(-2.0, -11.2), Vector2(-5.4, -9.4), Vector2(-6.2, -5.6),
-		Vector2(-5.0, -2.2), Vector2(-7.6, 2.8), Vector2(-9.2, 7.4),
-		Vector2(-5.4, 8.6), Vector2(-5.0, 12.4), Vector2(-4.2, 15.6),
-		Vector2(-1.8, 15.6), Vector2(-1.6, 9.6), Vector2(0.0, 7.6),
-		Vector2(1.6, 9.6), Vector2(1.8, 15.6), Vector2(4.2, 15.6),
-		Vector2(5.0, 12.4), Vector2(5.4, 8.6), Vector2(9.2, 7.4),
-		Vector2(7.6, 2.8), Vector2(5.0, -2.2), Vector2(6.2, -5.6),
-		Vector2(5.4, -9.4), Vector2(2.0, -11.2), Vector2(3.4, -13.0),
-		Vector2(2.6, -16.2)
+		Vector2(0.0, -18.2), Vector2(-2.8, -16.6), Vector2(-3.6, -13.2),
+		Vector2(-2.2, -11.4), Vector2(-5.6, -9.6), Vector2(-6.4, -5.4),
+		Vector2(-5.2, -1.8), Vector2(-8.0, 3.2), Vector2(-9.6, 7.8),
+		Vector2(-5.6, 8.8), Vector2(-5.2, 12.8), Vector2(-4.4, 16.2),
+		Vector2(-2.0, 16.4), Vector2(-1.6, 9.8), Vector2(0.0, 7.8),
+		Vector2(1.6, 9.8), Vector2(2.0, 16.4), Vector2(4.4, 16.2),
+		Vector2(5.2, 12.8), Vector2(5.6, 8.8), Vector2(9.6, 7.8),
+		Vector2(8.0, 3.2), Vector2(5.2, -1.8), Vector2(6.4, -5.4),
+		Vector2(5.6, -9.6), Vector2(2.2, -11.4), Vector2(3.6, -13.2),
+		Vector2(2.8, -16.6)
 	])
 
 
@@ -168,18 +216,18 @@ static func _head(role: int) -> PackedVector2Array:
 	match role:
 		1:
 			return PackedVector2Array([
-				Vector2(-4.4, -16.4), Vector2(4.4, -16.4),
-				Vector2(4.0, -11.6), Vector2(-4.0, -11.6)
+				Vector2(-4.8, -16.8), Vector2(4.8, -16.8),
+				Vector2(4.4, -11.4), Vector2(-4.4, -11.4)
 			])
 		2:
 			return PackedVector2Array([
-				Vector2(0.0, -17.4), Vector2(-3.0, -15.4),
-				Vector2(-2.6, -11.8), Vector2(2.6, -11.8), Vector2(3.0, -15.4)
+				Vector2(0.0, -18.0), Vector2(-3.2, -15.6),
+				Vector2(-2.8, -11.6), Vector2(2.8, -11.6), Vector2(3.2, -15.6)
 			])
 		_:
 			return PackedVector2Array([
-				Vector2(0.0, -18.0), Vector2(-3.0, -16.4),
-				Vector2(-3.2, -12.6), Vector2(3.2, -12.6), Vector2(3.0, -16.4)
+				Vector2(0.0, -18.4), Vector2(-3.2, -16.6),
+				Vector2(-3.4, -12.4), Vector2(3.4, -12.4), Vector2(3.2, -16.6)
 			])
 
 
@@ -187,18 +235,37 @@ static func _visor(role: int) -> PackedVector2Array:
 	match role:
 		1:
 			return PackedVector2Array([
-				Vector2(-3.2, -14.6), Vector2(3.2, -14.6),
-				Vector2(3.0, -12.8), Vector2(-3.0, -12.8)
+				Vector2(-3.6, -14.8), Vector2(3.6, -14.8),
+				Vector2(3.4, -12.6), Vector2(-3.4, -12.6)
 			])
 		2:
 			return PackedVector2Array([
-				Vector2(-1.6, -15.2), Vector2(1.6, -15.2),
-				Vector2(1.4, -13.2), Vector2(-1.4, -13.2)
+				Vector2(-2.2, -15.6), Vector2(2.2, -15.6),
+				Vector2(2.0, -13.0), Vector2(-2.0, -13.0)
 			])
 		_:
 			return PackedVector2Array([
-				Vector2(-2.2, -15.6), Vector2(2.2, -15.6),
-				Vector2(2.0, -13.6), Vector2(-2.0, -13.6)
+				Vector2(-2.4, -15.8), Vector2(2.4, -15.8),
+				Vector2(2.2, -13.4), Vector2(-2.2, -13.4)
+			])
+
+
+static func _collar(role: int) -> PackedVector2Array:
+	match role:
+		1:
+			return PackedVector2Array([
+				Vector2(-4.2, -11.2), Vector2(4.2, -11.2),
+				Vector2(3.4, -8.6), Vector2(-3.4, -8.6)
+			])
+		2:
+			return PackedVector2Array([
+				Vector2(-2.6, -11.4), Vector2(2.6, -11.4),
+				Vector2(2.2, -8.8), Vector2(-2.2, -8.8)
+			])
+		_:
+			return PackedVector2Array([
+				Vector2(-3.0, -11.6), Vector2(3.0, -11.6),
+				Vector2(2.4, -9.0), Vector2(-2.4, -9.0)
 			])
 
 
@@ -206,18 +273,37 @@ static func _torso(role: int) -> PackedVector2Array:
 	match role:
 		1:
 			return PackedVector2Array([
-				Vector2(-7.5, -4.0), Vector2(7.5, -4.0),
-				Vector2(6.2, 6.5), Vector2(-6.2, 6.5)
+				Vector2(-8.0, -4.2), Vector2(8.0, -4.2),
+				Vector2(6.6, 6.8), Vector2(-6.6, 6.8)
 			])
 		2:
 			return PackedVector2Array([
-				Vector2(-3.6, -4.5), Vector2(3.6, -4.5),
-				Vector2(3.2, 6.0), Vector2(-3.2, 6.0)
+				Vector2(-3.8, -4.6), Vector2(3.8, -4.6),
+				Vector2(3.4, 6.2), Vector2(-3.4, 6.2)
 			])
 		_:
 			return PackedVector2Array([
-				Vector2(-4.6, -4.2), Vector2(4.6, -4.2),
-				Vector2(4.0, 5.6), Vector2(-4.0, 5.6)
+				Vector2(-4.8, -4.4), Vector2(4.8, -4.4),
+				Vector2(4.2, 5.8), Vector2(-4.2, 5.8)
+			])
+
+
+static func _hip(role: int) -> PackedVector2Array:
+	match role:
+		1:
+			return PackedVector2Array([
+				Vector2(-6.4, 5.4), Vector2(6.4, 5.4),
+				Vector2(5.2, 9.2), Vector2(-5.2, 9.2)
+			])
+		2:
+			return PackedVector2Array([
+				Vector2(-3.2, 5.6), Vector2(3.2, 5.6),
+				Vector2(2.6, 8.6), Vector2(-2.6, 8.6)
+			])
+		_:
+			return PackedVector2Array([
+				Vector2(-4.4, 5.2), Vector2(4.4, 5.2),
+				Vector2(3.6, 8.8), Vector2(-3.6, 8.8)
 			])
 
 
@@ -225,18 +311,18 @@ static func _shoulder_l(role: int) -> PackedVector2Array:
 	match role:
 		1:
 			return PackedVector2Array([
-				Vector2(-12.0, -8.6), Vector2(-6.0, -9.4),
-				Vector2(-6.4, -2.4), Vector2(-11.4, -2.8)
+				Vector2(-12.6, -9.0), Vector2(-6.2, -9.8),
+				Vector2(-6.6, -2.2), Vector2(-12.0, -2.6)
 			])
 		2:
 			return PackedVector2Array([
-				Vector2(-6.0, -9.6), Vector2(-2.4, -9.0),
-				Vector2(-2.6, -4.6), Vector2(-5.6, -5.0)
+				Vector2(-6.4, -9.8), Vector2(-2.4, -9.2),
+				Vector2(-2.6, -4.4), Vector2(-6.0, -4.8)
 			])
 		_:
 			return PackedVector2Array([
-				Vector2(-8.4, -10.2), Vector2(-3.2, -9.6),
-				Vector2(-3.6, -4.0), Vector2(-7.8, -4.6)
+				Vector2(-8.8, -10.4), Vector2(-3.2, -9.8),
+				Vector2(-3.6, -3.8), Vector2(-8.2, -4.4)
 			])
 
 
@@ -244,18 +330,18 @@ static func _shoulder_r(role: int) -> PackedVector2Array:
 	match role:
 		1:
 			return PackedVector2Array([
-				Vector2(6.0, -9.4), Vector2(12.0, -8.6),
-				Vector2(11.4, -2.8), Vector2(6.4, -2.4)
+				Vector2(6.2, -9.8), Vector2(12.6, -9.0),
+				Vector2(12.0, -2.6), Vector2(6.6, -2.2)
 			])
 		2:
 			return PackedVector2Array([
-				Vector2(2.4, -9.0), Vector2(6.0, -9.6),
-				Vector2(5.6, -5.0), Vector2(2.6, -4.6)
+				Vector2(2.4, -9.2), Vector2(6.4, -9.8),
+				Vector2(6.0, -4.8), Vector2(2.6, -4.4)
 			])
 		_:
 			return PackedVector2Array([
-				Vector2(3.2, -9.6), Vector2(8.4, -10.2),
-				Vector2(7.8, -4.6), Vector2(3.6, -4.0)
+				Vector2(3.2, -9.8), Vector2(8.8, -10.4),
+				Vector2(8.2, -4.4), Vector2(3.6, -3.8)
 			])
 
 
@@ -263,18 +349,18 @@ static func _leg_l(role: int) -> PackedVector2Array:
 	match role:
 		1:
 			return PackedVector2Array([
-				Vector2(-7.6, 6.2), Vector2(-2.2, 6.6),
-				Vector2(-3.0, 16.2), Vector2(-7.4, 16.2)
+				Vector2(-8.0, 6.4), Vector2(-2.4, 6.8),
+				Vector2(-3.2, 16.0), Vector2(-7.8, 16.0)
 			])
 		2:
 			return PackedVector2Array([
-				Vector2(-4.6, 8.2), Vector2(-1.4, 8.4),
-				Vector2(-1.8, 15.6), Vector2(-4.2, 15.6)
+				Vector2(-4.8, 8.4), Vector2(-1.4, 8.6),
+				Vector2(-1.8, 15.4), Vector2(-4.4, 15.4)
 			])
 		_:
 			return PackedVector2Array([
-				Vector2(-6.2, 6.4), Vector2(-2.0, 6.8),
-				Vector2(-2.6, 16.4), Vector2(-6.0, 16.4)
+				Vector2(-6.4, 6.6), Vector2(-2.0, 7.0),
+				Vector2(-2.6, 16.0), Vector2(-6.2, 16.0)
 			])
 
 
@@ -282,18 +368,56 @@ static func _leg_r(role: int) -> PackedVector2Array:
 	match role:
 		1:
 			return PackedVector2Array([
-				Vector2(2.2, 6.6), Vector2(7.6, 6.2),
-				Vector2(7.4, 16.2), Vector2(3.0, 16.2)
+				Vector2(2.4, 6.8), Vector2(8.0, 6.4),
+				Vector2(7.8, 16.0), Vector2(3.2, 16.0)
 			])
 		2:
 			return PackedVector2Array([
-				Vector2(1.4, 8.4), Vector2(4.6, 8.2),
-				Vector2(4.2, 15.6), Vector2(1.8, 15.6)
+				Vector2(1.4, 8.6), Vector2(4.8, 8.4),
+				Vector2(4.4, 15.4), Vector2(1.8, 15.4)
 			])
 		_:
 			return PackedVector2Array([
-				Vector2(2.0, 6.8), Vector2(6.2, 6.4),
-				Vector2(6.0, 16.4), Vector2(2.6, 16.4)
+				Vector2(2.0, 7.0), Vector2(6.4, 6.6),
+				Vector2(6.2, 16.0), Vector2(2.6, 16.0)
+			])
+
+
+static func _boot_l(role: int) -> PackedVector2Array:
+	match role:
+		1:
+			return PackedVector2Array([
+				Vector2(-8.4, 14.6), Vector2(-2.2, 14.8),
+				Vector2(-2.6, 18.2), Vector2(-8.8, 18.0)
+			])
+		2:
+			return PackedVector2Array([
+				Vector2(-5.0, 14.2), Vector2(-1.2, 14.4),
+				Vector2(-1.6, 17.0), Vector2(-5.2, 16.8)
+			])
+		_:
+			return PackedVector2Array([
+				Vector2(-6.8, 14.6), Vector2(-1.8, 14.8),
+				Vector2(-2.2, 18.0), Vector2(-7.2, 17.8)
+			])
+
+
+static func _boot_r(role: int) -> PackedVector2Array:
+	match role:
+		1:
+			return PackedVector2Array([
+				Vector2(2.2, 14.8), Vector2(8.4, 14.6),
+				Vector2(8.8, 18.0), Vector2(2.6, 18.2)
+			])
+		2:
+			return PackedVector2Array([
+				Vector2(1.2, 14.4), Vector2(5.0, 14.2),
+				Vector2(5.2, 16.8), Vector2(1.6, 17.0)
+			])
+		_:
+			return PackedVector2Array([
+				Vector2(1.8, 14.8), Vector2(6.8, 14.6),
+				Vector2(7.2, 17.8), Vector2(2.2, 18.0)
 			])
 
 
@@ -301,18 +425,18 @@ static func _arm_gun(role: int) -> PackedVector2Array:
 	match role:
 		1:
 			return PackedVector2Array([
-				Vector2(3.0, -6.0), Vector2(8.4, -5.2),
-				Vector2(4.2, -14.0), Vector2(1.2, -13.2)
+				Vector2(3.2, -6.2), Vector2(8.8, -5.2),
+				Vector2(4.4, -14.4), Vector2(1.2, -13.6)
 			])
 		2:
 			return PackedVector2Array([
-				Vector2(1.2, -7.0), Vector2(4.4, -6.4),
-				Vector2(1.6, -18.0), Vector2(0.2, -17.4)
+				Vector2(1.2, -7.2), Vector2(4.6, -6.4),
+				Vector2(1.6, -18.4), Vector2(0.2, -17.6)
 			])
 		_:
 			return PackedVector2Array([
-				Vector2(2.0, -6.2), Vector2(6.2, -5.6),
-				Vector2(2.4, -16.5), Vector2(0.4, -15.8)
+				Vector2(2.0, -6.4), Vector2(6.4, -5.6),
+				Vector2(2.4, -16.8), Vector2(0.4, -16.0)
 			])
 
 
@@ -320,41 +444,57 @@ static func _helm(role: int) -> PackedVector2Array:
 	match role:
 		1:
 			return PackedVector2Array([
-				Vector2(-5.2, -17.2), Vector2(5.2, -17.2),
-				Vector2(5.6, -14.8), Vector2(-5.6, -14.8)
+				Vector2(-5.6, -17.6), Vector2(5.6, -17.6),
+				Vector2(6.0, -14.6), Vector2(-6.0, -14.6)
 			])
 		2:
 			return PackedVector2Array([
-				Vector2(-3.4, -18.0), Vector2(3.4, -18.0),
-				Vector2(3.0, -14.6), Vector2(-3.0, -14.6)
+				Vector2(0.0, -19.0), Vector2(-3.8, -16.8),
+				Vector2(-3.2, -14.4), Vector2(3.2, -14.4), Vector2(3.8, -16.8)
 			])
 		_:
 			return PackedVector2Array([
-				Vector2(-3.4, -18.4), Vector2(3.4, -18.4),
-				Vector2(3.2, -15.2), Vector2(-3.2, -15.2)
+				Vector2(-3.6, -18.8), Vector2(3.6, -18.8),
+				Vector2(3.4, -15.2), Vector2(-3.4, -15.2)
 			])
 
 
 static func _gear(role: int) -> PackedVector2Array:
 	match role:
 		1:
-			# Bipod U under the barrel.
 			return PackedVector2Array([
-				Vector2(-8.6, -18.0), Vector2(8.6, -18.0), Vector2(10.2, -5.5),
-				Vector2(6.4, -5.5), Vector2(2.4, -14.6), Vector2(-2.4, -14.6),
-				Vector2(-6.4, -5.5), Vector2(-10.2, -5.5)
+				Vector2(-9.0, -18.2), Vector2(9.0, -18.2), Vector2(10.6, -5.2),
+				Vector2(6.6, -5.2), Vector2(2.6, -14.8), Vector2(-2.6, -14.8),
+				Vector2(-6.6, -5.2), Vector2(-10.6, -5.2)
 			])
 		2:
-			# Binocular tube on the right temple.
 			return PackedVector2Array([
-				Vector2(3.6, -16.0), Vector2(8.2, -16.0),
-				Vector2(8.2, -7.2), Vector2(3.6, -7.2)
+				Vector2(3.4, -16.4), Vector2(8.6, -16.4),
+				Vector2(8.6, -7.0), Vector2(3.4, -7.0)
 			])
 		_:
-			# Mag well under the receiver.
 			return PackedVector2Array([
-				Vector2(-2.0, 1.2), Vector2(2.0, 1.2),
-				Vector2(1.6, 7.4), Vector2(-1.6, 7.4)
+				Vector2(-2.2, 1.4), Vector2(2.2, 1.4),
+				Vector2(1.8, 7.6), Vector2(-1.8, 7.6)
+			])
+
+
+static func _pack(role: int) -> PackedVector2Array:
+	match role:
+		1:
+			return PackedVector2Array([
+				Vector2(-5.6, 1.0), Vector2(5.6, 1.0),
+				Vector2(4.8, 8.4), Vector2(-4.8, 8.4)
+			])
+		2:
+			return PackedVector2Array([
+				Vector2(-2.4, 0.6), Vector2(2.4, 0.6),
+				Vector2(2.0, 6.2), Vector2(-2.0, 6.2)
+			])
+		_:
+			return PackedVector2Array([
+				Vector2(-3.4, 0.8), Vector2(3.4, 0.8),
+				Vector2(2.8, 6.8), Vector2(-2.8, 6.8)
 			])
 
 
@@ -362,9 +502,28 @@ static func _cape_poly(role: int) -> PackedVector2Array:
 	if role != 2:
 		return PackedVector2Array([Vector2.ZERO, Vector2(1, 0), Vector2(0, 1)])
 	return PackedVector2Array([
-		Vector2(-4.5, -9.0), Vector2(4.5, -9.0),
-		Vector2(10.4, 6.8), Vector2(0.0, 11.0), Vector2(-10.4, 6.8)
+		Vector2(-5.0, -9.4), Vector2(5.0, -9.4),
+		Vector2(11.4, 7.4), Vector2(0.0, 12.2), Vector2(-11.4, 7.4)
 	])
+
+
+static func _moon_fill(role: int) -> PackedVector2Array:
+	match role:
+		1:
+			return PackedVector2Array([
+				Vector2(-10.0, -10.0), Vector2(-2.0, -16.0),
+				Vector2(2.0, -15.0), Vector2(-4.0, -4.0)
+			])
+		2:
+			return PackedVector2Array([
+				Vector2(-5.2, -10.0), Vector2(0.0, -17.0),
+				Vector2(2.2, -14.0), Vector2(-2.4, -6.0)
+			])
+		_:
+			return PackedVector2Array([
+				Vector2(-7.4, -10.6), Vector2(-1.0, -17.2),
+				Vector2(2.0, -15.4), Vector2(-3.2, -5.0)
+			])
 
 
 static func _sight(body: Polygon2D, role: int) -> void:
@@ -372,39 +531,36 @@ static func _sight(body: Polygon2D, role: int) -> void:
 	if ln == null:
 		ln = Line2D.new()
 		ln.name = "Sight"
-		ln.z_index = 5
-		ln.width = 1.5
+		ln.z_index = 6
 		ln.begin_cap_mode = Line2D.LINE_CAP_ROUND
 		ln.end_cap_mode = Line2D.LINE_CAP_ROUND
 		body.add_child(ln)
 	var tip := barrel_tip_y(role)
-	ln.points = PackedVector2Array([Vector2(0.0, -8.0), Vector2(0.0, tip - 1.5)])
+	ln.points = PackedVector2Array([Vector2(0.0, -8.0), Vector2(0.0, tip - 1.6)])
 	match role:
 		1:
-			ln.default_color = Color(0.22, 0.20, 0.10, 0.95)
-			ln.width = 2.2
+			ln.default_color = Color(0.24, 0.22, 0.10, 0.95)
+			ln.width = 2.4
 		2:
-			ln.default_color = Color(0.55, 0.92, 1.0, 0.85)
-			ln.width = 1.15
+			ln.default_color = Color(0.62, 0.88, 0.58, 0.88)
+			ln.width = 1.2
 		_:
-			ln.default_color = Color(0.10, 0.12, 0.14, 0.95)
-			ln.width = 1.5
+			ln.default_color = Color(0.12, 0.14, 0.12, 0.95)
+			ln.width = 1.55
 	var bead := body.get_node_or_null("FrontSight") as Polygon2D
 	if bead == null:
 		bead = Polygon2D.new()
 		bead.name = "FrontSight"
-		bead.z_index = 6
+		bead.z_index = 7
 		body.add_child(bead)
 	bead.polygon = PackedVector2Array([
-		Vector2(-1.1, tip + 0.4), Vector2(1.1, tip + 0.4),
-		Vector2(0.0, tip - 2.6)
+		Vector2(-1.2, tip + 0.4), Vector2(1.2, tip + 0.4),
+		Vector2(0.0, tip - 2.8)
 	])
-	bead.color = Color(0.95, 0.88, 0.42, 0.95) if role != 2 else Color(0.70, 0.95, 1.0, 0.95)
+	bead.color = Color(0.92, 0.86, 0.38, 0.95) if role != 2 else Color(0.72, 0.94, 0.62, 0.95)
 
 
-static func _poly(
-	body: Polygon2D, nam: String, pts: PackedVector2Array, col: Color, z: int, behind: bool
-) -> Polygon2D:
+static func _poly(body: Polygon2D, nam: String, pts: PackedVector2Array, col: Color, z: int) -> Polygon2D:
 	var n := body.get_node_or_null(nam) as Polygon2D
 	if n == null:
 		n = Polygon2D.new()
@@ -413,7 +569,6 @@ static func _poly(
 	n.polygon = pts
 	n.color = col
 	n.z_index = z
-	n.show_behind_parent = behind and nam == "Cape"
 	return n
 
 
@@ -423,62 +578,96 @@ static func _shift(body: Polygon2D, nam: String, off: Vector2) -> void:
 		n.position = off
 
 
+static func _rot(body: Polygon2D, nam: String, rad: float) -> void:
+	var n := body.get_node_or_null(nam) as Node2D
+	if n:
+		n.rotation = rad
+
+
+static func _saving() -> bool:
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null:
+		return false
+	var gs = tree.root.get_node_or_null("/root/GameSettings")
+	return gs != null and gs.has_method("is_power_saving") and bool(gs.is_power_saving())
+
+
 static func _shade(role: int, k: float) -> Color:
 	var c := _base(role)
-	return Color(c.r * k, c.g * k, c.b * k, 0.95)
+	return Color(c.r * k, c.g * k, c.b * k, 0.96)
 
 
 static func _base(role: int) -> Color:
 	match role:
 		1:
-			return Color(0.46, 0.54, 0.28)
+			return Color(0.44, 0.52, 0.26)
 		2:
-			return Color(0.26, 0.52, 0.62)
+			return Color(0.22, 0.38, 0.34)
 		_:
-			return Color(0.40, 0.55, 0.68)
+			return Color(0.36, 0.48, 0.42)
 
 
 static func _head_color(role: int) -> Color:
 	match role:
 		1:
-			return Color(0.28, 0.32, 0.16, 0.98)
+			return Color(0.26, 0.30, 0.14, 0.98)
 		2:
-			return Color(0.16, 0.28, 0.32, 0.98)
+			return Color(0.14, 0.24, 0.22, 0.98)
 		_:
-			return Color(0.22, 0.30, 0.36, 0.98)
+			return Color(0.20, 0.28, 0.24, 0.98)
 
 
 static func _visor_color(role: int) -> Color:
 	match role:
 		1:
-			return Color(0.12, 0.14, 0.08, 0.92)
+			return Color(0.12, 0.14, 0.07, 0.92)
 		2:
-			return Color(0.18, 0.55, 0.62, 0.90)
+			return Color(0.42, 0.78, 0.52, 0.90)
 		_:
-			return Color(0.10, 0.16, 0.20, 0.92)
+			return Color(0.10, 0.16, 0.14, 0.92)
 
 
 static func _helm_color(role: int) -> Color:
 	match role:
 		1:
-			return Color(0.22, 0.24, 0.14, 0.96)
+			return Color(0.20, 0.22, 0.12, 0.96)
 		2:
-			return Color(0.12, 0.22, 0.26, 0.96)
+			return Color(0.10, 0.18, 0.16, 0.96)
 		_:
-			return Color(0.16, 0.22, 0.28, 0.96)
+			return Color(0.14, 0.20, 0.16, 0.96)
 
 
 static func _gear_color(role: int) -> Color:
 	match role:
 		1:
-			return Color(0.18, 0.16, 0.10, 0.95)
+			return Color(0.16, 0.14, 0.08, 0.95)
 		2:
-			return Color(0.18, 0.28, 0.32, 0.96)
+			return Color(0.16, 0.24, 0.20, 0.96)
 		_:
-			return Color(0.22, 0.28, 0.24, 0.85)
+			return Color(0.20, 0.24, 0.16, 0.88)
+
+
+static func _pack_color(role: int) -> Color:
+	match role:
+		1:
+			return Color(0.22, 0.24, 0.12, 0.90)
+		2:
+			return Color(0.10, 0.16, 0.14, 0.88)
+		_:
+			return Color(0.16, 0.20, 0.14, 0.88)
+
+
+static func _boot_color(role: int, k: float) -> Color:
+	var c := Color(0.10, 0.10, 0.08, 0.96)
+	match role:
+		1:
+			c = Color(0.14, 0.12, 0.06, 0.96)
+		2:
+			c = Color(0.08, 0.10, 0.09, 0.94)
+	return Color(c.r * k, c.g * k, c.b * k, c.a)
 
 
 static func _cape_color(role: int) -> Color:
 	if role != 2:
 		return Color(0, 0, 0, 0)
-	return Color(0.10, 0.22, 0.28, 0.88)
+	return Color(0.08, 0.16, 0.14, 0.90)

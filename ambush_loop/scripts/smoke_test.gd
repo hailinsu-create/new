@@ -62,6 +62,8 @@ func _run() -> void:
 		return
 	if not _assert_unit_anim(main):
 		return
+	if not _assert_feel_presence(main):
+		return
 	if not _assert_props(main):
 		return
 	if not _assert_teaching(main):
@@ -296,6 +298,22 @@ func _run() -> void:
 				quit(56)
 				return
 			print("SMOKE_OK_LEAK_ADVICE ", advice_txt, " leaker=", leaker_id, " delay=", actor_delay)
+			if main.has_method("_refresh_checklist"):
+				main._refresh_checklist()
+			if not main.has_method("leak_cover_ok") or bool(main.leak_cover_ok()):
+				push_error("SMOKE_LEAK_COVER_NOT_RED %s" % (main.checklist_strip_text() if main.has_method("checklist_strip_text") else ""))
+				quit(56)
+				return
+			var leak_chip_txt := str(main.checklist_strip_text()) if main.has_method("checklist_strip_text") else ""
+			if leak_chip_txt.find("漏网") < 0:
+				push_error("SMOKE_NO_LEAK_CHIP %s" % leak_chip_txt)
+				quit(56)
+				return
+			if main.alarm_button == null or bool(main.alarm_button.disabled):
+				push_error("SMOKE_LEAK_CHIP_HARD_GATE")
+				quit(56)
+				return
+			print("SMOKE_OK_LEAK_COVER_RED chip=", leak_chip_txt.replace("\n", " | "))
 			# Same plan at 2× must match terminal tick + event fingerprint.
 			main._on_alarm_pressed()
 			main.sim.set_speed(2.0)
@@ -325,6 +343,13 @@ func _run() -> void:
 				push_error("SMOKE_SCOUT_OBS_MISSING_SETUP")
 				quit(37)
 				return
+			if main.has_method("_refresh_checklist"):
+				main._refresh_checklist()
+			if not main.has_method("leak_cover_ok") or not bool(main.leak_cover_ok()):
+				push_error("SMOKE_LEAK_COVER_NOT_GREEN %s" % (main.checklist_strip_text() if main.has_method("checklist_strip_text") else ""))
+				quit(56)
+				return
+			print("SMOKE_OK_LEAK_COVER_GREEN")
 			main._on_alarm_pressed()
 			if main.operators[2].observation_ring_visible():
 				push_error("SMOKE_SCOUT_OBS_DURING_WATCH")
@@ -401,7 +426,7 @@ func _run() -> void:
 				push_error("SMOKE_WAREHOUSE_NO_BARREL n=%s" % main.barrels.size())
 				quit(31)
 				return
-			if main.level.barrel_cell != Vector2i(32, 10):
+			if main.level.barrel_cell != Vector2i(22, 8):
 				push_error("SMOKE_BARREL_CELL %s" % str(main.level.barrel_cell))
 				quit(31)
 				return
@@ -414,7 +439,52 @@ func _run() -> void:
 			main.sim.set_speed(2.0)
 			main._on_alarm_pressed()
 			main.sim.set_speed(2.0)
-			var wh: bool = await _wait_phase(main, main.Phase.WON, 60 * 200)
+			var dump_fail: bool = await _wait_phase(main, main.Phase.FAILED, 60 * 240)
+			if not dump_fail or main.fail_reason != "escape":
+				push_error(
+					"SMOKE_WAREHOUSE_DUMP_NOT_FAIL phase=%s reason=%s tick=%s"
+					% [main.phase, main.fail_reason, main.sim.tick]
+				)
+				quit(12)
+				return
+			var dump_route := str(main.intel.latest_route()) if main.intel else ""
+			if dump_route != "flank":
+				push_error("SMOKE_WAREHOUSE_DUMP_ROUTE %s" % dump_route)
+				quit(12)
+				return
+			var dump_txt := str(main.result_label.text)
+			if dump_txt.find("改一处") < 0 or (dump_txt.find("东廊") < 0 and dump_txt.find("侧翼") < 0):
+				push_error("SMOKE_WAREHOUSE_DUMP_COPY %s" % dump_txt)
+				quit(12)
+				return
+			print(
+				"SMOKE_WAREHOUSE_DUMP_FAIL reason=", main.fail_reason,
+				" route=", dump_route,
+				" leaker=", main.intel.latest_leaker_id(),
+				" tick=", main.sim.tick
+			)
+			main._on_continue_pressed()
+			await process_frame
+			main._on_clear_pressed()
+			await process_frame
+			_deploy_ref(main, [1, 3, 5], [180.0, 0.0, 180.0])
+			if main.has_method("_play_hold_pack"):
+				main._play_hold_pack(1)
+			else:
+				push_error("SMOKE_NO_HOLD_PACK_HELPER")
+				quit(12)
+				return
+			if main.operators[1].fire_mode != OperatorUnit.FireMode.HOLD_FOR_AMBUSH or not main.operators[1].has_ammo_pack:
+				push_error(
+					"SMOKE_WAREHOUSE_HOLD_PACK_NOT_SET mode=%s pack=%s"
+					% [main.operators[1].fire_mode, main.operators[1].has_ammo_pack]
+				)
+				quit(12)
+				return
+			main.sim.set_speed(2.0)
+			main._on_alarm_pressed()
+			main.sim.set_speed(2.0)
+			var wh: bool = await _wait_phase(main, main.Phase.WON, 60 * 240)
 			if not wh:
 				push_error(
 					"SMOKE_WAREHOUSE_FAIL phase=%s reason=%s tick=%s"
@@ -422,6 +492,16 @@ func _run() -> void:
 				)
 				quit(12)
 				return
+			if not main.battle_log.has_type("ambush_armed") and not main.battle_log.has_type("repack"):
+				push_error("SMOKE_WAREHOUSE_HOOK_NOT_HOLD_PACK")
+				quit(12)
+				return
+			print(
+				"SMOKE_WAREHOUSE_HOLD_PACK_WIN tick=", main.sim.tick,
+				" ambush=", main.battle_log.has_type("ambush_armed"),
+				" repack=", main.battle_log.has_type("repack")
+			)
+			print("BLAST_RADIUS warehouse tick 824 -> ", main.sim.tick)
 			print("SMOKE_OK warehouse won tick=", main.sim.tick)
 			main._on_continue_pressed()
 			await process_frame
@@ -495,7 +575,7 @@ func _run() -> void:
 				push_error("SMOKE_NO_FLANK_SPAWN")
 				quit(16)
 				return
-			var alt_mark: Vector2 = main.grid.cell_to_world_center(Vector2i(11, 8))
+			var alt_mark: Vector2 = main.grid.cell_to_world_center(Vector2i(9, 8))
 			var spawn_has_alt := false
 			for p in flank_enemy.route:
 				if p.distance_to(alt_mark) < 1.0:
@@ -536,7 +616,52 @@ func _run() -> void:
 				quit(16)
 				return
 			print("SMOKE_OK_BRANCH_AFTER_DECISION")
-			var pl: bool = await _wait_phase(main, main.Phase.WON, 60 * 200)
+			var old_face: bool = await _wait_phase(main, main.Phase.FAILED, 60 * 240)
+			if not old_face or main.fail_reason != "escape":
+				push_error(
+					"SMOKE_PUMP_LOCKED_OLD_FACE_NOT_FAIL phase=%s reason=%s tick=%s"
+					% [main.phase, main.fail_reason, main.sim.tick]
+				)
+				quit(17)
+				return
+			var pump_route := str(main.intel.latest_route()) if main.intel else ""
+			var pump_fail_txt := str(main.result_label.text)
+			if pump_route != "alt" and pump_fail_txt.find("紫") < 0 and pump_fail_txt.find("备用") < 0:
+				push_error("SMOKE_PUMP_OLD_FACE_NOT_PURPLE route=%s txt=%s" % [pump_route, pump_fail_txt])
+				quit(17)
+				return
+			print(
+				"SMOKE_PUMP_LOCKED_OLD_FACE_FAIL reason=", main.fail_reason,
+				" route=", pump_route,
+				" tick=", main.sim.tick
+			)
+			main._on_continue_pressed()
+			await process_frame
+			if main.has_method("_refresh_checklist"):
+				main._refresh_checklist()
+			var pump_chip := str(main.checklist_strip_text()) if main.has_method("checklist_strip_text") else ""
+			if pump_chip.find("紫备用") < 0 and pump_chip.find("备用") < 0:
+				push_error("SMOKE_PUMP_NO_ALT_CHIP %s" % pump_chip)
+				quit(17)
+				return
+			if pump_chip.find("侧翼") >= 0:
+				push_error("SMOKE_PUMP_DEAD_ORANGE_CHIP %s" % pump_chip)
+				quit(17)
+				return
+			if main.has_method("leak_cover_ok") and bool(main.leak_cover_ok()):
+				push_error("SMOKE_PUMP_LEAK_COVER_NOT_RED %s" % pump_chip)
+				quit(17)
+				return
+			print("SMOKE_OK_PUMP_LEAK_CHIP ", pump_chip.replace("\n", " | "))
+			main._on_clear_pressed()
+			await process_frame
+			if not main.door_locked:
+				main._on_door_pressed()
+			_deploy_ref(main, [1, 4, 5], [90.0, 180.0, 180.0])
+			main.sim.set_speed(2.0)
+			main._on_alarm_pressed()
+			main.sim.set_speed(2.0)
+			var pl: bool = await _wait_phase(main, main.Phase.WON, 60 * 240)
 			if not pl:
 				push_error(
 					"SMOKE_PUMP_LOCKED_FAIL phase=%s reason=%s tick=%s"
@@ -544,6 +669,11 @@ func _run() -> void:
 				)
 				quit(17)
 				return
+			if not main.battle_log.has_type("route_choice"):
+				push_error("SMOKE_PUMP_WIN_NO_ROUTE_CHOICE")
+				quit(17)
+				return
+			print("BLAST_RADIUS pump_locked tick 1016 -> ", main.sim.tick)
 			print("SMOKE_OK pump_locked won tick=", main.sim.tick)
 			if not _assert_level_order(main, 5):
 				return
@@ -577,6 +707,40 @@ func _run() -> void:
 				return
 			if not _assert_railcut_contract(main):
 				return
+			# South-stack probe: 南折 + 南闸 + 西廊脊. Delayed east pair must leak.
+			_deploy_ref(main, [2, 5, 1], [0.0, 180.0, 270.0])
+			main.sim.set_speed(2.0)
+			main._on_alarm_pressed()
+			main.sim.set_speed(2.0)
+			var rc_stack: bool = await _wait_phase(main, main.Phase.FAILED, 60 * 240)
+			if not rc_stack or main.fail_reason != "escape":
+				push_error(
+					"SMOKE_RAILCUT_STACK_NOT_FAIL phase=%s reason=%s tick=%s"
+					% [main.phase, main.fail_reason, main.sim.tick]
+				)
+				quit(45)
+				return
+			var rc_route := str(main.intel.latest_route()) if main.intel else ""
+			var rc_leaker := int(main.intel.latest_leaker_id()) if main.intel else -1
+			if rc_route != "flank" or (rc_leaker != 3 and rc_leaker != 4):
+				push_error("SMOKE_RAILCUT_STACK_NOT_EAST route=%s leaker=%s" % [rc_route, rc_leaker])
+				quit(45)
+				return
+			var rc_fail_txt := str(main.result_label.text)
+			if rc_fail_txt.find("东廊") < 0 or rc_fail_txt.find("3.8") < 0:
+				push_error("SMOKE_RAILCUT_STACK_COPY %s" % rc_fail_txt)
+				quit(45)
+				return
+			print(
+				"SMOKE_RAILCUT_SOUTH_STACK_FAIL reason=", main.fail_reason,
+				" route=", rc_route,
+				" leaker=", rc_leaker,
+				" tick=", main.sim.tick
+			)
+			main._on_continue_pressed()
+			await process_frame
+			main._on_clear_pressed()
+			await process_frame
 			# Reference win (documented): rifle 西廊脊 slot1 face 270 (north up west spine),
 			# MG 东廊 slot4 face 270 (north up delayed east corridor), scout 南闸 slot5 face 180 (west).
 			# Core walls block cross-corridor LOS; ignoring the delayed east pair escapes (probe).
@@ -623,6 +787,52 @@ func _run() -> void:
 				return
 			if not _assert_depot_contract(main):
 				return
+			# No-trip probe: same guns, no 绊索. Sneak 敌3 at 2.2s must leak.
+			_deploy_ref(main, [1, 4, 5], [270.0, 270.0, 180.0])
+			main.sim.set_speed(2.0)
+			main._on_alarm_pressed()
+			main.sim.set_speed(2.0)
+			var depot_stack: bool = await _wait_phase(main, main.Phase.FAILED, 60 * 240)
+			if not depot_stack or main.fail_reason != "escape":
+				push_error(
+					"SMOKE_DEPOT_NOTRIP_NOT_FAIL phase=%s reason=%s tick=%s"
+					% [main.phase, main.fail_reason, main.sim.tick]
+				)
+				quit(48)
+				return
+			var dp_route := str(main.intel.latest_route()) if main.intel else ""
+			var dp_leaker := int(main.intel.latest_leaker_id()) if main.intel else -1
+			if dp_route != "sneak" or dp_leaker != 3:
+				push_error("SMOKE_DEPOT_NOTRIP_NOT_SNEAK route=%s leaker=%s" % [dp_route, dp_leaker])
+				quit(48)
+				return
+			var dp_fail_txt := str(main.result_label.text)
+			if dp_fail_txt.find("暗道") < 0 or dp_fail_txt.find("2.2") < 0:
+				push_error("SMOKE_DEPOT_NOTRIP_COPY %s" % dp_fail_txt)
+				quit(48)
+				return
+			print(
+				"SMOKE_DEPOT_NO_TRIP_FAIL reason=", main.fail_reason,
+				" route=", dp_route,
+				" leaker=", dp_leaker,
+				" tick=", main.sim.tick
+			)
+			main._on_continue_pressed()
+			await process_frame
+			if main.has_method("_refresh_checklist"):
+				main._refresh_checklist()
+			var sneak_chip := str(main.checklist_strip_text()) if main.has_method("checklist_strip_text") else ""
+			if sneak_chip.find("暗道") < 0:
+				push_error("SMOKE_DEPOT_SNEAK_CHIP_AFTER %s" % sneak_chip)
+				quit(48)
+				return
+			if main.has_method("leak_cover_ok") and bool(main.leak_cover_ok()):
+				push_error("SMOKE_DEPOT_LEAK_COVER_NOT_RED %s" % sneak_chip)
+				quit(48)
+				return
+			print("SMOKE_OK_DEPOT_SNEAK_CHIP ", sneak_chip.replace("\n", " | "))
+			main._on_clear_pressed()
+			await process_frame
 			# Rifle 主路脊 slot1 face 270, MG 东廊 slot4 face 270, scout 南闸 slot5 face 180.
 			# Tripwire on the west alley (7,11) so the delayed sneak does not leak.
 			_deploy_ref(main, [1, 4, 5], [270.0, 270.0, 180.0])
@@ -689,6 +899,8 @@ func _wait_phase(main, want, max_frames: int) -> bool:
 		if main.phase == want:
 			return true
 		if main.phase == main.Phase.FAILED:
+			return false
+		if main.phase == main.Phase.WON:
 			return false
 	return false
 
@@ -1068,9 +1280,16 @@ func _assert_depot_contract(main) -> bool:
 		push_error("SMOKE_DEPOT_SNEAK_NOT_DELAYED main_max=%s sneak_min=%s" % [max_main, min_sneak])
 		quit(48)
 		return false
+	if main.has_method("_refresh_checklist"):
+		main._refresh_checklist()
+	var depot_chip := str(main.checklist_strip_text()) if main.has_method("checklist_strip_text") else ""
+	if depot_chip.find("暗道") < 0 and depot_chip.find("sneak") < 0:
+		push_error("SMOKE_DEPOT_NO_SNEAK_CHIP %s" % depot_chip)
+		quit(48)
+		return false
 	print(
 		"SMOKE_OK_DEPOT_CONTRACT covers=6 routes=3 delayed_sneak=", min_sneak,
-		" trip_west_alley"
+		" trip_west_alley sneak_chip"
 	)
 	return true
 
@@ -2178,7 +2397,7 @@ func _assert_checklist(main) -> bool:
 		quit(56)
 		return false
 	var txt := str(main.checklist_strip_text()) if main.has_method("checklist_strip_text") else ""
-	if txt.find("已部署") < 0 or txt.find("射界覆盖主路") < 0 or txt.find("侧路有火力") < 0:
+	if txt.find("已部署") < 0 or txt.find("射界覆盖主路") < 0 or txt.find("侧翼") < 0:
 		push_error("SMOKE_CHECKLIST_LABELS %s" % txt)
 		quit(56)
 		return false
@@ -2354,6 +2573,30 @@ func _assert_teaching(main) -> bool:
 	if not _assert_payoff_copy(main):
 		return false
 	print("SMOKE_OK_TEACHING beats=5 timeline=1 callout=1 spawn_teach=1")
+	return true
+
+
+func _assert_feel_presence(main) -> bool:
+	var script := load("res://scripts/feel_gate.gd") as GDScript
+	if script == null:
+		push_error("SMOKE_NO_FEEL_GATE")
+		quit(70)
+		return false
+	if main.has_method("_ensure_night_grade"):
+		main._ensure_night_grade()
+	if main.has_method("_ensure_watch_cinema"):
+		main._ensure_watch_cinema()
+	for op in main.operators:
+		if op != null and op.has_method("_rebuild_cone"):
+			op._rebuild_cone()
+	var fails: PackedStringArray = script.evaluate(main)
+	if not script.has_watch_cinema(main):
+		fails.append("watch_cinema")
+	if not fails.is_empty():
+		push_error("SMOKE_FEEL_GATE %s" % ",".join(fails))
+		quit(70)
+		return false
+	print("SMOKE_OK_FEEL_GATE")
 	return true
 
 

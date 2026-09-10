@@ -58,6 +58,7 @@ var obs_tag: Label = null
 var role_glyph: Polygon2D = null
 var body_outline: Polygon2D = null
 var role_rim: Line2D = null
+var moon_rim: Line2D = null
 var weapon: Polygon2D = null
 var kit_gear: Polygon2D = null
 var kit_helm: Polygon2D = null
@@ -311,8 +312,10 @@ func _rebuild_cone() -> void:
 		body.polygon = poly
 		_ensure_body_outline()
 		_ensure_role_rim()
+		_ensure_moon_rim()
 		_ensure_weapon()
 		_ensure_kit_bits()
+		_ensure_contact_shadow()
 		if body_outline:
 			body_outline.rotation = body.rotation
 			body_outline.polygon = _inflate_poly(poly, _outline_pad())
@@ -418,6 +421,7 @@ func take_damage(amount: float, from_pos: Vector2 = Vector2.INF) -> void:
 
 func play_land_pop() -> void:
 	_land_pop = 1.0
+	CombatFxScript.land_dust(self, global_position)
 
 
 func set_selected_visual(on: bool) -> void:
@@ -638,6 +642,11 @@ func _apply_idle_bob() -> void:
 		role_rim.rotation = body.rotation if body else role_rim.rotation
 		if body:
 			role_rim.scale = body.scale
+	if moon_rim:
+		moon_rim.position = Vector2(1.3, -1.7) + Vector2(0.0, bob) + _recoil_off + _cover_lean
+		moon_rim.rotation = body.rotation if body else moon_rim.rotation
+		if body:
+			moon_rim.scale = body.scale
 	if role_glyph:
 		role_glyph.position = Vector2(15, -13 + bob * 0.4)
 	if weapon and is_instance_valid(weapon):
@@ -700,9 +709,9 @@ func _ensure_death_mark() -> void:
 	var pool := Polygon2D.new()
 	pool.name = "Pool"
 	pool.polygon = PackedVector2Array([
-		Vector2(-11, 6), Vector2(11, 6), Vector2(8, 14), Vector2(-8, 14)
+		Vector2(-14, 5), Vector2(14, 5), Vector2(10, 16), Vector2(-10, 16)
 	])
-	pool.color = Color(0.10, 0.08, 0.08, 0.78)
+	pool.color = Color(0.08, 0.06, 0.05, 0.82)
 	death_mark.add_child(pool)
 	var mark_c := role_kit_color(role).darkened(0.45)
 	var a := Line2D.new()
@@ -777,6 +786,10 @@ func _reset_present_fx() -> void:
 		role_rim.scale = Vector2.ONE
 		role_rim.position = Vector2.ZERO
 		role_rim.modulate = Color.WHITE
+	if moon_rim:
+		moon_rim.scale = Vector2.ONE
+		moon_rim.position = Vector2(1.3, -1.7)
+		moon_rim.modulate = Color.WHITE
 	if death_mark != null and is_instance_valid(death_mark):
 		death_mark.visible = false
 	if weapon != null and is_instance_valid(weapon):
@@ -817,6 +830,57 @@ func _ensure_body_outline() -> void:
 		move_child(body_outline, body.get_index())
 
 
+func _ensure_contact_shadow() -> void:
+	var sh := get_node_or_null("ContactShadow") as Polygon2D
+	if sh == null:
+		sh = Polygon2D.new()
+		sh.name = "ContactShadow"
+		sh.z_index = -4
+		sh.show_behind_parent = true
+		add_child(sh)
+		move_child(sh, 0)
+	var rx := 11.0
+	var ry := 5.2
+	match role:
+		Role.MG:
+			rx = 13.6
+			ry = 6.1
+		Role.SCOUT:
+			rx = 9.4
+			ry = 4.5
+		_:
+			rx = 11.2
+			ry = 5.2
+	var pts := PackedVector2Array()
+	for i in 16:
+		var a := TAU * float(i) / 16.0
+		pts.append(Vector2(cos(a) * rx, sin(a) * ry + 11.6))
+	sh.polygon = pts
+	sh.rotation = 0.0
+	sh.position = Vector2(2.6, 2.0)
+	var a0 := 0.52 if alive else 0.22
+	if _is_power_saving():
+		a0 *= 0.65
+	sh.color = Color(0.02, 0.03, 0.02, a0)
+	sh.visible = visible
+	var core := get_node_or_null("ContactShadowCore") as Polygon2D
+	if core == null:
+		core = Polygon2D.new()
+		core.name = "ContactShadowCore"
+		core.z_index = -3
+		core.show_behind_parent = true
+		add_child(core)
+		move_child(core, mini(1, get_child_count() - 1))
+	var cpts := PackedVector2Array()
+	for i in 10:
+		var a := TAU * float(i) / 10.0
+		cpts.append(Vector2(cos(a) * rx * 0.55, sin(a) * ry * 0.55 + 11.2))
+	core.polygon = cpts
+	core.position = Vector2(1.2, 1.0)
+	core.color = Color(0.01, 0.02, 0.01, a0 * 1.25)
+	core.visible = visible and not _is_power_saving()
+
+
 func _ensure_role_rim() -> void:
 	if role_rim != null and is_instance_valid(role_rim):
 		return
@@ -848,6 +912,41 @@ func _refresh_role_rim(poly: PackedVector2Array) -> void:
 	role_rim.visible = true
 	if body:
 		role_rim.rotation = body.rotation
+	_refresh_moon_rim(poly)
+
+
+func _ensure_moon_rim() -> void:
+	if moon_rim != null and is_instance_valid(moon_rim):
+		return
+	moon_rim = get_node_or_null("MoonRim") as Line2D
+	if moon_rim == null:
+		moon_rim = Line2D.new()
+		moon_rim.name = "MoonRim"
+		moon_rim.closed = false
+		moon_rim.joint_mode = Line2D.LINE_JOINT_ROUND
+		moon_rim.begin_cap_mode = Line2D.LINE_CAP_ROUND
+		moon_rim.end_cap_mode = Line2D.LINE_CAP_ROUND
+		moon_rim.z_index = 1
+		add_child(moon_rim)
+
+
+func _refresh_moon_rim(poly: PackedVector2Array) -> void:
+	_ensure_moon_rim()
+	if moon_rim == null:
+		return
+	var pts := _inflate_poly(poly, _outline_pad() + 2.2)
+	var lit := PackedVector2Array()
+	for p in pts:
+		if p.x + p.y < 2.0:
+			lit.append(p)
+	if lit.size() < 3:
+		lit = pts
+	moon_rim.points = lit
+	moon_rim.width = 1.4 if _is_power_saving() else 2.1
+	moon_rim.default_color = Color(0.90, 0.96, 0.74, 0.88 if alive else 0.28)
+	moon_rim.visible = alive
+	if body:
+		moon_rim.rotation = body.rotation
 
 
 func _inflate_poly(src: PackedVector2Array, pad: float) -> PackedVector2Array:
@@ -869,6 +968,8 @@ func _apply_body_modulate() -> void:
 			body_outline.modulate = Color(0.5, 0.5, 0.5, 0.7)
 		if role_rim:
 			role_rim.modulate = Color(0.55, 0.55, 0.55, 0.55)
+		if moon_rim:
+			moon_rim.modulate = Color(0.55, 0.55, 0.55, 0.45)
 		if weapon:
 			weapon.modulate = Color(0.5, 0.5, 0.52, 0.7)
 		if kit_helm:
@@ -898,7 +999,7 @@ func _apply_body_modulate() -> void:
 func _tint_figure_parts(flash: Color) -> void:
 	if body == null:
 		return
-	for nam in ["Head", "Visor", "LegL", "LegR", "ShoulderL", "ShoulderR", "TorsoShade", "ArmGun", "Cape", "FrontSight", "Sight"]:
+	for nam in ["Head", "Visor", "LegL", "LegR", "ShoulderL", "ShoulderR", "TorsoShade", "ArmGun", "Cape", "FrontSight", "Sight", "BootL", "BootR", "Hip", "Pack", "Collar", "MoonFill", "KitHelm", "KitGear"]:
 		var n := body.get_node_or_null(nam)
 		if n is CanvasItem:
 			(n as CanvasItem).modulate = flash

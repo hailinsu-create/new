@@ -40,6 +40,20 @@ func _build() -> void:
 	_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_hint)
 
+	var plate := ColorRect.new()
+	plate.name = "BarPlate"
+	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	plate.color = Color(0.04, 0.055, 0.045, 0.88)
+	plate.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	plate.offset_top = -156.0
+	root.add_child(plate)
+	var plate_rail := ColorRect.new()
+	plate_rail.name = "BarRail"
+	plate_rail.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	plate_rail.color = Color(0.62, 0.72, 0.38, 0.70)
+	plate_rail.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	plate_rail.offset_bottom = 3.0
+	plate.add_child(plate_rail)
 	_safe = MarginContainer.new()
 	_safe.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	_safe.anchor_top = 1.0

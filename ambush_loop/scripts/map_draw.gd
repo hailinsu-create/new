@@ -201,6 +201,7 @@ func _draw_static_into(c: CanvasItem) -> void:
 	_draw_floor_accent_stripe(c)
 	_draw_doorway_detail(c)
 	_draw_floor_stain_wash(c)
+	_draw_wall_ao(c)
 
 
 func _atmo() -> String:
@@ -310,6 +311,13 @@ func _draw_floor_tile(c: CanvasItem, rect: Rect2, x: int, y: int) -> void:
 		clampf(base.b + wobble, 0.0, 1.0)
 	)
 	c.draw_rect(rect, base)
+	# North bevel so asphalt reads as a slab, not a flat fill.
+	c.draw_line(
+		rect.position + Vector2(1, 1),
+		rect.position + Vector2(rect.size.x - 1, 1),
+		Color(base.r + 0.04, base.g + 0.05, base.b + 0.04, 0.35),
+		1.0
+	)
 	var dense := not _is_power_saving()
 	var grain: Color = pal["grain"]
 	if dense:
@@ -547,6 +555,35 @@ func _draw_floor_accent_stripe(c: CanvasItem) -> void:
 			c.draw_rect(Rect2(8.0 * t, 16.35 * t, 18.0 * t, 4.0), Color(0.16, 0.26, 0.16, 0.07))
 
 
+func _draw_wall_ao(c: CanvasItem) -> void:
+	if grid == null:
+		return
+	var t := float(AmbushGrid.TILE)
+	var south := Color(0.02, 0.03, 0.02, 0.50)
+	var south_hard := Color(0.01, 0.02, 0.01, 0.66)
+	var east := Color(0.03, 0.04, 0.03, 0.36)
+	var east_hard := Color(0.02, 0.02, 0.02, 0.48)
+	var inner := Color(0.01, 0.02, 0.01, 0.28)
+	for y in AmbushGrid.ROWS:
+		for x in AmbushGrid.COLS:
+			if not grid.is_blocked(x, y):
+				continue
+			if y + 1 < AmbushGrid.ROWS and not grid.is_blocked(x, y + 1):
+				c.draw_rect(Rect2(float(x) * t, float(y + 1) * t, t, 13.0), south)
+				c.draw_rect(Rect2(float(x) * t, float(y + 1) * t, t, 5.0), south_hard)
+			if x + 1 < AmbushGrid.COLS and not grid.is_blocked(x + 1, y):
+				c.draw_rect(Rect2(float(x + 1) * t, float(y) * t, 9.0, t), east)
+				c.draw_rect(Rect2(float(x + 1) * t, float(y) * t, 3.5, t), east_hard)
+			# Inner corner pit where two open floors meet a wall.
+			if y + 1 < AmbushGrid.ROWS and x + 1 < AmbushGrid.COLS:
+				if not grid.is_blocked(x, y + 1) and not grid.is_blocked(x + 1, y) and not grid.is_blocked(x + 1, y + 1):
+					c.draw_rect(Rect2(float(x + 1) * t, float(y + 1) * t, 14.0, 14.0), inner)
+	if grid.door_cell.x >= 0:
+		var dc := grid.door_cell
+		var r := Rect2(float(dc.x) * t, float(dc.y) * t, t, t)
+		c.draw_rect(r.grow(-3.0), Color(0.02, 0.03, 0.03, 0.40))
+
+
 func _draw_doorway_detail(c: CanvasItem) -> void:
 	## Doorway jamb and threshold on the authored door cell. Overlay only.
 	if grid == null or grid.door_cell.x < 0:
@@ -614,6 +651,8 @@ func _landmark_yard(c: CanvasItem) -> void:
 	c.draw_rect(win.grow(-6), Color(0.95, 0.68, 0.22, 0.55))
 	c.draw_rect(win.grow(-10), Color(1.0, 0.82, 0.40, 0.35))
 	c.draw_rect(win.grow(-6), Color(0.55, 0.32, 0.10, 0.8), false, 1.5)
+	_lamp_post(c, Vector2(10.6 * AmbushGrid.TILE, 8.4 * AmbushGrid.TILE), Color(0.82, 0.90, 0.62))
+	_lamp_post(c, Vector2(27.4 * AmbushGrid.TILE, 15.2 * AmbushGrid.TILE), Color(0.78, 0.86, 0.58))
 	# Courtyard crate-stack silhouette on the mid island (already blocked).
 	var crate := _cell_rect(19, 10, 3, 2)
 	c.draw_rect(crate.grow(-4), Color(0.28, 0.20, 0.10, 0.45))
@@ -647,6 +686,7 @@ func _landmark_warehouse(c: CanvasItem) -> void:
 		var p := Vector2(lamp.x * AmbushGrid.TILE + 16, lamp.y * AmbushGrid.TILE + 10)
 		c.draw_circle(p, 6.0, Color(0.22, 0.16, 0.08, 0.85))
 		c.draw_circle(p, 3.0, Color(0.95, 0.72, 0.22, 0.7))
+		_lamp_post(c, p + Vector2(0, 18), Color(0.95, 0.62, 0.14), false)
 	var t := AmbushGrid.TILE
 	# Forklift silhouette parked off the spine (open floor, not a collider).
 	var fk := Vector2(16.4 * t, 8.4 * t)
@@ -690,6 +730,8 @@ func _landmark_pump(c: CanvasItem) -> void:
 	# Puddle plates on walkable floor (not a collider).
 	c.draw_circle(Vector2(13.5 * t, 15.5 * t), 14.0, Color(0.12, 0.28, 0.26, 0.28))
 	c.draw_circle(Vector2(16.2 * t, 15.8 * t), 10.0, Color(0.12, 0.26, 0.24, 0.22))
+	_lamp_post(c, Vector2(10.4 * t, 14.2 * t), Color(0.32, 0.82, 0.62))
+	_lamp_post(c, Vector2(22.6 * t, 13.6 * t), Color(0.28, 0.78, 0.58))
 
 
 func _landmark_railcut(c: CanvasItem) -> void:
@@ -711,6 +753,8 @@ func _landmark_railcut(c: CanvasItem) -> void:
 	# Cable run along the north face of the core.
 	c.draw_line(Vector2(15.2 * t, 7.25 * t), Vector2(28.4 * t, 7.35 * t), Color(0.12, 0.12, 0.10, 0.7), 2.2, true)
 	c.draw_line(Vector2(15.2 * t, 7.45 * t), Vector2(28.4 * t, 7.55 * t), Color(0.22, 0.18, 0.10, 0.4), 1.4, true)
+	_lamp_post(c, Vector2(13.6 * t, 8.4 * t), Color(0.70, 0.80, 0.92))
+	_lamp_post(c, Vector2(32.4 * t, 8.4 * t), Color(0.70, 0.80, 0.92))
 	# Crossing gate bar at the south mouth — overlay, not a collider.
 	c.draw_rect(Rect2(29.4 * t, 17.35 * t, 4.2 * t, 5.0), Color(0.72, 0.18, 0.12, 0.42))
 	c.draw_rect(Rect2(29.4 * t, 17.35 * t, 18.0, 5.0), Color(0.92, 0.82, 0.22, 0.45))
@@ -746,6 +790,8 @@ func _landmark_depot(c: CanvasItem) -> void:
 			Color(0.92, 0.48, 0.10, 0.62)
 		)
 		c.draw_rect(Rect2(cx - 3, cy + 5, 6.0, 3.0), Color(0.12, 0.08, 0.04, 0.55))
+	_lamp_post(c, Vector2(12.4 * t, 8.6 * t), Color(0.55, 0.72, 0.82))
+	_lamp_post(c, Vector2(26.2 * t, 15.4 * t), Color(0.92, 0.48, 0.12))
 	# Chain-link shadow along the west alley wall (x=8-9 is blocked; sneak is x=7).
 	c.draw_rect(Rect2(8.15 * t, 7.2 * t, 6.0, 6.2 * t), Color(0.08, 0.10, 0.08, 0.28))
 	for i in 8:
@@ -876,6 +922,17 @@ func _silhouette_depot_tanks(c: CanvasItem) -> void:
 	c.draw_circle(b, 26.0, Color(0.18, 0.08, 0.04, 0.65))
 	c.draw_circle(b, 18.0, Color(0.36, 0.16, 0.06, 0.38))
 	c.draw_rect(Rect2(17.4 * t, 13.6 * t, 7.2 * t, 8.0), Color(0.22, 0.10, 0.04, 0.45))
+
+
+func _lamp_post(c: CanvasItem, p: Vector2, glow: Color, stem: bool = true) -> void:
+	## Decorative lamp. Overlay only — never writes grid.blocked.
+	if stem:
+		c.draw_rect(Rect2(p.x - 1.5, p.y - 22.0, 3.0, 22.0), Color(0.12, 0.10, 0.07, 0.85))
+		c.draw_rect(Rect2(p.x - 5.0, p.y - 26.0, 10.0, 6.0), Color(0.16, 0.14, 0.08, 0.90))
+	var saving := _is_power_saving()
+	c.draw_circle(p + Vector2(0, 10), 22.0 if saving else 28.0, Color(glow.r, glow.g, glow.b, 0.07 if saving else 0.12))
+	c.draw_circle(p, 5.0, Color(glow.r, glow.g, glow.b, 0.55 if saving else 0.72))
+	c.draw_circle(p, 2.2, Color(0.98, 0.96, 0.82, 0.85))
 
 
 func _frac(n: int) -> float:
