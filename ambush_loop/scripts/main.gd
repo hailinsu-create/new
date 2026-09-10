@@ -126,6 +126,12 @@ var sfx = null
 var mute_button: Button = null
 var _watch_first_fire: bool = false
 var _watch_first_return: bool = false
+var _kill_combo: int = 0
+var _last_kill_tick: int = -1
+var _payoff_callout: Node2D = null
+var _payoff_callout_tween: Tween = null
+var _last_payoff_kind: String = ""
+var _last_payoff_tick: int = -1
 var _restored_this_setup: bool = false
 var _plan_diff_guard: bool = false
 var plan_restore_hint: String = ""
@@ -274,10 +280,10 @@ func _resolve_optional_hud() -> void:
 	flash_label = Label.new()
 	flash_label.name = "FlashLabel"
 	flash_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	flash_label.offset_left = -200.0
-	flash_label.offset_right = 200.0
+	flash_label.offset_left = -280.0
+	flash_label.offset_right = 280.0
 	flash_label.offset_top = 72.0
-	flash_label.offset_bottom = 100.0
+	flash_label.offset_bottom = 104.0
 	flash_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	flash_label.add_theme_font_size_override("font_size", 18)
 	flash_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.35))
@@ -366,7 +372,7 @@ func _build_role_card_hud(root: Control) -> void:
 	dock.offset_left = 10.0
 	dock.offset_top = 78.0
 	dock.offset_right = 214.0
-	dock.offset_bottom = 430.0
+	dock.offset_bottom = 478.0
 	dock.add_theme_constant_override("separation", 8)
 	dock.mouse_filter = Control.MOUSE_FILTER_STOP
 	root.add_child(dock)
@@ -611,7 +617,7 @@ func _apply_phone_chrome(on: bool) -> void:
 		else:
 			root.offset_bottom = -pad.w
 	if role_box:
-		role_box.offset_bottom = 480.0 if on else 430.0
+		role_box.offset_bottom = 530.0 if on else 478.0
 	if plan_readout:
 		plan_readout.visible = not on
 	if route_legend:
@@ -622,7 +628,7 @@ func _apply_phone_chrome(on: bool) -> void:
 	tool_button.custom_minimum_size = Vector2(160, 48) if on else Vector2(160, 36)
 	for card in role_cards:
 		if card is Control:
-			(card as Control).custom_minimum_size = Vector2(220, 128) if on else Vector2(210, 122)
+			(card as Control).custom_minimum_size = Vector2(220, 142) if on else Vector2(210, 138)
 	_layout_checklist()
 
 
@@ -941,7 +947,14 @@ func _fill_result_stats() -> void:
 		esc = _route_zh_short(route) if route != "" else "有"
 	var ticks := battle_log.terminal_tick if battle_log and battle_log.terminal_tick >= 0 else sim.tick
 	var secs := float(ticks) / 60.0
-	result_stats.text = "世数  %d\n第一枪  %s\n逃逸  %s\n用时  %.1fs" % [loop_index, shot, esc, secs]
+	var hook := ""
+	if level != null:
+		hook = str(level.highlight_hook).strip_edges()
+	var shot_line := "第一枪是  %s" % shot
+	if hook != "":
+		result_stats.text = "世数  %d\n%s\n逃逸  %s\n用时  %.1fs\n高光  %s" % [loop_index, shot_line, esc, secs, hook]
+	else:
+		result_stats.text = "世数  %d\n%s\n逃逸  %s\n用时  %.1fs" % [loop_index, shot_line, esc, secs]
 	result_stats.visible = true
 	_apply_result_columns()
 
@@ -2003,6 +2016,9 @@ func _leak_result_line() -> String:
 	var delay := 0.0
 	if level != null and level.has_method("delay_for_actor"):
 		delay = float(level.delay_for_actor(lid))
+	var road := PayoffCopy.leak_road_name(level, route, false)
+	if road != "" and road != _route_zh_short(route):
+		return "漏网：%s · 敌%d · %.1fs出发 · %s" % [_route_zh_short(route), lid, delay, road]
 	return "漏网：%s · 敌%d · %.1fs出发" % [_route_zh_short(route), lid, delay]
 
 
@@ -2065,6 +2081,11 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 	all_spawns_done = false
 	_watch_first_fire = false
 	_watch_first_return = false
+	_kill_combo = 0
+	_last_kill_tick = -1
+	_last_payoff_kind = ""
+	_last_payoff_tick = -1
+	_clear_payoff_callout()
 	_restored_this_setup = false
 	plan_restore_hint = ""
 	_clear_enemies()
@@ -2842,8 +2863,9 @@ func _build_trap_callout() -> void:
 	n.z_index = 8
 	var plate := Polygon2D.new()
 	plate.name = "Plate"
+	var pw := clampf(20.0 + float(text.length()) * 15.0, 140.0, 380.0)
 	plate.polygon = PackedVector2Array([
-		Vector2(-8, -6), Vector2(132, -6), Vector2(132, 22), Vector2(-8, 22)
+		Vector2(-8, -6), Vector2(pw, -6), Vector2(pw, 22), Vector2(-8, 22)
 	])
 	plate.color = Color(0.06, 0.07, 0.04, 0.72)
 	n.add_child(plate)
@@ -3001,9 +3023,17 @@ func _make_barrel(pos: Vector2) -> Node2D:
 
 
 func _on_barrel_detonated(barrel: Node2D) -> void:
+	var hits := 0
+	for e in enemies:
+		if e != null and is_instance_valid(e) and e.alive:
+			if e.global_position.distance_to(barrel.global_position) <= ExplosiveBarrel.BLAST_RADIUS:
+				hits += 1
 	if phase == Phase.WATCHING or pending_result != "":
-		battle_log.add_event(sim.tick, "barrel", -1, -1, barrel.global_position)
-	_flash("油桶爆炸", Color(1.0, 0.45, 0.2))
+		battle_log.add_event(sim.tick, "barrel", -1, -1, barrel.global_position, {"hits": hits})
+	if hits > 0:
+		_announce_payoff("barrel", {"hits": hits}, barrel.global_position)
+	else:
+		_flash("油桶爆炸", Color(1.0, 0.45, 0.2))
 	_shake_for_explosion(barrel.global_position)
 	_update_event_log()
 
@@ -3022,6 +3052,8 @@ func _on_mode_pressed() -> void:
 	selected.cycle_fire_mode()
 	_refresh_mode_pack_buttons()
 	status_label.text = "%s 开火模式：%s" % [selected.display_name, selected.fire_mode_label()]
+	if selected.fire_mode == OperatorUnit.FireMode.HOLD_FOR_AMBUSH:
+		_announce_payoff("hold_mode", {"name": selected.display_name}, selected.global_position)
 	_announce_plan_edit()
 	_refresh_killzone_preview()
 	_update_hud()
@@ -3047,6 +3079,10 @@ func _on_pack_pressed() -> void:
 		selected.reset_loadout()
 		selected.set_facing(selected.facing_deg)
 		status_label.text = "%s 携带备用弹包（空弹自动补一次）" % selected.display_name
+		if selected.role == OperatorUnit.Role.MG:
+			_announce_payoff("pack_mg", {}, selected.global_position)
+		else:
+			_announce_payoff("pack_other", {"name": selected.display_name}, selected.global_position)
 	_refresh_mode_pack_buttons()
 	_announce_plan_edit()
 	_update_hud()
@@ -3068,6 +3104,8 @@ func _on_door_pressed() -> void:
 			op._rebuild_cone()
 	_update_cover_previews()
 	status_label.text = "门已锁闭 — 侧翼改走备用接近" if door_locked else "门保持畅通"
+	if door_locked:
+		_flash("锁门后紫线会改道 — 把青弧转过去", Color(0.78, 0.55, 1.0))
 	_announce_plan_edit()
 	_refresh_killzone_preview()
 	_update_hud()
@@ -3110,6 +3148,11 @@ func _on_alarm_pressed() -> void:
 	battle_log.clear()
 	_watch_first_fire = false
 	_watch_first_return = false
+	_kill_combo = 0
+	_last_kill_tick = -1
+	_last_payoff_kind = ""
+	_last_payoff_tick = -1
+	_clear_payoff_callout()
 	_sfx("alarm")
 	_alarm_edge_flash()
 	_alarm_cam_stinger()
@@ -3329,6 +3372,7 @@ func _sim_tick() -> void:
 				var victim: EnemyRunner = tw.sim_check(enemies)
 				if victim != null:
 					battle_log.add_event(sim.tick, "trip", victim.label_id, -1, tw.global_position)
+					_announce_payoff("trip", {"enemy_id": victim.label_id}, tw.global_position)
 					_update_event_log()
 			if phase != Phase.WATCHING:
 				_finish_sim_tick()
@@ -3367,12 +3411,17 @@ func _sim_tick() -> void:
 			if best != null and op.shot_cd <= 0.0 and op.can_engage(best.global_position, grid):
 				battle_log.add_event(
 					sim.tick, "fire", op.op_id, best.label_id, op.global_position,
-					{"name": op.display_name, "role": op.role_short}
+					{"name": op.display_name, "role": op.role_short, "codename": op.display_name}
 				)
 				if op.try_fire(best, grid):
 					if not _watch_first_fire:
 						_watch_first_fire = true
 						_sfx("fire")
+						_announce_payoff(
+							"first_fire",
+							{"name": op.display_name, "enemy_id": best.label_id},
+							op.global_position
+						)
 					if op.ammo <= 0:
 						battle_log.add_event(sim.tick, "empty", op.op_id)
 					_update_event_log()
@@ -3428,7 +3477,12 @@ func _try_enemy_branch(enemy: EnemyRunner) -> void:
 	var decision_world := grid.cell_to_world_center(level.decision_cell)
 	var alt := _cells_to_world(level.alternate_route_cells)
 	if enemy.maybe_branch(door_locked, decision_world, alt, level.door_blocks_route):
-		battle_log.add_event(sim.tick, "route_choice", enemy.label_id, -1, enemy.global_position)
+		var covered := _plan_covers_route("alt")
+		battle_log.add_event(
+			sim.tick, "route_choice", enemy.label_id, -1, enemy.global_position,
+			{"covered": covered}
+		)
+		_announce_payoff("route_choice", {"covered": covered, "enemy_id": enemy.label_id}, enemy.global_position)
 		_update_event_log()
 
 
@@ -3501,7 +3555,8 @@ func _tick_ambush_zone() -> void:
 			continue
 		if op.fire_mode == OperatorUnit.FireMode.HOLD_FOR_AMBUSH and not op.fire_permitted:
 			op.arm_ambush()
-			battle_log.add_event(sim.tick, "ambush_armed", op.op_id)
+			battle_log.add_event(sim.tick, "ambush_armed", op.op_id, -1, op.global_position, {"name": op.display_name})
+			_announce_payoff("ambush", {"name": op.display_name}, op.global_position)
 
 
 func _snapshot_data() -> Dictionary:
@@ -3607,6 +3662,17 @@ func _on_enemy_died(enemy: EnemyRunner) -> void:
 	_spawn_loot_at(enemy.global_position, enemy.loot_ammo)
 	if phase == Phase.WATCHING:
 		_kill_edge_flash()
+		if _last_kill_tick >= 0 and sim.tick - _last_kill_tick <= PayoffCopy.combo_window_ticks():
+			_kill_combo += 1
+		else:
+			_kill_combo = 1
+		_last_kill_tick = sim.tick
+		if _kill_combo >= 2:
+			_announce_payoff(
+				"combo",
+				{"combo": _kill_combo, "enemy_id": enemy.label_id},
+				enemy.global_position
+			)
 	_update_event_log()
 	if phase == Phase.WATCHING:
 		_check_win()
@@ -3656,10 +3722,22 @@ func _remember_path(path: PackedVector2Array, reason: String, hint: String = "",
 func _escape_route_hint(enemy: EnemyRunner) -> String:
 	if enemy == null:
 		return "漏网路线已标在地图上"
+	if bool(enemy.did_branch):
+		return "锁门后从西侧紫备用接近漏出"
+	var lid := int(enemy.label_id)
+	var delay := 0.0
+	if level != null and level.has_method("delay_for_actor") and lid >= 1:
+		delay = float(level.delay_for_actor(lid))
 	match enemy.spawn_route:
 		"flank":
+			if level != null and str(level.level_id) == "railcut":
+				return "侧翼奔袭从东廊漏出（晚 3.8 秒）"
+			if delay > 0.05:
+				return "侧翼奔袭从东廊漏出（敌%d · %.1fs出发）" % [lid, delay]
 			return "侧翼奔袭从东廊漏出"
 		"sneak":
+			if delay > 0.05:
+				return "西暗道影探从夹缝漏出（敌%d · %.1fs出发）" % [lid, delay]
 			return "西暗道影探从夹缝漏出"
 		_:
 			return "主路巡卫从南闸漏出"
@@ -3786,8 +3864,8 @@ func _on_op_ammo_empty(op: OperatorUnit) -> void:
 
 func _on_op_ammo_repacked(op: OperatorUnit) -> void:
 	if phase == Phase.WATCHING or pending_result != "":
-		battle_log.add_event(sim.tick, "repack", op.op_id)
-	_flash("%s 弹包补给" % op.display_name, Color(0.55, 0.9, 0.45))
+		battle_log.add_event(sim.tick, "repack", op.op_id, -1, op.global_position, {"name": op.display_name})
+	_announce_payoff("repack", {"name": op.display_name}, op.global_position)
 	_update_event_log()
 	_update_role_cards()
 
@@ -3797,11 +3875,114 @@ func _flash(text: String, color: Color) -> void:
 		return
 	if _flash_tween != null:
 		_flash_tween.kill()
+	if phase == Phase.WATCHING:
+		flash_label.offset_top = 118.0
+		flash_label.offset_bottom = 152.0
+	else:
+		flash_label.offset_top = 72.0
+		flash_label.offset_bottom = 104.0
 	flash_label.text = text
 	flash_label.add_theme_color_override("font_color", color)
 	flash_label.modulate = Color(1, 1, 1, 1)
 	_flash_tween = flash_label.create_tween()
-	_flash_tween.tween_property(flash_label, "modulate:a", 0.0, 1.2)
+	_flash_tween.tween_property(flash_label, "modulate:a", 0.0, 1.45)
+
+
+func _fix_one_line() -> String:
+	if fail_reason != "escape":
+		return ""
+	if level != null:
+		var authored := str(level.fix_one).strip_edges()
+		if authored != "":
+			return authored
+	return ""
+
+
+func highlight_result_text() -> String:
+	return PayoffCopy.highlight_result_line(level, battle_log, phase == Phase.WON)
+
+
+func payoff_callout_active() -> bool:
+	return _payoff_callout != null and is_instance_valid(_payoff_callout) and _payoff_callout.visible
+
+
+func _announce_payoff(kind: String, payload: Dictionary = {}, pos: Vector2 = Vector2.ZERO) -> void:
+	## Copy + camera hitch + world tag. Does not add battle_log events.
+	if kind == "":
+		return
+	if kind == _last_payoff_kind and sim.tick == _last_payoff_tick and kind != "combo":
+		return
+	_last_payoff_kind = kind
+	_last_payoff_tick = sim.tick
+	var text := PayoffCopy.watching_text(kind, payload)
+	if text == "":
+		return
+	var col := PayoffCopy.watching_color(kind)
+	_flash(text, col)
+	if phase == Phase.WATCHING and status_label:
+		status_label.text = text
+	var hitch := PayoffCopy.hitch_for(kind)
+	if hitch != Vector2.ZERO and not _is_power_saving() and phase == Phase.WATCHING:
+		_camera_punch(hitch)
+	if pos.length() > 4.0 and phase == Phase.WATCHING:
+		_spawn_payoff_callout(pos, text, col)
+	_sync_payoff_timelines()
+
+
+func _sync_payoff_timelines() -> void:
+	var marks: Array = PayoffCopy.timeline_marks(battle_log)
+	if watch_timeline != null and is_instance_valid(watch_timeline):
+		watch_timeline.set("payoff_marks", marks)
+		watch_timeline.queue_redraw()
+	if route_timeline != null and is_instance_valid(route_timeline) and route_timeline.visible:
+		route_timeline.set("payoff_marks", marks)
+		route_timeline.queue_redraw()
+
+
+func _clear_payoff_callout() -> void:
+	if _payoff_callout_tween != null:
+		_payoff_callout_tween.kill()
+		_payoff_callout_tween = null
+	if _payoff_callout != null and is_instance_valid(_payoff_callout):
+		_payoff_callout.queue_free()
+	_payoff_callout = null
+
+
+func _spawn_payoff_callout(pos: Vector2, text: String, color: Color) -> void:
+	_clear_payoff_callout()
+	var n := Node2D.new()
+	n.name = "PayoffCallout"
+	n.position = pos + Vector2(0, -28)
+	n.z_index = 12
+	var pw := clampf(18.0 + float(text.length()) * 14.0, 120.0, 420.0)
+	var plate := Polygon2D.new()
+	plate.polygon = PackedVector2Array([
+		Vector2(-8, -8), Vector2(pw, -8), Vector2(pw, 20), Vector2(-8, 20)
+	])
+	plate.color = Color(0.04, 0.05, 0.03, 0.78)
+	n.add_child(plate)
+	var lab := Label.new()
+	lab.name = "Tag"
+	lab.text = text
+	lab.position = Vector2(-2, -6)
+	lab.add_theme_font_size_override("font_size", 13)
+	lab.add_theme_font_override("font", NightOps.ui_font_bold())
+	lab.add_theme_color_override("font_color", color)
+	lab.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.02, 0.94))
+	lab.add_theme_constant_override("shadow_offset_x", 1)
+	lab.add_theme_constant_override("shadow_offset_y", 1)
+	lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	n.add_child(lab)
+	var world := get_node_or_null("World")
+	if world:
+		world.add_child(n)
+	else:
+		add_child(n)
+	_payoff_callout = n
+	_payoff_callout_tween = n.create_tween()
+	_payoff_callout_tween.tween_interval(1.15)
+	_payoff_callout_tween.tween_property(n, "modulate:a", 0.0, 0.28)
+	_payoff_callout_tween.tween_callback(_clear_payoff_callout)
 
 
 func _show_fail_result() -> void:
@@ -3827,12 +4008,20 @@ func _show_fail_result() -> void:
 	var wave := _next_wave_line()
 	var leak_line := _leak_result_line() if fail_reason == "escape" else ""
 	var leak_block := ("%s\n" % leak_line) if leak_line != "" else ""
-	result_label.text = "第 %d 世失败（%s）。\n%s\n%s\n%s%s\n%s\n穿梭后恢复上轮计划，满血满弹。\n%s\n\n—— 事件摘要（点击右侧日志定位）——\n%s" % [
+	var fix := _fix_one_line()
+	var hook := PayoffCopy.highlight_result_line(level, battle_log, false)
+	var extra := ""
+	if fix != "":
+		extra += "%s\n" % fix
+	if hook != "":
+		extra += "%s\n" % hook
+	result_label.text = "第 %d 世失败（%s）。\n%s\n%s\n%s%s%s\n%s\n穿梭后恢复上轮计划，满血满弹。\n%s\n\n—— 事件摘要（点击右侧日志定位）——\n%s" % [
 		loop_index,
 		reason_zh,
 		epitaph,
 		intel_line,
 		leak_block,
+		extra,
 		shot,
 		wave,
 		"逃逸口已在地图上闪烁。" if fail_reason == "escape" else "",
@@ -3875,8 +4064,10 @@ func _show_win_result() -> void:
 		var star := ""
 		if level and level.level_id == "yard" and not _mission_had_escape:
 			star = "\n★ 完美院子：零逃逸"
-		result_label.text = "任务完成。\n%s\n本关用了 %d 世。\n%s\n%s%s\n\n—— 关键事件 ——\n%s" % [
-			unlock, loop_index, epitaph, shot, star, "\n".join(lines)
+		var hook := PayoffCopy.highlight_result_line(level, battle_log, true)
+		var hook_block := ("\n%s" % hook) if hook != "" else ""
+		result_label.text = "任务完成。\n%s\n本关用了 %d 世。\n%s\n%s%s%s\n\n—— 关键事件 ——\n%s" % [
+			unlock, loop_index, epitaph, shot, hook_block, star, "\n".join(lines)
 		]
 		continue_button.text = "下一关"
 	else:
@@ -3885,8 +4076,10 @@ func _show_win_result() -> void:
 		var last_star := ""
 		if level and level.level_id == "yard" and not _mission_had_escape:
 			last_star = "\n★ 完美院子：零逃逸"
-		result_label.text = "全部关卡封锁完成。\n本关用了 %d 世。\n%s\n%s%s\n\n—— 关键事件 ——\n%s" % [
-			loop_index, epitaph, shot, last_star, "\n".join(lines)
+		var last_hook := PayoffCopy.highlight_result_line(level, battle_log, true)
+		var last_hook_block := ("\n%s" % last_hook) if last_hook != "" else ""
+		result_label.text = "全部关卡封锁完成。\n本关用了 %d 世。\n%s\n%s%s%s\n\n—— 关键事件 ——\n%s" % [
+			loop_index, epitaph, shot, last_hook_block, last_star, "\n".join(lines)
 		]
 		continue_button.text = "查看致谢"
 		_campaign_complete = true
@@ -4068,7 +4261,7 @@ func _first_shot_line() -> String:
 	if nm == "":
 		var op := _op_by_id(int(ev.get("actor_id", -1)))
 		nm = op.display_name if op else ("队员%d" % int(ev.get("actor_id", 0)))
-	return "第一枪：%s → 敌%d" % [nm, int(ev.get("target_id", 0))]
+	return PayoffCopy.first_shot_text(nm, int(ev.get("target_id", 0)))
 
 
 func _route_zh_short(route: String) -> String:
@@ -4157,6 +4350,7 @@ func _refresh_route_timeline(show: bool) -> void:
 	if level.has_method("route_spawn_marks"):
 		marks = level.route_spawn_marks()
 	route_timeline.set("marks", marks)
+	route_timeline.set("payoff_marks", PayoffCopy.timeline_marks(battle_log))
 	var tmax := 1.0
 	for m in marks:
 		tmax = maxf(tmax, float(m.get("delay", 0.0)) + 0.5)
@@ -4205,6 +4399,7 @@ func _refresh_watch_timeline() -> void:
 	if level.has_method("route_spawn_marks"):
 		marks = level.route_spawn_marks()
 	watch_timeline.set("marks", marks)
+	watch_timeline.set("payoff_marks", PayoffCopy.timeline_marks(battle_log) if phase == Phase.WATCHING else [])
 	var tmax := 1.0
 	for m in marks:
 		tmax = maxf(tmax, float(m.get("delay", 0.0)) + 0.5)
@@ -4648,10 +4843,14 @@ func _update_hud() -> void:
 	_refresh_decision_pulse()
 	var dep := _deployed_count()
 	if phase == Phase.SETUP:
-		help_label.text = "准备：左卡选灰狼/铁砧/夜枭。青弧=掩体保护方向。黄锥=墙裁切射界。红线=选中队员可打到的路线。观察环仅准备期。点掩体（%d/3）| 1/2/3 | A/D射界 | F开火 | G弹包 | B门 | Tab绊索 | M静音 | Esc菜单\n空格拉警报（锁死方案）。X中止留情报。时间轴复盘只读。R清空记忆。" % dep
+		var must := ""
+		if level != null:
+			must = str(level.must_bring).strip_edges()
+		var must_bit := ("必须带：%s " % must) if must != "" else ""
+		help_label.text = "准备：左卡选灰狼/铁砧/夜枭（卡上写本关身份）。%s青弧=掩体保护方向。黄锥=墙裁切射界。红线=选中队员可打到的路线。观察环仅准备期。点掩体（%d/3）| 1/2/3 | A/D射界 | F开火 | G弹包 | B门 | Tab绊索 | M静音 | Esc菜单\n空格拉警报（锁死方案）。X中止留情报。时间轴复盘只读。R清空记忆。" % [must_bit, dep]
 	elif phase == Phase.WATCHING:
 		var spd := "暂停" if sim.paused else ("2×" if sim.speed >= 1.5 else "1×")
-		help_label.text = "锁死看戏 t=%.1fs [%s]：优先打更接近逃逸口的目标；点事件可定位。X中止保留情报。暂停/变速只改观看。" % [sim.time_sec(), spd]
+		help_label.text = "锁死看戏 t=%.1fs [%s]：第一枪/连击/绊索/油桶/改线会喊出来。优先打更接近逃逸口的目标；点事件可定位。X中止保留情报。暂停/变速只改观看。" % [sim.time_sec(), spd]
 	elif phase == Phase.FAILED:
 		help_label.text = "失败原因：%s。情报已记录。点击右侧事件定位对象；逃逸口在失败时闪烁。打开时间轴或改朝向/掩体/开火条件后再警报。" % fail_reason
 	elif phase == Phase.WON:
@@ -4831,16 +5030,28 @@ func _update_role_cards() -> void:
 			card.visible = false
 			continue
 		var op: OperatorUnit = operators[i]
-		card.bind(op, op == selected, phase != Phase.REPLAY, phase == Phase.WATCHING)
+		var why := ""
+		if level != null and level.has_method("role_why_for"):
+			why = str(level.role_why_for(op.role))
+		card.bind(op, op == selected, phase != Phase.REPLAY, phase == Phase.WATCHING, why)
 	if plan_readout == null:
 		return
 	if selected == null:
 		plan_readout.text = ""
 	elif not selected.visible or selected.slot == null:
-		plan_readout.text = "选中 %s（未部署）\n%s" % [selected.display_name, selected.kit_blurb()]
+		var why0 := ""
+		if level != null and level.has_method("role_why_for"):
+			why0 = str(level.role_why_for(selected.role))
+		var why_bit := ("\n%s" % why0) if why0 != "" else ""
+		plan_readout.text = "选中 %s（未部署）\n%s%s" % [selected.display_name, selected.kit_blurb(), why_bit]
 	else:
-		plan_readout.text = "掩体「%s」保护弧朝%s（%d°）— 该方向来袭减伤60%%，侧背无减免。黄锥=墙体裁切射界。\n优先目标：距逃逸口剩余路程最短。" % [
+		var why1 := ""
+		if level != null and level.has_method("role_why_for"):
+			why1 = str(level.role_why_for(selected.role))
+		var why_line := ("\n%s" % why1) if why1 != "" else ""
+		plan_readout.text = "掩体「%s」保护弧朝%s（%d°）— 该方向来袭减伤60%%，侧背无减免。黄锥=墙体裁切射界。\n优先目标：距逃逸口剩余路程最短。%s" % [
 			selected.slot.label_text,
 			selected.slot.protect_compass(),
 			int(selected.slot.protect_facing_deg),
+			why_line,
 		]

@@ -1008,11 +1008,11 @@ func observation_ring_visible() -> bool:
 func kit_blurb() -> String:
 	match role:
 		Role.MG:
-			return "铁砧 · 宽射界·高射速·短距·耗弹快；侧背更危险"
+			return "铁砧 · 宽锥短距、耗弹最快；弹包第一优先。适合扫侧翼、等迟到走廊。"
 		Role.SCOUT:
-			return "夜枭 · 远距·窄扇区·弹少打重；适合出口/侧翼锁线。准备期淡青观察环=射程，不透视战斗"
+			return "夜枭 · 远距窄扇、弹少打重；锁出口/闸口。准备期淡青观察环=射程，不透视战斗。"
 		_:
-			return "灰狼 · 均衡步枪：补漏与持续压制"
+			return "灰狼 · 均衡步枪，主路补漏与第一枪。谁漏了就把他补上。"
 
 
 func facing_compass() -> String:

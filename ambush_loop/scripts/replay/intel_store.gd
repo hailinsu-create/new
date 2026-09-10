@@ -100,6 +100,12 @@ func leak_advice_line(level, route_zh: String) -> String:
 	var leak_sec := float(tick) / 60.0 if tick >= 0 else float(rec.get("cut_sec", 0.0))
 	var ahead := maxf(0.1, leak_sec - spawn_d)
 	var wing := route_zh if route_zh != "" else "侧翼"
+	var core := ""
 	if lid >= 1:
-		return "建议在 %.1f 秒前加强%s（敌%d）" % [ahead, wing, lid]
-	return "建议在 %.1f 秒前加强%s" % [ahead, wing]
+		core = "建议在 %.1f 秒前加强%s（敌%d）" % [ahead, wing, lid]
+	else:
+		core = "建议在 %.1f 秒前加强%s" % [ahead, wing]
+	var hint := str(rec.get("hint", "")).strip_edges()
+	if hint != "":
+		return "改一处就能赢：%s。%s" % [hint, core]
+	return "改一处就能赢：%s" % core
