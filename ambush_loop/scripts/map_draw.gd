@@ -201,6 +201,7 @@ func _draw_static_into(c: CanvasItem) -> void:
 	_draw_floor_accent_stripe(c)
 	_draw_doorway_detail(c)
 	_draw_floor_stain_wash(c)
+	_draw_wall_ao(c)
 
 
 func _atmo() -> String:
@@ -545,6 +546,28 @@ func _draw_floor_accent_stripe(c: CanvasItem) -> void:
 		_:
 			c.draw_rect(Rect2(22.0 * t, 4.55 * t, 14.0 * t, 5.0), Color(0.62, 0.78, 0.52, 0.08))
 			c.draw_rect(Rect2(8.0 * t, 16.35 * t, 18.0 * t, 4.0), Color(0.16, 0.26, 0.16, 0.07))
+
+
+func _draw_wall_ao(c: CanvasItem) -> void:
+	if grid == null:
+		return
+	var t := float(AmbushGrid.TILE)
+	var south := Color(0.02, 0.03, 0.02, 0.42)
+	var south_hard := Color(0.01, 0.02, 0.01, 0.58)
+	var east := Color(0.03, 0.04, 0.03, 0.30)
+	for y in AmbushGrid.ROWS:
+		for x in AmbushGrid.COLS:
+			if not grid.is_blocked(x, y):
+				continue
+			if y + 1 < AmbushGrid.ROWS and not grid.is_blocked(x, y + 1):
+				c.draw_rect(Rect2(float(x) * t, float(y + 1) * t, t, 11.0), south)
+				c.draw_rect(Rect2(float(x) * t, float(y + 1) * t, t, 4.0), south_hard)
+			if x + 1 < AmbushGrid.COLS and not grid.is_blocked(x + 1, y):
+				c.draw_rect(Rect2(float(x + 1) * t, float(y) * t, 7.0, t), east)
+	if grid.door_cell.x >= 0:
+		var dc := grid.door_cell
+		var r := Rect2(float(dc.x) * t, float(dc.y) * t, t, t)
+		c.draw_rect(r.grow(-3.0), Color(0.02, 0.03, 0.03, 0.34))
 
 
 func _draw_doorway_detail(c: CanvasItem) -> void:
