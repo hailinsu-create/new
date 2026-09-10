@@ -89,6 +89,10 @@ static func evaluate(main) -> PackedStringArray:
 		fails.append("night_grade")
 	else:
 		print("FEEL_OK_NIGHT_GRADE")
+	if main.get_node_or_null("World/NightKeys") == null:
+		fails.append("night_keys")
+	else:
+		print("FEEL_OK_NIGHT_KEYS")
 	if main.get_node_or_null("World/MissionSky") == null:
 		fails.append("mission_sky")
 	else:

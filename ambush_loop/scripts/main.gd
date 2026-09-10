@@ -407,7 +407,7 @@ func _build_role_card_hud(root: Control) -> void:
 	dock.offset_left = 10.0
 	dock.offset_top = 78.0
 	dock.offset_right = 214.0
-	dock.offset_bottom = 478.0
+	dock.offset_bottom = 438.0
 	dock.add_theme_constant_override("separation", 8)
 	dock.mouse_filter = Control.MOUSE_FILTER_STOP
 	root.add_child(dock)
@@ -472,6 +472,7 @@ func _build_role_card_hud(root: Control) -> void:
 	spawn_teach_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(spawn_teach_label)
 	_ensure_checklist(root)
+	_pin_role_cards(_want_touch())
 
 
 func _build_modals() -> void:
@@ -636,8 +637,7 @@ func _apply_phone_chrome(on: bool) -> void:
 	if help_label:
 		# Docked one-liner stays in ExtraBar's band; never a south map wall.
 		help_label.visible = (not on) and phase == Phase.SETUP
-	if tut_label:
-		tut_label.visible = not on
+	_hide_duplicate_tut()
 	if spawn_teach_label:
 		spawn_teach_label.offset_top = 104.0 if on else 108.0
 		spawn_teach_label.offset_bottom = 132.0 if on else 136.0
@@ -653,8 +653,6 @@ func _apply_phone_chrome(on: bool) -> void:
 			root.offset_bottom = -pad.w - 150.0
 		else:
 			root.offset_bottom = -pad.w
-	if role_box:
-		role_box.offset_bottom = 530.0 if on else 478.0
 	if plan_readout:
 		plan_readout.visible = not on
 	if route_legend:
@@ -663,10 +661,41 @@ func _apply_phone_chrome(on: bool) -> void:
 	alarm_button.custom_minimum_size = Vector2(180, 48) if on else Vector2(180, 36)
 	clear_button.custom_minimum_size = Vector2(120, 48) if on else Vector2(120, 36)
 	tool_button.custom_minimum_size = Vector2(160, 48) if on else Vector2(160, 36)
+	_pin_role_cards(on)
+	_layout_checklist()
+
+
+func _hide_duplicate_tut() -> void:
+	## Overlay + spawn-teach chip already teach. Keep TutLabel text for
+	## debug/smoke but never paint the south-map plate on desktop or phone.
+	if tut_label:
+		tut_label.visible = false
+	var plate := get_node_or_null("HUD/Root/TutPlate") as ColorRect
+	if plate:
+		plate.visible = false
+
+
+func _pin_role_cards(touch: bool) -> void:
+	## Art 5.0 pinned cards to content height so 夜枭 does not stretch across
+	## the checklist. Phone chrome used to inflate desktop cards to 138px and
+	## leave a 400px dock well; restore content height whenever touch is off.
+	var card_min := Vector2(220, 142) if touch else Vector2(204, 96)
 	for card in role_cards:
 		if card is Control:
-			(card as Control).custom_minimum_size = Vector2(220, 142) if on else Vector2(210, 138)
-	_layout_checklist()
+			var c := card as Control
+			c.custom_minimum_size = card_min
+			c.size_flags_vertical = 0
+	if role_box == null or not is_instance_valid(role_box):
+		return
+	role_box.size_flags_vertical = 0
+	var h := 0.0
+	if role_box is Container:
+		h = (role_box as Container).get_combined_minimum_size().y
+	if h < 200.0:
+		var seps := 16.0
+		var plan_h := 0.0 if touch else 56.0
+		h = 3.0 * card_min.y + seps + plan_h
+	role_box.offset_bottom = role_box.offset_top + h
 
 
 func _safe_area_pad() -> Vector4:
@@ -2176,6 +2205,7 @@ func _layout_checklist() -> void:
 		checklist_strip.anchor_bottom = 0.0
 		var top := 438.0
 		if role_box != null and is_instance_valid(role_box):
+			# Sit under 夜枭 / plan readout, not across a 400px card well.
 			top = role_box.offset_bottom + 4.0
 		var vis_h := get_viewport().get_visible_rect().size.y
 		var parent_h := vis_h
@@ -5408,11 +5438,7 @@ func _update_hud() -> void:
 		level_label.text = lv_title
 	if tut_label and level:
 		tut_label.text = level.tutorial if phase == Phase.SETUP else level.teaching
-		# Duplicate of help_label + tutorial overlay. Keep the string for smoke/debug, hide the plate.
-		tut_label.visible = false
-		var plate := get_node_or_null("HUD/Root/TutPlate") as ColorRect
-		if plate:
-			plate.visible = false
+	_hide_duplicate_tut()
 	if help_label:
 		# One-line in the bottom-left chrome. Hidden while watching so the
 		# letterbox and escape mouth stay clear. Never a paragraph over the map.
