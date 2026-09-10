@@ -9,11 +9,17 @@ const OUT_B := "/tmp/ambush-feel/.audit"
 
 
 func _init() -> void:
+	print("DUMP_INIT")
 	call_deferred("_run")
 
 
 func _run() -> void:
+	print("DUMP_RUN")
+	if DisplayServer.get_name() != "headless":
+		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+	Engine.max_fps = 60
 	_wipe_save()
+	print("DUMP_WIPED")
 	DirAccess.make_dir_recursive_absolute(OUT_A)
 	DirAccess.make_dir_recursive_absolute(OUT_B)
 	var err := change_scene_to_file("res://scenes/title.tscn")
@@ -21,9 +27,11 @@ func _run() -> void:
 		push_error("DUMP_NO_TITLE")
 		quit(2)
 		return
+	print("DUMP_TITLE_SCENE err=", err)
 	for i in 16:
 		await process_frame
 	await RenderingServer.frame_post_draw
+	print("DUMP_TITLE_FRAMES")
 	_save("title")
 	err = change_scene_to_file("res://scenes/main.tscn")
 	if err != OK:
@@ -37,6 +45,7 @@ func _run() -> void:
 	for i in 10:
 		await process_frame
 	await RenderingServer.frame_post_draw
+	_save("setup_clear")
 	_save("setup")
 	if main.has_method("_on_alarm_pressed"):
 		main._on_alarm_pressed()

@@ -274,6 +274,7 @@ func _resolve_optional_hud() -> void:
 	settings_button.pressed.connect(_toggle_pause_menu)
 	log_button = _make_hud_btn("LogButton", "日志", extra)
 	log_button.pressed.connect(_toggle_event_log)
+	_dock_setup_help()
 
 	speed_button.pressed.connect(_on_speed_pressed)
 	pause_button.pressed.connect(_on_pause_pressed)
@@ -631,7 +632,8 @@ func _apply_phone_chrome(on: bool) -> void:
 	if extra_bar:
 		extra_bar.visible = not on
 	if help_label:
-		help_label.visible = not on
+		# Docked one-liner stays in ExtraBar's band; never a south map wall.
+		help_label.visible = (not on) and phase == Phase.SETUP
 	if tut_label:
 		tut_label.visible = not on
 	if spawn_teach_label:
@@ -1180,6 +1182,32 @@ func _ensure_presentation_fx() -> void:
 		root.add_child(_sig_wash)
 	_ensure_watch_cinema()
 	_ensure_fail_static()
+
+
+func _dock_setup_help() -> void:
+	## Collapse the old full-width south paragraph into a one-line hint that
+	## sits in the left extra-bar band. Role cards, map callouts, and buttons
+	## already teach; the courtyard (南廊 / 中庭 / 逃逸口) must stay readable.
+	if help_label == null:
+		return
+	help_label.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	help_label.anchor_left = 0.0
+	help_label.anchor_top = 1.0
+	help_label.anchor_right = 0.0
+	help_label.anchor_bottom = 1.0
+	help_label.offset_left = 10.0
+	help_label.offset_right = 214.0
+	help_label.offset_top = -52.0
+	help_label.offset_bottom = -16.0
+	help_label.grow_horizontal = Control.GROW_DIRECTION_END
+	help_label.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	help_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	help_label.clip_text = true
+	help_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	help_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	help_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	help_label.add_theme_font_size_override("font_size", 12)
+	help_label.add_theme_color_override("font_color", Color(0.70, 0.74, 0.66, 0.90))
 
 
 func _ensure_tut_plate(root: Control) -> void:
@@ -5175,7 +5203,9 @@ func _update_hud() -> void:
 		if plate:
 			plate.visible = false
 	if help_label:
-		help_label.visible = phase != Phase.WATCHING and not _want_touch()
+		# One-line in the bottom-left chrome. Hidden while watching so the
+		# letterbox and escape mouth stay clear. Never a paragraph over the map.
+		help_label.visible = phase == Phase.SETUP and not _want_touch()
 	_refresh_spawn_teach()
 	var intel_txt := "漏网记忆：%d   |   %s" % [intel.records.size(), _ammo_summary()]
 	if intel.latest_line() != "" and (phase == Phase.SETUP or phase == Phase.FAILED):
@@ -5190,20 +5220,16 @@ func _update_hud() -> void:
 	_refresh_decision_pulse()
 	var dep := _deployed_count()
 	if phase == Phase.SETUP:
-		var must := ""
-		if level != null:
-			must = str(level.must_bring).strip_edges()
-		var must_bit := ("必须带：%s " % must) if must != "" else ""
-		help_label.text = "准备：左卡选灰狼/铁砧/夜枭（卡上写本关身份）。%s青弧=掩体保护方向。黄锥=墙裁切射界。红线=选中队员可打到的路线。观察环仅准备期。点掩体（%d/3）| 1/2/3 | A/D射界 | F开火 | G弹包 | B门 | Tab绊索 | M静音 | Esc菜单\n空格拉警报（锁死方案）。X中止留情报。时间轴复盘只读。R清空记忆。" % [must_bit, dep]
+		help_label.text = "点掩体 %d/3 · A/D射界 · 空格警报" % dep
 	elif phase == Phase.WATCHING:
 		var spd := "暂停" if sim.paused else ("2×" if sim.speed >= 1.5 else "1×")
-		help_label.text = "锁死看戏 t=%.1fs [%s]：第一枪/连击/绊索/油桶/改线会喊出来。优先打更接近逃逸口的目标；点事件可定位。X中止保留情报。暂停/变速只改观看。" % [sim.time_sec(), spd]
+		help_label.text = "锁死 t=%.1fs %s" % [sim.time_sec(), spd]
 	elif phase == Phase.FAILED:
-		help_label.text = "失败原因：%s。情报已记录。点击右侧事件定位对象；逃逸口在失败时闪烁。打开时间轴或改朝向/掩体/开火条件后再警报。" % fail_reason
+		help_label.text = "失败：%s" % fail_reason
 	elif phase == Phase.WON:
-		help_label.text = "战前准备决定战斗。可回看只读时间轴；点击事件定位。"
+		help_label.text = "封锁成功 · 时间轴只读"
 	elif phase == Phase.REPLAY:
-		help_label.text = "复盘只读 t=%.1fs / %.1fs — 点击事件定位并跳到该时刻。不重演模拟、不改写下一世计划。空格返回。Esc 菜单。" % [
+		help_label.text = "复盘 t=%.1fs / %.1fs" % [
 			float(replay.scrub_tick) / 60.0, float(replay.max_tick()) / 60.0
 		]
 	_refresh_door_visual()
