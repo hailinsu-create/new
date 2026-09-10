@@ -5169,10 +5169,11 @@ func _update_hud() -> void:
 		level_label.text = lv_title
 	if tut_label and level:
 		tut_label.text = level.tutorial if phase == Phase.SETUP else level.teaching
-		tut_label.visible = phase == Phase.SETUP and not _want_touch()
+		# Duplicate of help_label + tutorial overlay. Keep the string for smoke/debug, hide the plate.
+		tut_label.visible = false
 		var plate := get_node_or_null("HUD/Root/TutPlate") as ColorRect
 		if plate:
-			plate.visible = tut_label.visible and tut_label.text.strip_edges() != ""
+			plate.visible = false
 	if help_label:
 		help_label.visible = phase != Phase.WATCHING and not _want_touch()
 	_refresh_spawn_teach()
