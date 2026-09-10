@@ -3379,6 +3379,20 @@ func _deployed_count() -> int:
 	return n
 
 
+func _play_hold_pack(op_index: int) -> void:
+	if phase != Phase.SETUP:
+		return
+	if op_index < 0 or op_index >= operators.size():
+		return
+	_select_op(op_index)
+	if selected == null or not selected.visible:
+		return
+	if selected.fire_mode != OperatorUnit.FireMode.HOLD_FOR_AMBUSH:
+		_on_mode_pressed()
+	if level != null and level.has_ammo_pack and not selected.has_ammo_pack:
+		_on_pack_pressed()
+
+
 func _on_mode_pressed() -> void:
 	if phase != Phase.SETUP or selected == null or not selected.visible:
 		return

@@ -166,7 +166,7 @@ static func hook_hit(level: Variant, log: Variant) -> bool:
 		return false
 	match str(level.level_id):
 		"warehouse":
-			return log.has_type("ambush_armed") or log.has_type("repack") or _barrel_hit_someone(log)
+			return log.has_type("ambush_armed") or log.has_type("repack")
 		"pump":
 			return log.has_type("route_choice")
 		"railcut":
@@ -222,15 +222,6 @@ static func _combo_peak_ticks(log: Variant) -> Array:
 		if run == 2:
 			ticks.append(t)
 	return ticks
-
-
-static func _barrel_hit_someone(log: Variant) -> bool:
-	if log == null or not log.has_method("first_of_type"):
-		return false
-	var ev: Dictionary = log.first_of_type("barrel")
-	if ev.is_empty():
-		return false
-	return int(ev.get("payload", {}).get("hits", 0)) > 0
 
 
 static func _delayed_flank_shot(log: Variant, delay_sec: float) -> bool:

@@ -403,7 +403,7 @@ func _run() -> void:
 				push_error("SMOKE_WAREHOUSE_NO_BARREL n=%s" % main.barrels.size())
 				quit(31)
 				return
-			if main.level.barrel_cell != Vector2i(32, 10):
+			if main.level.barrel_cell != Vector2i(22, 8):
 				push_error("SMOKE_BARREL_CELL %s" % str(main.level.barrel_cell))
 				quit(31)
 				return
@@ -416,7 +416,52 @@ func _run() -> void:
 			main.sim.set_speed(2.0)
 			main._on_alarm_pressed()
 			main.sim.set_speed(2.0)
-			var wh: bool = await _wait_phase(main, main.Phase.WON, 60 * 200)
+			var dump_fail: bool = await _wait_phase(main, main.Phase.FAILED, 60 * 240)
+			if not dump_fail or main.fail_reason != "escape":
+				push_error(
+					"SMOKE_WAREHOUSE_DUMP_NOT_FAIL phase=%s reason=%s tick=%s"
+					% [main.phase, main.fail_reason, main.sim.tick]
+				)
+				quit(12)
+				return
+			var dump_route := str(main.intel.latest_route()) if main.intel else ""
+			if dump_route != "flank":
+				push_error("SMOKE_WAREHOUSE_DUMP_ROUTE %s" % dump_route)
+				quit(12)
+				return
+			var dump_txt := str(main.result_label.text)
+			if dump_txt.find("改一处") < 0 or (dump_txt.find("东廊") < 0 and dump_txt.find("侧翼") < 0):
+				push_error("SMOKE_WAREHOUSE_DUMP_COPY %s" % dump_txt)
+				quit(12)
+				return
+			print(
+				"SMOKE_WAREHOUSE_DUMP_FAIL reason=", main.fail_reason,
+				" route=", dump_route,
+				" leaker=", main.intel.latest_leaker_id(),
+				" tick=", main.sim.tick
+			)
+			main._on_continue_pressed()
+			await process_frame
+			main._on_clear_pressed()
+			await process_frame
+			_deploy_ref(main, [1, 3, 5], [180.0, 0.0, 180.0])
+			if main.has_method("_play_hold_pack"):
+				main._play_hold_pack(1)
+			else:
+				push_error("SMOKE_NO_HOLD_PACK_HELPER")
+				quit(12)
+				return
+			if main.operators[1].fire_mode != OperatorUnit.FireMode.HOLD_FOR_AMBUSH or not main.operators[1].has_ammo_pack:
+				push_error(
+					"SMOKE_WAREHOUSE_HOLD_PACK_NOT_SET mode=%s pack=%s"
+					% [main.operators[1].fire_mode, main.operators[1].has_ammo_pack]
+				)
+				quit(12)
+				return
+			main.sim.set_speed(2.0)
+			main._on_alarm_pressed()
+			main.sim.set_speed(2.0)
+			var wh: bool = await _wait_phase(main, main.Phase.WON, 60 * 240)
 			if not wh:
 				push_error(
 					"SMOKE_WAREHOUSE_FAIL phase=%s reason=%s tick=%s"
@@ -424,6 +469,16 @@ func _run() -> void:
 				)
 				quit(12)
 				return
+			if not main.battle_log.has_type("ambush_armed") and not main.battle_log.has_type("repack"):
+				push_error("SMOKE_WAREHOUSE_HOOK_NOT_HOLD_PACK")
+				quit(12)
+				return
+			print(
+				"SMOKE_WAREHOUSE_HOLD_PACK_WIN tick=", main.sim.tick,
+				" ambush=", main.battle_log.has_type("ambush_armed"),
+				" repack=", main.battle_log.has_type("repack")
+			)
+			print("BLAST_RADIUS warehouse tick 824 -> ", main.sim.tick)
 			print("SMOKE_OK warehouse won tick=", main.sim.tick)
 			main._on_continue_pressed()
 			await process_frame
@@ -691,6 +746,8 @@ func _wait_phase(main, want, max_frames: int) -> bool:
 		if main.phase == want:
 			return true
 		if main.phase == main.Phase.FAILED:
+			return false
+		if main.phase == main.Phase.WON:
 			return false
 	return false
 
