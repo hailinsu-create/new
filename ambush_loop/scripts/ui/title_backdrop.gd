@@ -98,15 +98,20 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	var sz := get_viewport_rect().size
-	draw_rect(Rect2(Vector2.ZERO, sz), NightOps.BG)
+	draw_rect(Rect2(Vector2.ZERO, sz), Color(0.028, 0.038, 0.032))
 	# Bottom olive wash (not a purple gradient).
-	for i in 10:
-		var a := 0.035 + float(i) * 0.008
+	for i in 14:
+		var a := 0.045 + float(i) * 0.012
 		draw_rect(
-			Rect2(0.0, sz.y - float(10 - i) * 22.0, sz.x, 22.0),
-			Color(0.12, 0.16, 0.08, a)
+			Rect2(0.0, sz.y - float(14 - i) * 22.0, sz.x, 24.0),
+			Color(0.10, 0.14, 0.07, a)
 		)
-	draw_rect(Rect2(0.0, 0.0, sz.x, 90.0), Color(0.02, 0.03, 0.03, 0.35))
+	draw_rect(Rect2(0.0, 0.0, sz.x, 110.0), Color(0.01, 0.02, 0.02, 0.48))
+	var moon := Vector2(sz.x * 0.84, 78.0)
+	draw_circle(moon, 64.0, Color(0.78, 0.86, 0.64, 0.10))
+	draw_circle(moon, 28.0, Color(0.88, 0.94, 0.72, 0.22))
+	draw_circle(moon, 11.0, Color(0.96, 0.98, 0.86, 0.72))
+	draw_rect(Rect2(sz.x * 0.55, 0.0, sz.x * 0.45, 160.0), Color(0.72, 0.80, 0.58, 0.05))
 	var step := 44.0
 	var drift := fmod(t * 6.0, step)
 	var grid_c := Color(0.22, 0.28, 0.18, 0.11)
@@ -140,9 +145,9 @@ func _draw() -> void:
 			var pa := 0.12 + 0.16 * _frac(i + 19)
 			draw_circle(Vector2(px, py), 1.0 + _frac(i) * 1.4, Color(0.90, 0.84, 0.42, pa))
 	# Soft vignette — darken edges, keep the wordmark readable.
-	for i in 10:
-		var inset := float(i) * 16.0
-		var va := 0.045
+	for i in 14:
+		var inset := float(i) * 18.0
+		var va := 0.06
 		draw_rect(Rect2(0.0, 0.0, sz.x, inset), Color(0.01, 0.02, 0.02, va))
 		draw_rect(Rect2(0.0, sz.y - inset, sz.x, inset), Color(0.01, 0.02, 0.02, va))
 		draw_rect(Rect2(0.0, 0.0, inset, sz.y), Color(0.01, 0.02, 0.02, va))
