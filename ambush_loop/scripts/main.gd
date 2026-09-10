@@ -112,6 +112,8 @@ var plan_readout: Label = null
 var phase_chip: Label = null
 var route_legend: Control = null
 var _alarm_vignette: ColorRect = null
+var _watch_letterbox: Control = null
+var _watch_vignette: Control = null
 var _tracer_pool: Array = []
 var _tracer_live: Array = []
 var _phase_chip_tween: Tween = null
@@ -1047,6 +1049,20 @@ func _apply_watch_layers() -> void:
 		ghosts.modulate = Color.WHITE
 	if sfx and sfx.has_method("set_watch_bed"):
 		sfx.set_watch_bed(phase == Phase.WATCHING)
+	_ensure_watch_cinema()
+	var cinema := phase == Phase.WATCHING
+	if _watch_letterbox:
+		_watch_letterbox.visible = cinema
+		var banner := _watch_letterbox.get_node_or_null("WatchBanner") as Label
+		if banner:
+			var spd := "暂停" if sim.paused else ("2×" if sim.speed >= 1.5 else "1×")
+			banner.text = "锁死观战  ·  %s  ·  t=%.1fs" % [spd, sim.time_sec()]
+	if _watch_vignette:
+		_watch_vignette.visible = cinema
+	if title_label:
+		title_label.visible = not cinema
+	if phase_chip:
+		phase_chip.visible = not cinema
 	_refresh_watch_timeline()
 
 
@@ -1151,6 +1167,89 @@ func _ensure_presentation_fx() -> void:
 		_sig_wash.color = Color(0.62, 0.74, 0.32, 0.0)
 		_sig_wash.z_index = 36
 		root.add_child(_sig_wash)
+	_ensure_watch_cinema()
+
+
+func _ensure_watch_cinema() -> void:
+	var root: Control = $HUD/Root
+	var top_h := 18.0 if _is_power_saving() else 30.0
+	var bot_h := 6.0 if _is_power_saving() else 10.0
+	if _watch_letterbox == null or not is_instance_valid(_watch_letterbox):
+		_watch_letterbox = Control.new()
+		_watch_letterbox.name = "WatchLetterbox"
+		_watch_letterbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_watch_letterbox.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_watch_letterbox.z_index = 42
+		root.add_child(_watch_letterbox)
+		var top := ColorRect.new()
+		top.name = "LetterboxTop"
+		top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		top.color = Color(0.015, 0.025, 0.018, 0.94)
+		top.set_anchors_preset(Control.PRESET_TOP_WIDE)
+		top.offset_bottom = top_h
+		_watch_letterbox.add_child(top)
+		var banner := Label.new()
+		banner.name = "WatchBanner"
+		banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		banner.text = "锁死观战"
+		banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		banner.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		banner.set_anchors_preset(Control.PRESET_TOP_WIDE)
+		banner.offset_bottom = top_h
+		banner.add_theme_font_override("font", NightOps.ui_font_bold())
+		banner.add_theme_font_size_override("font_size", 14)
+		banner.add_theme_color_override("font_color", NightOps.OLIVE_HI)
+		_watch_letterbox.add_child(banner)
+		var top_line := ColorRect.new()
+		top_line.name = "LetterboxTopLine"
+		top_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		top_line.color = Color(0.62, 0.72, 0.38, 0.55)
+		top_line.set_anchors_preset(Control.PRESET_TOP_WIDE)
+		top_line.offset_top = top_h - 2.0
+		top_line.offset_bottom = top_h
+		_watch_letterbox.add_child(top_line)
+		var bot := ColorRect.new()
+		bot.name = "LetterboxBot"
+		bot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bot.color = Color(0.015, 0.025, 0.018, 0.94)
+		bot.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+		bot.offset_top = -bot_h
+		_watch_letterbox.add_child(bot)
+		var bot_line := ColorRect.new()
+		bot_line.name = "LetterboxBotLine"
+		bot_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bot_line.color = Color(0.62, 0.72, 0.38, 0.45)
+		bot_line.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+		bot_line.offset_top = -bot_h
+		bot_line.offset_bottom = -bot_h + 2.0
+		_watch_letterbox.add_child(bot_line)
+		_watch_letterbox.visible = false
+	if _watch_vignette == null or not is_instance_valid(_watch_vignette):
+		_watch_vignette = Control.new()
+		_watch_vignette.name = "WatchVignette"
+		_watch_vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_watch_vignette.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_watch_vignette.z_index = 34
+		root.add_child(_watch_vignette)
+		var specs: Array = [
+			["VigTop", Control.PRESET_TOP_WIDE, 0.0, 0.0, 0.0, 90.0],
+			["VigBot", Control.PRESET_BOTTOM_WIDE, 0.0, -110.0, 0.0, 0.0],
+			["VigLeft", Control.PRESET_LEFT_WIDE, 0.0, 0.0, 70.0, 0.0],
+			["VigRight", Control.PRESET_RIGHT_WIDE, -70.0, 0.0, 0.0, 0.0],
+		]
+		var va := 0.16 if _is_power_saving() else 0.28
+		for spec in specs:
+			var edge := ColorRect.new()
+			edge.name = str(spec[0])
+			edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			edge.color = Color(0.02, 0.03, 0.02, va)
+			edge.set_anchors_preset(int(spec[1]))
+			edge.offset_left = float(spec[2])
+			edge.offset_top = float(spec[3])
+			edge.offset_right = float(spec[4])
+			edge.offset_bottom = float(spec[5])
+			_watch_vignette.add_child(edge)
+		_watch_vignette.visible = false
 
 
 func _is_power_saving() -> bool:
