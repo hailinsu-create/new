@@ -55,6 +55,16 @@ func _draw() -> void:
 	draw_rect(zone, Color(_tint.r, _tint.g, _tint.b, fill_a))
 	if hot:
 		draw_rect(zone.grow(4.0), Color(_tint.r, _tint.g, _tint.b, 0.06 + 0.05 * wave))
+	var hatch := Color(_tint.r, _tint.g, _tint.b, 0.07 + 0.05 * wave)
+	var step := 18.0
+	var x0 := zone.position.x - zone.size.y
+	while x0 < zone.position.x + zone.size.x:
+		var a := Vector2(x0, zone.position.y)
+		var b := Vector2(x0 + zone.size.y, zone.position.y + zone.size.y)
+		a.x = clampf(a.x, zone.position.x, zone.end.x)
+		b.x = clampf(b.x, zone.position.x, zone.end.x)
+		draw_line(a, b, hatch, 1.0)
+		x0 += step
 	var edge := Color(_tint.r, _tint.g, _tint.b, (0.48 + 0.32 * wave) if hot else (0.28 + 0.22 * wave))
 	var grown := zone.grow((2.4 if hot else 1.2) * sin(_t * rate))
 	_dashed_rect(grown, edge, 2.1 if hot else 1.6, 11.0, 6.0)

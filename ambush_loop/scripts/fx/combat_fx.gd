@@ -13,19 +13,20 @@ static func impact(host: Node2D, world_pos: Vector2, tint: Color = Color(1.0, 0.
 		return
 	var n := _spawn(host, "CfxImpact", world_pos, 12)
 	var saving := _saving()
-	var rays := 3 if saving else (7 if heavy else 5)
-	var reach := 10.0 if saving else (18.0 if heavy else 13.0)
+	var rays := 3 if saving else (8 if heavy else 6)
+	var reach := 10.0 if saving else (20.0 if heavy else 15.0)
 	for i in rays:
 		var a := deg_to_rad(float(i) * (360.0 / float(rays)) + 12.0)
 		var ln := Line2D.new()
-		ln.width = 2.4 if heavy else 1.7
+		ln.width = 2.6 if heavy else 1.8
 		ln.default_color = Color(tint.r, tint.g, tint.b, 0.95)
 		ln.begin_cap_mode = Line2D.LINE_CAP_ROUND
 		ln.end_cap_mode = Line2D.LINE_CAP_ROUND
-		ln.points = PackedVector2Array([Vector2.ZERO, Vector2(cos(a), sin(a)) * reach])
+		var r2 := reach * (0.55 if (i % 2) == 1 else 1.0)
+		ln.points = PackedVector2Array([Vector2.ZERO, Vector2(cos(a), sin(a)) * r2])
 		n.add_child(ln)
 	var core := Polygon2D.new()
-	core.polygon = _star(4 if saving else 6, 2.2, 5.5 if heavy else 4.0)
+	core.polygon = _star(4 if saving else 7, 2.4, 6.2 if heavy else 4.6)
 	core.color = Color(1.0, 0.96, 0.78, 0.95)
 	n.add_child(core)
 	if not saving:
@@ -67,15 +68,25 @@ static func kill_burst(host: Node2D, world_pos: Vector2, tint: Color = Color(0.9
 	fill.color = Color(tint.r, tint.g, tint.b, 0.28)
 	n.add_child(fill)
 	if not saving:
-		for i in 6:
-			var a := deg_to_rad(float(i) * 60.0 + 8.0)
+		for i in 8:
+			var a := deg_to_rad(float(i) * 45.0 + 8.0)
 			var shard := Polygon2D.new()
 			shard.polygon = PackedVector2Array([
-				Vector2(0, -1.4), Vector2(11, 0), Vector2(0, 1.4)
+				Vector2(0, -1.6), Vector2(13, 0), Vector2(0, 1.6)
 			])
 			shard.rotation = a
-			shard.color = Color(1.0, 0.85, 0.45, 0.85)
+			shard.color = Color(1.0, 0.85, 0.45, 0.88)
 			n.add_child(shard)
+		var x1 := Line2D.new()
+		x1.width = 2.2
+		x1.default_color = Color(1.0, 0.92, 0.55, 0.80)
+		x1.points = PackedVector2Array([Vector2(-7, -7), Vector2(7, 7)])
+		n.add_child(x1)
+		var x2 := Line2D.new()
+		x2.width = 2.2
+		x2.default_color = Color(1.0, 0.92, 0.55, 0.80)
+		x2.points = PackedVector2Array([Vector2(7, -7), Vector2(-7, 7)])
+		n.add_child(x2)
 	var tw := n.create_tween()
 	var grow := Vector2(3.4, 3.4) if not saving else Vector2(2.2, 2.2)
 	tw.tween_property(n, "scale", grow, 0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
@@ -208,14 +219,14 @@ static func land_dust(host: Node2D, world_pos: Vector2) -> void:
 	if not _ok(host) or _saving() or not _budget(host, "CfxLand", 4):
 		return
 	var n := _spawn(host, "CfxLand", world_pos, 5)
-	for i in 5:
+	for i in 6:
 		var puff := Polygon2D.new()
-		var a := deg_to_rad(float(i) * 72.0 + 18.0)
+		var a := deg_to_rad(float(i) * 60.0 + 18.0)
 		puff.polygon = PackedVector2Array([
-			Vector2(-3.5, -1.6), Vector2(4.2, -1.2), Vector2(3.4, 2.0), Vector2(-2.4, 1.8)
+			Vector2(-4.0, -1.8), Vector2(4.6, -1.4), Vector2(3.8, 2.2), Vector2(-2.8, 2.0)
 		])
-		puff.position = Vector2(cos(a), sin(a)) * 7.0 + Vector2(0, 8)
-		puff.color = Color(0.58, 0.54, 0.38, 0.58)
+		puff.position = Vector2(cos(a), sin(a)) * 8.0 + Vector2(0, 8)
+		puff.color = Color(0.58, 0.54, 0.38, 0.62)
 		n.add_child(puff)
 	var tw := n.create_tween()
 	tw.tween_property(n, "scale", Vector2(1.85, 0.62), 0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
