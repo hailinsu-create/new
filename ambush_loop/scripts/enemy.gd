@@ -38,6 +38,7 @@ var _trail_acc: float = 0.0
 var _trail_world: PackedVector2Array = PackedVector2Array()
 var body_outline: Polygon2D = null
 var kind_rim: Line2D = null
+var moon_rim: Line2D = null
 var chevron: Polygon2D = null
 var weapon: Polygon2D = null
 var kit_helm: Polygon2D = null
@@ -518,6 +519,29 @@ func _refresh_kind_rim() -> void:
 	kind_rim.default_color = _kind_rim_color()
 	kind_rim.visible = true
 	kind_rim.rotation = body.rotation
+	if moon_rim == null or not is_instance_valid(moon_rim):
+		moon_rim = get_node_or_null("MoonRim") as Line2D
+	if moon_rim == null:
+		moon_rim = Line2D.new()
+		moon_rim.name = "MoonRim"
+		moon_rim.closed = false
+		moon_rim.joint_mode = Line2D.LINE_JOINT_ROUND
+		moon_rim.begin_cap_mode = Line2D.LINE_CAP_ROUND
+		moon_rim.end_cap_mode = Line2D.LINE_CAP_ROUND
+		moon_rim.z_index = 1
+		add_child(moon_rim)
+	var lit := PackedVector2Array()
+	for p in pts:
+		if p.x + p.y < 2.0:
+			lit.append(p)
+	if lit.size() < 3:
+		lit = pts
+	moon_rim.points = lit
+	moon_rim.width = 1.2 if _is_power_saving() else 1.6
+	moon_rim.default_color = Color(0.90, 0.78, 0.62, 0.70 if alive else 0.22)
+	moon_rim.visible = alive
+	moon_rim.rotation = body.rotation
+	moon_rim.position = Vector2(1.2, -1.5)
 
 
 func _spawn_death_puff() -> void:
