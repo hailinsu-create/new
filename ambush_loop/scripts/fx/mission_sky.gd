@@ -112,6 +112,12 @@ func _draw_yard() -> void:
 			flick *= 0.22
 	draw_circle(win, 42.0, Color(1.0, 0.72, 0.28, wa * flick))
 	draw_circle(win, 18.0, Color(1.0, 0.82, 0.40, wa * 1.4 * flick))
+	# Courtyard moths — tiny drifting specks under the moon wash.
+	if not _is_power_saving():
+		for i in 5:
+			var mx := sz.x * 0.62 + sin(_t * 0.55 + float(i) * 1.3) * 90.0 + float(i) * 28.0
+			var my := 70.0 + cos(_t * 0.72 + float(i) * 0.9) * 22.0 + float(i % 3) * 18.0
+			draw_circle(Vector2(mx, my), 1.6, Color(0.92, 0.95, 0.78, 0.18 + 0.10 * sin(_t * 3.0 + float(i))))
 
 
 func _draw_warehouse() -> void:
@@ -143,6 +149,11 @@ func _draw_warehouse() -> void:
 			var gx := 180.0 + float(i) * 150.0 + sin(_t * 0.7 + float(i)) * 8.0
 			var gy := 17.2 * AmbushGrid.TILE + sin(_t * 1.3 + float(i) * 0.7) * 3.0
 			draw_rect(Rect2(gx, gy, 48.0, 2.0), Color(0.35, 0.55, 0.48, 0.07 + 0.04 * pulse))
+		# Hanging chain sway under the sodium canopy.
+		for i in 3:
+			var cx := 210.0 + float(i) * 220.0
+			var sway := sin(_t * 1.1 + float(i)) * 6.0
+			draw_line(Vector2(cx, 8.0), Vector2(cx + sway, 52.0), Color(0.22, 0.16, 0.08, 0.28), 1.4, true)
 
 
 func _draw_pump() -> void:
@@ -179,6 +190,12 @@ func _draw_pump() -> void:
 	var shine := 0.08 + 0.05 * (0.5 + 0.5 * sin(_t * 2.4))
 	draw_circle(puddle, 22.0, Color(0.25, 0.55, 0.48, shine))
 	draw_circle(puddle + Vector2(86, 8), 16.0, Color(0.22, 0.50, 0.44, shine * 0.8))
+	# Condensation drip off the main pipe run.
+	if not _is_power_saving():
+		var drip := fmod(_t * 0.85, 1.35)
+		var dy := origin.y + 18.0 + drip * 36.0
+		var da := 0.16 * (1.0 - drip / 1.35)
+		draw_circle(Vector2(origin.x + 22.0, dy), 2.2, Color(0.55, 0.88, 0.78, da))
 
 
 func _draw_railcut() -> void:
@@ -208,6 +225,10 @@ func _draw_railcut() -> void:
 	# Cool night rim on the split corridors.
 	draw_rect(Rect2(12.0 * AmbushGrid.TILE, 0.0, 3.0 * AmbushGrid.TILE, 5.0 * AmbushGrid.TILE), Color(0.55, 0.72, 0.85, 0.04))
 	draw_rect(Rect2(31.0 * AmbushGrid.TILE, 0.0, 3.0 * AmbushGrid.TILE, 5.0 * AmbushGrid.TILE), Color(0.55, 0.72, 0.85, 0.04))
+	# Rail glint — a traveling specular on the west corridor steel.
+	if not _is_power_saving():
+		var gx := 12.2 * AmbushGrid.TILE + fmod(_t * 42.0, 3.0 * AmbushGrid.TILE)
+		draw_rect(Rect2(gx, 5.2 * AmbushGrid.TILE, 18.0, 3.0), Color(0.82, 0.88, 0.95, 0.10 + 0.06 * sin(_t * 6.0)))
 
 
 func _draw_depot() -> void:
@@ -234,3 +255,8 @@ func _draw_depot() -> void:
 		var gcol := Color(0.98, 0.32, 0.10, 0.88) if on else Color(0.32, 0.12, 0.06, 0.45)
 		draw_rect(Rect2(gauge.x, gauge.y, 11.0, 7.0), gcol)
 		draw_rect(Rect2(gauge.x - 1.0, gauge.y - 1.0, 13.0, 9.0), Color(0.12, 0.06, 0.03, 0.7), false, 1.2)
+		# Heat shimmer bars over the south tanks.
+		for i in 4:
+			var hx := 15.5 * AmbushGrid.TILE + float(i) * 28.0 + sin(_t * 2.2 + float(i)) * 3.0
+			var hy := 13.8 * AmbushGrid.TILE + sin(_t * 3.1 + float(i) * 0.7) * 4.0
+			draw_rect(Rect2(hx, hy, 16.0, 2.0), Color(0.95, 0.48, 0.12, 0.08 + 0.05 * pulse))

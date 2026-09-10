@@ -132,14 +132,63 @@ func _add(row: HBoxContainer, cmd: String, label: String, tint: Color) -> void:
 	b.custom_minimum_size = Vector2(78, 56)
 	b.theme = NightOps.theme()
 	b.add_theme_font_size_override("font_size", 15)
-	b.modulate = tint.lightened(0.22)
 	b.focus_mode = Control.FOCUS_NONE
+	b.set_meta("tint", tint)
+	b.set_meta("cmd", cmd)
+	b.set_meta("label", label)
+	_apply_btn_style(b, tint, false)
 	b.pressed.connect(func() -> void:
+		_kick_btn(b)
 		if _host != null and _host.has_method("apply_touch_command"):
 			_host.call("apply_touch_command", cmd)
 	)
+	var lock := Label.new()
+	lock.name = "LockMark"
+	lock.text = "锁"
+	lock.visible = false
+	lock.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lock.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	lock.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	lock.add_theme_font_size_override("font_size", 11)
+	lock.add_theme_color_override("font_color", Color(1.0, 0.32, 0.18, 0.95))
+	lock.add_theme_color_override("font_shadow_color", Color(0.05, 0.02, 0.02, 0.9))
+	lock.add_theme_constant_override("shadow_offset_x", 1)
+	lock.add_theme_constant_override("shadow_offset_y", 1)
+	lock.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	lock.offset_left = -22.0
+	lock.offset_top = 2.0
+	lock.offset_right = -4.0
+	lock.offset_bottom = 16.0
+	b.add_child(lock)
 	row.add_child(b)
 	_btns[cmd] = b
+
+
+func _apply_btn_style(b: Button, tint: Color, locked: bool) -> void:
+	var bg := Color(tint.r * 0.22, tint.g * 0.22, tint.b * 0.18, 0.96)
+	var border := Color(tint.r, tint.g, tint.b, 0.85).lightened(0.12)
+	if locked:
+		bg = Color(0.10, 0.10, 0.09, 0.88)
+		border = Color(0.28, 0.22, 0.18, 0.7)
+	var normal := NightOps.flat(bg, border, 1, 10, 6)
+	var hover := NightOps.flat(bg.lightened(0.18), border.lightened(0.2), 2, 10, 6)
+	var pressed := NightOps.flat(bg.darkened(0.18), border, 2, 10, 6)
+	var disabled := NightOps.flat(Color(0.09, 0.09, 0.08, 0.82), Color(0.22, 0.20, 0.18), 1, 10, 6)
+	b.add_theme_stylebox_override("normal", normal)
+	b.add_theme_stylebox_override("hover", hover)
+	b.add_theme_stylebox_override("pressed", pressed)
+	b.add_theme_stylebox_override("disabled", disabled)
+	b.add_theme_color_override("font_color", Color(0.94, 0.92, 0.78) if not locked else Color(0.42, 0.40, 0.38))
+	b.modulate = Color.WHITE if not locked else Color(0.62, 0.60, 0.58)
+
+
+func _kick_btn(b: Button) -> void:
+	if b == null or b.disabled:
+		return
+	b.pivot_offset = b.size * 0.5
+	var tw := b.create_tween()
+	tw.tween_property(b, "scale", Vector2(0.92, 0.92), 0.05).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(b, "scale", Vector2.ONE, 0.10).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func _apply_safe_area() -> void:
@@ -202,3 +251,22 @@ func refresh_phase(phase_name: String, watching_paused: bool, speed_hi: bool, mu
 		_btns["abort"].disabled = phase_name != "WATCHING"
 	if phase_name != "WATCHING" and _wave_chip:
 		_wave_chip.visible = false
+	_paint_lock_states(phase_name)
+
+
+func _paint_lock_states(phase_name: String) -> void:
+	var setup_cmds := ["fire", "pack", "trip", "door", "rotate_cw", "rotate_ccw", "clear", "alarm"]
+	for cmd in _btns.keys():
+		var b: Button = _btns[cmd]
+		if b == null:
+			continue
+		var tint: Color = b.get_meta("tint", Color(0.4, 0.4, 0.36))
+		var locked := b.disabled and setup_cmds.has(str(cmd)) and phase_name == "WATCHING"
+		_apply_btn_style(b, tint, locked)
+		var lock := b.get_node_or_null("LockMark") as Label
+		if lock:
+			lock.visible = locked
+		if str(cmd) == "alarm" and phase_name == "SETUP" and not b.disabled:
+			b.modulate = Color(1.18, 0.92, 0.88)
+		if str(cmd) == "abort" and phase_name == "WATCHING" and not b.disabled:
+			b.modulate = Color(1.12, 0.85, 0.82)

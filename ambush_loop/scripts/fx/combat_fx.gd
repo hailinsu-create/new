@@ -1,0 +1,248 @@
+class_name CombatFx
+extends RefCounted
+
+## Presentation-only bursts: impact sparks, kill rings, trap snaps.
+## Tween polygons — no particles, respects 省电, caps live children.
+
+const PREFIX := "Cfx"
+const LIVE_CAP := 10
+
+
+static func impact(host: Node2D, world_pos: Vector2, tint: Color = Color(1.0, 0.82, 0.38), heavy: bool = false) -> void:
+	if not _ok(host) or not _budget(host, "CfxImpact", 6):
+		return
+	var n := _spawn(host, "CfxImpact", world_pos, 12)
+	var saving := _saving()
+	var rays := 3 if saving else (7 if heavy else 5)
+	var reach := 10.0 if saving else (18.0 if heavy else 13.0)
+	for i in rays:
+		var a := deg_to_rad(float(i) * (360.0 / float(rays)) + 12.0)
+		var ln := Line2D.new()
+		ln.width = 2.4 if heavy else 1.7
+		ln.default_color = Color(tint.r, tint.g, tint.b, 0.95)
+		ln.begin_cap_mode = Line2D.LINE_CAP_ROUND
+		ln.end_cap_mode = Line2D.LINE_CAP_ROUND
+		ln.points = PackedVector2Array([Vector2.ZERO, Vector2(cos(a), sin(a)) * reach])
+		n.add_child(ln)
+	var core := Polygon2D.new()
+	core.polygon = _star(4 if saving else 6, 2.2, 5.5 if heavy else 4.0)
+	core.color = Color(1.0, 0.96, 0.78, 0.95)
+	n.add_child(core)
+	var dur := 0.09 if saving else (0.18 if heavy else 0.13)
+	var tw := n.create_tween()
+	tw.tween_property(n, "scale", Vector2(1.55, 1.55) if heavy else Vector2(1.28, 1.28), dur * 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(n, "modulate:a", 0.0, dur)
+	tw.tween_callback(n.queue_free)
+
+
+static func kill_burst(host: Node2D, world_pos: Vector2, tint: Color = Color(0.95, 0.28, 0.18)) -> void:
+	if not _ok(host) or not _budget(host, "CfxKill", 4):
+		return
+	var n := _spawn(host, "CfxKill", world_pos, 13)
+	var saving := _saving()
+	var ring := Line2D.new()
+	ring.width = 2.6
+	ring.closed = true
+	ring.default_color = Color(tint.r, tint.g, tint.b, 0.92)
+	var rpts := PackedVector2Array()
+	var steps := 8 if saving else 14
+	for i in steps:
+		var a := TAU * float(i) / float(steps)
+		rpts.append(Vector2(cos(a), sin(a)) * 8.0)
+	ring.points = rpts
+	n.add_child(ring)
+	var fill := Polygon2D.new()
+	fill.polygon = rpts
+	fill.color = Color(tint.r, tint.g, tint.b, 0.28)
+	n.add_child(fill)
+	if not saving:
+		for i in 6:
+			var a := deg_to_rad(float(i) * 60.0 + 8.0)
+			var shard := Polygon2D.new()
+			shard.polygon = PackedVector2Array([
+				Vector2(0, -1.4), Vector2(11, 0), Vector2(0, 1.4)
+			])
+			shard.rotation = a
+			shard.color = Color(1.0, 0.85, 0.45, 0.85)
+			n.add_child(shard)
+	var tw := n.create_tween()
+	var grow := Vector2(3.4, 3.4) if not saving else Vector2(2.2, 2.2)
+	tw.tween_property(n, "scale", grow, 0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(n, "modulate:a", 0.0, 0.22)
+	tw.tween_callback(n.queue_free)
+
+
+static func trip_snap(host: Node2D, world_pos: Vector2) -> void:
+	if not _ok(host):
+		return
+	var n := _spawn(host, "CfxTrip", world_pos, 12)
+	var slash := Line2D.new()
+	slash.width = 3.2
+	slash.default_color = Color(0.82, 1.0, 0.62, 0.95)
+	slash.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	slash.points = PackedVector2Array([Vector2(-16, -10), Vector2(16, 10)])
+	n.add_child(slash)
+	var slash2 := Line2D.new()
+	slash2.width = 2.0
+	slash2.default_color = Color(1.0, 1.0, 0.82, 0.7)
+	slash2.points = PackedVector2Array([Vector2(-12, 8), Vector2(14, -6)])
+	n.add_child(slash2)
+	var ring := Line2D.new()
+	ring.width = 2.0
+	ring.closed = true
+	ring.default_color = Color(0.55, 0.98, 0.52, 0.85)
+	var pts := PackedVector2Array()
+	for i in 10:
+		var a := TAU * float(i) / 10.0
+		pts.append(Vector2(cos(a), sin(a)) * 6.0)
+	ring.points = pts
+	n.add_child(ring)
+	var tw := n.create_tween()
+	tw.tween_property(n, "scale", Vector2(1.8, 1.8), 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(n, "modulate:a", 0.0, 0.18)
+	tw.tween_callback(n.queue_free)
+
+
+static func barrel_boom(host: Node2D, world_pos: Vector2) -> void:
+	if not _ok(host):
+		return
+	var n := _spawn(host, "CfxBoom", world_pos, 14)
+	var saving := _saving()
+	var flash := Polygon2D.new()
+	flash.polygon = _star(8, 6.0, 16.0)
+	flash.color = Color(1.0, 0.92, 0.55, 0.9)
+	n.add_child(flash)
+	var inner := Polygon2D.new()
+	inner.polygon = _star(5, 3.0, 8.0)
+	inner.color = Color(1.0, 0.55, 0.12, 0.85)
+	n.add_child(inner)
+	if not saving:
+		for i in 8:
+			var a := deg_to_rad(float(i) * 45.0 + 10.0)
+			var shard := Polygon2D.new()
+			shard.polygon = PackedVector2Array([
+				Vector2(0, -2.2), Vector2(18, 0), Vector2(0, 2.2)
+			])
+			shard.rotation = a
+			shard.color = Color(0.95, 0.42, 0.10, 0.88)
+			n.add_child(shard)
+	var tw := n.create_tween()
+	tw.tween_property(n, "scale", Vector2(2.6, 2.6) if not saving else Vector2(1.8, 1.8), 0.26).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(n, "modulate:a", 0.0, 0.26)
+	tw.tween_callback(n.queue_free)
+
+
+static func loot_spark(host: Node2D, world_pos: Vector2) -> void:
+	if not _ok(host):
+		return
+	var n := _spawn(host, "CfxLoot", world_pos, 11)
+	var diamond := Polygon2D.new()
+	diamond.polygon = PackedVector2Array([
+		Vector2(0, -10), Vector2(8, 0), Vector2(0, 10), Vector2(-8, 0)
+	])
+	diamond.color = Color(0.98, 0.88, 0.32, 0.92)
+	n.add_child(diamond)
+	var tw := n.create_tween()
+	tw.tween_property(n, "position", n.position + Vector2(0, -16), 0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(n, "modulate:a", 0.0, 0.22)
+	tw.parallel().tween_property(n, "scale", Vector2(1.4, 1.4), 0.22)
+	tw.tween_callback(n.queue_free)
+
+
+static func ambush_arm(host: Node2D, world_pos: Vector2) -> void:
+	if not _ok(host) or _saving():
+		return
+	var n := _spawn(host, "CfxArm", world_pos, 11)
+	var ring := Line2D.new()
+	ring.width = 2.2
+	ring.closed = true
+	ring.default_color = Color(0.95, 0.82, 0.28, 0.9)
+	var pts := PackedVector2Array()
+	for i in 12:
+		var a := TAU * float(i) / 12.0
+		pts.append(Vector2(cos(a), sin(a)) * 10.0)
+	ring.points = pts
+	n.add_child(ring)
+	var tw := n.create_tween()
+	tw.tween_property(n, "scale", Vector2(2.4, 2.4), 0.28).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(n, "modulate:a", 0.0, 0.28)
+	tw.tween_callback(n.queue_free)
+
+
+static func escape_streak(host: Node2D, world_pos: Vector2, dir: Vector2 = Vector2(0, 1)) -> void:
+	if not _ok(host):
+		return
+	var n := _spawn(host, "CfxEsc", world_pos, 12)
+	var d := dir.normalized() if dir.length_squared() > 0.01 else Vector2(0, 1)
+	var perp := Vector2(-d.y, d.x)
+	var streak := Polygon2D.new()
+	streak.polygon = PackedVector2Array([
+		perp * -7.0, d * 8.0 + perp * -2.0, d * 36.0, d * 8.0 + perp * 2.0, perp * 7.0
+	])
+	streak.color = Color(1.0, 0.32, 0.18, 0.82)
+	n.add_child(streak)
+	var tw := n.create_tween()
+	tw.tween_property(n, "position", n.position + d * 42.0, 0.28).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(n, "modulate:a", 0.0, 0.28)
+	tw.tween_callback(n.queue_free)
+
+
+static func select_ping(host: Node2D, world_pos: Vector2, tint: Color = Color(0.95, 0.85, 0.35)) -> void:
+	if not _ok(host) or _saving():
+		return
+	var n := _spawn(host, "CfxSel", world_pos, 10)
+	var ring := Line2D.new()
+	ring.width = 2.0
+	ring.closed = true
+	ring.default_color = Color(tint.r, tint.g, tint.b, 0.9)
+	var pts := PackedVector2Array()
+	for i in 16:
+		var a := TAU * float(i) / 16.0
+		pts.append(Vector2(cos(a), sin(a)) * 12.0)
+	ring.points = pts
+	n.add_child(ring)
+	var tw := n.create_tween()
+	tw.tween_property(n, "scale", Vector2(1.7, 1.7), 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(n, "modulate:a", 0.0, 0.18)
+	tw.tween_callback(n.queue_free)
+
+
+static func _spawn(host: Node2D, nam: String, world_pos: Vector2, z: int) -> Node2D:
+	var n := Node2D.new()
+	n.name = nam
+	n.z_index = z
+	host.add_child(n)
+	n.global_position = world_pos
+	return n
+
+
+static func _ok(host: Node) -> bool:
+	return host != null and is_instance_valid(host)
+
+
+static func _saving() -> bool:
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null:
+		return false
+	var gs = tree.root.get_node_or_null("/root/GameSettings")
+	return gs != null and gs.has_method("is_power_saving") and bool(gs.is_power_saving())
+
+
+static func _budget(host: Node2D, prefix: String, cap: int) -> bool:
+	var n := 0
+	for c in host.get_children():
+		if str(c.name).begins_with(prefix):
+			n += 1
+			if n >= cap:
+				return false
+	return true
+
+
+static func _star(points: int, inner_r: float, outer_r: float) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	var n := maxi(points, 3)
+	for i in n * 2:
+		var a := float(i) * PI / float(n) - PI * 0.5
+		var r := outer_r if (i % 2) == 0 else inner_r
+		pts.append(Vector2(cos(a), sin(a)) * r)
+	return pts

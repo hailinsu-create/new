@@ -13,6 +13,7 @@ const RETURN_RANGE := 200.0
 const RETURN_DAMAGE := 14.0
 const RETURN_INTERVAL := 0.28
 const MuzzleFlashScript := preload("res://scripts/fx/muzzle_flash.gd")
+const CombatFxScript := preload("res://scripts/fx/combat_fx.gd")
 
 var route: PackedVector2Array = PackedVector2Array()
 var route_index: int = 0
@@ -229,6 +230,8 @@ func apply_fire(amount: float, from: OperatorUnit = null) -> void:
 	_refresh_tag()
 	if hp <= 0.0:
 		kill()
+	else:
+		CombatFxScript.impact(self, global_position, _kind_color.lightened(0.25), false)
 
 
 func kill() -> void:
@@ -245,6 +248,7 @@ func kill() -> void:
 	_apply_body_modulate()
 	_play_death_fx()
 	_refresh_tag()
+	CombatFxScript.kill_burst(self, global_position, _kind_rim_color())
 	died.emit(self)
 
 

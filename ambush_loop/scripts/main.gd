@@ -17,6 +17,8 @@ const AmbushZoneFxScript := preload("res://scripts/fx/ambush_zone_fx.gd")
 const MissionSkyScript := preload("res://scripts/fx/mission_sky.gd")
 const TouchHudScript := preload("res://scripts/touch_hud.gd")
 const IntelPathGhostScript := preload("res://scripts/fx/intel_path_ghost.gd")
+const KillzoneOverlayScript := preload("res://scripts/fx/killzone_overlay.gd")
+const CombatFxScript := preload("res://scripts/fx/combat_fx.gd")
 
 var grid: AmbushGrid = AmbushGrid.new()
 var phase: Phase = Phase.SETUP
@@ -347,6 +349,7 @@ func _resolve_optional_hud() -> void:
 	if killzone_draw == null:
 		killzone_draw = Node2D.new()
 		killzone_draw.name = "KillzoneDraw"
+		killzone_draw.set_script(KillzoneOverlayScript)
 		$World.add_child(killzone_draw)
 		$World.move_child(killzone_draw, routes_draw.get_index())
 	_ensure_tripwire_ghost()
@@ -1488,18 +1491,36 @@ func _sample_polyline(points: PackedVector2Array, spacing: float) -> PackedVecto
 func _add_killzone_line(pts: PackedVector2Array) -> void:
 	if killzone_draw == null or pts.is_empty():
 		return
+	var drawn: PackedVector2Array
+	if pts.size() == 1:
+		var p: Vector2 = pts[0]
+		drawn = PackedVector2Array([p + Vector2(-5, 0), p + Vector2(5, 0)])
+	else:
+		drawn = pts
+	var glow := Line2D.new()
+	glow.width = 16.0
+	glow.default_color = Color(0.95, 0.22, 0.12, 0.16)
+	glow.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	glow.end_cap_mode = Line2D.LINE_CAP_ROUND
+	glow.joint_mode = Line2D.LINE_JOINT_ROUND
+	glow.points = drawn
+	killzone_draw.add_child(glow)
 	var line := Line2D.new()
 	line.width = 8.0
 	line.default_color = Color(0.95, 0.28, 0.18, 0.42)
 	line.begin_cap_mode = Line2D.LINE_CAP_ROUND
 	line.end_cap_mode = Line2D.LINE_CAP_ROUND
 	line.joint_mode = Line2D.LINE_JOINT_ROUND
-	if pts.size() == 1:
-		var p: Vector2 = pts[0]
-		line.points = PackedVector2Array([p + Vector2(-5, 0), p + Vector2(5, 0)])
-	else:
-		line.points = pts
+	line.points = drawn
 	killzone_draw.add_child(line)
+	var tip: Vector2 = drawn[drawn.size() - 1]
+	var tick := Polygon2D.new()
+	tick.polygon = PackedVector2Array([
+		Vector2(-4, -4), Vector2(4, 0), Vector2(-4, 4)
+	])
+	tick.position = tip
+	tick.color = Color(1.0, 0.55, 0.22, 0.72)
+	killzone_draw.add_child(tick)
 
 
 func _build_cover_slots() -> void:
@@ -2623,6 +2644,8 @@ func _select_op(idx: int) -> void:
 
 func _refresh_selection_visual() -> void:
 	for op in operators:
+		if op.has_method("set_selected_visual"):
+			op.set_selected_visual(op == selected and op.visible)
 		if op.body:
 			if op == selected and op.visible:
 				op.body.color = Color(0.95, 0.85, 0.35)
@@ -2691,6 +2714,9 @@ func _deploy_selected_to(slot: CoverSlot, announce: bool = true) -> void:
 	var face := float(slot.get_meta("default_face"))
 	selected.reset_loadout()
 	selected.set_facing(face)
+	if selected.has_method("play_land_pop"):
+		selected.play_land_pop()
+	CombatFxScript.select_ping(selected, selected.global_position)
 	_refresh_selection_visual()
 	_refresh_mode_pack_buttons()
 	_update_cover_previews()
@@ -3004,6 +3030,7 @@ func _on_barrel_detonated(barrel: Node2D) -> void:
 	if phase == Phase.WATCHING or pending_result != "":
 		battle_log.add_event(sim.tick, "barrel", -1, -1, barrel.global_position)
 	_flash("油桶爆炸", Color(1.0, 0.45, 0.2))
+	_sfx("barrel")
 	_shake_for_explosion(barrel.global_position)
 	_update_event_log()
 
@@ -3132,6 +3159,9 @@ func _on_alarm_pressed() -> void:
 			op.last_deny.clear()
 			op.lock_plan()
 			op._rebuild_cone()
+	for s in cover_slots:
+		if s != null and is_instance_valid(s) and s.has_method("set_hold_progress"):
+			s.set_hold_progress(0.0)
 	_update_cover_previews()
 	_refresh_killzone_preview()
 	_update_tripwire_ghost()
@@ -3259,6 +3289,7 @@ func _on_return_fired(from: EnemyRunner, to: OperatorUnit) -> void:
 func _process(delta: float) -> void:
 	if phase == Phase.SETUP:
 		_tick_cover_long_press()
+		_tick_cover_hold_ring()
 		_update_cover_previews()
 		_update_tripwire_ghost()
 		return
@@ -3329,6 +3360,7 @@ func _sim_tick() -> void:
 				var victim: EnemyRunner = tw.sim_check(enemies)
 				if victim != null:
 					battle_log.add_event(sim.tick, "trip", victim.label_id, -1, tw.global_position)
+					_sfx("trip")
 					_update_event_log()
 			if phase != Phase.WATCHING:
 				_finish_sim_tick()
@@ -3494,6 +3526,8 @@ func _tick_ambush_zone() -> void:
 		if enemy.alive and enemy.active and level.ambush_zone.has_point(enemy.global_position):
 			any_in = true
 			break
+	if ambush_zone_poly != null and is_instance_valid(ambush_zone_poly) and ambush_zone_poly.has_method("set_hot"):
+		ambush_zone_poly.set_hot(any_in)
 	if not any_in:
 		return
 	for op in operators:
@@ -3537,8 +3571,10 @@ func _try_assign_loot(loot: LootPickup) -> void:
 		var amount := loot.ammo_amount
 		var gained := op.receive_ammo(amount)
 		if gained > 0:
+			var loot_pos := loot.global_position
 			loot.collect()
-			battle_log.add_event(sim.tick, "loot", op.op_id, -1, loot.global_position, {"amount": gained})
+			CombatFxScript.loot_spark(entities, loot_pos)
+			battle_log.add_event(sim.tick, "loot", op.op_id, -1, loot_pos, {"amount": gained})
 			status_label.text = "%s 搜刮 +%d弹" % [op.display_name, gained]
 			_sfx("loot")
 			_update_event_log()
@@ -3594,6 +3630,7 @@ func _on_enemy_escaped(enemy: EnemyRunner, path: PackedVector2Array) -> void:
 	_flash("逃逸！%s" % hint, Color(1.0, 0.35, 0.25))
 	_sfx("escape")
 	_camera_punch()
+	CombatFxScript.escape_streak(entities, enemy.global_position, Vector2(0, 1))
 	_begin_escape_flash()
 	_redraw_ghosts()
 	pending_result = "fail"
@@ -3607,6 +3644,9 @@ func _on_enemy_died(enemy: EnemyRunner) -> void:
 	_spawn_loot_at(enemy.global_position, enemy.loot_ammo)
 	if phase == Phase.WATCHING:
 		_kill_edge_flash()
+		_sfx("kill")
+		if not _is_power_saving():
+			_camera_punch(Vector2(3, -2))
 	_update_event_log()
 	if phase == Phase.WATCHING:
 		_check_win()
@@ -3800,8 +3840,11 @@ func _flash(text: String, color: Color) -> void:
 	flash_label.text = text
 	flash_label.add_theme_color_override("font_color", color)
 	flash_label.modulate = Color(1, 1, 1, 1)
+	flash_label.pivot_offset = Vector2(200.0, 14.0)
+	flash_label.scale = Vector2(1.12, 1.12)
 	_flash_tween = flash_label.create_tween()
-	_flash_tween.tween_property(flash_label, "modulate:a", 0.0, 1.2)
+	_flash_tween.tween_property(flash_label, "scale", Vector2.ONE, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_flash_tween.parallel().tween_property(flash_label, "modulate:a", 0.0, 1.2)
 
 
 func _show_fail_result() -> void:
@@ -4320,13 +4363,13 @@ func _play_intel_path_ghost() -> void:
 	col.a = 0.92
 	var ghost: Node2D = IntelPathGhostScript.new()
 	ghost.name = "IntelPathGhost"
-	if ghost.has_method("setup"):
-		ghost.setup(path, col)
 	var world := get_node_or_null("World")
 	if world:
 		world.add_child(ghost)
 	else:
 		add_child(ghost)
+	if ghost.has_method("setup"):
+		ghost.setup(path, col)
 	_intel_ghost = ghost
 	ghost.modulate.a = 1.0
 	_intel_ghost_tween = ghost.create_tween()
@@ -4793,6 +4836,15 @@ func _tick_cover_long_press() -> void:
 	if status_label:
 		status_label.text = "保护弧朝%s（长按预览，松手不部署）" % _cover_hold_slot.protect_compass()
 	_update_cover_previews()
+
+
+func _tick_cover_hold_ring() -> void:
+	var p := 0.0
+	if phase == Phase.SETUP and _cover_hold_slot != null and is_instance_valid(_cover_hold_slot):
+		p = clampf(float(Time.get_ticks_msec() - _cover_hold_msec) / float(COVER_LONGPRESS_MS), 0.0, 1.0)
+	for s in cover_slots:
+		if s != null and is_instance_valid(s) and s.has_method("set_hold_progress"):
+			s.set_hold_progress(p if s == _cover_hold_slot else 0.0)
 
 
 func _update_cover_previews() -> void:
