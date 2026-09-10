@@ -707,6 +707,40 @@ func _run() -> void:
 				return
 			if not _assert_railcut_contract(main):
 				return
+			# South-stack probe: 南折 + 南闸 + 西廊脊. Delayed east pair must leak.
+			_deploy_ref(main, [2, 5, 1], [0.0, 180.0, 270.0])
+			main.sim.set_speed(2.0)
+			main._on_alarm_pressed()
+			main.sim.set_speed(2.0)
+			var rc_stack: bool = await _wait_phase(main, main.Phase.FAILED, 60 * 240)
+			if not rc_stack or main.fail_reason != "escape":
+				push_error(
+					"SMOKE_RAILCUT_STACK_NOT_FAIL phase=%s reason=%s tick=%s"
+					% [main.phase, main.fail_reason, main.sim.tick]
+				)
+				quit(45)
+				return
+			var rc_route := str(main.intel.latest_route()) if main.intel else ""
+			var rc_leaker := int(main.intel.latest_leaker_id()) if main.intel else -1
+			if rc_route != "flank" or (rc_leaker != 3 and rc_leaker != 4):
+				push_error("SMOKE_RAILCUT_STACK_NOT_EAST route=%s leaker=%s" % [rc_route, rc_leaker])
+				quit(45)
+				return
+			var rc_fail_txt := str(main.result_label.text)
+			if rc_fail_txt.find("东廊") < 0 or rc_fail_txt.find("3.8") < 0:
+				push_error("SMOKE_RAILCUT_STACK_COPY %s" % rc_fail_txt)
+				quit(45)
+				return
+			print(
+				"SMOKE_RAILCUT_SOUTH_STACK_FAIL reason=", main.fail_reason,
+				" route=", rc_route,
+				" leaker=", rc_leaker,
+				" tick=", main.sim.tick
+			)
+			main._on_continue_pressed()
+			await process_frame
+			main._on_clear_pressed()
+			await process_frame
 			# Reference win (documented): rifle 西廊脊 slot1 face 270 (north up west spine),
 			# MG 东廊 slot4 face 270 (north up delayed east corridor), scout 南闸 slot5 face 180 (west).
 			# Core walls block cross-corridor LOS; ignoring the delayed east pair escapes (probe).
@@ -753,6 +787,52 @@ func _run() -> void:
 				return
 			if not _assert_depot_contract(main):
 				return
+			# No-trip probe: same guns, no 绊索. Sneak 敌3 at 2.2s must leak.
+			_deploy_ref(main, [1, 4, 5], [270.0, 270.0, 180.0])
+			main.sim.set_speed(2.0)
+			main._on_alarm_pressed()
+			main.sim.set_speed(2.0)
+			var depot_stack: bool = await _wait_phase(main, main.Phase.FAILED, 60 * 240)
+			if not depot_stack or main.fail_reason != "escape":
+				push_error(
+					"SMOKE_DEPOT_NOTRIP_NOT_FAIL phase=%s reason=%s tick=%s"
+					% [main.phase, main.fail_reason, main.sim.tick]
+				)
+				quit(48)
+				return
+			var dp_route := str(main.intel.latest_route()) if main.intel else ""
+			var dp_leaker := int(main.intel.latest_leaker_id()) if main.intel else -1
+			if dp_route != "sneak" or dp_leaker != 3:
+				push_error("SMOKE_DEPOT_NOTRIP_NOT_SNEAK route=%s leaker=%s" % [dp_route, dp_leaker])
+				quit(48)
+				return
+			var dp_fail_txt := str(main.result_label.text)
+			if dp_fail_txt.find("暗道") < 0 or dp_fail_txt.find("2.2") < 0:
+				push_error("SMOKE_DEPOT_NOTRIP_COPY %s" % dp_fail_txt)
+				quit(48)
+				return
+			print(
+				"SMOKE_DEPOT_NO_TRIP_FAIL reason=", main.fail_reason,
+				" route=", dp_route,
+				" leaker=", dp_leaker,
+				" tick=", main.sim.tick
+			)
+			main._on_continue_pressed()
+			await process_frame
+			if main.has_method("_refresh_checklist"):
+				main._refresh_checklist()
+			var sneak_chip := str(main.checklist_strip_text()) if main.has_method("checklist_strip_text") else ""
+			if sneak_chip.find("暗道") < 0:
+				push_error("SMOKE_DEPOT_SNEAK_CHIP_AFTER %s" % sneak_chip)
+				quit(48)
+				return
+			if main.has_method("leak_cover_ok") and bool(main.leak_cover_ok()):
+				push_error("SMOKE_DEPOT_LEAK_COVER_NOT_RED %s" % sneak_chip)
+				quit(48)
+				return
+			print("SMOKE_OK_DEPOT_SNEAK_CHIP ", sneak_chip.replace("\n", " | "))
+			main._on_clear_pressed()
+			await process_frame
 			# Rifle 主路脊 slot1 face 270, MG 东廊 slot4 face 270, scout 南闸 slot5 face 180.
 			# Tripwire on the west alley (7,11) so the delayed sneak does not leak.
 			_deploy_ref(main, [1, 4, 5], [270.0, 270.0, 180.0])

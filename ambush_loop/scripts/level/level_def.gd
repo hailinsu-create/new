@@ -376,7 +376,8 @@ static func make_depot() -> LevelDef:
 		],
 		"sneak": [
 			Vector2i(13, 3), Vector2i(13, 5), Vector2i(7, 5), Vector2i(7, 11),
-			Vector2i(7, 16), Vector2i(16, 17), Vector2i(31, 17), Vector2i(31, 19)
+			Vector2i(7, 16), Vector2i(14, 15), Vector2i(24, 15), Vector2i(31, 15),
+			Vector2i(31, 19)
 		],
 	}
 	# Two on the spine immediately, east close behind, west alley delayed so a south-only stack dumps ammo first.
