@@ -204,6 +204,25 @@ static func escape_streak(host: Node2D, world_pos: Vector2, dir: Vector2 = Vecto
 	tw.tween_callback(n.queue_free)
 
 
+static func land_dust(host: Node2D, world_pos: Vector2) -> void:
+	if not _ok(host) or _saving() or not _budget(host, "CfxLand", 4):
+		return
+	var n := _spawn(host, "CfxLand", world_pos, 5)
+	for i in 5:
+		var puff := Polygon2D.new()
+		var a := deg_to_rad(float(i) * 72.0 + 18.0)
+		puff.polygon = PackedVector2Array([
+			Vector2(-3.5, -1.6), Vector2(4.2, -1.2), Vector2(3.4, 2.0), Vector2(-2.4, 1.8)
+		])
+		puff.position = Vector2(cos(a), sin(a)) * 7.0 + Vector2(0, 8)
+		puff.color = Color(0.58, 0.54, 0.38, 0.58)
+		n.add_child(puff)
+	var tw := n.create_tween()
+	tw.tween_property(n, "scale", Vector2(1.85, 0.62), 0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(n, "modulate:a", 0.0, 0.22)
+	tw.tween_callback(n.queue_free)
+
+
 static func select_ping(host: Node2D, world_pos: Vector2, tint: Color = Color(0.95, 0.85, 0.35)) -> void:
 	if not _ok(host) or _saving():
 		return

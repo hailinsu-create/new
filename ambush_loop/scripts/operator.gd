@@ -421,6 +421,7 @@ func take_damage(amount: float, from_pos: Vector2 = Vector2.INF) -> void:
 
 func play_land_pop() -> void:
 	_land_pop = 1.0
+	CombatFxScript.land_dust(self, global_position)
 
 
 func set_selected_visual(on: bool) -> void:
