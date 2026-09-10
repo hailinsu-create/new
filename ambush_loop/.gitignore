@@ -6,3 +6,6 @@ export.cfg
 .mono/
 data_*/
 build/
+scripts/play_census.gd
+scripts/play_dump.gd
+
