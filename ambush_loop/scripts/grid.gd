@@ -94,9 +94,10 @@ func _build_warehouse() -> void:
 
 func _build_pump() -> void:
 	# Machinery; keep west approach, spine, and east corridor clear unless door locks.
+	# East machine stays north of y=12 so 侧背点 has LOS west-south to (22,14).
 	_block_rect(7, 10, 8, 13)
 	_block_rect(17, 10, 19, 12)
-	_block_rect(24, 11, 26, 13)
+	_block_rect(24, 10, 26, 11)
 
 
 func _build_railcut() -> void:
@@ -109,9 +110,11 @@ func _build_railcut() -> void:
 func _build_depot() -> void:
 	# Fuel tanks in the middle; west alley x=6-8 is the sneak. Spine x=12-14 and
 	# east x=31-33 stay open. North y=5-6 and south y=16-17 remain the connectors.
+	# A short crate row north of 南闸 blocks mouth-west LOS onto the sneak suffix.
 	_block_rect(9, 7, 11, 13)
 	_block_rect(15, 8, 23, 14)
 	_block_rect(25, 8, 28, 12)
+	_block_rect(25, 16, 27, 16)
 
 
 func _block_rect(x0: int, y0: int, x1: int, y1: int) -> void:

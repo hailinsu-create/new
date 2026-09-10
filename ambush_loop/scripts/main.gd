@@ -131,6 +131,7 @@ var replay_focus_type: String = ""
 var _escape_tween: Tween = null
 var _result_panel_home: Vector4 = Vector4(-180, -90, 180, 90)
 var killzone_draw: Node2D = null
+var _leak_miss_draw: Node2D = null
 var tripwire_ghost: Node2D = null
 
 var sfx = null
@@ -388,6 +389,7 @@ func _resolve_optional_hud() -> void:
 		killzone_draw.set_script(KillzoneOverlayScript)
 		$World.add_child(killzone_draw)
 		$World.move_child(killzone_draw, routes_draw.get_index())
+	_play_ensure_leak_miss_draw()
 	_ensure_tripwire_ghost()
 	_setup_world_layers()
 	_ensure_game_camera()
@@ -2181,27 +2183,179 @@ func _layout_checklist() -> void:
 			parent_h = vis_h - host.offset_top + host.offset_bottom
 		# ExtraBar sits ~92px above the bottom; keep chips clear of it.
 		var max_bottom := parent_h - 100.0 - pad.w
+		var chip_n := maxi(_checklist_labels.size(), 3)
+		var box_h := 36.0 + float(chip_n) * 20.0
 		checklist_strip.offset_left = 10.0 + maxf(0.0, pad.x - 8.0)
 		checklist_strip.offset_top = top
 		checklist_strip.offset_right = 214.0
-		checklist_strip.offset_bottom = minf(top + 96.0, max_bottom)
+		checklist_strip.offset_bottom = minf(top + box_h, max_bottom)
 		if checklist_strip.offset_bottom < checklist_strip.offset_top + 36.0:
-			checklist_strip.offset_top = maxf(78.0, max_bottom - 96.0)
+			checklist_strip.offset_top = maxf(78.0, max_bottom - box_h)
 			checklist_strip.offset_bottom = max_bottom
 		checklist_strip.grow_horizontal = Control.GROW_DIRECTION_END
 		checklist_strip.grow_vertical = Control.GROW_DIRECTION_END
 
 
 func _side_route_key() -> String:
-	if level == null:
-		return ""
-	if door_locked and not level.alternate_route_cells.is_empty():
-		return "alt"
-	if route_world.has("flank") and not (door_locked and level.door_blocks_route == "flank"):
-		return "flank"
-	if route_world.has("sneak"):
-		return "sneak"
+	var keys := _play_active_route_keys()
+	for k in keys:
+		if str(k) != "main":
+			return str(k)
 	return ""
+
+
+func _play_active_route_keys() -> PackedStringArray:
+	var keys := PackedStringArray()
+	if level == null:
+		return keys
+	keys.append("main")
+	if door_locked and not level.alternate_route_cells.is_empty():
+		keys.append("alt")
+		return keys
+	if route_world.has("flank") and not (door_locked and level.door_blocks_route == "flank"):
+		keys.append("flank")
+	if route_world.has("sneak"):
+		keys.append("sneak")
+	return keys
+
+
+func _play_route_chip_title(key: String, compact: bool) -> String:
+	match key:
+		"main":
+			return "主路" if compact else "射界覆盖主路"
+		"flank":
+			return "侧翼"
+		"sneak":
+			return "暗道"
+		"alt":
+			return "紫备用"
+		_:
+			return key
+
+
+func _play_ensure_leak_miss_draw() -> void:
+	if _leak_miss_draw != null and is_instance_valid(_leak_miss_draw):
+		return
+	var n := Node2D.new()
+	n.name = "LeakMissDraw"
+	n.set_script(KillzoneOverlayScript)
+	n.z_index = 6
+	var world := get_node_or_null("World")
+	if world:
+		world.add_child(n)
+	else:
+		add_child(n)
+	_leak_miss_draw = n
+
+
+func _play_has_leak_object() -> bool:
+	if intel == null or intel.records.is_empty():
+		return false
+	var rec: Dictionary = intel.records[intel.records.size() - 1]
+	if str(rec.get("reason", "")) != "escape":
+		return false
+	return not _play_leak_samples().is_empty()
+
+
+func _play_leak_samples() -> PackedVector2Array:
+	var out := PackedVector2Array()
+	if intel == null or intel.records.is_empty():
+		return out
+	var rec: Dictionary = intel.records[intel.records.size() - 1]
+	if str(rec.get("reason", "")) != "escape":
+		return out
+	var path: PackedVector2Array = rec.get("path", PackedVector2Array())
+	if path.size() < 2:
+		return out
+	var leak_pos: Vector2 = path[path.size() - 1]
+	var skip: Array = []
+	var main_poly := _route_polyline_named("main")
+	if not main_poly.is_empty():
+		skip.append(main_poly)
+	if str(rec.get("route", "")) == "alt" and route_world.has("flank"):
+		skip.append(route_world["flank"])
+	for p in _sample_polyline(path, 20.0):
+		if p.distance_to(leak_pos) <= 96.0:
+			continue
+		var shared := false
+		for poly in skip:
+			if _dist_to_polyline(p, poly) <= 28.0:
+				shared = true
+				break
+		if shared:
+			continue
+		out.append(p)
+	if out.is_empty():
+		for p in _sample_polyline(path, 20.0):
+			if p.distance_to(leak_pos) <= 140.0:
+				out.append(p)
+	return out
+
+
+func _play_point_covered(p: Vector2) -> bool:
+	for op in operators:
+		if op == null or not op.visible or not op.alive:
+			continue
+		if op.in_fire_geometry(p, grid):
+			return true
+	for tw in tripwires:
+		if tw == null or not is_instance_valid(tw):
+			continue
+		if tw.spent or not tw.armed:
+			continue
+		if tw.global_position.distance_to(p) <= Tripwire.RADIUS:
+			return true
+	return false
+
+
+func _play_leak_uncovered_samples() -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for p in _play_leak_samples():
+		if not _play_point_covered(p):
+			out.append(p)
+	return out
+
+
+func leak_cover_ok() -> bool:
+	var samples := _play_leak_samples()
+	if samples.is_empty():
+		return true
+	for p in samples:
+		if _play_point_covered(p):
+			return true
+	return false
+
+
+func _play_refresh_leak_miss() -> void:
+	_play_ensure_leak_miss_draw()
+	if _leak_miss_draw == null:
+		return
+	var pts := PackedVector2Array()
+	if phase == Phase.SETUP and _play_has_leak_object():
+		pts = _play_leak_uncovered_samples()
+	if _leak_miss_draw.has_method("set_miss_samples"):
+		_leak_miss_draw.call("set_miss_samples", pts)
+	_leak_miss_draw.visible = phase == Phase.SETUP and not pts.is_empty()
+
+
+func _play_ensure_checklist_count(n: int) -> void:
+	_ensure_checklist()
+	if checklist_strip == null:
+		return
+	while _checklist_labels.size() < n:
+		var lab := Label.new()
+		lab.add_theme_font_size_override("font_size", 13)
+		lab.add_theme_font_override("font", NightOps.ui_font_bold())
+		lab.add_theme_color_override("font_shadow_color", Color(0.02, 0.03, 0.02, 0.9))
+		lab.add_theme_constant_override("shadow_offset_x", 1)
+		lab.add_theme_constant_override("shadow_offset_y", 1)
+		lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		checklist_strip.add_child(lab)
+		_checklist_labels.append(lab)
+	while _checklist_labels.size() > n:
+		var extra: Label = _checklist_labels.pop_back()
+		if extra:
+			extra.queue_free()
 
 
 func _route_polyline_named(route_name: String) -> PackedVector2Array:
@@ -2214,36 +2368,77 @@ func _route_polyline_named(route_name: String) -> PackedVector2Array:
 	return PackedVector2Array()
 
 
-func _plan_covers_route(route_name: String) -> bool:
+func _play_distinct_route_samples(route_name: String) -> PackedVector2Array:
 	var poly := _route_polyline_named(route_name)
+	var out := PackedVector2Array()
 	if poly.is_empty():
-		return false
-	for op in operators:
-		if op == null or not op.visible or not op.alive:
+		return out
+	var others: Array = []
+	for k in _play_active_route_keys():
+		if str(k) == route_name:
 			continue
-		for p in _sample_polyline(poly, 20.0):
-			if op.in_fire_geometry(p, grid):
-				return true
+		var other := _route_polyline_named(str(k))
+		if not other.is_empty():
+			others.append(other)
+	if route_name == "alt" and route_world.has("flank"):
+		others.append(route_world["flank"])
+	for p in _sample_polyline(poly, 20.0):
+		var shared := false
+		for other in others:
+			if _dist_to_polyline(p, other) <= 28.0:
+				shared = true
+				break
+		if not shared:
+			out.append(p)
+	return out
+
+
+func _plan_covers_route(route_name: String) -> bool:
+	var samples := _play_distinct_route_samples(route_name)
+	if samples.is_empty():
+		var poly := _route_polyline_named(route_name)
+		if poly.is_empty():
+			return false
+		samples = _sample_polyline(poly, 20.0)
+	for p in samples:
+		if _play_point_covered(p):
+			return true
 	return false
 
 
 func _refresh_checklist() -> void:
 	_ensure_checklist()
-	_layout_checklist()
 	if checklist_strip == null:
 		return
 	var show := phase == Phase.SETUP and level != null
 	checklist_strip.visible = show
-	if not show or _checklist_labels.size() < 3:
+	if not show:
+		_play_refresh_leak_miss()
 		return
+	var keys := _play_active_route_keys()
+	var leak_on := _play_has_leak_object()
+	_play_ensure_checklist_count(1 + keys.size() + (1 if leak_on else 0))
+	_layout_checklist()
 	var deployed := _deployed_count() >= 1
-	var main_ok := _plan_covers_route("main")
-	var side_key := _side_route_key()
-	var side_ok := side_key != "" and _plan_covers_route(side_key)
 	var compact := _checklist_use_touch_layout()
-	_paint_check_chip(_checklist_labels[0], "部署" if compact else "已部署≥1", deployed, deployed)
-	_paint_check_chip(_checklist_labels[1], "主路" if compact else "射界覆盖主路", main_ok, deployed)
-	_paint_check_chip(_checklist_labels[2], "侧路" if compact else "侧路有火力", side_ok, deployed)
+	var i := 0
+	_paint_check_chip(_checklist_labels[i], "部署" if compact else "已部署≥1", deployed, deployed)
+	i += 1
+	for key in keys:
+		var ok := _plan_covers_route(str(key))
+		_paint_check_chip(_checklist_labels[i], _play_route_chip_title(str(key), compact), ok, deployed)
+		i += 1
+	if leak_on and i < _checklist_labels.size():
+		var leak_ok := leak_cover_ok()
+		_paint_check_chip(
+			_checklist_labels[i],
+			"漏网" if compact else "漏网已罩住",
+			leak_ok,
+			true
+		)
+		if not leak_ok:
+			_checklist_labels[i].add_theme_color_override("font_color", Color(0.90, 0.28, 0.22))
+	_play_refresh_leak_miss()
 
 
 func _paint_check_chip(lab: Label, title: String, ok: bool, started: bool) -> void:
@@ -3379,6 +3574,20 @@ func _deployed_count() -> int:
 	return n
 
 
+func _play_hold_pack(op_index: int) -> void:
+	if phase != Phase.SETUP:
+		return
+	if op_index < 0 or op_index >= operators.size():
+		return
+	_select_op(op_index)
+	if selected == null or not selected.visible:
+		return
+	if selected.fire_mode != OperatorUnit.FireMode.HOLD_FOR_AMBUSH:
+		_on_mode_pressed()
+	if level != null and level.has_ammo_pack and not selected.has_ammo_pack:
+		_on_pack_pressed()
+
+
 func _on_mode_pressed() -> void:
 	if phase != Phase.SETUP or selected == null or not selected.visible:
 		return
@@ -3974,6 +4183,8 @@ func _on_enemy_escaped(enemy: EnemyRunner, path: PackedVector2Array) -> void:
 		return
 	# Record THIS runner — label_id + spawn_route from the emitter, never spawn_schedule[0].
 	var route := str(enemy.spawn_route)
+	if bool(enemy.did_branch):
+		route = "alt"
 	var lid := int(enemy.label_id)
 	fail_reason = "escape"
 	phase = Phase.FAILED

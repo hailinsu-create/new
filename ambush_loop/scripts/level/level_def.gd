@@ -197,8 +197,8 @@ static func make_warehouse() -> LevelDef:
 	l.title = "第2关 · 仓道：弹药窗口"
 	l.teaching = "这关弹包给铁砧，F 入伏再打才有弹药窗口。仓道里的夜班搬运队会把弹打空。过早开火是陷阱——铁砧最容易空。东廊橙色油桶在敌人靠近时自动炸（伤及友军），别把灰狼塞进爆心。参考：铁砧拿弹包看窗口，夜枭锁闸口。"
 	l.tutorial = "G 把唯一弹包交给已部署队员（空弹自动补一次，本轮不能转交；铁砧优先）。F 切「入伏再打」，黄锥变暗，等敌人进黄色伏击区——打中这个窗口才爽。东廊油桶是预置杀器：敌人踩近才在模拟里炸，执行中不能点爆。红=主路，橙=侧翼。X 中止留情报；时间轴只读。M 静音。"
-	# East flank corridor — away from reference slots 1/3/5 so smoke stays a skill check.
-	l.barrel_cell = Vector2i(32, 10)
+	# Next to 侧廊, not on flank waypoint (32,10). Blast is a deploy don't, not an auto-kill.
+	l.barrel_cell = Vector2i(22, 8)
 	l.escape_cell = Vector2i(31, 19)
 	# Covers sit only in walkable corridor cells for warehouse shelves.
 	l.cover_defs = [
@@ -224,6 +224,7 @@ static func make_warehouse() -> LevelDef:
 		{"id": 2, "route": "flank", "delay": 0.5, "loot": 0, "teaching_note": "别站爆心"},
 		{"id": 3, "route": "main", "delay": 1.2, "loot": 1},
 		{"id": 4, "route": "flank", "delay": 1.6, "loot": 0},
+		{"id": 5, "route": "flank", "delay": 2.4, "loot": 0},
 	]
 	l.ambush_zone = Rect2(360, 300, 360, 200)
 	l.has_ammo_pack = true
@@ -267,10 +268,11 @@ static func make_pump() -> LevelDef:
 			Vector2i(32, 6), Vector2i(32, 12), Vector2i(31, 17), Vector2i(31, 19)
 		],
 	}
-	# Locked door: west-then-south approach, never through machinery blocks.
+	# Locked door: west approach, then (22,14) where 铁砧 facing west can cut.
+	# Suffix then runs (30,16) so the old east facing and mouth scout miss.
 	l.alternate_route_cells = [
-		Vector2i(13, 3), Vector2i(13, 5), Vector2i(11, 8), Vector2i(11, 14),
-		Vector2i(16, 17), Vector2i(24, 17), Vector2i(31, 17), Vector2i(31, 19)
+		Vector2i(13, 3), Vector2i(13, 5), Vector2i(9, 8), Vector2i(9, 14),
+		Vector2i(22, 14), Vector2i(30, 16), Vector2i(31, 19)
 	]
 	l.door_cell = Vector2i(28, 6)
 	l.door_blocks_route = "flank"
@@ -374,7 +376,8 @@ static func make_depot() -> LevelDef:
 		],
 		"sneak": [
 			Vector2i(13, 3), Vector2i(13, 5), Vector2i(7, 5), Vector2i(7, 11),
-			Vector2i(7, 16), Vector2i(16, 17), Vector2i(31, 17), Vector2i(31, 19)
+			Vector2i(7, 16), Vector2i(14, 15), Vector2i(24, 15), Vector2i(31, 15),
+			Vector2i(31, 19)
 		],
 	}
 	# Two on the spine immediately, east close behind, west alley delayed so a south-only stack dumps ammo first.
