@@ -11,17 +11,17 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
 	var dim := ColorRect.new()
-	dim.color = Color(0.02, 0.03, 0.02, 0.88)
+	dim.color = Color(0.012, 0.020, 0.016, 0.92)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(dim)
 	var panel := PanelContainer.new()
 	panel.theme = NightOps.theme()
 	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.offset_left = -260.0
-	panel.offset_right = 260.0
-	panel.offset_top = -180.0
-	panel.offset_bottom = 180.0
+	panel.offset_left = -280.0
+	panel.offset_right = 280.0
+	panel.offset_top = -196.0
+	panel.offset_bottom = 196.0
 	add_child(panel)
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 24)
