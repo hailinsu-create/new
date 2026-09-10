@@ -740,7 +740,10 @@ func _assert_fail_paths(main) -> bool:
 	for op in main.operators:
 		if op.visible and op.alive:
 			op.take_damage(999.0, Vector2(-9999, -9999))
-	if main.phase == main.Phase.WATCHING:
+	# take_damage sets FAILED immediately, so always flush the pending fail panel.
+	if str(main.pending_result) != "":
+		main._flush_pending_result()
+	elif main.phase == main.Phase.WATCHING:
 		main._finish_sim_tick()
 	await process_frame
 	if main.phase != main.Phase.FAILED or main.fail_reason != "wipe":
