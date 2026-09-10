@@ -33,7 +33,8 @@ var _fire_pulse: float = 0.0
 
 func setup(i: int) -> void:
 	idx = i
-	custom_minimum_size = Vector2(204, 108)
+	custom_minimum_size = Vector2(204, 100)
+	size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_normal = NightOps.flat(Color(0.055, 0.072, 0.062, 0.94), Color(0.28, 0.34, 0.22), 1, 8, 3)
 	_normal.border_width_top = 2
@@ -119,8 +120,10 @@ func setup(i: int) -> void:
 	_meta.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(_meta)
 	var slot_row := HBoxContainer.new()
+	slot_row.name = "SlotRow"
 	slot_row.add_theme_constant_override("separation", 8)
 	slot_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	slot_row.visible = false
 	box.add_child(slot_row)
 	_slot = Label.new()
 	_slot.add_theme_font_size_override("font_size", 11)
@@ -202,13 +205,17 @@ func bind(op: OperatorUnit, is_sel: bool, can_pick: bool, watching: bool = false
 	_hp_txt.text = "HP 0" if not op.alive else "HP %d" % int(round(hp))
 	_refresh_ammo_pips(op)
 	var ammo_mark := "●" if op.ammo > 0 else "○"
-	_meta.text = "%s 弹 %d/%d    %s" % [ammo_mark, op.ammo, op.max_ammo, op.fire_mode_label()]
+	var slot_txt := "未部署"
+	if op.visible and op.slot != null:
+		slot_txt = op.slot.label_text
+	_meta.text = "%s 弹 %d/%d  %s  ·  %s" % [ammo_mark, op.ammo, op.max_ammo, op.fire_mode_label(), slot_txt]
 	if not op.visible or op.slot == null:
 		_slot.text = "未部署"
 		_slot.add_theme_color_override("font_color", Color(0.72, 0.55, 0.32))
 	else:
 		_slot.text = op.slot.label_text
 		_slot.add_theme_color_override("font_color", NightOps.OLIVE_DIM)
+	_slot.visible = false
 	if _why:
 		var line := why.strip_edges()
 		if line == "":
