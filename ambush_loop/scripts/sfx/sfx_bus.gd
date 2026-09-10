@@ -6,7 +6,7 @@ extends Node
 const MIX_RATE := 22050
 const CUES := [
 	"alarm", "alarm_stinger", "fire", "return_fire", "empty", "loot", "op_death", "escape", "win",
-	"win_stinger", "door",
+	"win_stinger", "door", "trip", "barrel", "kill",
 	"ambient_yard", "ambient_warehouse", "ambient_pump", "ambient_railcut", "ambient_depot"
 ]
 
@@ -122,6 +122,12 @@ func _gain(cue: String) -> float:
 			return -16.0
 		"door":
 			return -13.0
+		"trip":
+			return -12.0
+		"barrel":
+			return -10.0
+		"kill":
+			return -14.0
 		"ambient_yard":
 			return -28.0
 		"ambient_warehouse":
@@ -160,6 +166,12 @@ func _build_stream(cue: String) -> AudioStreamWAV:
 			return _pcm(_win_stinger())
 		"door":
 			return _pcm(_door())
+		"trip":
+			return _pcm(_trip())
+		"barrel":
+			return _pcm(_barrel())
+		"kill":
+			return _pcm(_kill())
 		"ambient_yard":
 			return _pcm(_ambient_yard())
 		"ambient_warehouse":
@@ -310,6 +322,29 @@ func _door() -> PackedFloat32Array:
 		_tone(420.0, 0.035, 0.10, 0.04),
 		_silence(0.02),
 		_tone(140.0, 0.06, 0.14, 0.06),
+	])
+
+
+func _trip() -> PackedFloat32Array:
+	return _concat([
+		_tone(2100.0, 0.018, 0.16, 0.08),
+		_tone(420.0, 0.05, 0.14, 0.04),
+		_tone(180.0, 0.06, 0.10, 0.03),
+	])
+
+
+func _barrel() -> PackedFloat32Array:
+	return _concat([
+		_rumble(0.12, 0.22, 48.0),
+		_tone(90.0, 0.10, 0.16, 0.10),
+		_tone(240.0, 0.06, 0.08, 0.06),
+	])
+
+
+func _kill() -> PackedFloat32Array:
+	return _concat([
+		_tone(520.0, 0.03, 0.12, 0.04),
+		_tone(310.0, 0.05, 0.10, 0.03),
 	])
 
 

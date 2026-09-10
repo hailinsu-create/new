@@ -18,6 +18,12 @@ var protect_arc: Polygon2D = null
 var _crate_bits: Array[Polygon2D] = []
 var _lock_mark: Label = null
 var _fire_lean: Vector2 = Vector2.ZERO
+var _arc_edge: Line2D = null
+var _arc_arrow: Polygon2D = null
+var _hold_ring: Line2D = null
+var _emphasis: int = 0
+var _pulse_t: float = 0.0
+var _hold_p: float = 0.0
 
 
 func setup(id: int, text: String, protect_face: float = 0.0) -> void:
@@ -43,16 +49,16 @@ func _ensure_crate_look() -> void:
 	pad.set_meta("crate_built", true)
 	# Stacked sandbag / crate silhouette. Pad stays the hit-tint target.
 	pad.polygon = PackedVector2Array([
-		Vector2(-14, -11), Vector2(-8, -16), Vector2(8, -16), Vector2(14, -11),
-		Vector2(14, 11), Vector2(8, 16), Vector2(-8, 16), Vector2(-14, 11)
+		Vector2(-16, -12), Vector2(-9, -18), Vector2(9, -18), Vector2(16, -12),
+		Vector2(16, 13), Vector2(9, 18), Vector2(-9, 18), Vector2(-16, 13)
 	])
 	pad.color = Color(0.30, 0.38, 0.24, 0.92)
 	var shadow := Polygon2D.new()
 	shadow.name = "CrateShadow"
 	shadow.polygon = PackedVector2Array([
-		Vector2(-16, 8), Vector2(16, 8), Vector2(13, 18), Vector2(-13, 18)
+		Vector2(-18, 8), Vector2(18, 8), Vector2(15, 22), Vector2(-15, 22)
 	])
-	shadow.color = Color(0.04, 0.05, 0.04, 0.40)
+	shadow.color = Color(0.04, 0.05, 0.04, 0.48)
 	shadow.z_index = -1
 	shadow.show_behind_parent = true
 	add_child(shadow)
@@ -93,6 +99,15 @@ func _ensure_crate_look() -> void:
 	bag_b.z_index = 1
 	add_child(bag_b)
 	_crate_bits.append(bag_b)
+	var bag_c := Polygon2D.new()
+	bag_c.name = "SandbagC"
+	bag_c.polygon = PackedVector2Array([
+		Vector2(-10, -8), Vector2(10, -10), Vector2(9, -2), Vector2(-9, -1)
+	])
+	bag_c.color = Color(0.40, 0.36, 0.20, 0.90)
+	bag_c.z_index = 1
+	add_child(bag_c)
+	_crate_bits.append(bag_c)
 
 
 func _ensure_protect_arc() -> void:
@@ -121,6 +136,7 @@ func rebuild_protect_arc() -> void:
 		var rad := deg_to_rad(protect_facing_deg + t)
 		pts.append(Vector2(cos(rad), sin(rad)) * PREVIEW_RANGE)
 	protect_arc.polygon = pts
+	_rebuild_arc_edge(pts)
 
 
 func is_free() -> bool:
@@ -162,16 +178,33 @@ func set_protect_preview(emphasis: int) -> void:
 	_ensure_protect_arc()
 	if protect_arc == null:
 		return
+	_emphasis = emphasis
 	rebuild_protect_arc()
 	match emphasis:
 		2:
 			protect_arc.visible = true
-			protect_arc.color = Color(0.22, 0.95, 0.68, 0.38)
+			protect_arc.color = Color(0.22, 0.95, 0.68, 0.46)
+			if _arc_edge:
+				_arc_edge.visible = true
+			if _arc_arrow:
+				_arc_arrow.visible = true
+			set_process(true)
 		1:
 			protect_arc.visible = true
-			protect_arc.color = Color(0.22, 0.78, 0.58, 0.20)
+			protect_arc.color = Color(0.22, 0.78, 0.58, 0.26)
+			if _arc_edge:
+				_arc_edge.visible = true
+				_arc_edge.default_color = Color(0.32, 0.92, 0.68, 0.55)
+			if _arc_arrow:
+				_arc_arrow.visible = true
+				_arc_arrow.color = Color(0.32, 0.88, 0.62, 0.62)
 		_:
 			protect_arc.visible = false
+			if _arc_edge:
+				_arc_edge.visible = false
+			if _arc_arrow:
+				_arc_arrow.visible = false
+	_maybe_idle_process()
 
 
 func protect_compass() -> String:
@@ -193,15 +226,104 @@ func kick_fire_lean(facing_deg: float, heavy: bool = false) -> void:
 	set_process(true)
 
 
+func set_hold_progress(p: float) -> void:
+	_hold_p = clampf(p, 0.0, 1.0)
+	_ensure_hold_ring()
+	if _hold_ring == null:
+		return
+	if _hold_p <= 0.02:
+		_hold_ring.visible = false
+		_maybe_idle_process()
+		return
+	_hold_ring.visible = true
+	var pts := PackedVector2Array()
+	var rays := 18
+	var span := TAU * _hold_p
+	for i in range(rays + 1):
+		var a := -PI * 0.5 + span * (float(i) / float(rays))
+		pts.append(Vector2(cos(a), sin(a)) * 22.0)
+	_hold_ring.points = pts
+	_hold_ring.default_color = Color(0.95, 0.86, 0.38, 0.45 + 0.50 * _hold_p)
+	set_process(true)
+
+
+func _ensure_hold_ring() -> void:
+	if _hold_ring != null and is_instance_valid(_hold_ring):
+		return
+	_hold_ring = Line2D.new()
+	_hold_ring.name = "HoldRing"
+	_hold_ring.width = 3.2
+	_hold_ring.closed = false
+	_hold_ring.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	_hold_ring.end_cap_mode = Line2D.LINE_CAP_ROUND
+	_hold_ring.z_index = 5
+	_hold_ring.visible = false
+	add_child(_hold_ring)
+
+
+func _rebuild_arc_edge(fan: PackedVector2Array) -> void:
+	if fan.size() < 3:
+		return
+	if _arc_edge == null or not is_instance_valid(_arc_edge):
+		_arc_edge = Line2D.new()
+		_arc_edge.name = "ProtectEdge"
+		_arc_edge.width = 2.6
+		_arc_edge.begin_cap_mode = Line2D.LINE_CAP_ROUND
+		_arc_edge.end_cap_mode = Line2D.LINE_CAP_ROUND
+		_arc_edge.joint_mode = Line2D.LINE_JOINT_ROUND
+		_arc_edge.z_index = 0
+		_arc_edge.z_as_relative = true
+		_arc_edge.show_behind_parent = true
+		add_child(_arc_edge)
+		move_child(_arc_edge, 0)
+	var loop := PackedVector2Array()
+	loop.append(Vector2.ZERO)
+	for i in range(1, fan.size()):
+		loop.append(fan[i])
+	loop.append(Vector2.ZERO)
+	_arc_edge.points = loop
+	_arc_edge.default_color = Color(0.28, 0.95, 0.72, 0.78 if _emphasis >= 2 else 0.50)
+	_arc_edge.visible = _emphasis > 0
+	if _arc_arrow == null or not is_instance_valid(_arc_arrow):
+		_arc_arrow = Polygon2D.new()
+		_arc_arrow.name = "ProtectArrow"
+		_arc_arrow.z_index = 1
+		_arc_arrow.show_behind_parent = true
+		add_child(_arc_arrow)
+	var rad := deg_to_rad(protect_facing_deg)
+	var tip := Vector2(cos(rad), sin(rad)) * (PREVIEW_RANGE + 6.0)
+	var back := Vector2(cos(rad), sin(rad)) * (PREVIEW_RANGE - 10.0)
+	var perp := Vector2(-sin(rad), cos(rad)) * 7.0
+	_arc_arrow.polygon = PackedVector2Array([tip, back + perp, back - perp])
+	_arc_arrow.color = Color(0.35, 0.98, 0.72, 0.75 if _emphasis >= 2 else 0.42)
+	_arc_arrow.visible = _emphasis > 0
+
+
+func _maybe_idle_process() -> void:
+	if _fire_lean.length_squared() > 0.04 or _emphasis >= 2 or _hold_p > 0.02:
+		set_process(true)
+	else:
+		set_process(false)
+
+
 func _process(delta: float) -> void:
 	_fire_lean = _fire_lean.lerp(Vector2.ZERO, 1.0 - exp(-delta * 10.0))
 	if pad:
 		pad.position = _fire_lean
+	if _emphasis >= 2:
+		_pulse_t += delta
+		var wave := 0.5 + 0.5 * sin(_pulse_t * 4.8)
+		if protect_arc:
+			protect_arc.color = Color(0.22, 0.95, 0.68, 0.28 + 0.18 * wave)
+		if _arc_edge:
+			_arc_edge.default_color = Color(0.40, 1.0, 0.78, 0.50 + 0.32 * wave)
+		if _arc_arrow:
+			_arc_arrow.color = Color(0.45, 1.0, 0.78, 0.62 + 0.28 * wave)
 	if _fire_lean.length_squared() < 0.04:
 		_fire_lean = Vector2.ZERO
 		if pad:
 			pad.position = Vector2.ZERO
-		set_process(false)
+	_maybe_idle_process()
 
 
 func protects_from(attack_from: Vector2) -> bool:

@@ -1,6 +1,8 @@
 class_name ExplosiveBarrel
 extends Node2D
 
+const CombatFxScript := preload("res://scripts/fx/combat_fx.gd")
+
 ## Authored one-shot explosive. Triggers only from Main._sim_tick (never _process).
 ## Like tripwire: proximity during the freeze-plan watch, no mid-fight click detonate.
 
@@ -107,3 +109,20 @@ func _play_blast_ring() -> void:
 	tw2.tween_property(fill, "scale", Vector2(4.8, 4.8), 0.22)
 	tw2.parallel().tween_property(fill, "modulate:a", 0.0, 0.22)
 	tw2.tween_callback(fill.queue_free)
+	var ring2 := Line2D.new()
+	ring2.name = "BlastRing2"
+	ring2.width = 1.6
+	ring2.closed = true
+	ring2.default_color = Color(1.0, 0.92, 0.55, 0.7)
+	ring2.z_index = 6
+	ring2.points = pts
+	add_child(ring2)
+	var tw3 := ring2.create_tween()
+	tw3.tween_property(ring2, "scale", Vector2(7.2, 7.2), 0.34).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw3.parallel().tween_property(ring2, "modulate:a", 0.0, 0.34)
+	tw3.tween_callback(ring2.queue_free)
+	if visual:
+		visual.scale = Vector2(1.18, 0.82)
+		var crush := visual.create_tween()
+		crush.tween_property(visual, "scale", Vector2(1.05, 0.72), 0.12)
+	CombatFxScript.barrel_boom(self, global_position)

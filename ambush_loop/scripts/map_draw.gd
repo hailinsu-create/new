@@ -199,6 +199,8 @@ func _draw_static_into(c: CanvasItem) -> void:
 				_draw_floor_tile(c, rect, x, y)
 	_draw_static_landmarks(c)
 	_draw_floor_accent_stripe(c)
+	_draw_doorway_detail(c)
+	_draw_floor_stain_wash(c)
 
 
 func _atmo() -> String:
@@ -356,6 +358,14 @@ func _draw_floor_tile(c: CanvasItem, rect: Rect2, x: int, y: int) -> void:
 			var ox := cx + 8.0 + _frac(seed_n + 11) * 10.0
 			var oy := cy + 10.0
 			c.draw_arc(Vector2(ox, oy), 5.0, 0.2, 2.4, 6, Color(grain.r, grain.g, grain.b, 0.08), 1.0, true)
+		if (seed_n % 21) == 0:
+			# Ground stain blob — layout dirt, not a collider.
+			var stain := Color(grain.r * 0.45, grain.g * 0.40, grain.b * 0.35, 0.16)
+			c.draw_circle(
+				Vector2(cx + 10.0 + _frac(seed_n + 2) * 12.0, cy + 12.0 + _frac(seed_n + 6) * 8.0),
+				7.0 + _frac(seed_n + 4) * 5.0,
+				stain
+			)
 	var grid_c: Color = pal["grid"]
 	c.draw_rect(rect, Color(grid_c.r, grid_c.g, grid_c.b, 0.16), false, 1.0)
 	if x % 4 == 0:
@@ -406,8 +416,10 @@ func _draw_layout_decal(c: CanvasItem, rect: Rect2, x: int, y: int, seed_n: int)
 
 func _draw_wall_tile(c: CanvasItem, rect: Rect2, x: int, y: int) -> void:
 	var pal := _wall_palette()
+	# Drop mass so walls read thicker than the floor grid.
+	c.draw_rect(Rect2(rect.position + Vector2(2, 3), rect.size), Color(0.04, 0.03, 0.02, 0.55))
 	c.draw_rect(rect, pal["base"])
-	var inset := rect.grow(-2.0)
+	var inset := rect.grow(-1.2)
 	var warm: Color = pal["fill_a"] if ((x + y) % 2) == 0 else pal["fill_b"]
 	c.draw_rect(inset, warm)
 	if not _is_power_saving():
@@ -433,8 +445,8 @@ func _draw_wall_tile(c: CanvasItem, rect: Rect2, x: int, y: int) -> void:
 			y0 += 7.0
 			row += 1
 	var edge: Color = pal["edge"]
-	c.draw_rect(rect, edge, false, 1.4)
-	c.draw_rect(inset, Color(pal["base"].r, pal["base"].g, pal["base"].b, 0.50), false, 1.0)
+	c.draw_rect(rect, edge, false, 2.2)
+	c.draw_rect(inset, Color(pal["base"].r, pal["base"].g, pal["base"].b, 0.50), false, 1.2)
 	var north_open := y <= 0 or not grid.is_blocked(x, y - 1)
 	var west_open := x <= 0 or not grid.is_blocked(x - 1, y)
 	var rim: Color = pal["rim"]
@@ -443,14 +455,20 @@ func _draw_wall_tile(c: CanvasItem, rect: Rect2, x: int, y: int) -> void:
 			rect.position + Vector2(1, 1),
 			rect.position + Vector2(rect.size.x - 1, 1),
 			rim,
-			2.0
+			3.2
+		)
+		c.draw_line(
+			rect.position + Vector2(2, 4),
+			rect.position + Vector2(rect.size.x - 2, 4),
+			Color(rim.r, rim.g, rim.b, rim.a * 0.35),
+			1.4
 		)
 	if west_open:
 		c.draw_line(
 			rect.position + Vector2(1, 1),
 			rect.position + Vector2(1, rect.size.y - 1),
 			Color(rim.r * 0.88, rim.g * 0.85, rim.b * 0.82, rim.a * 0.9),
-			2.0
+			3.0
 		)
 	var south_open := y + 1 >= AmbushGrid.ROWS or not grid.is_blocked(x, y + 1)
 	var east_open := x + 1 >= AmbushGrid.COLS or not grid.is_blocked(x + 1, y)
@@ -458,15 +476,15 @@ func _draw_wall_tile(c: CanvasItem, rect: Rect2, x: int, y: int) -> void:
 		c.draw_line(
 			rect.position + Vector2(0, rect.size.y - 1),
 			rect.position + Vector2(rect.size.x, rect.size.y - 1),
-			Color(0.06, 0.03, 0.02, 0.75),
-			2.0
+			Color(0.06, 0.03, 0.02, 0.82),
+			3.2
 		)
 	if east_open:
 		c.draw_line(
 			rect.position + Vector2(rect.size.x - 1, 0),
 			rect.position + Vector2(rect.size.x - 1, rect.size.y),
-			Color(0.08, 0.04, 0.02, 0.55),
-			1.5
+			Color(0.08, 0.04, 0.02, 0.62),
+			2.4
 		)
 
 
@@ -527,6 +545,46 @@ func _draw_floor_accent_stripe(c: CanvasItem) -> void:
 		_:
 			c.draw_rect(Rect2(22.0 * t, 4.55 * t, 14.0 * t, 5.0), Color(0.62, 0.78, 0.52, 0.08))
 			c.draw_rect(Rect2(8.0 * t, 16.35 * t, 18.0 * t, 4.0), Color(0.16, 0.26, 0.16, 0.07))
+
+
+func _draw_doorway_detail(c: CanvasItem) -> void:
+	## Doorway jamb and threshold on the authored door cell. Overlay only.
+	if grid == null or grid.door_cell.x < 0:
+		return
+	var t := AmbushGrid.TILE
+	var dc := grid.door_cell
+	var r := Rect2(dc.x * t, dc.y * t, t, t)
+	var locked := grid.door_locked
+	var frame := Color(0.72, 0.28, 0.16, 0.55) if locked else Color(0.42, 0.32, 0.16, 0.50)
+	c.draw_rect(r.grow(2.0), frame, false, 3.0)
+	c.draw_rect(Rect2(r.position.x + 4.0, r.position.y + t - 6.0, t - 8.0, 5.0), Color(0.14, 0.10, 0.06, 0.70))
+	c.draw_rect(Rect2(r.position.x + 2.0, r.position.y + 2.0, 5.0, t - 4.0), Color(0.18, 0.12, 0.08, 0.55))
+	c.draw_rect(Rect2(r.position.x + t - 7.0, r.position.y + 2.0, 5.0, t - 4.0), Color(0.18, 0.12, 0.08, 0.55))
+	if locked:
+		c.draw_rect(r.grow(-6.0), Color(0.82, 0.18, 0.12, 0.22))
+
+
+func _draw_floor_stain_wash(c: CanvasItem) -> void:
+	## Large cached ground stains per mission. Never writes grid.blocked.
+	if _is_power_saving():
+		return
+	var t := AmbushGrid.TILE
+	match _atmo():
+		"warehouse":
+			c.draw_circle(Vector2(14.5 * t, 15.2 * t), 22.0, Color(0.10, 0.16, 0.12, 0.14))
+			c.draw_circle(Vector2(27.0 * t, 8.6 * t), 16.0, Color(0.16, 0.12, 0.06, 0.12))
+		"pump":
+			c.draw_circle(Vector2(13.8 * t, 15.6 * t), 26.0, Color(0.10, 0.22, 0.20, 0.16))
+			c.draw_circle(Vector2(22.4 * t, 13.2 * t), 14.0, Color(0.08, 0.18, 0.16, 0.12))
+		"railcut":
+			c.draw_circle(Vector2(18.5 * t, 16.4 * t), 18.0, Color(0.12, 0.10, 0.08, 0.14))
+			c.draw_circle(Vector2(33.2 * t, 8.4 * t), 14.0, Color(0.10, 0.10, 0.08, 0.12))
+		"depot":
+			c.draw_circle(Vector2(12.6 * t, 16.2 * t), 20.0, Color(0.18, 0.08, 0.04, 0.16))
+			c.draw_circle(Vector2(26.4 * t, 15.8 * t), 18.0, Color(0.16, 0.08, 0.04, 0.14))
+		_:
+			c.draw_circle(Vector2(10.8 * t, 14.8 * t), 20.0, Color(0.08, 0.12, 0.08, 0.14))
+			c.draw_circle(Vector2(24.6 * t, 8.2 * t), 16.0, Color(0.10, 0.12, 0.08, 0.10))
 
 
 func _draw_static_landmarks(c: CanvasItem) -> void:

@@ -1,6 +1,8 @@
 class_name Tripwire
 extends Node2D
 
+const CombatFxScript := preload("res://scripts/fx/combat_fx.gd")
+
 ## Secondary logistics tool — not the main verb. One shot.
 ## Trigger checks run only from Main._sim_tick (fixed step), never from _process.
 
@@ -58,4 +60,11 @@ func _trip(enemy: EnemyRunner) -> void:
 		wire.default_color = Color(0.32, 0.34, 0.30, 0.45)
 		wire.modulate = Color.WHITE
 		wire.width = 1.2
+	var peg_a := get_node_or_null("PegA") as Polygon2D
+	var peg_b := get_node_or_null("PegB") as Polygon2D
+	if peg_a:
+		peg_a.modulate = Color(0.55, 0.55, 0.52)
+	if peg_b:
+		peg_b.modulate = Color(0.55, 0.55, 0.52)
+	CombatFxScript.trip_snap(self, global_position)
 	triggered.emit()
