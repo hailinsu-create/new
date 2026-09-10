@@ -17,6 +17,7 @@ const AmbushZoneFxScript := preload("res://scripts/fx/ambush_zone_fx.gd")
 const MissionSkyScript := preload("res://scripts/fx/mission_sky.gd")
 const TouchHudScript := preload("res://scripts/touch_hud.gd")
 const IntelPathGhostScript := preload("res://scripts/fx/intel_path_ghost.gd")
+const PayoffCopy := preload("res://scripts/replay/payoff.gd")
 
 var grid: AmbushGrid = AmbushGrid.new()
 var phase: Phase = Phase.SETUP
@@ -2016,7 +2017,7 @@ func _leak_result_line() -> String:
 	var delay := 0.0
 	if level != null and level.has_method("delay_for_actor"):
 		delay = float(level.delay_for_actor(lid))
-	var road := PayoffCopy.leak_road_name(level, route, false)
+	var road := str(PayoffCopy.leak_road_name(level, route, false))
 	if road != "" and road != _route_zh_short(route):
 		return "漏网：%s · 敌%d · %.1fs出发 · %s" % [_route_zh_short(route), lid, delay, road]
 	return "漏网：%s · 敌%d · %.1fs出发" % [_route_zh_short(route), lid, delay]
@@ -3899,7 +3900,7 @@ func _fix_one_line() -> String:
 
 
 func highlight_result_text() -> String:
-	return PayoffCopy.highlight_result_line(level, battle_log, phase == Phase.WON)
+	return str(PayoffCopy.highlight_result_line(level, battle_log, phase == Phase.WON))
 
 
 func payoff_callout_active() -> bool:
@@ -3914,14 +3915,14 @@ func _announce_payoff(kind: String, payload: Dictionary = {}, pos: Vector2 = Vec
 		return
 	_last_payoff_kind = kind
 	_last_payoff_tick = sim.tick
-	var text := PayoffCopy.watching_text(kind, payload)
+	var text := str(PayoffCopy.watching_text(kind, payload))
 	if text == "":
 		return
-	var col := PayoffCopy.watching_color(kind)
+	var col: Color = PayoffCopy.watching_color(kind)
 	_flash(text, col)
 	if phase == Phase.WATCHING and status_label:
 		status_label.text = text
-	var hitch := PayoffCopy.hitch_for(kind)
+	var hitch: Vector2 = PayoffCopy.hitch_for(kind)
 	if hitch != Vector2.ZERO and not _is_power_saving() and phase == Phase.WATCHING:
 		_camera_punch(hitch)
 	if pos.length() > 4.0 and phase == Phase.WATCHING:
@@ -4009,7 +4010,7 @@ func _show_fail_result() -> void:
 	var leak_line := _leak_result_line() if fail_reason == "escape" else ""
 	var leak_block := ("%s\n" % leak_line) if leak_line != "" else ""
 	var fix := _fix_one_line()
-	var hook := PayoffCopy.highlight_result_line(level, battle_log, false)
+	var hook := str(PayoffCopy.highlight_result_line(level, battle_log, false))
 	var extra := ""
 	if fix != "":
 		extra += "%s\n" % fix
@@ -4064,7 +4065,7 @@ func _show_win_result() -> void:
 		var star := ""
 		if level and level.level_id == "yard" and not _mission_had_escape:
 			star = "\n★ 完美院子：零逃逸"
-		var hook := PayoffCopy.highlight_result_line(level, battle_log, true)
+		var hook := str(PayoffCopy.highlight_result_line(level, battle_log, true))
 		var hook_block := ("\n%s" % hook) if hook != "" else ""
 		result_label.text = "任务完成。\n%s\n本关用了 %d 世。\n%s\n%s%s%s\n\n—— 关键事件 ——\n%s" % [
 			unlock, loop_index, epitaph, shot, hook_block, star, "\n".join(lines)
@@ -4076,7 +4077,7 @@ func _show_win_result() -> void:
 		var last_star := ""
 		if level and level.level_id == "yard" and not _mission_had_escape:
 			last_star = "\n★ 完美院子：零逃逸"
-		var last_hook := PayoffCopy.highlight_result_line(level, battle_log, true)
+		var last_hook := str(PayoffCopy.highlight_result_line(level, battle_log, true))
 		var last_hook_block := ("\n%s" % last_hook) if last_hook != "" else ""
 		result_label.text = "全部关卡封锁完成。\n本关用了 %d 世。\n%s\n%s%s%s\n\n—— 关键事件 ——\n%s" % [
 			loop_index, epitaph, shot, last_hook_block, last_star, "\n".join(lines)
@@ -4261,7 +4262,7 @@ func _first_shot_line() -> String:
 	if nm == "":
 		var op := _op_by_id(int(ev.get("actor_id", -1)))
 		nm = op.display_name if op else ("队员%d" % int(ev.get("actor_id", 0)))
-	return PayoffCopy.first_shot_text(nm, int(ev.get("target_id", 0)))
+	return str(PayoffCopy.first_shot_text(nm, int(ev.get("target_id", 0))))
 
 
 func _route_zh_short(route: String) -> String:
