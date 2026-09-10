@@ -63,11 +63,18 @@ var _modal_tween: Tween = null
 func _ready() -> void:
 	theme = NightOps.theme()
 	wordmark.add_theme_font_override("font", NightOps.display_font())
-	wordmark.add_theme_font_size_override("font_size", 72)
+	wordmark.add_theme_font_size_override("font_size", 76)
 	wordmark.add_theme_color_override("font_color", NightOps.OLIVE_HI)
+	wordmark.add_theme_color_override("font_shadow_color", Color(0.02, 0.03, 0.02, 0.85))
+	wordmark.add_theme_constant_override("shadow_offset_x", 0)
+	wordmark.add_theme_constant_override("shadow_offset_y", 4)
+	wordmark.add_theme_constant_override("outline_size", 4)
+	wordmark.add_theme_color_override("font_outline_color", Color(0.02, 0.03, 0.02, 0.70))
 	tagline.add_theme_font_override("font", NightOps.ui_font())
 	tagline.add_theme_font_size_override("font_size", 18)
 	tagline.add_theme_color_override("font_color", NightOps.OLIVE_DIM)
+	tagline.add_theme_color_override("font_shadow_color", Color(0.02, 0.03, 0.02, 0.80))
+	tagline.add_theme_constant_override("shadow_offset_y", 2)
 	start_btn.add_theme_font_size_override("font_size", 20)
 	_wire_menu()
 	_build_briefing()
@@ -674,7 +681,7 @@ func _build_ops_stamp() -> void:
 	_ops_stamp = row
 	row.add_child(_stamp_chip("StampDate", _ops_stamp_text(), NightOps.MUTED, Vector2(210, 28)))
 	row.add_child(_stamp_chip("NightOpsBadge", "NIGHT OPS / 夜袭", NightOps.OLIVE_HI, Vector2(180, 28)))
-	row.add_child(_stamp_chip("VersionChip", "4.7.2", NightOps.OLIVE_DIM, Vector2(64, 28)))
+	row.add_child(_stamp_chip("VersionChip", "5.0", NightOps.OLIVE_DIM, Vector2(64, 28)))
 
 
 func _ops_stamp_text() -> String:
@@ -694,10 +701,11 @@ func _stamp_chip(p_name: String, text: String, col: Color, min_size: Vector2) ->
 	panel.custom_minimum_size = min_size
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.06, 0.08, 0.07, 0.82)
-	sb.border_color = Color(col.r, col.g, col.b, 0.55)
+	sb.bg_color = Color(0.04, 0.06, 0.05, 0.88)
+	sb.border_color = Color(col.r, col.g, col.b, 0.62)
 	sb.set_border_width_all(1)
-	sb.set_corner_radius_all(3)
+	sb.border_width_top = 2
+	sb.set_corner_radius_all(2)
 	sb.content_margin_left = 10
 	sb.content_margin_right = 10
 	sb.content_margin_top = 4
