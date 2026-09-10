@@ -16,8 +16,6 @@ var _meta: Label
 var _slot: Label
 var _why: Label
 var _glyph: Control
-var _accent: ColorRect
-var _rail: ColorRect
 var _fill_col: Color = Color(0, 0, 0, 0)
 var _normal: StyleBoxFlat
 var _hot: StyleBoxFlat
@@ -39,13 +37,14 @@ func setup(i: int) -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_normal = NightOps.flat(Color(0.055, 0.072, 0.062, 0.94), Color(0.28, 0.34, 0.22), 1, 8, 3)
 	_normal.border_width_top = 2
-	_normal.content_margin_left = 10
-	_hot = NightOps.flat(Color(0.10, 0.14, 0.08, 0.98), NightOps.OLIVE_HI, 1, 8, 3)
-	_hot.border_width_left = 5
+	_normal.border_width_left = 4
+	_normal.content_margin_left = 12
+	_hot = NightOps.flat(Color(0.09, 0.12, 0.08, 0.98), NightOps.OLIVE_HI, 1, 8, 3)
+	_hot.border_width_left = 6
 	_hot.border_width_top = 3
-	_hot.content_margin_left = 12
-	_hot.shadow_size = 6
-	_hot.shadow_color = Color(0.62, 0.72, 0.32, 0.28)
+	_hot.content_margin_left = 14
+	_hot.shadow_size = 5
+	_hot.shadow_color = Color(0.50, 0.58, 0.28, 0.22)
 	_hot.shadow_offset = Vector2(0, 2)
 	add_theme_stylebox_override("panel", _normal)
 	gui_input.connect(_on_gui)
@@ -57,28 +56,6 @@ func setup(i: int) -> void:
 		_hovered = false
 		_refresh_chrome()
 	)
-	_rail = ColorRect.new()
-	_rail.name = "TopRail"
-	_rail.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_rail.color = NightOps.RAIL
-	_rail.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	_rail.offset_left = 6.0
-	_rail.offset_top = 0.0
-	_rail.offset_right = -6.0
-	_rail.offset_bottom = 3.0
-	_rail.visible = false
-	add_child(_rail)
-	_accent = ColorRect.new()
-	_accent.name = "Accent"
-	_accent.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_accent.color = NightOps.OLIVE_HI
-	_accent.set_anchors_preset(Control.PRESET_LEFT_WIDE)
-	_accent.anchor_bottom = 1.0
-	_accent.offset_left = 0.0
-	_accent.offset_top = 3.0
-	_accent.offset_right = 4.0
-	_accent.offset_bottom = -3.0
-	add_child(_accent)
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 10)
 	margin.add_theme_constant_override("margin_right", 8)
@@ -158,6 +135,7 @@ func setup(i: int) -> void:
 	_why.autowrap_mode = TextServer.AUTOWRAP_OFF
 	_why.clip_text = true
 	_why.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_why.visible = false
 	slot_row.add_child(_why)
 
 
@@ -199,18 +177,16 @@ func bind(op: OperatorUnit, is_sel: bool, can_pick: bool, watching: bool = false
 		_glyph.set("role", op.role)
 		_glyph.visible = true
 	var kit := OperatorUnit.role_kit_color(op.role)
+	var stripe := kit.lerp(NightOps.OLIVE, 0.42)
 	_name.text = op.display_name
-	_name.add_theme_color_override("font_color", kit.lerp(NightOps.OLIVE_HI, 0.35))
-	if _accent:
-		_accent.color = kit
-		_accent.visible = true
-	if _rail:
-		_rail.color = Color(kit.r, kit.g, kit.b, 0.85)
+	_name.add_theme_color_override("font_color", stripe.lerp(NightOps.OLIVE_HI, 0.55))
+	if _normal:
+		_normal.border_color = Color(stripe.r, stripe.g, stripe.b, 0.70)
 	if _hot:
-		_hot.border_color = kit.lerp(NightOps.OLIVE_HI, 0.40)
-		_hot.shadow_color = Color(kit.r * 0.4 + 0.35, kit.g * 0.4 + 0.38, kit.b * 0.25 + 0.18, 0.32)
+		_hot.border_color = stripe.lerp(NightOps.OLIVE_HI, 0.35)
+		_hot.shadow_color = Color(0.50, 0.58, 0.28, 0.22)
 	_role.text = "%s · %s" % [OperatorUnit.role_display(op.role), _kit_short(op)]
-	_role.add_theme_color_override("font_color", kit.lerp(NightOps.MUTED, 0.45))
+	_role.add_theme_color_override("font_color", stripe.lerp(NightOps.MUTED, 0.40))
 	var hp := op.hp if op.alive else 0.0
 	_hp_target = hp
 	if op.has_method("hit_feedback"):
@@ -238,17 +214,12 @@ func bind(op: OperatorUnit, is_sel: bool, can_pick: bool, watching: bool = false
 		if line == "":
 			line = _default_why(op)
 		_why.text = line
-		_why.visible = line != "" and not watching
+		_why.visible = false
 		_why.add_theme_color_override("font_color", kit.lerp(NightOps.OLIVE_HI, 0.45))
 
 
 func _refresh_chrome() -> void:
 	add_theme_stylebox_override("panel", _hot if _selected else _normal)
-	if _accent:
-		_accent.visible = true
-		_accent.offset_right = 6.0 if _selected else 4.0
-	if _rail:
-		_rail.visible = _selected
 	if _watching and not _deployed:
 		modulate = Color(0.50, 0.50, 0.48, 0.48)
 	elif _fire_pulse > 0.04:
