@@ -2268,9 +2268,21 @@ func _play_leak_samples() -> PackedVector2Array:
 	if path.size() < 2:
 		return out
 	var leak_pos: Vector2 = path[path.size() - 1]
+	var skip: Array = []
 	var main_poly := _route_polyline_named("main")
+	if not main_poly.is_empty():
+		skip.append(main_poly)
+	if str(rec.get("route", "")) == "alt" and route_world.has("flank"):
+		skip.append(route_world["flank"])
 	for p in _sample_polyline(path, 20.0):
-		if not main_poly.is_empty() and _dist_to_polyline(p, main_poly) <= 28.0:
+		if p.distance_to(leak_pos) <= 96.0:
+			continue
+		var shared := false
+		for poly in skip:
+			if _dist_to_polyline(p, poly) <= 28.0:
+				shared = true
+				break
+		if shared:
 			continue
 		out.append(p)
 	if out.is_empty():
@@ -2368,6 +2380,8 @@ func _play_distinct_route_samples(route_name: String) -> PackedVector2Array:
 		var other := _route_polyline_named(str(k))
 		if not other.is_empty():
 			others.append(other)
+	if route_name == "alt" and route_world.has("flank"):
+		others.append(route_world["flank"])
 	for p in _sample_polyline(poly, 20.0):
 		var shared := false
 		for other in others:
@@ -4169,6 +4183,8 @@ func _on_enemy_escaped(enemy: EnemyRunner, path: PackedVector2Array) -> void:
 		return
 	# Record THIS runner — label_id + spawn_route from the emitter, never spawn_schedule[0].
 	var route := str(enemy.spawn_route)
+	if bool(enemy.did_branch):
+		route = "alt"
 	var lid := int(enemy.label_id)
 	fail_reason = "escape"
 	phase = Phase.FAILED

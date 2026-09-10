@@ -94,9 +94,10 @@ func _build_warehouse() -> void:
 
 func _build_pump() -> void:
 	# Machinery; keep west approach, spine, and east corridor clear unless door locks.
+	# East machine stays north of y=12 so 侧背点 has LOS west-south to (22,14).
 	_block_rect(7, 10, 8, 13)
 	_block_rect(17, 10, 19, 12)
-	_block_rect(24, 11, 26, 13)
+	_block_rect(24, 10, 26, 11)
 
 
 func _build_railcut() -> void:

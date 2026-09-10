@@ -575,7 +575,7 @@ func _run() -> void:
 				push_error("SMOKE_NO_FLANK_SPAWN")
 				quit(16)
 				return
-			var alt_mark: Vector2 = main.grid.cell_to_world_center(Vector2i(11, 8))
+			var alt_mark: Vector2 = main.grid.cell_to_world_center(Vector2i(9, 8))
 			var spawn_has_alt := false
 			for p in flank_enemy.route:
 				if p.distance_to(alt_mark) < 1.0:
@@ -616,7 +616,52 @@ func _run() -> void:
 				quit(16)
 				return
 			print("SMOKE_OK_BRANCH_AFTER_DECISION")
-			var pl: bool = await _wait_phase(main, main.Phase.WON, 60 * 200)
+			var old_face: bool = await _wait_phase(main, main.Phase.FAILED, 60 * 240)
+			if not old_face or main.fail_reason != "escape":
+				push_error(
+					"SMOKE_PUMP_LOCKED_OLD_FACE_NOT_FAIL phase=%s reason=%s tick=%s"
+					% [main.phase, main.fail_reason, main.sim.tick]
+				)
+				quit(17)
+				return
+			var pump_route := str(main.intel.latest_route()) if main.intel else ""
+			var pump_fail_txt := str(main.result_label.text)
+			if pump_route != "alt" and pump_fail_txt.find("紫") < 0 and pump_fail_txt.find("备用") < 0:
+				push_error("SMOKE_PUMP_OLD_FACE_NOT_PURPLE route=%s txt=%s" % [pump_route, pump_fail_txt])
+				quit(17)
+				return
+			print(
+				"SMOKE_PUMP_LOCKED_OLD_FACE_FAIL reason=", main.fail_reason,
+				" route=", pump_route,
+				" tick=", main.sim.tick
+			)
+			main._on_continue_pressed()
+			await process_frame
+			if main.has_method("_refresh_checklist"):
+				main._refresh_checklist()
+			var pump_chip := str(main.checklist_strip_text()) if main.has_method("checklist_strip_text") else ""
+			if pump_chip.find("紫备用") < 0 and pump_chip.find("备用") < 0:
+				push_error("SMOKE_PUMP_NO_ALT_CHIP %s" % pump_chip)
+				quit(17)
+				return
+			if pump_chip.find("侧翼") >= 0:
+				push_error("SMOKE_PUMP_DEAD_ORANGE_CHIP %s" % pump_chip)
+				quit(17)
+				return
+			if main.has_method("leak_cover_ok") and bool(main.leak_cover_ok()):
+				push_error("SMOKE_PUMP_LEAK_COVER_NOT_RED %s" % pump_chip)
+				quit(17)
+				return
+			print("SMOKE_OK_PUMP_LEAK_CHIP ", pump_chip.replace("\n", " | "))
+			main._on_clear_pressed()
+			await process_frame
+			if not main.door_locked:
+				main._on_door_pressed()
+			_deploy_ref(main, [1, 4, 5], [90.0, 180.0, 180.0])
+			main.sim.set_speed(2.0)
+			main._on_alarm_pressed()
+			main.sim.set_speed(2.0)
+			var pl: bool = await _wait_phase(main, main.Phase.WON, 60 * 240)
 			if not pl:
 				push_error(
 					"SMOKE_PUMP_LOCKED_FAIL phase=%s reason=%s tick=%s"
@@ -624,6 +669,11 @@ func _run() -> void:
 				)
 				quit(17)
 				return
+			if not main.battle_log.has_type("route_choice"):
+				push_error("SMOKE_PUMP_WIN_NO_ROUTE_CHOICE")
+				quit(17)
+				return
+			print("BLAST_RADIUS pump_locked tick 1016 -> ", main.sim.tick)
 			print("SMOKE_OK pump_locked won tick=", main.sim.tick)
 			if not _assert_level_order(main, 5):
 				return

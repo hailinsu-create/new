@@ -268,10 +268,11 @@ static func make_pump() -> LevelDef:
 			Vector2i(32, 6), Vector2i(32, 12), Vector2i(31, 17), Vector2i(31, 19)
 		],
 	}
-	# Locked door: west-then-south approach, never through machinery blocks.
+	# Locked door: west approach, then (22,14) where 铁砧 facing west can cut.
+	# Suffix then runs (30,16) so the old east facing and mouth scout miss.
 	l.alternate_route_cells = [
-		Vector2i(13, 3), Vector2i(13, 5), Vector2i(11, 8), Vector2i(11, 14),
-		Vector2i(16, 17), Vector2i(24, 17), Vector2i(31, 17), Vector2i(31, 19)
+		Vector2i(13, 3), Vector2i(13, 5), Vector2i(9, 8), Vector2i(9, 14),
+		Vector2i(22, 14), Vector2i(30, 16), Vector2i(31, 19)
 	]
 	l.door_cell = Vector2i(28, 6)
 	l.door_blocks_route = "flank"
