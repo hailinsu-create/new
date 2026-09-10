@@ -16,14 +16,19 @@ func _ready() -> void:
 	glow.name = "Glow"
 	if is_mg:
 		glow.polygon = PackedVector2Array([
-			Vector2(26, 0), Vector2(8, 13), Vector2(-6, 4), Vector2(-6, -4), Vector2(8, -13)
+			Vector2(30, 0), Vector2(9, 15), Vector2(-7, 4), Vector2(-7, -4), Vector2(9, -15)
 		])
-		glow.color = Color(1.0, 0.58, 0.14, 0.78)
+		glow.color = Color(1.0, 0.58, 0.14, 0.82)
+	elif style == "scout":
+		glow.polygon = PackedVector2Array([
+			Vector2(18, 0), Vector2(4, 3.6), Vector2(-3, 1.4), Vector2(-3, -1.4), Vector2(4, -3.6)
+		])
+		glow.color = Color(0.82, 0.95, 0.72, 0.55)
 	else:
 		glow.polygon = PackedVector2Array([
-			Vector2(14, 0), Vector2(4, 6), Vector2(-4, 2), Vector2(-4, -2), Vector2(4, -6)
+			Vector2(16, 0), Vector2(5, 7), Vector2(-4, 2), Vector2(-4, -2), Vector2(5, -7)
 		])
-		glow.color = Color(1.0, 0.72, 0.22, 0.55)
+		glow.color = Color(1.0, 0.72, 0.22, 0.58)
 	add_child(glow)
 	var core := Polygon2D.new()
 	core.name = "Core"

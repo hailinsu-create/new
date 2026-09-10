@@ -84,22 +84,22 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
 	var dim := ColorRect.new()
-	dim.color = Color(0.02, 0.03, 0.02, 0.78)
+	dim.color = Color(0.015, 0.025, 0.018, 0.82)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(dim)
 	var panel := PanelContainer.new()
 	panel.theme = NightOps.theme()
 	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.offset_left = -280.0
-	panel.offset_right = 280.0
-	panel.offset_top = -180.0
-	panel.offset_bottom = 200.0
+	panel.offset_left = -300.0
+	panel.offset_right = 300.0
+	panel.offset_top = -196.0
+	panel.offset_bottom = 214.0
 	add_child(panel)
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 22)
-	margin.add_theme_constant_override("margin_right", 22)
-	margin.add_theme_constant_override("margin_top", 18)
+	margin.add_theme_constant_override("margin_left", 24)
+	margin.add_theme_constant_override("margin_right", 24)
+	margin.add_theme_constant_override("margin_top", 22)
 	margin.add_theme_constant_override("margin_bottom", 18)
 	panel.add_child(margin)
 	var box := VBoxContainer.new()

@@ -38,4 +38,4 @@ func _process(delta: float) -> void:
 		return
 	_t += delta
 	var wave := 0.5 + 0.5 * sin(_t * 5.6)
-	modulate = Color(1.05, 1.0, 0.95, 0.70 + 0.30 * wave)
+	modulate = Color(1.08, 1.02, 0.92, 0.62 + 0.38 * wave)
