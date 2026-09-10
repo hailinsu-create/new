@@ -1,6 +1,7 @@
 extends SceneTree
 
-## Vertical-slice smoke: yard escape→restore→win, warehouse+pump reference wins, then railcut.
+## Vertical-slice smoke: abort/wipe fail paths, yard escape→restore→win,
+## warehouse+pump+railcut+depot reference wins, campaign credits name 油库.
 ## Isolates user:// save data so player progress cannot mask failures.
 ## Bypasses title via change_scene_to_file(main.tscn).
 
@@ -79,6 +80,8 @@ func _run() -> void:
 		quit(59)
 		return
 	print("SMOKE_OK_SPAWN_PREVIEW n=", main.setup_spawn_preview_count())
+	if not await _assert_fail_paths(main):
+		return
 
 	# Life 1: 灰狼 on west cover, authored east face (0°) covers the spine so
 	# 敌1/敌2 die and flank 敌3 (delay 0.4s) is the leaker. South 90° covers neither.
@@ -619,6 +622,23 @@ func _run() -> void:
 				quit(48)
 				return
 			print("SMOKE_OK depot won tick=", main.sim.tick)
+			if str(main.continue_button.text).find("查看致谢") < 0:
+				push_error("SMOKE_DEPOT_NO_CREDITS_CTA %s" % main.continue_button.text)
+				quit(61)
+				return
+			main._on_continue_pressed()
+			await process_frame
+			await process_frame
+			if main.credits_overlay == null or not main.credits_overlay.is_open():
+				push_error("SMOKE_DEPOT_CREDITS_CLOSED")
+				quit(61)
+				return
+			var cred_txt := _collect_label_text(main.credits_overlay)
+			if cred_txt.find("油库") < 0:
+				push_error("SMOKE_DEPOT_CREDITS_NO_OIL %s" % cred_txt)
+				quit(61)
+				return
+			print("SMOKE_OK_CREDITS_DEPOT")
 			print("SMOKE_SLICE_COMPLETE")
 			quit(0)
 			return
@@ -652,6 +672,96 @@ func _drive_ticks(main, n: int) -> void:
 	while main.sim.tick < start + n and guard < 180:
 		await process_frame
 		guard += 1
+
+
+func _collect_label_text(n: Node) -> String:
+	var acc := ""
+	if n is Label:
+		acc += str((n as Label).text)
+	for c in n.get_children():
+		acc += _collect_label_text(c)
+	return acc
+
+
+func _assert_fail_paths(main) -> bool:
+	## Abort keeps intel; squad wipe is a fail. Reset SETUP afterwards for LIFE1.
+	if main.phase != main.Phase.SETUP:
+		main._start_setup(false, false)
+	main._select_op(0)
+	main._deploy_selected_to(main.cover_slots[0], false)
+	main.selected.set_facing(90.0)
+	main._on_alarm_pressed()
+	if main.phase != main.Phase.WATCHING:
+		push_error("SMOKE_ABORT_NO_WATCH phase=%s" % main.phase)
+		quit(60)
+		return false
+	await _drive_ticks(main, 30)
+	if main.phase != main.Phase.WATCHING:
+		push_error("SMOKE_ABORT_ENDED_EARLY phase=%s reason=%s" % [main.phase, main.fail_reason])
+		quit(60)
+		return false
+	main._on_abort_pressed()
+	await process_frame
+	if main.phase != main.Phase.FAILED or main.fail_reason != "abort":
+		push_error("SMOKE_ABORT_REASON phase=%s reason=%s" % [main.phase, main.fail_reason])
+		quit(60)
+		return false
+	if main.intel.records.is_empty():
+		push_error("SMOKE_ABORT_NO_INTEL")
+		quit(60)
+		return false
+	var abort_txt := str(main.result_label.text)
+	if abort_txt.find("情报已记录") < 0:
+		push_error("SMOKE_ABORT_NO_INTEL_LINE %s" % abort_txt)
+		quit(60)
+		return false
+	if abort_txt.find("中止") < 0:
+		push_error("SMOKE_ABORT_NO_ZH %s" % abort_txt)
+		quit(60)
+		return false
+	print("SMOKE_OK_ABORT_INTEL n=", main.intel.records.size(), " tick=", main.sim.tick)
+	main._on_continue_pressed()
+	await process_frame
+	if main.intel.records.is_empty():
+		push_error("SMOKE_ABORT_INTEL_LOST")
+		quit(60)
+		return false
+	print("SMOKE_OK_ABORT_KEEP")
+	main._start_setup(false, false)
+	main._select_op(0)
+	main._deploy_selected_to(main.cover_slots[0], false)
+	main.selected.set_facing(90.0)
+	main._on_alarm_pressed()
+	await _drive_ticks(main, 30)
+	if main.phase != main.Phase.WATCHING:
+		push_error("SMOKE_WIPE_ENDED_EARLY phase=%s reason=%s" % [main.phase, main.fail_reason])
+		quit(60)
+		return false
+	for op in main.operators:
+		if op.visible and op.alive:
+			op.take_damage(999.0, Vector2(-9999, -9999))
+	if main.phase == main.Phase.WATCHING:
+		main._finish_sim_tick()
+	await process_frame
+	if main.phase != main.Phase.FAILED or main.fail_reason != "wipe":
+		push_error("SMOKE_WIPE_REASON phase=%s reason=%s living=%s" % [main.phase, main.fail_reason, main._living_ops()])
+		quit(60)
+		return false
+	var wipe_txt := str(main.result_label.text)
+	if wipe_txt.find("全灭") < 0:
+		push_error("SMOKE_WIPE_NO_ZH %s" % wipe_txt)
+		quit(60)
+		return false
+	print("SMOKE_OK_WIPE tick=", main.sim.tick)
+	main._on_continue_pressed()
+	await process_frame
+	main._start_setup(false, false)
+	if main.phase != main.Phase.SETUP or main.loop_index != 1:
+		push_error("SMOKE_FAIL_PATHS_RESET phase=%s loop=%s" % [main.phase, main.loop_index])
+		quit(60)
+		return false
+	print("SMOKE_OK_FAIL_PATHS")
+	return true
 
 
 func _assert_geometry(main, tag: String) -> bool:
@@ -872,6 +982,24 @@ func _assert_depot_contract(main) -> bool:
 	var pages: Array = TutorialOverlay.pages_for("depot")
 	if pages.size() != 2:
 		push_error("SMOKE_DEPOT_TUTORIAL n=%s" % pages.size())
+		quit(48)
+		return false
+	var p0: Dictionary = pages[0]
+	var p1: Dictionary = pages[1]
+	if str(p0.get("body", "")).find("三路") < 0:
+		push_error("SMOKE_DEPOT_TUTORIAL_THREE %s" % str(p0.get("body", "")))
+		quit(48)
+		return false
+	if str(p1.get("body", "")).find("2.2") < 0 or str(p1.get("body", "")).find("绊索") < 0:
+		push_error("SMOKE_DEPOT_TUTORIAL_SNEAK %s" % str(p1.get("body", "")))
+		quit(48)
+		return false
+	if str(main.level.teaching).find("2.2") < 0 or str(main.level.teaching).find("绊索") < 0 or str(main.level.teaching).find("三路") < 0:
+		push_error("SMOKE_DEPOT_TEACHING %s" % main.level.teaching)
+		quit(48)
+		return false
+	if str(main.level.tutorial).find("2.2") < 0 or str(main.level.tutorial).find("绊索") < 0:
+		push_error("SMOKE_DEPOT_TUT_LABEL %s" % main.level.tutorial)
 		quit(48)
 		return false
 	var sneak: Vector2 = main.grid.cell_to_world_center(Vector2i(7, 11))
@@ -2203,6 +2331,21 @@ func _assert_launch_bar() -> bool:
 		return false
 	if str(gs.LEVEL_ORDER[3]) != "railcut" or str(gs.LEVEL_ORDER[4]) != "depot" or gs.LEVEL_ORDER.size() != 5:
 		push_error("SMOKE_LEVEL_ORDER %s" % str(gs.LEVEL_ORDER))
+		quit(43)
+		return false
+	var howto_src := FileAccess.get_file_as_string("res://scripts/title.gd")
+	if howto_src.find("弹包交给已部署队员（仓道、泵站、信号楼、油库）") < 0:
+		push_error("SMOKE_HOWTO_NO_DEPOT")
+		quit(43)
+		return false
+	var cred_src := FileAccess.get_file_as_string("res://scripts/ui/credits_overlay.gd")
+	if cred_src.find("院子 / 仓道 / 泵站 / 信号楼 / 油库") < 0:
+		push_error("SMOKE_CREDITS_SRC_NO_DEPOT")
+		quit(43)
+		return false
+	var foot_src := FileAccess.get_file_as_string("res://scenes/title.tscn")
+	if foot_src.find("院子 / 仓道 / 泵站 / 信号楼 / 油库") < 0:
+		push_error("SMOKE_TITLE_FOOT_NO_DEPOT")
 		quit(43)
 		return false
 	if not bool(entries[0]["unlocked"]) or bool(entries[1]["unlocked"]) or bool(entries[3]["unlocked"]) or bool(entries[4]["unlocked"]) or bool(entries[0]["cleared"]):
