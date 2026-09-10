@@ -33,8 +33,9 @@ var _fire_pulse: float = 0.0
 
 func setup(i: int) -> void:
 	idx = i
-	custom_minimum_size = Vector2(204, 100)
-	size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	custom_minimum_size = Vector2(204, 96)
+	size_flags_vertical = 0
+	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_normal = NightOps.flat(Color(0.055, 0.072, 0.062, 0.94), Color(0.28, 0.34, 0.22), 1, 8, 3)
 	_normal.border_width_top = 2
@@ -171,6 +172,7 @@ func bind(op: OperatorUnit, is_sel: bool, can_pick: bool, watching: bool = false
 		visible = false
 		return
 	visible = true
+	size_flags_vertical = 0
 	_selected = is_sel
 	_can_pick = can_pick
 	_watching = watching
