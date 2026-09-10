@@ -4043,7 +4043,15 @@ func _on_op_fired_shot(op: OperatorUnit, target_pos: Vector2) -> void:
 				var card = role_cards[i]
 				if card != null and card.has_method("pulse_fire"):
 					card.pulse_fire()
-	_spawn_watch_tracer(op.global_position, target_pos, col, w)
+	_spawn_watch_tracer(_muzzle_world(op), target_pos, col, w)
+
+
+func _muzzle_world(op: OperatorUnit) -> Vector2:
+	if op == null:
+		return Vector2.ZERO
+	var rad := deg_to_rad(op.facing_deg)
+	var tip := absf(OperatorSilhouetteScript.barrel_tip_y(op.role))
+	return op.global_position + Vector2(cos(rad), sin(rad)) * tip
 
 
 func _spawn_watch_tracer(from: Vector2, to: Vector2, color: Color, width: float) -> void:
