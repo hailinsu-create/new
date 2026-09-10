@@ -22,6 +22,7 @@ const KillzoneOverlayScript := preload("res://scripts/fx/killzone_overlay.gd")
 const CombatFxScript := preload("res://scripts/fx/combat_fx.gd")
 const OperatorSilhouetteScript := preload("res://scripts/fx/operator_silhouette.gd")
 const EnemySilhouetteScript := preload("res://scripts/fx/enemy_silhouette.gd")
+const NightGradeScript := preload("res://scripts/fx/night_grade.gd")
 
 var grid: AmbushGrid = AmbushGrid.new()
 var phase: Phase = Phase.SETUP
@@ -71,6 +72,7 @@ var leak_advice_shown: String = ""
 var route_timeline: Control = null
 var watch_timeline: Control = null
 var mission_sky: Node2D = null
+var night_grade: CanvasModulate = null
 var all_spawns_done: bool = false
 var pending_result: String = "" # "" | "fail" | "win" — build panel after tick events/snapshot
 
@@ -1410,6 +1412,7 @@ func _load_level(level_id: String, keep_intel: bool, restore_plan: bool) -> void
 		map_draw.invalidate_static_cache()
 	map_draw.queue_redraw()
 	_ensure_mission_sky()
+	_ensure_night_grade()
 	_play_mission_ambient()
 	_build_route_world()
 	_build_cover_slots()
@@ -1437,6 +1440,23 @@ func _ensure_mission_sky() -> void:
 			$World.move_child(mission_sky, mini(map_draw.get_index() + 1, $World.get_child_count() - 1))
 	if mission_sky.has_method("setup"):
 		mission_sky.setup(level.atmosphere_id if level and level.atmosphere_id != "" else (level.level_id if level else "yard"))
+
+
+func _ensure_night_grade() -> void:
+	if night_grade == null or not is_instance_valid(night_grade):
+		night_grade = get_node_or_null("NightGrade") as CanvasModulate
+	if night_grade == null or not is_instance_valid(night_grade):
+		night_grade = get_node_or_null("World/NightGrade") as CanvasModulate
+	if night_grade == null or not is_instance_valid(night_grade):
+		night_grade = NightGradeScript.new() as CanvasModulate
+		night_grade.name = "NightGrade"
+		add_child(night_grade)
+		move_child(night_grade, 0)
+	var atmo := "yard"
+	if level:
+		atmo = level.atmosphere_id if level.atmosphere_id != "" else level.level_id
+	if night_grade.has_method("setup"):
+		night_grade.setup(atmo)
 
 
 func _play_mission_ambient() -> void:
