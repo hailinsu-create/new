@@ -305,11 +305,17 @@ func _resolve_optional_hud() -> void:
 	flash_label.offset_top = 72.0
 	flash_label.offset_bottom = 104.0
 	flash_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	flash_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	flash_label.add_theme_font_override("font", NightOps.ui_font_bold())
 	flash_label.add_theme_font_size_override("font_size", 18)
 	flash_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.35))
+	flash_label.add_theme_color_override("font_shadow_color", Color(0.02, 0.03, 0.02, 0.9))
+	flash_label.add_theme_constant_override("shadow_offset_x", 1)
+	flash_label.add_theme_constant_override("shadow_offset_y", 1)
 	flash_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	flash_label.text = ""
 	root.add_child(flash_label)
+	_ensure_flash_plate(root)
 
 	if event_log == null:
 		var box := VBoxContainer.new()
@@ -357,16 +363,19 @@ func _resolve_optional_hud() -> void:
 	if tut_label == null:
 		tut_label = Label.new()
 		tut_label.name = "TutLabel"
-		tut_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-		tut_label.offset_left = 220.0
-		tut_label.offset_top = 140.0
-		tut_label.offset_right = 940.0
-		tut_label.offset_bottom = 200.0
+		tut_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+		tut_label.offset_left = 236.0
+		tut_label.offset_top = 96.0
+		tut_label.offset_right = -16.0
+		tut_label.offset_bottom = 132.0
 		tut_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		tut_label.add_theme_font_size_override("font_size", 13)
-		tut_label.add_theme_color_override("font_color", Color(0.8, 0.78, 0.65))
+		tut_label.add_theme_font_override("font", NightOps.ui_font())
+		tut_label.add_theme_font_size_override("font_size", 12)
+		tut_label.add_theme_color_override("font_color", NightOps.MUTED)
 		tut_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tut_label.clip_text = true
 		root.add_child(tut_label)
+	_ensure_tut_plate(root)
 
 	_build_role_card_hud(root)
 	_build_modals()
@@ -1168,6 +1177,45 @@ func _ensure_presentation_fx() -> void:
 		_sig_wash.z_index = 36
 		root.add_child(_sig_wash)
 	_ensure_watch_cinema()
+
+
+func _ensure_tut_plate(root: Control) -> void:
+	if root == null or tut_label == null:
+		return
+	var plate := root.get_node_or_null("TutPlate") as ColorRect
+	if plate == null:
+		plate = ColorRect.new()
+		plate.name = "TutPlate"
+		plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		plate.color = Color(0.04, 0.05, 0.04, 0.78)
+		plate.set_anchors_preset(Control.PRESET_TOP_WIDE)
+		plate.offset_left = 228.0
+		plate.offset_top = 90.0
+		plate.offset_right = -12.0
+		plate.offset_bottom = 136.0
+		plate.z_index = -1
+		root.add_child(plate)
+		root.move_child(plate, tut_label.get_index())
+
+
+func _ensure_flash_plate(root: Control) -> void:
+	if root == null or flash_label == null:
+		return
+	var plate := root.get_node_or_null("FlashPlate") as ColorRect
+	if plate == null:
+		plate = ColorRect.new()
+		plate.name = "FlashPlate"
+		plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		plate.color = Color(0.05, 0.06, 0.03, 0.82)
+		plate.set_anchors_preset(Control.PRESET_CENTER_TOP)
+		plate.offset_left = -300.0
+		plate.offset_right = 300.0
+		plate.offset_top = 70.0
+		plate.offset_bottom = 106.0
+		plate.z_index = 0
+		root.add_child(plate)
+		root.move_child(plate, flash_label.get_index())
+		plate.modulate.a = 0.0
 
 
 func _ensure_watch_cinema() -> void:
@@ -4105,6 +4153,16 @@ func _flash(text: String, color: Color) -> void:
 	flash_label.modulate = Color(1, 1, 1, 1)
 	flash_label.pivot_offset = Vector2(200.0, 14.0)
 	flash_label.scale = Vector2(1.12, 1.12)
+	var plate := get_node_or_null("HUD/Root/FlashPlate") as ColorRect
+	if plate:
+		plate.offset_top = flash_label.offset_top - 2.0
+		plate.offset_bottom = flash_label.offset_bottom + 2.0
+		plate.modulate.a = 1.0
+		_flash_tween = flash_label.create_tween()
+		_flash_tween.tween_property(flash_label, "scale", Vector2.ONE, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		_flash_tween.parallel().tween_property(flash_label, "modulate:a", 0.0, 1.45)
+		_flash_tween.parallel().tween_property(plate, "modulate:a", 0.0, 1.45)
+		return
 	_flash_tween = flash_label.create_tween()
 	_flash_tween.tween_property(flash_label, "scale", Vector2.ONE, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	_flash_tween.parallel().tween_property(flash_label, "modulate:a", 0.0, 1.45)
@@ -5051,6 +5109,12 @@ func _update_hud() -> void:
 		level_label.text = lv_title
 	if tut_label and level:
 		tut_label.text = level.tutorial if phase == Phase.SETUP else level.teaching
+		tut_label.visible = phase == Phase.SETUP and not _want_touch()
+		var plate := get_node_or_null("HUD/Root/TutPlate") as ColorRect
+		if plate:
+			plate.visible = tut_label.visible and tut_label.text.strip_edges() != ""
+	if help_label:
+		help_label.visible = phase != Phase.WATCHING and not _want_touch()
 	_refresh_spawn_teach()
 	var intel_txt := "漏网记忆：%d   |   %s" % [intel.records.size(), _ammo_summary()]
 	if intel.latest_line() != "" and (phase == Phase.SETUP or phase == Phase.FAILED):
