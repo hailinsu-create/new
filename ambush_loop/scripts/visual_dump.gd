@@ -49,11 +49,15 @@ func _run() -> void:
 	_save("setup")
 	if main.has_method("_on_alarm_pressed"):
 		main._on_alarm_pressed()
-	for i in 12:
-		await process_frame
+	var saw := await _wait_combat_fx(main)
 	await RenderingServer.frame_post_draw
+	_save("watching_shot")
 	_save("watching")
-	print("DUMP_OK title+setup+watching")
+	if not saw:
+		push_error("DUMP_NO_SHOT")
+		quit(3)
+		return
+	print("DUMP_OK title+setup+watching_shot")
 	quit(0)
 
 
@@ -72,6 +76,76 @@ func _deploy_all(main) -> void:
 			ops[i]._rebuild_cone()
 		if ops[i] != null and ops[i].has_method("set_selected_visual") and i == 0:
 			ops[i].set_selected_visual(true)
+
+
+func _wait_combat_fx(main) -> bool:
+	## Advance via process_frame (same as smoke _drive_ticks). Do not touch
+	## Engine.time_scale or SimClock step size. Capture the first live shot.
+	var guard := 0
+	while guard < 720:
+		await process_frame
+		guard += 1
+		var kind := _combat_fx_kind(main)
+		if kind != "":
+			var tsec := 0.0
+			var tick := 0
+			if main != null and main.get("sim") != null:
+				tsec = float(main.sim.time_sec())
+				tick = int(main.sim.tick)
+			print("DUMP_SHOT kind=", kind, " t=", tsec, " tick=", tick, " frames=", guard)
+			return true
+		if main != null and main.get("Phase") != null:
+			if main.phase == main.Phase.FAILED or main.phase == main.Phase.WON:
+				print("DUMP_PHASE_LEFT phase=", main.phase, " t=", main.sim.time_sec() if main.get("sim") else -1)
+				return false
+	push_error("DUMP_NO_COMBAT_FX")
+	return false
+
+
+func _combat_fx_kind(main) -> String:
+	if main == null:
+		return ""
+	var live = main.get("_tracer_live")
+	if live is Array:
+		for t in live:
+			if t != null and is_instance_valid(t) and t is CanvasItem and (t as CanvasItem).visible:
+				if (t as CanvasItem).modulate.a > 0.04:
+					return "WatchTracer"
+	var roots: Array = []
+	if main.get("entities") != null:
+		roots.append(main.entities)
+	if main.get("operators") is Array:
+		for op in main.operators:
+			if op != null:
+				roots.append(op)
+	if main.get("enemies") is Array:
+		for e in main.enemies:
+			if e != null:
+				roots.append(e)
+	for r in roots:
+		var hit := _named_fx_in(r)
+		if hit != "":
+			return hit
+	return ""
+
+
+func _named_fx_in(n: Node) -> String:
+	if n == null or not is_instance_valid(n):
+		return ""
+	for c in n.get_children():
+		if c == null or not is_instance_valid(c):
+			continue
+		var nam := str(c.name)
+		if nam.begins_with("Cfx"):
+			return nam
+		if nam.begins_with("WatchTracer"):
+			return nam
+		var scr = c.get_script()
+		if scr != null and str(scr.resource_path).find("muzzle_flash") >= 0:
+			return "MuzzleFlash"
+		if scr != null and str(scr.resource_path).find("combat_fx") >= 0:
+			return nam
+	return ""
 
 
 func _save(stem: String) -> void:
