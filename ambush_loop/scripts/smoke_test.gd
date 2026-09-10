@@ -62,6 +62,8 @@ func _run() -> void:
 		return
 	if not _assert_unit_anim(main):
 		return
+	if not _assert_feel_presence(main):
+		return
 	if not _assert_props(main):
 		return
 	if not _assert_teaching(main):
@@ -2354,6 +2356,30 @@ func _assert_teaching(main) -> bool:
 	if not _assert_payoff_copy(main):
 		return false
 	print("SMOKE_OK_TEACHING beats=5 timeline=1 callout=1 spawn_teach=1")
+	return true
+
+
+func _assert_feel_presence(main) -> bool:
+	var script := load("res://scripts/feel_gate.gd") as GDScript
+	if script == null:
+		push_error("SMOKE_NO_FEEL_GATE")
+		quit(70)
+		return false
+	if main.has_method("_ensure_night_grade"):
+		main._ensure_night_grade()
+	if main.has_method("_ensure_watch_cinema"):
+		main._ensure_watch_cinema()
+	for op in main.operators:
+		if op != null and op.has_method("_rebuild_cone"):
+			op._rebuild_cone()
+	var fails: PackedStringArray = script.evaluate(main)
+	if not script.has_watch_cinema(main):
+		fails.append("watch_cinema")
+	if not fails.is_empty():
+		push_error("SMOKE_FEEL_GATE %s" % ",".join(fails))
+		quit(70)
+		return false
+	print("SMOKE_OK_FEEL_GATE")
 	return true
 
 
