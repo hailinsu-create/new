@@ -2572,7 +2572,63 @@ func _assert_teaching(main) -> bool:
 			return false
 	if not _assert_payoff_copy(main):
 		return false
-	print("SMOKE_OK_TEACHING beats=5 timeline=1 callout=1 spawn_teach=1")
+	if not _assert_first_visit_tutorial(main):
+		return false
+	print("SMOKE_OK_TEACHING beats=5 timeline=1 callout=1 spawn_teach=1 overlay=1")
+	return true
+
+
+func _assert_first_visit_tutorial(main) -> bool:
+	if main.tutorial_overlay == null:
+		push_error("SMOKE_NO_TUTORIAL_OVERLAY")
+		quit(52)
+		return false
+	var gs = root.get_node_or_null("GameSettings")
+	if gs == null or not gs.has_method("has_seen_tutorial"):
+		push_error("SMOKE_NO_TUTORIAL_FLAGS")
+		quit(52)
+		return false
+	if main.tutorial_overlay.is_open():
+		main.tutorial_overlay._finish()
+	gs.seen_tutorial = false
+	gs.seen_level_tutorials.clear()
+	main._maybe_show_tutorial()
+	if not main.tutorial_overlay.is_open():
+		push_error("SMOKE_TUTORIAL_NOT_SHOWN")
+		quit(52)
+		return false
+	var dim := main.tutorial_overlay.get_node_or_null("Dimmer") as Control
+	if dim == null:
+		push_error("SMOKE_TUTORIAL_NO_DIMMER")
+		quit(52)
+		return false
+	var click := InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.pressed = true
+	click.position = Vector2(20, 20)
+	dim.gui_input.emit(click)
+	if not main.tutorial_overlay.is_open():
+		push_error("SMOKE_TUTORIAL_DIMMER_SKIP")
+		quit(52)
+		return false
+	var guard := 0
+	while main.tutorial_overlay.is_open() and guard < 8:
+		main.tutorial_overlay._on_next()
+		guard += 1
+	if main.tutorial_overlay.is_open():
+		push_error("SMOKE_TUTORIAL_STUCK")
+		quit(52)
+		return false
+	if not bool(gs.has_seen_tutorial("yard")):
+		push_error("SMOKE_TUTORIAL_NOT_MARKED")
+		quit(52)
+		return false
+	main._maybe_show_tutorial()
+	if main.tutorial_overlay.is_open():
+		push_error("SMOKE_TUTORIAL_RESHOWN")
+		quit(52)
+		return false
+	gs.seen_tutorial = true
 	return true
 
 
@@ -2596,7 +2652,69 @@ func _assert_feel_presence(main) -> bool:
 		push_error("SMOKE_FEEL_GATE %s" % ",".join(fails))
 		quit(70)
 		return false
+	if not _assert_desktop_hud_chrome(main):
+		return false
 	print("SMOKE_OK_FEEL_GATE")
+	return true
+
+
+func _assert_desktop_hud_chrome(main) -> bool:
+	## After touch-parity restore, Art 5.0 card height and hidden TutPlate
+	## must still hold. Phone chrome used to inflate desktop cards to 138px.
+	if main.has_method("_ensure_touch_hud"):
+		main._ensure_touch_hud()
+	if main.has_method("_update_hud"):
+		main._update_hud()
+	if main.tut_label != null and bool(main.tut_label.visible):
+		push_error("SMOKE_DUP_TUT_VISIBLE")
+		quit(70)
+		return false
+	var plate := main.get_node_or_null("HUD/Root/TutPlate") as CanvasItem
+	if plate != null and plate.visible:
+		push_error("SMOKE_DUP_TUT_PLATE")
+		quit(70)
+		return false
+	if main.get_node_or_null("World/NightKeys") == null:
+		push_error("SMOKE_NO_NIGHT_KEYS")
+		quit(70)
+		return false
+	if main._want_touch():
+		return true
+	if main.role_cards.is_empty():
+		push_error("SMOKE_NO_ROLE_CARDS")
+		quit(70)
+		return false
+	var card := main.role_cards[0] as Control
+	if card.custom_minimum_size.y > 110.0:
+		push_error("SMOKE_OPCARD_DESKTOP_STRETCH h=%s" % card.custom_minimum_size.y)
+		quit(70)
+		return false
+	if int(card.size_flags_vertical) & int(Control.SIZE_EXPAND):
+		push_error("SMOKE_OPCARD_EXPAND flags=%s" % card.size_flags_vertical)
+		quit(70)
+		return false
+	if main.role_box != null:
+		var dock_h := float(main.role_box.offset_bottom - main.role_box.offset_top)
+		var content_h := dock_h
+		if main.role_box is Container:
+			content_h = float((main.role_box as Container).get_combined_minimum_size().y)
+		if absf(dock_h - content_h) > 12.0:
+			push_error("SMOKE_ROLE_DOCK_NOT_CONTENT dock=%s content=%s" % [dock_h, content_h])
+			quit(70)
+			return false
+		if float(main.role_box.offset_bottom) > 530.0:
+			push_error("SMOKE_ROLE_DOCK_TALL %s" % main.role_box.offset_bottom)
+			quit(70)
+			return false
+	if main.checklist_strip != null and main.role_box != null:
+		if float(main.checklist_strip.offset_top) + 8.0 < float(main.role_box.offset_bottom):
+			push_error(
+				"SMOKE_CHECKLIST_OVER_CARDS top=%s dock=%s"
+				% [main.checklist_strip.offset_top, main.role_box.offset_bottom]
+			)
+			quit(70)
+			return false
+	print("SMOKE_OK_HUD_CHROME cards=", card.custom_minimum_size.y, " dock=", main.role_box.offset_bottom if main.role_box else -1)
 	return true
 
 

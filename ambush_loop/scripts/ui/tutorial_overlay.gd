@@ -84,9 +84,11 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
 	var dim := ColorRect.new()
+	dim.name = "Dimmer"
 	dim.color = Color(0.015, 0.025, 0.018, 0.82)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	dim.gui_input.connect(_on_dimmer_input)
 	add_child(dim)
 	var panel := PanelContainer.new()
 	panel.theme = NightOps.theme()
@@ -176,6 +178,16 @@ func _refresh() -> void:
 		_next.text = "下一步"
 	else:
 		_next.text = "开始布置"
+
+
+func _on_dimmer_input(event: InputEvent) -> void:
+	## Page 1 (and later pages) cannot be skipped by clicking the dimmer.
+	## Dimmer is MOUSE_FILTER_STOP; this handler must not dismiss.
+	if event is InputEventMouseButton or event is InputEventScreenTouch:
+		if event.pressed:
+			var dim := get_node_or_null("Dimmer") as Control
+			if dim:
+				dim.accept_event()
 
 
 func _on_back() -> void:
