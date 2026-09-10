@@ -6,7 +6,7 @@ Hard rules that must stay true: alarm freezes plan; no mid-fight micro; authored
 
 ## Score (this cut): **7.5 / 10**
 
-Phase A presentation work is in (night floor grain, role silhouettes + motion, SETUP vs WATCHING route dim, Music/SFX sliders, per-level tutorials, 终局摘要). **Art/anim pass (procedural):** cooler asphalt with scrap, brick rim-light walls, idle bob / muzzle / death marks, title dust + CTA pulse, alarm rim + result desaturate. Score is **not 8** yet: no human playtest log of “typical fail → fix” on all three yards, and there is still no sprite pipeline. Treat 7.5 as honest progress toward the 8/10 presentation bar.
+Phase A presentation work is in (night floor grain, role silhouettes + motion, SETUP vs WATCHING route dim, Music/SFX sliders, per-level tutorials, 终局摘要). **Art/anim pass (procedural):** cooler asphalt with scrap, brick rim-light walls, idle bob / muzzle / death marks, title dust + CTA pulse, alarm rim + result desaturate. Score is **not 8** yet: no human playtest log of “typical fail → fix” on all five yards, and there is still no sprite pipeline. Treat 7.5 as honest progress toward the 8/10 presentation bar.
 
 Average similar-game launch: title that lists missions, keyboard legend, quit confirm, debrief after a win, specialist silhouettes you can read at a glance, and *some* music bed even if it is a quiet drone. That is the bar this cut aims at.
 
@@ -14,7 +14,7 @@ Average similar-game launch: title that lists missions, keyboard legend, quit co
 |------|-----|
 | **7** | Mission select + lock/clear from save, looping bed + SFX bus, win debrief, role glyphs, facing chevrons, full key table, quit confirm. Matches a small tactics Steam page that is honest about scope. |
 | **7.5** | Phase A code in: procedural art/anim pass (asphalt scrap, rim-lit walls, idle bob, muzzle, death X, title particles), WATCHING route dim, Music/SFX mix, warehouse/pump tutorial pages, Chinese 终局摘要. Not playtested as a set. |
-| Not 8+ | No FOW, no human balance record, still no sprite pipeline or VO. Fourth authored yard (`railcut`) is in; 8+ still wants playtest. |
+| Not 8+ | No FOW, no human balance record, still no sprite pipeline or VO. Five authored yards are in (`railcut` + `depot`); 8+ still wants playtest. No sixth dock yard. |
 
 ## Launch bar (this cut)
 
@@ -24,11 +24,11 @@ Average similar-game launch: title that lists missions, keyboard legend, quit co
 | A2 | Brand-first title: **AMBUSH LOOP**, tagline 战前埋伏 · 锁死计划 · 时间穿梭, CTAs 开始行动 / 继续进度 / 操作说明 / 退出 | Done |
 | A3 | Night-ops asphalt/olive (no purple); grid + wordmark fade, **stronger CTA pulse**, route-line drift, **drifting dust/sparks**, **soft vignette** | Done |
 | A4 | 继续进度 loads `user://ambush_loop.cfg` if present; else disabled | Done |
-| A5 | 开始行动 → **mission list** (4 levels, lock / 可出击 / 首通 from `ambush_loop.cfg`) → briefing → `main.tscn`. Sequential unlock; cannot skip locked | Done |
+| A5 | 开始行动 → **mission list** (5 levels, lock / 可出击 / 首通 from `ambush_loop.cfg`) → briefing → `main.tscn`. Sequential unlock; cannot skip locked | Done |
 | B6 | Autoload `GameSettings`: mute, **music_volume / sfx_volume** 0–1 (migrates old master), per-level `seen_*` tutorials with legacy `seen_tutorial` bool | Done |
 | B7 | In-game Esc pause/settings (mute, Music/SFX sliders, 返回标题, 重新部署 SETUP-only). M toggles mute. Title Esc / 退出 → quit confirm (设置 still reachable) | Done |
 | B8 | Progress save + settings; campaign complete → credits → title. Win records `cleared` and unlocks the next id | Done |
-| C9 | First visit per level: yard 3-step; warehouse F/G/barrel; pump B/flank; railcut dual-corridor delay. Page 1 cannot be skipped via dimmer; auto-mark seen on dismiss | Done |
+| C9 | First visit per level: yard 3-step; warehouse F/G/barrel; pump B/flank; railcut dual-corridor delay; depot three-route + 2.2s west sneak + tripwire. Page 1 cannot be skipped via dimmer; auto-mark seen on dismiss | Done |
 | C10 | Existing `tut_label` kept as secondary tip | Done |
 | D11 | Left operator cards: name/role **glyph**, ammo, HP, fire mode, slot or 未部署; click select; highlight; matching glyph on the map | Done |
 | D12 | **Art/anim pass (procedural):** cooler night asphalt + noise/scrap, brick/crate walls with N/W rim light, breathing lime-gold escape, crate/sandbag pads, dashed ambush-zone edge; friend triangles + weapon stubs vs enemy diamond/chevron | Done |
@@ -55,7 +55,7 @@ These are the honest blockers to a *strong* similar-game store page:
 | Localization beyond ZH UI + EN README | Copy is Chinese-first, not a loc pipeline |
 | Mid-mission Commandos verbs | Climb, knife, distract, vehicles, multi-floor — out of design |
 | CI export artifacts | Templates + signing not in this environment |
-| Fifth authored mission / `.tres` validator | Four yards: yard / warehouse / pump / **railcut** (信号楼：双走廊延迟). B2/B4 still open |
+| Sixth authored mission / FOW / sprites / Play AAB | Five yards ship: yard / warehouse / pump / railcut / **depot** (油库：三路合围 + 西暗道 2.2s + 绊索). Stage D still deferred |
 
 ## Smoke
 
@@ -65,4 +65,4 @@ godot --headless --path ambush_loop -s res://scripts/smoke_test.gd
 
 Must print `SMOKE_SLICE_COMPLETE` and `SMOKE_OK_LAUNCH_BAR` and exit 0.
 
-Content note: mission list is **4** authored yards. `railcut` (信号楼：双走廊延迟) unlocks after pump clear; smoke runs a documented reference win (slots 1,4,5 facings 270/270/180) after the pump locked branch.
+Content note: mission list is **5** authored yards. `railcut` unlocks after pump clear; `depot` (油库：三路合围) unlocks after railcut. Smoke runs documented reference wins (railcut slots 1,4,5 facings 270/270/180; depot 1,4,5 facings 270/270/180 + tripwire at `(7,11)`), then campaign credits must name 油库.

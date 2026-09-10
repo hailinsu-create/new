@@ -7,6 +7,7 @@ var t_max: float = 1.0
 var elapsed: float = 0.0
 var live: bool = false
 var preview_upcoming: int = 0
+var payoff_marks: Array = [] # {t, kind, label} — watching / debrief highlight ticks
 var _pulse: float = 0.0
 
 
@@ -128,4 +129,45 @@ func _draw() -> void:
 			-1,
 			10,
 			col.lightened(0.15)
+		)
+	_draw_payoff_marks(w, y, tmax, pulse)
+
+
+func _draw_payoff_marks(w: float, y: float, tmax: float, pulse: float) -> void:
+	if payoff_marks.is_empty() or w < 8.0:
+		return
+	for m in payoff_marks:
+		var t := float(m.get("t", 0.0))
+		var x := 8.0 + (w - 16.0) * clampf(t / tmax, 0.0, 1.0)
+		var kind := str(m.get("kind", ""))
+		var col := Color(1.0, 0.86, 0.38)
+		match kind:
+			"trip":
+				col = Color(0.42, 0.92, 0.52)
+			"barrel":
+				col = Color(1.0, 0.55, 0.22)
+			"ambush", "repack":
+				col = Color(0.45, 0.88, 0.95)
+			"route_choice":
+				col = Color(0.78, 0.55, 1.0)
+			"combo":
+				col = Color(1.0, 0.92, 0.48)
+		var r := 4.6 + (1.6 * pulse if live else 0.0)
+		var diamond := PackedVector2Array([
+			Vector2(x, y - 16.0 - r),
+			Vector2(x + r, y - 16.0),
+			Vector2(x, y - 16.0 + r),
+			Vector2(x - r, y - 16.0),
+		])
+		draw_colored_polygon(diamond, Color(col.r, col.g, col.b, 0.92))
+		draw_polyline(diamond + PackedVector2Array([diamond[0]]), Color(0.05, 0.05, 0.04, 0.9), 1.0)
+		var lab := str(m.get("label", "★"))
+		draw_string(
+			ThemeDB.fallback_font,
+			Vector2(x - 6, y - 26),
+			lab,
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			10,
+			col.lightened(0.12)
 		)

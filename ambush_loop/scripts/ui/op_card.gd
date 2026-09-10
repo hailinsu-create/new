@@ -14,6 +14,7 @@ var _hp: ProgressBar
 var _hp_txt: Label
 var _meta: Label
 var _slot: Label
+var _why: Label
 var _glyph: Control
 var _accent: ColorRect
 var _fill_col: Color = Color(0, 0, 0, 0)
@@ -34,7 +35,7 @@ var _fire_pulse: float = 0.0
 
 func setup(i: int) -> void:
 	idx = i
-	custom_minimum_size = Vector2(210, 122)
+	custom_minimum_size = Vector2(210, 138)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_normal = NightOps.flat(Color(0.07, 0.09, 0.08, 0.92), Color(0.32, 0.38, 0.24), 1, 8, 4)
 	_hot = NightOps.flat(Color(0.16, 0.20, 0.10, 0.98), NightOps.OLIVE_HI, 3, 10, 4)
@@ -141,6 +142,13 @@ func setup(i: int) -> void:
 	_slot.add_theme_font_size_override("font_size", 12)
 	_slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(_slot)
+	_why = Label.new()
+	_why.add_theme_font_size_override("font_size", 11)
+	_why.add_theme_font_override("font", NightOps.ui_font_bold())
+	_why.add_theme_color_override("font_color", NightOps.OLIVE_HI)
+	_why.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_why.autowrap_mode = TextServer.AUTOWRAP_OFF
+	box.add_child(_why)
 
 
 func _process(delta: float) -> void:
@@ -167,7 +175,7 @@ func pulse_fire() -> void:
 	_refresh_chrome()
 
 
-func bind(op: OperatorUnit, is_sel: bool, can_pick: bool, watching: bool = false) -> void:
+func bind(op: OperatorUnit, is_sel: bool, can_pick: bool, watching: bool = false, why: String = "") -> void:
 	if op == null:
 		visible = false
 		return
@@ -214,6 +222,13 @@ func bind(op: OperatorUnit, is_sel: bool, can_pick: bool, watching: bool = false
 	else:
 		_slot.text = op.slot.label_text
 		_slot.add_theme_color_override("font_color", NightOps.OLIVE_DIM)
+	if _why:
+		var line := why.strip_edges()
+		if line == "":
+			line = _default_why(op)
+		_why.text = line
+		_why.visible = line != ""
+		_why.add_theme_color_override("font_color", kit.lerp(NightOps.OLIVE_HI, 0.35))
 
 
 func _refresh_chrome() -> void:
@@ -271,6 +286,16 @@ func _kit_short(op: OperatorUnit) -> String:
 			return "夜枭 · 长窄锁线"
 		_:
 			return "灰狼 · 均衡补漏"
+
+
+func _default_why(op: OperatorUnit) -> String:
+	match op.role:
+		OperatorUnit.Role.MG:
+			return "弹包第一优先 · 宽锥扫侧翼"
+		OperatorUnit.Role.SCOUT:
+			return "出口/迟到侧翼锁线"
+		_:
+			return "主路补漏 · 第一枪"
 
 
 func _on_gui(event: InputEvent) -> void:

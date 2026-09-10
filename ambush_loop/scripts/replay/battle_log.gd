@@ -48,6 +48,10 @@ func format_event(ev: Dictionary) -> String:
 			return "%.1fs  敌%d 进入战场" % [t, ev["actor_id"]]
 		"fire":
 			var shooter := str(ev.get("payload", {}).get("name", ""))
+			var first := first_of_type("fire")
+			var is_first := not first.is_empty() and int(first.get("seq", -2)) == int(ev.get("seq", -1))
+			if is_first and shooter != "":
+				return "%.1fs  ★ 第一枪是%s → 敌%d" % [t, shooter, ev["target_id"]]
 			if shooter != "":
 				return "%.1fs  %s 开火 → 敌%d" % [t, shooter, ev["target_id"]]
 			return "%.1fs  队员%d 开火 → 敌%d" % [t, ev["actor_id"], ev["target_id"]]
@@ -69,10 +73,19 @@ func format_event(ev: Dictionary) -> String:
 		"abort":
 			return "%.1fs  指挥官中止尝试" % t
 		"barrel":
+			var hits := int(ev.get("payload", {}).get("hits", 0))
+			if hits > 0:
+				return "%.1fs  ★ 油桶炸到人 · %d" % [t, hits]
 			return "%.1fs  油桶爆炸" % t
 		"repack":
+			var pack_nm := str(ev.get("payload", {}).get("name", ""))
+			if pack_nm != "":
+				return "%.1fs  ★ %s 弹包续上" % [t, pack_nm]
 			return "%.1fs  队员%d 弹包补给" % [t, ev["actor_id"]]
 		"ambush_armed":
+			var amb_nm := str(ev.get("payload", {}).get("name", ""))
+			if amb_nm != "":
+				return "%.1fs  ★ %s 入伏许可 — 现在打" % [t, amb_nm]
 			return "%.1fs  队员%d 入伏许可开启" % [t, ev["actor_id"]]
 		"door":
 			return "%.1fs  门状态=%s" % [t, str(ev["payload"].get("locked", "?"))]
@@ -81,9 +94,11 @@ func format_event(ev: Dictionary) -> String:
 				t, ev["actor_id"], ev["target_id"], _no_engage_reason_zh(str(ev["payload"].get("reason", "?")))
 			]
 		"trip":
-			return "%.1fs  绊索击毙 敌%d" % [t, ev["actor_id"]]
+			return "%.1fs  ★ 绊索抽中 敌%d" % [t, ev["actor_id"]]
 		"route_choice":
-			return "%.1fs  敌%d 改走备用接近" % [t, ev["actor_id"]]
+			if bool(ev.get("payload", {}).get("covered", false)):
+				return "%.1fs  ★ 敌%d 改走紫色备用接近 — 被你罩住" % [t, ev["actor_id"]]
+			return "%.1fs  敌%d 改走紫色备用接近" % [t, ev["actor_id"]]
 		"terminal":
 			return "%.1fs  终局：%s" % [t, str(ev["payload"].get("reason", "?"))]
 		_:
@@ -145,6 +160,23 @@ func has_type(type_name: String) -> bool:
 	return not last_of_type(type_name).is_empty()
 
 
+func max_kill_combo(window_ticks: int = 48) -> int:
+	var best := 0
+	var run := 0
+	var last := -99999
+	for ev in events:
+		if str(ev.get("type", "")) != "kill":
+			continue
+		var t := int(ev.get("tick", 0))
+		if t - last <= window_ticks and last >= 0:
+			run += 1
+		else:
+			run = 1
+		last = t
+		best = maxi(best, run)
+	return best
+
+
 func _route_zh(route: String) -> String:
 	match route:
 		"main":
@@ -190,16 +222,32 @@ func terminal_summary_line() -> String:
 	if not first_fire.is_empty():
 		var nm := str(first_fire.get("payload", {}).get("name", ""))
 		if nm != "":
-			bits.append("第一枪 %s" % nm)
+			bits.append("第一枪是%s" % nm)
 		else:
-			bits.append("第一枪 队员%d" % int(first_fire.get("actor_id", 0)))
+			bits.append("第一枪是队员%d" % int(first_fire.get("actor_id", 0)))
 	if has_type("empty") and terminal_reason != "win":
 		bits.append("有队员空弹")
 	if has_type("trip"):
 		var trip_ev := last_of_type("trip")
-		bits.append("绊索击毙敌%d" % int(trip_ev.get("actor_id", 0)))
+		bits.append("绊索抽中敌%d" % int(trip_ev.get("actor_id", 0)))
+	if has_type("barrel"):
+		var bar := last_of_type("barrel")
+		var hits := int(bar.get("payload", {}).get("hits", 0))
+		if hits > 0:
+			bits.append("油桶炸到人")
+	if has_type("ambush_armed"):
+		bits.append("入伏后再打")
+	if has_type("repack"):
+		bits.append("弹包续上")
 	if has_type("route_choice"):
-		bits.append("门锁后敌改走备用接近")
+		var rc := last_of_type("route_choice")
+		if bool(rc.get("payload", {}).get("covered", false)):
+			bits.append("门锁后紫线改道被你罩住")
+		else:
+			bits.append("门锁后敌改走备用接近")
+	var combo := max_kill_combo()
+	if combo >= 2:
+		bits.append("连击×%d" % combo)
 	if bits.is_empty():
 		return "终局摘要：—"
 	return "终局摘要：" + "；".join(bits) + "。"

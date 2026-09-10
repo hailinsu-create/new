@@ -28,6 +28,13 @@ var beat_kind: String = ""
 var beat_text: String = ""
 ## SETUP HUD one-liners (delayed flank/sneak timing, trap route). Not a sixth mission.
 var spawn_teaching: Array = []
+## One punchy beat the player should feel this mission. Copy only.
+var highlight_hook: String = ""
+## Why this squad, this map. Briefing + card why-line.
+var must_bring: String = ""
+var role_why: Dictionary = {} # rifle / mg / scout -> 本关短评
+## Fail-loop "change one thing" sentence. Presentation only.
+var fix_one: String = ""
 
 
 static func catalog() -> Array:
@@ -65,6 +72,17 @@ func teaching_note_for(route: String) -> String:
 		if note != "":
 			return note
 	return ""
+
+
+func role_why_for(role_id: int) -> String:
+	## Card / briefing one-liner. role_id matches OperatorUnit.Role (rifle=0, mg=1, scout=2).
+	match role_id:
+		1:
+			return str(role_why.get("mg", "")).strip_edges()
+		2:
+			return str(role_why.get("scout", "")).strip_edges()
+		_:
+			return str(role_why.get("rifle", "")).strip_edges()
 
 
 func route_spawn_marks() -> Array:
@@ -128,8 +146,8 @@ static func make_yard() -> LevelDef:
 	l.level_id = "yard"
 	l.atmosphere_id = "yard"
 	l.title = "第1关 · 院子：交叉封锁"
-	l.teaching = "夜巡小队从北门进院子，要在南闸汇合前切断。灰狼补主路巡卫，铁砧宽锥扫东箱侧翼，夜枭长窄锁出口。陷阱：只盯主路，侧翼奔袭会从东廊绕出。青弧朝向才有掩体减免，侧背全伤。"
-	l.tutorial = "左卡选 灰狼/铁砧/夜枭（1/2/3）。点掩体部署；青弧=保护方向（来袭减伤 60%，侧背全伤）。黄锥是墙裁切后的真射界。夜枭部署后有淡青观察环（仅准备期）。A/D、右键或底栏↺↻调朝向，空格拉警报锁死。X 中止留情报。跑掉或全灭都穿梭并恢复上轮计划。红线=主路，橙线=侧翼。"
+	l.teaching = "这关必须带铁砧扫东箱侧翼，灰狼补主路第一枪，夜枭长窄锁南闸。夜巡小队从北门进院子，要在南闸汇合前切断。陷阱：只盯主路，侧翼奔袭会从东廊绕出。青弧朝向才有掩体减免，侧背全伤。失败三种：逃逸、全灭、中止（X 留情报）。"
+	l.tutorial = "左卡选 灰狼/铁砧/夜枭（卡上写本关必须带谁）。点掩体部署；青弧=保护方向（来袭减伤 60%，侧背全伤）。黄锥是墙裁切后的真射界。夜枭部署后有淡青观察环（仅准备期）。A/D、右键或底栏↺↻调朝向，空格拉警报锁死。X 中止留情报。逃逸、全灭、中止都穿梭并恢复上轮计划。红线=主路，橙线=侧翼。"
 	l.escape_cell = Vector2i(31, 19)
 	# All covers on open cells (yard crates leave spine / lanes free).
 	l.cover_defs = [
@@ -159,8 +177,16 @@ static func make_yard() -> LevelDef:
 	l.ambush_zone = Rect2(320, 280, 400, 160)
 	l.has_ammo_pack = false
 	l.beat_kind = "ambush_zone"
-	l.beat_text = "侧翼从东廊随后到"
-	l.spawn_teaching = ["陷阱路线：橙线侧翼从东廊随后到 — 只锁红线主路会漏。"]
+	l.beat_text = "交叉封锁 · 侧翼从东廊随后到"
+	l.highlight_hook = "交叉封锁第一枪"
+	l.must_bring = "铁砧扫东箱侧翼，灰狼补主路第一枪，夜枭锁南闸。"
+	l.role_why = {
+		"rifle": "本关：主路第一枪",
+		"mg": "本关：东箱扫橙线",
+		"scout": "本关：长窄锁南闸",
+	}
+	l.fix_one = "改一处就能赢：把铁砧转到东箱扫橙线侧翼，灰狼继续锁主路。"
+	l.spawn_teaching = ["陷阱路线：橙线侧翼从东廊随后到 — 只锁红线主路会漏。必须带铁砧扫东箱。"]
 	return l
 
 
@@ -169,8 +195,8 @@ static func make_warehouse() -> LevelDef:
 	l.level_id = "warehouse"
 	l.atmosphere_id = "warehouse"
 	l.title = "第2关 · 仓道：弹药窗口"
-	l.teaching = "弹药窗口：仓道里的夜班搬运队会把弹打空。过早开火是陷阱——铁砧最容易空，把弹包给他。东廊橙色油桶在敌人靠近时自动炸（伤及友军），别把灰狼塞进爆心。F 入伏再打，等他们走进黄区。"
-	l.tutorial = "G 把唯一弹包交给已部署队员（空弹自动补一次，本轮不能转交）。F 切「入伏再打」，黄锥变暗，等敌人进黄色伏击区。东廊油桶是预置杀器：敌人踩近才在模拟里炸，执行中不能点爆。红=主路，橙=侧翼。X 中止留情报；时间轴只读。M 静音。"
+	l.teaching = "这关弹包给铁砧，F 入伏再打才有弹药窗口。仓道里的夜班搬运队会把弹打空。过早开火是陷阱——铁砧最容易空。东廊橙色油桶在敌人靠近时自动炸（伤及友军），别把灰狼塞进爆心。参考：铁砧拿弹包看窗口，夜枭锁闸口。"
+	l.tutorial = "G 把唯一弹包交给已部署队员（空弹自动补一次，本轮不能转交；铁砧优先）。F 切「入伏再打」，黄锥变暗，等敌人进黄色伏击区——打中这个窗口才爽。东廊油桶是预置杀器：敌人踩近才在模拟里炸，执行中不能点爆。红=主路，橙=侧翼。X 中止留情报；时间轴只读。M 静音。"
 	# East flank corridor — away from reference slots 1/3/5 so smoke stays a skill check.
 	l.barrel_cell = Vector2i(32, 10)
 	l.escape_cell = Vector2i(31, 19)
@@ -202,8 +228,16 @@ static func make_warehouse() -> LevelDef:
 	l.ambush_zone = Rect2(360, 300, 360, 200)
 	l.has_ammo_pack = true
 	l.beat_kind = "barrel"
-	l.beat_text = "油桶靠近才炸 · 别站爆心"
-	l.spawn_teaching = ["陷阱路线：过早开火打空弹药，橙线侧翼从东廊漏出。"]
+	l.beat_text = "入伏再打 · 油桶靠近才炸 · 别站爆心"
+	l.highlight_hook = "入伏再打，弹包续上"
+	l.must_bring = "铁砧拿唯一弹包；过早开火会空。夜枭锁闸口。"
+	l.role_why = {
+		"rifle": "本关：别站爆心",
+		"mg": "本关：弹包优先 · 入伏再打",
+		"scout": "本关：长窄锁闸口",
+	}
+	l.fix_one = "改一处就能赢：F 入伏再打，G 把弹包给铁砧，别在仓口见敌就打。"
+	l.spawn_teaching = ["陷阱路线：过早开火打空弹药，橙线侧翼从东廊漏出。弹包给铁砧。"]
 	return l
 
 
@@ -212,8 +246,8 @@ static func make_pump() -> LevelDef:
 	l.level_id = "pump"
 	l.atmosphere_id = "pump"
 	l.title = "第3关 · 泵站：关门之后"
-	l.teaching = "泵站夜班要过东廊阀门。B 锁门不是稳赢——那是陷阱：侧翼奔袭在决策格改走西侧紫色备用接近，从你没罩住的侧背进来。重布青弧与夜枭锁线；铁砧侧背更危险。"
-	l.tutorial = "B 切换锁门。锁上后东廊关闭，侧翼在决策格改走作者写好的紫色备用接近，不会自由寻路。青弧没罩住=全伤。夜枭锁出水口。红=主路，橙=侧翼（开），紫=关门后的陷阱接近。X 中止留情报；时间轴只读。M 静音。"
+	l.teaching = "这关夜枭锁出水口；锁门后铁砧必须把侧背对准紫线。泵站夜班要过东廊阀门。B 锁门不是稳赢——那是陷阱：侧翼奔袭在决策格改走西侧紫色备用接近，从你没罩住的侧背进来。开锁两条线都能解，锁门必须改朝向。"
+	l.tutorial = "B 切换锁门。锁上后东廊关闭，侧翼在决策格改走作者写好的紫色备用接近，不会自由寻路。青弧没罩住=全伤。夜枭锁出水口；铁砧侧背对准紫线才是这关的爽点。G 弹包一人。红=主路，橙=侧翼（开），紫=关门后的陷阱接近。X 中止留情报；时间轴只读。M 静音。"
 	l.escape_cell = Vector2i(31, 19)
 	l.cover_defs = [
 		{"cell": Vector2i(10, 8), "name": "泵房西", "face": 0.0, "protect": 180.0},
@@ -249,8 +283,16 @@ static func make_pump() -> LevelDef:
 	l.ambush_zone = Rect2(300, 250, 420, 220)
 	l.has_ammo_pack = true
 	l.beat_kind = "decision"
-	l.beat_text = "决策格 · 锁门改线"
-	l.spawn_teaching = ["陷阱路线：锁门后橙线在决策格改走西侧紫备用接近。"]
+	l.beat_text = "决策格 · 锁门改线 · 紫线要罩住"
+	l.highlight_hook = "锁门后紫线改道被你罩住"
+	l.must_bring = "夜枭锁出水口；铁砧侧背对准西侧紫线。"
+	l.role_why = {
+		"rifle": "本关：阀廊补主路",
+		"mg": "本关：侧背对准紫线",
+		"scout": "本关：锁出水口",
+	}
+	l.fix_one = "改一处就能赢：锁门后把青弧转向西侧紫备用接近，夜枭锁出水口。"
+	l.spawn_teaching = ["陷阱路线：锁门后橙线在决策格改走西侧紫备用接近。夜枭锁出水口。"]
 	return l
 
 
@@ -259,8 +301,8 @@ static func make_railcut() -> LevelDef:
 	l.level_id = "railcut"
 	l.atmosphere_id = "railcut"
 	l.title = "第4关 · 信号楼：双走廊延迟"
-	l.teaching = "信号楼要切断两路巡轨：西廊巡卫立刻出发，东廊奔袭晚几秒才折下来。陷阱是南闸堆人——先到的西廊把弹药打空，延迟东廊再漏。核心墙挡住对射，必须分廊锁线。绊索只能铺一条。"
-	l.tutorial = "西廊立刻走脊，东廊从北过道晚到。核心设备挡住东西对射。铁砧朝北等东廊，灰狼补西廊，夜枭锁南闸。Tab 绊索一条走廊；G 弹包一人。没有门。红=西廊主路，橙=东廊延迟。X 中止留情报；时间轴只读。M 静音。"
+	l.teaching = "这关必须带铁砧朝北等 3.8 秒东廊。信号楼要切断两路巡轨：西廊巡卫立刻出发，东廊奔袭晚 3.8 秒才折下来。陷阱是南闸堆人——先到的西廊把弹药打空，延迟东廊再漏。核心墙挡住对射，必须分廊锁线。绊索只能铺一条。"
+	l.tutorial = "西廊立刻走脊，东廊从北过道晚 3.8 秒才到。核心设备挡住东西对射。铁砧朝北等东廊——等住这一枪才爽。灰狼补西廊，夜枭锁南闸。Tab 绊索一条走廊；G 弹包一人。没有门。红=西廊主路，橙=东廊延迟。X 中止留情报；时间轴只读。M 静音。"
 	l.escape_cell = Vector2i(31, 19)
 	# Six slots on open cells: west spine, east corridor, south mouth. No door (pump already teaches B).
 	l.cover_defs = [
@@ -292,8 +334,16 @@ static func make_railcut() -> LevelDef:
 	l.ambush_zone = Rect2(280, 240, 500, 280)
 	l.has_ammo_pack = true
 	l.beat_kind = "flank_delay"
-	l.beat_text = "东廊延迟"
-	l.spawn_teaching = ["东廊奔袭晚 3.8 秒才折下 — 南闸堆人会先被西廊打空弹药。"]
+	l.beat_text = "东廊延迟 3.8s · 铁砧等住"
+	l.highlight_hook = "3.8s 东廊迟到，铁砧等住"
+	l.must_bring = "铁砧朝北等 3.8 秒东廊；灰狼补西廊；夜枭锁南闸。"
+	l.role_why = {
+		"rifle": "本关：西廊立刻到",
+		"mg": "本关：朝北等 3.8s 东廊",
+		"scout": "本关：南闸防漏",
+	}
+	l.fix_one = "改一处就能赢：铁砧朝北等 3.8 秒东廊，别把弹药堆在南闸。"
+	l.spawn_teaching = ["东廊奔袭晚 3.8 秒才折下 — 南闸堆人会先被西廊打空弹药。铁砧朝北等。"]
 	return l
 
 
@@ -302,8 +352,8 @@ static func make_depot() -> LevelDef:
 	l.level_id = "depot"
 	l.atmosphere_id = "depot"
 	l.title = "第5关 · 油库：三路合围"
-	l.teaching = "油库夜班三路合围：主路巡卫、东廊奔袭、西暗道影探。中间油罐挡住对射。陷阱是南闸堆人+忽略西暗道——先到的两路打空弹药，影探再从西夹缝漏。唯一绊索封暗道，弹包给铁砧。"
-	l.tutorial = "西暗道晚几秒才从西墙夹缝南下。灰狼锁主路，铁砧朝北等东廊，夜枭看南闸；Tab 把唯一绊索铺在西暗道（7,11 一带）。G 弹包一人。没有门、没有油桶。红=主路，橙=东廊，绿=西暗道陷阱。X 中止留情报；时间轴只读。M 静音。"
+	l.teaching = "油库夜班三路合围：主路巡卫、东廊奔袭、西暗道影探（晚 2.2 秒）。中间油罐挡住对射。陷阱是南闸堆人+忽略西暗道——先到的两路打空弹药，影探再从西夹缝漏。唯一绊索封西暗道（7,11 一带），弹包给铁砧。绊索就是第四人。"
+	l.tutorial = "三路合围。西暗道晚 2.2 秒才从西墙夹缝南下。灰狼锁主路，铁砧朝北等东廊，夜枭看南闸；Tab 把唯一绊索铺在西暗道（7,11 一带）——抽中这一下才爽。G 弹包一人。没有门、没有油桶。红=主路，橙=东廊，绿=西暗道陷阱。X 中止留情报；时间轴只读。M 静音。"
 	l.escape_cell = Vector2i(31, 19)
 	l.cover_defs = [
 		{"cell": Vector2i(6, 10), "name": "西暗道", "face": 0.0, "protect": 0.0},
@@ -337,6 +387,14 @@ static func make_depot() -> LevelDef:
 	l.ambush_zone = Rect2(260, 230, 520, 280)
 	l.has_ammo_pack = true
 	l.beat_kind = "sneak_delay"
-	l.beat_text = "西暗道影探延迟"
+	l.beat_text = "西暗道 2.2s · 绊索抽中"
+	l.highlight_hook = "2.2s 西暗道绊索抽中"
+	l.must_bring = "绊索就是第四人：铺在西暗道 7,11。铁砧等东廊，灰狼锁主路。"
+	l.role_why = {
+		"rifle": "本关：锁主路脊",
+		"mg": "本关：朝北等东廊",
+		"scout": "本关：南闸看口",
+	}
+	l.fix_one = "改一处就能赢：Tab 绊索铺在西暗道（7,11），等 2.2 秒影探自己踩上。"
 	l.spawn_teaching = ["西暗道影探晚 2.2 秒 — 先到的主路/东廊会打空南闸，绊索封暗道。"]
 	return l

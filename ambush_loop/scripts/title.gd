@@ -3,6 +3,7 @@ extends Control
 ## Title: brand, mission select, briefing, continue, how-to, quit confirm.
 
 const HOWTO := """布置杀局，警报锁死，只能观看。失败穿梭并带回情报。
+灰狼补主路第一枪，铁砧宽锥耗弹（弹包优先），夜枭长窄锁出口。卡面会写这关必须带谁。
 
 【手机】点左侧作战卡选人 → 点掩体部署 → 底栏 ↺↻ 或拖队员调射界 → 点「警报」锁死。
 返回键打开菜单，不直接退出。中止 / 暂停 / 倍速 / 弹包 / 绊索 / 门锁都在底栏。清空记忆在设置里点两次。
@@ -13,7 +14,7 @@ const HOWTO := """布置杀局，警报锁死，只能观看。失败穿梭并�
 悬停掩体                预览该位保护弧
 A / D 或右键            调整射界（黄锥被墙裁切）
 F                       开火条件：见敌即打 / 入伏再打
-G                       弹包交给已部署队员（仓道、泵站、信号楼）
+G                       弹包交给已部署队员（仓道、泵站、信号楼、油库）
 B                       门锁（泵站；侧翼改走备用接近）
 Tab                     绊索工具（路线附近，限额 1）
 空格                    拉响警报并锁死计划 / 观看时暂停 / 退出复盘
@@ -44,6 +45,8 @@ var _brief_body: Label
 var _brief_codename: Label
 var _brief_teach: VBoxContainer
 var _brief_chips: HBoxContainer
+var _brief_hook: Label
+var _brief_must: Label
 var _brief_go: Button
 var _howto: CanvasLayer
 var _mission: CanvasLayer
@@ -367,6 +370,15 @@ func _show_briefing(level_id: String) -> void:
 		_brief_codename.text = LevelDef.operation_codename(level_id)
 		_brief_codename.add_theme_color_override("font_color", LevelDef.signature_color(level_id))
 	_brief_title.text = def.title
+	if _brief_hook:
+		var hook := str(def.highlight_hook).strip_edges()
+		_brief_hook.visible = hook != ""
+		_brief_hook.text = "高光 · %s" % hook if hook != "" else ""
+		_brief_hook.add_theme_color_override("font_color", LevelDef.signature_color(level_id))
+	if _brief_must:
+		var must := str(def.must_bring).strip_edges()
+		_brief_must.visible = must != ""
+		_brief_must.text = "必须带 · %s" % must if must != "" else ""
 	_fill_teach_bullets(def.teaching)
 	_brief_body.text = def.tutorial
 	_fill_route_chips(def)
@@ -459,7 +471,7 @@ func _dismiss_modal(layer: CanvasLayer) -> void:
 
 
 func _build_briefing() -> void:
-	var ui := _modal_panel(20, 720.0, 540.0)
+	var ui := _modal_panel(20, 720.0, 580.0)
 	_brief = ui["root"]
 	var box: VBoxContainer = ui["box"]
 	var kicker := Label.new()
@@ -479,6 +491,19 @@ func _build_briefing() -> void:
 	_brief_title.add_theme_color_override("font_color", NightOps.MUTED)
 	_brief_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(_brief_title)
+	_brief_hook = Label.new()
+	_brief_hook.name = "HighlightHook"
+	_brief_hook.add_theme_font_override("font", NightOps.ui_font_bold())
+	_brief_hook.add_theme_font_size_override("font_size", 16)
+	_brief_hook.add_theme_color_override("font_color", NightOps.OLIVE_HI)
+	_brief_hook.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(_brief_hook)
+	_brief_must = Label.new()
+	_brief_must.name = "MustBring"
+	_brief_must.add_theme_font_size_override("font_size", 14)
+	_brief_must.add_theme_color_override("font_color", NightOps.TEXT)
+	_brief_must.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(_brief_must)
 	_brief_teach = VBoxContainer.new()
 	_brief_teach.name = "TeachBullets"
 	_brief_teach.add_theme_constant_override("separation", 4)
@@ -741,3 +766,5 @@ func _fill_route_chips(def: LevelDef) -> void:
 		_brief_chips.add_child(chip)
 	if def.door_cell.x >= 0:
 		_brief_chips.add_child(_stamp_chip("Chip_door", "门锁", Color(0.78, 0.52, 0.28), Vector2(72, 28)))
+	if str(def.highlight_hook).strip_edges() != "":
+		_brief_chips.add_child(_stamp_chip("Chip_hook", "高光", LevelDef.signature_color(def.level_id), Vector2(72, 28)))

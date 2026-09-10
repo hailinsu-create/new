@@ -25,7 +25,7 @@ godot --headless --path ambush_loop -s res://scripts/smoke_test.gd
 
 The editor **Main Scene** is `scenes/title.tscn`. Smoke bypasses the title and loads `scenes/main.tscn` directly; it must print `SMOKE_SLICE_COMPLETE` and exit 0.
 
-Reference wins: yard slots 1,2,5 facings 90/180/180; warehouse 1,3,5; pump 1,4,5 (open and locked door); railcut 1,4,5 facings 270/270/180.
+Reference wins: yard slots 1,2,5 facings 90/180/180; warehouse 1,3,5; pump 1,4,5 (open and locked door); railcut 1,4,5 facings 270/270/180; depot 1,4,5 facings 270/270/180 + tripwire at west alley `(7,11)`.
 
 ## Export (Linux + Windows + Android)
 
@@ -51,7 +51,7 @@ Desktop presets: `ambush_loop/export_presets.cfg` (Linux / Windows / **Android A
 | Hover cover | Preview that slot's protect arc |
 | A/D or RMB / phone ↺↻ or drag | Facing (fire cone is LOS-clipped by walls) |
 | F | Fire mode (见敌即打 / 入伏再打) |
-| G | Assign ammo pack (仓道 / 泵站 / 信号楼, one operator) |
+| G | Assign ammo pack (仓道 / 泵站 / 信号楼 / 油库, one operator) |
 | B | Toggle door lock (level 3; switches flank to authored alternate route) |
 | Tab | 绊索 tool (max 1, on route segments only) |
 | Space | Sound alarm (freezes plan) / pause while watching / exit replay |
@@ -65,7 +65,7 @@ Desktop presets: `ambush_loop/export_presets.cfg` (Linux / Windows / **Android A
 
 Alarm locks layout, facing, fire modes, door, and tools. Pause/speed/replay only change viewing. Escape **or** squad wipe fails the loop; abort is an intentional fail that still stores intel. On escape the exit cell flashes and the result panel stays docked so the mouth stays visible. After fail continue, the last plan restores with a slot/facing summary; further edits flash a diff vs that plan. Cross-loop keeps intel ghosts + last plan only.
 
-First visit to each mission shows a short tutorial (yard 3 pages; warehouse F/G/barrel; pump door/flank; railcut dual-corridor delay). Page 1 cannot be skipped by clicking the dimmer. The bottom `tut_label` remains as a secondary tip.
+First visit to each mission shows a short tutorial (yard 3 pages; warehouse F/G/barrel; pump door/flank; railcut dual-corridor delay; depot three-route surround + 2.2s west sneak + tripwire). Page 1 cannot be skipped by clicking the dimmer. The bottom `tut_label` remains as a secondary tip.
 
 ## Content
 
@@ -75,7 +75,7 @@ First visit to each mission shows a short tutorial (yard 3 pages; warehouse F/G/
 | Settings | Autoload `GameSettings`: mute, Music/SFX volumes, per-level tutorials (`user://ambush_loop_settings.cfg`) |
 | Progress | `user://ambush_loop.cfg` current level + `cleared`; campaign complete → credits → title |
 | Roles | 步枪手 / 机枪手 / 侦察兵 kits, left-rail HP/ammo/mode/slot cards + role glyphs on card and map |
-| Levels | 院子, 仓道 (ammo pack + barrel), 泵站 (door → alternate route), 信号楼 (dual corridor + delayed flank, ammo pack, no door) |
+| Levels | 院子, 仓道 (ammo pack + barrel), 泵站 (door → alternate route), 信号楼 (dual corridor + delayed flank, ammo pack, no door), 油库 (`depot`: three routes + 2.2s west sneak + one tripwire) |
 | Toys | Tripwire (1, lime pegs), killzone preview, scout observation ring (SETUP only) |
 | Loop | Alarm freezes plan; authored routes; escape/wipe fail; intel + last plan persist; win debrief before 下一关 |
 | Audio | Autoload `AudioDirector`: quiet looping drone (Music) + pooled SFX beeps (SFX); M mute; Music/SFX sliders; quieter bed while watching |
@@ -98,4 +98,5 @@ Warehouse has an authored orange **油桶** on the east flank (cell tint + blast
 1. **院子** — cover / facing / dual routes; rifle / MG / scout kits; abort / replay / mute  
 2. **仓道** — ambush hold-fire + ammo pack + authored explosive barrel on the east flank (proximity during sim only; damages friendlies in blast)  
 3. **泵站** — door lock switches flank to alternate route; re-cover the new approach  
-4. **信号楼** (`railcut`) — two tripwire-relevant corridors split by a core wall; west spine arrives first, east corridor is delayed. Cover both; dumping the squad at the south mouth lets the delayed pair escape. Ammo pack, no door.  
+4. **信号楼** (`railcut`) — two tripwire-relevant corridors split by a core wall; west spine arrives first, east corridor is delayed 3.8s. Cover both; dumping the squad at the south mouth lets the delayed pair escape. Ammo pack, no door.  
+5. **油库** (`depot`) — three-route surround: main patrol, east flank, west sneak delayed **2.2s**. Core tanks block crossfire. One tripwire for the west alley (`7,11`); ammo pack on 铁砧. Dumping the squad at the south mouth empties ammo before the sneak leaks. No door, no barrel. Do not add a sixth dock yard.
