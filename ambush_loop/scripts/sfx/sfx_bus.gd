@@ -8,6 +8,7 @@ const CUES := [
 	"alarm", "alarm_stinger", "fire", "fire_mg", "fire_scout", "return_fire", "empty", "loot", "op_death", "escape", "fail", "win",
 	"win_stinger", "door", "trip", "barrel", "kill", "hit", "ui",
 	"spawn", "echo_ping",
+	"handoff", "leak", "night_enter",
 	"ambient_yard", "ambient_warehouse", "ambient_pump", "ambient_railcut", "ambient_depot", "ambient_radio"
 ]
 
@@ -141,6 +142,12 @@ func _gain(cue: String) -> float:
 			return -16.0
 		"echo_ping":
 			return -14.0
+		"handoff":
+			return -13.0
+		"leak":
+			return -12.0
+		"night_enter":
+			return -16.0
 		"ambient_yard":
 			return -28.0
 		"ambient_warehouse":
@@ -201,6 +208,12 @@ func _build_stream(cue: String) -> AudioStreamWAV:
 			return _pcm(_spawn_pop())
 		"echo_ping":
 			return _pcm(_echo_ping())
+		"handoff":
+			return _pcm(_handoff())
+		"leak":
+			return _pcm(_leak())
+		"night_enter":
+			return _pcm(_night_enter())
 		"ambient_yard":
 			return _pcm(_ambient_yard())
 		"ambient_warehouse":
@@ -424,6 +437,37 @@ func _echo_ping() -> PackedFloat32Array:
 		_tone(880.0, 0.05, 0.14, 0.03),
 		_silence(0.10),
 		_tone(1320.0, 0.09, 0.12, 0.02),
+	])
+
+
+func _handoff() -> PackedFloat32Array:
+	## Night-turn page: two mid ticks then a rising third. Not win_stinger.
+	return _concat([
+		_tone(330.0, 0.05, 0.12, 0.02),
+		_silence(0.04),
+		_tone(494.0, 0.06, 0.13, 0.02),
+		_silence(0.05),
+		_tone(740.0, 0.12, 0.11, 0.015),
+	])
+
+
+func _leak() -> PackedFloat32Array:
+	## Footsteps-out + radio hiss. Not the escape two-tone, not the fail rumble.
+	return _concat([
+		_tone(160.0, 0.05, 0.12, 0.08),
+		_silence(0.03),
+		_tone(140.0, 0.05, 0.10, 0.07),
+		_silence(0.04),
+		_fall(420.0, 90.0, 0.18, 0.12),
+		_tone(70.0, 0.10, 0.08, 0.06),
+	])
+
+
+func _night_enter() -> PackedFloat32Array:
+	## Soft load sting under the ambient one-shot. Low fifth, not alarm.
+	return _concat([
+		_tone(196.0, 0.08, 0.08, 0.02),
+		_tone(294.0, 0.12, 0.07, 0.015),
 	])
 
 
