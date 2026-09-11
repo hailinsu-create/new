@@ -3303,6 +3303,33 @@ func _assert_iteration_slice(main) -> bool:
 		return false
 	main._clear_replay_layer()
 	print("SMOKE_OK_REPLAY_CONE")
+	if not main.has_method("_build_plan_ghosts") or not main.has_method("plan_ghost_count"):
+		push_error("SMOKE_NO_PLAN_GHOST_API")
+		quit(71)
+		return false
+	main._on_clear_pressed()
+	main.last_plan.clear()
+	main.last_plan.deployments.append({
+		"op_id": 1,
+		"slot_id": main.cover_slots[0].slot_id,
+		"facing": 0.0,
+		"fire_mode": 0,
+		"has_ammo_pack": false,
+	})
+	main._build_plan_ghosts()
+	if int(main.plan_ghost_count()) < 1:
+		push_error("SMOKE_PLAN_GHOST_COUNT %s" % main.plan_ghost_count())
+		quit(71)
+		return false
+	var pg = main.plan_ghost_host.get_child(0)
+	var ptag = pg.get_node_or_null("Tag") if pg else null
+	if ptag == null or str(ptag.text).find("上轮") < 0:
+		push_error("SMOKE_PLAN_GHOST_TAG %s" % (ptag.text if ptag else "null"))
+		quit(71)
+		return false
+	main.last_plan.clear()
+	main._build_plan_ghosts()
+	print("SMOKE_OK_PLAN_GHOST")
 	return true
 
 

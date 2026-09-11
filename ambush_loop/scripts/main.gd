@@ -69,6 +69,7 @@ var second_callout: Node2D = null
 var _second_callout_tween: Tween = null
 var trap_path: Node2D = null
 var spawn_ghost_host: Node2D = null
+var plan_ghost_host: Node2D = null
 var fail_gap_callout: Node2D = null
 var watch_wave_chip: Label = null
 var spawn_teach_label: Label = null
@@ -1159,6 +1160,8 @@ func _apply_watch_layers() -> void:
 			trap_path.modulate.a = 1.0
 	if spawn_ghost_host and is_instance_valid(spawn_ghost_host):
 		spawn_ghost_host.visible = phase == Phase.SETUP
+	if plan_ghost_host and is_instance_valid(plan_ghost_host):
+		plan_ghost_host.visible = phase == Phase.SETUP
 	if entities:
 		entities.modulate = Color.WHITE
 	if ghosts:
@@ -2905,6 +2908,7 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 		intel_label.add_theme_color_override("font_color", Color(0.75, 0.9, 0.82))
 	_update_event_log()
 	_build_spawn_ghosts()
+	_build_plan_ghosts()
 	_update_hud()
 
 
@@ -2913,6 +2917,7 @@ func _on_clear_pressed() -> void:
 		return
 	_clear_deployments()
 	status_label.text = "已收回部署（记忆与绊索保留）"
+	_build_plan_ghosts()
 	_announce_plan_edit()
 	_update_hud()
 
@@ -2994,6 +2999,7 @@ func _restore_last_plan() -> void:
 	_refresh_killzone_preview()
 	_restored_this_setup = true
 	_plan_diff_guard = false
+	_build_plan_ghosts()
 	var summary := _plan_summary_text(last_plan)
 	plan_restore_hint = "已恢复上轮计划：%s" % summary
 	status_label.text = plan_restore_hint
@@ -3486,6 +3492,7 @@ func _deploy_selected_to(slot: CoverSlot, announce: bool = true) -> void:
 		_announce_plan_edit()
 	_update_observation_rings()
 	_refresh_killzone_preview()
+	_build_plan_ghosts()
 	_update_hud()
 
 
@@ -3801,6 +3808,65 @@ func setup_spawn_ghost_count() -> int:
 	if spawn_ghost_host == null or not is_instance_valid(spawn_ghost_host):
 		return 0
 	return spawn_ghost_host.get_child_count()
+
+
+func _clear_plan_ghosts() -> void:
+	if plan_ghost_host != null and is_instance_valid(plan_ghost_host):
+		plan_ghost_host.queue_free()
+	plan_ghost_host = null
+
+
+func _build_plan_ghosts() -> void:
+	_clear_plan_ghosts()
+	if last_plan == null or last_plan.deployments.is_empty():
+		return
+	if phase != Phase.SETUP:
+		return
+	var world := get_node_or_null("World") as Node2D
+	if world == null:
+		return
+	var host := Node2D.new()
+	host.name = "PlanGhosts"
+	host.z_index = 5
+	world.add_child(host)
+	plan_ghost_host = host
+	for entry in last_plan.deployments:
+		var slot := _slot_by_id(int(entry.get("slot_id", -1)))
+		var op := _op_by_id(int(entry.get("op_id", -1)))
+		if slot == null:
+			continue
+		if op != null and op.visible and op.slot == slot:
+			continue
+		var n := Node2D.new()
+		n.name = "PlanGhost%d" % int(entry.get("op_id", 0))
+		n.position = slot.global_position
+		var poly := Polygon2D.new()
+		poly.name = "Sil"
+		poly.polygon = PackedVector2Array([
+			Vector2(0, -11), Vector2(7, 8), Vector2(-7, 8)
+		])
+		var col := op.body_color if op != null else Color(0.55, 0.72, 0.42)
+		poly.color = Color(col.r, col.g, col.b, 0.32)
+		n.add_child(poly)
+		var lab := Label.new()
+		lab.name = "Tag"
+		lab.text = "上轮·%s" % (op.display_name if op else "队员")
+		lab.position = Vector2(-22, -24)
+		lab.add_theme_font_size_override("font_size", 10)
+		lab.add_theme_color_override("font_color", Color(col.r, col.g, col.b, 0.85))
+		lab.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.02, 0.9))
+		lab.add_theme_constant_override("shadow_offset_x", 1)
+		lab.add_theme_constant_override("shadow_offset_y", 1)
+		lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		n.add_child(lab)
+		host.add_child(n)
+	host.visible = phase == Phase.SETUP
+
+
+func plan_ghost_count() -> int:
+	if plan_ghost_host == null or not is_instance_valid(plan_ghost_host):
+		return 0
+	return plan_ghost_host.get_child_count()
 
 
 func _intel_flash_color(route: String) -> Color:
