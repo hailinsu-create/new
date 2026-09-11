@@ -419,6 +419,10 @@ func take_damage(amount: float, from_pos: Vector2 = Vector2.INF) -> void:
 		CombatFxScript.impact(self, global_position, Color(1.0, 0.55, 0.32), false)
 
 
+func cover_idle_planted() -> bool:
+	return alive and visible and slot != null
+
+
 func play_land_pop() -> void:
 	_land_pop = 1.0
 	CombatFxScript.land_dust(self, global_position)
@@ -662,6 +666,7 @@ func _apply_idle_bob() -> void:
 			"alive": alive and visible,
 			"saving": _is_power_saving(),
 			"id": float(op_id),
+			"planted": cover_idle_planted(),
 		})
 	if hp_bar:
 		hp_bar.position = Vector2(0.0, bob * 0.2)

@@ -2378,6 +2378,18 @@ func _assert_unit_anim(main) -> bool:
 	flank.queue_free()
 	sneak.queue_free()
 	print("SMOKE_OK_ANIM walk_bob_hook weapon=1")
+	main._select_op(0)
+	main._deploy_selected_to(main.cover_slots[0], false)
+	if not main.operators[0].has_method("cover_idle_planted") or not bool(main.operators[0].cover_idle_planted()):
+		push_error("SMOKE_COVER_NOT_PLANTED")
+		quit(55)
+		return false
+	main._on_clear_pressed()
+	if main.operators[0].cover_idle_planted():
+		push_error("SMOKE_UNDEPLOYED_STILL_PLANTED")
+		quit(55)
+		return false
+	print("SMOKE_OK_COVER_IDLE")
 	return true
 
 

@@ -94,10 +94,16 @@ static func pose_parts(body: Polygon2D, role: int, pose: Dictionary) -> void:
 	var op_id := float(pose.get("id", 0.0))
 	var stride := 0.0
 	var sway := 0.0
+	var planted := bool(pose.get("planted", false))
 	if alive and not saving:
-		var gait := 3.35 if role == 1 else (2.85 if role == 2 else 3.15)
-		stride = sin(t * gait + op_id * 1.7)
-		sway = cos(t * 1.85 + op_id)
+		if planted:
+			# Cover idle: planted feet, small breath. Not a walk cycle.
+			stride = sin(t * 1.15 + op_id) * 0.16
+			sway = cos(t * 1.35 + op_id) * 0.45
+		else:
+			var gait := 3.35 if role == 1 else (2.85 if role == 2 else 3.15)
+			stride = sin(t * gait + op_id * 1.7)
+			sway = cos(t * 1.85 + op_id)
 	var kick := recoil * (2.8 if role == 1 else (1.4 if role == 2 else 1.8))
 	var punch := hit * 0.9
 	var leg_amp := 2.4 if role == 1 else (1.6 if role == 2 else 2.0)
