@@ -58,7 +58,7 @@ godot --headless --path ambush_loop --export-debug "Android APK" build/android/A
 | 点 ↺↻ 或拖选中格 | 右键 / A D |
 | 底栏 警报 | 空格 |
 | 底栏 中止 | X |
-| 底栏 开火 / 弹包 / 绊索 / 门锁 | F / G / Tab / B |
+| 底栏 开火 / 弹包 / 绊索 / 手雷 / 诱饵 / 递装 / 门锁 | F / 弹包钮 / Tab / G / V / T / B |
 | 底栏 暂停 / 倍速 / 静音 / 菜单 / 日志 | P / ± / M / Esc / 事件表 |
 
 没有实体键盘也能打完六关（院子 / 仓道 / 泵站 / 信号楼 / 油库 / 电台）。R 重开仍在设置里，且要确认。
