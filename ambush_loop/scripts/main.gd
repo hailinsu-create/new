@@ -4244,7 +4244,11 @@ func _refresh_intel_chip() -> void:
 			line = _clip_chip_line(leak_advice_shown, 28)
 		elif plan_restore_hint != "":
 			line = _clip_chip_line(plan_restore_hint, 28)
-	intel_chip.visible = line != "" and phase == Phase.SETUP
+		else:
+			line = _clip_chip_line("匣%d  波%d/%d  点地走·空格警报" % [stash_count(), wave_index() + 1, wave_total()], 32)
+	elif phase == Phase.SWEEP:
+		line = _clip_chip_line("掉落%d  空格%s" % [living_loot_count(), "撤离" if raid and raid.is_last_wave(level) else "下一波"], 32)
+	intel_chip.visible = line != "" and (phase == Phase.SETUP or phase == Phase.SWEEP)
 	intel_chip.text = line
 	if _want_touch():
 		intel_chip.offset_top = 142.0
