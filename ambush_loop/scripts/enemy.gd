@@ -61,6 +61,8 @@ var _outline_boost: bool = false
 var _fade_corpse: bool = false
 var _last_runner: bool = false
 var echo_kit: bool = false
+var _distract_t: float = 0.0
+var _distract_pos: Vector2 = Vector2.ZERO
 
 @onready var body: Polygon2D = $Body
 @onready var tag: Label = $Tag
@@ -156,12 +158,24 @@ func maybe_branch(door_locked: bool, decision_world: Vector2, alt_world: PackedV
 	return true
 
 
+func distract(pos: Vector2, seconds: float = 0.35) -> void:
+	if not alive or not active:
+		return
+	_distract_pos = pos
+	_distract_t = maxf(_distract_t, seconds)
+
+
 func sim_step(delta: float) -> void:
 	if not active or not alive:
 		return
 
 	return_cd = maxf(return_cd - delta, 0.0)
 	returning_fire = false
+	if _distract_t > 0.0:
+		_distract_t = maxf(_distract_t - delta, 0.0)
+		if _distract_pos != Vector2.ZERO:
+			_face_move(_distract_pos)
+		return
 
 	if route_index >= route.size():
 		# Standing on the last waypoint. Main resolves mouth escape after all movers
