@@ -45,6 +45,15 @@ func format_event(ev: Dictionary) -> String:
 	var typ: String = str(ev["type"])
 	match typ:
 		"spawn":
+			var kit := str(ev.get("payload", {}).get("kit", "")).strip_edges()
+			var route := str(ev.get("payload", {}).get("route", ""))
+			var note := str(ev.get("payload", {}).get("note", "")).strip_edges()
+			if kit == "echo":
+				return "%.1fs  敌%d 灯塔回波进入东廊" % [t, ev["actor_id"]]
+			if note != "":
+				return "%.1fs  敌%d 从%s进入（%s）" % [t, ev["actor_id"], _route_zh(route), note]
+			if route != "":
+				return "%.1fs  敌%d 从%s进入战场" % [t, ev["actor_id"], _route_zh(route)]
 			return "%.1fs  敌%d 进入战场" % [t, ev["actor_id"]]
 		"fire":
 			var shooter := str(ev.get("payload", {}).get("name", ""))
