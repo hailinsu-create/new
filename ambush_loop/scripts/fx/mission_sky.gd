@@ -381,48 +381,60 @@ func _draw_depot() -> void:
 
 func _draw_radio() -> void:
 	var sz := _map_size()
-	_draw_top_haze(Color(0.18, 0.42, 0.55, 0.12), 6)
-	_draw_horizon(Color(0.10, 0.22, 0.30, 0.10))
-	_draw_starfield(20, Color(0.62, 0.90, 1.0, 1.0))
-	_draw_clouds(2, Color(0.12, 0.22, 0.30, 0.10))
+	_draw_top_haze(Color(0.12, 0.40, 0.58, 0.14), 6)
+	_draw_horizon(Color(0.06, 0.22, 0.34, 0.12))
+	_draw_starfield(22, Color(0.55, 0.92, 1.0, 1.0))
+	_draw_clouds(2, Color(0.08, 0.20, 0.30, 0.10))
 	_draw_distant_lights([
 		Vector2(sz.x * 0.14, 20.0),
 		Vector2(sz.x * 0.38, 17.0),
 		Vector2(sz.x * 0.61, 21.0),
 		Vector2(sz.x * 0.86, 18.0),
-	], Color(0.55, 0.90, 1.0, 0.55))
-	_draw_contrast_wash(Color(0.02, 0.06, 0.10, 0.24), Color(0.06, 0.14, 0.18, 0.05))
+	], Color(0.42, 0.90, 1.0, 0.58))
+	_draw_contrast_wash(Color(0.01, 0.06, 0.12, 0.26), Color(0.04, 0.14, 0.20, 0.06))
 	# Phosphor night over the dish hall.
 	var pulse := 0.5 + 0.5 * sin(_t * 1.05)
-	draw_rect(Rect2(0.0, 0.0, sz.x, 80.0), Color(0.16, 0.38, 0.48, 0.08 + 0.03 * pulse))
-	var dish := Vector2(19.0 * AmbushGrid.TILE, 10.4 * AmbushGrid.TILE)
-	# dish sweep — rotating phosphor cone from the hall.
-	var ang := _t * 0.70
+	draw_rect(Rect2(0.0, 0.0, sz.x, 88.0), Color(0.10, 0.36, 0.50, 0.10 + 0.04 * pulse))
+	# Lighthouse lantern origin — tall beacon, not a small dish on the core.
+	var lantern := Vector2(19.2 * AmbushGrid.TILE, 11.55 * AmbushGrid.TILE - 107.0)
+	# dish sweep — rotating phosphor cone from the lighthouse lantern.
+	var ang := _t * 0.62
 	if _is_power_saving():
 		ang = 0.55
-	var reach := 240.0 if not _is_power_saving() else 200.0
-	var half := 0.16 if not _is_power_saving() else 0.20
-	var pts := PackedVector2Array([dish])
-	var steps := 6 if _is_power_saving() else 10
+	var reach := 320.0 if not _is_power_saving() else 240.0
+	var half := 0.12 if not _is_power_saving() else 0.18
+	var pts := PackedVector2Array([lantern])
+	var steps := 6 if _is_power_saving() else 12
 	for i in steps:
 		var a := ang - half + (half * 2.0) * (float(i) / float(maxi(steps - 1, 1)))
-		pts.append(dish + Vector2(cos(a), sin(a)) * reach)
-	draw_colored_polygon(pts, Color(0.42, 0.82, 0.98, 0.08 if _is_power_saving() else 0.11))
-	draw_circle(dish, 10.0, Color(0.55, 0.90, 1.0, 0.22 + 0.10 * pulse))
+		pts.append(lantern + Vector2(cos(a), sin(a)) * reach)
+	draw_colored_polygon(pts, Color(0.32, 0.86, 1.0, 0.09 if _is_power_saving() else 0.14))
+	draw_circle(lantern, 16.0, Color(0.42, 0.90, 1.0, 0.20 + 0.10 * pulse))
+	draw_circle(lantern, 7.0, Color(0.78, 0.96, 1.0, 0.40 + 0.18 * pulse))
+	# Echo hall phosphor underglow down x=24 — cooler cyan vs depot orange sodium.
+	draw_rect(
+		Rect2(23.55 * AmbushGrid.TILE, 5.0 * AmbushGrid.TILE, 1.9 * AmbushGrid.TILE, 12.0 * AmbushGrid.TILE),
+		Color(0.22, 0.78, 0.98, 0.08 + 0.05 * pulse)
+	)
 	# Morse blink on the hut window — standard tier only.
 	var hut := Vector2(26.4 * AmbushGrid.TILE, 9.2 * AmbushGrid.TILE)
 	var morse := 0.7
 	if not _is_power_saving():
 		var cycle := fmod(_t * 1.8, 1.0)
 		morse = 1.0 if cycle < 0.18 or (cycle > 0.32 and cycle < 0.44) or (cycle > 0.70 and cycle < 0.82) else 0.18
-	draw_rect(Rect2(hut.x - 8.0, hut.y - 6.0, 16.0, 10.0), Color(0.55, 0.92, 1.0, 0.18 + 0.40 * morse))
-	draw_circle(hut, 6.0, Color(0.72, 0.95, 1.0, 0.12 + 0.22 * morse))
+	draw_rect(Rect2(hut.x - 8.0, hut.y - 6.0, 16.0, 10.0), Color(0.45, 0.92, 1.0, 0.18 + 0.40 * morse))
+	draw_circle(hut, 6.0, Color(0.62, 0.95, 1.0, 0.12 + 0.22 * morse))
 	# Antenna tip spark.
 	if not _is_power_saving():
 		var spark := 0.5 + 0.5 * sin(_t * 6.4)
-		draw_circle(Vector2(10.4 * AmbushGrid.TILE, 7.6 * AmbushGrid.TILE), 4.0 + spark * 2.0, Color(0.70, 0.95, 1.0, 0.10 + 0.16 * spark))
+		draw_circle(Vector2(10.4 * AmbushGrid.TILE, 7.6 * AmbushGrid.TILE), 4.0 + spark * 2.0, Color(0.62, 0.95, 1.0, 0.10 + 0.16 * spark))
+		draw_circle(lantern, 5.0 + spark * 3.0, Color(0.70, 0.96, 1.0, 0.12 + 0.18 * spark))
 		# Phosphor motes drifting through the dish hall.
-		for i in 7:
-			var mx := 15.0 * AmbushGrid.TILE + float(i) * 28.0 + sin(_t * 0.6 + float(i)) * 14.0
-			var my := 8.4 * AmbushGrid.TILE + cos(_t * 0.85 + float(i) * 0.7) * 22.0
-			draw_circle(Vector2(mx, my), 1.7, Color(0.55, 0.90, 1.0, 0.10 + 0.10 * pulse * (0.5 + 0.5 * sin(_t * 3.0 + float(i)))))
+		for i in 12:
+			var mx := 24.0 * AmbushGrid.TILE + sin(_t * 0.55 + float(i) * 0.9) * 12.0
+			var my := 5.3 * AmbushGrid.TILE + fmod(_t * 22.0 + float(i) * 27.0, 11.2 * AmbushGrid.TILE)
+			draw_circle(Vector2(mx, my), 1.9, Color(0.48, 0.92, 1.0, 0.14 + 0.12 * pulse * (0.5 + 0.5 * sin(_t * 3.0 + float(i)))))
+		for i in 5:
+			var dx := 26.2 * AmbushGrid.TILE + float(i) * 14.0 + sin(_t * 0.7 + float(i)) * 8.0
+			var dy := 8.8 * AmbushGrid.TILE + cos(_t * 0.9 + float(i)) * 16.0
+			draw_circle(Vector2(dx, dy), 1.6, Color(0.55, 0.90, 1.0, 0.10 + 0.10 * pulse))
