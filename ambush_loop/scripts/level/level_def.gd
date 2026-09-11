@@ -137,6 +137,8 @@ static func signature_color(id: String) -> Color:
 			return Color(0.92, 0.16, 0.16) # signal red
 		"depot":
 			return Color(0.98, 0.48, 0.10) # hazard orange
+		"radio":
+			return Color(0.38, 0.78, 0.96) # phosphor
 		_:
 			return Color(0.62, 0.74, 0.32) # olive
 
@@ -151,6 +153,8 @@ static func mood_tag(id: String) -> String:
 			return "信号"
 		"depot":
 			return "油库"
+		"radio":
+			return "终夜"
 		_:
 			return "初阵"
 
@@ -166,6 +170,8 @@ static func operation_codename(id: String) -> String:
 			return "行动·信号"
 		"depot":
 			return "行动·油库"
+		"radio":
+			return "行动·电台"
 		_:
 			return "行动·院子"
 
@@ -464,4 +470,66 @@ static func make_depot() -> LevelDef:
 		"油库：中止。油罐灯还亮。",
 	]
 	l.campaign_beat = "油库熄火。电台还能把下一班叫回来——灯塔还在扫。"
+	return l
+
+
+static func make_radio() -> LevelDef:
+	var l := LevelDef.new()
+	l.level_id = "radio"
+	l.atmosphere_id = "radio"
+	l.title = "第6关 · 电台：灯塔回波"
+	l.teaching = "油库切断后，电台还能把下一班叫回来。主路巡卫立刻走脊，东廊奔袭先到一班，西暗道影探晚 3.6 秒，灯塔回波再在 5.2 秒把增援送上东廊。陷阱是南闸堆人——先到的两路打空弹药，影探和回波再漏。绊索封西暗道，铁砧朝北等回波。"
+	l.tutorial = "终夜。西暗道晚 3.6 秒，东廊回波晚 5.2 秒。灰狼锁主路，铁砧朝北等灯塔回波，夜枭看南闸；Tab 把唯一绊索铺在西暗道（7,11 一带）。G 弹包一人。没有门、没有油桶。红=主路，橙=东廊（含 5.2s 回波），绿=西暗道。X 中止留情报；时间轴只读。M 静音。"
+	l.escape_cell = Vector2i(31, 19)
+	l.cover_defs = [
+		{"cell": Vector2i(6, 10), "name": "西暗道", "face": 0.0, "protect": 0.0},
+		{"cell": Vector2i(13, 12), "name": "主路脊", "face": 270.0, "protect": 270.0},
+		{"cell": Vector2i(15, 16), "name": "南折", "face": 0.0, "protect": 180.0},
+		{"cell": Vector2i(22, 6), "name": "北过道", "face": 90.0, "protect": 270.0},
+		{"cell": Vector2i(32, 11), "name": "东廊", "face": 270.0, "protect": 270.0},
+		{"cell": Vector2i(29, 17), "name": "南闸", "face": 180.0, "protect": 0.0},
+	]
+	l.route_cells = {
+		"main": [
+			Vector2i(13, 3), Vector2i(13, 5), Vector2i(13, 9), Vector2i(13, 13),
+			Vector2i(13, 16), Vector2i(24, 17), Vector2i(31, 17), Vector2i(31, 19)
+		],
+		"flank": [
+			Vector2i(13, 3), Vector2i(13, 5), Vector2i(20, 5), Vector2i(28, 5),
+			Vector2i(32, 5), Vector2i(32, 10), Vector2i(32, 15), Vector2i(31, 17), Vector2i(31, 19)
+		],
+		"sneak": [
+			Vector2i(13, 3), Vector2i(13, 5), Vector2i(7, 5), Vector2i(7, 11),
+			Vector2i(7, 16), Vector2i(14, 15), Vector2i(24, 15), Vector2i(31, 15),
+			Vector2i(31, 19)
+		],
+	}
+	# First east runner is early; the radio echo is a second east wave after the sneak.
+	l.spawn_schedule = [
+		{"id": 1, "route": "main", "delay": 0.0, "loot": 1},
+		{"id": 2, "route": "flank", "delay": 0.5, "loot": 0, "teaching_note": "东廊先到"},
+		{"id": 3, "route": "sneak", "delay": 3.6, "loot": 2, "ambush_window": 3.6, "teaching_note": "西夹缝"},
+		{"id": 4, "route": "main", "delay": 0.9, "loot": 0},
+		{"id": 5, "route": "flank", "delay": 5.2, "loot": 0, "ambush_window": 5.2, "teaching_note": "灯塔回波"},
+	]
+	l.ambush_zone = Rect2(260, 230, 520, 280)
+	l.has_ammo_pack = true
+	l.beat_kind = "radio_echo"
+	l.beat_text = "灯塔回波 5.2s · 绊索封暗道"
+	l.highlight_hook = "5.2s 灯塔回波，绊索抽中"
+	l.must_bring = "绊索封西暗道 7,11；铁砧朝北等 5.2 秒回波。灰狼锁主路。"
+	l.role_why = {
+		"rifle": "本关：锁主路脊",
+		"mg": "本关：朝北等 5.2s 回波",
+		"scout": "本关：南闸看口",
+	}
+	l.fix_one = "改一处就能赢：Tab 绊索铺西暗道，铁砧朝北等 5.2 秒灯塔回波。"
+	l.spawn_teaching = ["灯塔回波晚 5.2 秒才上东廊 — 西暗道影探 3.6 秒先到。绊索封暗道，铁砧等回波。"]
+	l.situation = "油库切断后，电台还亮着。灯塔一扫，下一班就会从东廊折下来。西暗道影探仍走夹缝。这一刀要叠：绊索是第四人，铁砧要等回波，不能把弹药堆在南闸。"
+	l.intel_chatter = [
+		"电台：灯塔已扫过。东廊增援按 5.2 走。西暗道没人守。",
+		"报务：有交火。回波还在排。",
+		"电台：中止。灯塔保持扫描。",
+	]
+	l.campaign_beat = "灯塔停转。北区补给链这一夜被切断。"
 	return l

@@ -31,6 +31,8 @@ func rebuild(level_id: String) -> void:
 			_build_railcut()
 		"depot":
 			_build_depot()
+		"radio":
+			_build_radio()
 		_:
 			_build_yard()
 	_apply_door()
@@ -115,6 +117,17 @@ func _build_depot() -> void:
 	_block_rect(15, 8, 23, 14)
 	_block_rect(25, 8, 28, 12)
 	_block_rect(25, 16, 27, 16)
+
+
+func _build_radio() -> void:
+	# Same corridor contract as depot: west alley x=6-8, spine x=12-14, east x=31-33.
+	# North y=5-6 and south y=16-17 stay the connectors. Extra dish pad sits on
+	# the core north face (y=7) so the layout is not a depot clone.
+	_block_rect(9, 7, 11, 13)
+	_block_rect(15, 8, 23, 14)
+	_block_rect(25, 8, 28, 12)
+	_block_rect(25, 16, 27, 16)
+	_block_rect(16, 7, 22, 7)
 
 
 func _block_rect(x0: int, y0: int, x1: int, y1: int) -> void:

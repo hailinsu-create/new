@@ -173,6 +173,8 @@ static func hook_hit(level: Variant, log: Variant) -> bool:
 			return _delayed_flank_shot(log, 3.8)
 		"depot":
 			return log.has_type("trip")
+		"radio":
+			return log.has_type("trip") and _delayed_flank_shot(log, 5.2)
 		_:
 			return log.has_type("fire")
 
@@ -186,6 +188,8 @@ static func leak_road_name(level: Variant, route: String, branched: bool = false
 		"flank":
 			if level != null and str(level.level_id) == "railcut":
 				return "东廊（晚 3.8 秒）"
+			if level != null and str(level.level_id) == "radio":
+				return "东廊（含 5.2 秒回波）"
 			return "东廊"
 		"alt":
 			return "西侧紫备用接近"
