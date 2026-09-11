@@ -62,6 +62,15 @@ func pending_breathing() -> bool:
 	return false
 
 
+func echo_mark_pending() -> bool:
+	for m in marks:
+		if str(m.get("route", "")) != "echo":
+			continue
+		if float(m.get("delay", 0.0)) > elapsed + 0.05:
+			return true
+	return false
+
+
 func active_route() -> String:
 	## Latest authored spawn whose delay has been reached; else the first upcoming.
 	var now := elapsed
@@ -124,13 +133,20 @@ func _draw() -> void:
 		var is_active := live and route == active
 		var is_preview := preview_ids.has(int(m.get("id", -2)))
 		var is_pending := live and t > elapsed + 0.05
+		var is_echo := route == "echo"
+		var echo_soon := is_echo and is_pending and (t - elapsed) <= 2.4
 		if is_active:
 			draw_circle(Vector2(x, y), 8.2 + 3.2 * pulse, Color(col.r, col.g, col.b, 0.22 + 0.28 * pulse))
+		elif echo_soon:
+			# 回波 wait has to shout — 5.2s mark breathes until the hall runner arrives.
+			var boom := 0.5 + 0.5 * sin(_pulse * 11.0)
+			draw_circle(Vector2(x, y), 12.0 + 5.5 * boom, Color(col.r, col.g, col.b, 0.12 + 0.38 * boom))
+			draw_circle(Vector2(x, y), 8.8 + 3.4 * boom, Color(0.85, 0.98, 1.0, 0.18 + 0.28 * boom))
 		elif is_pending:
 			draw_circle(Vector2(x, y), 8.6 + 3.8 * pulse, Color(col.r, col.g, col.b, 0.16 + 0.40 * pulse))
 		elif is_preview:
 			draw_circle(Vector2(x, y), 7.4 + 2.2 * pulse, Color(col.r, col.g, col.b, 0.22 + 0.28 * pulse))
-		draw_circle(Vector2(x, y), 6.2 if (is_active or is_preview or is_pending) else 5.5, col)
+		draw_circle(Vector2(x, y), 6.8 if echo_soon else (6.2 if (is_active or is_preview or is_pending) else 5.5), col)
 		draw_circle(Vector2(x, y), 6.2 if (is_active or is_preview) else 5.5, Color(0.05, 0.05, 0.04, 0.85), false, 1.1)
 		var tag := "%s%.1f" % [lab, t]
 		if is_preview and first_preview:
