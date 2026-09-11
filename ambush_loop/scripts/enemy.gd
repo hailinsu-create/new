@@ -397,6 +397,8 @@ func _play_hit_sfx() -> void:
 
 
 func kind_id() -> String:
+	if echo_kit:
+		return "echo"
 	match spawn_route:
 		"flank":
 			return "flank"
@@ -555,7 +557,7 @@ func _ensure_echo_mast() -> void:
 		mast = Polygon2D.new()
 		mast.name = "EchoMast"
 		mast.polygon = PackedVector2Array([
-			Vector2(-1.2, -18), Vector2(1.2, -18), Vector2(1.0, -28), Vector2(-1.0, -28)
+			Vector2(-1.4, -16), Vector2(1.4, -16), Vector2(1.1, -38), Vector2(-1.1, -38)
 		])
 		mast.color = Color(0.55, 0.88, 0.98, 0.95)
 		mast.z_index = 4
@@ -566,7 +568,7 @@ func _ensure_echo_mast() -> void:
 		tip = Polygon2D.new()
 		tip.name = "EchoTip"
 		tip.polygon = PackedVector2Array([
-			Vector2(-3.0, -28), Vector2(3.0, -28), Vector2(2.2, -32), Vector2(-2.2, -32)
+			Vector2(-4.2, -36), Vector2(4.2, -36), Vector2(2.6, -44), Vector2(-2.6, -44)
 		])
 		tip.color = Color(0.78, 0.96, 1.0, 0.95)
 		tip.z_index = 5
