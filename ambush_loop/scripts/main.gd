@@ -3962,7 +3962,10 @@ func _build_trap_path() -> void:
 	var tag := str(level.second_trap_text()).strip_edges()
 	if tag == "":
 		tag = "第二层陷阱"
-	fx.setup(poly, col, tag)
+	var tag_at := Vector2.ZERO
+	if level.has_method("second_trap_cell"):
+		tag_at = grid.cell_to_world_center(level.second_trap_cell())
+	fx.setup(poly, col, tag, tag_at)
 	var world := get_node_or_null("World")
 	if world:
 		world.add_child(fx)

@@ -5,15 +5,17 @@ extends Node2D
 var pts: PackedVector2Array = PackedVector2Array()
 var col: Color = Color(1.0, 0.72, 0.38, 0.92)
 var tag: String = ""
+var tag_at: Vector2 = Vector2.ZERO
 var _t: float = 0.0
 var _pip: float = 0.0
 var _lab: Label
 
 
-func setup(path: PackedVector2Array, tint: Color, label: String) -> void:
+func setup(path: PackedVector2Array, tint: Color, label: String, at: Vector2 = Vector2.ZERO) -> void:
 	pts = path.duplicate()
 	col = tint
 	tag = label
+	tag_at = at
 	name = "TrapPathFx"
 	z_index = 7
 	_t = 0.0
@@ -83,7 +85,12 @@ func _ensure_tag() -> void:
 
 
 func _place_tag() -> void:
-	if _lab == null or pts.size() < 1:
+	if _lab == null:
+		return
+	if tag_at != Vector2.ZERO:
+		_lab.position = tag_at + Vector2(8, -22)
+		return
+	if pts.size() < 1:
 		return
 	var idx := mini(maxi(pts.size() - 2, 0), pts.size() - 1)
 	_lab.position = pts[idx] + Vector2(8, -22)
