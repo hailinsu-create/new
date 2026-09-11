@@ -36,7 +36,7 @@ func _build() -> void:
 	_hint.add_theme_font_size_override("font_size", 13)
 	_hint.add_theme_color_override("font_color", NightOps.OLIVE_HI)
 	_hint.position = Vector2(12, 6)
-	_hint.text = "触控：点掩体部署 → ↺↻ 射界 → 警报锁死"
+	_hint.text = "触控：点队员/点地走 → 拾取匣 → 趴掩体 → 拉警报 → 打扫下一波"
 	_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_hint)
 
