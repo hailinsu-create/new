@@ -6,6 +6,9 @@ set -euo pipefail
 
 export PATH="${HOME}/.grok/bin:${PATH}"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+OIDC_REFRESH="${SCRIPT_DIR}/oidc_refresh.py"
+
 PINNED_MODEL="grok-4.6"
 PINNED_EFFORT="xhigh"
 PINNED_FAST_HEADER="x-grok-service-tier"
@@ -42,30 +45,73 @@ ensure_install() {
   find_grok >/dev/null || die "install finished but grok binary was not found"
 }
 
-logged_in() {
-  [[ -f "${HOME}/.grok/auth.json" ]] || return 1
-  python3 - <<'PY'
+# Prints VALID | NEEDS_REFRESH | LOGGED_OUT. $1 is min remaining seconds (default 60).
+auth_state() {
+  local min_remaining="${1:-60}"
+  python3 - "${min_remaining}" <<'PY'
 import json, os, sys
 from datetime import datetime, timezone
+
+min_remaining = float(sys.argv[1])
 path = os.path.expanduser("~/.grok/auth.json")
 try:
     data = json.load(open(path))
 except Exception:
-    sys.exit(1)
+    print("LOGGED_OUT")
+    raise SystemExit(0)
+
 now = datetime.now(timezone.utc)
+best_remaining = None
+has_unexpiring = False
+has_refresh = False
 for value in data.values() if isinstance(data, dict) else []:
-    if not isinstance(value, dict) or not value.get("key"):
+    if not isinstance(value, dict):
+        continue
+    if value.get("refresh_token") and value.get("oidc_client_id"):
+        has_refresh = True
+    if not value.get("key"):
         continue
     exp = value.get("expires_at")
     if not exp:
-        sys.exit(0)
+        has_unexpiring = True
+        continue
     try:
         dt = datetime.fromisoformat(exp.replace("Z", "+00:00"))
     except Exception:
-        sys.exit(0)
-    sys.exit(0 if dt > now else 1)
-sys.exit(1)
+        has_unexpiring = True
+        continue
+    remaining = (dt - now).total_seconds()
+    if best_remaining is None or remaining > best_remaining:
+        best_remaining = remaining
+
+if has_unexpiring or (best_remaining is not None and best_remaining > min_remaining):
+    print("VALID")
+elif has_refresh:
+    print("NEEDS_REFRESH")
+else:
+    print("LOGGED_OUT")
 PY
+}
+
+refresh_oidc() {
+  [[ -f "${OIDC_REFRESH}" ]] || die "missing OIDC refresh helper: ${OIDC_REFRESH}"
+  python3 "${OIDC_REFRESH}"
+}
+
+logged_in() {
+  [[ -f "${HOME}/.grok/auth.json" ]] || return 1
+  local state
+  state="$(auth_state 60)"
+  if [[ "${state}" == "VALID" ]]; then
+    return 0
+  fi
+  if [[ "${state}" == "NEEDS_REFRESH" ]]; then
+    refresh_oidc >&2 || return 1
+    state="$(auth_state 0)"
+    [[ "${state}" == "VALID" ]]
+    return
+  fi
+  return 1
 }
 
 cmd_status() {
@@ -83,7 +129,13 @@ cmd_status() {
   echo "auth: not logged in"
   echo "Run: $0 login"
   echo "Then complete grok login --device-auth in a browser with the grok.com account whose quota you want."
+  echo "An expired access token is auto-refreshed when a refresh_token remains; device login is only needed when refresh fails."
   return 2
+}
+
+cmd_refresh() {
+  [[ -f "${HOME}/.grok/auth.json" ]] || die "not authenticated. Run: $0 login   (grok login --device-auth) with the grok.com account whose quota you want to use."
+  refresh_oidc
 }
 
 cmd_login() {
@@ -160,6 +212,10 @@ case "${1:-}" in
     shift
     cmd_login "$@"
     ;;
+  refresh)
+    shift
+    cmd_refresh "$@"
+    ;;
   run)
     shift
     cmd_run "$@"
@@ -170,6 +226,7 @@ usage: run.sh <command>
 
   status   Show grok binary and grok.com login state
   login    Start grok login --device-auth
+  refresh  Renew the grok.com OIDC access token using the stored refresh_token
   run      Send a prompt to grok CLI (grok-4.6 extra-high fast, grok.com quota)
 
   run --file PATH
@@ -178,6 +235,6 @@ usage: run.sh <command>
 EOF
     ;;
   *)
-    die "unknown command: $1 (try: status | login | run)"
+    die "unknown command: $1 (try: status | login | refresh | run)"
     ;;
 esac

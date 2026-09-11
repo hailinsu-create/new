@@ -1,0 +1,36 @@
+PROBE_START 2026-09-11T09:36:06+00:00
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PROBE alarm peak=0.19 rms=0.101 sec=0.27
+PROBE alarm_stinger peak=0.238 rms=0.11 sec=0.14
+PROBE fire peak=0.297 rms=0.082 sec=0.096
+PROBE fire_mg peak=0.325 rms=0.061 sec=0.26
+PROBE fire_scout peak=0.306 rms=0.102 sec=0.108
+PROBE return_fire peak=0.255 rms=0.074 sec=0.122
+PROBE empty peak=0.198 rms=0.07 sec=0.09
+PROBE loot peak=0.18 rms=0.114 sec=0.09
+PROBE op_death peak=0.22 rms=0.139 sec=0.22
+PROBE escape peak=0.178 rms=0.091 sec=0.22
+PROBE fail peak=0.258 rms=0.106 sec=0.4
+PROBE win peak=0.15 rms=0.092 sec=0.21
+PROBE win_stinger peak=0.16 rms=0.092 sec=0.25
+PROBE door peak=0.293 rms=0.097 sec=0.16
+PROBE trip peak=0.238 rms=0.083 sec=0.128
+PROBE barrel peak=0.259 rms=0.089 sec=0.28
+PROBE kill peak=0.16 rms=0.071 sec=0.08
+PROBE hit peak=0.272 rms=0.108 sec=0.018
+PROBE ui peak=0.119 rms=0.057 sec=0.04
+PROBE spawn peak=0.139 rms=0.058 sec=0.068
+PROBE echo_ping peak=0.28 rms=0.064 sec=0.844
+PROBE handoff peak=0.164 rms=0.072 sec=0.453
+PROBE leak peak=0.142 rms=0.02 sec=0.69
+PROBE night_enter peak=0.1 rms=0.048 sec=0.2
+PROBE tension peak=0.399 rms=0.16 sec=0.76
+PROBE ambient_yard peak=0.146 rms=0.039 sec=0.58
+PROBE ambient_warehouse peak=0.266 rms=0.082 sec=0.46
+PROBE ambient_pump peak=0.157 rms=0.064 sec=0.58
+PROBE ambient_railcut peak=0.177 rms=0.03 sec=0.337
+PROBE ambient_depot peak=0.174 rms=0.044 sec=0.64
+PROBE ambient_radio peak=0.17 rms=0.044 sec=0.72
+PROBE_OK n=31 dir=/tmp/ambush_cues
+PROBE_EXIT=0

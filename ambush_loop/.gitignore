@@ -1,0 +1,12 @@
+.godot/
+*.translation
+export.cfg
+.import/
+*.tmp
+.mono/
+data_*/
+build/
+docs/**/*.import
+scripts/play_census.gd
+scripts/play_dump.gd
+
