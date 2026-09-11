@@ -962,6 +962,10 @@ func _assert_fail_paths(main) -> bool:
 		push_error("SMOKE_ABORT_NO_ZH %s" % abort_txt)
 		quit(60)
 		return false
+	if main.sfx == null or not main.sfx.has_cue("fail") or str(main.sfx.last_cue) != "fail":
+		push_error("SMOKE_ABORT_NO_FAIL_SFX cue=%s" % (main.sfx.last_cue if main.sfx else "null"))
+		quit(60)
+		return false
 	print("SMOKE_OK_ABORT_INTEL n=", main.intel.records.size(), " tick=", main.sim.tick)
 	main._on_continue_pressed()
 	await process_frame
@@ -996,6 +1000,10 @@ func _assert_fail_paths(main) -> bool:
 	var wipe_txt := str(main.result_label.text)
 	if wipe_txt.find("全灭") < 0:
 		push_error("SMOKE_WIPE_NO_ZH %s" % wipe_txt)
+		quit(60)
+		return false
+	if main.sfx == null or str(main.sfx.last_cue) != "fail":
+		push_error("SMOKE_WIPE_NO_FAIL_SFX cue=%s" % (main.sfx.last_cue if main.sfx else "null"))
 		quit(60)
 		return false
 	print("SMOKE_OK_WIPE tick=", main.sim.tick)

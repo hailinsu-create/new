@@ -4376,6 +4376,8 @@ func _fail_squad_wipe() -> void:
 		if e.recorded.size() > 1:
 			_remember_path(e.recorded.duplicate(), "wipe")
 	_flash("小队全灭", Color(0.85, 0.2, 0.2))
+	_sfx("fail")
+	_play_fail_static()
 	_redraw_ghosts()
 	pending_result = "fail"
 
@@ -4423,6 +4425,8 @@ func _on_abort_pressed() -> void:
 		if e.recorded.size() > 1:
 			_remember_path(e.recorded.duplicate(), "abort")
 	_flash("中止尝试", Color(0.85, 0.75, 0.35))
+	_sfx("fail")
+	_play_fail_static()
 	_redraw_ghosts()
 	pending_result = "fail"
 	_finish_sim_tick()

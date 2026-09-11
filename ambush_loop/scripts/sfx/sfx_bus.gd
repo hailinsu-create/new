@@ -5,7 +5,7 @@ extends Node
 
 const MIX_RATE := 22050
 const CUES := [
-	"alarm", "alarm_stinger", "fire", "fire_mg", "fire_scout", "return_fire", "empty", "loot", "op_death", "escape", "win",
+	"alarm", "alarm_stinger", "fire", "fire_mg", "fire_scout", "return_fire", "empty", "loot", "op_death", "escape", "fail", "win",
 	"win_stinger", "door", "trip", "barrel", "kill",
 	"ambient_yard", "ambient_warehouse", "ambient_pump", "ambient_railcut", "ambient_depot"
 ]
@@ -116,7 +116,7 @@ func _gain(cue: String) -> float:
 			return -14.0
 		"win_stinger":
 			return -12.0
-		"escape", "op_death":
+		"escape", "op_death", "fail":
 			return -11.0
 		"fire", "return_fire":
 			return -16.0
@@ -168,6 +168,8 @@ func _build_stream(cue: String) -> AudioStreamWAV:
 			return _pcm(_fall(220.0, 70.0, 0.22, 0.22))
 		"escape":
 			return _pcm(_escape())
+		"fail":
+			return _pcm(_fail())
 		"win":
 			return _pcm(_win())
 		"win_stinger":
@@ -314,6 +316,15 @@ func _escape() -> PackedFloat32Array:
 		_tone(740.0, 0.08, 0.16, 0.02),
 		_silence(0.02),
 		_tone(480.0, 0.12, 0.14, 0.03),
+	])
+
+
+func _fail() -> PackedFloat32Array:
+	## Radio-static wash: descending pair + grit. Not the escape two-tone.
+	return _concat([
+		_tone(180.0, 0.08, 0.16, 0.10),
+		_fall(220.0, 50.0, 0.22, 0.18),
+		_tone(90.0, 0.10, 0.10, 0.08),
 	])
 
 
