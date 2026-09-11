@@ -1,9 +1,12 @@
 class_name LootPickup
 extends Node2D
 
+const Weapons := preload("res://scripts/raid/weapon_catalog.gd")
+
 ## Ammo scavenged from a corpse. Auto-collected by nearby living operators.
 
 var ammo_amount: int = 5
+var kind: String = "ammo"
 var collected: bool = false
 var _t: float = 0.0
 
@@ -11,12 +14,16 @@ var _t: float = 0.0
 @onready var tag: Label = $Tag
 
 
-func setup(amount: int) -> void:
+func setup(amount: int, p_kind: String = "ammo") -> void:
 	ammo_amount = amount
+	kind = p_kind if p_kind != "" else "ammo"
 	collected = false
 	add_to_group("loot")
 	if tag:
-		tag.text = "+%d弹" % amount
+		if kind == "ammo":
+			tag.text = "+%d弹" % amount
+		else:
+			tag.text = Weapons.tag_zh(kind)
 	_ensure_pack_look()
 	scale = Vector2(0.22, 0.22)
 	var tw := create_tween()
@@ -36,7 +43,7 @@ func _ensure_pack_look() -> void:
 	visual.polygon = PackedVector2Array([
 		Vector2(-9, -7), Vector2(9, -7), Vector2(8, 9), Vector2(-8, 9)
 	])
-	visual.color = Color(0.72, 0.58, 0.16, 0.96)
+	visual.color = Weapons.color(kind)
 	var strap := Polygon2D.new()
 	strap.name = "Strap"
 	strap.polygon = PackedVector2Array([
@@ -92,3 +99,11 @@ func collect() -> int:
 	visible = false
 	queue_free()
 	return gained
+
+
+func collect_item() -> Dictionary:
+	if collected:
+		return {}
+	var out := {"kind": kind, "amount": ammo_amount}
+	collect()
+	return out
