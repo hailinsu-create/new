@@ -1769,6 +1769,14 @@ func _active_routes() -> Array:
 	return out
 
 
+func _killzone_ops() -> Array[OperatorUnit]:
+	var out: Array[OperatorUnit] = []
+	for op in operators:
+		if op != null and op.visible and op.alive:
+			out.append(op)
+	return out
+
+
 func _refresh_killzone_preview() -> void:
 	if killzone_draw == null:
 		return
@@ -1777,13 +1785,19 @@ func _refresh_killzone_preview() -> void:
 		c.free()
 	if phase != Phase.SETUP:
 		return
-	if selected == null or not selected.visible or not selected.alive:
+	var shooters := _killzone_ops()
+	if shooters.is_empty():
 		return
 	const STEP := 16.0
 	for route in _active_routes():
 		var hit_run := PackedVector2Array()
 		for p in _sample_polyline(route, STEP):
-			if selected.in_fire_geometry(p, grid):
+			var covered := false
+			for op in shooters:
+				if op.in_fire_geometry(p, grid):
+					covered = true
+					break
+			if covered:
 				hit_run.append(p)
 			else:
 				_add_killzone_line(hit_run)

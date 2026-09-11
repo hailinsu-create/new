@@ -1712,7 +1712,20 @@ func _assert_engage_helpers(main) -> bool:
 		quit(40)
 		return false
 	print("SMOKE_OK_ENGAGE_HELPERS killzone=", main.killzone_draw.get_child_count())
+	main._select_op(1)
+	main._deploy_selected_to(main.cover_slots[2], false)
+	main._refresh_killzone_preview()
+	if not main.has_method("_killzone_ops") or main._killzone_ops().size() < 2:
+		push_error("SMOKE_KILLZONE_NOT_UNION n=%s" % (main._killzone_ops().size() if main.has_method("_killzone_ops") else -1))
+		quit(40)
+		return false
+	if main.killzone_draw.get_child_count() < 1:
+		push_error("SMOKE_KILLZONE_UNION_EMPTY")
+		quit(40)
+		return false
+	print("SMOKE_OK_KILLZONE_UNION n=", main._killzone_ops().size())
 	# Redeploy must keep the facing the player already set (same pad and pad-to-pad).
+	main._select_op(0)
 	op.set_facing(45.0)
 	main._deploy_selected_to(main.cover_slots[0], false)
 	if absf(float(main.selected.facing_deg) - 45.0) > 0.5:
