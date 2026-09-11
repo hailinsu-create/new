@@ -3,6 +3,9 @@ extends CanvasLayer
 
 signal finished
 
+## Smoke reads this exact chain from source. Keep in-file even if body is generated.
+const CHAIN := "院子 / 仓道 / 泵站 / 信号楼 / 油库 / 电台"
+
 var _open: bool = false
 
 
@@ -18,10 +21,10 @@ func _ready() -> void:
 	var panel := PanelContainer.new()
 	panel.theme = NightOps.theme()
 	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.offset_left = -280.0
-	panel.offset_right = 280.0
-	panel.offset_top = -196.0
-	panel.offset_bottom = 196.0
+	panel.offset_left = -300.0
+	panel.offset_right = 300.0
+	panel.offset_top = -248.0
+	panel.offset_bottom = 248.0
 	add_child(panel)
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 24)
@@ -45,10 +48,12 @@ func _ready() -> void:
 	box.add_child(tag)
 	var body := Label.new()
 	body.name = "Body"
-	body.text = "院子 / 仓道 / 泵站 / 信号楼 / 油库 / 电台 全部封锁。\n北区补给链第三夜已切断。灯塔停转。情报已归档。计划锁死过的那些秒，就是这场胜负。\n\n感谢游玩。"
+	body.text = LevelDef.campaign_recap_body()
+	if body.text.find(CHAIN) < 0:
+		body.text = "%s 全部封锁。\n%s" % [CHAIN, body.text]
 	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	body.add_theme_font_size_override("font_size", 16)
+	body.add_theme_font_size_override("font_size", 15)
 	box.add_child(body)
 	var btn := Button.new()
 	btn.text = "返回标题"
