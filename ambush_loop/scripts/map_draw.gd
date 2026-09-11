@@ -300,6 +300,77 @@ func _wall_palette() -> Dictionary:
 			}
 
 
+func _draw_wall_language(c: CanvasItem, inset: Rect2, pal: Dictionary, x: int, y: int) -> void:
+	var lang := wall_language()
+	var mortar: Color = pal["mortar"]
+	match lang:
+		"pipe":
+			var mid_y := inset.position.y + inset.size.y * 0.5
+			c.draw_line(
+				Vector2(inset.position.x + 1.0, mid_y),
+				Vector2(inset.position.x + inset.size.x - 1.0, mid_y),
+				Color(0.22, 0.48, 0.40, 0.70),
+				3.2
+			)
+			c.draw_line(
+				Vector2(inset.position.x + 1.0, mid_y - 6.0),
+				Vector2(inset.position.x + inset.size.x - 1.0, mid_y - 6.0),
+				Color(mortar.r, mortar.g, mortar.b, 0.55),
+				1.2
+			)
+			if (x + y) % 2 == 0:
+				c.draw_circle(Vector2(inset.position.x + inset.size.x * 0.5, mid_y), 3.2, Color(0.18, 0.40, 0.34, 0.80))
+		"concrete":
+			c.draw_line(
+				Vector2(inset.position.x + 2.0, inset.position.y + inset.size.y * 0.33),
+				Vector2(inset.position.x + inset.size.x - 2.0, inset.position.y + inset.size.y * 0.33),
+				mortar,
+				1.4
+			)
+			c.draw_line(
+				Vector2(inset.position.x + inset.size.x * 0.5, inset.position.y + 2.0),
+				Vector2(inset.position.x + inset.size.x * 0.5, inset.position.y + inset.size.y - 2.0),
+				Color(mortar.r, mortar.g, mortar.b, mortar.a * 0.7),
+				1.2
+			)
+		"plate":
+			var chev := Color(0.72, 0.42, 0.12, 0.35)
+			c.draw_line(
+				Vector2(inset.position.x + 4.0, inset.position.y + 6.0),
+				Vector2(inset.position.x + inset.size.x - 6.0, inset.position.y + inset.size.y - 4.0),
+				chev,
+				2.0
+			)
+			c.draw_line(
+				Vector2(inset.position.x + 8.0, inset.position.y + 4.0),
+				Vector2(inset.position.x + inset.size.x - 4.0, inset.position.y + inset.size.y - 8.0),
+				Color(chev.r, chev.g, chev.b, 0.22),
+				1.4
+			)
+			c.draw_rect(inset.grow(-3.0), Color(pal["edge"].r, pal["edge"].g, pal["edge"].b, 0.35), false, 1.2)
+		_:
+			var y0 := inset.position.y + 5.0
+			var row := 0
+			while y0 < inset.position.y + inset.size.y - 2.0:
+				c.draw_line(
+					Vector2(inset.position.x + 1.0, y0),
+					Vector2(inset.position.x + inset.size.x - 1.0, y0),
+					mortar,
+					1.0
+				)
+				var joint_x := inset.position.x + (8.0 if (row % 2) == 0 else 16.0)
+				while joint_x < inset.position.x + inset.size.x - 2.0:
+					c.draw_line(
+						Vector2(joint_x, y0 - 5.0),
+						Vector2(joint_x, y0),
+						Color(mortar.r * 0.85, mortar.g * 0.85, mortar.b, mortar.a * 0.8),
+						1.0
+					)
+					joint_x += 16.0
+				y0 += 7.0
+				row += 1
+
+
 func _draw_floor_tile(c: CanvasItem, rect: Rect2, x: int, y: int) -> void:
 	var pal := _floor_palette()
 	var checker := ((x + y) % 2) == 0
@@ -422,6 +493,18 @@ func _draw_layout_decal(c: CanvasItem, rect: Rect2, x: int, y: int, seed_n: int)
 			pass
 
 
+func wall_language() -> String:
+	match _atmo():
+		"pump":
+			return "pipe"
+		"railcut":
+			return "concrete"
+		"depot":
+			return "plate"
+		_:
+			return "brick"
+
+
 func _draw_wall_tile(c: CanvasItem, rect: Rect2, x: int, y: int) -> void:
 	var pal := _wall_palette()
 	# Drop mass so walls read thicker than the floor grid.
@@ -431,27 +514,7 @@ func _draw_wall_tile(c: CanvasItem, rect: Rect2, x: int, y: int) -> void:
 	var warm: Color = pal["fill_a"] if ((x + y) % 2) == 0 else pal["fill_b"]
 	c.draw_rect(inset, warm)
 	if not _is_power_saving():
-		var y0 := inset.position.y + 5.0
-		var row := 0
-		var mortar: Color = pal["mortar"]
-		while y0 < inset.position.y + inset.size.y - 2.0:
-			c.draw_line(
-				Vector2(inset.position.x + 1.0, y0),
-				Vector2(inset.position.x + inset.size.x - 1.0, y0),
-				mortar,
-				1.0
-			)
-			var joint_x := inset.position.x + (8.0 if (row % 2) == 0 else 16.0)
-			while joint_x < inset.position.x + inset.size.x - 2.0:
-				c.draw_line(
-					Vector2(joint_x, y0 - 5.0),
-					Vector2(joint_x, y0),
-					Color(mortar.r * 0.85, mortar.g * 0.85, mortar.b, mortar.a * 0.8),
-					1.0
-				)
-				joint_x += 16.0
-			y0 += 7.0
-			row += 1
+		_draw_wall_language(c, inset, pal, x, y)
 	var edge: Color = pal["edge"]
 	c.draw_rect(rect, edge, false, 2.2)
 	c.draw_rect(inset, Color(pal["base"].r, pal["base"].g, pal["base"].b, 0.50), false, 1.2)

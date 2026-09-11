@@ -1087,7 +1087,23 @@ func _assert_atmosphere(main, tag: String) -> bool:
 		push_error("SMOKE_NO_MOOD_BED %s" % want)
 		quit(49)
 		return false
-	print("SMOKE_OK_ATMO ", want)
+	if not main.map_draw.has_method("wall_language"):
+		push_error("SMOKE_NO_WALL_LANGUAGE %s" % want)
+		quit(49)
+		return false
+	var lang := str(main.map_draw.wall_language())
+	var want_lang := {
+		"yard": "brick",
+		"warehouse": "brick",
+		"pump": "pipe",
+		"railcut": "concrete",
+		"depot": "plate",
+	}
+	if lang != str(want_lang.get(want, "brick")):
+		push_error("SMOKE_WALL_LANGUAGE %s got=%s" % [want, lang])
+		quit(49)
+		return false
+	print("SMOKE_OK_ATMO ", want, " wall=", lang)
 	return true
 
 
