@@ -1,0 +1,13 @@
+Cubism PSD layer order (bottom → top), File > Open `import/moxi.psd`:
+
+body           全身底。背景已抠掉。原嘴仍在脸上（闭嘴）。
+hair_lock      侧发，可后加物理
+eye_left       只绑 ParamEyeLOpen：0 透明 / 1 显示
+eye_right      只绑 ParamEyeROpen
+mouth_open     只绑 ParamMouthOpenY：0 透明 / 1 显示（盖住原闭嘴）
+hair_front     刘海，盖住睫毛
+tassel         腰间流苏
+
+FREE：每个 ArtMesh 最多 2 个参数。不要把 Angle 绑到嘴或眼上。
+不要把 mouth_closed 叠进 PSD，会在原嘴外再套一圈。
+重新生成：python3 scripts/build-cubism-layers.py && python3 scripts/build-moxi-psd.py
