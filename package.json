@@ -8,8 +8,10 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
-    "test": "node --experimental-strip-types --no-warnings tests/viseme.test.ts",
-    "record:tour": "node scripts/record-all-animations.mjs"
+    "test": "node --experimental-strip-types --no-warnings tests/viseme.test.ts && node --experimental-strip-types --no-warnings tests/motion.test.ts",
+    "sim:motion": "node --experimental-strip-types --no-warnings scripts/sim-motion.mjs",
+    "record:tour": "node scripts/record-all-animations.mjs",
+    "record:blink-hair": "node scripts/record-blink-hair.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.2",

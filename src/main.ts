@@ -284,6 +284,11 @@ const api = {
     duration: timelineDuration(speech.timeline),
     events: speech.timeline.length,
   }),
+  getMotion: () => rig.debugMotion(),
+  setWind: (value: number) => {
+    windValue = value;
+    wind.value = String(value);
+  },
 };
 (window as Window & { __MOXI?: typeof api }).__MOXI = api;
 

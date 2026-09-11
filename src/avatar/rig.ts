@@ -3,6 +3,7 @@ import {
   type VisemeId,
   type VisemeSample,
 } from "./viseme";
+import { BlinkController, HairSystem, type Lids } from "./motion";
 
 export const EXPRESSIONS = [
   "neutral",
@@ -241,16 +242,6 @@ function integrate(current: FacePose, velocity: FacePose, target: FacePose, dt: 
   }
 }
 
-function blinkAmount(seconds: number, period: number): number {
-  const phase = seconds % period;
-  const closeStart = period - 0.38;
-  if (phase < closeStart) return 1;
-  const t = phase - closeStart;
-  if (t < 0.1) return 1 - t / 0.1;
-  if (t < 0.18) return 0.04;
-  return Math.min(1, (t - 0.18) / 0.2);
-}
-
 export type RigHooks = {
   sampleMouth: () => VisemeSample;
   wind: () => number;
@@ -275,18 +266,13 @@ export class AvatarRig {
   private lookY = 0;
   private targetLookX = 0;
   private targetLookY = 0;
-  private hairAngle = 0;
-  private hairVelocity = 0;
-  private bangsAngle = 0;
-  private bangsVelocity = 0;
-  private tasselAngle = 0;
-  private tasselVelocity = 0;
+  private readonly blinkCtrl = new BlinkController();
+  private readonly hairSys = new HairSystem();
+  private lastLids: Lids = { left: 1, right: 1 };
   private bounce = 0;
-  private blinkKick = 0;
   private saccadeX = 0;
   private saccadeY = 0;
   private nextSaccadeAt = 1.4;
-  private lastEnergy = 0;
   private hooks: RigHooks;
   visemeId: VisemeId = "rest";
   speaking = false;
@@ -326,6 +312,8 @@ export class AvatarRig {
     this.running = true;
     this.startedAt = performance.now();
     this.lastFrameAt = this.startedAt;
+    this.blinkCtrl.reset(Math.floor(this.startedAt) || 1);
+    this.hairSys.reset(Math.floor(this.startedAt) + 17);
     this.frameId = requestAnimationFrame(this.tick);
   }
 
@@ -344,10 +332,11 @@ export class AvatarRig {
       this.poseVel[key] += (next[key] - this.pose[key]) * 0.22;
     }
     this.expression = name;
-    this.hairVelocity -= 0.05;
-    this.tasselVelocity += 0.07;
+    this.hairSys.impulse(0.05);
     this.bounce = name === "laugh" ? 1 : name === "surprise" ? 0.62 : 0.28;
-    if (name !== "wink" && name !== "sleepy") this.blinkKick = 1;
+    if (this.running && name !== "wink" && name !== "sleepy" && name !== "laugh") {
+      this.blinkCtrl.trigger((performance.now() - this.startedAt) / 1000, name);
+    }
   }
 
   getExpression(): Expression {
@@ -355,9 +344,22 @@ export class AvatarRig {
   }
 
   impulse(strength = 0.08): void {
-    this.hairVelocity -= strength;
-    this.bangsVelocity -= strength * 0.45;
-    this.tasselVelocity += strength * 1.2;
+    this.hairSys.impulse(strength);
+  }
+
+  debugMotion(): {
+    lids: Lids;
+    nextBlinkAt: number;
+    activeShots: number;
+    hair: ReturnType<HairSystem["debug"]>;
+  } {
+    const blink = this.blinkCtrl.debug();
+    return {
+      lids: { ...this.lastLids },
+      nextBlinkAt: blink.nextBlinkAt,
+      activeShots: blink.activeShots,
+      hair: this.hairSys.debug(),
+    };
   }
 
   resize(): void {
@@ -379,8 +381,7 @@ export class AvatarRig {
     if (bounds.width === 0 || bounds.height === 0) return;
     const nextX = clamp(((event.clientX - bounds.left) / bounds.width - 0.5) * 2, -1, 1);
     const delta = nextX - this.targetLookX;
-    this.hairVelocity -= delta * 0.055;
-    this.tasselVelocity -= delta * 0.08;
+    this.hairSys.impulse(delta * 0.055);
     this.targetLookX = nextX;
     this.targetLookY = clamp(((event.clientY - bounds.top) / bounds.height - 0.5) * 2, -1, 1);
   };
@@ -414,12 +415,12 @@ export class AvatarRig {
       this.pose.leftOpen += (0 - this.pose.leftOpen) * (1 - Math.pow(0.48, dt));
     }
     this.bounce *= Math.pow(0.9, dt);
-    this.blinkKick *= Math.pow(0.78, dt);
 
     if (seconds > this.nextSaccadeAt && this.expression !== "shy") {
       this.saccadeX = (Math.random() - 0.5) * 0.32;
       this.saccadeY = (Math.random() - 0.5) * 0.14;
       this.nextSaccadeAt = seconds + 2.1 + Math.random() * 2.8;
+      this.blinkCtrl.notifySaccade(seconds, this.expression);
     }
     this.saccadeX *= Math.pow(0.92, dt);
     this.saccadeY *= Math.pow(0.92, dt);
@@ -430,40 +431,22 @@ export class AvatarRig {
     const mouth = this.hooks.sampleMouth();
     this.visemeId = mouth.id;
     this.speaking = mouth.speaking;
-    if (mouth.speaking) {
-      const spike = Math.max(0, mouth.energy - this.lastEnergy);
-      if (spike > 0.12) this.impulse(0.035 + spike * 0.08);
-    }
-    this.lastEnergy = mouth.energy;
 
-    this.updatePhysics(seconds, dt);
-    const period = this.expression === "sleepy" ? 2.35 : this.expression === "surprise" ? 5.2 : 3.8;
-    const blink = blinkAmount(seconds, period) * (1 - this.blinkKick * 0.9);
-    this.compose(blink, seconds, mouth);
+    const dtSec = Math.min(0.05, Math.max(1 / 240, dt * 0.01667));
+    this.hairSys.step(dtSec, seconds, {
+      lookX: this.lookX,
+      wind: this.hooks.wind(),
+      speaking: mouth.speaking,
+      energy: mouth.energy,
+    });
+    const lids = this.blinkCtrl.sample(seconds, this.expression, mouth.speaking);
+    this.lastLids = lids;
+    this.compose(this.lastLids, seconds, mouth);
     this.drawStage(seconds);
     this.frameId = requestAnimationFrame(this.tick);
   };
 
-  private updatePhysics(seconds: number, dt: number): void {
-    const wind = this.hooks.wind();
-    const gust = Math.sin(seconds * 0.85) * 0.08 * wind + Math.sin(seconds * 1.7) * 0.03 * wind;
-    const hairTarget = -this.lookX * 0.16 + gust;
-    this.hairVelocity += (hairTarget - this.hairAngle) * 0.058 * dt;
-    this.hairVelocity *= Math.pow(0.86, dt);
-    this.hairAngle = clamp(this.hairAngle + this.hairVelocity * dt, -0.26, 0.16);
-
-    const bangsTarget = -this.lookX * 0.05 + Math.sin(seconds * 1.05) * 0.02 * wind;
-    this.bangsVelocity += (bangsTarget - this.bangsAngle) * 0.07 * dt;
-    this.bangsVelocity *= Math.pow(0.8, dt);
-    this.bangsAngle = clamp(this.bangsAngle + this.bangsVelocity * dt, -0.08, 0.08);
-
-    const tasselTarget = -this.lookX * 0.22 + Math.sin(seconds * 1.15 + 0.7) * 0.12 * wind;
-    this.tasselVelocity += (tasselTarget - this.tasselAngle) * 0.042 * dt;
-    this.tasselVelocity *= Math.pow(0.9, dt);
-    this.tasselAngle = clamp(this.tasselAngle + this.tasselVelocity * dt, -0.34, 0.34);
-  }
-
-  private compose(blink: number, seconds: number, mouth: VisemeSample): void {
+  private compose(lids: Lids, seconds: number, mouth: VisemeSample): void {
     if (!this.assets) return;
     const context = this.portraitCtx;
     context.clearRect(0, 0, W, H);
@@ -472,7 +455,7 @@ export class AvatarRig {
     this.drawMouth(mouth);
 
     this.featureCtx.clearRect(0, 0, W, H);
-    this.drawEyes(blink, seconds);
+    this.drawEyes(lids, seconds);
     this.drawBrows();
     this.featureCtx.save();
     this.featureCtx.globalCompositeOperation = "destination-out";
@@ -493,18 +476,21 @@ export class AvatarRig {
     context.rect(0, 0, W, H);
     context.ellipse(748, 334, 176, 208, -0.08, 0, Math.PI * 2);
     context.clip("evenodd");
+    const hairAngle = this.hairSys.hair.angle;
+    const hairSag = this.hairSys.hair.sag;
     context.translate(526, 292);
-    context.rotate(this.hairAngle);
+    context.rotate(hairAngle);
     context.translate(-526, -292);
-    context.translate(this.hairAngle * 34, Math.abs(this.hairAngle) * 8);
+    context.translate(hairAngle * 34 + hairSag * 18, Math.abs(hairAngle) * 8 + Math.abs(hairSag) * 6);
     context.drawImage(this.assets.hairLock, 0, 0);
     context.restore();
 
     context.save();
+    const tasselAngle = this.hairSys.tassel.angle;
     context.translate(819, 658);
-    context.rotate(this.tasselAngle);
+    context.rotate(tasselAngle);
     context.translate(-819, -658);
-    context.translate(this.tasselAngle * 38, Math.abs(this.tasselAngle) * 8);
+    context.translate(tasselAngle * 38, Math.abs(tasselAngle) * 8);
     context.drawImage(this.assets.tassel, 0, 0);
     context.restore();
   }
@@ -513,8 +499,9 @@ export class AvatarRig {
     if (!this.assets) return;
     const context = this.portraitCtx;
     context.save();
+    const bangsAngle = this.hairSys.bangs.angle;
     context.translate(724, 176);
-    context.rotate(this.bangsAngle);
+    context.rotate(bangsAngle);
     context.translate(-724, -176);
     context.globalAlpha = 0.92;
     context.drawImage(this.assets.bangs, 0, 0);
@@ -679,14 +666,22 @@ export class AvatarRig {
     context.restore();
   }
 
-  private drawEyes(blink: number, seconds: number): void {
+  private drawEyes(lids: Lids, seconds: number): void {
     if (!this.assets) return;
-    const leftOpen = Math.max(0, this.pose.leftOpen * (this.expression === "wink" ? 1 : blink));
-    const rightOpen = Math.max(0, this.pose.rightOpen * blink);
+    const leftOpen = Math.max(0, this.pose.leftOpen * (this.expression === "wink" ? 1 : lids.left));
+    const rightOpen = Math.max(0, this.pose.rightOpen * lids.right);
     if (leftOpen >= 0.12) this.drawEye(this.assets.eyeLeft, FACE.eyeLeft, leftOpen, -1);
     if (rightOpen >= 0.12) this.drawEye(this.assets.eyeRight, FACE.eyeRight, rightOpen, 1);
-    this.drawLowerLid(FACE.eyeLeft, this.pose.lowerLid * Math.min(1, leftOpen * 1.15), -1);
-    this.drawLowerLid(FACE.eyeRight, this.pose.lowerLid * Math.min(1, rightOpen * 1.15), 1);
+    this.drawLowerLid(
+      FACE.eyeLeft,
+      this.pose.lowerLid * Math.min(1, leftOpen * 1.15) + (1 - leftOpen) * 0.2,
+      -1,
+    );
+    this.drawLowerLid(
+      FACE.eyeRight,
+      this.pose.lowerLid * Math.min(1, rightOpen * 1.15) + (1 - rightOpen) * 0.2,
+      1,
+    );
     this.drawSparkle(FACE.eyeLeft, leftOpen, -1, seconds);
     this.drawSparkle(FACE.eyeRight, rightOpen, 1, seconds);
     if (leftOpen < 0.2) this.drawClosedEye(FACE.eyeLeft, leftOpen < 0.12 ? 1 : 1 - leftOpen / 0.2, -1);
