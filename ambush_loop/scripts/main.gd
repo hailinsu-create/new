@@ -789,11 +789,13 @@ func apply_touch_command(cmd: String) -> void:
 		"rotate_cw":
 			if phase == Phase.SETUP and selected and selected.visible:
 				selected.rotate_by(15.0)
+				_sfx("ui")
 				_announce_plan_edit()
 				_refresh_killzone_preview()
 		"rotate_ccw":
 			if phase == Phase.SETUP and selected and selected.visible:
 				selected.rotate_by(-15.0)
+				_sfx("ui")
 				_announce_plan_edit()
 				_refresh_killzone_preview()
 	_update_hud()
@@ -3230,6 +3232,8 @@ func _select_op(idx: int) -> void:
 	selected = operators[idx]
 	_refresh_selection_visual()
 	_update_role_cards()
+	if phase == Phase.SETUP:
+		_sfx("ui")
 	if phase != Phase.SETUP:
 		return
 	tool = Tool.DEPLOY

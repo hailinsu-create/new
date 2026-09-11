@@ -1662,7 +1662,16 @@ func _assert_sfx(main) -> bool:
 			push_error("SMOKE_SCOUT_FIRE_CUE %s" % main.sfx.last_cue)
 			quit(36)
 			return false
-	print("SMOKE_OK_SFX cues=role_fire muted=", main.sfx.muted, " every_shot=1")
+	if not main.sfx.has_cue("ui"):
+		push_error("SMOKE_NO_UI_CUE")
+		quit(36)
+		return false
+	main._select_op(0)
+	if str(main.sfx.last_cue) != "ui":
+		push_error("SMOKE_UI_SELECT_CUE %s" % main.sfx.last_cue)
+		quit(36)
+		return false
+	print("SMOKE_OK_SFX cues=role_fire muted=", main.sfx.muted, " every_shot=1 ui=1")
 	return true
 
 
