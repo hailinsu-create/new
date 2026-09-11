@@ -106,6 +106,16 @@ func _refresh() -> void:
 			_kicker.text = "%s\n%s" % [LevelDef.campaign_frame(), LevelDef.campaign_kicker()]
 	var lines: PackedStringArray = PackedStringArray()
 	lines.append(LevelDef.campaign_chain_names())
+	var stamp := ""
+	if gs and gs.has_method("latest_cleared_id"):
+		var last_id := str(gs.latest_cleared_id())
+		if last_id != "":
+			var last_def: LevelDef = LevelDef.by_id(last_id)
+			stamp = "封印邮戳 · %s 已封锁" % last_def.title
+	if complete:
+		stamp = "封印邮戳 · 六夜全部封锁。灯塔停转。"
+	if stamp != "":
+		lines.append(stamp)
 	lines.append("")
 	for def in LevelDef.catalog():
 		var state := "锁定"
