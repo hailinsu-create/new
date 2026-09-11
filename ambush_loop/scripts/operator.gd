@@ -9,11 +9,12 @@ enum FireMode { ENGAGE_ON_SIGHT, HOLD_FOR_AMBUSH }
 const MAX_HP := 100.0
 const COVER_DAMAGE_MULT := 0.4
 const EXPOSED_DAMAGE_MULT := 1.0
-const LOOT_RANGE := 52.0
+const LOOT_RANGE := 40.0
 const CONE_RAYS := 14
 const MuzzleFlashScript := preload("res://scripts/fx/muzzle_flash.gd")
 const CombatFxScript := preload("res://scripts/fx/combat_fx.gd")
 const Silhouette := preload("res://scripts/fx/operator_silhouette.gd")
+const Weapons := preload("res://scripts/raid/weapon_catalog.gd")
 
 signal died(op: OperatorUnit)
 signal fired_shot(op: OperatorUnit, target_pos: Vector2)
@@ -47,6 +48,7 @@ var start_ammo: int = 7
 var max_ammo: int = 14
 var body_color: Color = Color(0.35, 0.65, 0.95)
 var role_short: String = "步"
+var kit_range_px: float = 220.0
 
 @onready var body: Polygon2D = $Body
 @onready var cone: Polygon2D = $Cone
@@ -89,6 +91,14 @@ var _bark_tween: Tween = null
 var _selected_visual: bool = false
 var _land_pop: float = 0.0
 var _face_tick: float = 0.0
+var weapon_id: String = "knife"
+var melee: bool = true
+var grenades: int = 0
+var mines: int = 0
+var decoys: int = 0
+var move_path: PackedVector2Array = PackedVector2Array()
+var move_speed: float = 96.0
+var _path_i: int = 0
 
 
 static func role_for_id(id: int) -> int:
@@ -142,6 +152,7 @@ func setup(id: int, pname: String, p_grid: AmbushGrid = null) -> void:
 	_ensure_hp_bar()
 	_ensure_shield()
 	_refresh_role_glyph()
+	wipe_inventory()
 	reset_loadout()
 	set_observation_ring(false)
 
@@ -159,6 +170,8 @@ func _apply_role_kit() -> void:
 			max_ammo = 18
 			body_color = Color(0.46, 0.54, 0.28)
 			role_short = "机"
+			move_speed = 72.0
+			kit_range_px = range_px
 		Role.SCOUT:
 			# Long narrow overwatch, scarce rounds — Commandos sniper/lookout.
 			# 20° half-angle keeps the reference exit slot (facing 180) on the south corridor.
@@ -170,6 +183,8 @@ func _apply_role_kit() -> void:
 			max_ammo = 10
 			body_color = Color(0.26, 0.52, 0.62)
 			role_short = "侦"
+			move_speed = 118.0
+			kit_range_px = range_px
 		_:
 			# Rifle: stable filler, same baseline as the original identical kits.
 			range_px = 220.0
@@ -180,14 +195,16 @@ func _apply_role_kit() -> void:
 			max_ammo = 14
 			body_color = Color(0.40, 0.55, 0.68)
 			role_short = "步"
+			move_speed = 96.0
+			kit_range_px = range_px
 
 
 func reset_loadout() -> void:
 	alive = true
 	hp = MAX_HP
-	ammo = start_ammo
 	shot_cd = 0.0
 	locked = false
+	stop_move()
 	ammo_pack_used = false
 	fire_permitted = fire_mode == FireMode.ENGAGE_ON_SIGHT
 	last_deny.clear()
@@ -203,6 +220,117 @@ func reset_loadout() -> void:
 	_rebuild_cone()
 	_update_hp_bar()
 	_refresh_shield()
+
+
+func wipe_inventory() -> void:
+	grenades = 0
+	mines = 0
+	decoys = 0
+	has_ammo_pack = false
+	ammo_pack_used = false
+	apply_weapon("knife", true)
+
+
+func apply_weapon(id: String, reset_ammo: bool = false) -> void:
+	var d: Dictionary = Weapons.def(id)
+	weapon_id = str(d.get("id", "knife"))
+	melee = bool(d.get("melee", false))
+	if d.has("range_px"):
+		range_px = float(d["range_px"])
+		half_angle_deg = float(d.get("half_angle_deg", 28.0))
+		damage_per_shot = float(d.get("damage", 34.0))
+		shot_interval = float(d.get("shot_interval", 0.18))
+		start_ammo = int(d.get("start_ammo", 0))
+		max_ammo = int(d.get("max_ammo", 0))
+	if melee:
+		ammo = 0
+		max_ammo = 0
+	elif reset_ammo or ammo <= 0:
+		ammo = start_ammo
+	else:
+		ammo = mini(maxi(ammo, start_ammo), maxi(max_ammo, start_ammo))
+	_refresh_tag()
+	_rebuild_cone()
+
+
+func receive_item(kind: String, amount: int = 1) -> Dictionary:
+	var n := maxi(amount, 1)
+	match kind:
+		"grenade":
+			grenades += n
+			return {"ok": true, "text": "+%d手雷" % n}
+		"mine":
+			mines += n
+			return {"ok": true, "text": "+%d地雷" % n}
+		"decoy":
+			decoys += n
+			return {"ok": true, "text": "+%d诱饵" % n}
+		"ammo":
+			if melee:
+				apply_weapon("pistol", true)
+			var gained := receive_ammo(n)
+			return {"ok": gained > 0, "text": "+%d弹" % gained, "gained": gained}
+		"pistol", "rifle", "mg", "scout", "shotgun":
+			apply_weapon(kind, true)
+			if n > start_ammo:
+				receive_ammo(n - start_ammo)
+			return {"ok": true, "text": "装备%s" % Weapons.display_name(kind)}
+		"knife":
+			apply_weapon("knife", true)
+			return {"ok": true, "text": "拔刀"}
+		_:
+			return {"ok": false, "text": ""}
+
+
+func set_move_path(world_pts: PackedVector2Array) -> void:
+	move_path = world_pts
+	_path_i = 0
+	if move_path.size() > 1:
+		_path_i = 1
+
+
+func stop_move() -> void:
+	move_path = PackedVector2Array()
+	_path_i = 0
+
+
+func is_moving() -> bool:
+	return alive and move_path.size() > 0 and _path_i < move_path.size()
+
+
+func tick_move(delta: float) -> bool:
+	if not alive or locked or not is_moving():
+		return false
+	var target: Vector2 = move_path[_path_i]
+	global_position = global_position.move_toward(target, move_speed * delta)
+	var aim := target - global_position
+	if aim.length_squared() > 4.0:
+		set_facing(rad_to_deg(atan2(aim.y, aim.x)))
+	if global_position.distance_to(target) <= 2.2:
+		_path_i += 1
+		if _path_i >= move_path.size():
+			stop_move()
+			return false
+	return true
+
+
+func grid_cell() -> Vector2i:
+	if grid == null:
+		return Vector2i(int(global_position.x / 32.0), int(global_position.y / 32.0))
+	return grid.world_to_cell(global_position)
+
+
+func unlock_plan() -> void:
+	locked = false
+	_rebuild_cone()
+	_refresh_tag()
+
+
+func inventory_line() -> String:
+	var gun := Weapons.display_name(weapon_id)
+	if melee:
+		return "%s  雷%d 手雷%d 饵%d" % [gun, mines, grenades, decoys]
+	return "%s 弹%d/%d  雷%d 手雷%d" % [gun, ammo, max_ammo, mines, grenades]
 
 
 func set_fire_mode(mode: int) -> void:
@@ -349,7 +477,7 @@ func engage_block_reason(target: Vector2, p_grid: AmbushGrid) -> String:
 	## "" | hold | ammo | range | cone | los
 	if not fire_permitted:
 		return "hold"
-	if ammo <= 0:
+	if not melee and ammo <= 0:
 		return "ammo"
 	var to_v := target - global_position
 	var dist := to_v.length()
@@ -376,11 +504,12 @@ func try_fire(target: EnemyRunner, p_grid: AmbushGrid) -> bool:
 	if shot_cd > 0.0:
 		return false
 	shot_cd = shot_interval
-	ammo = maxi(ammo - 1, 0)
+	if not melee:
+		ammo = maxi(ammo - 1, 0)
 	fired_shot.emit(self, target.global_position)
 	target.apply_fire(damage_per_shot, self)
 	_spawn_muzzle_flash()
-	if ammo == 0:
+	if not melee and ammo == 0:
 		var before := ammo
 		_try_ammo_pack()
 		if ammo > before:
@@ -1113,7 +1242,7 @@ func _rebuild_observation_ring() -> void:
 	const RAYS := 36
 	for i in RAYS:
 		var r := deg_to_rad(float(i) * (360.0 / float(RAYS)))
-		pts.append(Vector2(cos(r), sin(r)) * range_px)
+		pts.append(Vector2(cos(r), sin(r)) * kit_range_px)
 	if obs_ring:
 		var loop := pts.duplicate()
 		if loop.size() > 0:
@@ -1140,13 +1269,14 @@ func observation_ring_visible() -> bool:
 
 
 func kit_blurb() -> String:
+	var inv := inventory_line()
 	match role:
 		Role.MG:
-			return "铁砧 · 宽锥短距、耗弹最快；弹包第一优先。适合扫侧翼、等迟到走廊。"
+			return "铁砧 · 慢步重火。开局只有刀，去找机枪/手雷。%s" % inv
 		Role.SCOUT:
-			return "夜枭 · 远距窄扇、弹少打重；锁出口/闸口。准备期淡青观察环=射程，不透视战斗。"
+			return "夜枭 · 快走长窄。开局只有刀，去找狙/诱饵。%s" % inv
 		_:
-			return "灰狼 · 均衡步枪，主路补漏与第一枪。谁漏了就把他补上。"
+			return "灰狼 · 中距补漏。开局只有刀，去找步枪/手枪。%s" % inv
 
 
 func facing_compass() -> String:
@@ -1493,25 +1623,23 @@ func _refresh_tag() -> void:
 		tag.add_theme_color_override("font_color", Color(0.62, 0.62, 0.64))
 		_refresh_dry_mark()
 		return
-	var pack := "包" if has_ammo_pack and not ammo_pack_used else ("已用包" if has_ammo_pack else "")
+	var gun := Weapons.display_name(weapon_id)
+	var extras := ""
+	if grenades > 0:
+		extras += " 雷%d" % grenades
+	if mines > 0:
+		extras += " 埋%d" % mines
 	var mode := "伏" if fire_mode == FireMode.HOLD_FOR_AMBUSH else "即"
 	if fire_mode == FireMode.HOLD_FOR_AMBUSH and not fire_permitted:
 		mode = "等"
-	if ammo <= 0:
-		if tag_emphasis:
-			tag.text = "%s  %s 空" % [display_name, mode]
-		else:
-			tag.text = "%s[%s] %s 空" % [display_name, role_short, mode]
-		tag.add_theme_color_override("font_color", Color(1.0, 0.42, 0.22))
-	elif tag_emphasis:
-		tag.text = "%s  %s 弹%d%s" % [
-			display_name, mode, ammo, (" " + pack) if pack != "" else ""
-		]
+	if melee:
+		tag.text = "%s[%s] 刀%s" % [display_name, role_short, extras]
 		tag.add_theme_color_override("font_color", role_kit_color(role))
+	elif ammo <= 0:
+		tag.text = "%s %s %s空%s" % [display_name, gun, mode, extras]
+		tag.add_theme_color_override("font_color", Color(1.0, 0.42, 0.22))
 	else:
-		tag.text = "%s[%s] %s 弹%d%s" % [
-			display_name, role_short, mode, ammo, (" " + pack) if pack != "" else ""
-		]
+		tag.text = "%s %s%d %s%s" % [display_name, gun, ammo, mode, extras]
 		tag.add_theme_color_override("font_color", role_kit_color(role))
 	_refresh_dry_mark()
 
