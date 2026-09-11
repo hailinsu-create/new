@@ -7330,6 +7330,8 @@ func _enter_sweep() -> void:
 		_flash("打扫战场 · 空格下一波", Color(0.95, 0.82, 0.38))
 		status_label.text = "本波已清。搜刮掉落，空格拉下一波警报。"
 	_sfx("ui")
+	if selected:
+		_operator_bark(selected, "sweep")
 	_update_hud()
 
 
