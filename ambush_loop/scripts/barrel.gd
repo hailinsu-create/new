@@ -15,6 +15,8 @@ const OP_DAMAGE := 70.0
 var armed: bool = true
 var spent: bool = false
 var _shimmer_t: float = 0.0
+var _fuse_hot: bool = false
+var _fuse_spark: Polygon2D = null
 
 @onready var visual: Polygon2D = $Visual
 @onready var blast: Polygon2D = $BlastPreview
@@ -23,6 +25,7 @@ var _shimmer_t: float = 0.0
 
 func _process(delta: float) -> void:
 	if spent or not armed:
+		_set_fuse_hot(false)
 		return
 	_shimmer_t += delta
 	var s := 0.90 + 0.10 * sin(_shimmer_t * 3.4)
@@ -31,12 +34,46 @@ func _process(delta: float) -> void:
 	var lid := get_node_or_null("Lid") as Polygon2D
 	if lid:
 		lid.modulate = Color(1.05, 1.0, 0.9).lerp(Color(1.2, 1.05, 0.7), 0.5 + 0.5 * sin(_shimmer_t * 3.4))
+	if _fuse_hot and _fuse_spark:
+		var w := 0.5 + 0.5 * sin(_shimmer_t * 14.0)
+		_fuse_spark.modulate = Color(1.3, 0.9 + 0.3 * w, 0.35, 0.55 + 0.45 * w)
+		_fuse_spark.scale = Vector2(0.7 + 0.5 * w, 0.7 + 0.5 * w)
+
+
+func fuse_hot() -> bool:
+	return _fuse_hot and armed and not spent
+
+
+func set_fuse_hot(on: bool) -> void:
+	_set_fuse_hot(on)
+
+
+func _set_fuse_hot(on: bool) -> void:
+	_fuse_hot = on and armed and not spent
+	_ensure_fuse_spark()
+	if _fuse_spark:
+		_fuse_spark.visible = _fuse_hot
+
+
+func _ensure_fuse_spark() -> void:
+	if _fuse_spark != null and is_instance_valid(_fuse_spark):
+		return
+	_fuse_spark = Polygon2D.new()
+	_fuse_spark.name = "FuseSpark"
+	_fuse_spark.polygon = PackedVector2Array([
+		Vector2(0, -16), Vector2(3, -10), Vector2(0, -7), Vector2(-3, -10)
+	])
+	_fuse_spark.color = Color(1.0, 0.82, 0.28, 0.95)
+	_fuse_spark.z_index = 4
+	_fuse_spark.visible = false
+	add_child(_fuse_spark)
 
 
 func reset_fuse() -> void:
 	armed = true
 	spent = false
 	_shimmer_t = 0.0
+	_set_fuse_hot(false)
 	if visual:
 		visual.color = Color(0.98, 0.48, 0.08, 0.98)
 		visual.modulate = Color.WHITE
@@ -52,11 +89,16 @@ func reset_fuse() -> void:
 func sim_check(active_enemies: Array, ops: Array) -> void:
 	if not armed or spent:
 		return
+	var near := false
 	for node in active_enemies:
 		if node is EnemyRunner and node.alive and node.active:
-			if global_position.distance_to(node.global_position) <= TRIGGER_RADIUS:
+			var d := global_position.distance_to(node.global_position)
+			if d <= TRIGGER_RADIUS:
 				_detonate(active_enemies, ops)
 				return
+			if d <= TRIGGER_RADIUS * 2.2:
+				near = true
+	_set_fuse_hot(near)
 
 
 func _detonate(active_enemies: Array, ops: Array) -> void:

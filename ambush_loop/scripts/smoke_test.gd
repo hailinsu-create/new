@@ -3365,6 +3365,28 @@ func _assert_iteration_slice(main) -> bool:
 		quit(71)
 		return false
 	print("SMOKE_OK_DOOR_SLAM")
+	var barrel := ExplosiveBarrel.new()
+	var vis := Polygon2D.new()
+	vis.name = "Visual"
+	barrel.add_child(vis)
+	if not barrel.has_method("fuse_hot") or not barrel.has_method("set_fuse_hot"):
+		barrel.free()
+		push_error("SMOKE_NO_FUSE_API")
+		quit(71)
+		return false
+	barrel.set_fuse_hot(true)
+	if not bool(barrel.fuse_hot()):
+		barrel.free()
+		push_error("SMOKE_FUSE_NOT_HOT")
+		quit(71)
+		return false
+	if barrel.get_node_or_null("FuseSpark") == null or not barrel.get_node_or_null("FuseSpark").visible:
+		barrel.free()
+		push_error("SMOKE_NO_FUSE_SPARK")
+		quit(71)
+		return false
+	barrel.free()
+	print("SMOKE_OK_BARREL_FUSE")
 	return true
 
 
