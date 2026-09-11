@@ -67,7 +67,13 @@ var trap_callout: Node2D = null
 var _trap_callout_tween: Tween = null
 var second_callout: Node2D = null
 var _second_callout_tween: Tween = null
+var echo_callout: Node2D = null
 var trap_path: Node2D = null
+var result_dossier: Label = null
+var dossier_button: Button = null
+var _dossier_open: bool = false
+var _fail_dossier_text: String = ""
+var _wave_tension_id: int = -1
 var spawn_ghost_host: Node2D = null
 var plan_ghost_host: Node2D = null
 var fail_gap_callout: Node2D = null
@@ -461,9 +467,9 @@ func _build_role_card_hud(root: Control) -> void:
 	route_legend.name = "RouteLegend"
 	route_legend.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	route_legend.offset_left = 220.0
-	route_legend.offset_top = 76.0
-	route_legend.offset_right = -16.0
-	route_legend.offset_bottom = 108.0
+	route_legend.offset_top = 38.0
+	route_legend.offset_right = -280.0
+	route_legend.offset_bottom = 72.0
 	route_legend.add_theme_constant_override("separation", 6)
 	route_legend.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(route_legend)
@@ -471,9 +477,9 @@ func _build_role_card_hud(root: Control) -> void:
 	spawn_teach_label.name = "SpawnTeach"
 	spawn_teach_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	spawn_teach_label.offset_left = 220.0
-	spawn_teach_label.offset_top = 108.0
+	spawn_teach_label.offset_top = 122.0
 	spawn_teach_label.offset_right = -16.0
-	spawn_teach_label.offset_bottom = 136.0
+	spawn_teach_label.offset_bottom = 144.0
 	spawn_teach_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	spawn_teach_label.add_theme_font_size_override("font_size", 13)
 	spawn_teach_label.add_theme_font_override("font", NightOps.ui_font_bold())
@@ -660,18 +666,15 @@ func _ensure_touch_hud() -> void:
 
 
 func _apply_phone_chrome(on: bool) -> void:
-	var bar: Control = get_node_or_null("HUD/Root/BottomBar") as Control
-	if bar:
-		bar.visible = not on
-	if extra_bar:
-		extra_bar.visible = not on
+	_sync_desktop_bars(not on)
 	if help_label:
 		# Docked one-liner stays in ExtraBar's band; never a south map wall.
 		help_label.visible = (not on) and phase == Phase.SETUP
 	_hide_duplicate_tut()
 	if spawn_teach_label:
-		spawn_teach_label.offset_top = 104.0 if on else 108.0
-		spawn_teach_label.offset_bottom = 132.0 if on else 136.0
+		# One teaching line under the timeline, never a second top paragraph.
+		spawn_teach_label.offset_top = 118.0 if on else 122.0
+		spawn_teach_label.offset_bottom = 140.0 if on else 144.0
 	if event_log:
 		event_log.visible = _event_log_open
 	var root: Control = get_node_or_null("HUD/Root") as Control
@@ -687,13 +690,44 @@ func _apply_phone_chrome(on: bool) -> void:
 	if plan_readout:
 		plan_readout.visible = not on
 	if route_legend:
-		route_legend.offset_top = 72.0 if on else 76.0
-		route_legend.offset_bottom = 104.0 if on else 108.0
+		# Sit in the phase-chip band, left of the checklist — not on the timeline.
+		route_legend.offset_top = 36.0 if on else 38.0
+		route_legend.offset_bottom = 68.0 if on else 72.0
+		route_legend.offset_right = -280.0
 	alarm_button.custom_minimum_size = Vector2(180, 48) if on else Vector2(180, 36)
 	clear_button.custom_minimum_size = Vector2(120, 48) if on else Vector2(120, 36)
 	tool_button.custom_minimum_size = Vector2(160, 48) if on else Vector2(160, 36)
 	_pin_role_cards(on)
 	_layout_checklist()
+	_sync_desktop_bars(not on)
+
+
+func _sync_desktop_bars(show: bool) -> void:
+	## Touch HUD owns the command row. Never stack ExtraBar + BottomBar under it.
+	var bar: Control = get_node_or_null("HUD/Root/BottomBar") as Control
+	if bar:
+		bar.visible = show
+	if extra_bar:
+		extra_bar.visible = show
+
+
+func desktop_command_bars_visible() -> bool:
+	var bar: Control = get_node_or_null("HUD/Root/BottomBar") as Control
+	var bottom_on := bar != null and bar.visible
+	var extra_on := extra_bar != null and extra_bar.visible
+	return bottom_on or extra_on
+
+
+func _kill_loop_tweens() -> void:
+	if _decision_pulse_tween != null:
+		_decision_pulse_tween.kill()
+		_decision_pulse_tween = null
+	if _trap_callout_tween != null:
+		_trap_callout_tween.kill()
+		_trap_callout_tween = null
+	if _second_callout_tween != null:
+		_second_callout_tween.kill()
+		_second_callout_tween = null
 
 
 func _hide_duplicate_tut() -> void:
@@ -977,6 +1011,7 @@ func _save_progress() -> void:
 
 func _ensure_debrief_buttons() -> void:
 	_ensure_result_layout()
+	_ensure_dossier_ui()
 	if title_return_button != null:
 		return
 	var vbox := result_panel.get_node_or_null("Margin/VBox") as VBoxContainer
@@ -988,6 +1023,51 @@ func _ensure_debrief_buttons() -> void:
 	title_return_button.visible = false
 	title_return_button.pressed.connect(_return_to_title)
 	vbox.add_child(title_return_button)
+
+
+func _ensure_dossier_ui() -> void:
+	var vbox := result_panel.get_node_or_null("Margin/VBox") as VBoxContainer
+	if vbox == null:
+		return
+	if dossier_button == null or not is_instance_valid(dossier_button):
+		dossier_button = vbox.get_node_or_null("DossierButton") as Button
+		if dossier_button == null:
+			dossier_button = Button.new()
+			dossier_button.name = "DossierButton"
+			dossier_button.text = "卷宗"
+			dossier_button.visible = false
+			dossier_button.pressed.connect(_toggle_fail_dossier)
+			vbox.add_child(dossier_button)
+			var cont_i := continue_button.get_index() if continue_button else vbox.get_child_count()
+			vbox.move_child(dossier_button, maxi(0, cont_i))
+	if result_dossier == null or not is_instance_valid(result_dossier):
+		result_dossier = vbox.get_node_or_null("ResultDossier") as Label
+		if result_dossier == null:
+			result_dossier = Label.new()
+			result_dossier.name = "ResultDossier"
+			result_dossier.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			result_dossier.add_theme_font_size_override("font_size", 13)
+			result_dossier.add_theme_color_override("font_color", Color(0.72, 0.78, 0.70))
+			result_dossier.visible = false
+			vbox.add_child(result_dossier)
+			vbox.move_child(result_dossier, dossier_button.get_index() + 1)
+
+
+func _toggle_fail_dossier() -> void:
+	_dossier_open = not _dossier_open
+	if result_dossier:
+		result_dossier.visible = _dossier_open and _fail_dossier_text != ""
+	if dossier_button:
+		dossier_button.text = "收起卷宗" if _dossier_open else "卷宗"
+
+
+func fail_dossier_text() -> String:
+	return _fail_dossier_text
+
+
+func fail_result_search_text() -> String:
+	var card := str(result_label.text) if result_label else ""
+	return "%s\n%s" % [card, _fail_dossier_text]
 
 
 func _ensure_result_headline() -> void:
@@ -1818,7 +1898,10 @@ func _fade_result_panel() -> void:
 func _load_level(level_id: String, keep_intel: bool, restore_plan: bool) -> void:
 	_mission_had_escape = false
 	_door_taught = false
+	_wave_tension_id = -1
+	_kill_loop_tweens()
 	_clear_intel_path_ghost()
+	_clear_echo_callout()
 	level = LevelDef.by_id(level_id)
 	var idx := LEVEL_ORDER.find(level.level_id)
 	if idx >= 0:
@@ -1864,6 +1947,7 @@ func _load_level(level_id: String, keep_intel: bool, restore_plan: bool) -> void
 	_build_barrels()
 	_build_trap_callout()
 	_build_second_callout()
+	_build_echo_callout()
 	_build_trap_path()
 	_start_setup(keep_intel, restore_plan)
 	_save_progress()
@@ -2159,8 +2243,14 @@ func _draw_fixed_routes() -> void:
 		"main": Color(0.9, 0.4, 0.35, 0.35),
 		"flank": Color(0.95, 0.55, 0.2, 0.3),
 		"sneak": Color(0.55, 0.72, 0.38, 0.32),
+		"echo": Color(0.42, 0.78, 0.92, 0.42),
 	}
-	var labels := {"main": "主路·巡卫", "flank": "侧翼·奔袭", "sneak": "西暗道·影探"}
+	var labels := {
+		"main": "主路·巡卫",
+		"flank": "侧翼·奔袭",
+		"sneak": "西暗道·影探",
+		"echo": "回波·碟缝",
+	}
 	for key in route_world.keys():
 		var col: Color = colors.get(key, Color(0.7, 0.7, 0.4, 0.3))
 		_add_route_line(route_world[key], col, str(labels.get(key, key)))
@@ -2200,8 +2290,6 @@ func _build_ambush_zone_visual() -> void:
 	var fx = AmbushZoneFxScript.new()
 	fx.name = "AmbushZone"
 	var zone_tag := "伏击区"
-	if level.beat_kind == "ambush_zone" and level.beat_text != "":
-		zone_tag = level.beat_text
 	var tint := LevelDef.signature_color(level.atmosphere_id if level.atmosphere_id != "" else level.level_id)
 	fx.setup(level.ambush_zone, zone_tag, tint)
 	$World.add_child(fx)
@@ -2313,7 +2401,7 @@ func _build_decision_marker() -> void:
 	n.add_child(ring)
 	var tag := Label.new()
 	tag.name = "Tag"
-	tag.text = level.beat_text if level.beat_kind == "decision" and level.beat_text != "" else "决策格"
+	tag.text = "决策格"
 	tag.position = Vector2(-46, -30)
 	tag.add_theme_font_size_override("font_size", 12)
 	tag.add_theme_font_override("font", NightOps.ui_font_bold())
@@ -2391,57 +2479,24 @@ func _layout_checklist() -> void:
 		if lab:
 			lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var pad := _safe_area_pad()
-	var compact := _checklist_use_touch_layout()
-	_checklist_touch_layout = compact
+	_checklist_touch_layout = true
 	var box := checklist_strip as BoxContainer
-	if compact:
-		if box:
-			box.vertical = false
-			box.alignment = BoxContainer.ALIGNMENT_END
-			box.add_theme_constant_override("separation", 10)
-		checklist_strip.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-		checklist_strip.anchor_left = 1.0
-		checklist_strip.anchor_top = 0.0
-		checklist_strip.anchor_right = 1.0
-		checklist_strip.anchor_bottom = 0.0
-		# Below phase chip (10–36). DisplayServer safe-area on the strip itself.
-		checklist_strip.offset_left = -460.0
-		checklist_strip.offset_top = 38.0 + maxf(0.0, pad.y - 4.0)
-		checklist_strip.offset_right = -maxf(8.0, pad.z)
-		checklist_strip.offset_bottom = 72.0 + maxf(0.0, pad.y - 4.0)
-		checklist_strip.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-		checklist_strip.grow_vertical = Control.GROW_DIRECTION_END
-	else:
-		if box:
-			box.vertical = true
-			box.alignment = BoxContainer.ALIGNMENT_BEGIN
-			box.add_theme_constant_override("separation", 4)
-		checklist_strip.set_anchors_preset(Control.PRESET_TOP_LEFT)
-		checklist_strip.anchor_left = 0.0
-		checklist_strip.anchor_top = 0.0
-		checklist_strip.anchor_right = 0.0
-		checklist_strip.anchor_bottom = 0.0
-		var top := 438.0
-		if role_box != null and is_instance_valid(role_box):
-			# Sit under 夜枭 / plan readout, not across a 400px card well.
-			top = role_box.offset_bottom + 4.0
-		var vis_h := get_viewport().get_visible_rect().size.y
-		var parent_h := vis_h
-		if host:
-			parent_h = vis_h - host.offset_top + host.offset_bottom
-		# ExtraBar sits ~92px above the bottom; keep chips clear of it.
-		var max_bottom := parent_h - 100.0 - pad.w
-		var chip_n := maxi(_checklist_labels.size(), 3)
-		var box_h := 36.0 + float(chip_n) * 20.0
-		checklist_strip.offset_left = 10.0 + maxf(0.0, pad.x - 8.0)
-		checklist_strip.offset_top = top
-		checklist_strip.offset_right = 214.0
-		checklist_strip.offset_bottom = minf(top + box_h, max_bottom)
-		if checklist_strip.offset_bottom < checklist_strip.offset_top + 36.0:
-			checklist_strip.offset_top = maxf(78.0, max_bottom - box_h)
-			checklist_strip.offset_bottom = max_bottom
-		checklist_strip.grow_horizontal = Control.GROW_DIRECTION_END
-		checklist_strip.grow_vertical = Control.GROW_DIRECTION_END
+	if box:
+		box.vertical = false
+		box.alignment = BoxContainer.ALIGNMENT_END
+		box.add_theme_constant_override("separation", 10)
+	checklist_strip.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	checklist_strip.anchor_left = 1.0
+	checklist_strip.anchor_top = 0.0
+	checklist_strip.anchor_right = 1.0
+	checklist_strip.anchor_bottom = 0.0
+	# Beside the route timeline, under the phase chip — never over the left cards.
+	checklist_strip.offset_left = -520.0
+	checklist_strip.offset_top = 38.0 + maxf(0.0, pad.y - 4.0)
+	checklist_strip.offset_right = -maxf(8.0, pad.z)
+	checklist_strip.offset_bottom = 72.0 + maxf(0.0, pad.y - 4.0)
+	checklist_strip.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	checklist_strip.grow_vertical = Control.GROW_DIRECTION_END
 
 
 func _side_route_key() -> String:
@@ -2464,6 +2519,8 @@ func _play_active_route_keys() -> PackedStringArray:
 		keys.append("flank")
 	if route_world.has("sneak"):
 		keys.append("sneak")
+	if route_world.has("echo"):
+		keys.append("echo")
 	return keys
 
 
@@ -2475,6 +2532,8 @@ func _play_route_chip_title(key: String, compact: bool) -> String:
 			return "侧翼"
 		"sneak":
 			return "暗道"
+		"echo":
+			return "回波"
 		"alt":
 			return "紫备用"
 		_:
@@ -3602,8 +3661,9 @@ func _deploy_selected_to(slot: CoverSlot, announce: bool = true) -> void:
 	_update_cover_previews()
 	if announce:
 		var prot := slot.protect_compass()
-		status_label.text = "%s →「%s」弹%d · 保护弧朝%s（来袭减伤60%%，侧背无减免）" % [
-			selected.display_name, slot.label_text, selected.ammo, prot
+		var fire_dir := _compass_deg(selected.facing_deg)
+		status_label.text = "%s →「%s」弹%d · 射界朝%s · 掩体保护朝%s（来袭减伤60%%，侧背无减免）" % [
+			selected.display_name, slot.label_text, selected.ammo, fire_dir, prot
 		]
 		_announce_plan_edit()
 	_update_observation_rings()
@@ -3777,30 +3837,37 @@ func _make_map_callout(p_name: String, text: String, pos: Vector2, col: Color) -
 
 
 func _build_trap_callout() -> void:
+	## Beat plate used to reprint tut/spawn-teach. Keep the node off; timeline + dashed path teach.
 	if trap_callout != null and is_instance_valid(trap_callout):
 		trap_callout.queue_free()
 	trap_callout = null
-	var text := _trap_callout_text()
-	if text == "":
-		return
-	trap_callout = _make_map_callout("TrapCallout", text, _trap_callout_pos(), Color(1.0, 0.86, 0.32))
 
 
 func _build_second_callout() -> void:
+	## Duplicate of trap_path Tag. Dashed second-layer path keeps the one map label.
 	if second_callout != null and is_instance_valid(second_callout):
 		second_callout.queue_free()
 	second_callout = null
-	if level == null or not level.has_method("second_trap_text"):
+
+
+func _clear_echo_callout() -> void:
+	if echo_callout != null and is_instance_valid(echo_callout):
+		echo_callout.queue_free()
+	echo_callout = null
+
+
+func _build_echo_callout() -> void:
+	_clear_echo_callout()
+	if level == null or str(level.level_id) != "radio":
 		return
-	var text := str(level.second_trap_text()).strip_edges()
-	if text == "":
+	if not level.route_cells.has("echo"):
 		return
-	var cell: Vector2i = level.second_trap_cell() if level.has_method("second_trap_cell") else Vector2i(-1, -1)
-	if cell.x < 0:
-		return
-	var pos := grid.cell_to_world_center(cell) + Vector2(10, -26)
-	var col := Color(0.55, 0.90, 1.0) if str(level.level_id) == "radio" else Color(1.0, 0.72, 0.38)
-	second_callout = _make_map_callout("SecondCallout", text, pos, col)
+	var pos := grid.cell_to_world_center(Vector2i(24, 12)) + Vector2(8, -22)
+	echo_callout = _make_map_callout("EchoCallout", "回波 5.2s", pos, Color(0.55, 0.90, 1.0))
+
+
+func echo_callout_visible() -> bool:
+	return echo_callout != null and is_instance_valid(echo_callout) and echo_callout.visible
 
 
 func _fade_trap_callout() -> void:
@@ -3829,6 +3896,12 @@ func _fade_second_callout() -> void:
 	)
 
 
+func _fade_echo_callout() -> void:
+	if echo_callout == null or not is_instance_valid(echo_callout):
+		return
+	echo_callout.visible = false
+
+
 func _build_trap_path() -> void:
 	if trap_path != null and is_instance_valid(trap_path):
 		trap_path.queue_free()
@@ -3840,10 +3913,10 @@ func _build_trap_path() -> void:
 	if poly.size() < 2:
 		return
 	var col := Color(1.0, 0.72, 0.38, 0.90)
-	if str(level.level_id) == "radio":
-		col = Color(0.55, 0.90, 1.0, 0.90)
-	elif route == "sneak":
+	if route == "sneak":
 		col = Color(0.68, 0.42, 0.92, 0.90)
+	elif route == "echo":
+		col = Color(0.55, 0.90, 1.0, 0.90)
 	elif route == "alt":
 		col = Color(0.78, 0.55, 1.0, 0.90)
 	var fx: Node2D = TrapPathFxScript.new()
@@ -3992,6 +4065,8 @@ func _intel_flash_color(route: String) -> Color:
 			return Color(0.98, 0.58, 0.16)
 		"sneak":
 			return Color(0.68, 0.32, 0.92)
+		"echo":
+			return Color(0.42, 0.82, 0.96)
 		"main":
 			return Color(0.95, 0.28, 0.22)
 		_:
@@ -4001,13 +4076,25 @@ func _intel_flash_color(route: String) -> Color:
 func _refresh_spawn_teach() -> void:
 	if spawn_teach_label == null:
 		return
-	var show := phase == Phase.SETUP and level != null and not level.spawn_teaching.is_empty()
-	spawn_teach_label.visible = show
-	if show:
-		if level.spawn_teaching.size() >= 2:
-			spawn_teach_label.text = "%s  ·  %s" % [str(level.spawn_teaching[0]), str(level.spawn_teaching[1])]
-		else:
-			spawn_teach_label.text = str(level.spawn_teaching[0])
+	## One teaching line. Tutorial overlay + dashed trap path cover the rest.
+	var text := ""
+	if phase == Phase.SETUP and level != null:
+		text = str(level.beat_text).strip_edges()
+		if text == "" and not level.spawn_teaching.is_empty():
+			text = str(level.spawn_teaching[0]).strip_edges()
+	spawn_teach_label.visible = text != ""
+	spawn_teach_label.text = text
+
+
+func setup_teaching_layers() -> Dictionary:
+	## Playable-bar probe: at most one HUD teaching paragraph during SETUP.
+	return {
+		"tut": tut_label != null and tut_label.visible,
+		"spawn": spawn_teach_label != null and spawn_teach_label.visible,
+		"beat": trap_callout != null and is_instance_valid(trap_callout) and trap_callout.visible,
+		"second": second_callout != null and is_instance_valid(second_callout) and second_callout.visible,
+		"path": trap_path_visible(),
+	}
 
 
 func _build_barrel_hint(pos: Vector2) -> void:
@@ -4021,7 +4108,7 @@ func _build_barrel_hint(pos: Vector2) -> void:
 	n.position = pos
 	n.z_index = 3
 	var tag := Label.new()
-	tag.text = level.beat_text if level.beat_text != "" else "爆心"
+	tag.text = "爆心"
 	tag.position = Vector2(-52, -36)
 	tag.add_theme_font_size_override("font_size", 12)
 	tag.add_theme_font_override("font", NightOps.ui_font_bold())
@@ -4311,9 +4398,11 @@ func _on_alarm_pressed() -> void:
 		pause_button.disabled = false
 	if speed_button:
 		speed_button.disabled = false
+	_wave_tension_id = -1
 	status_label.text = "方案锁死 — 暂停/变速仅改变观看。跑掉或全灭均失败。中止(X)保留截止情报。"
 	_fade_trap_callout()
 	_fade_second_callout()
+	_fade_echo_callout()
 	_fade_trap_path()
 	_update_event_log()
 	_refresh_watch_timeline()
@@ -4509,6 +4598,7 @@ func _process(delta: float) -> void:
 		_sim_tick()
 	hud_tick += delta
 	_tick_last_enemy_highlight()
+	_tick_pending_wave_tension()
 	_refresh_phase_chip()
 	if hud_tick >= 0.20:
 		hud_tick = 0.0
@@ -5257,13 +5347,15 @@ func _spawn_payoff_callout(pos: Vector2, text: String, color: Color) -> void:
 
 func _show_fail_result() -> void:
 	_play_fail_static()
+	_ensure_dossier_ui()
 	if abort_button:
 		abort_button.visible = false
 	if title_return_button:
 		title_return_button.visible = false
 	result_panel.visible = true
 	_bind_result_headline("失败 · %s" % BattleLog.reason_zh(fail_reason))
-	_fill_result_stats()
+	if result_stats:
+		result_stats.visible = false
 	_dock_fail_result_panel(fail_reason == "escape")
 	var lines := battle_log.summary_lines(10)
 	var summary := "\n".join(lines)
@@ -5278,42 +5370,51 @@ func _show_fail_result() -> void:
 	var shot := _first_shot_line()
 	var wave := _next_wave_line()
 	var leak_line := _leak_result_line() if fail_reason == "escape" else ""
-	var leak_block := ("%s\n" % leak_line) if leak_line != "" else ""
 	var fix := _fix_one_line()
 	var hook := str(PayoffCopy.highlight_result_line(level, battle_log, false))
-	var extra := ""
-	if fix != "":
-		extra += "%s\n" % fix
-	if hook != "":
-		extra += "%s\n" % hook
 	var chatter := ""
 	if level != null:
 		chatter = str(LevelDef.chatter_for(level.level_id, fail_reason)).strip_edges()
-	if chatter != "":
-		extra += "截获 · %s\n" % chatter
 	var cover_line := _cover_vs_leak_line()
-	if cover_line != "":
-		extra += "%s\n" % cover_line
 	var trap_miss := _second_trap_miss_line()
-	if trap_miss != "":
-		extra += "%s\n" % trap_miss
 	var wall := ""
 	if intel != null and intel.has_method("wall_text"):
 		wall = str(intel.wall_text(4)).strip_edges()
+	var dossier_bits: PackedStringArray = PackedStringArray()
+	dossier_bits.append(intel_line)
+	if epitaph != "":
+		dossier_bits.append(epitaph)
+	if shot != "":
+		dossier_bits.append(shot)
+	if wave != "":
+		dossier_bits.append(wave)
+	if hook != "":
+		dossier_bits.append(hook)
+	if chatter != "":
+		dossier_bits.append("截获 · %s" % chatter)
+	if cover_line != "":
+		dossier_bits.append(cover_line)
+	if trap_miss != "":
+		dossier_bits.append(trap_miss)
 	if wall != "":
-		extra += "%s\n" % wall
-	result_label.text = "第 %d 世失败（%s）。\n%s\n%s\n%s%s%s\n%s\n穿梭后恢复上轮计划，满血满弹。\n%s\n\n—— 事件摘要（点击右侧日志定位）——\n%s" % [
-		loop_index,
-		reason_zh,
-		epitaph,
-		intel_line,
-		leak_block,
-		extra,
-		shot,
-		wave,
-		"逃逸口已在地图上闪烁。" if fail_reason == "escape" else "",
-		summary,
-	]
+		dossier_bits.append(wall)
+	if fail_reason == "escape":
+		dossier_bits.append("逃逸口已在地图上闪烁。")
+	dossier_bits.append("—— 事件摘要（点击右侧日志定位）——")
+	if summary != "":
+		dossier_bits.append(summary)
+	_fail_dossier_text = "\n".join(dossier_bits)
+	var line1 := leak_line if leak_line != "" else "第 %d 世失败（%s）。" % [loop_index, reason_zh]
+	var line2 := fix if fix != "" else intel_line
+	var line3 := "带着情报穿梭回去"
+	result_label.text = "%s\n%s\n%s" % [line1, line2, line3]
+	_dossier_open = false
+	if result_dossier:
+		result_dossier.text = _fail_dossier_text
+		result_dossier.visible = false
+	if dossier_button:
+		dossier_button.visible = true
+		dossier_button.text = "卷宗"
 	_refresh_route_timeline(true)
 	continue_button.text = "带着情报穿梭回去"
 	if replay_button:
@@ -5334,6 +5435,12 @@ func _show_fail_result() -> void:
 func _show_win_result() -> void:
 	if abort_button:
 		abort_button.visible = false
+	_fail_dossier_text = ""
+	_dossier_open = false
+	if dossier_button:
+		dossier_button.visible = false
+	if result_dossier:
+		result_dossier.visible = false
 	_reset_result_panel_pos()
 	result_panel.offset_left = -340.0
 	result_panel.offset_right = 340.0
@@ -5636,6 +5743,8 @@ func _route_zh_short(route: String) -> String:
 			return "侧翼"
 		"sneak":
 			return "暗道"
+		"echo":
+			return "回波"
 		"alt":
 			return "备用"
 		_:
@@ -6246,9 +6355,9 @@ func _dock_fail_result_panel(keep_escape_visible: bool) -> void:
 		result_panel.anchor_right = 0.0
 		result_panel.anchor_bottom = 1.0
 		result_panel.offset_left = 16.0
-		result_panel.offset_right = 420.0
-		result_panel.offset_top = -280.0
-		result_panel.offset_bottom = -100.0
+		result_panel.offset_right = 400.0
+		result_panel.offset_top = -200.0
+		result_panel.offset_bottom = -88.0
 		result_panel.grow_horizontal = Control.GROW_DIRECTION_END
 		result_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	else:
@@ -6257,10 +6366,10 @@ func _dock_fail_result_panel(keep_escape_visible: bool) -> void:
 		result_panel.anchor_top = 1.0
 		result_panel.anchor_right = 1.0
 		result_panel.anchor_bottom = 1.0
-		result_panel.offset_left = -400.0
+		result_panel.offset_left = -380.0
 		result_panel.offset_right = -16.0
-		result_panel.offset_top = -280.0
-		result_panel.offset_bottom = -100.0
+		result_panel.offset_top = -200.0
+		result_panel.offset_bottom = -88.0
 		result_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 		result_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
 
@@ -6285,6 +6394,7 @@ func _update_hud() -> void:
 	if tut_label and level:
 		tut_label.text = level.tutorial if phase == Phase.SETUP else level.teaching
 	_hide_duplicate_tut()
+	_sync_desktop_bars(not _want_touch())
 	if help_label:
 		# One-line in the bottom-left chrome. Hidden while watching so the
 		# letterbox and escape mouth stay clear. Never a paragraph over the map.
@@ -6337,6 +6447,38 @@ func _pending_unspawned() -> int:
 		if spec is Dictionary and not bool(spec.get("spawned", false)):
 			n += 1
 	return n
+
+
+func _tick_pending_wave_tension() -> void:
+	## Body-feel for waves that have not arrived: cue when the next authored spawn is close.
+	if phase != Phase.WATCHING:
+		return
+	var info := _next_wave_info()
+	if not bool(info.get("pending", false)):
+		return
+	var remain := float(info.get("remain", 99.0))
+	var wid := int(info.get("id", -1))
+	if remain > 1.25 or remain <= 0.0:
+		return
+	if wid == _wave_tension_id:
+		return
+	_wave_tension_id = wid
+	_sfx("tension")
+	if watch_wave_chip:
+		watch_wave_chip.modulate = Color(1.35, 1.15, 0.55)
+
+
+func pending_wave_tension_armed() -> bool:
+	return _wave_tension_id >= 1
+
+
+func watch_pending_breathing() -> bool:
+	if watch_timeline != null and is_instance_valid(watch_timeline) and watch_timeline.has_method("pending_breathing"):
+		if bool(watch_timeline.call("pending_breathing")):
+			return true
+	if route_timeline != null and is_instance_valid(route_timeline) and route_timeline.has_method("pending_breathing"):
+		return bool(route_timeline.call("pending_breathing"))
+	return false
 
 
 func _tick_last_enemy_highlight() -> void:
@@ -6411,6 +6553,8 @@ func _refresh_route_legend() -> void:
 		chips.append({"id": "flank", "icon": "侧", "label": _route_chip_label("flank", "侧翼"), "color": Color(0.95, 0.55, 0.16)})
 	if level.route_cells.has("sneak"):
 		chips.append({"id": "sneak", "icon": "暗", "label": _route_chip_label("sneak", "暗道"), "color": Color(0.38, 0.78, 0.52)})
+	if level.route_cells.has("echo"):
+		chips.append({"id": "echo", "icon": "回", "label": _route_chip_label("echo", "回波"), "color": Color(0.42, 0.82, 0.96)})
 	if level.level_id == "pump" and not level.alternate_route_cells.is_empty():
 		chips.append({"id": "alt", "icon": "门", "label": "备用", "color": Color(0.72, 0.55, 0.28)})
 	if level.has_method("second_trap_text") and str(level.second_trap_text()).strip_edges() != "":
@@ -6499,7 +6643,7 @@ func _tick_cover_long_press() -> void:
 		return
 	_touch_preview_slot = _cover_hold_slot
 	if status_label:
-		status_label.text = "保护弧朝%s（长按预览，松手不部署）" % _cover_hold_slot.protect_compass()
+		status_label.text = "掩体保护朝%s（长按预览，松手不部署）" % _cover_hold_slot.protect_compass()
 	_update_cover_previews()
 
 
@@ -6576,9 +6720,9 @@ func _update_role_cards() -> void:
 		if level != null and level.has_method("role_why_for"):
 			why1 = str(level.role_why_for(selected.role))
 		var why_line := ("\n%s" % why1) if why1 != "" else ""
-		plan_readout.text = "掩体「%s」保护弧朝%s（%d°）— 该方向来袭减伤60%%，侧背无减免。黄锥=墙体裁切射界。\n优先目标：距逃逸口剩余路程最短。%s" % [
+		plan_readout.text = "掩体「%s」保护朝%s — 该方向来袭减伤60%%，侧背无减免。射界朝%s（黄锥，墙裁切）。\n优先目标：距逃逸口剩余路程最短。%s" % [
 			selected.slot.label_text,
 			selected.slot.protect_compass(),
-			int(selected.slot.protect_facing_deg),
+			_compass_deg(selected.facing_deg),
 			why_line,
 		]
