@@ -3461,6 +3461,21 @@ func _assert_iteration_slice(main) -> bool:
 		quit(71)
 		return false
 	print("SMOKE_OK_PERFECT")
+	if not main.has_method("_flash_spawn_cell"):
+		push_error("SMOKE_NO_SPAWN_FLASH")
+		quit(71)
+		return false
+	main._flash_spawn_cell(Vector2(100, 100))
+	var saw_flash := false
+	for c in main.entities.get_children():
+		if str(c.name) == "SpawnFlash":
+			saw_flash = true
+			break
+	if not saw_flash:
+		push_error("SMOKE_SPAWN_FLASH_MISSING")
+		quit(71)
+		return false
+	print("SMOKE_OK_WAVE_PUNCH")
 	return true
 
 

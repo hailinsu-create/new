@@ -4342,7 +4342,40 @@ func _spawn_one(spec: Dictionary) -> void:
 			{"enemy_id": e.label_id, "route": route_name, "note": note},
 			e.global_position
 		)
+		if not _is_power_saving():
+			_camera_punch(Vector2(3.6, -2.4))
+			_flash_spawn_cell(e.global_position)
 	_update_event_log()
+
+
+func _flash_spawn_cell(pos: Vector2) -> void:
+	if entities == null or _is_power_saving():
+		return
+	var n := Node2D.new()
+	n.name = "SpawnFlash"
+	n.z_index = 9
+	entities.add_child(n)
+	n.global_position = pos
+	var ring := Line2D.new()
+	ring.width = 2.4
+	ring.closed = true
+	ring.default_color = Color(1.0, 0.78, 0.32, 0.92)
+	var pts := PackedVector2Array()
+	for i in 14:
+		var a := TAU * float(i) / 14.0
+		pts.append(Vector2(cos(a), sin(a)) * 12.0)
+	if pts.size() > 0:
+		pts.append(pts[0])
+	ring.points = pts
+	n.add_child(ring)
+	var tw := n.create_tween()
+	tw.tween_property(n, "scale", Vector2(2.4, 2.4), 0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(n, "modulate:a", 0.0, 0.22)
+	tw.tween_callback(n.queue_free)
+
+
+func spawn_flash_api() -> bool:
+	return has_method("_flash_spawn_cell")
 
 
 func _make_enemy(id: int) -> EnemyRunner:
