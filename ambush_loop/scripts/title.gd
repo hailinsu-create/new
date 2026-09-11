@@ -2,6 +2,8 @@ extends Control
 
 ## Title: brand, mission select, briefing, continue, how-to, quit confirm.
 
+const CampaignJournalScript := preload("res://scripts/ui/campaign_journal.gd")
+
 const HOWTO := """北区补给链第三夜：院子 → 仓道 → 泵站 → 信号楼 → 油库 → 电台。
 布置杀局，警报锁死，只能观看。失败穿梭并带回情报。
 灰狼补主路第一枪，铁砧宽锥耗弹（弹包优先），夜枭长窄锁出口。卡面会写这关必须带谁。
@@ -60,6 +62,10 @@ var _quit: CanvasLayer
 var _pending_id: String = "yard"
 var _ops_stamp: HBoxContainer
 var _modal_tween: Tween = null
+var _journal = null
+var _journal_btn: Button
+var _brief_night: Label
+var _brief_prev: Label
 
 
 func _ready() -> void:
@@ -95,7 +101,9 @@ func _ready() -> void:
 	continue_btn.custom_minimum_size = Vector2(300, 48)
 	help_btn.custom_minimum_size = Vector2(300, 48)
 	quit_btn.custom_minimum_size = Vector2(300, 48)
+	_build_journal()
 	_build_ops_stamp()
+	_refresh_campaign_title()
 
 
 func mission_row_count() -> int:
@@ -126,6 +134,27 @@ func briefing_situation_text() -> String:
 	return str(_brief_sit.text)
 
 
+func briefing_night_text() -> String:
+	if _brief_night == null:
+		return ""
+	return str(_brief_night.text)
+
+
+func journal_visible() -> bool:
+	return _journal != null and _journal.is_open()
+
+
+func journal_body_text() -> String:
+	if _journal == null:
+		return ""
+	return str(_journal.body_text())
+
+
+func open_journal() -> void:
+	if _journal:
+		_journal.present()
+
+
 func mission_row_accent_exists() -> bool:
 	if _mission_accents.is_empty():
 		return false
@@ -144,6 +173,7 @@ func _refresh_continue() -> void:
 	var ok := GameSettings.has_progress()
 	continue_btn.disabled = not ok
 	continue_btn.modulate = Color(0.55, 0.56, 0.52) if not ok else Color.WHITE
+	_refresh_campaign_title()
 
 
 func _play_intro() -> void:
@@ -262,6 +292,8 @@ func _on_back() -> void:
 		_dismiss_modal(_brief)
 	elif _howto != null and _howto.visible:
 		_dismiss_modal(_howto)
+	elif _journal != null and _journal.is_open():
+		_journal.dismiss()
 	elif _mission != null and _mission.visible:
 		_dismiss_modal(_mission)
 	elif pause_ui != null and pause_ui.is_open():
@@ -389,6 +421,15 @@ func _show_briefing(level_id: String) -> void:
 		_brief_codename.text = LevelDef.operation_codename(level_id)
 		_brief_codename.add_theme_color_override("font_color", LevelDef.signature_color(level_id))
 	_brief_title.text = def.title
+	if _brief_night:
+		var idx := LevelDef.night_index(level_id) + 1
+		var n := LevelDef.night_count()
+		_brief_night.text = "第 %d / %d 夜  ·  %s" % [idx, n, LevelDef.mood_tag(level_id)]
+		_brief_night.add_theme_color_override("font_color", LevelDef.signature_color(level_id))
+	if _brief_prev:
+		var prev := LevelDef.previous_campaign_beat(level_id)
+		_brief_prev.visible = prev != ""
+		_brief_prev.text = "上一夜 · %s" % prev if prev != "" else ""
 	if _brief_hook:
 		var hook := str(def.highlight_hook).strip_edges()
 		_brief_hook.visible = hook != ""
@@ -502,6 +543,17 @@ func _build_briefing() -> void:
 	kicker.add_theme_color_override("font_color", NightOps.OLIVE_DIM)
 	kicker.add_theme_font_size_override("font_size", 13)
 	box.add_child(kicker)
+	_brief_night = Label.new()
+	_brief_night.name = "NightIndex"
+	_brief_night.add_theme_font_size_override("font_size", 14)
+	_brief_night.add_theme_color_override("font_color", NightOps.OLIVE_HI)
+	box.add_child(_brief_night)
+	_brief_prev = Label.new()
+	_brief_prev.name = "PreviousBeat"
+	_brief_prev.add_theme_font_size_override("font_size", 13)
+	_brief_prev.add_theme_color_override("font_color", NightOps.MUTED)
+	_brief_prev.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(_brief_prev)
 	_brief_codename = Label.new()
 	_brief_codename.name = "Codename"
 	_brief_codename.add_theme_font_override("font", NightOps.display_font())
@@ -712,6 +764,35 @@ func _build_ops_stamp() -> void:
 	row.add_child(_stamp_chip("StampDate", _ops_stamp_text(), NightOps.MUTED, Vector2(210, 28)))
 	row.add_child(_stamp_chip("NightOpsBadge", "NIGHT OPS / 夜袭", NightOps.OLIVE_HI, Vector2(180, 28)))
 	row.add_child(_stamp_chip("CampaignChip", "第三夜", NightOps.OLIVE_DIM, Vector2(84, 28)))
+
+
+func _build_journal() -> void:
+	_journal = CampaignJournalScript.new()
+	add_child(_journal)
+	var menu := get_node_or_null("UI/Menu") as VBoxContainer
+	if menu == null:
+		return
+	_journal_btn = Button.new()
+	_journal_btn.name = "JournalButton"
+	_journal_btn.text = "战役档案"
+	_journal_btn.custom_minimum_size = Vector2(300, 48)
+	_journal_btn.add_theme_font_size_override("font_size", 16)
+	_journal_btn.pressed.connect(open_journal)
+	menu.add_child(_journal_btn)
+	menu.move_child(_journal_btn, mini(2, menu.get_child_count() - 1))
+	menu.offset_bottom = 300.0
+
+
+func _refresh_campaign_title() -> void:
+	var gs = get_node_or_null("/root/GameSettings")
+	var complete := gs != null and gs.has_method("is_campaign_complete") and bool(gs.is_campaign_complete())
+	if tagline:
+		if complete:
+			tagline.text = "灯塔停转 · 北区补给链已切断 · 档案已归档"
+		else:
+			tagline.text = "北区补给链 · 第三夜 · 锁死计划 · 时间穿梭"
+	if _journal_btn:
+		_journal_btn.text = "战役档案（已切断）" if complete else "战役档案"
 
 
 func _ops_stamp_text() -> String:
