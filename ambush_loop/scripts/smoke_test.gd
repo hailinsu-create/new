@@ -166,6 +166,11 @@ func _run() -> void:
 				quit(61)
 				return
 			print("SMOKE_OK_FIX_ONE")
+			if leak_line_txt.find("截获") < 0 or leak_line_txt.find("北门") < 0:
+				push_error("SMOKE_NO_CHATTER_FAIL %s" % leak_line_txt)
+				quit(61)
+				return
+			print("SMOKE_OK_CHATTER")
 			if main.intel.records.is_empty():
 				push_error("SMOKE_NO_LEAKER_RECORD")
 				quit(56)
@@ -406,6 +411,10 @@ func _run() -> void:
 				return
 			if str(main.result_label.text).find("交叉封锁") < 0:
 				push_error("SMOKE_NO_YARD_HOOK %s" % main.result_label.text)
+				quit(61)
+				return
+			if str(main.result_label.text).find("仓道") < 0:
+				push_error("SMOKE_NO_YARD_BEAT %s" % main.result_label.text)
 				quit(61)
 				return
 			print("SMOKE_OK_PRESENTATION stats=", main.result_stats_block_text().replace("\n", " | "))
@@ -2976,6 +2985,18 @@ func _assert_payoff_copy(main) -> bool:
 			push_error("SMOKE_NO_MUST_BRING %s" % lid)
 			quit(61)
 			return false
+		if str(def.situation).strip_edges() == "":
+			push_error("SMOKE_NO_SITUATION %s" % lid)
+			quit(61)
+			return false
+		if def.intel_chatter.is_empty():
+			push_error("SMOKE_NO_CHATTER %s" % lid)
+			quit(61)
+			return false
+		if str(def.campaign_beat).strip_edges() == "":
+			push_error("SMOKE_NO_CAMPAIGN_BEAT %s" % lid)
+			quit(61)
+			return false
 		if str(def.fix_one).find("改一处") < 0:
 			push_error("SMOKE_NO_FIX_ONE_COPY %s" % lid)
 			quit(61)
@@ -3175,6 +3196,11 @@ func _assert_launch_bar() -> bool:
 		return false
 	if not inst.has_method("briefing_codename_text") or str(inst.briefing_codename_text()).find("行动") < 0:
 		push_error("SMOKE_NO_CODENAME %s" % (inst.briefing_codename_text() if inst.has_method("briefing_codename_text") else "no_api"))
+		inst.free()
+		quit(54)
+		return false
+	if not inst.has_method("briefing_situation_text") or str(inst.briefing_situation_text()).find("北门") < 0:
+		push_error("SMOKE_NO_SITUATION_BRIEF %s" % (inst.briefing_situation_text() if inst.has_method("briefing_situation_text") else "no_api"))
 		inst.free()
 		quit(54)
 		return false

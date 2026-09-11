@@ -47,6 +47,7 @@ var _brief_teach: VBoxContainer
 var _brief_chips: HBoxContainer
 var _brief_hook: Label
 var _brief_must: Label
+var _brief_sit: Label
 var _brief_go: Button
 var _howto: CanvasLayer
 var _mission: CanvasLayer
@@ -116,6 +117,12 @@ func briefing_codename_text() -> String:
 	if _brief_codename == null:
 		return ""
 	return str(_brief_codename.text)
+
+
+func briefing_situation_text() -> String:
+	if _brief_sit == null:
+		return ""
+	return str(_brief_sit.text)
 
 
 func mission_row_accent_exists() -> bool:
@@ -386,6 +393,10 @@ func _show_briefing(level_id: String) -> void:
 		var must := str(def.must_bring).strip_edges()
 		_brief_must.visible = must != ""
 		_brief_must.text = "必须带 · %s" % must if must != "" else ""
+	if _brief_sit:
+		var sit := str(def.situation).strip_edges()
+		_brief_sit.visible = sit != ""
+		_brief_sit.text = sit
 	_fill_teach_bullets(def.teaching)
 	_brief_body.text = def.tutorial
 	_fill_route_chips(def)
@@ -478,11 +489,11 @@ func _dismiss_modal(layer: CanvasLayer) -> void:
 
 
 func _build_briefing() -> void:
-	var ui := _modal_panel(20, 720.0, 580.0)
+	var ui := _modal_panel(20, 720.0, 620.0)
 	_brief = ui["root"]
 	var box: VBoxContainer = ui["box"]
 	var kicker := Label.new()
-	kicker.text = "任务档案"
+	kicker.text = "%s  ·  任务档案" % LevelDef.campaign_frame()
 	kicker.add_theme_color_override("font_color", NightOps.OLIVE_DIM)
 	kicker.add_theme_font_size_override("font_size", 13)
 	box.add_child(kicker)
@@ -511,6 +522,13 @@ func _build_briefing() -> void:
 	_brief_must.add_theme_color_override("font_color", NightOps.TEXT)
 	_brief_must.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(_brief_must)
+	_brief_sit = Label.new()
+	_brief_sit.name = "Situation"
+	_brief_sit.add_theme_font_size_override("font_size", 14)
+	_brief_sit.add_theme_color_override("font_color", NightOps.TEXT)
+	_brief_sit.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_brief_sit.custom_minimum_size = Vector2(640, 0)
+	box.add_child(_brief_sit)
 	_brief_teach = VBoxContainer.new()
 	_brief_teach.name = "TeachBullets"
 	_brief_teach.add_theme_constant_override("separation", 4)
@@ -577,6 +595,13 @@ func _build_mission_select() -> void:
 	t.add_theme_font_size_override("font_size", 22)
 	t.add_theme_color_override("font_color", NightOps.OLIVE_HI)
 	_mission_box.add_child(t)
+	var frame := Label.new()
+	frame.name = "CampaignFrame"
+	frame.text = "%s\n%s" % [LevelDef.campaign_frame(), LevelDef.campaign_kicker()]
+	frame.add_theme_color_override("font_color", NightOps.OLIVE_DIM)
+	frame.add_theme_font_size_override("font_size", 13)
+	frame.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_mission_box.add_child(frame)
 	var hint := Label.new()
 	hint.text = "按顺序解锁。已封锁的关卡可再打一次。"
 	hint.add_theme_color_override("font_color", NightOps.OLIVE_DIM)
@@ -681,7 +706,7 @@ func _build_ops_stamp() -> void:
 	_ops_stamp = row
 	row.add_child(_stamp_chip("StampDate", _ops_stamp_text(), NightOps.MUTED, Vector2(210, 28)))
 	row.add_child(_stamp_chip("NightOpsBadge", "NIGHT OPS / 夜袭", NightOps.OLIVE_HI, Vector2(180, 28)))
-	row.add_child(_stamp_chip("VersionChip", "5.0", NightOps.OLIVE_DIM, Vector2(64, 28)))
+	row.add_child(_stamp_chip("CampaignChip", "第三夜", NightOps.OLIVE_DIM, Vector2(84, 28)))
 
 
 func _ops_stamp_text() -> String:

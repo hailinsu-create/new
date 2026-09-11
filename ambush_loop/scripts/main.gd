@@ -4749,6 +4749,11 @@ func _show_fail_result() -> void:
 		extra += "%s\n" % fix
 	if hook != "":
 		extra += "%s\n" % hook
+	var chatter := ""
+	if level != null:
+		chatter = str(LevelDef.chatter_for(level.level_id, fail_reason)).strip_edges()
+	if chatter != "":
+		extra += "截获 · %s\n" % chatter
 	result_label.text = "第 %d 世失败（%s）。\n%s\n%s\n%s%s%s\n%s\n穿梭后恢复上轮计划，满血满弹。\n%s\n\n—— 事件摘要（点击右侧日志定位）——\n%s" % [
 		loop_index,
 		reason_zh,
@@ -4800,8 +4805,12 @@ func _show_win_result() -> void:
 			star = "\n★ 完美院子：零逃逸"
 		var hook := str(PayoffCopy.highlight_result_line(level, battle_log, true))
 		var hook_block := ("\n%s" % hook) if hook != "" else ""
-		result_label.text = "任务完成。\n%s\n本关用了 %d 世。\n%s\n%s%s%s\n\n—— 关键事件 ——\n%s" % [
-			unlock, loop_index, epitaph, shot, hook_block, star, "\n".join(lines)
+		var beat := ""
+		if level != null:
+			beat = str(level.campaign_beat).strip_edges()
+		var beat_block := ("\n%s" % beat) if beat != "" else ""
+		result_label.text = "任务完成。\n%s\n本关用了 %d 世。\n%s\n%s%s%s%s\n\n—— 关键事件 ——\n%s" % [
+			unlock, loop_index, epitaph, shot, hook_block, beat_block, star, "\n".join(lines)
 		]
 		continue_button.text = "下一关"
 	else:
@@ -4812,8 +4821,12 @@ func _show_win_result() -> void:
 			last_star = "\n★ 完美院子：零逃逸"
 		var last_hook := str(PayoffCopy.highlight_result_line(level, battle_log, true))
 		var last_hook_block := ("\n%s" % last_hook) if last_hook != "" else ""
-		result_label.text = "全部关卡封锁完成。\n本关用了 %d 世。\n%s\n%s%s%s\n\n—— 关键事件 ——\n%s" % [
-			loop_index, epitaph, shot, last_hook_block, last_star, "\n".join(lines)
+		var last_beat := ""
+		if level != null:
+			last_beat = str(level.campaign_beat).strip_edges()
+		var last_beat_block := ("\n%s" % last_beat) if last_beat != "" else ""
+		result_label.text = "全部关卡封锁完成。\n本关用了 %d 世。\n%s\n%s%s%s%s\n\n—— 关键事件 ——\n%s" % [
+			loop_index, epitaph, shot, last_hook_block, last_beat_block, last_star, "\n".join(lines)
 		]
 		continue_button.text = "查看致谢"
 		_campaign_complete = true

@@ -35,6 +35,35 @@ var must_bring: String = ""
 var role_why: Dictionary = {} # rifle / mg / scout -> 本关短评
 ## Fail-loop "change one thing" sentence. Presentation only.
 var fix_one: String = ""
+## World paragraph for the briefing dossier. Copy only — not a mechanic.
+var situation: String = ""
+## Recovered radio chatter shown after a fail. Copy only.
+var intel_chatter: Array = []
+## Win debrief campaign beat. Copy only.
+var campaign_beat: String = ""
+
+
+static func campaign_frame() -> String:
+	return "北区补给链 · 第三夜"
+
+
+static func campaign_kicker() -> String:
+	return "天亮前切断夜班巡线。警报锁死计划，失败穿梭带回情报。"
+
+
+static func chatter_for(id: String, reason: String = "") -> String:
+	var def: LevelDef = by_id(id)
+	if def.intel_chatter.is_empty():
+		return ""
+	var idx := 0
+	match str(reason):
+		"wipe":
+			idx = mini(1, def.intel_chatter.size() - 1)
+		"abort":
+			idx = mini(2, def.intel_chatter.size() - 1)
+		_:
+			idx = 0
+	return str(def.intel_chatter[idx]).strip_edges()
 
 
 static func catalog() -> Array:
@@ -187,6 +216,13 @@ static func make_yard() -> LevelDef:
 	}
 	l.fix_one = "改一处就能赢：把铁砧转到东箱扫橙线侧翼，灰狼继续锁主路。"
 	l.spawn_teaching = ["陷阱路线：橙线侧翼从东廊随后到 — 只锁红线主路会漏。必须带铁砧扫东箱。"]
+	l.situation = "北门院子是补给链最外一圈。夜巡小队要从北门进南闸汇合，再转入仓区。切断这一班，内院才不会提前亮灯。"
+	l.intel_chatter = [
+		"北门呼叫：南闸还亮着。侧翼已从东廊出去。",
+		"院子对讲：有人还在打。巡卫没回来。",
+		"北门：行动中止。夜班改走备用时间。",
+	]
+	l.campaign_beat = "院子已静。仓道的夜班还不知道外圈断了。"
 	return l
 
 
@@ -239,6 +275,13 @@ static func make_warehouse() -> LevelDef:
 	}
 	l.fix_one = "改一处就能赢：F 入伏再打，G 把弹包给铁砧，别在仓口见敌就打。"
 	l.spawn_teaching = ["陷阱路线：过早开火打空弹药，橙线侧翼从东廊漏出。弹包给铁砧。"]
+	l.situation = "仓道是夜班搬运队的弹药窗。货架挡住对射，东廊还堆着他们自己的油桶。过早开火会把弹打空，侧翼就从爆心外漏。"
+	l.intel_chatter = [
+		"仓班：有人提前开枪。东廊油桶还在，侧翼已绕出。",
+		"装卸口：搬运队还在还击。弹窗已经乱了。",
+		"仓班：中止。油桶留给下一班。",
+	]
+	l.campaign_beat = "仓道熄灯。泵站的阀还在转，水还在往油库压。"
 	return l
 
 
@@ -295,6 +338,13 @@ static func make_pump() -> LevelDef:
 	}
 	l.fix_one = "改一处就能赢：锁门后把青弧转向西侧紫备用接近，夜枭锁出水口。"
 	l.spawn_teaching = ["陷阱路线：锁门后橙线在决策格改走西侧紫备用接近。夜枭锁出水口。"]
+	l.situation = "泵站给油库压水。夜班要过东廊阀门；锁门不是把他们关没，是逼他们在决策格改走西侧备用管廊。"
+	l.intel_chatter = [
+		"阀廊：东门关上了。改走西管。出水口还没人守。",
+		"泵房：有交火。备用接近还通。",
+		"泵站：中止。阀门保持夜班状态。",
+	]
+	l.campaign_beat = "泵停了。信号楼还在调度西廊和东廊的巡轨。"
 	return l
 
 
@@ -346,6 +396,13 @@ static func make_railcut() -> LevelDef:
 	}
 	l.fix_one = "改一处就能赢：铁砧朝北等 3.8 秒东廊，别把弹药堆在南闸。"
 	l.spawn_teaching = ["东廊奔袭晚 3.8 秒才折下 — 南闸堆人会先被西廊打空弹药。铁砧朝北等。"]
+	l.situation = "信号楼把西廊巡轨和东廊检修错开。东廊那班晚 3.8 秒才折下来——他们以为灯塔还亮着，南闸可以一起汇合。"
+	l.intel_chatter = [
+		"信号楼：西廊先到，东廊还在北过道。南闸弹药已经空了。",
+		"巡轨：塔下有交火。东廊仍按 3.8 走。",
+		"信号楼：中止。时刻表不改。",
+	]
+	l.campaign_beat = "双廊切断。油库的三路夜班还按旧表走。"
 	return l
 
 
@@ -400,4 +457,11 @@ static func make_depot() -> LevelDef:
 	}
 	l.fix_one = "改一处就能赢：Tab 绊索铺在西暗道（7,11），等 2.2 秒影探自己踩上。"
 	l.spawn_teaching = ["西暗道影探晚 2.2 秒 — 先到的主路/东廊会打空南闸，绊索封暗道。"]
+	l.situation = "油库是这条链的心脏。巡卫走主路，奔袭走东廊，影探晚 2.2 秒钻西夹缝。中间油罐挡住对射，三人锁不住三条——绊索才是第四人。"
+	l.intel_chatter = [
+		"油库：西暗道没人守。影探已从夹缝南下。",
+		"罐区：南闸还在打。西墙有人。",
+		"油库：中止。油罐灯还亮。",
+	]
+	l.campaign_beat = "油库熄火。电台还能把下一班叫回来——灯塔还在扫。"
 	return l
