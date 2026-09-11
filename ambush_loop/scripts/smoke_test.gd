@@ -143,16 +143,26 @@ func _run() -> void:
 				quit(39)
 				return
 			print("SMOKE_OK_ESCAPE_PANEL_CLEAR")
-			if str(main.result_label.text).find("情报已记录") < 0:
-				push_error("SMOKE_NO_INTEL_RECORDED %s" % main.result_label.text)
+			var leak_line_txt := _fail_txt(main)
+			var card_txt := str(main.result_label.text)
+			if card_txt.find("漏网：") < 0 or card_txt.find("改一处") < 0 or card_txt.find("带着情报穿梭回去") < 0:
+				push_error("SMOKE_FAIL_CARD_NOT_THREE %s" % card_txt)
+				quit(4)
+				return
+			if card_txt.find("情报墙") >= 0 or card_txt.find("事件摘要") >= 0:
+				push_error("SMOKE_FAIL_CARD_STILL_DOSSIER %s" % card_txt)
+				quit(4)
+				return
+			print("SMOKE_OK_FAIL_CARD")
+			if leak_line_txt.find("情报已记录") < 0:
+				push_error("SMOKE_NO_INTEL_RECORDED %s" % leak_line_txt)
 				quit(4)
 				return
 			print("SMOKE_OK_INTEL_RECORDED")
-			if str(main.result_label.text).find("下一波") < 0:
-				push_error("SMOKE_NO_NEXT_WAVE %s" % main.result_label.text)
+			if leak_line_txt.find("下一波") < 0:
+				push_error("SMOKE_NO_NEXT_WAVE %s" % leak_line_txt)
 				quit(52)
 				return
-			var leak_line_txt := str(main.result_label.text)
 			if (
 				leak_line_txt.find("漏网：") < 0
 				or leak_line_txt.find("侧翼") < 0
@@ -502,7 +512,7 @@ func _run() -> void:
 				push_error("SMOKE_WAREHOUSE_DUMP_ROUTE %s" % dump_route)
 				quit(12)
 				return
-			var dump_txt := str(main.result_label.text)
+			var dump_txt := _fail_txt(main)
 			if dump_txt.find("改一处") < 0 or (dump_txt.find("东廊") < 0 and dump_txt.find("侧翼") < 0):
 				push_error("SMOKE_WAREHOUSE_DUMP_COPY %s" % dump_txt)
 				quit(12)
@@ -675,7 +685,7 @@ func _run() -> void:
 				quit(17)
 				return
 			var pump_route := str(main.intel.latest_route()) if main.intel else ""
-			var pump_fail_txt := str(main.result_label.text)
+			var pump_fail_txt := _fail_txt(main)
 			if pump_route != "alt" and pump_fail_txt.find("紫") < 0 and pump_fail_txt.find("备用") < 0:
 				push_error("SMOKE_PUMP_OLD_FACE_NOT_PURPLE route=%s txt=%s" % [pump_route, pump_fail_txt])
 				quit(17)
@@ -776,7 +786,7 @@ func _run() -> void:
 				push_error("SMOKE_RAILCUT_STACK_NOT_EAST route=%s leaker=%s" % [rc_route, rc_leaker])
 				quit(45)
 				return
-			var rc_fail_txt := str(main.result_label.text)
+			var rc_fail_txt := _fail_txt(main)
 			if rc_fail_txt.find("东廊") < 0 or rc_fail_txt.find("3.8") < 0:
 				push_error("SMOKE_RAILCUT_STACK_COPY %s" % rc_fail_txt)
 				quit(45)
@@ -860,7 +870,7 @@ func _run() -> void:
 				push_error("SMOKE_DEPOT_NOTRIP_NOT_SNEAK route=%s leaker=%s" % [dp_route, dp_leaker])
 				quit(48)
 				return
-			var dp_fail_txt := str(main.result_label.text)
+			var dp_fail_txt := _fail_txt(main)
 			if dp_fail_txt.find("暗道") < 0 or dp_fail_txt.find("2.2") < 0:
 				push_error("SMOKE_DEPOT_NOTRIP_COPY %s" % dp_fail_txt)
 				quit(48)
@@ -942,8 +952,8 @@ func _run() -> void:
 				return
 			if not _assert_radio_contract(main):
 				return
-			# No-trip probe: same guns, no 绊索. Sneak 敌3 at 3.6s must leak.
-			_deploy_ref(main, [1, 4, 5], [270.0, 270.0, 180.0])
+			# No-trip probe: 灯塔脊/碟台/东廊, no 绊索. Sneak 敌3 at 3.6s must leak.
+			_deploy_ref(main, [1, 4, 5], [270.0, 90.0, 270.0])
 			main.sim.set_speed(2.0)
 			main._on_alarm_pressed()
 			main.sim.set_speed(2.0)
@@ -966,9 +976,13 @@ func _run() -> void:
 				push_error("SMOKE_RADIO_NOTRIP_NOT_SNEAK route=%s leaker=%s" % [rd_route, rd_leaker])
 				quit(62)
 				return
-			var rd_fail_txt := str(main.result_label.text)
+			var rd_fail_txt := _fail_txt(main)
 			if rd_fail_txt.find("暗道") < 0 or rd_fail_txt.find("3.6") < 0:
 				push_error("SMOKE_RADIO_NOTRIP_COPY %s" % rd_fail_txt)
+				quit(62)
+				return
+			if rd_fail_txt.find("没打中第二层") < 0 or rd_fail_txt.find("暗道") < 0:
+				push_error("SMOKE_RADIO_TRAP_MISS_NOT_SNEAK %s" % rd_fail_txt)
 				quit(62)
 				return
 			print(
@@ -981,9 +995,9 @@ func _run() -> void:
 			await process_frame
 			main._on_clear_pressed()
 			await process_frame
-			# Rifle 主路脊 slot1 face 270, MG 东廊 slot4 face 270, scout 南闸 slot5 face 180.
+			# Rifle 灯塔脊 slot1 face 270, MG 碟台 slot4 face 90, scout 东廊 slot5 face 270.
 			# Tripwire on the west alley (7,11) so the delayed sneak does not leak.
-			_deploy_ref(main, [1, 4, 5], [270.0, 270.0, 180.0])
+			_deploy_ref(main, [1, 4, 5], [270.0, 90.0, 270.0])
 			main._try_place_tripwire(main.grid.cell_to_world_center(Vector2i(7, 11)))
 			if main.tripwires.size() != 1:
 				push_error("SMOKE_RADIO_TRIP n=%s" % main.tripwires.size())
@@ -1024,6 +1038,7 @@ func _run() -> void:
 				quit(62)
 				return
 			print("SMOKE_OK_CREDITS_RADIO")
+			print("SMOKE_OK_TYPICAL_LOOPS yard,warehouse,pump,railcut,depot,radio")
 			print("SMOKE_SLICE_COMPLETE")
 			quit(0)
 			return
@@ -1059,6 +1074,14 @@ func _drive_ticks(main, n: int) -> void:
 	while main.sim.tick < start + n and guard < 180:
 		await process_frame
 		guard += 1
+
+
+func _fail_txt(main) -> String:
+	if main.has_method("fail_result_search_text"):
+		return str(main.fail_result_search_text())
+	var card := str(main.result_label.text) if main.result_label else ""
+	var dos := str(main.fail_dossier_text()) if main.has_method("fail_dossier_text") else ""
+	return "%s\n%s" % [card, dos]
 
 
 func _collect_label_text(n: Node) -> String:
@@ -1097,7 +1120,7 @@ func _assert_fail_paths(main) -> bool:
 		push_error("SMOKE_ABORT_NO_INTEL")
 		quit(60)
 		return false
-	var abort_txt := str(main.result_label.text)
+	var abort_txt := _fail_txt(main)
 	if abort_txt.find("情报已记录") < 0:
 		push_error("SMOKE_ABORT_NO_INTEL_LINE %s" % abort_txt)
 		quit(60)
@@ -1141,7 +1164,7 @@ func _assert_fail_paths(main) -> bool:
 		push_error("SMOKE_WIPE_REASON phase=%s reason=%s living=%s" % [main.phase, main.fail_reason, main._living_ops()])
 		quit(60)
 		return false
-	var wipe_txt := str(main.result_label.text)
+	var wipe_txt := _fail_txt(main)
 	if wipe_txt.find("全灭") < 0:
 		push_error("SMOKE_WIPE_NO_ZH %s" % wipe_txt)
 		quit(60)
@@ -1499,11 +1522,11 @@ func _assert_radio_contract(main) -> bool:
 		push_error("SMOKE_RADIO_BARREL")
 		quit(62)
 		return false
-	if not main.level.route_cells.has("main") or not main.level.route_cells.has("flank") or not main.level.route_cells.has("sneak"):
+	if not main.level.route_cells.has("main") or not main.level.route_cells.has("flank") or not main.level.route_cells.has("sneak") or not main.level.route_cells.has("echo"):
 		push_error("SMOKE_RADIO_ROUTES")
 		quit(62)
 		return false
-	if main._active_routes().size() != 3:
+	if main._active_routes().size() != 4:
 		push_error("SMOKE_RADIO_ACTIVE_ROUTES n=%s" % main._active_routes().size())
 		quit(62)
 		return false
@@ -1543,7 +1566,7 @@ func _assert_radio_contract(main) -> bool:
 		push_error("SMOKE_RADIO_DISH_PAD_OPEN")
 		quit(62)
 		return false
-	if main.grid.is_blocked(7, 11) or main.grid.is_blocked(13, 12) or main.grid.is_blocked(32, 11):
+	if main.grid.is_blocked(7, 11) or main.grid.is_blocked(13, 12) or main.grid.is_blocked(32, 11) or main.grid.is_blocked(24, 12):
 		push_error("SMOKE_RADIO_LANE_BLOCKED")
 		quit(62)
 		return false
@@ -1553,6 +1576,7 @@ func _assert_radio_contract(main) -> bool:
 	var sneak_n := 0
 	var main_n := 0
 	var flank_n := 0
+	var echo_n := 0
 	for spec in main.level.spawn_schedule:
 		var delay := float(spec["delay"])
 		if str(spec["route"]) == "main":
@@ -1560,12 +1584,14 @@ func _assert_radio_contract(main) -> bool:
 			max_main = maxf(max_main, delay)
 		elif str(spec["route"]) == "flank":
 			flank_n += 1
-			min_echo = minf(min_echo, delay) if delay >= 4.0 else min_echo
 		elif str(spec["route"]) == "sneak":
 			sneak_n += 1
 			min_sneak = minf(min_sneak, delay)
-	if main_n < 1 or flank_n < 2 or sneak_n < 1:
-		push_error("SMOKE_RADIO_SPAWN_SPLIT main=%s flank=%s sneak=%s" % [main_n, flank_n, sneak_n])
+		elif str(spec["route"]) == "echo":
+			echo_n += 1
+			min_echo = minf(min_echo, delay)
+	if main_n < 1 or flank_n < 1 or sneak_n < 1 or echo_n < 1:
+		push_error("SMOKE_RADIO_SPAWN_SPLIT main=%s flank=%s sneak=%s echo=%s" % [main_n, flank_n, sneak_n, echo_n])
 		quit(62)
 		return false
 	if min_sneak < 3.0 or min_sneak <= max_main + 1.5:
@@ -1585,18 +1611,22 @@ func _assert_radio_contract(main) -> bool:
 		push_error("SMOKE_RADIO_NO_ECHO_KIT %s" % (main.level.kit_for_actor(5) if main.level.has_method("kit_for_actor") else "no_api"))
 		quit(62)
 		return false
-	if main.second_callout == null or not is_instance_valid(main.second_callout):
-		push_error("SMOKE_RADIO_NO_SECOND_CALLOUT")
+	if str(main.level.second_trap_route()) != "sneak":
+		push_error("SMOKE_RADIO_TRAP_NOT_SNEAK %s" % main.level.second_trap_route())
 		quit(62)
 		return false
-	var echo_tag = main.second_callout.get_node_or_null("Tag")
+	if not main.has_method("echo_callout_visible") or not bool(main.echo_callout_visible()):
+		push_error("SMOKE_RADIO_NO_ECHO_CALLOUT")
+		quit(62)
+		return false
+	var echo_tag = main.echo_callout.get_node_or_null("Tag") if main.echo_callout else null
 	if echo_tag == null or str(echo_tag.text).find("回波") < 0:
 		push_error("SMOKE_RADIO_ECHO_CALLOUT %s" % (echo_tag.text if echo_tag else "null"))
 		quit(62)
 		return false
 	print(
-		"SMOKE_OK_RADIO_CONTRACT covers=6 routes=3 sneak=", min_sneak,
-		" echo=", echo_d, " dish_pad kit=echo"
+		"SMOKE_OK_RADIO_CONTRACT covers=6 routes=4 sneak=", min_sneak,
+		" echo=", echo_d, " dish_pad kit=echo hall"
 	)
 	return true
 
@@ -2319,6 +2349,11 @@ func _assert_touch_parity(main) -> bool:
 		push_error("SMOKE_LONGPRESS_DEPLOYED n=%s" % main._deployed_count())
 		quit(44)
 		return false
+	if main.has_method("desktop_command_bars_visible") and bool(main.desktop_command_bars_visible()):
+		push_error("SMOKE_TOUCH_DESKTOP_BARS")
+		quit(44)
+		return false
+	print("SMOKE_OK_TOUCH_NO_DESKTOP_BARS")
 	gs.force_touch_hud = false
 	main._ensure_touch_hud()
 	print("SMOKE_OK_TOUCH_PARITY")
@@ -3037,7 +3072,7 @@ func _assert_teaching(main) -> bool:
 		quit(52)
 		return false
 	var zone_tag = main.ambush_zone_poly.get_node_or_null("Tag")
-	if zone_tag == null or str(zone_tag.text).find("侧翼") < 0:
+	if zone_tag == null or str(zone_tag.text).find("伏击") < 0:
 		push_error("SMOKE_ZONE_TAG %s" % (zone_tag.text if zone_tag else "null"))
 		quit(52)
 		return false
@@ -3061,8 +3096,8 @@ func _assert_teaching(main) -> bool:
 		push_error("SMOKE_YARD_SECOND_TRAP %s" % (yard.second_trap_text() if yard.has_method("second_trap_text") else "no_api"))
 		quit(52)
 		return false
-	if main.second_callout == null or not is_instance_valid(main.second_callout):
-		push_error("SMOKE_NO_SECOND_CALLOUT")
+	if main.second_callout != null and is_instance_valid(main.second_callout) and main.second_callout.visible:
+		push_error("SMOKE_DUP_SECOND_CALLOUT")
 		quit(52)
 		return false
 	if not main.has_method("trap_path_visible") or not bool(main.trap_path_visible()):
@@ -3088,23 +3123,37 @@ func _assert_teaching(main) -> bool:
 		push_error("SMOKE_DEPOT_TRAP_ROUTE %s" % LevelDef.by_id("depot").second_trap_route())
 		quit(52)
 		return false
+	if str(LevelDef.by_id("radio").second_trap_route()) != "sneak":
+		push_error("SMOKE_RADIO_TRAP_ROUTE %s" % LevelDef.by_id("radio").second_trap_route())
+		quit(52)
+		return false
 	if str(LevelDef.campaign_recap_body()).find("电台") < 0 or str(LevelDef.campaign_chain_names()).find("油库") < 0:
 		push_error("SMOKE_NO_CAMPAIGN_RECAP")
 		quit(52)
 		return false
-	if main.trap_callout == null or not main.trap_callout.visible:
-		push_error("SMOKE_NO_TRAP_CALLOUT")
-		quit(52)
-		return false
-	var call_tag = main.trap_callout.get_node_or_null("Tag")
-	if call_tag == null or str(call_tag.text).find("侧翼") < 0:
-		push_error("SMOKE_TRAP_CALLOUT_TEXT %s" % (call_tag.text if call_tag else "null"))
+	if main.trap_callout != null and is_instance_valid(main.trap_callout) and main.trap_callout.visible:
+		push_error("SMOKE_DUP_TRAP_CALLOUT")
 		quit(52)
 		return false
 	if main.spawn_teach_label == null or not main.spawn_teach_label.visible:
 		push_error("SMOKE_NO_SPAWN_TEACH_HUD")
 		quit(52)
 		return false
+	if str(main.spawn_teach_label.text).find("侧翼") < 0:
+		push_error("SMOKE_SPAWN_TEACH_NOT_BEAT %s" % main.spawn_teach_label.text)
+		quit(52)
+		return false
+	if str(main.spawn_teach_label.text).find("第二层") >= 0:
+		push_error("SMOKE_SPAWN_TEACH_STILL_DOUBLE %s" % main.spawn_teach_label.text)
+		quit(52)
+		return false
+	if main.has_method("setup_teaching_layers"):
+		var layers: Dictionary = main.setup_teaching_layers()
+		if bool(layers.get("tut", false)) or bool(layers.get("beat", false)) or bool(layers.get("second", false)):
+			push_error("SMOKE_DUP_TEACH_LAYERS %s" % str(layers))
+			quit(52)
+			return false
+	print("SMOKE_OK_TEACHING_SINGLE")
 	if not main.has_method("_intel_flash_color"):
 		push_error("SMOKE_NO_INTEL_COLOR")
 		quit(52)
@@ -3157,12 +3206,17 @@ func _assert_teaching(main) -> bool:
 		return false
 	if not _assert_night_handoff(main):
 		return false
-	print("SMOKE_OK_TEACHING beats=6 timeline=1 callout=1 spawn_teach=1 overlay=1")
+	print("SMOKE_OK_TEACHING beats=6 timeline=1 path=1 spawn_teach=1 overlay=1")
 	return true
 
 
 func _assert_iteration_slice(main) -> bool:
 	## Fast gates for this iteration's player-facing increments.
+	if not main.has_method("watch_pending_breathing") or not bool(main.watch_pending_breathing()):
+		push_error("SMOKE_NO_PENDING_BREATH")
+		quit(71)
+		return false
+	print("SMOKE_OK_PENDING_BREATH")
 	if not ResourceLoader.exists("res://scripts/fx/spawn_ghost.gd"):
 		push_error("SMOKE_NO_SPAWN_GHOST_SCRIPT")
 		quit(71)
@@ -3446,8 +3500,25 @@ func _assert_iteration_slice(main) -> bool:
 		push_error("SMOKE_NO_COMPASS_NODE")
 		quit(71)
 		return false
+	var rose_cap = main.operators[0].get_node_or_null("CompassRose/FacingCap")
+	if rose_cap == null or str(rose_cap.text).find("射界") < 0:
+		push_error("SMOKE_COMPASS_NO_FACING_CAP")
+		quit(71)
+		return false
+	var face_chip = main.operators[0].get_node_or_null("FaceChip") as Label
+	var face_txt := str(face_chip.text) if face_chip else ""
+	var plan_txt := str(main.plan_readout.text) if main.plan_readout else ""
+	if face_txt.find("射界") < 0:
+		push_error("SMOKE_FACE_CHIP %s" % face_txt)
+		quit(71)
+		return false
+	if plan_txt.find("射界朝") < 0 or plan_txt.find("保护朝") < 0:
+		push_error("SMOKE_FACING_COPY %s" % plan_txt)
+		quit(71)
+		return false
 	main._on_clear_pressed()
 	print("SMOKE_OK_COMPASS")
+	print("SMOKE_OK_FACING_WORDS")
 	gs_stats.record_clear_stats("warehouse", 1, true)
 	if not bool(gs_stats.is_perfect("warehouse")):
 		push_error("SMOKE_NO_PERFECT_FLAG")
@@ -3727,11 +3798,17 @@ func _assert_desktop_hud_chrome(main) -> bool:
 			quit(70)
 			return false
 	if main.checklist_strip != null and main.role_box != null:
-		if float(main.checklist_strip.offset_top) + 8.0 < float(main.role_box.offset_bottom):
+		var strip_rect: Rect2 = main.checklist_strip.get_global_rect()
+		var dock_rect: Rect2 = main.role_box.get_global_rect()
+		if strip_rect.intersects(dock_rect):
 			push_error(
-				"SMOKE_CHECKLIST_OVER_CARDS top=%s dock=%s"
-				% [main.checklist_strip.offset_top, main.role_box.offset_bottom]
+				"SMOKE_CHECKLIST_OVER_CARDS strip=%s dock=%s"
+				% [strip_rect, dock_rect]
 			)
+			quit(70)
+			return false
+		if float(main.checklist_strip.anchor_left) < 0.99:
+			push_error("SMOKE_CHECKLIST_NOT_TIMELINE_SIDE anchor_left=%s" % main.checklist_strip.anchor_left)
 			quit(70)
 			return false
 	print("SMOKE_OK_HUD_CHROME cards=", card.custom_minimum_size.y, " dock=", main.role_box.offset_bottom if main.role_box else -1)
@@ -3817,12 +3894,10 @@ func _assert_payoff_copy(main) -> bool:
 		push_error("SMOKE_YARD_HOOK_LIVE %s" % (main.level.highlight_hook if main.level else "null"))
 		quit(61)
 		return false
-	if main.trap_callout:
-		var tag = main.trap_callout.get_node_or_null("Tag")
-		if tag and str(tag.text).find("交叉封锁") < 0:
-			push_error("SMOKE_YARD_CALLOUT_HOOK %s" % tag.text)
-			quit(61)
-			return false
+	if main.spawn_teach_label == null or str(main.spawn_teach_label.text).find("交叉封锁") < 0:
+		push_error("SMOKE_YARD_BEAT_HUD %s" % (main.spawn_teach_label.text if main.spawn_teach_label else "null"))
+		quit(61)
+		return false
 	print("SMOKE_OK_PAYOFF_COPY hooks=6 roles=3 first_shot=1")
 	return true
 

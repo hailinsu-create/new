@@ -25,7 +25,7 @@ godot --headless --path ambush_loop -s res://scripts/smoke_test.gd
 
 The editor **Main Scene** is `scenes/title.tscn`. Smoke bypasses the title and loads `scenes/main.tscn` directly; it must print `SMOKE_SLICE_COMPLETE` and exit 0.
 
-Reference wins: yard slots 1,2,5 facings 90/180/180; warehouse 1,3,5; pump 1,4,5 (open and locked door); railcut 1,4,5 facings 270/270/180; depot 1,4,5 facings 270/270/180 + tripwire at west alley `(7,11)`; radio 1,4,5 facings 270/270/180 + tripwire at `(7,11)` (wait for the 5.2s east echo).
+Reference wins: yard slots 1,2,5 facings 90/180/180; warehouse 1,3,5; pump 1,4,5 (open and locked door); railcut 1,4,5 facings 270/270/180; depot 1,4,5 facings 270/270/180 + tripwire at west alley `(7,11)`; radio 1,4,5 facings 270/90/270 + tripwire at `(7,11)` (铁砧 on 碟台 facing south waits the 5.2s echo hall).
 
 ## Export (Linux + Windows + Android)
 
@@ -75,7 +75,7 @@ First visit to each mission shows a short tutorial (yard 3 pages; warehouse F/G/
 | Settings | Autoload `GameSettings`: mute, Music/SFX volumes, per-level tutorials (`user://ambush_loop_settings.cfg`) |
 | Progress | `user://ambush_loop.cfg` current level + `cleared`; campaign complete → credits → title |
 | Roles | 步枪手 / 机枪手 / 侦察兵 kits, left-rail HP/ammo/mode/slot cards + role glyphs on card and map |
-| Levels | 院子, 仓道 (ammo pack + barrel), 泵站 (door → alternate route), 信号楼 (dual corridor + delayed flank, ammo pack, no door), 油库 (`depot`: three routes + 2.2s west sneak + one tripwire), 电台 (`radio`: 3.6s sneak + 5.2s east echo + tripwire, campaign finale) |
+| Levels | 院子, 仓道 (ammo pack + barrel), 泵站 (door → alternate route), 信号楼 (dual corridor + delayed flank, ammo pack, no door), 油库 (`depot`: three routes + 2.2s west sneak + one tripwire), 电台 (`radio`: 3.6s sneak + 5.2s dish-gap echo + tripwire, campaign finale) |
 | Toys | Tripwire (1, lime pegs), killzone preview, scout observation ring (SETUP only) |
 | Loop | Alarm freezes plan; authored routes; escape/wipe fail; intel + last plan persist; win debrief before 下一关; night-handoff letterbox; dashed second-layer trap path |
 | Audio | Autoload `AudioDirector`: quiet looping drone (Music) + pooled SFX beeps (SFX); M mute; Music/SFX sliders; quieter bed while watching; handoff / leak / night-enter stings |
