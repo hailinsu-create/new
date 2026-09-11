@@ -35,10 +35,20 @@ Smoke: `SMOKE_SLICE_COMPLETE` + `SMOKE_OK_RAID_LOOP`.
 28. Roles still bias move speed
 29. Observation ring uses kit range
 30. Campaign kicker copy
+31. Occupancy: two ops do not share a destination cell
+32. Camera follow while walking
+33. Title bar shows 波 N/M
+34. Touch sweep row
+35. Payoff barks loot/sweep/wave
+36. Tutorial nights drop “警报后不能微操”
+37. Yard must-bring is loot-then-hold
+38. Launch-bar tagline
+39. Scene CTA 拉警报 / 走路
+40. Occupancy smoke probe
 
 ## Backlog toward 100 (playable polish, not a second game)
 
-31. Search time on crates (0.4s channel)
+41. Search time on crates (0.4s channel)
 32. Body-carry / hide corpse (presentation)
 33. Knife lunge FX
 34. Grenade bounce + cook bar
