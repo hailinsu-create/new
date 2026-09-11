@@ -91,9 +91,66 @@ func _draw_contrast_wash(floor_tint: Color, side_tint: Color) -> void:
 	draw_rect(Rect2(sz.x - 40.0, 0.0, 40.0, sz.y), Color(side_tint.r * 0.6, side_tint.g * 0.6, side_tint.b * 0.7, side_tint.a * 0.7))
 
 
+func _draw_horizon(col: Color) -> void:
+	## Horizon wash — a thin far-band so the sky reads as depth, not a flat lid.
+	var sz := _map_size()
+	draw_rect(Rect2(0.0, 0.0, sz.x, 36.0), Color(col.r, col.g, col.b, col.a * 0.55))
+	draw_rect(Rect2(0.0, 28.0, sz.x, 10.0), Color(col.r, col.g, col.b, col.a))
+
+
+func _draw_starfield(density: int, tint: Color) -> void:
+	## Starfield. Seeded, no random per frame. Warehouse skips this (indoor sodium).
+	if _is_power_saving():
+		density = mini(density, 8)
+	var sz := _map_size()
+	for i in density:
+		var seed := float(i * 17 + 3)
+		var x := fmod(seed * 47.0, sz.x)
+		var y := 8.0 + fmod(seed * 13.0, 54.0)
+		var tw := 0.55 + 0.45 * sin(_t * (1.1 + fmod(seed, 1.7)) + seed)
+		if _is_power_saving():
+			tw = 0.7
+		var r := 1.0 + fmod(seed, 1.4)
+		draw_circle(Vector2(x, y), r, Color(tint.r, tint.g, tint.b, (0.10 + 0.16 * tw) * tint.a))
+
+
+func _draw_distant_lights(points: Array, col: Color) -> void:
+	## Distant lights on the horizon line. Overlay only.
+	var pulse := 0.55 + 0.45 * sin(_t * 1.6)
+	if _is_power_saving():
+		pulse = 0.7
+	for p in points:
+		var pos: Vector2 = p
+		draw_rect(Rect2(pos.x, pos.y, 3.0, 5.0), Color(col.r, col.g, col.b, col.a * (0.45 + 0.40 * pulse)))
+		draw_rect(Rect2(pos.x - 1.0, pos.y + 5.0, 5.0, 2.0), Color(col.r, col.g, col.b, col.a * 0.22))
+
+
+func _draw_clouds(n: int, col: Color) -> void:
+	## Night clouds — slow drifting ellipses. Standard tier only.
+	if _is_power_saving():
+		return
+	var sz := _map_size()
+	for i in n:
+		var cx := fmod(_t * (6.0 + float(i) * 1.4) + float(i) * 180.0, sz.x + 120.0) - 60.0
+		var cy := 18.0 + float(i % 3) * 10.0 + sin(_t * 0.25 + float(i)) * 4.0
+		var w := 70.0 + float(i % 4) * 18.0
+		draw_circle(Vector2(cx, cy), w * 0.22, Color(col.r, col.g, col.b, col.a * 0.45))
+		draw_circle(Vector2(cx + 22.0, cy + 4.0), w * 0.16, Color(col.r, col.g, col.b, col.a * 0.32))
+
+
 func _draw_yard() -> void:
 	var sz := _map_size()
 	_draw_top_haze(Color(0.55, 0.68, 0.52, 0.10), 5)
+	_draw_horizon(Color(0.18, 0.24, 0.16, 0.10))
+	_draw_starfield(22, Color(0.88, 0.94, 0.72, 1.0))
+	_draw_clouds(3, Color(0.22, 0.28, 0.18, 0.10))
+	_draw_distant_lights([
+		Vector2(sz.x * 0.12, 22.0),
+		Vector2(sz.x * 0.18, 20.0),
+		Vector2(sz.x * 0.41, 24.0),
+		Vector2(sz.x * 0.63, 18.0),
+		Vector2(sz.x * 0.71, 21.0),
+	], Color(0.95, 0.78, 0.32, 0.55))
 	_draw_contrast_wash(Color(0.04, 0.07, 0.05, 0.22), Color(0.08, 0.10, 0.07, 0.05))
 	# Open courtyard: cool moon wash from the NE, never purple.
 	var moon := Vector2(sz.x * 0.82, 58.0)
@@ -131,6 +188,12 @@ func _draw_yard() -> void:
 func _draw_warehouse() -> void:
 	var sz := _map_size()
 	_draw_top_haze(Color(0.62, 0.40, 0.08, 0.14), 6)
+	_draw_horizon(Color(0.28, 0.16, 0.04, 0.10))
+	_draw_distant_lights([
+		Vector2(sz.x * 0.22, 18.0),
+		Vector2(sz.x * 0.48, 16.0),
+		Vector2(sz.x * 0.74, 19.0),
+	], Color(0.95, 0.62, 0.14, 0.40))
 	_draw_contrast_wash(Color(0.08, 0.05, 0.02, 0.24), Color(0.18, 0.10, 0.03, 0.06))
 	# Cold sodium canopy — horizontal bands, not a purple night.
 	var pulse := 0.5 + 0.5 * sin(_t * 1.15)
@@ -172,6 +235,13 @@ func _draw_warehouse() -> void:
 func _draw_pump() -> void:
 	var sz := _map_size()
 	_draw_top_haze(Color(0.10, 0.32, 0.28, 0.12), 5)
+	_draw_horizon(Color(0.08, 0.22, 0.20, 0.10))
+	_draw_starfield(10, Color(0.70, 0.92, 0.84, 0.7))
+	_draw_distant_lights([
+		Vector2(sz.x * 0.28, 20.0),
+		Vector2(sz.x * 0.55, 17.0),
+		Vector2(sz.x * 0.82, 21.0),
+	], Color(0.42, 0.92, 0.72, 0.50))
 	_draw_contrast_wash(Color(0.02, 0.08, 0.08, 0.22), Color(0.04, 0.10, 0.09, 0.05))
 	draw_rect(Rect2(0.0, 0.0, sz.x, 70.0), Color(0.10, 0.28, 0.24, 0.10))
 	# Humming vent stripes over the machinery block.
@@ -217,7 +287,17 @@ func _draw_pump() -> void:
 
 
 func _draw_railcut() -> void:
+	var sz := _map_size()
 	_draw_top_haze(Color(0.42, 0.52, 0.62, 0.10), 5)
+	_draw_horizon(Color(0.16, 0.20, 0.28, 0.10))
+	_draw_starfield(18, Color(0.82, 0.88, 0.95, 1.0))
+	_draw_clouds(2, Color(0.18, 0.22, 0.28, 0.10))
+	_draw_distant_lights([
+		Vector2(sz.x * 0.15, 19.0),
+		Vector2(sz.x * 0.33, 16.0),
+		Vector2(sz.x * 0.68, 20.0),
+		Vector2(sz.x * 0.88, 18.0),
+	], Color(0.95, 0.42, 0.18, 0.55))
 	_draw_contrast_wash(Color(0.04, 0.05, 0.06, 0.22), Color(0.08, 0.10, 0.12, 0.05))
 	# Signal tower beacon — rotating cone from the core block. Overlay only.
 	var tower := Vector2(21.5 * AmbushGrid.TILE, 10.5 * AmbushGrid.TILE)
@@ -258,6 +338,14 @@ func _draw_railcut() -> void:
 func _draw_depot() -> void:
 	var sz := _map_size()
 	_draw_top_haze(Color(0.55, 0.24, 0.06, 0.16), 7)
+	_draw_horizon(Color(0.28, 0.10, 0.04, 0.12))
+	_draw_starfield(8, Color(0.95, 0.72, 0.40, 0.55))
+	_draw_clouds(2, Color(0.32, 0.14, 0.06, 0.10))
+	_draw_distant_lights([
+		Vector2(sz.x * 0.20, 18.0),
+		Vector2(sz.x * 0.46, 16.0),
+		Vector2(sz.x * 0.72, 20.0),
+	], Color(0.98, 0.48, 0.12, 0.55))
 	_draw_contrast_wash(Color(0.10, 0.04, 0.01, 0.26), Color(0.16, 0.06, 0.02, 0.06))
 	# Diesel haze along the top of the yard.
 	var haze_n := 4 if _is_power_saving() else 8
@@ -294,6 +382,15 @@ func _draw_depot() -> void:
 func _draw_radio() -> void:
 	var sz := _map_size()
 	_draw_top_haze(Color(0.18, 0.42, 0.55, 0.12), 6)
+	_draw_horizon(Color(0.10, 0.22, 0.30, 0.10))
+	_draw_starfield(20, Color(0.62, 0.90, 1.0, 1.0))
+	_draw_clouds(2, Color(0.12, 0.22, 0.30, 0.10))
+	_draw_distant_lights([
+		Vector2(sz.x * 0.14, 20.0),
+		Vector2(sz.x * 0.38, 17.0),
+		Vector2(sz.x * 0.61, 21.0),
+		Vector2(sz.x * 0.86, 18.0),
+	], Color(0.55, 0.90, 1.0, 0.55))
 	_draw_contrast_wash(Color(0.02, 0.06, 0.10, 0.24), Color(0.06, 0.14, 0.18, 0.05))
 	# Phosphor night over the dish hall.
 	var pulse := 0.5 + 0.5 * sin(_t * 1.05)
