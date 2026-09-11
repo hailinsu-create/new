@@ -4815,6 +4815,7 @@ func _try_assign_loot(loot: LootPickup) -> void:
 			var loot_pos := loot.global_position
 			loot.collect()
 			CombatFxScript.loot_spark(entities, loot_pos)
+			CombatFxScript.loot_streak(entities, loot_pos, op.global_position)
 			battle_log.add_event(sim.tick, "loot", op.op_id, -1, loot_pos, {"amount": gained})
 			status_label.text = "%s 搜刮 +%d弹" % [op.display_name, gained]
 			_sfx("loot")

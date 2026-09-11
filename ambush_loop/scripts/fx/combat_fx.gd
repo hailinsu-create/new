@@ -217,6 +217,30 @@ static func barrel_boom(host: Node2D, world_pos: Vector2) -> void:
 	tw.tween_callback(n.queue_free)
 
 
+static func loot_streak(host: Node2D, from: Vector2, to: Vector2) -> void:
+	if not _ok(host) or _saving():
+		return
+	var n := _spawn(host, "CfxLootStreak", from, 11)
+	var ln := Line2D.new()
+	ln.name = "Streak"
+	ln.width = 2.4
+	ln.default_color = Color(0.98, 0.82, 0.28, 0.92)
+	ln.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	ln.end_cap_mode = Line2D.LINE_CAP_ROUND
+	ln.points = PackedVector2Array([Vector2.ZERO, to - from])
+	n.add_child(ln)
+	var pip := Polygon2D.new()
+	pip.polygon = PackedVector2Array([
+		Vector2(-4, -4), Vector2(4, -4), Vector2(4, 4), Vector2(-4, 4)
+	])
+	pip.color = Color(1.0, 0.88, 0.32, 0.95)
+	n.add_child(pip)
+	var tw := n.create_tween()
+	tw.tween_property(pip, "position", to - from, 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(n, "modulate:a", 0.0, 0.22)
+	tw.tween_callback(n.queue_free)
+
+
 static func loot_spark(host: Node2D, world_pos: Vector2) -> void:
 	if not _ok(host):
 		return

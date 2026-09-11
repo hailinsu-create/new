@@ -3504,6 +3504,22 @@ func _assert_iteration_slice(main) -> bool:
 	hold_op._rebuild_cone()
 	main._on_clear_pressed()
 	print("SMOKE_OK_HOLD_PULSE")
+	var cfx3: Variant = load("res://scripts/fx/combat_fx.gd")
+	if cfx3 == null or not (cfx3 as GDScript).has_method("loot_streak"):
+		push_error("SMOKE_NO_LOOT_STREAK")
+		quit(71)
+		return false
+	(cfx3 as GDScript).loot_streak(main.entities, Vector2(40, 40), Vector2(90, 40))
+	var saw_streak := false
+	for c in main.entities.get_children():
+		if str(c.name).begins_with("CfxLootStreak"):
+			saw_streak = true
+			break
+	if not saw_streak:
+		push_error("SMOKE_LOOT_STREAK_MISSING")
+		quit(71)
+		return false
+	print("SMOKE_OK_LOOT_STREAK")
 	return true
 
 
