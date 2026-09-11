@@ -792,7 +792,16 @@ func _refresh_campaign_title() -> void:
 		else:
 			tagline.text = "北区补给链 · 第三夜 · 锁死计划 · 时间穿梭"
 	if _journal_btn:
-		_journal_btn.text = "战役档案（已切断）" if complete else "战役档案"
+		if complete:
+			_journal_btn.text = "战役档案（已切断）"
+		elif gs != null and gs.has_method("latest_cleared_id"):
+			var last_id := str(gs.latest_cleared_id())
+			if last_id != "":
+				_journal_btn.text = "战役档案 · %s已封锁" % LevelDef.mood_tag(last_id)
+			else:
+				_journal_btn.text = "战役档案"
+		else:
+			_journal_btn.text = "战役档案"
 
 
 func _ops_stamp_text() -> String:
