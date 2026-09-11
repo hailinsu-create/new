@@ -3757,12 +3757,23 @@ func _on_pause_pressed() -> void:
 	_refresh_touch_hud()
 
 
+func alarm_leak_warning() -> String:
+	if not has_method("leak_cover_ok") or leak_cover_ok():
+		return ""
+	return "漏网还没罩住 — 拉警报会穿梭"
+
+
 func _on_alarm_pressed() -> void:
 	if phase != Phase.SETUP:
 		return
 	if _deployed_count() < 1:
 		status_label.text = "至少部署一名队员到掩体"
 		return
+	var leak_warn := alarm_leak_warning()
+	if leak_warn != "":
+		_flash(leak_warn, Color(1.0, 0.55, 0.28))
+		if status_label:
+			status_label.text = leak_warn
 	_capture_plan()
 	frozen_plan = last_plan.duplicate_plan()
 	run_id += 1

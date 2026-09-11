@@ -313,6 +313,10 @@ func _run() -> void:
 				push_error("SMOKE_LEAK_CHIP_HARD_GATE")
 				quit(56)
 				return
+			if not main.has_method("alarm_leak_warning") or str(main.alarm_leak_warning()).find("漏网") < 0:
+				push_error("SMOKE_NO_LEAK_SOFT_WARN %s" % (main.alarm_leak_warning() if main.has_method("alarm_leak_warning") else "no_api"))
+				quit(56)
+				return
 			print("SMOKE_OK_LEAK_COVER_RED chip=", leak_chip_txt.replace("\n", " | "))
 			# Same plan at 2× must match terminal tick + event fingerprint.
 			main._on_alarm_pressed()
