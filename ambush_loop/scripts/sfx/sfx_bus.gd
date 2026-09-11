@@ -149,7 +149,7 @@ func _gain(cue: String) -> float:
 		"night_enter":
 			return -16.0
 		"tension":
-			return -14.0
+			return -10.0
 		"ambient_yard":
 			return -28.0
 		"ambient_warehouse":
@@ -350,10 +350,12 @@ func _fall(f0: float, f1: float, sec: float, amp: float) -> PackedFloat32Array:
 
 
 func _tension() -> PackedFloat32Array:
-	## Low rising swell when only one runner remains.
+	## Audible swell for last-runner and pending delayed waves.
 	return _concat([
-		_blip(90.0, 180.0, 0.18, 0.16),
-		_tone(220.0, 0.10, 0.12, 0.04),
+		_blip(70.0, 160.0, 0.22, 0.22),
+		_tone(180.0, 0.16, 0.18, 0.06),
+		_blip(140.0, 280.0, 0.18, 0.16),
+		_tone(90.0, 0.20, 0.12, 0.08),
 	])
 
 
