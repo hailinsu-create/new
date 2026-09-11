@@ -75,6 +75,41 @@ static func impact(host: Node2D, world_pos: Vector2, tint: Color = Color(1.0, 0.
 	tw.tween_callback(n.queue_free)
 
 
+static func kill_stamp(host: Node2D, world_pos: Vector2, enemy_id: int = 0, tint: Color = Color(1.0, 0.82, 0.32)) -> void:
+	if not _ok(host) or not _budget(host, "CfxStamp", 6):
+		return
+	var n := _spawn(host, "CfxStamp", world_pos, 13)
+	var x1 := Line2D.new()
+	x1.width = 2.6
+	x1.default_color = Color(tint.r, tint.g, tint.b, 0.95)
+	x1.points = PackedVector2Array([Vector2(-9, -9), Vector2(9, 9)])
+	n.add_child(x1)
+	var x2 := Line2D.new()
+	x2.width = 2.6
+	x2.default_color = Color(tint.r, tint.g, tint.b, 0.95)
+	x2.points = PackedVector2Array([Vector2(9, -9), Vector2(-9, 9)])
+	n.add_child(x2)
+	var lab := Label.new()
+	lab.name = "Tag"
+	lab.text = "×敌%d" % enemy_id if enemy_id >= 1 else "×"
+	lab.position = Vector2(-16, -22)
+	lab.add_theme_font_size_override("font_size", 11)
+	lab.add_theme_font_override("font", NightOps.ui_font_bold())
+	lab.add_theme_color_override("font_color", tint)
+	lab.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.02, 0.94))
+	lab.add_theme_constant_override("shadow_offset_x", 1)
+	lab.add_theme_constant_override("shadow_offset_y", 1)
+	lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	n.add_child(lab)
+	if _saving():
+		n.queue_free()
+		return
+	var tw := n.create_tween()
+	tw.tween_interval(0.55)
+	tw.tween_property(n, "modulate:a", 0.0, 0.55)
+	tw.tween_callback(n.queue_free)
+
+
 static func kill_burst(host: Node2D, world_pos: Vector2, tint: Color = Color(0.95, 0.28, 0.18)) -> void:
 	if not _ok(host) or not _budget(host, "CfxKill", 4):
 		return

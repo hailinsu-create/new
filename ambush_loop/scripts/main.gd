@@ -4825,6 +4825,7 @@ func _on_enemy_died(enemy: EnemyRunner) -> void:
 		if enemy.has_method("_kind_rim_color"):
 			stain_tint = enemy._kind_rim_color()
 		CombatFxScript.death_stain(entities, enemy.global_position, stain_tint)
+		CombatFxScript.kill_stamp(entities, enemy.global_position, enemy.label_id, stain_tint.lightened(0.35))
 	_update_event_log()
 	if phase == Phase.WATCHING:
 		_check_win()

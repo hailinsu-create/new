@@ -3408,6 +3408,27 @@ func _assert_iteration_slice(main) -> bool:
 		quit(71)
 		return false
 	print("SMOKE_OK_TENSION")
+	var cfx2: Variant = load("res://scripts/fx/combat_fx.gd")
+	if cfx2 == null or not (cfx2 as GDScript).has_method("kill_stamp"):
+		push_error("SMOKE_NO_KILL_STAMP")
+		quit(71)
+		return false
+	(cfx2 as GDScript).kill_stamp(main.entities, Vector2(90, 90), 3, Color(1.0, 0.82, 0.32))
+	var saw_stamp := false
+	for c in main.entities.get_children():
+		if str(c.name).begins_with("CfxStamp"):
+			saw_stamp = true
+			var st = c.get_node_or_null("Tag")
+			if st == null or str(st.text).find("敌3") < 0:
+				push_error("SMOKE_KILL_STAMP_TEXT %s" % (st.text if st else "null"))
+				quit(71)
+				return false
+			break
+	if not saw_stamp:
+		push_error("SMOKE_KILL_STAMP_MISSING")
+		quit(71)
+		return false
+	print("SMOKE_OK_KILL_STAMP")
 	return true
 
 
