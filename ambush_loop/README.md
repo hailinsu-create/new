@@ -1,6 +1,6 @@
 # Ambush Loop
 
-Godot 4.7.2 vertical slice — Commandos-style ambush prep + time-loop intel.
+Godot 4.7.2 vertical slice — Commandos-style night raid: scout, loot, ambush, multi-wave alarm, sweep.
 
 **朋友包 / 程序多边形 / 合成音 / 必须横屏。** 不是正式版，不要写成 9.5。  
 像素门槛加权 **9.0**（`docs/Ambush_Loop_试玩复评_71ca4af.md`，窗口 31 张）。旧自称 9.2 作废。  
@@ -27,9 +27,11 @@ godot --path ambush_loop
 godot --headless --path ambush_loop -s res://scripts/smoke_test.gd
 ```
 
-The editor **Main Scene** is `scenes/title.tscn`. Smoke bypasses the title and loads `scenes/main.tscn` directly; it must print `SMOKE_SLICE_COMPLETE` and exit 0.
+The editor **Main Scene** is `scenes/title.tscn`. Smoke bypasses the title and loads `scenes/main.tscn` directly; it must print `SMOKE_SLICE_COMPLETE` and `SMOKE_OK_RAID_LOOP` and exit 0.
 
-Reference wins: yard slots 1,2,5 facings 90/180/180; warehouse 1,3,5; pump 1,4,5 (open and locked door); railcut 1,4,5 facings 270/270/180; depot 1,4,5 facings 270/270/180 + tripwire at west alley `(7,11)`; radio 1,4,5 facings 270/90/270 + tripwire at `(7,11)` (铁砧 on 碟台 facing south waits the 5.2s echo hall).
+Raid contract: `docs/COMMANDOS_RAID.md`. Operators spawn at insertion cells with a knife, loot crates, take cover, pull the alarm per wave, sweep loot, extract after the last wave.
+
+Reference raids (after looting role guns): yard slots 1,2,5 facings 90/180/180; warehouse 1,3,5; pump 1,4,5; railcut 1,4,5 facings 270/270/180; depot 1,4,5 facings 270/270/180 + tripwire at `(7,11)`; radio 1,4,5 facings 270/90/270 + tripwire at `(7,11)`.
 
 ## Export (Linux + Windows + Android)
 
