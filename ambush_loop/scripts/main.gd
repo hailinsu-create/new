@@ -1899,6 +1899,8 @@ func _load_level(level_id: String, keep_intel: bool, restore_plan: bool) -> void
 	_mission_had_escape = false
 	_door_taught = false
 	_wave_tension_id = -1
+	if not keep_intel:
+		leak_advice_shown = ""
 	_kill_loop_tweens()
 	_clear_intel_path_ghost()
 	_clear_echo_callout()
