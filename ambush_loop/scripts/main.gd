@@ -62,6 +62,9 @@ var decision_marker: Node2D = null
 var barrel_hint: Node2D = null
 var trap_callout: Node2D = null
 var _trap_callout_tween: Tween = null
+var second_callout: Node2D = null
+var _second_callout_tween: Tween = null
+var watch_wave_chip: Label = null
 var spawn_teach_label: Label = null
 var checklist_strip: Control = null
 var _checklist_labels: Array[Label] = []
@@ -740,8 +743,12 @@ func _refresh_touch_hud() -> void:
 		if show_wave:
 			var info := _next_wave_info()
 			if bool(info.get("pending", false)):
-				chip = "下一波 %.1fs" % float(info.get("remain", 0.0))
+				var road := _route_zh_short(str(info.get("route", "main")))
+				if str(info.get("kit", "")) == "echo" or str(info.get("note", "")).find("回波") >= 0:
+					road = "回波"
+				chip = "下一波 %s %.1fs" % [road, float(info.get("remain", 0.0))]
 		touch_hud.set_next_wave(chip, show_wave and chip != "")
+	_refresh_watch_wave_chip()
 
 
 func _toggle_event_log() -> void:
@@ -1113,6 +1120,12 @@ func _apply_watch_layers() -> void:
 		else:
 			trap_callout.visible = true
 			trap_callout.modulate.a = 1.0
+	if second_callout and is_instance_valid(second_callout):
+		if phase != Phase.SETUP:
+			second_callout.visible = false
+		else:
+			second_callout.visible = true
+			second_callout.modulate.a = 1.0
 	if entities:
 		entities.modulate = Color.WHITE
 	if ghosts:
@@ -1706,6 +1719,7 @@ func _load_level(level_id: String, keep_intel: bool, restore_plan: bool) -> void
 	_build_decision_marker()
 	_build_barrels()
 	_build_trap_callout()
+	_build_second_callout()
 	_start_setup(keep_intel, restore_plan)
 	_save_progress()
 	_maybe_show_tutorial()
@@ -2626,6 +2640,25 @@ func leak_advice_text() -> String:
 	return leak_advice_shown
 
 
+func _cover_vs_leak_line() -> String:
+	## Fail teaching: which authored routes the current plan actually covers.
+	if level == null:
+		return ""
+	var covered: PackedStringArray = PackedStringArray()
+	var gaps: PackedStringArray = PackedStringArray()
+	for key in _play_active_route_keys():
+		var zh := _route_zh_short(str(key))
+		if _plan_covers_route(str(key)):
+			covered.append(zh)
+		else:
+			gaps.append(zh)
+	if covered.is_empty() and gaps.is_empty():
+		return ""
+	var left := "、".join(covered) if not covered.is_empty() else "无"
+	var right := "、".join(gaps) if not gaps.is_empty() else "无"
+	return "本世罩住：%s  ·  缺口：%s" % [left, right]
+
+
 func _refresh_door_visual(animate: bool = false) -> void:
 	if door_marker == null or not is_instance_valid(door_marker):
 		return
@@ -3508,20 +3541,14 @@ func _trap_callout_text() -> String:
 	return ""
 
 
-func _build_trap_callout() -> void:
-	if trap_callout != null and is_instance_valid(trap_callout):
-		trap_callout.queue_free()
-	trap_callout = null
-	var text := _trap_callout_text()
-	if text == "":
-		return
+func _make_map_callout(p_name: String, text: String, pos: Vector2, col: Color) -> Node2D:
 	var n := Node2D.new()
-	n.name = "TrapCallout"
-	n.position = _trap_callout_pos()
+	n.name = p_name
+	n.position = pos
 	n.z_index = 8
 	var plate := Polygon2D.new()
 	plate.name = "Plate"
-	var pw := clampf(20.0 + float(text.length()) * 15.0, 140.0, 380.0)
+	var pw := clampf(20.0 + float(text.length()) * 15.0, 140.0, 400.0)
 	plate.polygon = PackedVector2Array([
 		Vector2(-8, -6), Vector2(pw, -6), Vector2(pw, 22), Vector2(-8, 22)
 	])
@@ -3533,14 +3560,41 @@ func _build_trap_callout() -> void:
 	lab.position = Vector2(-4, -4)
 	lab.add_theme_font_size_override("font_size", 13)
 	lab.add_theme_font_override("font", NightOps.ui_font_bold())
-	lab.add_theme_color_override("font_color", Color(1.0, 0.86, 0.32))
+	lab.add_theme_color_override("font_color", col)
 	lab.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.02, 0.94))
 	lab.add_theme_constant_override("shadow_offset_x", 1)
 	lab.add_theme_constant_override("shadow_offset_y", 1)
 	lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	n.add_child(lab)
 	$World.add_child(n)
-	trap_callout = n
+	return n
+
+
+func _build_trap_callout() -> void:
+	if trap_callout != null and is_instance_valid(trap_callout):
+		trap_callout.queue_free()
+	trap_callout = null
+	var text := _trap_callout_text()
+	if text == "":
+		return
+	trap_callout = _make_map_callout("TrapCallout", text, _trap_callout_pos(), Color(1.0, 0.86, 0.32))
+
+
+func _build_second_callout() -> void:
+	if second_callout != null and is_instance_valid(second_callout):
+		second_callout.queue_free()
+	second_callout = null
+	if level == null or not level.has_method("second_trap_text"):
+		return
+	var text := str(level.second_trap_text()).strip_edges()
+	if text == "":
+		return
+	var cell: Vector2i = level.second_trap_cell() if level.has_method("second_trap_cell") else Vector2i(-1, -1)
+	if cell.x < 0:
+		return
+	var pos := grid.cell_to_world_center(cell) + Vector2(10, -26)
+	var col := Color(0.55, 0.90, 1.0) if str(level.level_id) == "radio" else Color(1.0, 0.72, 0.38)
+	second_callout = _make_map_callout("SecondCallout", text, pos, col)
 
 
 func _fade_trap_callout() -> void:
@@ -3553,6 +3607,19 @@ func _fade_trap_callout() -> void:
 	_trap_callout_tween.tween_callback(func() -> void:
 		if trap_callout != null and is_instance_valid(trap_callout):
 			trap_callout.visible = false
+	)
+
+
+func _fade_second_callout() -> void:
+	if second_callout == null or not is_instance_valid(second_callout):
+		return
+	if _second_callout_tween != null:
+		_second_callout_tween.kill()
+	_second_callout_tween = second_callout.create_tween()
+	_second_callout_tween.tween_property(second_callout, "modulate:a", 0.0, 0.28)
+	_second_callout_tween.tween_callback(func() -> void:
+		if second_callout != null and is_instance_valid(second_callout):
+			second_callout.visible = false
 	)
 
 
@@ -3575,7 +3642,10 @@ func _refresh_spawn_teach() -> void:
 	var show := phase == Phase.SETUP and level != null and not level.spawn_teaching.is_empty()
 	spawn_teach_label.visible = show
 	if show:
-		spawn_teach_label.text = str(level.spawn_teaching[0])
+		if level.spawn_teaching.size() >= 2:
+			spawn_teach_label.text = "%s  ·  %s" % [str(level.spawn_teaching[0]), str(level.spawn_teaching[1])]
+		else:
+			spawn_teach_label.text = str(level.spawn_teaching[0])
 
 
 func _build_barrel_hint(pos: Vector2) -> void:
@@ -3876,6 +3946,7 @@ func _on_alarm_pressed() -> void:
 		speed_button.disabled = false
 	status_label.text = "方案锁死 — 暂停/变速仅改变观看。跑掉或全灭均失败。中止(X)保留截止情报。"
 	_fade_trap_callout()
+	_fade_second_callout()
 	_update_event_log()
 	_refresh_watch_timeline()
 	_update_hud()
@@ -3892,8 +3963,19 @@ func _queue_spawns(_this_run: int) -> void:
 			"route": str(spec["route"]),
 			"delay": float(spec["delay"]),
 			"loot": int(spec["loot"]),
+			"kit": str(spec.get("kit", "")),
+			"teaching_note": str(spec.get("teaching_note", "")),
 			"spawned": false,
 		})
+
+
+func queued_kit_for(id: int) -> String:
+	for spec in pending_spawns:
+		if int(spec.get("id", -1)) == id:
+			return str(spec.get("kit", "")).strip_edges()
+	if level != null and level.has_method("kit_for_actor"):
+		return str(level.kit_for_actor(id))
+	return ""
 
 
 func _route_for_spawn(route_name: String) -> PackedVector2Array:
@@ -3918,7 +4000,27 @@ func _spawn_one(spec: Dictionary) -> void:
 	e.activate()
 	if e.has_method("play_spawn_pop"):
 		e.play_spawn_pop()
-	battle_log.add_event(sim.tick, "spawn", e.label_id, -1, e.global_position)
+	var kit := str(spec.get("kit", "")).strip_edges()
+	var note := str(spec.get("teaching_note", "")).strip_edges()
+	battle_log.add_event(
+		sim.tick,
+		"spawn",
+		e.label_id,
+		-1,
+		e.global_position,
+		{"route": route_name, "kit": kit, "note": note}
+	)
+	var delay := float(spec.get("delay", 0.0))
+	if kit == "echo":
+		_sfx("echo_ping")
+		_announce_payoff("echo", {"enemy_id": e.label_id, "name": "灯塔回波"}, e.global_position)
+	elif delay >= 1.5:
+		_sfx("spawn")
+		_announce_payoff(
+			"wave",
+			{"enemy_id": e.label_id, "route": route_name, "note": note},
+			e.global_position
+		)
 	_update_event_log()
 
 
@@ -4760,6 +4862,14 @@ func _show_fail_result() -> void:
 		chatter = str(LevelDef.chatter_for(level.level_id, fail_reason)).strip_edges()
 	if chatter != "":
 		extra += "截获 · %s\n" % chatter
+	var cover_line := _cover_vs_leak_line()
+	if cover_line != "":
+		extra += "%s\n" % cover_line
+	var wall := ""
+	if intel != null and intel.has_method("wall_text"):
+		wall = str(intel.wall_text(4)).strip_edges()
+	if wall != "":
+		extra += "%s\n" % wall
 	result_label.text = "第 %d 世失败（%s）。\n%s\n%s\n%s%s%s\n%s\n穿梭后恢复上轮计划，满血满弹。\n%s\n\n—— 事件摘要（点击右侧日志定位）——\n%s" % [
 		loop_index,
 		reason_zh,
@@ -4815,8 +4925,12 @@ func _show_win_result() -> void:
 		if level != null:
 			beat = str(level.campaign_beat).strip_edges()
 		var beat_block := ("\n%s" % beat) if beat != "" else ""
-		result_label.text = "任务完成。\n%s\n本关用了 %d 世。\n%s\n%s%s%s%s\n\n—— 关键事件 ——\n%s" % [
-			unlock, loop_index, epitaph, shot, hook_block, beat_block, star, "\n".join(lines)
+		var chain := ""
+		if level != null:
+			chain = str(LevelDef.chain_progress_line(level.level_id)).strip_edges()
+		var chain_block := ("\n%s" % chain) if chain != "" else ""
+		result_label.text = "任务完成。\n%s\n本关用了 %d 世。\n%s\n%s%s%s%s%s\n\n—— 关键事件 ——\n%s" % [
+			unlock, loop_index, epitaph, shot, hook_block, beat_block, chain_block, star, "\n".join(lines)
 		]
 		continue_button.text = "下一关"
 	else:
@@ -4831,8 +4945,9 @@ func _show_win_result() -> void:
 		if level != null:
 			last_beat = str(level.campaign_beat).strip_edges()
 		var last_beat_block := ("\n%s" % last_beat) if last_beat != "" else ""
-		result_label.text = "全部关卡封锁完成。\n本关用了 %d 世。\n%s\n%s%s%s%s\n\n—— 关键事件 ——\n%s" % [
-			loop_index, epitaph, shot, last_hook_block, last_beat_block, last_star, "\n".join(lines)
+		var recap := str(LevelDef.campaign_chain_names())
+		result_label.text = "全部关卡封锁完成。\n%s\n本关用了 %d 世。\n%s\n%s%s%s%s\n\n—— 关键事件 ——\n%s" % [
+			recap, loop_index, epitaph, shot, last_hook_block, last_beat_block, last_star, "\n".join(lines)
 		]
 		continue_button.text = "查看致谢"
 		_campaign_complete = true
@@ -5053,6 +5168,9 @@ func _next_wave_info() -> Dictionary:
 		ref_t = intel_cut
 	var next_d := INF
 	var next_route := ""
+	var next_kit := ""
+	var next_note := ""
+	var next_id := -1
 	for spec in level.spawn_schedule:
 		var d := float(spec.get("delay", 0.0))
 		var spawned := false
@@ -5065,10 +5183,16 @@ func _next_wave_info() -> Dictionary:
 		if d > ref_t + 0.05 and d < next_d:
 			next_d = d
 			next_route = str(spec.get("route", "main"))
+			next_kit = str(spec.get("kit", "")).strip_edges()
+			next_note = str(spec.get("teaching_note", "")).strip_edges()
+			next_id = int(spec.get("id", -1))
 	if next_d == INF:
 		return out
 	out["pending"] = true
 	out["route"] = next_route
+	out["kit"] = next_kit
+	out["note"] = next_note
+	out["id"] = next_id
 	out["remain"] = maxf(next_d - now, 0.0)
 	return out
 
@@ -5085,9 +5209,14 @@ func _next_wave_line() -> String:
 		return "下一波：已全部进场"
 	var remain := float(info.get("remain", 0.0))
 	var next_route := str(info.get("route", "main"))
+	var road := _route_zh_short(next_route)
+	if str(info.get("kit", "")) == "echo" or str(info.get("note", "")).find("回波") >= 0:
+		road = "回波"
+	elif str(info.get("note", "")).find("西夹缝") >= 0:
+		road = "暗道"
 	if intel_cut >= 0.0:
-		return "下一波：%s 还有 %.1fs（情报截止 %.1fs）" % [_route_zh_short(next_route), remain, intel_cut]
-	return "下一波：%s 还有 %.1fs" % [_route_zh_short(next_route), remain]
+		return "下一波：%s 还有 %.1fs（情报截止 %.1fs）" % [road, remain, intel_cut]
+	return "下一波：%s 还有 %.1fs" % [road, remain]
 
 
 func _refresh_route_timeline(show: bool) -> void:
@@ -5169,6 +5298,44 @@ func _refresh_watch_timeline() -> void:
 		if watch_timeline.has_method("set_live"):
 			watch_timeline.set_live(true)
 	watch_timeline.queue_redraw()
+	_refresh_watch_wave_chip()
+
+
+func _ensure_watch_wave_chip() -> void:
+	if watch_wave_chip != null and is_instance_valid(watch_wave_chip):
+		return
+	var root: Control = get_node_or_null("HUD/Root") as Control
+	if root == null:
+		return
+	var lab := Label.new()
+	lab.name = "WatchWaveChip"
+	lab.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	lab.offset_left = 220.0
+	lab.offset_top = 52.0
+	lab.offset_right = -16.0
+	lab.offset_bottom = 74.0
+	lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lab.add_theme_font_size_override("font_size", 14)
+	lab.add_theme_font_override("font", NightOps.ui_font_bold())
+	lab.add_theme_color_override("font_color", Color(0.95, 0.86, 0.42))
+	lab.add_theme_color_override("font_shadow_color", Color(0.02, 0.03, 0.02, 0.9))
+	lab.add_theme_constant_override("shadow_offset_y", 1)
+	root.add_child(lab)
+	watch_wave_chip = lab
+
+
+func _refresh_watch_wave_chip() -> void:
+	_ensure_watch_wave_chip()
+	if watch_wave_chip == null:
+		return
+	var show := phase == Phase.WATCHING
+	var info := _next_wave_info() if show else {}
+	if show and bool(info.get("pending", false)):
+		watch_wave_chip.visible = true
+		watch_wave_chip.text = _next_wave_line()
+	else:
+		watch_wave_chip.visible = false
+		watch_wave_chip.text = ""
 
 
 func setup_spawn_preview_visible() -> bool:
@@ -5342,11 +5509,42 @@ func _fill_event_list(evs: Array, max_count: int, title: String) -> void:
 		var ev: Dictionary = evs[i]
 		_event_list_items.append(ev)
 		event_list.add_item(battle_log.format_event(ev))
+		event_list.set_item_custom_fg_color(_event_list_items.size() - 1, _event_tint(ev))
 	var log_open := _event_log_open and event_log != null and event_log.visible
 	if log_open and _event_list_items.size() > 0:
 		event_list.select(_event_list_items.size() - 1)
 		event_list.ensure_current_is_visible()
 	_set_event_log_interactive(phase != Phase.SETUP and _event_list_items.size() > 0)
+
+
+func _event_tint(ev: Dictionary) -> Color:
+	var typ := str(ev.get("type", ""))
+	var route := str(ev.get("payload", {}).get("route", ""))
+	match typ:
+		"spawn":
+			if str(ev.get("payload", {}).get("kit", "")) == "echo":
+				return Color(0.55, 0.90, 1.0)
+			match route:
+				"flank":
+					return Color(0.95, 0.62, 0.22)
+				"sneak":
+					return Color(0.42, 0.82, 0.62)
+				_:
+					return Color(0.92, 0.40, 0.32)
+		"fire":
+			return Color(1.0, 0.86, 0.38)
+		"kill", "trip":
+			return Color(0.55, 0.92, 0.48)
+		"escape":
+			return Color(1.0, 0.38, 0.28)
+		"barrel", "route_choice":
+			return Color(0.85, 0.58, 1.0)
+		"op_down", "fail":
+			return Color(0.90, 0.42, 0.42)
+		"win":
+			return Color(0.72, 0.88, 0.42)
+		_:
+			return Color(0.82, 0.84, 0.70)
 
 
 func _set_event_log_interactive(on: bool) -> void:
@@ -5599,6 +5797,12 @@ func _update_hud() -> void:
 	_refresh_watch_timeline()
 	_refresh_checklist()
 	_refresh_decision_pulse()
+	for op in operators:
+		if op == null or not is_instance_valid(op):
+			continue
+		op.tag_emphasis = phase == Phase.WATCHING and op.alive and op.slot != null
+		if op.has_method("_refresh_tag"):
+			op._refresh_tag()
 	var dep := _deployed_count()
 	if phase == Phase.SETUP:
 		help_label.text = "点掩体 %d/3 · A/D射界 · 空格警报" % dep
