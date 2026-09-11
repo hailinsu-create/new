@@ -30,6 +30,9 @@ const shot: BlinkShot = {
   leftLag: 0,
   rightLag: 0,
   double: false,
+  thoughtful: false,
+  ampLeft: 1,
+  ampRight: 1,
 };
 
 assert("open at t0", lidFromShot(0, shot, 0) > 0.99);
@@ -66,6 +69,14 @@ assert("eyes actually close", sim.blink.meanMinOpen < 0.2, `got ${sim.blink.mean
 assert("idle wind=1 has motion", sim.hair1.rms > 0.002, `rms=${sim.hair1.rms}`);
 assert("wind=2 larger than wind=0", sim.hair2.peak >= sim.hair0.peak);
 assert("sleepy blinks more often or slower", sim.sleepy.meanIntervalS < sim.blink.meanIntervalS + 0.4 || sim.sleepy.meanTotalMs > sim.blink.meanTotalMs);
+assert("nape layer moves", sim.hair1.napeRms > 0.001, `nape=${sim.hair1.napeRms}`);
+assert("gaze has saccades", sim.gaze.saccadeRate > 0.15, `rate=${sim.gaze.saccadeRate}`);
+assert("idle theater fires", sim.idleBeats >= 1, `beats=${sim.idleBeats}`);
+assert("brow follows blink", sim.browBlinkCorr > 0.4, `corr=${sim.browBlinkCorr}`);
+assert("speaking blinks less often", sim.speakingBlink.meanIntervalS + 0.05 >= sim.blink.meanIntervalS * 0.7, `speak=${sim.speakingBlink.meanIntervalS} idle=${sim.blink.meanIntervalS}`);
+assert("post-speech compensation exists", sim.postSpeechExtra >= 1, `extra=${sim.postSpeechExtra}`);
+assert("layered hair still independent", sim.hair1.bangsHairCorr < 0.98, `corr=${sim.hair1.bangsHairCorr}`);
+assert("hair jerk stays tame", sim.hair1.maxJerk < 80, `jerk=${sim.hair1.maxJerk}`);
 
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);

@@ -48,7 +48,8 @@ body {
     linear-gradient(180deg, rgba(11, 17, 15, 0.18) 0%, rgba(11, 17, 15, 0.05) 38%, rgba(11, 17, 15, 0.72) 100%),
     url("/bg/courtyard.jpg") center / cover no-repeat;
   transform: scale(1.04);
-  animation: courtyard-drift 28s ease-in-out infinite alternate;
+  animation: courtyard-drift var(--courtyard-dur, 28s) ease-in-out infinite alternate;
+  filter: var(--courtyard-filter, none);
   z-index: 0;
 }
 
@@ -61,6 +62,8 @@ body {
     radial-gradient(ellipse at 58% 42%, rgba(196, 69, 54, 0.16), transparent 28%),
     radial-gradient(ellipse at 50% 110%, rgba(11, 17, 15, 0.9), transparent 46%);
   z-index: 1;
+  animation: vignette-breathe var(--vignette-dur, 7s) ease-in-out infinite;
+  opacity: 1;
 }
 
 .lantern-pulse {
@@ -72,7 +75,7 @@ body {
   border-radius: 50%;
   background: radial-gradient(circle, rgba(255, 150, 80, 0.22), rgba(196, 69, 54, 0.05) 42%, transparent 70%);
   filter: blur(8px);
-  animation: lantern 3.6s ease-in-out infinite;
+  animation: lantern var(--lantern-dur, 3.6s) ease-in-out infinite;
   pointer-events: none;
   z-index: 1;
 }
@@ -90,7 +93,7 @@ body {
   top: var(--y);
   z-index: 2;
   pointer-events: none;
-  opacity: 0.15;
+  opacity: var(--firefly-op, 0.15);
 }
 
 .petal {
@@ -101,7 +104,7 @@ body {
   border-radius: 70% 0 70% 0;
   opacity: 0.55;
   left: var(--x);
-  animation: petal var(--dur, 14s) linear infinite;
+  animation: petal calc(var(--dur, 14s) * var(--petal-scale, 1)) linear infinite;
   animation-delay: var(--delay, 0s);
   z-index: 2;
   pointer-events: none;
@@ -452,5 +455,15 @@ input[type="range"] {
   100% {
     transform: translate3d(18vw, 110vh, 0) rotate(220deg);
     opacity: 0;
+  }
+}
+
+@keyframes vignette-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: calc(1 - var(--vignette-pulse, 0));
   }
 }

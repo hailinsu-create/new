@@ -2,6 +2,7 @@ import {
   sampleTimeline,
   textToVisemes,
   timelineDuration,
+  VisemeFilter,
   type VisemeEvent,
   type VisemeId,
   type VisemeSample,
@@ -46,6 +47,7 @@ export class SpeechDriver {
   private lastCharIndex = -1;
   private hold: VisemeSample | null = null;
   private listeners: SpeechListeners = {};
+  private filter = new VisemeFilter();
   muted = false;
 
   get speaking(): boolean {
@@ -83,6 +85,7 @@ export class SpeechDriver {
     this.startedAt = performance.now();
     this.playing = true;
     this.lastCharIndex = -1;
+    this.filter.reset();
     this.listeners.onStart?.();
 
     const resolved = this.resolveMode(mode);
@@ -103,7 +106,7 @@ export class SpeechDriver {
       this.finish();
       return sampleTimeline([], 0);
     }
-    const sample = sampleTimeline(this.events, time);
+    const sample = this.filter.sample(sampleTimeline(this.events, time), now);
     if (sample.index !== this.lastCharIndex && sample.char) {
       this.lastCharIndex = sample.index;
       this.listeners.onChar?.(sample.char, sample.index);

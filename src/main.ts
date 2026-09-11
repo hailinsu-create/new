@@ -7,6 +7,7 @@ import {
   EXPRESSION_LABELS,
   type Expression,
 } from "./avatar/rig";
+import { MOTION } from "./avatar/motion";
 import {
   VISEME_IDS,
   VISEME_SHAPE,
@@ -151,6 +152,8 @@ speech.configure({
   onEnd: () => {
     setStatus("庭中又静下来。");
     renderCaption("");
+    (window as Window & { __MOXI?: { ready?: boolean } }).__MOXI &&
+      document.dispatchEvent(new CustomEvent("moxi-speech-end"));
   },
   onChar: (char, index) => renderCaption(textarea.value, index, char),
 });
@@ -184,8 +187,29 @@ function setStatus(message: string, kind: "ok" | "error" = "ok"): void {
   status.className = kind === "error" ? "status is-error" : "status";
 }
 
+function applyAtmosphere(name: Expression): void {
+  const a = MOTION.atmosphere;
+  const rootStyle = document.documentElement.style;
+  const lantern = a.lanternSync > 0 ? 1 / Math.max(0.12, MOTION.breath.hz) : 3.6;
+  rootStyle.setProperty("--lantern-dur", `${lantern.toFixed(2)}s`);
+  rootStyle.setProperty("--courtyard-dur", `${a.courtyard}s`);
+  rootStyle.setProperty("--firefly-op", String(0.15 * a.firefly));
+  rootStyle.setProperty("--petal-scale", String(a.petal));
+  rootStyle.setProperty("--vignette-pulse", String(a.vignettePulse));
+  rootStyle.setProperty("--vignette-dur", "7s");
+  let warmth = a.warmth;
+  if (name === "smile" || name === "laugh") warmth += 0.03;
+  if (name === "sad" || name === "sleepy") warmth -= 0.02;
+  warmth = Math.max(0, Math.min(0.12, warmth));
+  rootStyle.setProperty(
+    "--courtyard-filter",
+    warmth > 0.001 ? `sepia(${warmth.toFixed(3)}) saturate(${(1 + warmth * 0.4).toFixed(3)})` : "none",
+  );
+}
+
 function setExpression(name: Expression): void {
   rig.setExpression(name);
+  applyAtmosphere(name);
   for (const [key, button] of faceButtons) {
     button.classList.toggle("is-on", key === name);
   }
@@ -271,6 +295,8 @@ function watchViseme(): void {
   }
   requestAnimationFrame(watchViseme);
 }
+
+document.addEventListener("moxi-speech-end", () => rig.notifySpeechEnd());
 
 const api = {
   ready: false,

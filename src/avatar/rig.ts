@@ -3,7 +3,18 @@ import {
   type VisemeId,
   type VisemeSample,
 } from "./viseme";
-import { BlinkController, HairSystem, type Lids } from "./motion";
+import {
+  AfterglowController,
+  BlinkController,
+  BreathSystem,
+  GazeController,
+  HairSystem,
+  IdleDirector,
+  MOTION,
+  emptyLids,
+  type BreathState,
+  type Lids,
+} from "./motion";
 
 export const EXPRESSIONS = [
   "neutral",
@@ -230,10 +241,12 @@ function emptyPose(): FacePose {
 }
 
 function integrate(current: FacePose, velocity: FacePose, target: FacePose, dt: number): void {
+  const k = MOTION.face.transK;
+  const damp = MOTION.face.transDamp;
   for (const key of POSE_KEYS) {
     const error = target[key] - current[key];
-    velocity[key] += error * 0.2 * dt;
-    velocity[key] *= Math.pow(0.62, dt);
+    velocity[key] += error * k * dt;
+    velocity[key] *= Math.pow(damp, dt);
     current[key] += velocity[key] * dt;
     if (Math.abs(error) < 0.001 && Math.abs(velocity[key]) < 0.002) {
       current[key] = target[key];
@@ -268,11 +281,19 @@ export class AvatarRig {
   private targetLookY = 0;
   private readonly blinkCtrl = new BlinkController();
   private readonly hairSys = new HairSystem();
-  private lastLids: Lids = { left: 1, right: 1 };
+  private readonly gaze = new GazeController();
+  private readonly breathSys = new BreathSystem();
+  private readonly idle = new IdleDirector();
+  private readonly afterglow = new AfterglowController();
+  private lastLids: Lids = emptyLids();
   private bounce = 0;
   private saccadeX = 0;
   private saccadeY = 0;
   private nextSaccadeAt = 1.4;
+  private freezeUntil = 0;
+  private lastVisemeId: VisemeId = "rest";
+  private wasSpeaking = false;
+  private shyPeekT = 0;
   private hooks: RigHooks;
   visemeId: VisemeId = "rest";
   speaking = false;
@@ -314,6 +335,10 @@ export class AvatarRig {
     this.lastFrameAt = this.startedAt;
     this.blinkCtrl.reset(Math.floor(this.startedAt) || 1);
     this.hairSys.reset(Math.floor(this.startedAt) + 17);
+    this.gaze.reset(Math.floor(this.startedAt) + 23);
+    this.breathSys.reset();
+    this.idle.reset(Math.floor(this.startedAt) + 29);
+    this.afterglow.reset();
     this.frameId = requestAnimationFrame(this.tick);
   }
 
@@ -332,8 +357,12 @@ export class AvatarRig {
       this.poseVel[key] += (next[key] - this.pose[key]) * 0.22;
     }
     this.expression = name;
-    this.hairSys.impulse(0.05);
+    this.hairSys.impulse(MOTION.face.exprImpulse);
     this.bounce = name === "laugh" ? 1 : name === "surprise" ? 0.62 : 0.28;
+    if (name === "surprise" && MOTION.face.surpriseFreeze > 0 && this.running) {
+      this.freezeUntil = (performance.now() - this.startedAt) / 1000 + MOTION.face.surpriseFreeze;
+    }
+    if (name === "shy") this.shyPeekT = 0;
     if (this.running && name !== "wink" && name !== "sleepy" && name !== "laugh") {
       this.blinkCtrl.trigger((performance.now() - this.startedAt) / 1000, name);
     }
@@ -345,6 +374,10 @@ export class AvatarRig {
 
   impulse(strength = 0.08): void {
     this.hairSys.impulse(strength);
+  }
+
+  notifySpeechEnd(): void {
+    this.afterglow.trigger();
   }
 
   debugMotion(): {
@@ -384,11 +417,13 @@ export class AvatarRig {
     this.hairSys.impulse(delta * 0.055);
     this.targetLookX = nextX;
     this.targetLookY = clamp(((event.clientY - bounds.top) / bounds.height - 0.5) * 2, -1, 1);
+    this.gaze.setPointer(this.targetLookX, this.targetLookY);
   };
 
   private readonly onPointerLeave = () => {
     this.targetLookX = 0;
     this.targetLookY = 0;
+    this.gaze.setPointer(0, 0);
   };
 
   private readonly tick = (now: number) => {
@@ -397,56 +432,104 @@ export class AvatarRig {
     const dt = Math.min(2, Math.max(0.25, (now - this.lastFrameAt) / 16.67));
     this.lastFrameAt = now;
 
+    const mouth = this.hooks.sampleMouth();
+    this.visemeId = mouth.id;
+    this.speaking = mouth.speaking;
+    if (mouth.id !== this.lastVisemeId) {
+      this.blinkCtrl.notifyViseme(seconds, mouth.id, this.expression, mouth.speaking);
+      this.lastVisemeId = mouth.id;
+    }
+    if (this.wasSpeaking && !mouth.speaking) this.afterglow.trigger();
+    this.wasSpeaking = mouth.speaking;
+
+    const idleState = this.idle.step(seconds, mouth.speaking, this.expression);
+    const glow = this.afterglow.step(Math.min(0.05, Math.max(1 / 240, dt * 0.01667)));
+
     const target = { ...POSES[this.expression] };
     if (this.expression === "neutral") {
-      target.mouthCurve = 0.28 + Math.sin(seconds * 1.55) * 0.04;
-      target.lowerLid = 0.08 + Math.sin(seconds * 0.85) * 0.05;
-      target.browRaise = Math.sin(seconds * 1.05) * 0.06;
+      target.mouthCurve = 0.28 + Math.sin(seconds * 1.55) * 0.04 + idleState.mouthCurveAdd + glow.mouth;
+      target.lowerLid = 0.08 + Math.sin(seconds * 0.85) * 0.05 + idleState.lowerLidAdd;
+      target.browRaise = Math.sin(seconds * 1.05) * 0.06 + idleState.browAdd;
     } else if (this.expression === "smile") {
       target.lowerLid = 0.82 + Math.sin(seconds * 1.3) * 0.05;
       target.mouthCurve = 0.9 + Math.sin(seconds * 2.1) * 0.03;
+      const asym = MOTION.face.smileAsym;
+      target.leftOpen = 0.78 - asym * 0.12;
+      target.rightOpen = 0.78 + asym * 0.08;
     } else if (this.expression === "sleepy") {
       const droop = 0.5 + 0.5 * Math.sin(seconds * 0.52);
       target.leftOpen = 0.3 + droop * 0.1;
       target.rightOpen = 0.28 + droop * 0.1;
+    } else if (this.expression === "shy" && MOTION.face.shyPeek > 0) {
+      this.shyPeekT += dt * 0.01667;
+      const peek = 0.5 + 0.5 * Math.sin(this.shyPeekT * 0.7);
+      target.lookBiasX = lerp(0.34, 0.06, peek * MOTION.face.shyPeek);
+      target.lookBiasY = lerp(0.3, 0.08, peek * MOTION.face.shyPeek);
     }
-    integrate(this.pose, this.poseVel, target, dt);
+    if (mouth.speaking && MOTION.viseme.mouthCurveTalk > 0) {
+      target.mouthCurve += mouth.shape.curve * MOTION.viseme.mouthCurveTalk * 0.25;
+    }
+    if (seconds >= this.freezeUntil) {
+      integrate(this.pose, this.poseVel, target, dt);
+    }
     if (this.expression === "wink") {
       this.pose.leftOpen += (0 - this.pose.leftOpen) * (1 - Math.pow(0.48, dt));
     }
     this.bounce *= Math.pow(0.9, dt);
 
-    if (seconds > this.nextSaccadeAt && this.expression !== "shy") {
-      this.saccadeX = (Math.random() - 0.5) * 0.32;
-      this.saccadeY = (Math.random() - 0.5) * 0.14;
-      this.nextSaccadeAt = seconds + 2.1 + Math.random() * 2.8;
-      this.blinkCtrl.notifySaccade(seconds, this.expression);
-    }
-    this.saccadeX *= Math.pow(0.92, dt);
-    this.saccadeY *= Math.pow(0.92, dt);
-
-    this.lookX += (clamp(this.targetLookX + this.pose.lookBiasX + this.saccadeX, -1, 1) - this.lookX) * 0.075;
-    this.lookY += (clamp(this.targetLookY + this.pose.lookBiasY + this.saccadeY, -1, 1) - this.lookY) * 0.075;
-
-    const mouth = this.hooks.sampleMouth();
-    this.visemeId = mouth.id;
-    this.speaking = mouth.speaking;
-
     const dtSec = Math.min(0.05, Math.max(1 / 240, dt * 0.01667));
+    const lookBiasX = this.pose.lookBiasX + idleState.lookBiasX;
+    const lookBiasY = this.pose.lookBiasY + idleState.lookBiasY + glow.lookY;
+    if (MOTION.gaze.autoSaccade > 0) {
+      const g = this.gaze.step(dtSec, seconds, {
+        speaking: mouth.speaking,
+        energy: mouth.energy,
+        expression: this.expression,
+        lookBiasX,
+        lookBiasY,
+      });
+      if (this.gaze.didSaccade()) this.blinkCtrl.notifySaccade(seconds, this.expression);
+      this.lookX = g.x;
+      this.lookY = g.y;
+    } else {
+      if (seconds > this.nextSaccadeAt && this.expression !== "shy") {
+        this.saccadeX = (Math.random() - 0.5) * MOTION.gaze.saccadeAmpX;
+        this.saccadeY = (Math.random() - 0.5) * MOTION.gaze.saccadeAmpY;
+        this.nextSaccadeAt = seconds + MOTION.gaze.saccadeMin + Math.random() * (MOTION.gaze.saccadeMax - MOTION.gaze.saccadeMin);
+        this.blinkCtrl.notifySaccade(seconds, this.expression);
+      }
+      this.saccadeX *= Math.pow(0.92, dt);
+      this.saccadeY *= Math.pow(0.92, dt);
+      this.gaze.setPointer(this.targetLookX, this.targetLookY);
+      const g = this.gaze.step(dtSec, seconds, {
+        speaking: mouth.speaking,
+        energy: mouth.energy,
+        expression: this.expression,
+        lookBiasX: lookBiasX + this.saccadeX,
+        lookBiasY: lookBiasY + this.saccadeY,
+      });
+      this.lookX = g.x;
+      this.lookY = g.y;
+    }
+
+    const breath = this.breathSys.step(dtSec, seconds, mouth.speaking, mouth.energy, idleState.breathBoost);
+    this.hairSys.setBreath(breath.chest);
     this.hairSys.step(dtSec, seconds, {
       lookX: this.lookX,
       wind: this.hooks.wind(),
       speaking: mouth.speaking,
       energy: mouth.energy,
     });
-    const lids = this.blinkCtrl.sample(seconds, this.expression, mouth.speaking);
+    const lids = this.blinkCtrl.sample(seconds, this.expression, mouth.speaking, mouth.energy);
     this.lastLids = lids;
-    this.compose(this.lastLids, seconds, mouth);
-    this.drawStage(seconds);
+    this.pose.browRaise -= lids.browDip * 0.35;
+    this.pose.lowerLid = clamp(this.pose.lowerLid + lids.cheek * 0.25, 0, 1.2);
+    this.compose(this.lastLids, seconds, mouth, breath);
+    this.drawStage(seconds, breath);
     this.frameId = requestAnimationFrame(this.tick);
   };
 
-  private compose(lids: Lids, seconds: number, mouth: VisemeSample): void {
+  private compose(lids: Lids, seconds: number, mouth: VisemeSample, _breath?: BreathState): void {
     if (!this.assets) return;
     const context = this.portraitCtx;
     context.clearRect(0, 0, W, H);
@@ -477,7 +560,7 @@ export class AvatarRig {
     context.ellipse(748, 334, 176, 208, -0.08, 0, Math.PI * 2);
     context.clip("evenodd");
     const hairAngle = this.hairSys.hair.angle;
-    const hairSag = this.hairSys.hair.sag;
+    const hairSag = this.hairSys.hair.sag + this.hairSys.nape.angle * 0.35;
     context.translate(526, 292);
     context.rotate(hairAngle);
     context.translate(-526, -292);
@@ -684,8 +767,35 @@ export class AvatarRig {
     );
     this.drawSparkle(FACE.eyeLeft, leftOpen, -1, seconds);
     this.drawSparkle(FACE.eyeRight, rightOpen, 1, seconds);
+    this.drawLashes(FACE.eyeLeft, leftOpen, lids.lash, -1);
+    this.drawLashes(FACE.eyeRight, rightOpen, lids.lash, 1);
     if (leftOpen < 0.2) this.drawClosedEye(FACE.eyeLeft, leftOpen < 0.12 ? 1 : 1 - leftOpen / 0.2, -1);
     if (rightOpen < 0.2) this.drawClosedEye(FACE.eyeRight, rightOpen < 0.12 ? 1 : 1 - rightOpen / 0.2, 1);
+  }
+
+  private drawLashes(center: { x: number; y: number }, open: number, amount: number, side: -1 | 1): void {
+    const closed = (1 - clamp(open, 0, 1)) * amount;
+    if (closed < 0.04) return;
+    const context = this.featureCtx;
+    context.save();
+    context.translate(center.x + this.lookX * 2.4, center.y + this.lookY * 1.4);
+    context.rotate(MOUTH_TILT * 0.2);
+    context.strokeStyle = `rgba(32, 24, 28, ${0.35 + closed * 0.4})`;
+    context.lineWidth = 0.7;
+    context.lineCap = "round";
+    const n = 5;
+    for (let i = 0; i < n; i += 1) {
+      const u = (i / (n - 1) - 0.5) * 2;
+      const x = u * 22;
+      const y = -2 - (1 - open) * 2;
+      const tipX = x + side * 1.2 + u * 2;
+      const tipY = y - 3.4 - closed * 2.8 - Math.abs(u) * 0.8;
+      context.beginPath();
+      context.moveTo(x, y);
+      context.quadraticCurveTo(x + side * 0.8, y - 1.6, tipX, tipY);
+      context.stroke();
+    }
+    context.restore();
   }
 
   private drawEye(
@@ -764,9 +874,13 @@ export class AvatarRig {
     const amount = this.pose.sparkle * Math.max(0, open - 0.35);
     if (amount < 0.05) return;
     const context = this.featureCtx;
-    const pulse = 0.85 + 0.15 * Math.sin(seconds * 3.2 + side);
+    const pulse = 0.85 + 0.15 * Math.sin(seconds * MOTION.pupil.pulseHz * 8 + side);
+    const follow = 1 + MOTION.pupil.catchlightFollow;
     context.save();
-    context.translate(center.x + this.lookX * 4.2 + side * 3, center.y + this.lookY * 2.4 - 3);
+    context.translate(
+      center.x + this.lookX * 4.2 * follow + side * (3 + MOTION.gaze.vergence * 8),
+      center.y + this.lookY * 2.4 * follow - 3,
+    );
     context.beginPath();
     context.ellipse(0, 0, 14, 12, 0, 0, Math.PI * 2);
     context.clip();
@@ -851,9 +965,11 @@ export class AvatarRig {
     const amount = this.pose.blush;
     if (amount < 0.03) return;
     const context = this.portraitCtx;
-    const pulse = 0.85 + 0.15 * Math.sin(seconds * 2.05);
-    this.fillBlush(context, 631, 357, 38, amount * pulse * 0.72);
-    this.fillBlush(context, 855, 343, 36, amount * pulse * 0.66);
+    const breathWave = Math.sin(this.breathSys.phase);
+    const pulse = 0.85 + 0.15 * Math.sin(seconds * 2.05) + breathWave * MOTION.breath.blushCoupling * 0.08;
+    const squeeze = this.lastLids.cheek * 4;
+    this.fillBlush(context, 631, 357 + squeeze * 0.3, 38 + squeeze, amount * pulse * 0.72);
+    this.fillBlush(context, 855, 343 + squeeze * 0.3, 36 + squeeze, amount * pulse * 0.66);
   }
 
   private fillBlush(context: CanvasRenderingContext2D, x: number, y: number, radius: number, alpha: number): void {
@@ -869,11 +985,14 @@ export class AvatarRig {
     const amount = this.pose.tear;
     if (amount < 0.05) return;
     const context = this.portraitCtx;
-    const drip = (Math.sin(seconds * 2.4) + 1) * 0.5;
+    const phys = MOTION.face.tearPhysics;
+    const drip = phys > 0
+      ? Math.max(0, (seconds * 0.35 * phys) % 1.8) / 1.8
+      : (Math.sin(seconds * 2.4) + 1) * 0.5;
     context.save();
-    context.globalAlpha = amount * (0.55 + 0.45 * drip);
-    this.paintTear(context, 688, 326 + drip * 9);
-    this.paintTear(context, 770, 310 + drip * 8);
+    context.globalAlpha = amount * (0.55 + 0.45 * (phys > 0 ? Math.min(1, drip * 1.4) : drip));
+    this.paintTear(context, 688, 326 + drip * (phys > 0 ? 16 : 9));
+    this.paintTear(context, 770, 310 + drip * (phys > 0 ? 14 : 8));
     context.restore();
   }
 
@@ -890,15 +1009,19 @@ export class AvatarRig {
     context.fill();
   }
 
-  private drawStage(seconds: number): void {
+  private drawStage(seconds: number, breath?: BreathState): void {
     const context = this.ctx;
     const canvasWidth = this.canvas.width;
     const canvasHeight = this.canvas.height;
     context.clearRect(0, 0, canvasWidth, canvasHeight);
-    const breathing = Math.sin(seconds * 1.45);
+    const chest = breath ? breath.chest : Math.sin(seconds * 1.45) * MOTION.breath.chest;
+    const shoulder = breath?.shoulder ?? 0;
+    const crane = breath?.crane ?? 0;
+    const shawl = breath?.shawl ?? 0;
     const idleSway = Math.sin(seconds * 0.6);
-    const laughBounce = Math.sin(seconds * 13.5) * this.bounce * 2.6;
-    const talkBob = this.speaking ? Math.sin(seconds * 8.2) * 1.6 : 0;
+    const laughBounce = Math.sin(seconds * MOTION.talk.bounceHz) * this.bounce * 2.6;
+    const talkBob = this.speaking ? Math.sin(seconds * 8.2) * MOTION.talk.bob : 0;
+    const nod = this.speaking ? Math.sin(seconds * 5.4) * MOTION.talk.headNod * 8 : this.blinkCtrl.lastNod * 6;
     const scale = Math.min(canvasWidth / W, canvasHeight / H) * 1.08;
     const drawWidth = W * scale;
     const drawHeight = H * scale;
@@ -906,7 +1029,7 @@ export class AvatarRig {
     const originY =
       (canvasHeight - drawHeight) / 2 +
       canvasHeight * 0.06 +
-      (breathing * 2.5 + laughBounce + talkBob) * scale;
+      (chest * 1.15 + laughBounce + talkBob + nod) * scale;
     const sliceHeight = H / SLICES;
 
     context.save();
@@ -919,9 +1042,21 @@ export class AvatarRig {
       const normalizedY = sourceY / H;
       const headInfluence = Math.exp(-(((normalizedY - 0.28) / 0.34) ** 2));
       const chestInfluence = Math.exp(-(((normalizedY - 0.63) / 0.28) ** 2));
-      const xShift = (this.lookX * 6.5 * headInfluence + idleSway * 1.1) * scale;
+      const craneInfluence = Math.exp(-(((normalizedY - 0.52) / 0.08) ** 2));
+      const shawlInfluence = Math.exp(-(((normalizedY - 0.58) / 0.16) ** 2));
+      const shoulderInfluence = Math.exp(-(((normalizedY - 0.48) / 0.12) ** 2));
+      const xShift =
+        (this.lookX * MOTION.face.sliceLook * headInfluence +
+          idleSway * 1.1 +
+          crane * craneInfluence * 0.35 +
+          shawl * shawlInfluence * 0.25 +
+          shoulder * shoulderInfluence * 0.4) *
+        scale;
       const yShift =
-        (this.lookY * 4.2 * headInfluence - breathing * 2.2 * chestInfluence + laughBounce * 0.45 * headInfluence) *
+        (this.lookY * 4.2 * headInfluence -
+          chest * chestInfluence +
+          laughBounce * 0.45 * headInfluence +
+          nod * 0.2 * headInfluence) *
         scale;
       const horizontalScale = 1 - Math.abs(this.lookX) * 0.005 * headInfluence;
       const sliceWidth = drawWidth * horizontalScale;

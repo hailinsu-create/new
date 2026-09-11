@@ -1,3 +1,17 @@
+export const VISEME_TUNE = {
+  blend: 0.038,
+  lookahead: 0.028,
+  attack: 0.035,
+  release: 0.06,
+  jerkLimit: 16,
+  restHold: 0.14,
+  punctRest: 1.15,
+  closedHold: 1.14,
+  jawSplit: 0.2,
+  mouthCurveTalk: 0.16,
+  englishUnit: 1.08,
+};
+
 export const VISEME_IDS = [
   "rest",
   "A",
@@ -187,8 +201,10 @@ function appendSyllable(
   const onset = initialToViseme(initial);
   const nucleus = finalToViseme(final);
   let t = start;
+  const closedHold = VISEME_TUNE.closedHold || 1;
   if (onset && onset !== nucleus) {
-    t = push(events, t, 0.05, onset, char, index);
+    const onsetDur = 0.05 * (onset === "M" || onset === "F" ? closedHold : 1);
+    t = push(events, t, onsetDur, onset, char, index);
     t = push(events, t, 0.16, nucleus, char, index);
   } else {
     t = push(events, t, 0.2, nucleus, char, index);
@@ -262,7 +278,8 @@ export function textToVisemes(text: string): VisemeEvent[] {
       continue;
     }
     if (PUNCT.test(char)) {
-      t = push(events, t, char === "。" || char === "." ? 0.32 : 0.2, "rest", char, i);
+      const base = char === "。" || char === "." ? 0.32 : 0.2;
+      t = push(events, t, base * (VISEME_TUNE.punctRest || 1), "rest", char, i);
       i += 1;
       continue;
     }
@@ -283,7 +300,7 @@ export function textToVisemes(text: string): VisemeEvent[] {
       while (j < src.length && LATIN.test(src[j])) j += 1;
       const word = src.slice(i, j);
       const clusters = englishCluster(word);
-      const unit = Math.min(0.11, 0.42 / clusters.length);
+      const unit = Math.min(0.11, 0.42 / clusters.length) * (VISEME_TUNE.englishUnit || 1);
       for (const id of clusters) {
         t = push(events, t, unit, id, word, i);
       }
@@ -339,7 +356,7 @@ const REST_SAMPLE: VisemeSample = {
 export function sampleTimeline(
   events: readonly VisemeEvent[],
   time: number,
-  blend = 0.028,
+  blend = VISEME_TUNE.blend,
 ): VisemeSample {
   if (events.length === 0 || time < 0) return REST_SAMPLE;
   const end = timelineDuration(events);
@@ -366,6 +383,17 @@ export function sampleTimeline(
     const prev = events[currentIndex - 1];
     shape = lerpShape(VISEME_SHAPE[prev.id], shape, local / blend);
   }
+  const lookahead = VISEME_TUNE.lookahead;
+  if (lookahead > 0 && currentIndex + 1 < events.length) {
+    const remain = current.t + current.dur - time;
+    if (remain < lookahead) {
+      const next = events[currentIndex + 1];
+      shape = lerpShape(shape, VISEME_SHAPE[next.id], 1 - remain / lookahead);
+    }
+  }
+  if (VISEME_TUNE.jawSplit > 0 && (current.id === "A" || current.id === "O")) {
+    shape = { ...shape, open: shape.open * (1 + VISEME_TUNE.jawSplit * 0.12) };
+  }
 
   return {
     id: current.id,
@@ -375,6 +403,56 @@ export function sampleTimeline(
     speaking: true,
     energy: shape.open * 0.75 + shape.round * 0.2 + (current.id === "M" ? 0.35 : 0),
   };
+}
+
+export class VisemeFilter {
+  private shape: VisemeShape = { ...VISEME_SHAPE.rest };
+  private lastT = 0;
+  private lastRaw = REST_SAMPLE;
+  private restHoldUntil = -1;
+
+  reset(): void {
+    this.shape = { ...VISEME_SHAPE.rest };
+    this.lastT = 0;
+    this.lastRaw = REST_SAMPLE;
+    this.restHoldUntil = -1;
+  }
+
+  sample(raw: VisemeSample, nowMs: number): VisemeSample {
+    const dt = this.lastT === 0 ? 1 / 60 : Math.min(0.08, Math.max(1 / 240, (nowMs - this.lastT) / 1000));
+    this.lastT = nowMs;
+    const cfg = VISEME_TUNE;
+    let target = raw;
+    if (!raw.speaking && this.lastRaw.speaking && cfg.restHold > 0) {
+      this.restHoldUntil = nowMs / 1000 + cfg.restHold;
+    }
+    if (!raw.speaking && nowMs / 1000 < this.restHoldUntil && this.lastRaw.speaking) {
+      target = { ...this.lastRaw, speaking: false, energy: this.lastRaw.energy * 0.4 };
+    } else if (raw.speaking) {
+      this.lastRaw = raw;
+    }
+    const attack = cfg.attack > 0 ? cfg.attack : 0.018;
+    const release = cfg.release > 0 ? cfg.release : attack;
+    const keys: (keyof VisemeShape)[] = ["open", "width", "round", "teeth", "tongue", "closed", "curve"];
+    for (const key of keys) {
+      const toward = target.shape[key];
+      const cur = this.shape[key];
+      const rising = toward > cur;
+      const tau = rising ? attack : release;
+      const k = 1 - Math.exp(-dt / Math.max(0.008, tau));
+      let next = cur + (toward - cur) * k;
+      if (key === "open" && cfg.jerkLimit > 0) {
+        const maxDelta = cfg.jerkLimit * dt;
+        next = cur + Math.max(-maxDelta, Math.min(maxDelta, next - cur));
+      }
+      this.shape[key] = next;
+    }
+    return {
+      ...target,
+      shape: { ...this.shape },
+      energy: this.shape.open * 0.75 + this.shape.round * 0.2 + (target.id === "M" ? 0.35 : 0),
+    };
+  }
 }
 
 export function visemeLabel(id: VisemeId): string {
