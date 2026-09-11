@@ -1924,6 +1924,19 @@ func _assert_touch_parity(main) -> bool:
 		push_error("SMOKE_TOUCH_BTN_SIZE")
 		quit(44)
 		return false
+	main._refresh_touch_hud()
+	if main.touch_hud._btns.has("pack") and bool(main.touch_hud._btns["pack"].visible):
+		push_error("SMOKE_TOUCH_PACK_ON_YARD")
+		quit(44)
+		return false
+	if main.touch_hud._btns.has("door") and bool(main.touch_hud._btns["door"].visible):
+		push_error("SMOKE_TOUCH_DOOR_ON_YARD")
+		quit(44)
+		return false
+	if not main.touch_hud._btns.has("replay"):
+		push_error("SMOKE_NO_TOUCH_REPLAY")
+		quit(44)
+		return false
 	main.handle_android_back()
 	if main.pause_overlay == null or not main.pause_overlay.is_open():
 		push_error("SMOKE_ANDROID_BACK_NO_MENU")

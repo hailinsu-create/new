@@ -728,7 +728,12 @@ func _refresh_touch_hud() -> void:
 			phase_name = "SETUP"
 	var paused := phase == Phase.WATCHING and sim.paused
 	var hi := phase == Phase.WATCHING and sim.speed >= 1.5
-	touch_hud.refresh_phase(phase_name, paused, hi, sfx_muted, _event_log_open and event_log != null and event_log.visible)
+	var has_pack := level != null and bool(level.has_ammo_pack)
+	var has_door := level != null and level.door_cell.x >= 0
+	touch_hud.refresh_phase(
+		phase_name, paused, hi, sfx_muted, _event_log_open and event_log != null and event_log.visible,
+		has_pack, has_door
+	)
 	if touch_hud.has_method("set_next_wave"):
 		var show_wave := phase == Phase.WATCHING
 		var chip := ""
@@ -786,6 +791,8 @@ func apply_touch_command(cmd: String) -> void:
 			_on_door_pressed()
 		"clear":
 			_on_clear_pressed()
+		"replay":
+			_on_replay_pressed()
 		"rotate_cw":
 			if phase == Phase.SETUP and selected and selected.visible:
 				selected.rotate_by(15.0)

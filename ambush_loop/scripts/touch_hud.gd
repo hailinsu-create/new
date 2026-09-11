@@ -97,6 +97,7 @@ func _build() -> void:
 	_add(_row_watch, "pause", "暂停", Color(0.35, 0.38, 0.42))
 	_add(_row_watch, "speed", "倍速", Color(0.35, 0.38, 0.42))
 	_add_wave_chip(_row_watch)
+	_add(_row_watch, "replay", "复盘", Color(0.32, 0.42, 0.50))
 	_add(_row_watch, "mute", "静音", Color(0.35, 0.38, 0.42))
 	_add(_row_watch, "log", "日志", Color(0.32, 0.42, 0.44))
 	_add(_row_watch, "settings", "菜单", Color(0.32, 0.36, 0.40))
@@ -226,8 +227,20 @@ func set_hint(text: String) -> void:
 		_hint.text = text
 
 
-func refresh_phase(phase_name: String, watching_paused: bool, speed_hi: bool, muted: bool, log_open: bool) -> void:
+func refresh_phase(
+	phase_name: String,
+	watching_paused: bool,
+	speed_hi: bool,
+	muted: bool,
+	log_open: bool,
+	has_pack: bool = true,
+	has_door: bool = true
+) -> void:
 	_apply_safe_area()
+	if _row_setup:
+		_row_setup.visible = phase_name == "SETUP"
+	if _row_watch:
+		_row_watch.visible = phase_name != "SETUP"
 	match phase_name:
 		"SETUP":
 			set_hint("触控：点掩体部署 → ↺↻ 射界 → 警报锁死")
@@ -252,11 +265,15 @@ func refresh_phase(phase_name: String, watching_paused: bool, speed_hi: bool, mu
 	if _btns.has("fire"):
 		_btns["fire"].disabled = phase_name != "SETUP"
 	if _btns.has("pack"):
-		_btns["pack"].disabled = phase_name != "SETUP"
+		_btns["pack"].visible = has_pack
+		_btns["pack"].disabled = phase_name != "SETUP" or not has_pack
 	if _btns.has("trip"):
 		_btns["trip"].disabled = phase_name != "SETUP"
 	if _btns.has("door"):
-		_btns["door"].disabled = phase_name != "SETUP"
+		_btns["door"].visible = has_door
+		_btns["door"].disabled = phase_name != "SETUP" or not has_door
+	if _btns.has("replay"):
+		_btns["replay"].disabled = phase_name != "FAILED" and phase_name != "WON"
 	if _btns.has("rotate_cw"):
 		_btns["rotate_cw"].disabled = phase_name != "SETUP"
 	if _btns.has("rotate_ccw"):
