@@ -7,6 +7,7 @@ var label_text: String = ""
 ## Degrees: attacks from this facing get cover mitigation (blueprint P2).
 var protect_facing_deg: float = 0.0
 var protect_half_angle: float = 70.0
+var kit_id: String = "crate"
 
 const PREVIEW_RANGE := 64.0
 const PREVIEW_RAYS := 10
@@ -26,10 +27,11 @@ var _pulse_t: float = 0.0
 var _hold_p: float = 0.0
 
 
-func setup(id: int, text: String, protect_face: float = 0.0) -> void:
+func setup(id: int, text: String, protect_face: float = 0.0, p_kit: String = "crate") -> void:
 	slot_id = id
 	label_text = text
 	protect_facing_deg = protect_face
+	kit_id = p_kit if p_kit != "" else "crate"
 	if tag:
 		tag.text = text
 	_ensure_crate_look()
@@ -126,6 +128,91 @@ func _ensure_crate_look() -> void:
 	strap.z_index = 2
 	add_child(strap)
 	_crate_bits.append(strap)
+	_mount_kit_prop()
+
+
+func _mount_kit_prop() -> void:
+	match kit_id:
+		"pallet":
+			var slat := Polygon2D.new()
+			slat.name = "PalletSlat"
+			slat.polygon = PackedVector2Array([
+				Vector2(-14, -6), Vector2(14, -6), Vector2(14, -2), Vector2(-14, -2)
+			])
+			slat.color = Color(0.62, 0.48, 0.22, 0.92)
+			slat.z_index = 3
+			add_child(slat)
+			_crate_bits.append(slat)
+			var slat2 := Polygon2D.new()
+			slat2.name = "PalletSlat2"
+			slat2.polygon = PackedVector2Array([
+				Vector2(-14, 4), Vector2(14, 4), Vector2(14, 8), Vector2(-14, 8)
+			])
+			slat2.color = Color(0.52, 0.38, 0.16, 0.90)
+			slat2.z_index = 3
+			add_child(slat2)
+			_crate_bits.append(slat2)
+		"valve":
+			var wheel := Polygon2D.new()
+			wheel.name = "ValveWheel"
+			wheel.polygon = PackedVector2Array([
+				Vector2(0, -11), Vector2(8, -4), Vector2(8, 4), Vector2(0, 11),
+				Vector2(-8, 4), Vector2(-8, -4)
+			])
+			wheel.color = Color(0.22, 0.55, 0.46, 0.92)
+			wheel.z_index = 3
+			add_child(wheel)
+			_crate_bits.append(wheel)
+			var hub := Polygon2D.new()
+			hub.name = "ValveHub"
+			hub.polygon = PackedVector2Array([
+				Vector2(-3, -3), Vector2(3, -3), Vector2(3, 3), Vector2(-3, 3)
+			])
+			hub.color = Color(0.10, 0.22, 0.18, 0.95)
+			hub.z_index = 4
+			add_child(hub)
+			_crate_bits.append(hub)
+		"sleeper":
+			var tie := Polygon2D.new()
+			tie.name = "RailTie"
+			tie.polygon = PackedVector2Array([
+				Vector2(-16, -5), Vector2(16, -6), Vector2(15, 6), Vector2(-15, 5)
+			])
+			tie.color = Color(0.28, 0.22, 0.14, 0.92)
+			tie.z_index = 3
+			add_child(tie)
+			_crate_bits.append(tie)
+			var rail := Polygon2D.new()
+			rail.name = "RailBar"
+			rail.polygon = PackedVector2Array([
+				Vector2(-2, -12), Vector2(2, -12), Vector2(2, 12), Vector2(-2, 12)
+			])
+			rail.color = Color(0.55, 0.55, 0.48, 0.92)
+			rail.z_index = 4
+			add_child(rail)
+			_crate_bits.append(rail)
+		"drum":
+			var drum := Polygon2D.new()
+			drum.name = "OilDrum"
+			drum.polygon = PackedVector2Array([
+				Vector2(-9, -12), Vector2(9, -12), Vector2(11, -8), Vector2(11, 10),
+				Vector2(8, 14), Vector2(-8, 14), Vector2(-11, 10), Vector2(-11, -8)
+			])
+			drum.color = Color(0.55, 0.28, 0.10, 0.94)
+			drum.z_index = 3
+			add_child(drum)
+			_crate_bits.append(drum)
+			var band := Polygon2D.new()
+			band.name = "DrumBand"
+			band.polygon = PackedVector2Array([
+				Vector2(-11, -1), Vector2(11, -1), Vector2(11, 3), Vector2(-11, 3)
+			])
+			band.color = Color(0.18, 0.10, 0.06, 0.85)
+			band.z_index = 4
+			add_child(band)
+			_crate_bits.append(band)
+		_:
+			pass
 
 
 func _ensure_protect_arc() -> void:

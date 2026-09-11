@@ -1896,10 +1896,26 @@ func _make_slot(id: int, text: String, pos: Vector2) -> CoverSlot:
 	tag.add_theme_color_override("font_color", Color(0.65, 0.85, 0.7))
 	tag.z_index = 2
 	s.add_child(tag)
-	s.setup(id, text, 0.0)
+	s.setup(id, text, 0.0, cover_kit_for_level())
 	s.z_index = 0
 	s.z_as_relative = true
 	return s
+
+
+func cover_kit_for_level() -> String:
+	if level == null:
+		return "crate"
+	match str(level.atmosphere_id):
+		"warehouse":
+			return "pallet"
+		"pump":
+			return "valve"
+		"railcut":
+			return "sleeper"
+		"depot":
+			return "drum"
+		_:
+			return "crate"
 
 
 func _build_operators() -> void:

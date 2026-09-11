@@ -1103,7 +1103,21 @@ func _assert_atmosphere(main, tag: String) -> bool:
 		push_error("SMOKE_WALL_LANGUAGE %s got=%s" % [want, lang])
 		quit(49)
 		return false
-	print("SMOKE_OK_ATMO ", want, " wall=", lang)
+	var want_kit := {
+		"yard": "crate",
+		"warehouse": "pallet",
+		"pump": "valve",
+		"railcut": "sleeper",
+		"depot": "drum",
+	}
+	if main.cover_slots.is_empty() or str(main.cover_slots[0].kit_id) != str(want_kit.get(want, "crate")):
+		push_error(
+			"SMOKE_COVER_KIT %s got=%s"
+			% [want, main.cover_slots[0].kit_id if not main.cover_slots.is_empty() else "none"]
+		)
+		quit(49)
+		return false
+	print("SMOKE_OK_ATMO ", want, " wall=", lang, " kit=", main.cover_slots[0].kit_id)
 	return true
 
 
