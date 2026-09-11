@@ -452,7 +452,7 @@ func _show_briefing(level_id: String) -> void:
 		var sit := str(def.situation).strip_edges()
 		_brief_sit.visible = sit != ""
 		_brief_sit.text = sit
-	_fill_teach_bullets(def.teaching)
+	_fill_teach_bullets(def.teaching, str(def.must_bring).strip_edges())
 	_brief_body.text = def.tutorial
 	_fill_route_chips(def)
 	_reveal_modal(_brief)
@@ -851,7 +851,7 @@ func _stamp_chip(p_name: String, text: String, col: Color, min_size: Vector2) ->
 	return panel
 
 
-func _fill_teach_bullets(teaching: String) -> void:
+func _fill_teach_bullets(teaching: String, must_bring: String = "") -> void:
 	if _brief_teach == null:
 		return
 	for c in _brief_teach.get_children():
@@ -865,7 +865,14 @@ func _fill_teach_bullets(teaching: String) -> void:
 			parts.append(bit)
 	if parts.is_empty() and raw != "":
 		parts.append(raw)
+	var must := must_bring.strip_edges()
+	var must_shown := must != "" and _brief_must != null and _brief_must.visible
+	var must_head := must.substr(0, 8) if must.length() >= 8 else ""
 	for line in parts:
+		if must_shown and line.begins_with("这关必须带"):
+			continue
+		if must_head != "" and line.find(must_head) >= 0:
+			continue
 		var lab := Label.new()
 		lab.text = "·  %s" % line
 		lab.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
