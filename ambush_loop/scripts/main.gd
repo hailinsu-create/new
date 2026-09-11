@@ -1119,7 +1119,7 @@ func _apply_watch_layers() -> void:
 		var banner := _watch_letterbox.get_node_or_null("WatchBanner") as Label
 		if banner:
 			var spd := "暂停" if sim.paused else ("2×" if sim.speed >= 1.5 else "1×")
-			banner.text = "锁死观战  ·  %s  ·  t=%.1fs" % [spd, sim.time_sec()]
+			banner.text = "锁死观战  ·  %s  ·  t=%.1fs  ·  %s" % [spd, sim.time_sec(), watch_census_text()]
 	if _watch_vignette:
 		_watch_vignette.visible = cinema
 	if title_label:
@@ -5570,6 +5570,22 @@ func _update_hud() -> void:
 	_refresh_touch_hud()
 
 
+func watch_census_text() -> String:
+	var live_e := 0
+	var live_o := 0
+	var pending := 0
+	for e in enemies:
+		if e != null and is_instance_valid(e) and e.alive and e.active:
+			live_e += 1
+	for op in operators:
+		if op != null and op.visible and op.alive:
+			live_o += 1
+	for spec in pending_spawns:
+		if spec is Dictionary and not bool(spec.get("spawned", false)):
+			pending += 1
+	return "敌%d 待%d 员%d" % [live_e, pending, live_o]
+
+
 func _refresh_phase_chip() -> void:
 	if phase_chip == null:
 		return
@@ -5579,7 +5595,7 @@ func _refresh_phase_chip() -> void:
 			phase_chip.add_theme_color_override("font_color", Color(0.82, 0.90, 0.52))
 		Phase.WATCHING:
 			var spd := "暂停" if sim.paused else ("2×" if sim.speed >= 1.5 else "1×")
-			phase_chip.text = "锁死观战  %s  t=%.1fs" % [spd, sim.time_sec()]
+			phase_chip.text = "锁死观战  %s  t=%.1fs  %s" % [spd, sim.time_sec(), watch_census_text()]
 			phase_chip.add_theme_color_override("font_color", Color(1.0, 0.22, 0.14))
 		Phase.FAILED:
 			phase_chip.text = "阶段 · 失败穿梭"

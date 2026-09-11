@@ -2179,6 +2179,14 @@ func _assert_watch_juice(main) -> bool:
 		push_error("SMOKE_WATCH_CHIP %s" % chip)
 		quit(53)
 		return false
+	if not main.has_method("watch_census_text") or str(main.watch_census_text()).find("员") < 0:
+		push_error("SMOKE_NO_WATCH_CENSUS %s" % (main.watch_census_text() if main.has_method("watch_census_text") else "no_api"))
+		quit(53)
+		return false
+	if chip.find("员") < 0:
+		push_error("SMOKE_CHIP_NO_CENSUS %s" % chip)
+		quit(53)
+		return false
 	if typeof(main._tracer_pool) != TYPE_ARRAY:
 		push_error("SMOKE_TRACER_POOL_TYPE")
 		quit(53)
