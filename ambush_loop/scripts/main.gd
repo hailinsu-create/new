@@ -1178,6 +1178,7 @@ func _apply_watch_layers() -> void:
 			var night := LevelDef.mood_tag(level.level_id) if level else "初阵"
 			banner.text = "锁死观战  ·  %s  ·  %s  ·  t=%.1fs  ·  %s" % [night, spd, sim.time_sec(), watch_census_text()]
 		_refresh_watch_metronome()
+		_refresh_watch_clock()
 	if _watch_vignette:
 		_watch_vignette.visible = cinema
 	if title_label:
@@ -1236,6 +1237,51 @@ func _refresh_watch_metronome() -> void:
 			continue
 		var hot := i == beat and not sim.paused
 		pip.color = Color(0.92, 0.88, 0.42, 0.95) if hot else Color(0.62, 0.72, 0.38, 0.28)
+
+
+func _ensure_watch_clock() -> void:
+	if _watch_letterbox == null or not is_instance_valid(_watch_letterbox):
+		return
+	if _watch_letterbox.get_node_or_null("WatchClock") != null:
+		return
+	var lab := Label.new()
+	lab.name = "WatchClock"
+	lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	lab.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lab.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	lab.anchor_left = 1.0
+	lab.offset_left = -168.0
+	lab.offset_right = -12.0
+	lab.offset_top = 4.0
+	lab.offset_bottom = 26.0
+	lab.add_theme_font_override("font", NightOps.ui_font_bold())
+	lab.add_theme_font_size_override("font_size", 13)
+	lab.add_theme_color_override("font_color", Color(0.92, 0.88, 0.52))
+	lab.text = "t=0.0s"
+	_watch_letterbox.add_child(lab)
+
+
+func _refresh_watch_clock() -> void:
+	_ensure_watch_clock()
+	if _watch_letterbox == null:
+		return
+	var lab := _watch_letterbox.get_node_or_null("WatchClock") as Label
+	if lab == null:
+		return
+	lab.visible = phase == Phase.WATCHING
+	if phase != Phase.WATCHING:
+		return
+	lab.text = "t=%.1fs" % sim.time_sec()
+
+
+func watch_clock_text() -> String:
+	if _watch_letterbox == null:
+		return ""
+	var lab := _watch_letterbox.get_node_or_null("WatchClock") as Label
+	if lab == null:
+		return ""
+	return str(lab.text)
 
 
 func watch_metronome_visible() -> bool:
@@ -1470,6 +1516,7 @@ func _ensure_watch_cinema() -> void:
 		_watch_letterbox.add_child(bot_line)
 		_watch_letterbox.visible = false
 	_ensure_watch_metronome()
+	_ensure_watch_clock()
 	if _watch_vignette == null or not is_instance_valid(_watch_vignette):
 		_watch_vignette = Control.new()
 		_watch_vignette.name = "WatchVignette"

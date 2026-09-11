@@ -3476,6 +3476,19 @@ func _assert_iteration_slice(main) -> bool:
 		quit(71)
 		return false
 	print("SMOKE_OK_WAVE_PUNCH")
+	main._ensure_watch_cinema()
+	if not main.has_method("watch_clock_text"):
+		push_error("SMOKE_NO_WATCH_CLOCK")
+		quit(71)
+		return false
+	main.phase = main.Phase.WATCHING
+	main._refresh_watch_clock()
+	if str(main.watch_clock_text()).find("t=") < 0:
+		push_error("SMOKE_CLOCK_TEXT %s" % main.watch_clock_text())
+		quit(71)
+		return false
+	main.phase = main.Phase.SETUP
+	print("SMOKE_OK_WATCH_CLOCK")
 	return true
 
 
