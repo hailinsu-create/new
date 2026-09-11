@@ -13,6 +13,7 @@ var _background_paused: bool = false
 var _mood: AudioStreamPlayer
 var _mood_id: String = ""
 var _want_mood: bool = false
+var _mood_stream: AudioStreamWAV
 
 
 func _ready() -> void:
@@ -141,6 +142,7 @@ func _stop_music_hard() -> void:
 		_mood.stop()
 		_mood.stream = null
 	_music_stream = null
+	_mood_stream = null
 	_want_mood = false
 	_mood_id = ""
 
@@ -170,7 +172,8 @@ func _setup_music() -> void:
 	add_child(_music)
 	_mood = AudioStreamPlayer.new()
 	_mood.name = "MoodBed"
-	_mood.stream = _music_stream
+	_mood_stream = _build_mood_wav("yard")
+	_mood.stream = _mood_stream
 	_mood.bus = "Music" if AudioServer.get_bus_index("Music") >= 0 else "Master"
 	_mood.volume_db = -30.0
 	add_child(_mood)
@@ -220,6 +223,11 @@ func mission_mood_filter_hz(level_id: String) -> float:
 func play_mission_mood(level_id: String) -> void:
 	_mood_id = str(level_id)
 	_want_mood = has_mission_mood(_mood_id)
+	_mood_stream = _build_mood_wav(_mood_id)
+	if _mood != null and is_instance_valid(_mood):
+		if _mood.playing:
+			_mood.stop()
+		_mood.stream = _mood_stream
 	_apply_mood_params()
 	_apply_mood_mute()
 
@@ -232,15 +240,13 @@ func _mood_off_for_tier() -> bool:
 func _apply_mood_params() -> void:
 	if _mood == null or not is_instance_valid(_mood):
 		return
-	if _music_stream != null and _mood.stream != _music_stream:
-		_mood.stream = _music_stream
-	var pitch := mission_mood_pitch(_mood_id)
-	_mood.pitch_scale = pitch if pitch > 0.0 else 1.0
-	# Quiet layer; 省电 is off entirely. Filter is expressed as extra attenuation
-	# on darker missions so we reuse the same procedural WAV.
+	if _mood_stream != null and _mood.stream != _mood_stream:
+		_mood.stream = _mood_stream
+	# Distinct looping WAV per night; keep pitch near 1 so the bed itself reads.
+	_mood.pitch_scale = 1.0
 	var hz := mission_mood_filter_hz(_mood_id)
 	var dark := clampf((1600.0 - hz) / 1600.0, 0.0, 1.0)
-	_mood.volume_db = -30.0 - dark * 8.0
+	_mood.volume_db = -28.0 - dark * 6.0
 	if _watch_bed:
 		_mood.volume_db -= 4.0
 
@@ -276,6 +282,84 @@ func _build_bed_wav() -> AudioStreamWAV:
 		var s := sin(t * TAU * 46.0) * 0.016 * pulse
 		s += sin(t * TAU * 69.0) * 0.011 * pulse
 		s += sin(t * TAU * 92.5) * 0.005
+		var v := int(clampf(s, -1.0, 1.0) * 32767.0)
+		data.encode_s16(i * 2, v)
+	var st := AudioStreamWAV.new()
+	st.format = AudioStreamWAV.FORMAT_16_BITS
+	st.mix_rate = rate
+	st.stereo = false
+	st.data = data
+	st.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	st.loop_begin = 0
+	st.loop_end = n
+	return st
+
+
+func has_layered_mood() -> bool:
+	return _mood_stream != null and _mood != null and is_instance_valid(_mood)
+
+
+func _build_mood_wav(level_id: String) -> AudioStreamWAV:
+	## Second looping bed, distinct from the master drone. Headless never plays it.
+	var rate := 22050
+	var sec := 1.8
+	var n := int(sec * rate)
+	var data := PackedByteArray()
+	data.resize(n * 2)
+	var f1 := 46.0
+	var f2 := 69.0
+	var f3 := 92.5
+	var a1 := 0.014
+	var a2 := 0.009
+	var a3 := 0.004
+	var pulse_hz := 0.55
+	match str(level_id):
+		"warehouse":
+			f1 = 90.0
+			f2 = 128.0
+			f3 = 48.0
+			a1 = 0.012
+			pulse_hz = 0.38
+		"pump":
+			f1 = 58.0
+			f2 = 116.0
+			f3 = 29.0
+			a1 = 0.013
+			pulse_hz = 0.90
+		"railcut":
+			f1 = 210.0
+			f2 = 105.0
+			f3 = 420.0
+			a1 = 0.010
+			a3 = 0.003
+			pulse_hz = 1.35
+		"depot":
+			f1 = 32.0
+			f2 = 48.0
+			f3 = 18.0
+			a1 = 0.016
+			pulse_hz = 0.28
+		"radio":
+			f1 = 880.0
+			f2 = 220.0
+			f3 = 440.0
+			a1 = 0.006
+			a2 = 0.008
+			a3 = 0.004
+			pulse_hz = 1.8
+		_:
+			f1 = 52.0
+			f2 = 78.0
+			f3 = 104.0
+	for i in n:
+		var t := float(i) / float(rate)
+		var pulse := 0.62 + 0.38 * sin(t * TAU * pulse_hz)
+		var s := sin(t * TAU * f1) * a1 * pulse
+		s += sin(t * TAU * f2) * a2 * pulse
+		s += sin(t * TAU * f3) * a3
+		if str(level_id) == "radio":
+			var morse := 1.0 if fmod(t * 1.8, 1.0) < 0.18 or (fmod(t * 1.8, 1.0) > 0.32 and fmod(t * 1.8, 1.0) < 0.44) else 0.22
+			s *= morse
 		var v := int(clampf(s, -1.0, 1.0) * 32767.0)
 		data.encode_s16(i * 2, v)
 	var st := AudioStreamWAV.new()
