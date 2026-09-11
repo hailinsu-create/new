@@ -239,16 +239,18 @@ func refresh_phase(
 ) -> void:
 	_apply_safe_area()
 	if _row_setup:
-		_row_setup.visible = phase_name == "SETUP"
+		_row_setup.visible = phase_name == "SETUP" or phase_name == "SWEEP"
 	if _row_watch:
-		_row_watch.visible = phase_name != "SETUP"
+		_row_watch.visible = phase_name != "SETUP" and phase_name != "SWEEP"
 	match phase_name:
 		"SETUP":
-			set_hint("触控：点掩体部署 → ↺↻ 射界 → 警报锁死")
+			set_hint("触控：点队员/点地走 → 拾取匣 → 趴掩体 → 拉警报")
+		"SWEEP":
+			set_hint("打扫：走近尸体拾取 → 下一波或撤离")
 		"WATCHING":
-			set_hint("计划已锁死 — 暂停 / 倍速 / 中止 / 跳到终局，不能改部署")
+			set_hint("警报中 — 暂停 / 倍速 / 中止 / 手雷。走位等打扫")
 		"REPLAY":
-			set_hint("复盘只读 — 拖时间轴；警报钮返回布置")
+			set_hint("复盘只读 — 拖时间轴；警报钮返回搜刮")
 		_:
 			set_hint("点继续。菜单可清空记忆或回标题")
 	if _btns.has("pause"):
@@ -260,25 +262,25 @@ func refresh_phase(
 	if _btns.has("log"):
 		_btns["log"].text = "收日志" if log_open else "日志"
 	if _btns.has("alarm"):
-		_btns["alarm"].disabled = phase_name != "SETUP" and phase_name != "REPLAY"
+		_btns["alarm"].disabled = phase_name != "SETUP" and phase_name != "SWEEP" and phase_name != "REPLAY"
 	if _btns.has("clear"):
-		_btns["clear"].disabled = phase_name != "SETUP"
+		_btns["clear"].disabled = phase_name != "SETUP" and phase_name != "SWEEP"
 	if _btns.has("fire"):
-		_btns["fire"].disabled = phase_name != "SETUP"
+		_btns["fire"].disabled = phase_name != "SETUP" and phase_name != "SWEEP"
 	if _btns.has("pack"):
 		_btns["pack"].visible = has_pack
-		_btns["pack"].disabled = phase_name != "SETUP" or not has_pack
+		_btns["pack"].disabled = (phase_name != "SETUP" and phase_name != "SWEEP") or not has_pack
 	if _btns.has("trip"):
-		_btns["trip"].disabled = phase_name != "SETUP"
+		_btns["trip"].disabled = phase_name != "SETUP" and phase_name != "SWEEP"
 	if _btns.has("door"):
 		_btns["door"].visible = has_door
-		_btns["door"].disabled = phase_name != "SETUP" or not has_door
+		_btns["door"].disabled = (phase_name != "SETUP" and phase_name != "SWEEP") or not has_door
 	if _btns.has("replay"):
 		_btns["replay"].disabled = phase_name != "FAILED" and phase_name != "WON"
 	if _btns.has("rotate_cw"):
-		_btns["rotate_cw"].disabled = phase_name != "SETUP"
+		_btns["rotate_cw"].disabled = phase_name != "SETUP" and phase_name != "SWEEP"
 	if _btns.has("rotate_ccw"):
-		_btns["rotate_ccw"].disabled = phase_name != "SETUP"
+		_btns["rotate_ccw"].disabled = phase_name != "SETUP" and phase_name != "SWEEP"
 	if _btns.has("abort"):
 		_btns["abort"].disabled = phase_name != "WATCHING"
 	if _btns.has("skip"):
@@ -300,7 +302,7 @@ func _paint_lock_states(phase_name: String) -> void:
 		var lock := b.get_node_or_null("LockMark") as Label
 		if lock:
 			lock.visible = locked
-		if str(cmd) == "alarm" and phase_name == "SETUP" and not b.disabled:
+		if str(cmd) == "alarm" and (phase_name == "SETUP" or phase_name == "SWEEP") and not b.disabled:
 			b.modulate = Color(1.18, 0.92, 0.88)
 		if str(cmd) == "abort" and phase_name == "WATCHING" and not b.disabled:
 			b.modulate = Color(1.12, 0.85, 0.82)
