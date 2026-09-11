@@ -82,6 +82,7 @@ var cone_edge: Line2D = null
 var sel_ring: Line2D = null
 var face_chip: Label = null
 var pack_glyph: Polygon2D = null
+var dry_mark: Label = null
 var _selected_visual: bool = false
 var _land_pop: float = 0.0
 var _face_tick: float = 0.0
@@ -1406,20 +1407,56 @@ func _refresh_tag() -> void:
 	if not alive:
 		tag.text = "%s 阵亡" % display_name
 		tag.add_theme_color_override("font_color", Color(0.62, 0.62, 0.64))
+		_refresh_dry_mark()
 		return
 	var pack := "包" if has_ammo_pack and not ammo_pack_used else ("已用包" if has_ammo_pack else "")
 	var mode := "伏" if fire_mode == FireMode.HOLD_FOR_AMBUSH else "即"
 	if fire_mode == FireMode.HOLD_FOR_AMBUSH and not fire_permitted:
 		mode = "等"
-	if tag_emphasis:
+	if ammo <= 0:
+		if tag_emphasis:
+			tag.text = "%s  %s 空" % [display_name, mode]
+		else:
+			tag.text = "%s[%s] %s 空" % [display_name, role_short, mode]
+		tag.add_theme_color_override("font_color", Color(1.0, 0.42, 0.22))
+	elif tag_emphasis:
 		tag.text = "%s  %s 弹%d%s" % [
 			display_name, mode, ammo, (" " + pack) if pack != "" else ""
 		]
+		tag.add_theme_color_override("font_color", role_kit_color(role))
 	else:
 		tag.text = "%s[%s] %s 弹%d%s" % [
 			display_name, role_short, mode, ammo, (" " + pack) if pack != "" else ""
 		]
-	tag.add_theme_color_override("font_color", role_kit_color(role))
+		tag.add_theme_color_override("font_color", role_kit_color(role))
+	_refresh_dry_mark()
+
+
+func dry_gun_visible() -> bool:
+	return dry_mark != null and is_instance_valid(dry_mark) and dry_mark.visible and ammo <= 0 and alive
+
+
+func _refresh_dry_mark() -> void:
+	if dry_mark == null or not is_instance_valid(dry_mark):
+		dry_mark = get_node_or_null("DryMark") as Label
+	if dry_mark == null:
+		dry_mark = Label.new()
+		dry_mark.name = "DryMark"
+		dry_mark.text = "空"
+		dry_mark.add_theme_font_size_override("font_size", 14)
+		dry_mark.add_theme_font_override("font", NightOps.ui_font_bold())
+		dry_mark.add_theme_color_override("font_color", Color(1.0, 0.38, 0.18))
+		dry_mark.add_theme_color_override("font_shadow_color", Color(0.05, 0.01, 0.01, 0.95))
+		dry_mark.add_theme_constant_override("shadow_offset_x", 1)
+		dry_mark.add_theme_constant_override("shadow_offset_y", 1)
+		dry_mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		dry_mark.z_index = 6
+		dry_mark.position = Vector2(-8, -6)
+		add_child(dry_mark)
+	var show := visible and alive and ammo <= 0
+	dry_mark.visible = show
+	if show:
+		dry_mark.modulate = Color(1.2, 0.85, 0.7)
 
 
 static func angle_diff_deg(a: float, b: float) -> float:

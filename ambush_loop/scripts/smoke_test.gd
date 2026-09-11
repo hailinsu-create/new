@@ -3215,6 +3215,25 @@ func _assert_iteration_slice(main) -> bool:
 		quit(71)
 		return false
 	print("SMOKE_OK_HIT_TICK")
+	var dry_op: OperatorUnit = main.operators[0]
+	var ammo0: int = int(dry_op.ammo)
+	dry_op.ammo = 0
+	dry_op._refresh_tag()
+	if not dry_op.has_method("dry_gun_visible") or not bool(dry_op.dry_gun_visible()):
+		push_error("SMOKE_NO_DRY_GUN")
+		quit(71)
+		return false
+	if str(dry_op.tag.text).find("空") < 0:
+		push_error("SMOKE_DRY_GUN_TAG %s" % dry_op.tag.text)
+		quit(71)
+		return false
+	dry_op.ammo = ammo0
+	dry_op._refresh_tag()
+	if bool(dry_op.dry_gun_visible()):
+		push_error("SMOKE_DRY_GUN_STUCK")
+		quit(71)
+		return false
+	print("SMOKE_OK_DRY_GUN")
 	return true
 
 
