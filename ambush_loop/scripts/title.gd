@@ -347,6 +347,8 @@ func _mission_glyph(id: String) -> String:
 			return "塔"
 		"depot":
 			return "罐"
+		"radio":
+			return "讯"
 		_:
 			return "月"
 
@@ -361,6 +363,8 @@ func _mission_tint(id: String) -> Color:
 			return Color(0.95, 1.02, 0.78)
 		"depot":
 			return Color(1.14, 0.82, 0.48)
+		"radio":
+			return Color(0.78, 1.08, 1.16)
 		_:
 			return Color(0.92, 1.04, 0.88)
 
@@ -587,7 +591,7 @@ func _build_howto() -> void:
 
 
 func _build_mission_select() -> void:
-	var ui := _modal_panel(20, 580.0, 640.0)
+	var ui := _modal_panel(20, 580.0, 720.0)
 	_mission = ui["root"]
 	_mission_box = ui["box"]
 	var t := Label.new()
