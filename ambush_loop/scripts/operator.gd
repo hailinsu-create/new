@@ -1296,8 +1296,8 @@ func kit_card_text() -> String:
 		dep = slot.label_text
 	var cone := int(round(half_angle_deg * 2.0))
 	if not visible or slot == null:
-		return "%s [%s]  %s\n%s  弹%d/%d  锥%d°  射程%d" % [
-			display_name, role_short, dep, fire_mode_label(), ammo, max_ammo, cone, int(range_px)
+		return "%s [%s]  %s\n%s  %s  锥%d°  射程%d" % [
+			display_name, role_short, dep, fire_mode_label(), inventory_line(), cone, int(range_px)
 		]
 	return "%s [%s]  %s\n%s  弹%d/%d  锥%d°  射界朝%s %d°" % [
 		display_name,
