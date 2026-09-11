@@ -1177,6 +1177,7 @@ func _apply_watch_layers() -> void:
 			var spd := "暂停" if sim.paused else ("2×" if sim.speed >= 1.5 else "1×")
 			var night := LevelDef.mood_tag(level.level_id) if level else "初阵"
 			banner.text = "锁死观战  ·  %s  ·  %s  ·  t=%.1fs  ·  %s" % [night, spd, sim.time_sec(), watch_census_text()]
+		_refresh_watch_metronome()
 	if _watch_vignette:
 		_watch_vignette.visible = cinema
 	if title_label:
@@ -1184,6 +1185,64 @@ func _apply_watch_layers() -> void:
 	if phase_chip:
 		phase_chip.visible = not cinema
 	_refresh_watch_timeline()
+
+
+func _ensure_watch_metronome() -> void:
+	if _watch_letterbox == null or not is_instance_valid(_watch_letterbox):
+		return
+	if _watch_letterbox.get_node_or_null("Metronome") != null:
+		return
+	var top := _watch_letterbox.get_node_or_null("LetterboxTop") as Control
+	var top_h := 30.0
+	if top:
+		top_h = absf(top.offset_bottom)
+	var metro := HBoxContainer.new()
+	metro.name = "Metronome"
+	metro.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	metro.alignment = BoxContainer.ALIGNMENT_CENTER
+	metro.add_theme_constant_override("separation", 6)
+	metro.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	metro.offset_top = top_h - 8.0
+	metro.offset_bottom = top_h
+	metro.offset_left = 80.0
+	metro.offset_right = -80.0
+	_watch_letterbox.add_child(metro)
+	for i in 8:
+		var pip := ColorRect.new()
+		pip.name = "Pip%d" % i
+		pip.custom_minimum_size = Vector2(10, 4)
+		pip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		pip.color = Color(0.62, 0.72, 0.38, 0.28)
+		metro.add_child(pip)
+
+
+func _refresh_watch_metronome() -> void:
+	_ensure_watch_metronome()
+	if _watch_letterbox == null:
+		return
+	var metro := _watch_letterbox.get_node_or_null("Metronome") as HBoxContainer
+	if metro == null:
+		return
+	metro.visible = phase == Phase.WATCHING
+	if phase != Phase.WATCHING:
+		return
+	var rate := 2.0 if sim.speed >= 1.5 else 1.0
+	if sim.paused:
+		rate = 0.0
+	var beat := int(floor(sim.time_sec() * maxf(rate, 0.25) * 2.0)) % 8
+	for i in metro.get_child_count():
+		var pip := metro.get_child(i) as ColorRect
+		if pip == null:
+			continue
+		var hot := i == beat and not sim.paused
+		pip.color = Color(0.92, 0.88, 0.42, 0.95) if hot else Color(0.62, 0.72, 0.38, 0.28)
+
+
+func watch_metronome_visible() -> bool:
+	if _watch_letterbox == null:
+		return false
+	var metro := _watch_letterbox.get_node_or_null("Metronome")
+	return metro != null and metro.visible and metro.get_child_count() >= 8
 
 
 func _ensure_game_camera() -> void:
@@ -1410,6 +1469,7 @@ func _ensure_watch_cinema() -> void:
 		bot_line.offset_bottom = -bot_h + 2.0
 		_watch_letterbox.add_child(bot_line)
 		_watch_letterbox.visible = false
+	_ensure_watch_metronome()
 	if _watch_vignette == null or not is_instance_valid(_watch_vignette):
 		_watch_vignette = Control.new()
 		_watch_vignette.name = "WatchVignette"

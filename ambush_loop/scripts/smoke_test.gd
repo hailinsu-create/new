@@ -3387,6 +3387,17 @@ func _assert_iteration_slice(main) -> bool:
 		return false
 	barrel.free()
 	print("SMOKE_OK_BARREL_FUSE")
+	if not main.has_method("watch_metronome_visible"):
+		push_error("SMOKE_NO_METRONOME_API")
+		quit(71)
+		return false
+	main._ensure_watch_cinema()
+	var metro = main._watch_letterbox.get_node_or_null("Metronome") if main._watch_letterbox else null
+	if metro == null or metro.get_child_count() < 8:
+		push_error("SMOKE_NO_METRONOME_PIPS")
+		quit(71)
+		return false
+	print("SMOKE_OK_METRONOME")
 	return true
 
 
