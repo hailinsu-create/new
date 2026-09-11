@@ -3250,6 +3250,9 @@ func _nearest_slot(world_pos: Vector2, max_dist: float) -> CoverSlot:
 func _deploy_selected_to(slot: CoverSlot, announce: bool = true) -> void:
 	if selected == null:
 		return
+	var had_cover := selected.visible and selected.slot != null
+	var keep_deg := selected.facing_deg
+	var same_pad := selected.slot == slot
 	if selected.slot:
 		selected.slot.occupied_by = null
 		selected.slot.set_highlight(false)
@@ -3265,8 +3268,13 @@ func _deploy_selected_to(slot: CoverSlot, announce: bool = true) -> void:
 	selected.global_position = slot.global_position
 	var face := float(slot.get_meta("default_face"))
 	selected.reset_loadout()
-	selected.set_facing(face)
-	if selected.has_method("play_land_pop"):
+	# Re-click or pad-to-pad move keeps the aim the player already set.
+	# First drop onto a pad still uses the authored default face.
+	if had_cover:
+		selected.set_facing(keep_deg)
+	else:
+		selected.set_facing(face)
+	if selected.has_method("play_land_pop") and not same_pad:
 		selected.play_land_pop()
 	CombatFxScript.select_ping(selected, selected.global_position)
 	_refresh_selection_visual()

@@ -1677,6 +1677,19 @@ func _assert_engage_helpers(main) -> bool:
 		quit(40)
 		return false
 	print("SMOKE_OK_ENGAGE_HELPERS killzone=", main.killzone_draw.get_child_count())
+	# Redeploy must keep the facing the player already set (same pad and pad-to-pad).
+	op.set_facing(45.0)
+	main._deploy_selected_to(main.cover_slots[0], false)
+	if absf(float(main.selected.facing_deg) - 45.0) > 0.5:
+		push_error("SMOKE_REDEPLOY_RESET_FACE same=%s" % main.selected.facing_deg)
+		quit(40)
+		return false
+	main._deploy_selected_to(main.cover_slots[1], false)
+	if absf(float(main.selected.facing_deg) - 45.0) > 0.5:
+		push_error("SMOKE_MOVE_PAD_RESET_FACE got=%s" % main.selected.facing_deg)
+		quit(40)
+		return false
+	print("SMOKE_OK_KEEP_FACING")
 	main._on_clear_pressed()
 	return true
 
