@@ -16,7 +16,8 @@ top-down Godot vertical slice, not a Commandos clone.
 - **Authored toys:** tripwire (1), ammo pack, door→alternate route, warehouse proximity barrel (sim-tick only).
 - **Watch-only speed:** 1× / 2× must match tick + event fingerprint (smoke).
 - **Procedural audio:** short pooled WAV beeps on the **SFX** bus; looping WAV drone on **Music**. Mute with **M** (Master, both buses). Pause overlay has Music / SFX sliders. WATCHING ducks the bed slightly. No `AudioStreamGenerator`. No external audio assets.
-- **Title / settings / onboarding:** night-ops title, **mission select** (lock / 首通), briefing with night index, **战役档案** journal, Esc quit confirm on title, in-game Esc settings, first-run 3-step yard tutorial, left operator cards with role glyphs, win debrief + chain strip, campaign credits recap.
+- **Title / settings / onboarding:** night-ops title, **mission select** (lock / 首通), briefing with night index, **战役档案** journal (封印邮戳), Esc quit confirm on title, in-game Esc settings, first-run 3-step yard tutorial, left operator cards with role glyphs, win debrief + chain strip, **night-to-night letterbox handoff**, campaign credits recap.
+- **Second-layer trap path:** SETUP dashed arrow along the authored trap route; fail dossier names a miss and paints the leaked path until continue.
 - **Export presets:** Linux + Windows desktop + **Android APK** (`com.ambushloop.game`, arm64, minSdk 24). Touch HUD + Android back. Sideload APK still needs local export templates (see `docs/ANDROID.md`).
 
 ## Deferred (not this slice)
@@ -37,4 +38,4 @@ Post-launch roadmap: `docs/开发规划.md`（v3：安卓 APK 首发）。
 
 `godot --headless --path ambush_loop -s res://scripts/smoke_test.gd` prints `SMOKE_SLICE_COMPLETE` and `SMOKE_OK_LAUNCH_BAR` and exits 0.
 
-Includes: title scene + GameSettings + AudioDirector autoloads; mission list lock (6 nights: yard / warehouse / pump / railcut / depot / radio); campaign journal names 电台; yard escape → restore → 1×/2× fingerprint match → reference win + debrief + chain strip; abort keeps intel; squad wipe fail; fail intel wall + covered-vs-leak; warehouse barrel present; pump open + locked alternate route; railcut geometry + delayed-flank contract + reference win; depot three-route + 2.2s sneak + tripwire; radio 3.6s sneak + 5.2s echo kit queued + tripwire + campaign credits naming 电台; roles with distinct ranges; LOS clip.
+Includes: title scene + GameSettings + AudioDirector autoloads; mission list lock (6 nights: yard / warehouse / pump / railcut / depot / radio); campaign journal names 电台; yard escape → restore → 1×/2× fingerprint match → reference win + debrief + chain strip; abort keeps intel; squad wipe fail; fail intel wall + covered-vs-leak + second-layer miss + leak paint; warehouse barrel present; pump open + locked alternate route; railcut geometry + delayed-flank contract + reference win; depot three-route + 2.2s sneak + tripwire; radio 3.6s sneak + 5.2s echo kit queued + tripwire + campaign credits naming 电台; night handoff copy; roles with distinct ranges; LOS clip.
