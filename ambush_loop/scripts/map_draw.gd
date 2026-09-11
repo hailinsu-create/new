@@ -786,6 +786,11 @@ func _landmark_yard(c: CanvasItem) -> void:
 	c.draw_rect(Rect2(8.4 * t, 14.3 * t, 14.0, 18.0), Color(0.16, 0.18, 0.12, 0.62))
 	c.draw_rect(Rect2(8.5 * t, 14.2 * t, 12.0, 4.0), Color(0.22, 0.24, 0.16, 0.55))
 	c.draw_circle(Vector2(8.85 * t, 14.55 * t), 3.0, Color(0.32, 0.38, 0.22, 0.45))
+	# Courtyard well ring south of the west lamp, off the spine.
+	var well := Vector2(10.6 * t, 16.6 * t)
+	c.draw_circle(well, 10.0, Color(0.12, 0.14, 0.10, 0.55))
+	c.draw_circle(well, 6.0, Color(0.06, 0.08, 0.06, 0.70))
+	c.draw_arc(well, 10.0, 0.2, 5.6, 10, Color(0.28, 0.32, 0.22, 0.55), 1.6, true)
 
 
 func _landmark_warehouse(c: CanvasItem) -> void:
@@ -821,6 +826,12 @@ func _landmark_warehouse(c: CanvasItem) -> void:
 	# Oil stain on the south loading stripe.
 	c.draw_circle(Vector2(22.6 * t, 17.55 * t), 10.0, Color(0.08, 0.10, 0.06, 0.32))
 	c.draw_circle(Vector2(23.2 * t, 17.7 * t), 6.0, Color(0.12, 0.14, 0.08, 0.22))
+	# Conveyor rollers along the east shelf face (blocked cells).
+	for i in 4:
+		var rx := 26.2 * t + float(i) * 10.0
+		var ry := 11.35 * t
+		c.draw_circle(Vector2(rx, ry), 4.0, Color(0.22, 0.16, 0.08, 0.55))
+		c.draw_rect(Rect2(rx - 4.0, ry - 2.0, 8.0, 4.0), Color(0.38, 0.28, 0.10, 0.40))
 
 
 func _landmark_pump(c: CanvasItem) -> void:
@@ -859,6 +870,11 @@ func _landmark_pump(c: CanvasItem) -> void:
 	var hose := Vector2(18.6 * t, 15.2 * t)
 	c.draw_arc(hose, 10.0, 0.2, 5.8, 12, Color(0.16, 0.32, 0.28, 0.55), 3.0, true)
 	c.draw_arc(hose, 6.0, 0.8, 6.4, 10, Color(0.22, 0.42, 0.36, 0.45), 2.2, true)
+	# Pressure gauge on the east machine face.
+	var gauge := Vector2(26.4 * t, 13.4 * t)
+	c.draw_circle(gauge, 8.0, Color(0.12, 0.18, 0.16, 0.75))
+	c.draw_circle(gauge, 5.0, Color(0.28, 0.55, 0.42, 0.45))
+	c.draw_line(gauge, gauge + Vector2(3.0, -4.0), Color(0.92, 0.28, 0.16, 0.80), 1.4, true)
 
 
 func _landmark_railcut(c: CanvasItem) -> void:
@@ -894,6 +910,10 @@ func _landmark_railcut(c: CanvasItem) -> void:
 	c.draw_rect(Rect2(33.2 * t, 12.2 * t, 12.0, 16.0), Color(0.14, 0.14, 0.12, 0.70))
 	c.draw_rect(Rect2(33.4 * t, 12.4 * t, 8.0, 5.0), Color(0.85, 0.28, 0.14, 0.55))
 	c.draw_rect(Rect2(33.4 * t, 13.1 * t, 8.0, 4.0), Color(0.18, 0.42, 0.22, 0.45))
+	# Milepost on the west corridor, off the spine walk.
+	c.draw_rect(Rect2(11.35 * t, 10.2 * t, 5.0, 22.0), Color(0.16, 0.14, 0.10, 0.70))
+	c.draw_rect(Rect2(11.15 * t, 10.0 * t, 10.0, 8.0), Color(0.85, 0.28, 0.14, 0.55))
+	c.draw_rect(Rect2(11.25 * t, 10.15 * t, 7.0, 2.0), Color(0.92, 0.82, 0.22, 0.50))
 
 
 func _landmark_depot(c: CanvasItem) -> void:
@@ -938,6 +958,10 @@ func _landmark_depot(c: CanvasItem) -> void:
 	# Drip pan under the east tank stair.
 	c.draw_rect(Rect2(23.4 * t, 13.6 * t, 28.0, 8.0), Color(0.18, 0.10, 0.05, 0.45))
 	c.draw_rect(Rect2(23.6 * t, 13.75 * t, 24.0, 3.0), Color(0.42, 0.22, 0.08, 0.28))
+	# Fill nozzle hanging off the east pipe run.
+	c.draw_rect(Rect2(27.6 * t, 11.15 * t, 16.0, 5.0), Color(0.28, 0.14, 0.06, 0.60))
+	c.draw_circle(Vector2(28.7 * t, 11.55 * t), 5.0, Color(0.42, 0.22, 0.08, 0.55))
+	c.draw_rect(Rect2(28.4 * t, 11.55 * t, 4.0, 10.0), Color(0.18, 0.10, 0.05, 0.55))
 
 
 func _landmark_radio(c: CanvasItem) -> void:
@@ -978,6 +1002,13 @@ func _landmark_radio(c: CanvasItem) -> void:
 		var by := 18.15 * t
 		c.draw_rect(Rect2(bx, by, 14.0, 8.0), Color(0.28, 0.24, 0.14, 0.55))
 		c.draw_rect(Rect2(bx + 1.0, by + 1.0, 12.0, 3.0), Color(0.38, 0.32, 0.16, 0.40))
+	# Horn speaker on the east annex roof.
+	var horn := Vector2(27.6 * t, 8.15 * t)
+	c.draw_circle(horn, 6.0, Color(0.18, 0.28, 0.32, 0.70))
+	c.draw_colored_polygon(
+		PackedVector2Array([horn + Vector2(4, -3), horn + Vector2(16, -8), horn + Vector2(16, 8), horn + Vector2(4, 3)]),
+		Color(0.32, 0.62, 0.72, 0.50)
+	)
 
 
 func _draw_signature_silhouette(c: CanvasItem) -> void:
