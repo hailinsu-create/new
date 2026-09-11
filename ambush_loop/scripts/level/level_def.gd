@@ -231,6 +231,36 @@ static func campaign_recap_body() -> String:
 	return "\n".join(lines)
 
 
+static func handoff_title(from_id: String, to_id: String) -> String:
+	## Letterbox kicker between nights. Presentation only.
+	return "第%d夜已封锁  ·  下一夜：%s" % [night_index(from_id) + 1, mood_tag(to_id)]
+
+
+static func handoff_body(from_id: String, to_id: String) -> String:
+	var from_def: LevelDef = by_id(from_id)
+	var to_def: LevelDef = by_id(to_id)
+	var beat := str(from_def.campaign_beat).strip_edges()
+	var sit := str(to_def.situation).strip_edges()
+	var hook := str(to_def.highlight_hook).strip_edges()
+	var lines: PackedStringArray = PackedStringArray()
+	if beat != "":
+		lines.append(beat)
+	lines.append("")
+	lines.append("下一夜 · %s" % to_def.title)
+	if sit != "":
+		lines.append(sit)
+	if hook != "":
+		lines.append("高光 · %s" % hook)
+	var must := str(to_def.must_bring).strip_edges()
+	if must != "":
+		lines.append("必须带 · %s" % must)
+	return "\n".join(lines)
+
+
+static func handoff_cta(to_id: String) -> String:
+	return "进入%s" % mood_tag(to_id)
+
+
 func kit_for_actor(id: int) -> String:
 	for spec in spawn_schedule:
 		if int(spec.get("id", 0)) == id:
@@ -269,6 +299,23 @@ func second_trap_cell() -> Vector2i:
 			return Vector2i(32, 11)
 		_:
 			return Vector2i(32, 11)
+
+
+func second_trap_route() -> String:
+	## Authored route the second-layer trap actually walks. SETUP overlay only.
+	match str(level_id):
+		"warehouse":
+			return "flank"
+		"pump":
+			return "alt"
+		"railcut":
+			return "flank"
+		"depot":
+			return "sneak"
+		"radio":
+			return "flank"
+		_:
+			return "flank"
 
 
 static func make_yard() -> LevelDef:
