@@ -20,6 +20,8 @@ Release 导出需要 release keystore；日常侧载用 debug 签名：
 
 ```bash
 godot --headless --path ambush_loop --export-debug "Android APK" build/android/AmbushLoop-debug.apk
+# 朋友包副本（可进仓）：
+# cp build/android/AmbushLoop-debug.apk dist/AmbushLoop-playtest.apk
 ```
 
 ## 本机导出 APK
@@ -34,6 +36,8 @@ godot --headless --path ambush_loop --export-debug "Android APK" build/android/A
 
 ```bash
 godot --headless --path ambush_loop --export-debug "Android APK" build/android/AmbushLoop-debug.apk
+# 朋友包副本（可进仓）：
+# cp build/android/AmbushLoop-debug.apk dist/AmbushLoop-playtest.apk
 ```
 
 非 Gradle 预设不要填 `min_sdk` 覆盖，否则导出会失败。Release 需要 release keystore。

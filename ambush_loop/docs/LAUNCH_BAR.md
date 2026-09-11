@@ -4,7 +4,9 @@ Target: **indie Commandos-lite / Into-the-Breach-adjacent Steam early access ave
 
 Hard rules that must stay true: alarm freezes plan; no mid-fight micro; authored routes; escape/wipe fail; intel+plan across loops.
 
-## Score (this cut): **7.7 / 10**
+## Score (this cut): **7.7 / 10** (功能清单，不是读图)
+
+读图/门槛加权见 `docs/Ambush_Loop_试玩复评_71ca4af.md`：**像素门槛 9.0**（窗口 dump3，不是 9.5）。旧自称 9.2 作废。
 
 Phase A presentation work is in (night floor grain, role silhouettes + motion, SETUP vs WATCHING route dim, Music/SFX sliders, per-level tutorials, 终局摘要). **Art/anim pass (procedural):** cooler asphalt with scrap, brick rim-light walls, idle bob / muzzle / death marks, title dust + CTA pulse, alarm rim + result desaturate. Score is **not 8** yet: no human playtest log of “typical fail → fix” on all five yards, and there is still no sprite pipeline. Treat 7.5 as honest progress toward the 8/10 presentation bar.
 

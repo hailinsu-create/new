@@ -2,6 +2,10 @@
 
 Godot 4.7.2 vertical slice — Commandos-style ambush prep + time-loop intel.
 
+**朋友包 / 程序多边形 / 合成音 / 必须横屏。** 不是正式版，不要写成 9.5。  
+像素门槛加权 **9.0**（`docs/Ambush_Loop_试玩复评_71ca4af.md`，窗口 31 张）。旧自称 9.2 作废。  
+侧载试玩：`ambush_loop/dist/AmbushLoop-playtest.apk`（包名 `com.ambushloop.game`）。
+
 Blueprint: `docs/Ambush_Loop_开发蓝图.md`  
 Launch criteria: `docs/LAUNCH_BAR.md`  
 Completeness: `docs/COMMANDOS_COMPLETE.md`  
@@ -58,6 +62,7 @@ Desktop presets: `ambush_loop/export_presets.cfg` (Linux / Windows / **Android A
 | P | Pause during watch |
 | + / − or speed button | 1× / 2× watch speed (viewing only) |
 | X or 中止尝试 | Abort current attempt; keep intel up to now (counts as fail) |
+| J or 跳到终局 | Skip watch to the terminal tick (plan stays frozen; viewing only) |
 | 时间轴复盘 | Read-only snapshot scrub (←/→ or slider). Click an event log line to seek/highlight that actor. Does not re-simulate. Space restores the last plan. |
 | M or 音效 button | Mute / unmute (Music + SFX). Esc settings: separate Music / SFX sliders |
 | Clear btn | Clear deploy (keep intel + tripwires) |
