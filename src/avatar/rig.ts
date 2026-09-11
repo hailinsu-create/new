@@ -33,6 +33,8 @@ const H = 1024;
 const SLICES = 96;
 const MOUTH_TILT = -0.175;
 const SKIN = (alpha: number) => `rgba(238, 205, 186, ${alpha})`;
+/** Sampled from the plate just above the mouth; used to hide the painted lips. */
+const FACE_SKIN = (alpha: number) => `rgba(247, 223, 207, ${alpha})`;
 
 const FACE = {
   eyeLeft: { x: 657, y: 307 },
@@ -544,24 +546,32 @@ export class AvatarRig {
     context.save();
     context.translate(FACE.mouth.x + this.lookX * 1.8, FACE.mouth.y + this.lookY * 1.1);
     context.rotate(MOUTH_TILT);
-
-    const coverRx = 30 * shape.width + shape.open * 7;
-    const coverRy = 14 + shape.open * 14;
-    const skin = context.createRadialGradient(0, 0, 2, 0, 1, Math.max(coverRx, coverRy));
-    skin.addColorStop(0, SKIN(1));
-    skin.addColorStop(0.55, SKIN(1));
-    skin.addColorStop(0.82, SKIN(0.78));
-    skin.addColorStop(1, SKIN(0));
-    context.fillStyle = skin;
-    context.beginPath();
-    context.ellipse(0, 2, coverRx, coverRy, 0, 0, Math.PI * 2);
-    context.fill();
+    this.paintMouthCover(context, shape);
 
     if (shape.closed > 0.65 || shape.open < 0.12) {
       this.strokeClosedMouth(context, shape.curve, shape.width, shape.closed);
     } else {
       this.fillOpenMouth(context, shape);
     }
+    context.restore();
+  }
+
+  /** Hide the painted mouth (and its perioral shade) with plate-matched skin. */
+  private paintMouthCover(context: CanvasRenderingContext2D, shape: VisemeSample["shape"]): void {
+    const coverRx = Math.max(56, 32 * shape.width + shape.open * 10);
+    const coverRy = Math.max(28, 18 + shape.open * 16);
+    context.save();
+    context.translate(0, 1.6);
+    context.scale(coverRx, coverRy);
+    const fill = context.createRadialGradient(0, 0, 0, 0, 0, 1);
+    fill.addColorStop(0, FACE_SKIN(1));
+    fill.addColorStop(0.76, FACE_SKIN(1));
+    fill.addColorStop(0.9, FACE_SKIN(0.55));
+    fill.addColorStop(1, FACE_SKIN(0));
+    context.fillStyle = fill;
+    context.beginPath();
+    context.arc(0, 0, 1, 0, Math.PI * 2);
+    context.fill();
     context.restore();
   }
 
@@ -573,10 +583,6 @@ export class AvatarRig {
   ): void {
     const half = 22 * width;
     const dip = 9.5 * curve;
-    context.fillStyle = "rgba(228, 176, 166, 0.42)";
-    context.beginPath();
-    context.ellipse(1, 4.6 + Math.max(0, dip) * 0.12, 7.5 * width, 3.2, 0, 0, Math.PI * 2);
-    context.fill();
     context.strokeStyle = pressed > 0.7 ? "#4a2c32" : "#5a353c";
     context.lineWidth = 1.45 + pressed * 0.6;
     context.lineCap = "round";
@@ -665,9 +671,9 @@ export class AvatarRig {
       context.quadraticCurveTo(half * 0.35, depth, 0, depth + 1);
       context.quadraticCurveTo(-half * 0.35, depth, -half, 0);
       context.stroke();
-      context.fillStyle = "rgba(232, 184, 174, 0.9)";
+      context.fillStyle = "rgba(236, 204, 196, 0.42)";
       context.beginPath();
-      context.ellipse(0, depth * 0.82, half * 0.55, 2.8, 0, 0, Math.PI * 2);
+      context.ellipse(0, depth * 0.78, half * 0.42, 1.8, 0, 0, Math.PI * 2);
       context.fill();
     }
     context.restore();
