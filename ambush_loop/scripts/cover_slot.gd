@@ -218,22 +218,31 @@ func _mount_kit_prop() -> void:
 			var dish := Polygon2D.new()
 			dish.name = "RadioDish"
 			dish.polygon = PackedVector2Array([
-				Vector2(-12, 4), Vector2(-6, -10), Vector2(8, -12), Vector2(12, 2),
-				Vector2(4, 8), Vector2(-8, 8)
+				Vector2(-16, 8), Vector2(-10, -14), Vector2(10, -18), Vector2(16, 4),
+				Vector2(6, 12), Vector2(-8, 12)
 			])
-			dish.color = Color(0.28, 0.52, 0.62, 0.94)
+			dish.color = Color(0.28, 0.58, 0.70, 0.96)
 			dish.z_index = 3
 			add_child(dish)
 			_crate_bits.append(dish)
 			var boom := Polygon2D.new()
 			boom.name = "DishBoom"
 			boom.polygon = PackedVector2Array([
-				Vector2(-1, -12), Vector2(3, -16), Vector2(5, -14), Vector2(1, -8)
+				Vector2(-1.2, -16), Vector2(2.4, -22), Vector2(4.2, -20), Vector2(0.8, -10)
 			])
-			boom.color = Color(0.62, 0.88, 0.98, 0.92)
+			boom.color = Color(0.62, 0.90, 1.0, 0.94)
 			boom.z_index = 4
 			add_child(boom)
 			_crate_bits.append(boom)
+			var mast := Polygon2D.new()
+			mast.name = "DishMast"
+			mast.polygon = PackedVector2Array([
+				Vector2(-1.6, 6), Vector2(1.6, 6), Vector2(1.2, -20), Vector2(-1.2, -20)
+			])
+			mast.color = Color(0.16, 0.22, 0.26, 0.92)
+			mast.z_index = 2
+			add_child(mast)
+			_crate_bits.append(mast)
 		_:
 			pass
 
