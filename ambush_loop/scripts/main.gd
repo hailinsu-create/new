@@ -857,6 +857,11 @@ func _sfx(cue: String) -> void:
 	sfx.play(cue)
 
 
+func _sfx_every_shot(_op: OperatorUnit = null) -> void:
+	## Every burst, not only the first-contact payoff.
+	_sfx("fire")
+
+
 func _toggle_mute() -> void:
 	var gs = _gs()
 	if gs:
@@ -3884,9 +3889,9 @@ func _on_return_fired(from: EnemyRunner, to: OperatorUnit) -> void:
 	# Called before damage is applied so terminal summaries include the shot.
 	if phase == Phase.WATCHING or pending_result != "":
 		battle_log.add_event(sim.tick, "return_fire", from.label_id, to.op_id, from.global_position)
+	_sfx("return_fire")
 	if not _watch_first_return:
 		_watch_first_return = true
-		_sfx("return_fire")
 	_spawn_watch_tracer(from.global_position, to.global_position, Color(1.0, 0.58, 0.22, 0.94), 2.4)
 	_update_event_log()
 
@@ -4008,9 +4013,9 @@ func _sim_tick() -> void:
 					{"name": op.display_name, "role": op.role_short, "codename": op.display_name}
 				)
 				if op.try_fire(best, grid):
+					_sfx_every_shot(op)
 					if not _watch_first_fire:
 						_watch_first_fire = true
-						_sfx("fire")
 						_announce_payoff(
 							"first_fire",
 							{"name": op.display_name, "enemy_id": best.label_id},

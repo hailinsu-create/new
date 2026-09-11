@@ -1585,7 +1585,16 @@ func _assert_sfx(main) -> bool:
 		return false
 	if was_muted:
 		main._toggle_mute()
-	print("SMOKE_OK_SFX cues=8 muted=", main.sfx.muted)
+	if not main.has_method("_sfx_every_shot"):
+		push_error("SMOKE_NO_EVERY_SHOT_SFX")
+		quit(36)
+		return false
+	main._sfx_every_shot(main.operators[0] if not main.operators.is_empty() else null)
+	if str(main.sfx.last_cue) != "fire":
+		push_error("SMOKE_EVERY_SHOT_CUE %s" % main.sfx.last_cue)
+		quit(36)
+		return false
+	print("SMOKE_OK_SFX cues=8 muted=", main.sfx.muted, " every_shot=1")
 	return true
 
 
