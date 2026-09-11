@@ -55,6 +55,22 @@ static func watching_text(kind: String, payload: Dictionary = {}) -> String:
 			if nm != "":
 				return "弹包给了%s（铁砧更耗弹）" % nm
 			return "弹包已交（铁砧更耗弹）"
+		"echo":
+			if eid >= 1:
+				return "灯塔回波到了 — 敌%d" % eid
+			return "灯塔回波到了"
+		"wave":
+			var note := str(payload.get("note", "")).strip_edges()
+			var route := str(payload.get("route", ""))
+			if note != "":
+				return "%s到了" % note
+			if route == "sneak":
+				return "暗道影探到了"
+			if route == "flank":
+				return "延迟侧翼到了"
+			if eid >= 1:
+				return "下一波到了 — 敌%d" % eid
+			return "下一波到了"
 		_:
 			return str(payload.get("text", ""))
 
@@ -75,6 +91,10 @@ static func watching_color(kind: String) -> Color:
 			return Color(0.78, 0.55, 1.0)
 		"pack_mg":
 			return Color(0.62, 0.88, 0.40)
+		"echo":
+			return Color(0.55, 0.90, 1.0)
+		"wave":
+			return Color(0.95, 0.72, 0.32)
 		_:
 			return Color(0.95, 0.82, 0.40)
 
@@ -111,6 +131,10 @@ static func timeline_tag(kind: String) -> String:
 			return "包"
 		"route_choice":
 			return "改"
+		"echo":
+			return "回"
+		"wave":
+			return "波"
 		_:
 			return "★"
 
