@@ -62,6 +62,7 @@ var moon_rim: Line2D = null
 var weapon: Polygon2D = null
 var kit_gear: Polygon2D = null
 var kit_helm: Polygon2D = null
+var tag_emphasis: bool = false
 var tag_plate: Polygon2D = null
 var death_mark: Node2D = null
 var _hit_flash: float = 0.0
@@ -1399,7 +1400,7 @@ func _refresh_pack_glyph() -> void:
 func _refresh_tag() -> void:
 	if tag == null:
 		return
-	tag.add_theme_font_size_override("font_size", 12)
+	tag.add_theme_font_size_override("font_size", 13 if tag_emphasis else 12)
 	tag.add_theme_font_override("font", NightOps.ui_font_bold())
 	if not alive:
 		tag.text = "%s 阵亡" % display_name
@@ -1409,9 +1410,14 @@ func _refresh_tag() -> void:
 	var mode := "伏" if fire_mode == FireMode.HOLD_FOR_AMBUSH else "即"
 	if fire_mode == FireMode.HOLD_FOR_AMBUSH and not fire_permitted:
 		mode = "等"
-	tag.text = "%s[%s] %s 弹%d%s" % [
-		display_name, role_short, mode, ammo, (" " + pack) if pack != "" else ""
-	]
+	if tag_emphasis:
+		tag.text = "%s  %s 弹%d%s" % [
+			display_name, mode, ammo, (" " + pack) if pack != "" else ""
+		]
+	else:
+		tag.text = "%s[%s] %s 弹%d%s" % [
+			display_name, role_short, mode, ammo, (" " + pack) if pack != "" else ""
+		]
 	tag.add_theme_color_override("font_color", role_kit_color(role))
 
 
