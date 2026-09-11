@@ -153,6 +153,7 @@ var _payoff_callout: Node2D = null
 var _payoff_callout_tween: Tween = null
 var _last_payoff_kind: String = ""
 var _last_payoff_tick: int = -1
+var _barked_last: bool = false
 var _restored_this_setup: bool = false
 var _plan_diff_guard: bool = false
 var plan_restore_hint: String = ""
@@ -2804,6 +2805,7 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 	_last_kill_tick = -1
 	_last_payoff_kind = ""
 	_last_payoff_tick = -1
+	_barked_last = false
 	_clear_payoff_callout()
 	_restored_this_setup = false
 	plan_restore_hint = ""
@@ -4084,6 +4086,7 @@ func _on_alarm_pressed() -> void:
 	_last_kill_tick = -1
 	_last_payoff_kind = ""
 	_last_payoff_tick = -1
+	_barked_last = false
 	_clear_payoff_callout()
 	_sfx("alarm")
 	_alarm_edge_flash()
@@ -4397,6 +4400,7 @@ func _sim_tick() -> void:
 							{"name": op.display_name, "enemy_id": best.label_id},
 							op.global_position
 						)
+						_operator_bark(op, "contact")
 					if op.ammo <= 0:
 						battle_log.add_event(sim.tick, "empty", op.op_id)
 					_update_event_log()
@@ -4867,6 +4871,17 @@ func _exit_tree() -> void:
 func _on_op_ammo_empty(op: OperatorUnit) -> void:
 	_flash("%s 空弹" % op.display_name, Color(0.9, 0.55, 0.2))
 	_sfx("empty")
+	_operator_bark(op, "empty")
+
+
+func _operator_bark(op: OperatorUnit, kind: String) -> void:
+	if op == null or not is_instance_valid(op):
+		return
+	var text := str(PayoffCopy.bark_text(kind, op.display_name))
+	if text == "":
+		return
+	if op.has_method("speak_bark"):
+		op.speak_bark(text)
 
 
 func _on_op_ammo_repacked(op: OperatorUnit) -> void:
@@ -6035,6 +6050,12 @@ func _tick_last_enemy_highlight() -> void:
 	for e in enemies:
 		if e != null and is_instance_valid(e) and e.has_method("set_last_runner"):
 			e.set_last_runner(mark and e.alive and e.active)
+	if mark and not _barked_last and phase == Phase.WATCHING:
+		_barked_last = true
+		for op in operators:
+			if op != null and op.visible and op.alive:
+				_operator_bark(op, "last")
+				break
 
 
 func watch_census_text() -> String:

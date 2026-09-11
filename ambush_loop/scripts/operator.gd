@@ -83,6 +83,8 @@ var sel_ring: Line2D = null
 var face_chip: Label = null
 var pack_glyph: Polygon2D = null
 var dry_mark: Label = null
+var bark_lab: Label = null
+var _bark_tween: Tween = null
 var _selected_visual: bool = false
 var _land_pop: float = 0.0
 var _face_tick: float = 0.0
@@ -1434,6 +1436,42 @@ func _refresh_tag() -> void:
 
 func dry_gun_visible() -> bool:
 	return dry_mark != null and is_instance_valid(dry_mark) and dry_mark.visible and ammo <= 0 and alive
+
+
+func bark_visible() -> bool:
+	return bark_lab != null and is_instance_valid(bark_lab) and bark_lab.visible
+
+
+func speak_bark(text: String) -> void:
+	var line := text.strip_edges()
+	if line == "" or not visible:
+		return
+	if bark_lab == null or not is_instance_valid(bark_lab):
+		bark_lab = Label.new()
+		bark_lab.name = "Bark"
+		bark_lab.add_theme_font_size_override("font_size", 12)
+		bark_lab.add_theme_font_override("font", NightOps.ui_font_bold())
+		bark_lab.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.02, 0.94))
+		bark_lab.add_theme_constant_override("shadow_offset_x", 1)
+		bark_lab.add_theme_constant_override("shadow_offset_y", 1)
+		bark_lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bark_lab.z_index = 8
+		add_child(bark_lab)
+	bark_lab.text = line
+	bark_lab.visible = true
+	bark_lab.position = Vector2(-22, -44)
+	bark_lab.modulate = Color(1.15, 1.12, 0.85, 1.0)
+	var kit := role_kit_color(role)
+	bark_lab.add_theme_color_override("font_color", kit.lerp(Color(1.0, 0.94, 0.62), 0.45))
+	if _bark_tween != null:
+		_bark_tween.kill()
+	_bark_tween = create_tween()
+	_bark_tween.tween_property(bark_lab, "position:y", -58.0, 0.55).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_bark_tween.parallel().tween_property(bark_lab, "modulate:a", 0.0, 0.70)
+	_bark_tween.tween_callback(func() -> void:
+		if bark_lab != null and is_instance_valid(bark_lab):
+			bark_lab.visible = false
+	)
 
 
 func _refresh_dry_mark() -> void:

@@ -3234,6 +3234,29 @@ func _assert_iteration_slice(main) -> bool:
 		quit(71)
 		return false
 	print("SMOKE_OK_DRY_GUN")
+	if str(PayoffCopy.bark_text("contact", "灰狼")).find("灰狼：接触") < 0:
+		push_error("SMOKE_BARK_CONTACT %s" % PayoffCopy.bark_text("contact", "灰狼"))
+		quit(71)
+		return false
+	if str(PayoffCopy.bark_text("empty", "铁砧")).find("弹尽") < 0:
+		push_error("SMOKE_BARK_EMPTY")
+		quit(71)
+		return false
+	main.operators[0].visible = true
+	if not main.has_method("_operator_bark"):
+		push_error("SMOKE_NO_BARK_API")
+		quit(71)
+		return false
+	main._operator_bark(main.operators[0], "contact")
+	if not main.operators[0].has_method("bark_visible") or not bool(main.operators[0].bark_visible()):
+		push_error("SMOKE_NO_BARK_LABEL")
+		quit(71)
+		return false
+	if str(main.operators[0].bark_lab.text).find("接触") < 0:
+		push_error("SMOKE_BARK_LABEL %s" % main.operators[0].bark_lab.text)
+		quit(71)
+		return false
+	print("SMOKE_OK_BARK")
 	return true
 
 

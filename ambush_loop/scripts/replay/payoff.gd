@@ -8,6 +8,23 @@ static func combo_window_ticks() -> int:
 	return 48
 
 
+static func bark_text(kind: String, name: String = "") -> String:
+	var nm := name.strip_edges()
+	if nm == "":
+		nm = "队员"
+	match kind:
+		"contact":
+			return "%s：接触" % nm
+		"empty":
+			return "%s：弹尽" % nm
+		"last":
+			return "%s：最后一个" % nm
+		"kill":
+			return "%s：倒了" % nm
+		_:
+			return ""
+
+
 static func first_shot_text(name: String, target_id: int) -> String:
 	var nm := name.strip_edges()
 	if nm == "":
