@@ -1109,6 +1109,10 @@ func _assert_raid_contract(main) -> bool:
 		push_error("SMOKE_YARD_WAVES %s" % main.level.wave_count())
 		quit(80)
 		return false
+	if int(LevelDef.by_id("radio").wave_count()) != 3:
+		push_error("SMOKE_RADIO_WAVES %s" % LevelDef.by_id("radio").wave_count())
+		quit(80)
+		return false
 	if not main.command_move_to_cell(0, Vector2i(7, 11)):
 		push_error("SMOKE_NO_PATH insert->cover")
 		quit(80)
