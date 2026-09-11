@@ -53,14 +53,16 @@ Desktop presets: `ambush_loop/export_presets.cfg` (Linux / Windows / **Android A
 | Title | 开始行动 → 任务列表（锁定/可出击/首通）→ 简报 / 继续进度 / 操作说明（全键表） / 退出（确认） |
 | Esc | 标题：退出确认（可进设置）；战场：暂停 / 设置（静音、音乐/音效、返回标题、布置期重新部署） |
 | 1 / 2 / 3 or left operator cards | Select 步枪手 / 机枪手 / 侦察兵 |
-| LMB cover | Deploy selected operator (cyan arc = cover protect direction) |
+| LMB empty ground | Walk selected operator (A* on the grid) |
+| LMB crate / corpse | Walk in and pick up |
+| LMB cover | Take the pad (cyan arc = cover protect direction) |
 | Hover cover | Preview that slot's protect arc |
 | A/D or RMB / phone ↺↻ or drag | Facing (fire cone is LOS-clipped by walls) |
 | F | Fire mode (见敌即打 / 入伏再打) |
 | G | Assign ammo pack (仓道 / 泵站 / 信号楼 / 油库 / 电台, one operator) |
 | B | Toggle door lock (level 3; switches flank to authored alternate route) |
-| Tab | 绊索 tool (max 1, on route segments only) |
-| Space | Sound alarm (freezes plan) / pause while watching / exit replay |
+| Tab | Cycle walk / mine / grenade / decoy |
+| Space | Pull alarm / next wave or extract after sweep / pause during alert / exit replay |
 | P | Pause during watch |
 | + / − or speed button | 1× / 2× watch speed (viewing only) |
 | X or 中止尝试 | Abort current attempt; keep intel up to now (counts as fail) |
