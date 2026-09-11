@@ -1923,6 +1923,8 @@ func cover_kit_for_level() -> String:
 			return "sleeper"
 		"depot":
 			return "drum"
+		"radio":
+			return "dish"
 		_:
 			return "crate"
 

@@ -211,6 +211,26 @@ func _mount_kit_prop() -> void:
 			band.z_index = 4
 			add_child(band)
 			_crate_bits.append(band)
+		"dish":
+			var dish := Polygon2D.new()
+			dish.name = "RadioDish"
+			dish.polygon = PackedVector2Array([
+				Vector2(-12, 4), Vector2(-6, -10), Vector2(8, -12), Vector2(12, 2),
+				Vector2(4, 8), Vector2(-8, 8)
+			])
+			dish.color = Color(0.28, 0.52, 0.62, 0.94)
+			dish.z_index = 3
+			add_child(dish)
+			_crate_bits.append(dish)
+			var boom := Polygon2D.new()
+			boom.name = "DishBoom"
+			boom.polygon = PackedVector2Array([
+				Vector2(-1, -12), Vector2(3, -16), Vector2(5, -14), Vector2(1, -8)
+			])
+			boom.color = Color(0.62, 0.88, 0.98, 0.92)
+			boom.z_index = 4
+			add_child(boom)
+			_crate_bits.append(boom)
 		_:
 			pass
 
