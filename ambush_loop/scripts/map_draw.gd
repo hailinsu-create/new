@@ -242,6 +242,13 @@ func _floor_palette() -> Dictionary:
 				"grain": Color(0.32, 0.20, 0.08, 1),
 				"grid": Color(0.28, 0.18, 0.08, 0.12),
 			}
+		"radio":
+			return {
+				"a": Color(0.042, 0.058, 0.072),
+				"b": Color(0.034, 0.048, 0.062),
+				"grain": Color(0.22, 0.38, 0.48, 1),
+				"grid": Color(0.18, 0.32, 0.42, 0.12),
+			}
 		_:
 			return {
 				"a": Color(0.058, 0.082, 0.100),
@@ -289,6 +296,15 @@ func _wall_palette() -> Dictionary:
 				"rim": Color(0.90, 0.58, 0.22, 0.85),
 				"mortar": Color(0.14, 0.06, 0.03, 0.50),
 			}
+		"radio":
+			return {
+				"base": Color(0.06, 0.10, 0.14),
+				"fill_a": Color(0.16, 0.28, 0.36),
+				"fill_b": Color(0.12, 0.22, 0.30),
+				"edge": Color(0.32, 0.58, 0.72, 0.82),
+				"rim": Color(0.55, 0.84, 0.96, 0.85),
+				"mortar": Color(0.06, 0.10, 0.14, 0.50),
+			}
 		_:
 			return {
 				"base": Color(0.14, 0.09, 0.05),
@@ -333,6 +349,17 @@ func _draw_wall_language(c: CanvasItem, inset: Rect2, pal: Dictionary, x: int, y
 				Color(mortar.r, mortar.g, mortar.b, mortar.a * 0.7),
 				1.2
 			)
+		"mesh":
+			var hole := Color(0.08, 0.14, 0.18, 0.55)
+			var gx0 := inset.position.x + 4.0
+			var gy0 := inset.position.y + 4.0
+			while gy0 < inset.position.y + inset.size.y - 3.0:
+				var gx := gx0 + (2.0 if int(gy0) % 2 == 0 else 0.0)
+				while gx < inset.position.x + inset.size.x - 3.0:
+					c.draw_circle(Vector2(gx, gy0), 1.4, hole)
+					gx += 6.0
+				gy0 += 6.0
+			c.draw_rect(inset.grow(-2.0), Color(pal["edge"].r, pal["edge"].g, pal["edge"].b, 0.28), false, 1.0)
 		"plate":
 			var chev := Color(0.72, 0.42, 0.12, 0.35)
 			c.draw_line(
@@ -421,6 +448,8 @@ func _draw_floor_tile(c: CanvasItem, rect: Rect2, x: int, y: int) -> void:
 			c.draw_rect(Rect2(cx + 2.0, cy + 13.0, 28.0, 1.5), Color(0.32, 0.22, 0.10, 0.35))
 		elif _atmo() == "depot" and ((x + y) % 6) == 0 and x > 14 and x < 25 and y > 14:
 			c.draw_rect(Rect2(cx + 2.0, cy + 14.0, 28.0, 5.0), Color(0.92, 0.62, 0.12, 0.18))
+		elif _atmo() == "radio" and (y == 5 or y == 6):
+			c.draw_rect(Rect2(cx + 4.0, cy + 10.0, 24.0, 2.0), Color(0.28, 0.55, 0.68, 0.16))
 		_draw_layout_decal(c, rect, x, y, seed_n)
 		if (seed_n % 11) == 0:
 			var sx := cx + 4.0 + _frac(seed_n + 3) * 8.0
@@ -489,6 +518,11 @@ func _draw_layout_decal(c: CanvasItem, rect: Rect2, x: int, y: int, seed_n: int)
 				c.draw_circle(Vector2(cx + 20.0, cy + 18.0), 5.0, Color(0.22, 0.10, 0.04, 0.20))
 			elif x > 15 and x < 24 and (y == 15 or y == 16):
 				c.draw_rect(Rect2(cx + 2.0, cy + 20.0, 28.0, 3.0), Color(0.18, 0.10, 0.04, 0.16))
+		"radio":
+			if (seed_n % 11) == 0:
+				c.draw_rect(Rect2(cx + 10.0, cy + 6.0, 4.0, 18.0), Color(0.16, 0.28, 0.34, 0.20))
+			elif y == 16 and x % 4 == 0:
+				c.draw_rect(Rect2(cx + 8.0, cy + 20.0, 16.0, 3.0), Color(0.22, 0.48, 0.62, 0.18))
 		_:
 			pass
 
@@ -501,6 +535,8 @@ func wall_language() -> String:
 			return "concrete"
 		"depot":
 			return "plate"
+		"radio":
+			return "mesh"
 		_:
 			return "brick"
 
@@ -682,6 +718,9 @@ func _draw_floor_stain_wash(c: CanvasItem) -> void:
 		"depot":
 			c.draw_circle(Vector2(12.6 * t, 16.2 * t), 20.0, Color(0.18, 0.08, 0.04, 0.16))
 			c.draw_circle(Vector2(26.4 * t, 15.8 * t), 18.0, Color(0.16, 0.08, 0.04, 0.14))
+		"radio":
+			c.draw_circle(Vector2(19.2 * t, 11.2 * t), 24.0, Color(0.08, 0.16, 0.22, 0.16))
+			c.draw_circle(Vector2(32.4 * t, 8.6 * t), 16.0, Color(0.10, 0.18, 0.24, 0.12))
 		_:
 			c.draw_circle(Vector2(10.8 * t, 14.8 * t), 20.0, Color(0.08, 0.12, 0.08, 0.14))
 			c.draw_circle(Vector2(24.6 * t, 8.2 * t), 16.0, Color(0.10, 0.12, 0.08, 0.10))
@@ -698,6 +737,8 @@ func _draw_static_landmarks(c: CanvasItem) -> void:
 			_landmark_railcut(c)
 		"depot":
 			_landmark_depot(c)
+		"radio":
+			_landmark_radio(c)
 		_:
 			_landmark_yard(c)
 	_draw_signature_silhouette(c)
@@ -862,6 +903,33 @@ func _landmark_depot(c: CanvasItem) -> void:
 		c.draw_line(Vector2(8.2 * t, ly), Vector2(8.55 * t, ly + 14.0), Color(0.42, 0.48, 0.40, 0.22), 1.0)
 
 
+func _landmark_radio(c: CanvasItem) -> void:
+	var t := AmbushGrid.TILE
+	# Radio dish on the blocked dish hall (y=7 pad + core).
+	var dish := Vector2(19.0 * t, 10.4 * t)
+	c.draw_arc(dish, 36.0, -2.4, 0.6, 14, Color(0.42, 0.72, 0.88, 0.55), 4.0, true)
+	c.draw_arc(dish, 28.0, -2.4, 0.6, 12, Color(0.18, 0.32, 0.40, 0.70), 2.4, true)
+	c.draw_line(dish, dish + Vector2(22, -18), Color(0.55, 0.82, 0.95, 0.70), 2.0, true)
+	c.draw_circle(dish + Vector2(22, -18), 4.0, Color(0.72, 0.92, 1.0, 0.85))
+	# Guy wire from dish hall to east annex.
+	c.draw_line(Vector2(23.2 * t, 8.2 * t), Vector2(27.4 * t, 11.6 * t), Color(0.55, 0.78, 0.88, 0.40), 1.4, true)
+	c.draw_line(Vector2(16.4 * t, 8.2 * t), Vector2(12.2 * t, 12.4 * t), Color(0.55, 0.78, 0.88, 0.32), 1.2, true)
+	# Morse hut on the east annex (already blocked).
+	c.draw_rect(Rect2(25.4 * t, 8.4 * t, 2.4 * t, 2.8 * t), Color(0.10, 0.16, 0.20, 0.70))
+	c.draw_rect(Rect2(25.6 * t, 8.6 * t, 2.0 * t, 10.0), Color(0.32, 0.72, 0.88, 0.35))
+	c.draw_rect(Rect2(26.2 * t, 8.2 * t, 8.0, 6.0), Color(0.55, 0.88, 1.0, 0.45))
+	# Antenna mast west of the core, off the sneak alley.
+	var mast := Vector2(10.4 * t, 9.2 * t)
+	c.draw_rect(Rect2(mast.x - 2, mast.y - 40, 4.0, 44.0), Color(0.14, 0.18, 0.22, 0.80))
+	c.draw_circle(mast + Vector2(0, -44), 5.0, Color(0.42, 0.88, 0.95, 0.80))
+	c.draw_line(mast + Vector2(0, -20), mast + Vector2(14, -8), Color(0.40, 0.70, 0.82, 0.40), 1.2, true)
+	_lamp_post(c, Vector2(13.6 * t, 8.4 * t), Color(0.55, 0.86, 0.98))
+	_lamp_post(c, Vector2(32.4 * t, 8.4 * t), Color(0.55, 0.86, 0.98))
+	# Cable run along the south face of the core.
+	c.draw_line(Vector2(15.2 * t, 14.35 * t), Vector2(23.6 * t, 14.45 * t), Color(0.12, 0.18, 0.22, 0.70), 2.2, true)
+	c.draw_line(Vector2(15.2 * t, 14.55 * t), Vector2(23.6 * t, 14.65 * t), Color(0.28, 0.48, 0.58, 0.40), 1.4, true)
+
+
 func _draw_signature_silhouette(c: CanvasItem) -> void:
 	## One large cached identity prop per mission. Overlay polygons only.
 	match _atmo():
@@ -873,6 +941,8 @@ func _draw_signature_silhouette(c: CanvasItem) -> void:
 			_silhouette_railcut_tower(c)
 		"depot":
 			_silhouette_depot_tanks(c)
+		"radio":
+			_silhouette_radio_dish(c)
 		_:
 			_silhouette_yard_tree(c)
 
@@ -985,6 +1055,31 @@ func _silhouette_depot_tanks(c: CanvasItem) -> void:
 	c.draw_circle(b, 26.0, Color(0.18, 0.08, 0.04, 0.65))
 	c.draw_circle(b, 18.0, Color(0.36, 0.16, 0.06, 0.38))
 	c.draw_rect(Rect2(17.4 * t, 13.6 * t, 7.2 * t, 8.0), Color(0.22, 0.10, 0.04, 0.45))
+
+
+func _silhouette_radio_dish(c: CanvasItem) -> void:
+	# dish hall — large cached parabola on the blocked core.
+	var t := AmbushGrid.TILE
+	var p := Vector2(19.0 * t, 11.0 * t)
+	c.draw_colored_polygon(
+		PackedVector2Array([
+			Vector2(p.x - 48, p.y + 10),
+			Vector2(p.x + 8, p.y - 70),
+			Vector2(p.x + 22, p.y - 58),
+			Vector2(p.x - 20, p.y + 18),
+		]),
+		Color(0.10, 0.16, 0.20, 0.62)
+	)
+	c.draw_colored_polygon(
+		PackedVector2Array([
+			Vector2(p.x - 36, p.y + 4),
+			Vector2(p.x + 4, p.y - 58),
+			Vector2(p.x + 12, p.y - 48),
+			Vector2(p.x - 12, p.y + 10),
+		]),
+		Color(0.28, 0.48, 0.58, 0.32)
+	)
+	c.draw_rect(Rect2(p.x - 6, p.y - 8, 10.0, 36.0), Color(0.12, 0.16, 0.20, 0.75))
 
 
 func _lamp_post(c: CanvasItem, p: Vector2, glow: Color, stem: bool = true) -> void:
