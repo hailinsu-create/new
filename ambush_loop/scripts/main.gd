@@ -6381,6 +6381,15 @@ func _update_cover_previews() -> void:
 		var occupied := s.occupied_by != null and is_instance_valid(s.occupied_by) and s.occupied_by.visible
 		if s.has_method("set_plan_lock"):
 			s.set_plan_lock(phase == Phase.WATCHING and occupied)
+		var hint := false
+		var hint_col := Color(0.62, 0.84, 0.42)
+		if phase == Phase.SETUP and selected != null and not occupied and level != null and level.has_method("suggested_cover_name"):
+			var want := str(level.suggested_cover_name(selected.role))
+			if want != "" and s.label_text == want:
+				hint = true
+				hint_col = OperatorUnit.role_kit_color(selected.role)
+		if s.has_method("set_role_hint"):
+			s.set_role_hint(hint, hint_col)
 
 
 func _update_role_cards() -> void:

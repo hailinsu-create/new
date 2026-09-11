@@ -25,6 +25,9 @@ var _hold_ring: Line2D = null
 var _emphasis: int = 0
 var _pulse_t: float = 0.0
 var _hold_p: float = 0.0
+var _role_hint: bool = false
+var _role_hint_col: Color = Color(0.62, 0.84, 0.42)
+var _hint_ring: Line2D = null
 
 
 func setup(id: int, text: String, protect_face: float = 0.0, p_kit: String = "crate") -> void:
@@ -277,6 +280,42 @@ func set_highlight(on: bool) -> void:
 			bit.modulate = Color(1.15, 1.2, 1.05) if on else Color.WHITE
 
 
+func set_role_hint(on: bool, tint: Color = Color(0.62, 0.84, 0.42)) -> void:
+	_role_hint = on
+	_role_hint_col = tint
+	_ensure_hint_ring()
+	if _hint_ring:
+		_hint_ring.visible = on
+		_hint_ring.default_color = Color(tint.r, tint.g, tint.b, 0.82)
+	if on:
+		set_process(true)
+	else:
+		_maybe_idle_process()
+
+
+func role_hint_on() -> bool:
+	return _role_hint and _hint_ring != null and _hint_ring.visible
+
+
+func _ensure_hint_ring() -> void:
+	if _hint_ring != null and is_instance_valid(_hint_ring):
+		return
+	_hint_ring = Line2D.new()
+	_hint_ring.name = "RoleHint"
+	_hint_ring.width = 2.4
+	_hint_ring.closed = true
+	_hint_ring.z_index = 4
+	var pts := PackedVector2Array()
+	for i in 16:
+		var a := TAU * float(i) / 16.0
+		pts.append(Vector2(cos(a), sin(a)) * 22.0)
+	if pts.size() > 0:
+		pts.append(pts[0])
+	_hint_ring.points = pts
+	_hint_ring.visible = false
+	add_child(_hint_ring)
+
+
 func set_plan_lock(on: bool) -> void:
 	if _lock_mark == null or not is_instance_valid(_lock_mark):
 		_lock_mark = get_node_or_null("LockMark") as Label
@@ -425,7 +464,7 @@ func _rebuild_arc_edge(fan: PackedVector2Array) -> void:
 
 
 func _maybe_idle_process() -> void:
-	if _fire_lean.length_squared() > 0.04 or _emphasis >= 2 or _hold_p > 0.02:
+	if _fire_lean.length_squared() > 0.04 or _emphasis >= 2 or _hold_p > 0.02 or _role_hint:
 		set_process(true)
 	else:
 		set_process(false)
@@ -444,6 +483,12 @@ func _process(delta: float) -> void:
 			_arc_edge.default_color = Color(0.40, 1.0, 0.78, 0.50 + 0.32 * wave)
 		if _arc_arrow:
 			_arc_arrow.color = Color(0.45, 1.0, 0.78, 0.62 + 0.28 * wave)
+	elif _role_hint:
+		_pulse_t += delta
+		var hw := 0.5 + 0.5 * sin(_pulse_t * 5.2)
+		if _hint_ring:
+			_hint_ring.default_color = Color(_role_hint_col.r, _role_hint_col.g, _role_hint_col.b, 0.40 + 0.45 * hw)
+			_hint_ring.width = 2.0 + 1.4 * hw
 	if _fire_lean.length_squared() < 0.04:
 		_fire_lean = Vector2.ZERO
 		if pad:

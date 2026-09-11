@@ -3330,6 +3330,31 @@ func _assert_iteration_slice(main) -> bool:
 	main.last_plan.clear()
 	main._build_plan_ghosts()
 	print("SMOKE_OK_PLAN_GHOST")
+	var yard_def: LevelDef = LevelDef.by_id("yard")
+	if not yard_def.has_method("suggested_cover_name"):
+		push_error("SMOKE_NO_SUGGESTED_COVER")
+		quit(71)
+		return false
+	if str(yard_def.suggested_cover_name(1)).find("东箱") < 0:
+		push_error("SMOKE_MG_PAD %s" % yard_def.suggested_cover_name(1))
+		quit(71)
+		return false
+	main._select_op(1)
+	main._update_cover_previews()
+	var hinted := false
+	for s in main.cover_slots:
+		if s.has_method("role_hint_on") and bool(s.role_hint_on()):
+			hinted = true
+			if str(s.label_text).find("东箱") < 0:
+				push_error("SMOKE_HINT_WRONG_PAD %s" % s.label_text)
+				quit(71)
+				return false
+			break
+	if not hinted:
+		push_error("SMOKE_NO_ROLE_HINT")
+		quit(71)
+		return false
+	print("SMOKE_OK_ROLE_HINT")
 	return true
 
 

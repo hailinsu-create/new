@@ -103,6 +103,51 @@ func teaching_note_for(route: String) -> String:
 	return ""
 
 
+func suggested_cover_name(role_id: int) -> String:
+	## SETUP pad pulse. Presentation only.
+	match str(level_id):
+		"warehouse":
+			match role_id:
+				1:
+					return "货架掩体"
+				2:
+					return "闸口掩体"
+				_:
+					return "仓门掩体"
+		"pump":
+			match role_id:
+				1:
+					return "侧背点"
+				2:
+					return "出水口"
+				_:
+					return "阀廊"
+		"railcut":
+			match role_id:
+				1:
+					return "东廊"
+				2:
+					return "南闸"
+				_:
+					return "西廊脊"
+		"depot", "radio":
+			match role_id:
+				1:
+					return "东廊"
+				2:
+					return "南闸"
+				_:
+					return "主路脊"
+		_:
+			match role_id:
+				1:
+					return "东箱掩体"
+				2:
+					return "出口掩体"
+				_:
+					return "西侧掩体"
+
+
 func role_why_for(role_id: int) -> String:
 	## Card / briefing one-liner. role_id matches OperatorUnit.Role (rifle=0, mg=1, scout=2).
 	match role_id:
