@@ -100,6 +100,13 @@ func setup(id: int, p_route: PackedVector2Array, p_grid: AmbushGrid = null, p_lo
 func activate() -> void:
 	active = true
 	route_index = 1 if route.size() > 1 else 0
+	_hit_punch = 0.7
+
+
+func play_spawn_pop() -> void:
+	_hit_punch = 0.85
+	var tint := _kind_rim_color()
+	CombatFxScript.spawn_pop(self, global_position, tint)
 
 
 func maybe_branch(door_locked: bool, decision_world: Vector2, alt_world: PackedVector2Array, blocked_route: String) -> bool:

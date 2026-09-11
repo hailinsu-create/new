@@ -3887,6 +3887,8 @@ func _spawn_one(spec: Dictionary) -> void:
 	e.return_fired.connect(_on_return_fired)
 	enemies.append(e)
 	e.activate()
+	if e.has_method("play_spawn_pop"):
+		e.play_spawn_pop()
 	battle_log.add_event(sim.tick, "spawn", e.label_id, -1, e.global_position)
 	_update_event_log()
 

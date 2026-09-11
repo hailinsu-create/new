@@ -2098,6 +2098,11 @@ func _assert_watch_juice(main) -> bool:
 		push_error("SMOKE_NO_WATCH_JUICE_API")
 		quit(53)
 		return false
+	var cfx: Variant = load("res://scripts/fx/combat_fx.gd")
+	if cfx == null or not (cfx as GDScript).has_method("spawn_pop"):
+		push_error("SMOKE_NO_SPAWN_POP")
+		quit(53)
+		return false
 	if not main.has_method("_shake_for_explosion") or not main.has_method("_ensure_watch_timeline"):
 		push_error("SMOKE_NO_WATCH_SHAKE_OR_TIMELINE")
 		quit(53)

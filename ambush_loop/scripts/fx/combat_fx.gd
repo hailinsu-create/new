@@ -234,6 +234,32 @@ static func land_dust(host: Node2D, world_pos: Vector2) -> void:
 	tw.tween_callback(n.queue_free)
 
 
+static func spawn_pop(host: Node2D, world_pos: Vector2, tint: Color = Color(0.95, 0.32, 0.22)) -> void:
+	if not _ok(host) or _saving() or not _budget(host, "CfxSpawn", 4):
+		return
+	var n := _spawn(host, "CfxSpawn", world_pos, 11)
+	var ring := Line2D.new()
+	ring.width = 2.4
+	ring.closed = true
+	ring.default_color = Color(tint.r, tint.g, tint.b, 0.92)
+	var pts := PackedVector2Array()
+	for i in 12:
+		var a := TAU * float(i) / 12.0
+		pts.append(Vector2(cos(a), sin(a)) * 9.0)
+	ring.points = pts
+	n.add_child(ring)
+	var chev := Polygon2D.new()
+	chev.polygon = PackedVector2Array([
+		Vector2(0, -8), Vector2(5, 4), Vector2(0, 1), Vector2(-5, 4)
+	])
+	chev.color = Color(tint.r, tint.g, tint.b, 0.88)
+	n.add_child(chev)
+	var tw := n.create_tween()
+	tw.tween_property(n, "scale", Vector2(1.8, 1.8), 0.20).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(n, "modulate:a", 0.0, 0.20)
+	tw.tween_callback(n.queue_free)
+
+
 static func select_ping(host: Node2D, world_pos: Vector2, tint: Color = Color(0.95, 0.85, 0.35)) -> void:
 	if not _ok(host) or _saving():
 		return
