@@ -3489,6 +3489,21 @@ func _assert_iteration_slice(main) -> bool:
 		return false
 	main.phase = main.Phase.SETUP
 	print("SMOKE_OK_WATCH_CLOCK")
+	main._select_op(0)
+	main._deploy_selected_to(main.cover_slots[0], false)
+	var hold_op: OperatorUnit = main.operators[0]
+	hold_op.fire_mode = OperatorUnit.FireMode.HOLD_FOR_AMBUSH
+	hold_op.fire_permitted = false
+	hold_op._rebuild_cone()
+	if not hold_op.has_method("hold_cone_pulsing") or not bool(hold_op.hold_cone_pulsing()):
+		push_error("SMOKE_HOLD_CONE_OFF")
+		quit(71)
+		return false
+	hold_op.fire_mode = OperatorUnit.FireMode.ENGAGE_ON_SIGHT
+	hold_op.fire_permitted = true
+	hold_op._rebuild_cone()
+	main._on_clear_pressed()
+	print("SMOKE_OK_HOLD_PULSE")
 	return true
 
 

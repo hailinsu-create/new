@@ -475,6 +475,7 @@ func _process(delta: float) -> void:
 		_face_tick = maxf(_face_tick - delta * 4.8, 0.0)
 		if cone_edge:
 			cone_edge.width = 2.0 + _face_tick * 2.4
+	_tick_hold_cone_pulse()
 	_recoil_off = _recoil_off.lerp(Vector2.ZERO, 1.0 - exp(-delta * 16.0))
 	if _recoil_off.length_squared() < 0.04:
 		_recoil_off = Vector2.ZERO
@@ -1053,6 +1054,26 @@ func receive_ammo(amount: int) -> int:
 
 func fire_mode_label() -> String:
 	return "见敌即打" if fire_mode == FireMode.ENGAGE_ON_SIGHT else "入伏再打"
+
+
+func hold_cone_pulsing() -> bool:
+	return (
+		alive
+		and visible
+		and fire_mode == FireMode.HOLD_FOR_AMBUSH
+		and not fire_permitted
+		and cone != null
+		and cone.visible
+	)
+
+
+func _tick_hold_cone_pulse() -> void:
+	if cone == null or not hold_cone_pulsing():
+		return
+	var wave := 0.5 + 0.5 * sin(_present_t * 5.6)
+	cone.color = Color(0.55, 0.55, 0.2, 0.14 + 0.16 * wave)
+	if cone_edge:
+		cone_edge.default_color = Color(0.95, 0.86, 0.32, 0.35 + 0.40 * wave)
 
 
 func _ensure_observation_visual() -> void:
