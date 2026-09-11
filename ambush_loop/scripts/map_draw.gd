@@ -452,7 +452,8 @@ func _draw_floor_tile(c: CanvasItem, rect: Rect2, x: int, y: int) -> void:
 			c.draw_rect(Rect2(cx + 4.0, cy + 10.0, 24.0, 2.0), Color(0.28, 0.55, 0.68, 0.16))
 		elif _atmo() == "radio" and x == 24 and y >= 5 and y <= 15:
 			# Echo hall wash — the authored 5.2s path, not the east corridor.
-			c.draw_rect(Rect2(cx + 10.0, cy + 2.0, 12.0, 28.0), Color(0.22, 0.62, 0.82, 0.14))
+			c.draw_rect(Rect2(cx + 6.0, cy + 1.0, 20.0, 30.0), Color(0.22, 0.68, 0.88, 0.22))
+			c.draw_rect(Rect2(cx + 12.0, cy + 2.0, 8.0, 28.0), Color(0.48, 0.88, 1.0, 0.18))
 		_draw_layout_decal(c, rect, x, y, seed_n)
 		if (seed_n % 11) == 0:
 			var sx := cx + 4.0 + _frac(seed_n + 3) * 8.0
@@ -652,6 +653,10 @@ func _draw_floor_accent_stripe(c: CanvasItem) -> void:
 			c.draw_rect(Rect2(31.0 * t, 5.28 * t, 3.0 * t, 7.0), Color(0.42, 0.55, 0.68, 0.11))
 		"depot":
 			c.draw_rect(Rect2(14.0 * t, 14.15 * t, 14.0 * t, 6.0), Color(0.78, 0.34, 0.08, 0.11))
+		"radio":
+			# Echo hall phosphor ribbon down the authored x=24 gap.
+			c.draw_rect(Rect2(23.72 * t, 5.05 * t, 1.56 * t, 11.1 * t), Color(0.28, 0.78, 0.96, 0.16))
+			c.draw_rect(Rect2(24.12 * t, 5.05 * t, 0.62 * t, 11.1 * t), Color(0.55, 0.92, 1.0, 0.12))
 		_:
 			c.draw_rect(Rect2(22.0 * t, 4.55 * t, 14.0 * t, 5.0), Color(0.62, 0.78, 0.52, 0.08))
 			c.draw_rect(Rect2(8.0 * t, 16.35 * t, 18.0 * t, 4.0), Color(0.16, 0.26, 0.16, 0.07))
@@ -724,6 +729,7 @@ func _draw_floor_stain_wash(c: CanvasItem) -> void:
 		"radio":
 			c.draw_circle(Vector2(19.2 * t, 11.2 * t), 24.0, Color(0.08, 0.16, 0.22, 0.16))
 			c.draw_circle(Vector2(32.4 * t, 8.6 * t), 16.0, Color(0.10, 0.18, 0.24, 0.12))
+			c.draw_rect(Rect2(23.65 * t, 5.15 * t, 1.7 * t, 10.6 * t), Color(0.10, 0.28, 0.38, 0.14))
 		_:
 			c.draw_circle(Vector2(10.8 * t, 14.8 * t), 20.0, Color(0.08, 0.12, 0.08, 0.14))
 			c.draw_circle(Vector2(24.6 * t, 8.2 * t), 16.0, Color(0.10, 0.12, 0.08, 0.10))
@@ -921,20 +927,25 @@ func _landmark_railcut(c: CanvasItem) -> void:
 
 func _landmark_depot(c: CanvasItem) -> void:
 	var t := AmbushGrid.TILE
-	# Fuel tank silhouettes on the mid blocked island.
-	var a := Vector2(18.5 * t, 11.0 * t)
-	var b := Vector2(21.5 * t, 10.5 * t)
-	c.draw_circle(a, 28.0, Color(0.22, 0.12, 0.06, 0.75))
-	c.draw_circle(a, 22.0, Color(0.38, 0.18, 0.08, 0.55))
-	c.draw_rect(Rect2(a.x - 6, a.y - 34, 12, 16), Color(0.18, 0.10, 0.05, 0.8))
-	c.draw_circle(b, 22.0, Color(0.20, 0.10, 0.05, 0.7))
-	c.draw_circle(b, 16.0, Color(0.34, 0.16, 0.06, 0.5))
+	# Fuel tank silhouettes on the mid blocked island — fat circles, not a mast.
+	var a := Vector2(18.4 * t, 11.1 * t)
+	var b := Vector2(21.7 * t, 10.5 * t)
+	var d := Vector2(20.0 * t, 12.35 * t)
+	c.draw_circle(a, 38.0, Color(0.22, 0.12, 0.06, 0.82))
+	c.draw_circle(a, 30.0, Color(0.42, 0.20, 0.08, 0.58))
+	c.draw_circle(a, 18.0, Color(0.18, 0.08, 0.04, 0.45))
+	c.draw_rect(Rect2(a.x - 8, a.y - 46, 16, 22), Color(0.18, 0.10, 0.05, 0.85))
+	c.draw_rect(Rect2(a.x - 5, a.y - 52, 10, 8), Color(0.28, 0.14, 0.06, 0.75))
+	c.draw_circle(b, 30.0, Color(0.20, 0.10, 0.05, 0.78))
+	c.draw_circle(b, 22.0, Color(0.38, 0.16, 0.06, 0.52))
+	c.draw_circle(d, 22.0, Color(0.24, 0.12, 0.05, 0.70))
+	c.draw_circle(d, 15.0, Color(0.40, 0.18, 0.06, 0.42))
 	# Hazard chevrons along the south face of the tanks.
-	for i in 5:
-		var x := 16.0 * t + float(i) * 18.0
+	for i in 7:
+		var x := 15.6 * t + float(i) * 16.0
 		var y := 14.0 * t + 4.0
-		var col := Color(0.92, 0.62, 0.10, 0.55) if (i % 2) == 0 else Color(0.08, 0.07, 0.05, 0.55)
-		c.draw_rect(Rect2(x, y, 16.0, 8.0), col)
+		var col := Color(0.92, 0.62, 0.10, 0.62) if (i % 2) == 0 else Color(0.08, 0.07, 0.05, 0.62)
+		c.draw_rect(Rect2(x, y, 15.0, 9.0), col)
 	# Fuel pipe run from tanks toward the east wall (overlay on blocked core).
 	c.draw_rect(Rect2(22.2 * t, 10.7 * t, 6.0 * t, 7.0), Color(0.28, 0.14, 0.06, 0.55))
 	c.draw_rect(Rect2(22.2 * t, 10.85 * t, 6.0 * t, 3.0), Color(0.42, 0.22, 0.08, 0.35))
@@ -969,15 +980,58 @@ func _landmark_depot(c: CanvasItem) -> void:
 
 func _landmark_radio(c: CanvasItem) -> void:
 	var t := AmbushGrid.TILE
-	# Radio dish on the blocked dish hall (y=7 pad + core).
-	var dish := Vector2(19.0 * t, 10.4 * t)
-	c.draw_arc(dish, 36.0, -2.4, 0.6, 14, Color(0.42, 0.72, 0.88, 0.55), 4.0, true)
-	c.draw_arc(dish, 28.0, -2.4, 0.6, 12, Color(0.18, 0.32, 0.40, 0.70), 2.4, true)
-	c.draw_line(dish, dish + Vector2(22, -18), Color(0.55, 0.82, 0.95, 0.70), 2.0, true)
-	c.draw_circle(dish + Vector2(22, -18), 4.0, Color(0.72, 0.92, 1.0, 0.85))
+	# Lighthouse mast on the blocked core (~cell 18-20, y 8-11). 90+ px, not a tank circle.
+	var mast := Vector2(19.2 * t, 11.55 * t)
+	var mast_h := 118.0
+	c.draw_colored_polygon(
+		PackedVector2Array([
+			Vector2(mast.x - 18, mast.y + 12),
+			Vector2(mast.x + 18, mast.y + 12),
+			Vector2(mast.x + 10, mast.y - mast_h + 24),
+			Vector2(mast.x - 10, mast.y - mast_h + 24),
+		]),
+		Color(0.08, 0.14, 0.18, 0.90)
+	)
+	c.draw_colored_polygon(
+		PackedVector2Array([
+			Vector2(mast.x - 7, mast.y + 10),
+			Vector2(mast.x - 1, mast.y + 10),
+			Vector2(mast.x + 2, mast.y - mast_h + 26),
+			Vector2(mast.x - 4, mast.y - mast_h + 26),
+		]),
+		Color(0.32, 0.58, 0.68, 0.28)
+	)
+	# Lighthouse bands so the shaft reads as a beacon tower, not a pipe.
+	c.draw_rect(Rect2(mast.x - 15, mast.y - 16, 30.0, 11.0), Color(0.78, 0.92, 0.98, 0.32))
+	c.draw_rect(Rect2(mast.x - 13, mast.y - 52, 26.0, 10.0), Color(0.78, 0.92, 0.98, 0.26))
+	c.draw_rect(Rect2(mast.x - 11, mast.y - 86, 22.0, 9.0), Color(0.78, 0.92, 0.98, 0.22))
+	c.draw_rect(Rect2(mast.x - 4, mast.y - 42, 8.0, 16.0), Color(0.42, 0.82, 0.96, 0.42))
+	c.draw_rect(Rect2(mast.x - 3, mast.y - 74, 6.0, 12.0), Color(0.42, 0.82, 0.96, 0.36))
+	# Lantern house + cyan beacon glass.
+	c.draw_rect(Rect2(mast.x - 13, mast.y - mast_h, 26.0, 24.0), Color(0.14, 0.26, 0.32, 0.92))
+	c.draw_rect(Rect2(mast.x - 16, mast.y - mast_h - 7, 32.0, 9.0), Color(0.22, 0.38, 0.44, 0.90))
+	c.draw_rect(Rect2(mast.x - 17, mast.y - mast_h + 20, 34.0, 5.0), Color(0.18, 0.30, 0.36, 0.80))
+	c.draw_circle(Vector2(mast.x, mast.y - mast_h + 11), 9.0, Color(0.55, 0.92, 1.0, 0.82))
+	c.draw_circle(Vector2(mast.x, mast.y - mast_h + 11), 4.5, Color(0.92, 0.98, 1.0, 0.92))
+	c.draw_rect(Rect2(mast.x - 22, mast.y + 10, 44.0, 8.0), Color(0.08, 0.12, 0.16, 0.75))
+	# Radio dish / Dish array — large parabolas on the east annex (blocked cells x=25-28).
+	var dish_a := Vector2(27.05 * t, 9.45 * t)
+	c.draw_arc(dish_a, 56.0, -2.62, 0.48, 18, Color(0.50, 0.84, 0.98, 0.68), 6.0, true)
+	c.draw_arc(dish_a, 44.0, -2.62, 0.48, 16, Color(0.16, 0.32, 0.40, 0.80), 3.4, true)
+	c.draw_line(dish_a, dish_a + Vector2(30, -28), Color(0.62, 0.90, 1.0, 0.78), 2.4, true)
+	c.draw_circle(dish_a + Vector2(30, -28), 5.5, Color(0.80, 0.96, 1.0, 0.92))
+	var dish_b := Vector2(27.55 * t, 11.25 * t)
+	c.draw_arc(dish_b, 46.0, -2.15, 0.90, 16, Color(0.42, 0.76, 0.90, 0.58), 5.0, true)
+	c.draw_arc(dish_b, 34.0, -2.15, 0.90, 14, Color(0.16, 0.30, 0.38, 0.72), 2.8, true)
+	c.draw_line(dish_b, dish_b + Vector2(24, -18), Color(0.55, 0.86, 0.96, 0.70), 2.0, true)
+	c.draw_circle(dish_b + Vector2(24, -18), 4.0, Color(0.72, 0.94, 1.0, 0.85))
+	var dish_c := Vector2(25.85 * t, 10.95 * t)
+	c.draw_arc(dish_c, 40.0, -2.75, 0.28, 14, Color(0.36, 0.68, 0.82, 0.50), 4.2, true)
+	c.draw_arc(dish_c, 30.0, -2.75, 0.28, 12, Color(0.14, 0.26, 0.34, 0.62), 2.2, true)
 	# Guy wire from dish hall to east annex.
-	c.draw_line(Vector2(23.2 * t, 8.2 * t), Vector2(27.4 * t, 11.6 * t), Color(0.55, 0.78, 0.88, 0.40), 1.4, true)
+	c.draw_line(Vector2(mast.x + 10, mast.y - 88), Vector2(27.0 * t, 9.6 * t), Color(0.55, 0.78, 0.88, 0.48), 1.6, true)
 	c.draw_line(Vector2(16.4 * t, 8.2 * t), Vector2(12.2 * t, 12.4 * t), Color(0.55, 0.78, 0.88, 0.32), 1.2, true)
+	c.draw_line(Vector2(mast.x - 8, mast.y - 70), Vector2(15.4 * t, 8.6 * t), Color(0.50, 0.74, 0.86, 0.36), 1.3, true)
 	# Morse hut on the east annex (already blocked).
 	c.draw_rect(Rect2(25.4 * t, 8.4 * t, 2.4 * t, 2.8 * t), Color(0.10, 0.16, 0.20, 0.70))
 	c.draw_rect(Rect2(25.6 * t, 8.6 * t, 2.0 * t, 10.0), Color(0.32, 0.72, 0.88, 0.35))
@@ -986,10 +1040,10 @@ func _landmark_radio(c: CanvasItem) -> void:
 	c.draw_rect(Rect2(25.55 * t, 10.6 * t, 16.0, 12.0), Color(0.10, 0.16, 0.20, 0.55))
 	c.draw_rect(Rect2(25.7 * t, 10.75 * t, 12.0, 2.0), Color(0.42, 0.82, 0.95, 0.45))
 	# Antenna mast west of the core, off the sneak alley.
-	var mast := Vector2(10.4 * t, 9.2 * t)
-	c.draw_rect(Rect2(mast.x - 2, mast.y - 40, 4.0, 44.0), Color(0.14, 0.18, 0.22, 0.80))
-	c.draw_circle(mast + Vector2(0, -44), 5.0, Color(0.42, 0.88, 0.95, 0.80))
-	c.draw_line(mast + Vector2(0, -20), mast + Vector2(14, -8), Color(0.40, 0.70, 0.82, 0.40), 1.2, true)
+	var west_mast := Vector2(10.4 * t, 9.2 * t)
+	c.draw_rect(Rect2(west_mast.x - 2, west_mast.y - 40, 4.0, 44.0), Color(0.14, 0.18, 0.22, 0.80))
+	c.draw_circle(west_mast + Vector2(0, -44), 5.0, Color(0.42, 0.88, 0.95, 0.80))
+	c.draw_line(west_mast + Vector2(0, -20), west_mast + Vector2(14, -8), Color(0.40, 0.70, 0.82, 0.40), 1.2, true)
 	_lamp_post(c, Vector2(13.6 * t, 8.4 * t), Color(0.55, 0.86, 0.98))
 	_lamp_post(c, Vector2(32.4 * t, 8.4 * t), Color(0.55, 0.86, 0.98))
 	# Cable run along the south face of the core.
@@ -1006,9 +1060,12 @@ func _landmark_radio(c: CanvasItem) -> void:
 		c.draw_rect(Rect2(bx, by, 14.0, 8.0), Color(0.28, 0.24, 0.14, 0.55))
 		c.draw_rect(Rect2(bx + 1.0, by + 1.0, 12.0, 3.0), Color(0.38, 0.32, 0.16, 0.40))
 	# Phosphor ticks down the echo hall (x=24), distinct from depot tank farm.
-	for i in 4:
-		var ey := 8.4 * t + float(i) * 22.0
-		c.draw_rect(Rect2(24.35 * t, ey, 10.0, 3.0), Color(0.42, 0.82, 0.96, 0.28))
+	# Echo hall phosphor — brighter and denser than the old 4-tick wash.
+	c.draw_rect(Rect2(24.08 * t, 5.25 * t, 0.84 * t, 10.4 * t), Color(0.32, 0.78, 0.95, 0.22))
+	for i in 11:
+		var ey := 5.45 * t + float(i) * 28.0
+		c.draw_rect(Rect2(24.22 * t, ey, 16.0, 4.0), Color(0.55, 0.92, 1.0, 0.50))
+		c.draw_rect(Rect2(24.38 * t, ey + 1.0, 8.0, 2.0), Color(0.82, 0.98, 1.0, 0.58))
 	# Horn speaker on the east annex roof.
 	var horn := Vector2(27.6 * t, 8.15 * t)
 	c.draw_circle(horn, 6.0, Color(0.18, 0.28, 0.32, 0.70))
@@ -1135,39 +1192,66 @@ func _silhouette_railcut_tower(c: CanvasItem) -> void:
 func _silhouette_depot_tanks(c: CanvasItem) -> void:
 	# depot tank farm — extra tanks on the blocked island, west of existing pair.
 	var t := AmbushGrid.TILE
-	var a := Vector2(16.6 * t, 11.4 * t)
-	var b := Vector2(23.8 * t, 11.8 * t)
-	c.draw_circle(a, 34.0, Color(0.16, 0.08, 0.04, 0.70))
-	c.draw_circle(a, 26.0, Color(0.32, 0.14, 0.06, 0.42))
-	c.draw_rect(Rect2(a.x - 7, a.y - 42, 14.0, 18.0), Color(0.14, 0.08, 0.04, 0.8))
-	c.draw_circle(b, 26.0, Color(0.18, 0.08, 0.04, 0.65))
-	c.draw_circle(b, 18.0, Color(0.36, 0.16, 0.06, 0.38))
-	c.draw_rect(Rect2(17.4 * t, 13.6 * t, 7.2 * t, 8.0), Color(0.22, 0.10, 0.04, 0.45))
+	var a := Vector2(16.5 * t, 11.4 * t)
+	var b := Vector2(23.9 * t, 11.7 * t)
+	var d := Vector2(20.2 * t, 12.6 * t)
+	c.draw_circle(a, 42.0, Color(0.16, 0.08, 0.04, 0.74))
+	c.draw_circle(a, 32.0, Color(0.34, 0.14, 0.06, 0.46))
+	c.draw_rect(Rect2(a.x - 8, a.y - 50, 16.0, 22.0), Color(0.14, 0.08, 0.04, 0.82))
+	c.draw_circle(b, 32.0, Color(0.18, 0.08, 0.04, 0.68))
+	c.draw_circle(b, 22.0, Color(0.38, 0.16, 0.06, 0.40))
+	c.draw_circle(d, 24.0, Color(0.20, 0.10, 0.04, 0.55))
+	c.draw_rect(Rect2(17.2 * t, 13.55 * t, 7.6 * t, 9.0), Color(0.22, 0.10, 0.04, 0.48))
 
 
 func _silhouette_radio_dish(c: CanvasItem) -> void:
-	# dish hall — large cached parabola on the blocked core.
+	# dish hall — lighthouse mast + dish array, not a tank rectangle.
 	var t := AmbushGrid.TILE
-	var p := Vector2(19.0 * t, 11.0 * t)
+	var p := Vector2(19.2 * t, 11.55 * t)
 	c.draw_colored_polygon(
 		PackedVector2Array([
-			Vector2(p.x - 48, p.y + 10),
-			Vector2(p.x + 8, p.y - 70),
-			Vector2(p.x + 22, p.y - 58),
-			Vector2(p.x - 20, p.y + 18),
+			Vector2(p.x - 20, p.y + 14),
+			Vector2(p.x + 20, p.y + 14),
+			Vector2(p.x + 11, p.y - 96),
+			Vector2(p.x - 11, p.y - 96),
 		]),
-		Color(0.10, 0.16, 0.20, 0.62)
+		Color(0.08, 0.14, 0.18, 0.78)
+	)
+	c.draw_rect(Rect2(p.x - 16, p.y - 118, 32.0, 24.0), Color(0.12, 0.22, 0.28, 0.82))
+	c.draw_rect(Rect2(p.x - 18, p.y - 126, 36.0, 10.0), Color(0.18, 0.32, 0.38, 0.80))
+	c.draw_circle(Vector2(p.x, p.y - 108), 8.0, Color(0.42, 0.82, 0.96, 0.55))
+	# Dish array bowls on the east annex (blocked x=25-28).
+	var d1 := Vector2(27.05 * t, 9.5 * t)
+	c.draw_colored_polygon(
+		PackedVector2Array([
+			Vector2(d1.x - 52, d1.y + 16),
+			Vector2(d1.x + 8, d1.y - 58),
+			Vector2(d1.x + 24, d1.y - 44),
+			Vector2(d1.x - 22, d1.y + 22),
+		]),
+		Color(0.10, 0.18, 0.24, 0.62)
 	)
 	c.draw_colored_polygon(
 		PackedVector2Array([
-			Vector2(p.x - 36, p.y + 4),
-			Vector2(p.x + 4, p.y - 58),
-			Vector2(p.x + 12, p.y - 48),
-			Vector2(p.x - 12, p.y + 10),
+			Vector2(d1.x - 38, d1.y + 8),
+			Vector2(d1.x + 4, d1.y - 46),
+			Vector2(d1.x + 14, d1.y - 36),
+			Vector2(d1.x - 12, d1.y + 12),
 		]),
-		Color(0.28, 0.48, 0.58, 0.32)
+		Color(0.28, 0.52, 0.64, 0.34)
 	)
-	c.draw_rect(Rect2(p.x - 6, p.y - 8, 10.0, 36.0), Color(0.12, 0.16, 0.20, 0.75))
+	var d2 := Vector2(27.5 * t, 11.3 * t)
+	c.draw_colored_polygon(
+		PackedVector2Array([
+			Vector2(d2.x - 40, d2.y + 14),
+			Vector2(d2.x + 6, d2.y - 42),
+			Vector2(d2.x + 18, d2.y - 30),
+			Vector2(d2.x - 16, d2.y + 18),
+		]),
+		Color(0.10, 0.16, 0.22, 0.50)
+	)
+	# Echo hall phosphor ribbon so x=24 reads as the dish-gap path.
+	c.draw_rect(Rect2(24.05 * t, 5.2 * t, 0.9 * t, 10.5 * t), Color(0.28, 0.72, 0.92, 0.22))
 
 
 func _lamp_post(c: CanvasItem, p: Vector2, glow: Color, stem: bool = true) -> void:
