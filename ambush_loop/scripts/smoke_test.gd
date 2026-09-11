@@ -3429,6 +3429,22 @@ func _assert_iteration_slice(main) -> bool:
 		quit(71)
 		return false
 	print("SMOKE_OK_KILL_STAMP")
+	main._select_op(0)
+	main._deploy_selected_to(main.cover_slots[0], false)
+	if not main.operators[0].has_method("facing_compass_visible"):
+		push_error("SMOKE_NO_COMPASS_API")
+		quit(71)
+		return false
+	if not bool(main.operators[0].facing_compass_visible()):
+		push_error("SMOKE_COMPASS_HIDDEN")
+		quit(71)
+		return false
+	if main.operators[0].get_node_or_null("CompassRose") == null:
+		push_error("SMOKE_NO_COMPASS_NODE")
+		quit(71)
+		return false
+	main._on_clear_pressed()
+	print("SMOKE_OK_COMPASS")
 	return true
 
 

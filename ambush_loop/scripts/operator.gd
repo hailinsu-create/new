@@ -81,6 +81,7 @@ var _outline_boost: bool = false
 var cone_edge: Line2D = null
 var sel_ring: Line2D = null
 var face_chip: Label = null
+var compass_rose: Node2D = null
 var pack_glyph: Polygon2D = null
 var dry_mark: Label = null
 var bark_lab: Label = null
@@ -234,6 +235,7 @@ func set_facing(deg: float) -> void:
 		_face_tick = 1.0
 	_rebuild_cone()
 	_refresh_face_chip()
+	_refresh_compass_rose()
 
 
 func rotate_by(delta_deg: float) -> void:
@@ -245,6 +247,7 @@ func lock_plan() -> void:
 	_rebuild_cone()
 	locked = true
 	fire_permitted = fire_mode == FireMode.ENGAGE_ON_SIGHT
+	_refresh_compass_rose()
 	_rebuild_cone()
 	_refresh_face_chip()
 	_tick_sel_ring()
@@ -447,6 +450,7 @@ func set_selected_visual(on: bool) -> void:
 	_selected_visual = on and visible and alive
 	_ensure_sel_ring()
 	_refresh_face_chip()
+	_refresh_compass_rose()
 	_rebuild_cone()
 
 
@@ -1380,6 +1384,55 @@ func _refresh_face_chip() -> void:
 	face_chip.position = Vector2(-28, 16)
 	var kit := role_kit_color(role)
 	face_chip.add_theme_color_override("font_color", Color(kit.r, kit.g, kit.b, 0.95).lerp(Color(1.0, 0.92, 0.45), _face_tick))
+
+
+func facing_compass_visible() -> bool:
+	return compass_rose != null and is_instance_valid(compass_rose) and compass_rose.visible
+
+
+func _refresh_compass_rose() -> void:
+	if compass_rose == null or not is_instance_valid(compass_rose):
+		compass_rose = get_node_or_null("CompassRose") as Node2D
+	if compass_rose == null:
+		compass_rose = Node2D.new()
+		compass_rose.name = "CompassRose"
+		compass_rose.z_index = 5
+		add_child(compass_rose)
+		var ring := Line2D.new()
+		ring.name = "Ring"
+		ring.width = 1.4
+		ring.closed = true
+		ring.default_color = Color(0.92, 0.88, 0.45, 0.70)
+		var rpts := PackedVector2Array()
+		for i in 20:
+			var a := TAU * float(i) / 20.0
+			rpts.append(Vector2(cos(a), sin(a)) * 20.0)
+		if rpts.size() > 0:
+			rpts.append(rpts[0])
+		ring.points = rpts
+		compass_rose.add_child(ring)
+		var needle := Polygon2D.new()
+		needle.name = "Needle"
+		needle.polygon = PackedVector2Array([
+			Vector2(18, 0), Vector2(8, -4), Vector2(8, 4)
+		])
+		needle.color = Color(1.0, 0.92, 0.38, 0.92)
+		compass_rose.add_child(needle)
+		for pair in [["N", Vector2(-4, -28)], ["E", Vector2(18, -6)], ["S", Vector2(-4, 18)], ["W", Vector2(-24, -6)]]:
+			var lab := Label.new()
+			lab.text = str(pair[0])
+			lab.position = pair[1]
+			lab.add_theme_font_size_override("font_size", 9)
+			lab.add_theme_color_override("font_color", Color(0.92, 0.88, 0.52, 0.85))
+			lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			compass_rose.add_child(lab)
+	var on := _selected_visual and alive and visible and not locked
+	compass_rose.visible = on
+	if not on:
+		return
+	var needle_n := compass_rose.get_node_or_null("Needle") as Polygon2D
+	if needle_n:
+		needle_n.rotation = deg_to_rad(facing_deg)
 
 
 func _refresh_pack_glyph() -> void:
