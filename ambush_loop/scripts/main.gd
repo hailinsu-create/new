@@ -3204,10 +3204,8 @@ func _refresh_selection_visual() -> void:
 		if op.has_method("set_selected_visual"):
 			op.set_selected_visual(op == selected and op.visible)
 		if op.body:
-			if op == selected and op.visible:
-				op.body.color = Color(0.95, 0.85, 0.35)
-			else:
-				op.body.color = op.body_color if op.alive else Color(0.25, 0.28, 0.32)
+			# Selection is the ring / cone, not a gold fill that hides kit color.
+			op.body.color = op.body_color if op.alive else Color(0.25, 0.28, 0.32)
 
 
 func _refresh_mode_pack_buttons() -> void:

@@ -1479,6 +1479,16 @@ func _assert_operator_identity(main, rifle: OperatorUnit, mg: OperatorUnit, scou
 		push_error("SMOKE_RIFLE_BODY_TOO_SIMPLE n=%s" % (rifle.body.polygon.size() if rifle.body else -1))
 		quit(32)
 		return false
+	main._refresh_selection_visual()
+	var gold := Color(0.95, 0.85, 0.35)
+	if rifle.body.color.is_equal_approx(gold):
+		push_error("SMOKE_SELECTED_BODY_GOLD %s" % str(rifle.body.color))
+		quit(32)
+		return false
+	if rifle.body.color != rifle.body_color:
+		push_error("SMOKE_SELECTED_NOT_KIT col=%s kit=%s" % [rifle.body.color, rifle.body_color])
+		quit(32)
+		return false
 	if mg.body == null or mg.body.polygon.size() < 5:
 		push_error("SMOKE_MG_BODY_TOO_SIMPLE")
 		quit(32)
