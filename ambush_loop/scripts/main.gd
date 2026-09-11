@@ -3,8 +3,8 @@ extends Node2D
 ## Ambush Loop — Commandos-style ambush prep + time-loop coordinator.
 ## SETUP → Alarm freezes PlanState → WATCHING (SimClock) → FAIL/WIN/REPLAY.
 
-enum Phase { SETUP, WATCHING, FAILED, WON, REPLAY }
-enum Tool { DEPLOY, TRIPWIRE }
+enum Phase { SETUP, WATCHING, FAILED, WON, REPLAY, SWEEP }
+enum Tool { DEPLOY, TRIPWIRE, GRENADE, DECOY }
 
 const MAX_TRIPWIRES := 1
 const TRIPWIRE_ROUTE_DIST := 24.0
@@ -26,6 +26,13 @@ const NightGradeScript := preload("res://scripts/fx/night_grade.gd")
 const TrapPathFxScript := preload("res://scripts/fx/trap_path_fx.gd")
 const NightHandoffScript := preload("res://scripts/ui/night_handoff.gd")
 const SpawnGhostScript := preload("res://scripts/fx/spawn_ghost.gd")
+const WeaponCatalogScript := preload("res://scripts/raid/weapon_catalog.gd")
+const RaidPathfinderScript := preload("res://scripts/raid/pathfinder.gd")
+const RaidDirectorScript := preload("res://scripts/raid/raid_director.gd")
+const RaidStashScript := preload("res://scripts/raid/stash.gd")
+const RaidGrenadeScript := preload("res://scripts/raid/grenade.gd")
+const RaidMineScript := preload("res://scripts/raid/landmine.gd")
+const RaidDecoyScript := preload("res://scripts/raid/decoy.gd")
 
 var grid: AmbushGrid = AmbushGrid.new()
 var phase: Phase = Phase.SETUP
@@ -50,6 +57,11 @@ var selected: OperatorUnit = null
 var enemies: Array[EnemyRunner] = []
 var tripwires: Array[Tripwire] = []
 var loot_piles: Array[LootPickup] = []
+var raid_stashes: Array = []
+var raid_grenades: Array = []
+var raid_mines: Array = []
+var raid_decoys: Array = []
+var raid = RaidDirectorScript.new()
 var barrels: Array = []
 var frozen_plan: PlanState = PlanState.new()
 var replay_return_phase: Phase = Phase.SETUP
@@ -216,6 +228,7 @@ var _touch_preview_slot: CoverSlot = null
 var _pending_setup_touch: bool = false
 var _pending_touch_world: Vector2 = Vector2.ZERO
 var _touch_dragged: bool = false
+var _move_ghost: Line2D = null
 
 
 func _ready() -> void:
@@ -1260,16 +1273,16 @@ func _setup_world_layers() -> void:
 
 
 func _apply_watch_layers() -> void:
-	var dim_routes := phase != Phase.SETUP
+	var dim_routes := not _is_command_phase()
 	if routes_draw:
 		routes_draw.modulate = Color(1, 1, 1, 0.32) if dim_routes else Color.WHITE
 	if killzone_draw:
 		killzone_draw.modulate = Color.WHITE
-		killzone_draw.visible = phase == Phase.SETUP
+		killzone_draw.visible = _is_command_phase()
 	if decision_marker and is_instance_valid(decision_marker):
-		decision_marker.visible = phase == Phase.SETUP
+		decision_marker.visible = _is_command_phase()
 	if barrel_hint and is_instance_valid(barrel_hint):
-		barrel_hint.visible = phase == Phase.SETUP
+		barrel_hint.visible = _is_command_phase()
 	if trap_callout and is_instance_valid(trap_callout):
 		if phase != Phase.SETUP:
 			trap_callout.visible = false
@@ -3031,6 +3044,8 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 	battle_log.clear()
 	pending_spawns.clear()
 	all_spawns_done = false
+	if raid:
+		raid.reset()
 	_watch_first_fire = false
 	_watch_first_return = false
 	_kill_combo = 0
@@ -3044,6 +3059,8 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 	_clear_enemies()
 	_clear_tripwires()
 	_clear_loot()
+	_clear_raid_throwables()
+	_clear_stashes()
 	_clear_return_fx()
 	_clear_tracer_pool()
 	if not keep_intel:
@@ -3055,9 +3072,13 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 		leak_advice_shown = ""
 	if restore_plan and not last_plan.deployments.is_empty():
 		_restore_last_plan()
+		_wipe_squad_inventory()
 	else:
 		_clear_deployments()
+		_wipe_squad_inventory()
+		_place_squad_insert()
 		door_locked = last_plan.door_locked if restore_plan else false
+	_spawn_level_stashes()
 	if level != null and level.door_cell.x >= 0:
 		grid.set_door_state(level.door_cell, door_locked)
 	_redraw_ghosts()
@@ -3140,7 +3161,7 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 
 
 func _on_clear_pressed() -> void:
-	if phase != Phase.SETUP:
+	if not _is_command_phase():
 		return
 	_clear_deployments()
 	status_label.text = "已收回部署（记忆与绊索保留）"
@@ -3154,12 +3175,12 @@ func _clear_deployments() -> void:
 		slot.occupied_by = null
 		slot.set_highlight(false)
 	for op in operators:
-		op.has_ammo_pack = false
 		op.fire_mode = OperatorUnit.FireMode.ENGAGE_ON_SIGHT
 		op.reset_loadout()
 		op.slot = null
-		op.visible = false
-		op.position = Vector2(-1000, -1000)
+		op.visible = true
+		op.unlock_plan()
+	_place_squad_insert()
 	selected = operators[0] if operators.size() > 0 else null
 	_refresh_selection_visual()
 	_refresh_mode_pack_buttons()
@@ -3374,11 +3395,30 @@ func _clear_return_fx() -> void:
 
 
 func _toggle_tool() -> void:
-	if phase != Phase.SETUP:
+	if not _is_command_phase():
 		return
-	tool = Tool.TRIPWIRE if tool == Tool.DEPLOY else Tool.DEPLOY
-	tool_button.text = "工具: 部署队员" if tool == Tool.DEPLOY else "工具: 绊索(后勤)"
-	status_label.text = "部署到掩体位，A/D 调整射界" if tool == Tool.DEPLOY else "在路线线段附近放绊索（最多1）"
+	match tool:
+		Tool.DEPLOY:
+			tool = Tool.TRIPWIRE
+		Tool.TRIPWIRE:
+			tool = Tool.GRENADE
+		Tool.GRENADE:
+			tool = Tool.DECOY
+		_:
+			tool = Tool.DEPLOY
+	match tool:
+		Tool.TRIPWIRE:
+			tool_button.text = "工具: 地雷"
+			status_label.text = "点地埋雷（消耗背包地雷；无雷时仍可铺一条绊索）"
+		Tool.GRENADE:
+			tool_button.text = "工具: 手雷"
+			status_label.text = "点地丢手雷（消耗背包）"
+		Tool.DECOY:
+			tool_button.text = "工具: 诱饵"
+			status_label.text = "点地丢诱饵，短暂停住附近敌人"
+		_:
+			tool_button.text = "工具: 走路/掩体"
+			status_label.text = "点地走路，点掩体上垫，走近匣/尸体拾取"
 	_update_tripwire_ghost()
 	_update_hud()
 
@@ -3444,6 +3484,8 @@ func _unhandled_input(event: InputEvent) -> void:
 					_on_abort_pressed()
 				KEY_J:
 					_on_skip_to_outcome_pressed()
+				KEY_G:
+					_throw_grenade_at_cursor()
 				KEY_EQUAL, KEY_KP_ADD:
 					sim.set_speed(2.0)
 					if speed_button:
@@ -3455,7 +3497,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		return
 
-	if phase != Phase.SETUP:
+	if not _is_command_phase():
 		return
 
 	if event.is_action_pressed("sound_alarm"):
@@ -3475,17 +3517,21 @@ func _unhandled_input(event: InputEvent) -> void:
 					selected.rotate_by(-15.0)
 					_announce_plan_edit()
 					_refresh_killzone_preview()
-			KEY_D, KEY_E:
+			KEY_D:
 				if selected and selected.visible:
 					selected.rotate_by(15.0)
 					_announce_plan_edit()
 					_refresh_killzone_preview()
+			KEY_E:
+				_try_pickup_near_selected()
 			KEY_F:
 				_on_mode_pressed()
 			KEY_G:
-				_on_pack_pressed()
+				_throw_grenade_at_cursor()
 			KEY_B:
 				_on_door_pressed()
+			KEY_V:
+				_throw_decoy_at_cursor()
 			KEY_TAB:
 				_toggle_tool()
 		get_viewport().set_input_as_handled()
@@ -3608,12 +3654,12 @@ func _select_op(idx: int) -> void:
 	selected = operators[idx]
 	_refresh_selection_visual()
 	_update_role_cards()
-	if phase == Phase.SETUP:
+	if _is_command_phase():
 		_sfx("ui")
-	if phase != Phase.SETUP:
+	if not _is_command_phase():
 		return
 	tool = Tool.DEPLOY
-	tool_button.text = "工具: 部署队员"
+	tool_button.text = "工具: 走路/掩体"
 	_refresh_mode_pack_buttons()
 	status_label.text = "已选择 %s — %s" % [selected.display_name, selected.kit_blurb()]
 	_update_cover_previews()
@@ -3643,14 +3689,16 @@ func _refresh_mode_pack_buttons() -> void:
 
 func _handle_setup_click(world_pos: Vector2) -> void:
 	if tool == Tool.TRIPWIRE:
-		_try_place_tripwire(world_pos)
+		_try_place_inventory_mine(world_pos)
 		return
-	var slot := _nearest_slot(world_pos, 28.0)
-	if slot:
-		_deploy_selected_to(slot, true)
+	if tool == Tool.GRENADE:
+		_throw_grenade_at(world_pos)
+		return
+	if tool == Tool.DECOY:
+		_throw_decoy_at(world_pos)
 		return
 	for op in operators:
-		if op.visible and op.global_position.distance_to(world_pos) <= 20.0:
+		if op.visible and op.alive and op.global_position.distance_to(world_pos) <= 22.0:
 			selected = op
 			_refresh_selection_visual()
 			_refresh_mode_pack_buttons()
@@ -3659,6 +3707,11 @@ func _handle_setup_click(world_pos: Vector2) -> void:
 			_refresh_killzone_preview()
 			_update_hud()
 			return
+	var slot := _nearest_slot(world_pos, 28.0)
+	if slot:
+		_deploy_selected_to(slot, true)
+		return
+	_command_move_selected(world_pos)
 
 
 func _nearest_slot(world_pos: Vector2, max_dist: float) -> CoverSlot:
@@ -3698,9 +3751,11 @@ func _deploy_selected_to(slot: CoverSlot, announce: bool = true) -> void:
 	slot.set_highlight(true)
 	selected.slot = slot
 	selected.visible = true
+	selected.stop_move()
 	selected.global_position = slot.global_position
 	var face := float(slot.get_meta("default_face"))
-	selected.reset_loadout()
+	if not selected.alive:
+		selected.reset_loadout()
 	# Re-click or pad-to-pad move keeps the aim the player already set.
 	# First drop onto a pad still uses the authored default face.
 	if had_cover:
@@ -4364,7 +4419,7 @@ func _play_hold_pack(op_index: int) -> void:
 
 
 func _on_mode_pressed() -> void:
-	if phase != Phase.SETUP or selected == null or not selected.visible:
+	if not _is_command_phase() or selected == null or not selected.visible:
 		return
 	selected.cycle_fire_mode()
 	_refresh_mode_pack_buttons()
@@ -4377,7 +4432,7 @@ func _on_mode_pressed() -> void:
 
 
 func _on_pack_pressed() -> void:
-	if phase != Phase.SETUP or level == null or not level.has_ammo_pack:
+	if not _is_command_phase() or level == null or not level.has_ammo_pack:
 		return
 	if selected == null or not selected.visible:
 		status_label.text = "先部署并选中一名队员再分配弹包"
@@ -4406,7 +4461,7 @@ func _on_pack_pressed() -> void:
 
 
 func _on_door_pressed() -> void:
-	if phase != Phase.SETUP or level == null or level.door_cell.x < 0:
+	if not _is_command_phase() or level == null or level.door_cell.x < 0:
 		return
 	door_locked = not door_locked
 	_door_taught = true
@@ -4459,10 +4514,13 @@ func alarm_leak_warning() -> String:
 
 
 func _on_alarm_pressed() -> void:
+	if phase == Phase.SWEEP:
+		_on_sweep_commit()
+		return
 	if phase != Phase.SETUP:
 		return
-	if _deployed_count() < 1:
-		status_label.text = "至少部署一名队员到掩体"
+	if _living_ops() < 1:
+		status_label.text = "没有能作战的队员"
 		return
 	var leak_warn := alarm_leak_warning()
 	if leak_warn != "":
@@ -4522,7 +4580,7 @@ func _on_alarm_pressed() -> void:
 	if speed_button:
 		speed_button.disabled = false
 	_wave_tension_id = -1
-	status_label.text = "方案锁死 — 暂停/变速/跳到终局仅改变观看。跑掉或全灭均失败。中止(X)留情报。"
+	status_label.text = "警报 · 第%d波 — 埋伏开火。逃逸或全灭失败。中止(X)留情报。" % (raid.wave_index + 1 if raid else 1)
 	_fade_trap_callout()
 	_fade_second_callout()
 	_fade_echo_callout()
@@ -4534,15 +4592,15 @@ func _on_alarm_pressed() -> void:
 
 func _queue_spawns(_this_run: int) -> void:
 	_clear_enemies()
-	_clear_loot()
 	pending_spawns.clear()
 	all_spawns_done = false
-	for spec in level.spawn_schedule:
+	var specs: Array = raid.current_spawns(level) if raid else level.spawn_schedule
+	for spec in specs:
 		pending_spawns.append({
 			"id": int(spec["id"]),
 			"route": str(spec["route"]),
 			"delay": float(spec["delay"]),
-			"loot": int(spec["loot"]),
+			"loot": int(spec.get("loot", 0)),
 			"kit": str(spec.get("kit", "")),
 			"teaching_note": str(spec.get("teaching_note", "")),
 			"spawned": false,
@@ -4671,8 +4729,8 @@ func _make_enemy(id: int) -> EnemyRunner:
 	return e
 
 
-func _spawn_loot_at(pos: Vector2, amount: int) -> void:
-	if amount <= 0:
+func _spawn_loot_at(pos: Vector2, amount: int, kind: String = "ammo") -> void:
+	if amount <= 0 and kind == "ammo":
 		return
 	var loot := LootPickup.new()
 	var visual := Polygon2D.new()
@@ -4690,7 +4748,7 @@ func _spawn_loot_at(pos: Vector2, amount: int) -> void:
 	loot.add_child(tag)
 	entities.add_child(loot)
 	loot.global_position = pos
-	loot.setup(amount)
+	loot.setup(amount, kind)
 	loot_piles.append(loot)
 
 
@@ -4706,11 +4764,19 @@ func _on_return_fired(from: EnemyRunner, to: OperatorUnit) -> void:
 
 
 func _process(delta: float) -> void:
-	if phase == Phase.SETUP:
+	if _is_command_phase():
 		_tick_cover_long_press()
 		_tick_cover_hold_ring()
 		_update_cover_previews()
 		_update_tripwire_ghost()
+		_tick_command_moves(delta)
+		_tick_command_pickups()
+		_tick_raid_grenades(delta)
+		_tick_raid_decoys(delta)
+		hud_tick += delta
+		if hud_tick >= 0.20:
+			hud_tick = 0.0
+			_update_hud()
 		return
 	if phase != Phase.WATCHING:
 		return
@@ -4800,7 +4866,7 @@ func _sim_tick() -> void:
 	# 6) Operator fire — priority: shortest remaining path to escape, then stable ID
 	if phase == Phase.WATCHING:
 		for op in operators:
-			if not op.visible or not op.locked or not op.alive:
+			if not op.visible or not op.alive:
 				continue
 			var best: EnemyRunner = null
 			var best_escape := INF
@@ -4849,13 +4915,11 @@ func _sim_tick() -> void:
 				_finish_sim_tick()
 				return
 
-	# 8) Loot: nearest + LOS + stable op_id
+	# 8) Loot stays on the ground during ALERT. Sweep/scout walk-collect.
 	if phase == Phase.WATCHING:
-		for loot in loot_piles.duplicate():
-			if not is_instance_valid(loot) or loot.collected:
-				continue
-			_try_assign_loot(loot)
-		loot_piles = loot_piles.filter(func(l: LootPickup) -> bool: return is_instance_valid(l) and not l.collected)
+		_tick_raid_mines()
+		_tick_raid_grenades(SimClock.TICK_DT)
+		_tick_raid_decoys(SimClock.TICK_DT)
 
 	_finish_sim_tick()
 
@@ -5022,18 +5086,20 @@ func _try_assign_loot(loot: LootPickup) -> void:
 		return a.op_id < b.op_id
 	)
 	for op in candidates:
-		var amount := loot.ammo_amount
-		var gained := op.receive_ammo(amount)
-		if gained > 0:
-			var loot_pos := loot.global_position
-			loot.collect()
-			CombatFxScript.loot_spark(entities, loot_pos)
-			CombatFxScript.loot_streak(entities, loot_pos, op.global_position)
-			battle_log.add_event(sim.tick, "loot", op.op_id, -1, loot_pos, {"amount": gained})
-			status_label.text = "%s 搜刮 +%d弹" % [op.display_name, gained]
-			_sfx("loot")
-			_update_event_log()
-			return
+		var item: Dictionary = {"kind": loot.kind, "amount": loot.ammo_amount}
+		var loot_pos := loot.global_position
+		var taken := loot.collect_item()
+		if taken.is_empty():
+			continue
+		var rec: Dictionary = op.receive_item(str(item.get("kind", "ammo")), int(item.get("amount", 1)))
+		CombatFxScript.loot_spark(entities, loot_pos)
+		CombatFxScript.loot_streak(entities, loot_pos, op.global_position)
+		battle_log.add_event(sim.tick, "loot", op.op_id, -1, loot_pos, item)
+		status_label.text = "%s 搜刮 %s" % [op.display_name, str(rec.get("text", ""))]
+		_sfx("loot")
+		_update_event_log()
+		_update_role_cards()
+		return
 
 
 func _resolve_escapes() -> void:
@@ -5098,7 +5164,9 @@ func _on_enemy_died(enemy: EnemyRunner) -> void:
 		return
 	if phase == Phase.WATCHING or pending_result != "":
 		battle_log.add_event(sim.tick, "kill", enemy.label_id)
-	_spawn_loot_at(enemy.global_position, enemy.loot_ammo)
+	var drop_kit := "echo" if enemy.echo_kit else ""
+	var drop: Dictionary = WeaponCatalogScript.enemy_drop_for(int(enemy.loot_ammo), drop_kit)
+	_spawn_loot_at(enemy.global_position, int(drop.get("amount", 2)), str(drop.get("kind", "ammo")))
 	if phase == Phase.WATCHING:
 		_kill_edge_flash()
 		if _last_kill_tick >= 0 and sim.tick - _last_kill_tick <= PayoffCopy.combo_window_ticks():
@@ -5866,13 +5934,7 @@ func _check_win() -> void:
 	if _living_ops() == 0:
 		_fail_squad_wipe()
 		return
-	phase = Phase.WON
-	battle_log.mark_terminal(sim.tick, "win")
-	_flash("零逃逸", Color(0.45, 0.9, 0.45))
-	_sfx("win")
-	_win_stinger()
-	_camera_punch()
-	pending_result = "win"
+	_enter_sweep()
 
 
 func _first_shot_line() -> String:
@@ -6577,7 +6639,7 @@ func _update_hud() -> void:
 	if help_label:
 		# One-line in the bottom-left chrome. Hidden while watching so the
 		# letterbox and escape mouth stay clear. Never a paragraph over the map.
-		help_label.visible = phase == Phase.SETUP and not _want_touch()
+		help_label.visible = _is_command_phase() and not _want_touch()
 	_refresh_spawn_teach()
 	# Short dump string only. Painted advice lives on intel_chip under the timeline.
 	var intel_txt := "漏网记忆：%d   |   %s" % [intel.records.size(), _ammo_summary()]
@@ -6602,10 +6664,12 @@ func _update_hud() -> void:
 			op._refresh_tag()
 	var dep := _deployed_count()
 	if phase == Phase.SETUP:
-		help_label.text = "点掩体 %d/3 · A/D射界 · 空格警报" % dep
+		help_label.text = "点地走 点匣拾 上掩体%d/3 · 空格警报" % dep
 	elif phase == Phase.WATCHING:
 		var spd := "暂停" if sim.paused else ("2×" if sim.speed >= 1.5 else "1×")
-		help_label.text = "锁死 t=%.1fs %s" % [sim.time_sec(), spd]
+		help_label.text = "警报 t=%.1fs %s  G手雷" % [sim.time_sec(), spd]
+	elif phase == Phase.SWEEP:
+		help_label.text = "打扫：走近尸体拾取 · 空格%s" % ("撤离" if raid and raid.is_last_wave(level) else "下一波")
 	elif phase == Phase.FAILED:
 		help_label.text = "失败：%s" % fail_reason
 	elif phase == Phase.WON:
@@ -6614,6 +6678,7 @@ func _update_hud() -> void:
 		help_label.text = "复盘 t=%.1fs / %.1fs" % [
 			float(replay.scrub_tick) / 60.0, float(replay.max_tick()) / 60.0
 		]
+	_refresh_alarm_cta()
 	_refresh_door_visual()
 	_refresh_mode_pack_buttons()
 	_update_role_cards()
@@ -6711,16 +6776,24 @@ func watch_census_text() -> String:
 func _refresh_phase_chip() -> void:
 	if phase_chip == null:
 		return
+	var total: int = raid.wave_count(level) if raid else 1
+	var w: int = raid.wave_index if raid else 0
 	match phase:
 		Phase.SETUP:
-			phase_chip.text = "阶段 · 布置杀局"
+			phase_chip.text = "阶段 · 搜刮埋伏  波次 %d/%d" % [w + 1, total]
 			phase_chip.add_theme_color_override("font_color", Color(0.82, 0.90, 0.52))
 		Phase.WATCHING:
 			var spd := "暂停" if sim.paused else ("2×" if sim.speed >= 1.5 else "1×")
-			phase_chip.text = "锁死观战  %s  t=%.1fs  %s" % [spd, sim.time_sec(), watch_census_text()]
+			phase_chip.text = "警报 第%d/%d波  %s  t=%.1fs  %s" % [w + 1, total, spd, sim.time_sec(), watch_census_text()]
 			phase_chip.add_theme_color_override("font_color", Color(1.0, 0.22, 0.14))
+		Phase.SWEEP:
+			if raid and raid.is_last_wave(level):
+				phase_chip.text = "打扫战场  最后一波 · 空格撤离"
+			else:
+				phase_chip.text = "打扫战场  空格拉第%d波" % [w + 2]
+			phase_chip.add_theme_color_override("font_color", Color(0.95, 0.82, 0.38))
 		Phase.FAILED:
-			phase_chip.text = "阶段 · 失败穿梭"
+			phase_chip.text = "阶段 · 失败"
 			phase_chip.add_theme_color_override("font_color", Color(1.0, 0.42, 0.28))
 		Phase.WON:
 			phase_chip.text = "阶段 · 封锁成功"
@@ -6908,7 +6981,7 @@ func _update_role_cards() -> void:
 		if level != null and level.has_method("role_why_for"):
 			why0 = str(level.role_why_for(selected.role))
 		var why_bit := ("\n%s" % why0) if why0 != "" else ""
-		plan_readout.text = "选中 %s（未部署）\n%s%s" % [selected.display_name, selected.kit_blurb(), why_bit]
+		plan_readout.text = "选中 %s\n%s%s" % [selected.display_name, selected.kit_blurb(), why_bit]
 	else:
 		var why1 := ""
 		if level != null and level.has_method("role_why_for"):
@@ -6920,3 +6993,502 @@ func _update_role_cards() -> void:
 			_compass_deg(selected.facing_deg),
 			why_line,
 		]
+
+
+func _is_command_phase() -> bool:
+	return phase == Phase.SETUP or phase == Phase.SWEEP
+
+
+func phase_id() -> String:
+	match phase:
+		Phase.SETUP:
+			return "scout"
+		Phase.WATCHING:
+			return "alert"
+		Phase.SWEEP:
+			return "sweep"
+		Phase.FAILED:
+			return "fail"
+		Phase.WON:
+			return "win"
+		Phase.REPLAY:
+			return "replay"
+		_:
+			return ""
+
+
+func wave_index() -> int:
+	return raid.wave_index if raid else 0
+
+
+func wave_total() -> int:
+	return raid.wave_count(level) if raid else 1
+
+
+func _wipe_squad_inventory() -> void:
+	for op in operators:
+		if op:
+			op.wipe_inventory()
+			op.reset_loadout()
+
+
+func _place_squad_insert() -> void:
+	if level == null or grid == null:
+		return
+	for i in operators.size():
+		var op: OperatorUnit = operators[i]
+		if op.slot != null:
+			continue
+		var cell: Vector2i = level.insert_cell_for(i)
+		if grid.is_blocked(cell.x, cell.y):
+			cell = RaidPathfinderScript.nearest_open(grid, cell)
+		op.visible = true
+		op.alive = true
+		op.slot = null
+		op.unlock_plan()
+		op.stop_move()
+		op.global_position = grid.cell_to_world_center(cell)
+		op.set_facing(0.0 if i == 0 else (90.0 if i == 1 else 180.0))
+
+
+func _clear_stashes() -> void:
+	for s in raid_stashes:
+		if s != null and is_instance_valid(s):
+			s.queue_free()
+	raid_stashes.clear()
+	for n in get_tree().get_nodes_in_group("stash"):
+		if is_instance_valid(n):
+			n.queue_free()
+
+
+func _clear_raid_throwables() -> void:
+	for g in raid_grenades:
+		if g != null and is_instance_valid(g):
+			g.queue_free()
+	raid_grenades.clear()
+	for m in raid_mines:
+		if m != null and is_instance_valid(m):
+			m.queue_free()
+	raid_mines.clear()
+	for d in raid_decoys:
+		if d != null and is_instance_valid(d):
+			d.queue_free()
+	raid_decoys.clear()
+
+
+func _spawn_level_stashes() -> void:
+	_clear_stashes()
+	if level == null or grid == null:
+		return
+	for spec in level.stashes:
+		if not spec is Dictionary:
+			continue
+		var cell: Vector2i = spec.get("cell", Vector2i.ZERO)
+		if grid.is_blocked(cell.x, cell.y):
+			continue
+		var st = RaidStashScript.new()
+		st.name = "Stash"
+		entities.add_child(st)
+		st.global_position = grid.cell_to_world_center(cell)
+		st.setup(str(spec.get("kind", "ammo")), int(spec.get("amount", 1)), cell)
+		raid_stashes.append(st)
+
+
+func _command_move_selected(world_pos: Vector2) -> void:
+	if selected == null or not selected.visible or not selected.alive:
+		return
+	if selected.locked:
+		return
+	var from_c := selected.grid_cell()
+	var to_c := grid.world_to_cell(world_pos)
+	if _cell_taken(to_c, selected):
+		to_c = _open_cell_near(to_c, selected)
+	var cells: Array[Vector2i] = RaidPathfinderScript.find_path(grid, from_c, to_c)
+	if cells.is_empty():
+		status_label.text = "走不过去"
+		return
+	if selected.slot:
+		selected.slot.occupied_by = null
+		selected.slot.set_highlight(false)
+		selected.slot = null
+	var pts := PackedVector2Array()
+	pts.append(selected.global_position)
+	for c in cells:
+		pts.append(grid.cell_to_world_center(c))
+	selected.set_move_path(pts)
+	_draw_move_ghost(pts)
+	status_label.text = "%s 移动" % selected.display_name
+	_sfx("ui")
+
+
+func _draw_move_ghost(pts: PackedVector2Array) -> void:
+	if _move_ghost == null or not is_instance_valid(_move_ghost):
+		_move_ghost = Line2D.new()
+		_move_ghost.name = "MoveGhost"
+		_move_ghost.width = 2.0
+		_move_ghost.default_color = Color(0.72, 0.88, 0.42, 0.55)
+		_move_ghost.z_index = 2
+		$World.add_child(_move_ghost)
+	_move_ghost.points = pts
+	_move_ghost.visible = pts.size() > 1
+
+
+func _tick_command_moves(delta: float) -> void:
+	for op in operators:
+		if op == null or not op.visible or not op.alive:
+			continue
+		var moving := op.tick_move(delta)
+		if not moving:
+			_snap_op_to_cover_if_near(op)
+	if selected and not selected.is_moving() and _move_ghost:
+		_move_ghost.visible = false
+
+
+func _snap_op_to_cover_if_near(op: OperatorUnit) -> void:
+	if op.slot != null:
+		return
+	var slot := _nearest_slot(op.global_position, 14.0)
+	if slot == null or (slot.occupied_by != null and slot.occupied_by != op):
+		return
+	var prev: OperatorUnit = selected
+	selected = op
+	_deploy_selected_to(slot, false)
+	selected = prev
+	_refresh_selection_visual()
+
+
+func _tick_command_pickups() -> void:
+	_try_pickup_near_selected()
+	for loot in loot_piles.duplicate():
+		if not is_instance_valid(loot) or loot.collected:
+			continue
+		_try_assign_loot(loot)
+	loot_piles = loot_piles.filter(func(l: LootPickup) -> bool: return is_instance_valid(l) and not l.collected)
+
+
+func _try_pickup_near_selected() -> void:
+	for op in operators:
+		if op == null or not op.alive or not op.visible:
+			continue
+		for st in raid_stashes.duplicate():
+			if st == null or not is_instance_valid(st) or st.collected:
+				continue
+			if op.global_position.distance_to(st.global_position) > 28.0:
+				continue
+			var item: Dictionary = st.take()
+			if item.is_empty():
+				continue
+			var rec: Dictionary = op.receive_item(str(item.get("kind", "ammo")), int(item.get("amount", 1)))
+			status_label.text = "%s %s" % [op.display_name, str(rec.get("text", "拾取"))]
+			_sfx("loot")
+			_operator_bark(op, "contact")
+			_flash(str(rec.get("text", "拾取")), Color(0.95, 0.82, 0.35))
+			_update_role_cards()
+			_update_hud()
+	raid_stashes = raid_stashes.filter(func(s) -> bool: return s != null and is_instance_valid(s) and not s.collected)
+
+
+func _try_place_inventory_mine(world_pos: Vector2) -> void:
+	if selected == null or not selected.alive:
+		return
+	if selected.mines <= 0:
+		_try_place_tripwire(world_pos)
+		return
+	if selected.global_position.distance_to(world_pos) > 64.0:
+		status_label.text = "走近再埋"
+		return
+	selected.mines -= 1
+	var mine = RaidMineScript.new()
+	entities.add_child(mine)
+	mine.global_position = world_pos
+	raid_mines.append(mine)
+	status_label.text = "%s 埋雷 剩余%d" % [selected.display_name, selected.mines]
+	_sfx("trip")
+	_update_hud()
+
+
+func _throw_grenade_at_cursor() -> void:
+	_throw_grenade_at(get_global_mouse_position())
+
+
+func _throw_grenade_at(world_pos: Vector2) -> void:
+	if selected == null or not selected.alive or not selected.visible:
+		return
+	if selected.grenades <= 0:
+		status_label.text = "没有手雷"
+		return
+	var d: Dictionary = WeaponCatalogScript.def("grenade")
+	var max_r := float(d.get("throw_range", 160.0))
+	var dest := world_pos
+	if selected.global_position.distance_to(dest) > max_r:
+		dest = selected.global_position + (dest - selected.global_position).limit_length(max_r)
+	selected.grenades -= 1
+	var g = RaidGrenadeScript.new()
+	entities.add_child(g)
+	g.setup(selected.global_position, dest, float(d.get("fuse", 0.55)), float(d.get("radius", 78.0)), float(d.get("damage", 78.0)))
+	g.detonated.connect(_on_grenade_boom)
+	raid_grenades.append(g)
+	status_label.text = "%s 丢手雷 剩余%d" % [selected.display_name, selected.grenades]
+	_sfx("ui")
+	_update_hud()
+
+
+func _on_grenade_boom(pos: Vector2, radius: float, damage: float) -> void:
+	_sfx("barrel")
+	_shake_for_explosion(pos)
+	for e in enemies:
+		if e != null and is_instance_valid(e) and e.alive:
+			if e.global_position.distance_to(pos) <= radius:
+				e.apply_fire(damage, selected)
+	for op in operators:
+		if op != null and op.alive and op.global_position.distance_to(pos) <= radius * 0.55:
+			op.take_damage(damage * 0.35, pos)
+	if phase == Phase.WATCHING:
+		_check_win()
+
+
+func _throw_decoy_at_cursor() -> void:
+	_throw_decoy_at(get_global_mouse_position())
+
+
+func _throw_decoy_at(world_pos: Vector2) -> void:
+	if selected == null or not selected.alive:
+		return
+	if selected.decoys <= 0:
+		status_label.text = "没有诱饵"
+		return
+	selected.decoys -= 1
+	var d = RaidDecoyScript.new()
+	entities.add_child(d)
+	d.global_position = world_pos
+	d.setup()
+	raid_decoys.append(d)
+	status_label.text = "%s 诱饵" % selected.display_name
+	_sfx("ui")
+
+
+func _tick_raid_grenades(dt: float) -> void:
+	for g in raid_grenades.duplicate():
+		if g == null or not is_instance_valid(g):
+			continue
+		g.sim_step(dt)
+	raid_grenades = raid_grenades.filter(func(n) -> bool: return n != null and is_instance_valid(n) and not n.spent())
+
+
+func _tick_raid_mines() -> void:
+	for m in raid_mines:
+		if m != null and is_instance_valid(m) and m.has_method("sim_check"):
+			var victim: EnemyRunner = m.sim_check(enemies)
+			if victim != null:
+				battle_log.add_event(sim.tick, "mine", victim.label_id, -1, m.global_position)
+				_sfx("trip")
+				_announce_payoff("trip", {"enemy_id": victim.label_id}, m.global_position)
+	raid_mines = raid_mines.filter(func(n) -> bool: return n != null and is_instance_valid(n) and not bool(n.spent))
+
+
+func _tick_raid_decoys(dt: float) -> void:
+	for d in raid_decoys:
+		if d != null and is_instance_valid(d) and d.has_method("sim_step"):
+			d.sim_step(dt, enemies)
+	raid_decoys = raid_decoys.filter(func(n) -> bool: return n != null and is_instance_valid(n) and not bool(n.spent))
+
+
+func _enter_sweep() -> void:
+	phase = Phase.SWEEP
+	if raid:
+		raid.mark_wave_cleared()
+	for op in operators:
+		if op:
+			op.unlock_plan()
+			op.stop_move()
+	alarm_button.disabled = false
+	clear_button.disabled = false
+	tool_button.disabled = false
+	if pause_button:
+		pause_button.disabled = true
+	if speed_button:
+		speed_button.disabled = true
+	_set_watch_view_buttons(false)
+	_refresh_alarm_cta()
+	var last: bool = raid != null and raid.is_last_wave(level)
+	if last:
+		_flash("打扫战场 · 空格撤离封锁", Color(0.85, 0.92, 0.45))
+		status_label.text = "最后一波已清。走近尸体搜刮，空格撤离。"
+	else:
+		_flash("打扫战场 · 空格下一波", Color(0.95, 0.82, 0.38))
+		status_label.text = "本波已清。搜刮掉落，空格拉下一波警报。"
+	_sfx("ui")
+	_update_hud()
+
+
+func _on_sweep_commit() -> void:
+	if phase != Phase.SWEEP:
+		return
+	if raid != null and raid.is_last_wave(level):
+		_extract_win()
+		return
+	_begin_next_wave()
+
+
+func _begin_next_wave() -> void:
+	if raid:
+		raid.advance_wave()
+	run_id += 1
+	var this_run := run_id
+	phase = Phase.WATCHING
+	sim.reset()
+	_watch_first_fire = false
+	_watch_first_return = false
+	_kill_combo = 0
+	pending_result = ""
+	fail_reason = ""
+	_sfx("alarm")
+	_alarm_edge_flash()
+	alarm_button.disabled = true
+	clear_button.disabled = true
+	if pause_button:
+		pause_button.disabled = false
+	if speed_button:
+		speed_button.disabled = false
+	for op in operators:
+		if op.visible and op.alive:
+			op.lock_plan()
+			if op.fire_mode == OperatorUnit.FireMode.HOLD_FOR_AMBUSH:
+				op.arm_ambush()
+	_queue_spawns(this_run)
+	_set_watch_view_buttons(true)
+	status_label.text = "警报 · 第%d波" % (raid.wave_index + 1 if raid else 1)
+	_update_hud()
+
+
+func _extract_win() -> void:
+	phase = Phase.WON
+	battle_log.mark_terminal(sim.tick, "win")
+	_flash("零逃逸", Color(0.45, 0.9, 0.45))
+	_sfx("win")
+	_win_stinger()
+	_camera_punch()
+	pending_result = "win"
+	_flush_pending_result()
+
+
+func _refresh_alarm_cta() -> void:
+	if alarm_button == null:
+		return
+	match phase:
+		Phase.SETUP:
+			alarm_button.text = "拉警报"
+			alarm_button.disabled = _living_ops() < 1
+		Phase.SWEEP:
+			if raid and raid.is_last_wave(level):
+				alarm_button.text = "撤离封锁"
+			else:
+				alarm_button.text = "下一波警报"
+			alarm_button.disabled = false
+		Phase.WATCHING:
+			alarm_button.text = "警报中"
+			alarm_button.disabled = true
+		_:
+			alarm_button.disabled = true
+
+
+func raid_prepare_ref(slots: Array, facings: Array, extra: Dictionary = {}) -> void:
+	## Smoke/reference: grant role firearms, optional mines, snap to covers.
+	if operators.size() < 3:
+		return
+	operators[0].receive_item("rifle", 7)
+	operators[1].receive_item("mg", 12)
+	operators[2].receive_item("scout", 6)
+	var g := int(extra.get("grenades", 1))
+	var m := int(extra.get("mines", 1))
+	for op in operators:
+		if g > 0:
+			op.receive_item("grenade", g)
+		if m > 0:
+			op.receive_item("mine", m)
+	for i in slots.size():
+		_select_op(i)
+		_deploy_selected_to(cover_slots[int(slots[i])])
+		selected.set_facing(float(facings[i]))
+	_select_op(0)
+	_update_hud()
+
+
+func raid_grant_and_pickup(op_index: int, kind: String, amount: int = 1) -> bool:
+	if op_index < 0 or op_index >= operators.size():
+		return false
+	var rec: Dictionary = operators[op_index].receive_item(kind, amount)
+	return bool(rec.get("ok", false))
+
+
+func command_move_to_cell(op_index: int, cell: Vector2i) -> bool:
+	if op_index < 0 or op_index >= operators.size():
+		return false
+	_select_op(op_index)
+	_command_move_selected(grid.cell_to_world_center(cell))
+	return selected != null and selected.is_moving()
+
+
+func stash_count() -> int:
+	var n := 0
+	for s in raid_stashes:
+		if s != null and is_instance_valid(s) and not s.collected:
+			n += 1
+	return n
+
+
+func living_loot_count() -> int:
+	var n := 0
+	for l in loot_piles:
+		if l != null and is_instance_valid(l) and not l.collected:
+			n += 1
+	return n
+
+
+func _cell_taken(cell: Vector2i, except_op: OperatorUnit = null) -> bool:
+	for op in operators:
+		if op == null or op == except_op or not op.visible or not op.alive:
+			continue
+		if op.grid_cell() == cell:
+			return true
+	return false
+
+
+func _open_cell_near(cell: Vector2i, except_op: OperatorUnit = null) -> Vector2i:
+	var open: Vector2i = RaidPathfinderScript.nearest_open(grid, cell)
+	if not _cell_taken(open, except_op):
+		return open
+	for r in range(1, 5):
+		for dx in range(-r, r + 1):
+			for dy in range(-r, r + 1):
+				var n := Vector2i(cell.x + dx, cell.y + dy)
+				if RaidPathfinderScript.walkable(grid, n) and not _cell_taken(n, except_op):
+					return n
+	return open
+
+
+func raid_vacuum_loot() -> int:
+	## Sweep helper: assign remaining piles to nearest living operators.
+	var n := 0
+	for loot in loot_piles.duplicate():
+		if loot == null or not is_instance_valid(loot) or loot.collected:
+			continue
+		var best: OperatorUnit = null
+		var best_d := INF
+		for op in operators:
+			if op == null or not op.visible or not op.alive:
+				continue
+			var d := op.global_position.distance_to(loot.global_position)
+			if d < best_d:
+				best_d = d
+				best = op
+		if best == null:
+			continue
+		var item := {"kind": loot.kind, "amount": loot.ammo_amount}
+		loot.collect_item()
+		best.receive_item(str(item.get("kind", "ammo")), int(item.get("amount", 1)))
+		n += 1
+	loot_piles = loot_piles.filter(func(l: LootPickup) -> bool: return is_instance_valid(l) and not l.collected)
+	_update_hud()
+	return n
+
