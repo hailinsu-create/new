@@ -3355,6 +3355,16 @@ func _assert_iteration_slice(main) -> bool:
 		quit(71)
 		return false
 	print("SMOKE_OK_ROLE_HINT")
+	if not main.has_method("door_slam_dust_active"):
+		push_error("SMOKE_NO_DOOR_SLAM_API")
+		quit(71)
+		return false
+	var door_src := FileAccess.get_file_as_string("res://scripts/main.gd")
+	if door_src.find("land_dust(door_marker") < 0:
+		push_error("SMOKE_DOOR_NO_DUST")
+		quit(71)
+		return false
+	print("SMOKE_OK_DOOR_SLAM")
 	return true
 
 

@@ -2792,6 +2792,15 @@ func _refresh_door_visual(animate: bool = false) -> void:
 			bt.tween_property(door_button, "modulate", Color.WHITE, 0.28)
 
 
+func door_slam_dust_active() -> bool:
+	if door_marker == null or not is_instance_valid(door_marker):
+		return false
+	for c in door_marker.get_children():
+		if str(c.name).begins_with("CfxLand"):
+			return true
+	return false
+
+
 func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 	phase = Phase.SETUP
 	tool = Tool.DEPLOY
@@ -4088,6 +4097,10 @@ func _on_door_pressed() -> void:
 	map_draw.queue_redraw()
 	_sfx("door")
 	_refresh_door_visual(true)
+	if door_marker != null and is_instance_valid(door_marker) and not _is_power_saving():
+		CombatFxScript.land_dust(door_marker, door_marker.global_position)
+		if door_locked:
+			_camera_punch(Vector2(2.2, -1.4))
 	for op in operators:
 		if op.visible:
 			op._rebuild_cone()
