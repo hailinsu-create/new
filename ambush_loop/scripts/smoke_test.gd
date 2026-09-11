@@ -1,7 +1,7 @@
 extends SceneTree
 
 ## Vertical-slice smoke: abort/wipe fail paths, yard escape→restore→win,
-## warehouse+pump+railcut+depot reference wins, campaign credits name 油库.
+## warehouse+pump+railcut+depot+radio reference wins, campaign credits name 电台.
 ## Isolates user:// save data so player progress cannot mask failures.
 ## Bypasses title via change_scene_to_file(main.tscn).
 
@@ -688,7 +688,7 @@ func _run() -> void:
 				return
 			print("BLAST_RADIUS pump_locked tick 1016 -> ", main.sim.tick)
 			print("SMOKE_OK pump_locked won tick=", main.sim.tick)
-			if not _assert_level_order(main, 5):
+			if not _assert_level_order(main, 6):
 				return
 			var gs_pump = root.get_node_or_null("GameSettings")
 			if gs_pump == null or not gs_pump.is_level_cleared("pump") or not gs_pump.is_level_unlocked("railcut"):
@@ -702,7 +702,7 @@ func _run() -> void:
 				quit(45)
 				return
 			var entries_after: Array = gs_pump.mission_entries()
-			if entries_after.size() != 5 or not bool(entries_after[3]["unlocked"]) or str(entries_after[3]["id"]) != "railcut":
+			if entries_after.size() != 6 or not bool(entries_after[3]["unlocked"]) or str(entries_after[3]["id"]) != "railcut":
 				push_error("SMOKE_RAILCUT_MISSION_ENTRY %s" % str(entries_after.size()))
 				quit(45)
 				return
@@ -782,8 +782,12 @@ func _run() -> void:
 				quit(48)
 				return
 			var depot_entries: Array = gs_rc.mission_entries()
-			if depot_entries.size() != 5 or not bool(depot_entries[4]["unlocked"]) or str(depot_entries[4]["id"]) != "depot":
+			if depot_entries.size() != 6 or not bool(depot_entries[4]["unlocked"]) or str(depot_entries[4]["id"]) != "depot":
 				push_error("SMOKE_DEPOT_MISSION_ENTRY %s" % str(depot_entries.size()))
+				quit(48)
+				return
+			if bool(depot_entries[5]["unlocked"]) or str(depot_entries[5]["id"]) != "radio":
+				push_error("SMOKE_RADIO_UNLOCKED_EARLY %s" % str(depot_entries[5]))
 				quit(48)
 				return
 			print("SMOKE_OK_DEPOT_UNLOCK")
@@ -872,23 +876,112 @@ func _run() -> void:
 				quit(61)
 				return
 			print("SMOKE_OK_DEPOT_HOOK")
-			if str(main.continue_button.text).find("查看致谢") < 0:
-				push_error("SMOKE_DEPOT_NO_CREDITS_CTA %s" % main.continue_button.text)
+			if str(main.continue_button.text).find("下一关") < 0:
+				push_error("SMOKE_DEPOT_NO_NEXT %s" % main.continue_button.text)
 				quit(61)
+				return
+			var gs_dp = root.get_node_or_null("GameSettings")
+			if gs_dp == null or not gs_dp.is_level_cleared("depot") or not gs_dp.is_level_unlocked("radio"):
+				push_error(
+					"SMOKE_RADIO_UNLOCK cleared_depot=%s unlocked=%s"
+					% [
+						gs_dp.is_level_cleared("depot") if gs_dp else false,
+						gs_dp.is_level_unlocked("radio") if gs_dp else false,
+					]
+				)
+				quit(62)
+				return
+			print("SMOKE_OK_RADIO_UNLOCK")
+			main._on_continue_pressed()
+			await process_frame
+			await process_frame
+			if main.level.level_id != "radio":
+				push_error("SMOKE_BAD_ADVANCE expected=radio got=%s" % main.level.level_id)
+				quit(62)
+				return
+			if not _assert_save_level("radio"):
+				return
+			if not _assert_geometry(main, "radio"):
+				return
+			if not _assert_radio_contract(main):
+				return
+			# No-trip probe: same guns, no 绊索. Sneak 敌3 at 3.6s must leak.
+			_deploy_ref(main, [1, 4, 5], [270.0, 270.0, 180.0])
+			main.sim.set_speed(2.0)
+			main._on_alarm_pressed()
+			main.sim.set_speed(2.0)
+			var radio_stack: bool = await _wait_phase(main, main.Phase.FAILED, 60 * 280)
+			if not radio_stack or main.fail_reason != "escape":
+				push_error(
+					"SMOKE_RADIO_NOTRIP_NOT_FAIL phase=%s reason=%s tick=%s"
+					% [main.phase, main.fail_reason, main.sim.tick]
+				)
+				quit(62)
+				return
+			var rd_route := str(main.intel.latest_route()) if main.intel else ""
+			var rd_leaker := int(main.intel.latest_leaker_id()) if main.intel else -1
+			if rd_route != "sneak" or rd_leaker != 3:
+				push_error("SMOKE_RADIO_NOTRIP_NOT_SNEAK route=%s leaker=%s" % [rd_route, rd_leaker])
+				quit(62)
+				return
+			var rd_fail_txt := str(main.result_label.text)
+			if rd_fail_txt.find("暗道") < 0 or rd_fail_txt.find("3.6") < 0:
+				push_error("SMOKE_RADIO_NOTRIP_COPY %s" % rd_fail_txt)
+				quit(62)
+				return
+			print(
+				"SMOKE_RADIO_NO_TRIP_FAIL reason=", main.fail_reason,
+				" route=", rd_route,
+				" leaker=", rd_leaker,
+				" tick=", main.sim.tick
+			)
+			main._on_continue_pressed()
+			await process_frame
+			main._on_clear_pressed()
+			await process_frame
+			# Rifle 主路脊 slot1 face 270, MG 东廊 slot4 face 270, scout 南闸 slot5 face 180.
+			# Tripwire on the west alley (7,11) so the delayed sneak does not leak.
+			_deploy_ref(main, [1, 4, 5], [270.0, 270.0, 180.0])
+			main._try_place_tripwire(main.grid.cell_to_world_center(Vector2i(7, 11)))
+			if main.tripwires.size() != 1:
+				push_error("SMOKE_RADIO_TRIP n=%s" % main.tripwires.size())
+				quit(62)
+				return
+			main.sim.set_speed(2.0)
+			main._on_alarm_pressed()
+			main.sim.set_speed(2.0)
+			var rd: bool = await _wait_phase(main, main.Phase.WON, 60 * 280)
+			if not rd:
+				push_error(
+					"SMOKE_RADIO_FAIL phase=%s reason=%s tick=%s"
+					% [main.phase, main.fail_reason, main.sim.tick]
+				)
+				quit(62)
+				return
+			print("SMOKE_OK radio won tick=", main.sim.tick)
+			var radio_debrief := str(main.result_label.text) + "\n" + str(main.result_stats_block_text() if main.has_method("result_stats_block_text") else "")
+			if radio_debrief.find("5.2") < 0 or radio_debrief.find("绊索") < 0:
+				push_error("SMOKE_RADIO_NO_HOOK %s" % radio_debrief)
+				quit(62)
+				return
+			print("SMOKE_OK_RADIO_HOOK")
+			if str(main.continue_button.text).find("查看致谢") < 0:
+				push_error("SMOKE_RADIO_NO_CREDITS_CTA %s" % main.continue_button.text)
+				quit(62)
 				return
 			main._on_continue_pressed()
 			await process_frame
 			await process_frame
 			if main.credits_overlay == null or not main.credits_overlay.is_open():
-				push_error("SMOKE_DEPOT_CREDITS_CLOSED")
-				quit(61)
+				push_error("SMOKE_RADIO_CREDITS_CLOSED")
+				quit(62)
 				return
 			var cred_txt := _collect_label_text(main.credits_overlay)
-			if cred_txt.find("油库") < 0:
-				push_error("SMOKE_DEPOT_CREDITS_NO_OIL %s" % cred_txt)
-				quit(61)
+			if cred_txt.find("油库") < 0 or cred_txt.find("电台") < 0:
+				push_error("SMOKE_RADIO_CREDITS %s" % cred_txt)
+				quit(62)
 				return
-			print("SMOKE_OK_CREDITS_DEPOT")
+			print("SMOKE_OK_CREDITS_RADIO")
 			print("SMOKE_SLICE_COMPLETE")
 			quit(0)
 			return
@@ -1115,6 +1208,7 @@ func _assert_atmosphere(main, tag: String) -> bool:
 		"pump": "pipe",
 		"railcut": "concrete",
 		"depot": "plate",
+		"radio": "mesh",
 	}
 	if lang != str(want_lang.get(want, "brick")):
 		push_error("SMOKE_WALL_LANGUAGE %s got=%s" % [want, lang])
@@ -1126,6 +1220,7 @@ func _assert_atmosphere(main, tag: String) -> bool:
 		"pump": "valve",
 		"railcut": "sleeper",
 		"depot": "drum",
+		"radio": "dish",
 	}
 	if main.cover_slots.is_empty() or str(main.cover_slots[0].kit_id) != str(want_kit.get(want, "crate")):
 		push_error(
@@ -1341,6 +1436,112 @@ func _assert_depot_contract(main) -> bool:
 	print(
 		"SMOKE_OK_DEPOT_CONTRACT covers=6 routes=3 delayed_sneak=", min_sneak,
 		" trip_west_alley sneak_chip"
+	)
+	return true
+
+
+func _assert_radio_contract(main) -> bool:
+	if main.cover_slots.size() != 6:
+		push_error("SMOKE_RADIO_COVERS n=%s" % main.cover_slots.size())
+		quit(62)
+		return false
+	if main.level.door_cell.x >= 0:
+		push_error("SMOKE_RADIO_HAS_DOOR %s" % str(main.level.door_cell))
+		quit(62)
+		return false
+	if not main.level.has_ammo_pack:
+		push_error("SMOKE_RADIO_NO_PACK")
+		quit(62)
+		return false
+	if main.barrels.size() != 0 or main.level.barrel_cell.x >= 0:
+		push_error("SMOKE_RADIO_BARREL")
+		quit(62)
+		return false
+	if not main.level.route_cells.has("main") or not main.level.route_cells.has("flank") or not main.level.route_cells.has("sneak"):
+		push_error("SMOKE_RADIO_ROUTES")
+		quit(62)
+		return false
+	if main._active_routes().size() != 3:
+		push_error("SMOKE_RADIO_ACTIVE_ROUTES n=%s" % main._active_routes().size())
+		quit(62)
+		return false
+	if str(main.level.title).find("电台") < 0:
+		push_error("SMOKE_RADIO_TITLE %s" % main.level.title)
+		quit(62)
+		return false
+	var pages: Array = TutorialOverlay.pages_for("radio")
+	if pages.size() != 2:
+		push_error("SMOKE_RADIO_TUTORIAL n=%s" % pages.size())
+		quit(62)
+		return false
+	var p0: Dictionary = pages[0]
+	var p1: Dictionary = pages[1]
+	if str(p0.get("body", "")).find("回波") < 0:
+		push_error("SMOKE_RADIO_TUTORIAL_ECHO %s" % str(p0.get("body", "")))
+		quit(62)
+		return false
+	if str(p1.get("body", "")).find("5.2") < 0 or str(p1.get("body", "")).find("绊索") < 0:
+		push_error("SMOKE_RADIO_TUTORIAL_SNEAK %s" % str(p1.get("body", "")))
+		quit(62)
+		return false
+	if str(main.level.teaching).find("5.2") < 0 or str(main.level.teaching).find("绊索") < 0:
+		push_error("SMOKE_RADIO_TEACHING %s" % main.level.teaching)
+		quit(62)
+		return false
+	var sneak: Vector2 = main.grid.cell_to_world_center(Vector2i(7, 11))
+	if not main._near_any_route_segment(sneak, main.TRIPWIRE_ROUTE_DIST):
+		push_error("SMOKE_RADIO_TRIP_SNEAK")
+		quit(62)
+		return false
+	if not main.grid.is_blocked(20, 10):
+		push_error("SMOKE_RADIO_CORE_OPEN")
+		quit(62)
+		return false
+	if not main.grid.is_blocked(18, 7):
+		push_error("SMOKE_RADIO_DISH_PAD_OPEN")
+		quit(62)
+		return false
+	if main.grid.is_blocked(7, 11) or main.grid.is_blocked(13, 12) or main.grid.is_blocked(32, 11):
+		push_error("SMOKE_RADIO_LANE_BLOCKED")
+		quit(62)
+		return false
+	var max_main := 0.0
+	var min_sneak := 999.0
+	var min_echo := 999.0
+	var sneak_n := 0
+	var main_n := 0
+	var flank_n := 0
+	for spec in main.level.spawn_schedule:
+		var delay := float(spec["delay"])
+		if str(spec["route"]) == "main":
+			main_n += 1
+			max_main = maxf(max_main, delay)
+		elif str(spec["route"]) == "flank":
+			flank_n += 1
+			min_echo = minf(min_echo, delay) if delay >= 4.0 else min_echo
+		elif str(spec["route"]) == "sneak":
+			sneak_n += 1
+			min_sneak = minf(min_sneak, delay)
+	if main_n < 1 or flank_n < 2 or sneak_n < 1:
+		push_error("SMOKE_RADIO_SPAWN_SPLIT main=%s flank=%s sneak=%s" % [main_n, flank_n, sneak_n])
+		quit(62)
+		return false
+	if min_sneak < 3.0 or min_sneak <= max_main + 1.5:
+		push_error("SMOKE_RADIO_SNEAK_NOT_DELAYED main_max=%s sneak_min=%s" % [max_main, min_sneak])
+		quit(62)
+		return false
+	if min_echo < 5.0:
+		push_error("SMOKE_RADIO_ECHO_NOT_DELAYED echo=%s" % min_echo)
+		quit(62)
+		return false
+	var echo_d: float = float(main.level.delay_for_actor(5))
+	if absf(echo_d - 5.2) > 0.001:
+		push_error("SMOKE_RADIO_ECHO_ACTOR %s" % echo_d)
+		quit(62)
+		return false
+	print(
+		"SMOKE_OK_RADIO_CONTRACT covers=6 routes=3 sneak=", min_sneak,
+		" echo=", echo_d, " dish_pad"
 	)
 	return true
 
@@ -2573,7 +2774,7 @@ func _assert_props(main) -> bool:
 		quit(51)
 		return false
 	var md = main.map_draw
-	for m in ["_landmark_yard", "_landmark_warehouse", "_landmark_pump", "_landmark_railcut", "_landmark_depot"]:
+	for m in ["_landmark_yard", "_landmark_warehouse", "_landmark_pump", "_landmark_railcut", "_landmark_depot", "_landmark_radio"]:
 		if not md.has_method(m):
 			push_error("SMOKE_PROPS_MISSING %s" % m)
 			quit(51)
@@ -2604,6 +2805,7 @@ func _assert_props(main) -> bool:
 		"Fuel pipe", "Hazard cone", "Chain-link",
 		"yard tree", "roof peak", "pump chimney", "tower block", "tank farm",
 		"Doorway jamb",
+		"Radio dish", "Guy wire", "Morse hut", "dish hall",
 	]:
 		if src.find(token) < 0:
 			push_error("SMOKE_PROPS_TOKEN %s" % token)
@@ -2614,7 +2816,7 @@ func _assert_props(main) -> bool:
 		quit(51)
 		return false
 	var sky_src := FileAccess.get_file_as_string("res://scripts/fx/mission_sky.gd")
-	if sky_src.find("Steam wisps") < 0 or sky_src.find("sodium") < 0 or sky_src.find("underglow") < 0:
+	if sky_src.find("Steam wisps") < 0 or sky_src.find("sodium") < 0 or sky_src.find("underglow") < 0 or sky_src.find("dish sweep") < 0:
 		push_error("SMOKE_PROPS_SKY")
 		quit(51)
 		return false
@@ -2624,6 +2826,7 @@ func _assert_props(main) -> bool:
 		or sky_src.find("steam puff") < 0
 		or sky_src.find("gauge blink") < 0
 		or sky_src.find("_draw_contrast_wash") < 0
+		or sky_src.find("Morse blink") < 0
 	):
 		push_error("SMOKE_PROPS_SKY_MOTION")
 		quit(51)
@@ -2632,7 +2835,7 @@ func _assert_props(main) -> bool:
 		push_error("SMOKE_PROPS_Z %s" % md.z_index)
 		quit(51)
 		return false
-	print("SMOKE_OK_PROPS landmarks=5 sig=", sig)
+	print("SMOKE_OK_PROPS landmarks=6 sig=", sig)
 	return true
 
 
@@ -2739,6 +2942,11 @@ func _assert_teaching(main) -> bool:
 		push_error("SMOKE_DEPOT_BEAT_DELAY %s" % dp.first_route_delay("sneak"))
 		quit(52)
 		return false
+	var rd: LevelDef = LevelDef.by_id("radio")
+	if rd.first_route_delay("sneak") < 3.0 or rd.delay_for_actor(5) < 5.0:
+		push_error("SMOKE_RADIO_BEAT_DELAY sneak=%s echo=%s" % [rd.first_route_delay("sneak"), rd.delay_for_actor(5)])
+		quit(52)
+		return false
 	if not ResourceLoader.exists("res://scripts/ui/route_timeline.gd"):
 		push_error("SMOKE_NO_ROUTE_TIMELINE")
 		quit(52)
@@ -2758,6 +2966,10 @@ func _assert_teaching(main) -> bool:
 		return false
 	if dp.spawn_teaching.is_empty() or str(dp.spawn_teaching[0]).find("2.2") < 0:
 		push_error("SMOKE_DEPOT_SPAWN_TEACH %s" % str(dp.spawn_teaching))
+		quit(52)
+		return false
+	if rd.spawn_teaching.is_empty() or str(rd.spawn_teaching[0]).find("5.2") < 0:
+		push_error("SMOKE_RADIO_SPAWN_TEACH %s" % str(rd.spawn_teaching))
 		quit(52)
 		return false
 	if main.trap_callout == null or not main.trap_callout.visible:
@@ -2781,11 +2993,11 @@ func _assert_teaching(main) -> bool:
 		push_error("SMOKE_NO_INTEL_GHOST_API")
 		quit(52)
 		return false
-	for lid in ["yard", "warehouse", "pump", "railcut", "depot"]:
+	for lid in ["yard", "warehouse", "pump", "railcut", "depot", "radio"]:
 		var def: LevelDef = LevelDef.by_id(lid)
 		var note := ""
 		if def.has_method("teaching_note_for"):
-			if lid == "depot":
+			if lid == "depot" or lid == "radio":
 				note = str(def.teaching_note_for("sneak"))
 			else:
 				note = str(def.teaching_note_for("flank"))
@@ -2808,7 +3020,7 @@ func _assert_teaching(main) -> bool:
 		push_error("SMOKE_INTEL_MAIN_COLOR %s" % str(main_c))
 		quit(52)
 		return false
-	for lid in ["yard", "warehouse", "pump", "railcut", "depot"]:
+	for lid in ["yard", "warehouse", "pump", "railcut", "depot", "radio"]:
 		var pages: Array = TutorialOverlay.pages_for(lid)
 		var last: Dictionary = pages[pages.size() - 1]
 		if str(last.get("body", "")).find("陷阱路线") < 0:
@@ -2819,7 +3031,7 @@ func _assert_teaching(main) -> bool:
 		return false
 	if not _assert_first_visit_tutorial(main):
 		return false
-	print("SMOKE_OK_TEACHING beats=5 timeline=1 callout=1 spawn_teach=1 overlay=1")
+	print("SMOKE_OK_TEACHING beats=6 timeline=1 callout=1 spawn_teach=1 overlay=1")
 	return true
 
 
@@ -2974,6 +3186,7 @@ func _assert_payoff_copy(main) -> bool:
 		"pump": "紫线",
 		"railcut": "3.8",
 		"depot": "2.2",
+		"radio": "5.2",
 	}
 	for lid in want_hooks.keys():
 		var def: LevelDef = LevelDef.by_id(str(lid))
@@ -3047,7 +3260,7 @@ func _assert_payoff_copy(main) -> bool:
 			push_error("SMOKE_YARD_CALLOUT_HOOK %s" % tag.text)
 			quit(61)
 			return false
-	print("SMOKE_OK_PAYOFF_COPY hooks=5 roles=3 first_shot=1")
+	print("SMOKE_OK_PAYOFF_COPY hooks=6 roles=3 first_shot=1")
 	return true
 
 
@@ -3109,30 +3322,30 @@ func _assert_launch_bar() -> bool:
 		quit(43)
 		return false
 	var entries: Array = gs.mission_entries()
-	if entries.size() != 5:
+	if entries.size() != 6:
 		push_error("SMOKE_MISSION_COUNT %s" % entries.size())
 		quit(43)
 		return false
-	if str(gs.LEVEL_ORDER[3]) != "railcut" or str(gs.LEVEL_ORDER[4]) != "depot" or gs.LEVEL_ORDER.size() != 5:
+	if str(gs.LEVEL_ORDER[3]) != "railcut" or str(gs.LEVEL_ORDER[4]) != "depot" or str(gs.LEVEL_ORDER[5]) != "radio" or gs.LEVEL_ORDER.size() != 6:
 		push_error("SMOKE_LEVEL_ORDER %s" % str(gs.LEVEL_ORDER))
 		quit(43)
 		return false
 	var howto_src := FileAccess.get_file_as_string("res://scripts/title.gd")
-	if howto_src.find("弹包交给已部署队员（仓道、泵站、信号楼、油库）") < 0:
-		push_error("SMOKE_HOWTO_NO_DEPOT")
+	if howto_src.find("弹包交给已部署队员（仓道、泵站、信号楼、油库、电台）") < 0:
+		push_error("SMOKE_HOWTO_NO_RADIO")
 		quit(43)
 		return false
 	var cred_src := FileAccess.get_file_as_string("res://scripts/ui/credits_overlay.gd")
-	if cred_src.find("院子 / 仓道 / 泵站 / 信号楼 / 油库") < 0:
-		push_error("SMOKE_CREDITS_SRC_NO_DEPOT")
+	if cred_src.find("院子 / 仓道 / 泵站 / 信号楼 / 油库 / 电台") < 0:
+		push_error("SMOKE_CREDITS_SRC_NO_RADIO")
 		quit(43)
 		return false
 	var foot_src := FileAccess.get_file_as_string("res://scenes/title.tscn")
-	if foot_src.find("院子 / 仓道 / 泵站 / 信号楼 / 油库") < 0:
-		push_error("SMOKE_TITLE_FOOT_NO_DEPOT")
+	if foot_src.find("院子 / 仓道 / 泵站 / 信号楼 / 油库 / 电台") < 0:
+		push_error("SMOKE_TITLE_FOOT_NO_RADIO")
 		quit(43)
 		return false
-	if not bool(entries[0]["unlocked"]) or bool(entries[1]["unlocked"]) or bool(entries[3]["unlocked"]) or bool(entries[4]["unlocked"]) or bool(entries[0]["cleared"]):
+	if not bool(entries[0]["unlocked"]) or bool(entries[1]["unlocked"]) or bool(entries[3]["unlocked"]) or bool(entries[4]["unlocked"]) or bool(entries[5]["unlocked"]) or bool(entries[0]["cleared"]):
 		push_error("SMOKE_MISSION_UNLOCK_FRESH")
 		quit(43)
 		return false
@@ -3144,7 +3357,7 @@ func _assert_launch_bar() -> bool:
 	root.add_child(inst)
 	await process_frame
 	await process_frame
-	if inst.mission_row_count() != 5:
+	if inst.mission_row_count() != 6:
 		push_error("SMOKE_TITLE_MISSION_ROWS %s" % inst.mission_row_count())
 		inst.free()
 		quit(43)
@@ -3156,7 +3369,7 @@ func _assert_launch_bar() -> bool:
 		inst.free()
 		quit(43)
 		return false
-	var mood_want := ["初阵", "深仓", "闸站", "信号", "油库"]
+	var mood_want := ["初阵", "深仓", "闸站", "信号", "油库", "终夜"]
 	for mi in mood_want.size():
 		if mi >= inst._mission_btns.size():
 			break
@@ -3184,6 +3397,13 @@ func _assert_launch_bar() -> bool:
 	await process_frame
 	if inst.briefing_visible() or inst.pending_mission_id() == "depot":
 		push_error("SMOKE_SKIPPED_LOCKED_DEPOT")
+		inst.free()
+		quit(43)
+		return false
+	inst._on_mission_picked(5)
+	await process_frame
+	if inst.briefing_visible() or inst.pending_mission_id() == "radio":
+		push_error("SMOKE_SKIPPED_LOCKED_RADIO")
 		inst.free()
 		quit(43)
 		return false

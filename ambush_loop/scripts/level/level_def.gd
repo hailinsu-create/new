@@ -67,7 +67,7 @@ static func chatter_for(id: String, reason: String = "") -> String:
 
 
 static func catalog() -> Array:
-	return [make_yard(), make_warehouse(), make_pump(), make_railcut(), make_depot()]
+	return [make_yard(), make_warehouse(), make_pump(), make_railcut(), make_depot(), make_radio()]
 
 
 static func by_id(id: String) -> LevelDef:

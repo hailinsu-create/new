@@ -112,5 +112,5 @@ offset_right = -24.0
 offset_bottom = -14.0
 theme_override_colors/font_color = Color(0.45, 0.48, 0.4, 1)
 theme_override_font_sizes/font_size = 13
-text = "Esc / 返回键 退出确认    触控底栏可打完一局    院子 / 仓道 / 泵站 / 信号楼 / 油库"
+text = "Esc / 返回键 退出确认    触控底栏可打完一局    院子 / 仓道 / 泵站 / 信号楼 / 油库 / 电台"
 horizontal_alignment = 1

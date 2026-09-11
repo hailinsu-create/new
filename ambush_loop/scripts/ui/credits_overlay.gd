@@ -45,7 +45,7 @@ func _ready() -> void:
 	box.add_child(tag)
 	var body := Label.new()
 	body.name = "Body"
-	body.text = "院子 / 仓道 / 泵站 / 信号楼 / 油库 全部封锁。\n五关夜班已切断。情报已归档。计划锁死过的那些秒，就是这场胜负。\n\n感谢游玩。"
+	body.text = "院子 / 仓道 / 泵站 / 信号楼 / 油库 / 电台 全部封锁。\n北区补给链第三夜已切断。灯塔停转。情报已归档。计划锁死过的那些秒，就是这场胜负。\n\n感谢游玩。"
 	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	body.add_theme_font_size_override("font_size", 16)
