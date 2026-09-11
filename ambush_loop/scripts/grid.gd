@@ -120,12 +120,14 @@ func _build_depot() -> void:
 
 
 func _build_radio() -> void:
-	# Same corridor contract as depot: west alley x=6-8, spine x=12-14, east x=31-33.
-	# North y=5-6 and south y=16-17 stay the connectors. Extra dish pad sits on
-	# the core north face (y=7) so the layout is not a depot clone.
+	# West alley x=6-8, spine x=12-14, east x=31-33 stay walkable.
+	# Echo hall is the 1-cell gap at x=24 between core tanks (ends x=23) and
+	# east annex. Extra transmitter racks at x=29-30 split echo from east
+	# corridor so 铁砧 on 东廊 cannot see the 5.2s wave.
 	_block_rect(9, 7, 11, 13)
 	_block_rect(15, 8, 23, 14)
 	_block_rect(25, 8, 28, 12)
+	_block_rect(29, 8, 30, 10)
 	_block_rect(25, 16, 27, 16)
 	_block_rect(16, 7, 22, 7)
 

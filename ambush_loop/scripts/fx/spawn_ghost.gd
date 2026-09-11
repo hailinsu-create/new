@@ -35,6 +35,10 @@ func route_color() -> Color:
 			return Color(0.95, 0.55, 0.16)
 		"sneak":
 			return Color(0.38, 0.78, 0.52)
+		"echo":
+			return Color(0.42, 0.82, 0.96)
+		"alt":
+			return Color(0.72, 0.55, 0.95)
 		_:
 			return Color(0.92, 0.28, 0.22)
 
@@ -88,6 +92,10 @@ func _draw() -> void:
 			tick = "侧"
 		"sneak":
 			tick = "暗"
+		"echo":
+			tick = "回"
+		"alt":
+			tick = "备"
 	draw_string(
 		ThemeDB.fallback_font,
 		Vector2(-5, 16),

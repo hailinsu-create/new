@@ -130,7 +130,7 @@ func suggested_cover_name(role_id: int) -> String:
 					return "南闸"
 				_:
 					return "西廊脊"
-		"depot", "radio":
+		"depot":
 			match role_id:
 				1:
 					return "东廊"
@@ -138,6 +138,14 @@ func suggested_cover_name(role_id: int) -> String:
 					return "南闸"
 				_:
 					return "主路脊"
+		"radio":
+			match role_id:
+				1:
+					return "碟台"
+				2:
+					return "东廊"
+				_:
+					return "灯塔脊"
 		_:
 			match role_id:
 				1:
@@ -325,7 +333,7 @@ func second_trap_text() -> String:
 		"depot":
 			return "第二层：东廊先到，南闸会空"
 		"radio":
-			return "第二层：回波 5.2s 走东廊"
+			return "第二层：暗道 3.6s 要绊索"
 		_:
 			return "第二层：橙线东廊绕出"
 
@@ -341,7 +349,7 @@ func second_trap_cell() -> Vector2i:
 		"depot":
 			return Vector2i(32, 11)
 		"radio":
-			return Vector2i(32, 11)
+			return Vector2i(7, 11)
 		_:
 			return Vector2i(32, 11)
 
@@ -358,7 +366,7 @@ func second_trap_route() -> String:
 		"depot":
 			return "sneak"
 		"radio":
-			return "flank"
+			return "sneak"
 		_:
 			return "flank"
 
@@ -680,16 +688,17 @@ static func make_radio() -> LevelDef:
 	l.level_id = "radio"
 	l.atmosphere_id = "radio"
 	l.title = "第6关 · 电台：灯塔回波"
-	l.teaching = "油库切断后，电台还能把下一班叫回来。主路巡卫立刻走脊，东廊奔袭先到一班，西暗道影探晚 3.6 秒，灯塔回波再在 5.2 秒把增援送上东廊。陷阱是南闸堆人——先到的两路打空弹药，影探和回波再漏。绊索封西暗道，铁砧朝北等回波。"
-	l.tutorial = "终夜。西暗道晚 3.6 秒，东廊回波晚 5.2 秒。灰狼锁主路，铁砧朝北等灯塔回波，夜枭看南闸；Tab 把唯一绊索铺在西暗道（7,11 一带）。G 弹包一人。没有门、没有油桶。红=主路，橙=东廊（含 5.2s 回波），绿=西暗道。X 中止留情报；时间轴只读。M 静音。"
+	l.teaching = "油库切断后，电台还能把下一班叫回来。主路巡卫走灯塔脊，东廊奔袭先到一班，西暗道影探晚 3.6 秒，灯塔回波再在 5.2 秒走碟台夹缝——不是东廊那一枪。陷阱是不铺绊索：影探先从西夹缝漏。铁砧要在碟台朝南等回波，夜枭锁东廊。"
+	l.tutorial = "终夜。四条作者路：红主路、橙东廊、绿暗道、青回波。西暗道晚 3.6 秒，回波晚 5.2 秒走碟台夹缝（x=24），不是东廊。灰狼锁灯塔脊，铁砧碟台朝南等回波，夜枭朝北锁东廊；Tab 绊索铺西暗道（7,11）。G 弹包一人。没有门、没有油桶。X 中止留情报；时间轴只读。M 静音。"
 	l.escape_cell = Vector2i(31, 19)
+	# Unique stations vs depot: 灯塔脊 / 碟台 / 东廊. 碟台 looks south down the echo hall.
 	l.cover_defs = [
-		{"cell": Vector2i(6, 10), "name": "西暗道", "face": 0.0, "protect": 0.0},
-		{"cell": Vector2i(13, 12), "name": "主路脊", "face": 270.0, "protect": 270.0},
+		{"cell": Vector2i(6, 10), "name": "西夹缝", "face": 0.0, "protect": 0.0},
+		{"cell": Vector2i(13, 12), "name": "灯塔脊", "face": 270.0, "protect": 270.0},
 		{"cell": Vector2i(15, 16), "name": "南折", "face": 0.0, "protect": 180.0},
-		{"cell": Vector2i(22, 6), "name": "北过道", "face": 90.0, "protect": 270.0},
-		{"cell": Vector2i(32, 11), "name": "东廊", "face": 270.0, "protect": 270.0},
 		{"cell": Vector2i(29, 17), "name": "南闸", "face": 180.0, "protect": 0.0},
+		{"cell": Vector2i(24, 6), "name": "碟台", "face": 90.0, "protect": 270.0},
+		{"cell": Vector2i(32, 11), "name": "东廊", "face": 270.0, "protect": 270.0},
 	]
 	l.route_cells = {
 		"main": [
@@ -705,34 +714,40 @@ static func make_radio() -> LevelDef:
 			Vector2i(7, 16), Vector2i(14, 15), Vector2i(24, 15), Vector2i(31, 15),
 			Vector2i(31, 19)
 		],
+		# Authored echo hall: the 1-cell gap at x=24 between core tanks and east annex.
+		# 铁砧 on 东廊 facing north cannot see this path.
+		"echo": [
+			Vector2i(13, 3), Vector2i(13, 5), Vector2i(20, 5), Vector2i(24, 5),
+			Vector2i(24, 8), Vector2i(24, 12), Vector2i(24, 15), Vector2i(31, 15),
+			Vector2i(31, 19)
+		],
 	}
-	# First east runner is early; the radio echo is a second east wave after the sneak.
 	l.spawn_schedule = [
 		{"id": 1, "route": "main", "delay": 0.0, "loot": 1},
 		{"id": 2, "route": "flank", "delay": 0.5, "loot": 0, "teaching_note": "东廊先到"},
 		{"id": 3, "route": "sneak", "delay": 3.6, "loot": 2, "ambush_window": 3.6, "teaching_note": "西夹缝"},
 		{"id": 4, "route": "main", "delay": 0.9, "loot": 0},
-		{"id": 5, "route": "flank", "delay": 5.2, "loot": 0, "ambush_window": 5.2, "teaching_note": "灯塔回波", "kit": "echo"},
+		{"id": 5, "route": "echo", "delay": 5.2, "loot": 0, "ambush_window": 5.2, "teaching_note": "灯塔回波", "kit": "echo"},
 	]
 	l.ambush_zone = Rect2(260, 230, 520, 280)
 	l.has_ammo_pack = true
 	l.beat_kind = "radio_echo"
 	l.beat_text = "灯塔回波 5.2s · 绊索封暗道"
 	l.highlight_hook = "5.2s 灯塔回波，绊索抽中"
-	l.must_bring = "绊索封西暗道 7,11；铁砧朝北等 5.2 秒回波。灰狼锁主路。"
+	l.must_bring = "绊索封西暗道 7,11；铁砧碟台朝南等 5.2 秒回波。夜枭锁东廊。"
 	l.role_why = {
-		"rifle": "本关：锁主路脊",
-		"mg": "本关：朝北等 5.2s 回波",
-		"scout": "本关：南闸看口",
+		"rifle": "本关：锁灯塔脊",
+		"mg": "本关：碟台朝南等 5.2s 回波",
+		"scout": "本关：东廊等先到侧翼",
 	}
-	l.fix_one = "改一处就能赢：Tab 绊索铺西暗道，铁砧朝北等 5.2 秒灯塔回波。"
+	l.fix_one = "改一处就能赢：Tab 绊索铺西暗道（7,11），等 3.6 秒影探自己踩上。"
 	l.spawn_teaching = [
-		"灯塔回波晚 5.2 秒才上东廊 — 西暗道影探 3.6 秒先到。绊索封暗道，铁砧等回波。",
-		"第二层：绊索封西暗道，回波走东廊，不能当成同一条线。",
+		"灯塔回波晚 5.2 秒走碟台夹缝 — 西暗道影探 3.6 秒先到。绊索封暗道，铁砧等回波。",
+		"第二层：暗道 3.6s 要绊索。回波是修好暗道之后的下一刀。",
 	]
-	l.situation = "油库切断后，电台还亮着。灯塔一扫，下一班就会从东廊折下来。西暗道影探仍走夹缝。这一刀要叠：绊索是第四人，铁砧要等回波，不能把弹药堆在南闸。"
+	l.situation = "油库切断后，电台还亮着。灯塔一扫，下一班从碟台夹缝折下来，不是东廊那条。西暗道影探仍走夹缝。这一刀要叠：绊索是第四人，铁砧要在碟台等回波。"
 	l.intel_chatter = [
-		"电台：灯塔已扫过。东廊增援按 5.2 走。西暗道没人守。",
+		"电台：灯塔已扫过。回波按 5.2 走碟缝。西暗道没人守。",
 		"报务：有交火。回波还在排。",
 		"电台：中止。灯塔保持扫描。",
 	]

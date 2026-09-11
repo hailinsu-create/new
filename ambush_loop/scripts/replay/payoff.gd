@@ -83,6 +83,8 @@ static func watching_text(kind: String, payload: Dictionary = {}) -> String:
 				return "%s到了" % note
 			if route == "sneak":
 				return "暗道影探到了"
+			if route == "echo":
+				return "灯塔回波到了"
 			if route == "flank":
 				return "延迟侧翼到了"
 			if eid >= 1:
@@ -226,11 +228,11 @@ static func leak_road_name(level: Variant, route: String, branched: bool = false
 	match route:
 		"sneak":
 			return "西暗道"
+		"echo":
+			return "碟台夹缝（晚 5.2 秒回波）"
 		"flank":
 			if level != null and str(level.level_id) == "railcut":
 				return "东廊（晚 3.8 秒）"
-			if level != null and str(level.level_id) == "radio":
-				return "东廊（含 5.2 秒回波）"
 			return "东廊"
 		"alt":
 			return "西侧紫备用接近"

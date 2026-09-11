@@ -450,6 +450,9 @@ func _draw_floor_tile(c: CanvasItem, rect: Rect2, x: int, y: int) -> void:
 			c.draw_rect(Rect2(cx + 2.0, cy + 14.0, 28.0, 5.0), Color(0.92, 0.62, 0.12, 0.18))
 		elif _atmo() == "radio" and (y == 5 or y == 6):
 			c.draw_rect(Rect2(cx + 4.0, cy + 10.0, 24.0, 2.0), Color(0.28, 0.55, 0.68, 0.16))
+		elif _atmo() == "radio" and x == 24 and y >= 5 and y <= 15:
+			# Echo hall wash — the authored 5.2s path, not the east corridor.
+			c.draw_rect(Rect2(cx + 10.0, cy + 2.0, 12.0, 28.0), Color(0.22, 0.62, 0.82, 0.14))
 		_draw_layout_decal(c, rect, x, y, seed_n)
 		if (seed_n % 11) == 0:
 			var sx := cx + 4.0 + _frac(seed_n + 3) * 8.0
@@ -1002,6 +1005,10 @@ func _landmark_radio(c: CanvasItem) -> void:
 		var by := 18.15 * t
 		c.draw_rect(Rect2(bx, by, 14.0, 8.0), Color(0.28, 0.24, 0.14, 0.55))
 		c.draw_rect(Rect2(bx + 1.0, by + 1.0, 12.0, 3.0), Color(0.38, 0.32, 0.16, 0.40))
+	# Phosphor ticks down the echo hall (x=24), distinct from depot tank farm.
+	for i in 4:
+		var ey := 8.4 * t + float(i) * 22.0
+		c.draw_rect(Rect2(24.35 * t, ey, 10.0, 3.0), Color(0.42, 0.82, 0.96, 0.28))
 	# Horn speaker on the east annex roof.
 	var horn := Vector2(27.6 * t, 8.15 * t)
 	c.draw_circle(horn, 6.0, Color(0.18, 0.28, 0.32, 0.70))
