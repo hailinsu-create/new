@@ -181,6 +181,26 @@ func _run() -> void:
 				quit(4)
 				return
 			print("SMOKE_OK_COVER_VS_LEAK")
+			if leak_line_txt.find("没打中第二层") < 0:
+				push_error("SMOKE_NO_SECOND_TRAP_MISS %s" % leak_line_txt)
+				quit(4)
+				return
+			print("SMOKE_OK_SECOND_TRAP_MISS")
+			if not main.has_method("intel_path_ghost_active") or not bool(main.intel_path_ghost_active()):
+				push_error("SMOKE_NO_FAIL_LEAK_PAINT")
+				quit(4)
+				return
+			print("SMOKE_OK_FAIL_LEAK_PAINT")
+			if main.fail_gap_callout == null or not is_instance_valid(main.fail_gap_callout):
+				push_error("SMOKE_NO_FAIL_GAP")
+				quit(4)
+				return
+			var gap_tag = main.fail_gap_callout.get_node_or_null("Tag")
+			if gap_tag == null or str(gap_tag.text).find("缺口") < 0:
+				push_error("SMOKE_FAIL_GAP_TEXT %s" % (gap_tag.text if gap_tag else "null"))
+				quit(4)
+				return
+			print("SMOKE_OK_FAIL_GAP")
 			if main.intel.records.is_empty():
 				push_error("SMOKE_NO_LEAKER_RECORD")
 				quit(56)
@@ -1922,6 +1942,10 @@ func _assert_sfx(main) -> bool:
 		push_error("SMOKE_NO_SPAWN_ECHO_CUES")
 		quit(36)
 		return false
+	if not main.sfx.has_cue("handoff") or not main.sfx.has_cue("leak") or not main.sfx.has_cue("night_enter"):
+		push_error("SMOKE_NO_HANDOFF_LEAK_ENTER_CUES")
+		quit(36)
+		return false
 	if audio != null and audio.has_method("has_layered_mood") and not bool(audio.has_layered_mood()):
 		push_error("SMOKE_NO_LAYERED_MOOD")
 		quit(36)
@@ -2851,6 +2875,8 @@ func _assert_props(main) -> bool:
 		"Timetable slate", "Fuel ticket", "Call log",
 		"Rain barrel", "Spare dish", "Sandbag row",
 		"Oil stain", "Hose coil", "Switch box", "Drip pan",
+		"Courtyard well", "Conveyor rollers", "Pressure gauge",
+		"Milepost", "Fill nozzle", "Horn speaker",
 	]:
 		if src.find(token) < 0:
 			push_error("SMOKE_PROPS_TOKEN %s" % token)
@@ -2876,6 +2902,10 @@ func _assert_props(main) -> bool:
 		or sky_src.find("Pump drizzle") < 0
 		or sky_src.find("Diesel specks") < 0
 		or sky_src.find("Dust motes") < 0
+		or sky_src.find("Starfield") < 0
+		or sky_src.find("Horizon wash") < 0
+		or sky_src.find("Distant lights") < 0
+		or sky_src.find("Night clouds") < 0
 	):
 		push_error("SMOKE_PROPS_SKY_MOTION")
 		quit(51)
@@ -3033,6 +3063,29 @@ func _assert_teaching(main) -> bool:
 		push_error("SMOKE_NO_SECOND_CALLOUT")
 		quit(52)
 		return false
+	if not main.has_method("trap_path_visible") or not bool(main.trap_path_visible()):
+		push_error("SMOKE_NO_TRAP_PATH")
+		quit(52)
+		return false
+	var trap_tag = main.trap_path.get_node_or_null("Tag")
+	if trap_tag == null or str(trap_tag.text).find("第二层") < 0:
+		push_error("SMOKE_TRAP_PATH_TAG %s" % (trap_tag.text if trap_tag else "null"))
+		quit(52)
+		return false
+	for lid in ["yard", "warehouse", "pump", "railcut", "depot", "radio"]:
+		var trap_def: LevelDef = LevelDef.by_id(lid)
+		if not trap_def.has_method("second_trap_route") or str(trap_def.second_trap_route()) == "":
+			push_error("SMOKE_NO_SECOND_TRAP_ROUTE %s" % lid)
+			quit(52)
+			return false
+	if str(LevelDef.by_id("pump").second_trap_route()) != "alt":
+		push_error("SMOKE_PUMP_TRAP_ROUTE %s" % LevelDef.by_id("pump").second_trap_route())
+		quit(52)
+		return false
+	if str(LevelDef.by_id("depot").second_trap_route()) != "sneak":
+		push_error("SMOKE_DEPOT_TRAP_ROUTE %s" % LevelDef.by_id("depot").second_trap_route())
+		quit(52)
+		return false
 	if str(LevelDef.campaign_recap_body()).find("电台") < 0 or str(LevelDef.campaign_chain_names()).find("油库") < 0:
 		push_error("SMOKE_NO_CAMPAIGN_RECAP")
 		quit(52)
@@ -3092,11 +3145,72 @@ func _assert_teaching(main) -> bool:
 			push_error("SMOKE_TUTORIAL_TRAP %s" % lid)
 			quit(52)
 			return false
+		if str(last.get("body", "")).find("虚线") < 0:
+			push_error("SMOKE_TUTORIAL_DASH %s" % lid)
+			quit(52)
+			return false
 	if not _assert_payoff_copy(main):
 		return false
 	if not _assert_first_visit_tutorial(main):
 		return false
+	if not _assert_night_handoff(main):
+		return false
 	print("SMOKE_OK_TEACHING beats=6 timeline=1 callout=1 spawn_teach=1 overlay=1")
+	return true
+
+
+func _assert_night_handoff(main) -> bool:
+	var body := str(LevelDef.handoff_body("yard", "warehouse"))
+	if body.find("院子已静") < 0 or body.find("仓道") < 0 or body.find("高光") < 0:
+		push_error("SMOKE_HANDOFF_YARD_BODY %s" % body)
+		quit(52)
+		return false
+	var pump_body := str(LevelDef.handoff_body("warehouse", "pump"))
+	if pump_body.find("泵站") < 0 or pump_body.find("仓道熄灯") < 0:
+		push_error("SMOKE_HANDOFF_PUMP_BODY %s" % pump_body)
+		quit(52)
+		return false
+	var radio_body := str(LevelDef.handoff_body("depot", "radio"))
+	if radio_body.find("电台") < 0 or radio_body.find("灯塔") < 0:
+		push_error("SMOKE_HANDOFF_RADIO_BODY %s" % radio_body)
+		quit(52)
+		return false
+	if str(LevelDef.handoff_title("yard", "warehouse")).find("深仓") < 0:
+		push_error("SMOKE_HANDOFF_TITLE %s" % LevelDef.handoff_title("yard", "warehouse"))
+		quit(52)
+		return false
+	if str(LevelDef.handoff_cta("radio")).find("终夜") < 0:
+		push_error("SMOKE_HANDOFF_CTA %s" % LevelDef.handoff_cta("radio"))
+		quit(52)
+		return false
+	if main.night_handoff == null:
+		push_error("SMOKE_NO_NIGHT_HANDOFF")
+		quit(52)
+		return false
+	main.night_handoff.present("yard", "warehouse")
+	if not main.night_handoff.is_open():
+		push_error("SMOKE_HANDOFF_NOT_OPEN")
+		quit(52)
+		return false
+	var ho_txt := str(main.night_handoff.body_text())
+	if ho_txt.find("院子已静") < 0 or ho_txt.find("仓道") < 0:
+		push_error("SMOKE_HANDOFF_PANEL %s" % ho_txt)
+		quit(52)
+		return false
+	if str(main.night_handoff.from_id()) != "yard" or str(main.night_handoff.to_id()) != "warehouse":
+		push_error("SMOKE_HANDOFF_IDS %s %s" % [main.night_handoff.from_id(), main.night_handoff.to_id()])
+		quit(52)
+		return false
+	if not main.has_method("_modal_blocks_input") or not bool(main._modal_blocks_input()):
+		push_error("SMOKE_HANDOFF_NOT_MODAL")
+		quit(52)
+		return false
+	main.night_handoff.dismiss()
+	if main.night_handoff.is_open():
+		push_error("SMOKE_HANDOFF_STUCK")
+		quit(52)
+		return false
+	print("SMOKE_OK_NIGHT_HANDOFF")
 	return true
 
 
@@ -3351,6 +3465,15 @@ func _assert_launch_bar() -> bool:
 		return false
 	if not ResourceLoader.exists("res://scripts/ui/campaign_journal.gd"):
 		push_error("SMOKE_NO_JOURNAL_SCRIPT")
+		quit(42)
+		return false
+	if not ResourceLoader.exists("res://scripts/ui/night_handoff.gd"):
+		push_error("SMOKE_NO_HANDOFF_SCRIPT")
+		quit(42)
+		return false
+	var journal_src := FileAccess.get_file_as_string("res://scripts/ui/campaign_journal.gd")
+	if journal_src.find("封印邮戳") < 0:
+		push_error("SMOKE_NO_JOURNAL_STAMP")
 		quit(42)
 		return false
 	var icon_src := FileAccess.get_file_as_string("res://icon.svg")
