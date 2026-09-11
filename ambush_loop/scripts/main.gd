@@ -25,6 +25,7 @@ const EnemySilhouetteScript := preload("res://scripts/fx/enemy_silhouette.gd")
 const NightGradeScript := preload("res://scripts/fx/night_grade.gd")
 const TrapPathFxScript := preload("res://scripts/fx/trap_path_fx.gd")
 const NightHandoffScript := preload("res://scripts/ui/night_handoff.gd")
+const SpawnGhostScript := preload("res://scripts/fx/spawn_ghost.gd")
 
 var grid: AmbushGrid = AmbushGrid.new()
 var phase: Phase = Phase.SETUP
@@ -67,6 +68,7 @@ var _trap_callout_tween: Tween = null
 var second_callout: Node2D = null
 var _second_callout_tween: Tween = null
 var trap_path: Node2D = null
+var spawn_ghost_host: Node2D = null
 var fail_gap_callout: Node2D = null
 var watch_wave_chip: Label = null
 var spawn_teach_label: Label = null
@@ -1154,6 +1156,8 @@ func _apply_watch_layers() -> void:
 		trap_path.visible = phase == Phase.SETUP
 		if phase == Phase.SETUP:
 			trap_path.modulate.a = 1.0
+	if spawn_ghost_host and is_instance_valid(spawn_ghost_host):
+		spawn_ghost_host.visible = phase == Phase.SETUP
 	if entities:
 		entities.modulate = Color.WHITE
 	if ghosts:
@@ -2898,6 +2902,7 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 	if intel_label:
 		intel_label.add_theme_color_override("font_color", Color(0.75, 0.9, 0.82))
 	_update_event_log()
+	_build_spawn_ghosts()
 	_update_hud()
 
 
@@ -3737,6 +3742,63 @@ func _fade_trap_path() -> void:
 
 func trap_path_visible() -> bool:
 	return trap_path != null and is_instance_valid(trap_path) and trap_path.visible
+
+
+func _clear_spawn_ghosts() -> void:
+	if spawn_ghost_host != null and is_instance_valid(spawn_ghost_host):
+		spawn_ghost_host.queue_free()
+	spawn_ghost_host = null
+
+
+func _build_spawn_ghosts() -> void:
+	_clear_spawn_ghosts()
+	if level == null or grid == null:
+		return
+	var world := get_node_or_null("World") as Node2D
+	if world == null:
+		return
+	var host := Node2D.new()
+	host.name = "SpawnGhosts"
+	host.z_index = 6
+	world.add_child(host)
+	spawn_ghost_host = host
+	var occupied: Dictionary = {}
+	for spec in level.spawn_schedule:
+		var route := str(spec.get("route", "main"))
+		var cells: Array = level.route_cells.get(route, [])
+		if cells.is_empty():
+			continue
+		var cell: Vector2i = cells[0]
+		var key := "%d,%d" % [cell.x, cell.y]
+		var stack := int(occupied.get(key, 0))
+		occupied[key] = stack + 1
+		var pos := grid.cell_to_world_center(cell)
+		var g = SpawnGhostScript.new()
+		g.setup(
+			int(spec.get("id", 0)),
+			route,
+			float(spec.get("delay", 0.0)),
+			str(spec.get("teaching_note", ""))
+		)
+		g.position = pos + Vector2(-28.0, -12.0 + float(stack) * 16.0)
+		host.add_child(g)
+	host.visible = phase == Phase.SETUP
+
+
+func setup_spawn_ghosts_visible() -> bool:
+	return (
+		phase == Phase.SETUP
+		and spawn_ghost_host != null
+		and is_instance_valid(spawn_ghost_host)
+		and spawn_ghost_host.visible
+		and spawn_ghost_host.get_child_count() >= 1
+	)
+
+
+func setup_spawn_ghost_count() -> int:
+	if spawn_ghost_host == null or not is_instance_valid(spawn_ghost_host):
+		return 0
+	return spawn_ghost_host.get_child_count()
 
 
 func _intel_flash_color(route: String) -> Color:

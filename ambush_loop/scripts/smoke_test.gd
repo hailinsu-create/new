@@ -68,6 +68,8 @@ func _run() -> void:
 		return
 	if not _assert_teaching(main):
 		return
+	if not _assert_iteration_slice(main):
+		return
 	if not await _assert_checklist(main):
 		return
 	print("LEVEL=", main.level.level_id)
@@ -3156,6 +3158,36 @@ func _assert_teaching(main) -> bool:
 	if not _assert_night_handoff(main):
 		return false
 	print("SMOKE_OK_TEACHING beats=6 timeline=1 callout=1 spawn_teach=1 overlay=1")
+	return true
+
+
+func _assert_iteration_slice(main) -> bool:
+	## Fast gates for this iteration's player-facing increments.
+	if not ResourceLoader.exists("res://scripts/fx/spawn_ghost.gd"):
+		push_error("SMOKE_NO_SPAWN_GHOST_SCRIPT")
+		quit(71)
+		return false
+	if not main.has_method("setup_spawn_ghosts_visible") or not bool(main.setup_spawn_ghosts_visible()):
+		push_error("SMOKE_NO_SPAWN_GHOSTS")
+		quit(71)
+		return false
+	var n_ghost := int(main.setup_spawn_ghost_count()) if main.has_method("setup_spawn_ghost_count") else 0
+	if n_ghost < 3:
+		push_error("SMOKE_SPAWN_GHOST_COUNT %s" % n_ghost)
+		quit(71)
+		return false
+	var host = main.spawn_ghost_host
+	if host == null:
+		push_error("SMOKE_SPAWN_GHOST_HOST")
+		quit(71)
+		return false
+	var g0 = host.get_child(0)
+	var tag = g0.get_node_or_null("Tag") if g0 else null
+	if tag == null or str(tag.text).find("敌") < 0 or str(tag.text).find("s") < 0:
+		push_error("SMOKE_SPAWN_GHOST_TAG %s" % (tag.text if tag else "null"))
+		quit(71)
+		return false
+	print("SMOKE_OK_SPAWN_GHOSTS n=", n_ghost)
 	return true
 
 
