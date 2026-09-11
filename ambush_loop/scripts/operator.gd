@@ -1169,7 +1169,7 @@ func kit_card_text() -> String:
 		return "%s [%s]  %s\n%s  弹%d/%d  锥%d°  射程%d" % [
 			display_name, role_short, dep, fire_mode_label(), ammo, max_ammo, cone, int(range_px)
 		]
-	return "%s [%s]  %s\n%s  弹%d/%d  锥%d°  朝%s %d°" % [
+	return "%s [%s]  %s\n%s  弹%d/%d  锥%d°  射界朝%s %d°" % [
 		display_name,
 		role_short,
 		dep,
@@ -1401,7 +1401,7 @@ func _refresh_face_chip() -> void:
 	face_chip.visible = on
 	if not on:
 		return
-	face_chip.text = "朝%s %d°" % [facing_compass(), int(round(facing_deg))]
+	face_chip.text = "射界朝%s %d°" % [facing_compass(), int(round(facing_deg))]
 	face_chip.position = Vector2(-28, 16)
 	var kit := role_kit_color(role)
 	face_chip.add_theme_color_override("font_color", Color(kit.r, kit.g, kit.b, 0.95).lerp(Color(1.0, 0.92, 0.45), _face_tick))
@@ -1447,6 +1447,14 @@ func _refresh_compass_rose() -> void:
 			lab.add_theme_color_override("font_color", Color(0.92, 0.88, 0.52, 0.85))
 			lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			compass_rose.add_child(lab)
+		var cap := Label.new()
+		cap.name = "FacingCap"
+		cap.text = "射界"
+		cap.position = Vector2(-12, 28)
+		cap.add_theme_font_size_override("font_size", 9)
+		cap.add_theme_color_override("font_color", Color(1.0, 0.92, 0.45, 0.92))
+		cap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		compass_rose.add_child(cap)
 	var on := _selected_visual and alive and visible and not locked
 	compass_rose.visible = on
 	if not on:
