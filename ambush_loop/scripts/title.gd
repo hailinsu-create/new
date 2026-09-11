@@ -339,7 +339,12 @@ func _refresh_mission_rows() -> void:
 			badge = "可出击"
 		if cleared:
 			var loops := int(e.get("loops", 0))
-			if loops > 0:
+			var perfect := bool(e.get("perfect", false))
+			if perfect and loops > 0:
+				badge = "完美 · %d世" % loops
+			elif perfect:
+				badge = "完美"
+			elif loops > 0:
 				badge = "首通 · %d世" % loops
 			else:
 				badge = "首通"

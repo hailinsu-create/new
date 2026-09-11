@@ -5271,8 +5271,8 @@ func _show_win_result() -> void:
 		var next_id := str(LEVEL_ORDER[level_index + 1])
 		var unlock := "+解锁下一关 · 「%s」" % LevelDef.mood_tag(next_id)
 		var star := ""
-		if level and level.level_id == "yard" and not _mission_had_escape:
-			star = "\n★ 完美院子：零逃逸"
+		if not _mission_had_escape:
+			star = "\n★ 完美封锁：零逃逸"
 		var hook := str(PayoffCopy.highlight_result_line(level, battle_log, true))
 		var hook_block := ("\n%s" % hook) if hook != "" else ""
 		var beat := ""
@@ -5291,8 +5291,8 @@ func _show_win_result() -> void:
 		_bind_result_headline("全部封锁")
 		_fill_result_stats()
 		var last_star := ""
-		if level and level.level_id == "yard" and not _mission_had_escape:
-			last_star = "\n★ 完美院子：零逃逸"
+		if not _mission_had_escape:
+			last_star = "\n★ 完美封锁：零逃逸"
 		var last_hook := str(PayoffCopy.highlight_result_line(level, battle_log, true))
 		var last_hook_block := ("\n%s" % last_hook) if last_hook != "" else ""
 		var last_beat := ""

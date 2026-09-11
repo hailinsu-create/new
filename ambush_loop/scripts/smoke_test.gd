@@ -3445,6 +3445,22 @@ func _assert_iteration_slice(main) -> bool:
 		return false
 	main._on_clear_pressed()
 	print("SMOKE_OK_COMPASS")
+	gs_stats.record_clear_stats("warehouse", 1, true)
+	if not bool(gs_stats.is_perfect("warehouse")):
+		push_error("SMOKE_NO_PERFECT_FLAG")
+		quit(71)
+		return false
+	var pe: Array = gs_stats.mission_entries()
+	if pe.size() < 2 or not bool(pe[1].get("perfect", false)):
+		push_error("SMOKE_ENTRY_NOT_PERFECT")
+		quit(71)
+		return false
+	var win_src := FileAccess.get_file_as_string("res://scripts/main.gd")
+	if win_src.find("完美封锁") < 0:
+		push_error("SMOKE_NO_PERFECT_COPY")
+		quit(71)
+		return false
+	print("SMOKE_OK_PERFECT")
 	return true
 
 
