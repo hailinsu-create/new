@@ -3015,6 +3015,11 @@ func _assert_launch_bar() -> bool:
 		push_error("SMOKE_NO_EXPORT_PRESETS")
 		quit(42)
 		return false
+	var icon_src := FileAccess.get_file_as_string("res://icon.svg")
+	if icon_src.find("#e24a38") < 0 or icon_src.find("#c6d47a") < 0:
+		push_error("SMOKE_ICON_NOT_AMBUSH")
+		quit(42)
+		return false
 	var presets := FileAccess.get_file_as_string("res://export_presets.cfg")
 	if presets.find("platform=\"Android\"") < 0 or presets.find("com.ambushloop.game") < 0:
 		push_error("SMOKE_NO_ANDROID_PRESET")
