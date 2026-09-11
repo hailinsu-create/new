@@ -10,6 +10,8 @@ static func body_poly(kind: String) -> PackedVector2Array:
 			return _flank_body()
 		"sneak":
 			return _sneak_body()
+		"echo":
+			return _echo_body()
 		_:
 			return _patrol_body()
 
@@ -25,6 +27,11 @@ static func weapon_poly(kind: String) -> PackedVector2Array:
 			return PackedVector2Array([
 				Vector2(-0.9, -2.8), Vector2(0.9, -2.8),
 				Vector2(0.7, -13.8), Vector2(-0.7, -13.8)
+			])
+		"echo":
+			return PackedVector2Array([
+				Vector2(-1.1, 1.4), Vector2(1.2, 1.4), Vector2(1.0, -10.2),
+				Vector2(0.6, -24.8), Vector2(-0.6, -24.8), Vector2(-1.0, -10.2)
 			])
 		_:
 			return PackedVector2Array([
@@ -65,6 +72,11 @@ static func mount(body: Polygon2D, kind: String) -> void:
 	_poly(body, "Weapon", weapon_poly(kind), weapon_color(kind), 3)
 	var moon := _poly(body, "MoonFill", _moon_fill(kind), Color(0.92, 0.78, 0.58, 0.28 if not saving else 0.12), 3)
 	moon.visible = not saving
+	var visor_echo := body.get_node_or_null("Visor") as Polygon2D
+	if visor_echo and kind == "echo":
+		visor_echo.color = Color(0.42, 0.92, 1.0, 0.95)
+	var mast := _poly(body, "EchoMast", _echo_mast_poly(), Color(0.55, 0.88, 0.98, 0.95), 4)
+	mast.visible = kind == "echo"
 	_sight(body, kind)
 
 
@@ -80,7 +92,7 @@ static func pose_parts(body: Polygon2D, kind: String, pose: Dictionary) -> void:
 	var stride := 0.0
 	var sway := 0.0
 	if alive and active and not saving:
-		var amp := 1.35 if kind == "flank" else (0.75 if kind == "sneak" else 1.05)
+		var amp := 1.35 if kind == "flank" else (0.75 if kind == "sneak" else (1.12 if kind == "echo" else 1.05))
 		if alerted:
 			amp *= 1.30
 		stride = sin(phase) * amp
@@ -121,6 +133,14 @@ static func pose_parts(body: Polygon2D, kind: String, pose: Dictionary) -> void:
 	var moon := body.get_node_or_null("MoonFill") as Polygon2D
 	if moon:
 		moon.visible = alive and not saving
+	var pm := body.get_node_or_null("PackMast") as Polygon2D
+	if pm:
+		pm.visible = kind == "echo" and alive
+		pm.position = Vector2(sway * 0.12, -absf(stride) * 0.2)
+	var tip := body.get_node_or_null("MastTip") as Polygon2D
+	if tip:
+		tip.visible = kind == "echo" and alive
+		tip.position = Vector2(sway * 0.12, -absf(stride) * 0.2)
 
 
 static func _patrol_body() -> PackedVector2Array:
@@ -160,6 +180,26 @@ static func _sneak_body() -> PackedVector2Array:
 		Vector2(0.0, 6.6), Vector2(4.0, 8.2), Vector2(4.8, 11.4),
 		Vector2(8.6, 10.8), Vector2(9.2, 7.0), Vector2(11.8, 2.6),
 		Vector2(10.0, -2.4), Vector2(5.2, -5.4), Vector2(4.4, -8.8)
+	])
+
+
+static func _echo_body() -> PackedVector2Array:
+	## 回波 — slim radio runner, antenna pack, 21 verts. Distinct from 巡卫.
+	return PackedVector2Array([
+		Vector2(-3.2, -18.4), Vector2(3.2, -18.4), Vector2(3.8, -14.0),
+		Vector2(2.0, -12.2), Vector2(6.4, -9.6), Vector2(7.0, -4.0),
+		Vector2(5.4, 1.2), Vector2(4.6, 6.2), Vector2(5.0, 12.0),
+		Vector2(4.2, 16.6), Vector2(1.8, 16.8), Vector2(1.4, 9.2),
+		Vector2(0.0, 7.0), Vector2(-1.4, 9.2), Vector2(-1.8, 16.8),
+		Vector2(-4.2, 16.6), Vector2(-5.0, 12.0), Vector2(-4.6, 6.2),
+		Vector2(-5.4, 1.2), Vector2(-7.0, -4.0), Vector2(-6.4, -9.6)
+	])
+
+
+static func _echo_mast_poly() -> PackedVector2Array:
+	return PackedVector2Array([
+		Vector2(-1.3, -16.0), Vector2(1.3, -16.0),
+		Vector2(1.0, -38.0), Vector2(-1.0, -38.0)
 	])
 
 

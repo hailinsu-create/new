@@ -430,6 +430,8 @@ func _kind_body_color() -> Color:
 			return Color(0.90, 0.42, 0.12)
 		"sneak":
 			return Color(0.16, 0.20, 0.24)
+		"echo":
+			return Color(0.22, 0.48, 0.62)
 		_:
 			return Color(0.82, 0.16, 0.14)
 
