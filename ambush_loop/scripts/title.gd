@@ -2,7 +2,8 @@ extends Control
 
 ## Title: brand, mission select, briefing, continue, how-to, quit confirm.
 
-const HOWTO := """布置杀局，警报锁死，只能观看。失败穿梭并带回情报。
+const HOWTO := """北区补给链第三夜：院子 → 仓道 → 泵站 → 信号楼 → 油库 → 电台。
+布置杀局，警报锁死，只能观看。失败穿梭并带回情报。
 灰狼补主路第一枪，铁砧宽锥耗弹（弹包优先），夜枭长窄锁出口。卡面会写这关必须带谁。
 
 【手机】点左侧作战卡选人 → 点掩体部署 → 底栏 ↺↻ 或拖队员调射界 → 点「警报」锁死。
@@ -607,7 +608,7 @@ func _build_mission_select() -> void:
 	frame.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_mission_box.add_child(frame)
 	var hint := Label.new()
-	hint.text = "按顺序解锁。已封锁的关卡可再打一次。"
+	hint.text = "六关夜班，按顺序解锁。已封锁的关卡可再打一次。"
 	hint.add_theme_color_override("font_color", NightOps.OLIVE_DIM)
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_mission_box.add_child(hint)

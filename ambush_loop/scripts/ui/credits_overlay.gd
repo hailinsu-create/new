@@ -39,7 +39,7 @@ func _ready() -> void:
 	word.add_theme_color_override("font_color", NightOps.OLIVE_HI)
 	box.add_child(word)
 	var tag := Label.new()
-	tag.text = "战前埋伏 · 锁死计划 · 时间穿梭"
+	tag.text = "北区补给链 · 第三夜 · 灯塔停转"
 	tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	tag.add_theme_color_override("font_color", NightOps.OLIVE_DIM)
 	box.add_child(tag)

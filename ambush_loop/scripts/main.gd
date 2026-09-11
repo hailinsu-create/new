@@ -3490,6 +3490,8 @@ func _trap_callout_pos() -> Vector2:
 			return grid.cell_to_world_center(Vector2i(32, 11)) + Vector2(-10, -22)
 		"sneak_delay":
 			return grid.cell_to_world_center(Vector2i(7, 11)) + Vector2(12, -22)
+		"radio_echo":
+			return grid.cell_to_world_center(Vector2i(7, 11)) + Vector2(12, -22)
 		_:
 			if level.ambush_zone.size != Vector2.ZERO:
 				return level.ambush_zone.get_center() + Vector2(-40, -8)
