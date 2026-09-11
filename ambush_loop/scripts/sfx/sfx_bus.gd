@@ -8,7 +8,7 @@ const CUES := [
 	"alarm", "alarm_stinger", "fire", "fire_mg", "fire_scout", "return_fire", "empty", "loot", "op_death", "escape", "fail", "win",
 	"win_stinger", "door", "trip", "barrel", "kill", "hit", "ui",
 	"spawn", "echo_ping",
-	"handoff", "leak", "night_enter",
+	"handoff", "leak", "night_enter", "tension",
 	"ambient_yard", "ambient_warehouse", "ambient_pump", "ambient_railcut", "ambient_depot", "ambient_radio"
 ]
 
@@ -148,6 +148,8 @@ func _gain(cue: String) -> float:
 			return -12.0
 		"night_enter":
 			return -16.0
+		"tension":
+			return -14.0
 		"ambient_yard":
 			return -28.0
 		"ambient_warehouse":
@@ -214,6 +216,8 @@ func _build_stream(cue: String) -> AudioStreamWAV:
 			return _pcm(_leak())
 		"night_enter":
 			return _pcm(_night_enter())
+		"tension":
+			return _pcm(_tension())
 		"ambient_yard":
 			return _pcm(_ambient_yard())
 		"ambient_warehouse":
@@ -343,6 +347,14 @@ func _blip(f0: float, f1: float, sec: float, amp: float) -> PackedFloat32Array:
 
 func _fall(f0: float, f1: float, sec: float, amp: float) -> PackedFloat32Array:
 	return _blip(f0, f1, sec, amp)
+
+
+func _tension() -> PackedFloat32Array:
+	## Low rising swell when only one runner remains.
+	return _concat([
+		_blip(90.0, 180.0, 0.18, 0.16),
+		_tone(220.0, 0.10, 0.12, 0.04),
+	])
 
 
 func _escape() -> PackedFloat32Array:

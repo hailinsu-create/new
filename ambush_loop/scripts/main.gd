@@ -6268,6 +6268,7 @@ func _tick_last_enemy_highlight() -> void:
 			e.set_last_runner(mark and e.alive and e.active)
 	if mark and not _barked_last and phase == Phase.WATCHING:
 		_barked_last = true
+		_sfx("tension")
 		for op in operators:
 			if op != null and op.visible and op.alive:
 				_operator_bark(op, "last")

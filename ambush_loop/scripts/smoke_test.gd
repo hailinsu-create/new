@@ -3398,6 +3398,16 @@ func _assert_iteration_slice(main) -> bool:
 		quit(71)
 		return false
 	print("SMOKE_OK_METRONOME")
+	if main.sfx == null or not main.sfx.has_cue("tension"):
+		push_error("SMOKE_NO_TENSION_CUE")
+		quit(71)
+		return false
+	main._sfx("tension")
+	if str(main.sfx.last_cue) != "tension":
+		push_error("SMOKE_TENSION_NO_PLAY %s" % main.sfx.last_cue)
+		quit(71)
+		return false
+	print("SMOKE_OK_TENSION")
 	return true
 
 
