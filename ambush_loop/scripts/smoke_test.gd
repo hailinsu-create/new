@@ -3532,6 +3532,10 @@ func _assert_launch_bar() -> bool:
 		push_error("SMOKE_CREDITS_SRC_NO_RADIO")
 		quit(43)
 		return false
+	if cred_src.find("NightRail") < 0 or cred_src.find("mood_tag") < 0:
+		push_error("SMOKE_CREDITS_NO_NIGHT_RAIL")
+		quit(43)
+		return false
 	var foot_src := FileAccess.get_file_as_string("res://scenes/title.tscn")
 	if foot_src.find("院子 / 仓道 / 泵站 / 信号楼 / 油库 / 电台") < 0:
 		push_error("SMOKE_TITLE_FOOT_NO_RADIO")
@@ -3634,6 +3638,12 @@ func _assert_launch_bar() -> bool:
 		quit(54)
 		return false
 	print("SMOKE_OK_JOURNAL")
+	var title_src := FileAccess.get_file_as_string("res://scripts/title.gd")
+	if title_src.find("latest_cleared_id") < 0 or title_src.find("已封锁") < 0:
+		push_error("SMOKE_TITLE_NO_JOURNAL_STAMP")
+		inst.free()
+		quit(54)
+		return false
 	if inst._journal:
 		inst._journal.dismiss()
 	if not inst.has_method("mission_row_accent_exists") or not bool(inst.mission_row_accent_exists()):
