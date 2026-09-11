@@ -1,7 +1,7 @@
 class_name SfxBus
 extends Node
 
-## Tiny procedural WAV beeps — pooled, reused, SFX bus. Mute with M / Master.
+## Procedural WAV cues — pooled, reused, SFX bus. Mute with M / Master.
 
 const MIX_RATE := 22050
 const CUES := [
@@ -80,6 +80,29 @@ func has_cue(cue: String) -> bool:
 	return _players.has(cue) and _players[cue] != null
 
 
+func cue_peak(cue: String) -> float:
+	## Peak absolute sample in the pooled WAV. Headless-safe; does not play().
+	var st := _pooled_stream(cue)
+	if st == null or st.data.is_empty():
+		return 0.0
+	var peak := 0
+	var data: PackedByteArray = st.data
+	var i := 0
+	while i + 1 < data.size():
+		var v := absi(int(data.decode_s16(i)))
+		if v > peak:
+			peak = v
+		i += 2
+	return float(peak) / 32767.0
+
+
+func cue_duration_sec(cue: String) -> float:
+	var st := _pooled_stream(cue)
+	if st == null or st.data.is_empty():
+		return 0.0
+	return float(st.data.size() / 2) / float(MIX_RATE)
+
+
 func ambient_cue_id(level_id: String) -> String:
 	match str(level_id):
 		"warehouse", "pump", "railcut", "depot", "radio":
@@ -121,11 +144,11 @@ func _gain(cue: String) -> float:
 		"escape", "op_death", "fail":
 			return -11.0
 		"fire", "return_fire":
-			return -16.0
+			return -13.0
 		"fire_mg":
-			return -15.0
+			return -12.0
 		"fire_scout":
-			return -18.0
+			return -15.0
 		"door":
 			return -13.0
 		"trip":
@@ -141,7 +164,7 @@ func _gain(cue: String) -> float:
 		"spawn":
 			return -16.0
 		"echo_ping":
-			return -14.0
+			return -11.0
 		"handoff":
 			return -13.0
 		"leak":
@@ -149,7 +172,7 @@ func _gain(cue: String) -> float:
 		"night_enter":
 			return -16.0
 		"tension":
-			return -10.0
+			return -8.0
 		"ambient_yard":
 			return -28.0
 		"ambient_warehouse":
@@ -288,10 +311,103 @@ func _concat(parts: Array) -> PackedFloat32Array:
 	return out
 
 
+func _overlay(layers: Array) -> PackedFloat32Array:
+	var n := 0
+	for p in layers:
+		n = maxi(n, (p as PackedFloat32Array).size())
+	var out := PackedFloat32Array()
+	out.resize(n)
+	for p in layers:
+		var arr: PackedFloat32Array = p
+		for i in arr.size():
+			out[i] += arr[i]
+	return out
+
+
+func _overlay_offset(base: PackedFloat32Array, add: PackedFloat32Array, offset: int, gain: float = 1.0) -> PackedFloat32Array:
+	var n := maxi(base.size(), offset + add.size())
+	var out := PackedFloat32Array()
+	out.resize(n)
+	for i in base.size():
+		out[i] = base[i]
+	for i in add.size():
+		var j := offset + i
+		if j >= 0 and j < n:
+			out[j] += add[i] * gain
+	return out
+
+
 func _silence(sec: float) -> PackedFloat32Array:
 	var n := maxi(int(sec * MIX_RATE), 1)
 	var out := PackedFloat32Array()
 	out.resize(n)
+	return out
+
+
+func _noise_burst(sec: float, amp: float, color: float = 0.0) -> PackedFloat32Array:
+	var n := maxi(int(sec * MIX_RATE), 1)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var acc := 0.0
+	var lp := clampf(color, 0.0, 0.92)
+	for i in n:
+		var t := float(i) / float(maxi(n - 1, 1))
+		var env := exp(-t * 7.0)
+		if t < 0.03:
+			env *= t / 0.03
+		var white := randf() * 2.0 - 1.0
+		acc = acc * lp + white * (1.0 - lp)
+		out[i] = acc * amp * env
+	return out
+
+
+func _body_thump(sec: float, amp: float, freq: float = 110.0) -> PackedFloat32Array:
+	var n := maxi(int(sec * MIX_RATE), 1)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var f0 := clampf(freq, 80.0, 180.0)
+	var phase := 0.0
+	var acc := 0.0
+	for i in n:
+		var t := float(i) / float(maxi(n - 1, 1))
+		var env := exp(-t * 6.2)
+		if t < 0.025:
+			env *= t / 0.025
+		var f := f0 * (1.0 - t * 0.32)
+		phase += TAU * f / float(MIX_RATE)
+		acc = acc * 0.90 + (randf() * 2.0 - 1.0) * 0.10
+		out[i] = (sin(phase) * 0.78 + acc * 0.28) * amp * env
+	return out
+
+
+func _hiss(sec: float, amp: float) -> PackedFloat32Array:
+	var n := maxi(int(sec * MIX_RATE), 1)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var prev := 0.0
+	for i in n:
+		var t := float(i) / float(maxi(n - 1, 1))
+		var env := (1.0 - t) * (1.0 - t)
+		if t < 0.06:
+			env *= t / 0.06
+		var white := randf() * 2.0 - 1.0
+		prev = prev * 0.18 + white * 0.82
+		out[i] = (white - prev * 0.62) * amp * env
+	return out
+
+
+func _with_reverb_tail(src: PackedFloat32Array, delay_sec: float, decay: float, copies: int) -> PackedFloat32Array:
+	var delay := maxi(int(delay_sec * MIX_RATE), 1)
+	var out := PackedFloat32Array()
+	out.resize(src.size() + delay * maxi(copies, 0))
+	for i in src.size():
+		out[i] = src[i]
+	var gain := decay
+	for _c in copies:
+		var off := delay * (_c + 1)
+		for i in src.size():
+			out[off + i] += src[i] * gain
+		gain *= decay
 	return out
 
 
@@ -312,16 +428,24 @@ func _stinger() -> PackedFloat32Array:
 
 
 func _crack(freq: float, sec: float, amp: float) -> PackedFloat32Array:
-	return _tone(freq, sec, amp, 0.12)
+	## Click + noise burst + 80–180Hz body so shots read as guns, not beeps.
+	var thin := freq >= 2000.0
+	var click := _tone(freq, sec, amp * (0.40 if thin else 0.50), 0.22 if thin else 0.16)
+	var burst := _noise_burst(maxf(sec * 0.90, 0.032), amp * (0.82 if thin else 0.74), 0.18 if thin else 0.40)
+	var body_f := clampf(lerpf(92.0, 168.0, (freq - 700.0) / 1800.0), 80.0, 180.0)
+	var body_amp := amp * (0.34 if thin else 0.64)
+	var body_sec := clampf(sec * (1.35 if thin else 1.75), 0.08, 0.18)
+	var body := _body_thump(body_sec, body_amp, body_f)
+	return _overlay([click, burst, body])
 
 
 func _mg_burst() -> PackedFloat32Array:
 	return _concat([
-		_tone(720.0, 0.028, 0.18, 0.14),
-		_silence(0.012),
-		_tone(640.0, 0.026, 0.16, 0.12),
-		_silence(0.012),
-		_tone(580.0, 0.030, 0.15, 0.12),
+		_crack(720.0, 0.028, 0.20),
+		_silence(0.010),
+		_crack(640.0, 0.026, 0.18),
+		_silence(0.010),
+		_crack(580.0, 0.030, 0.16),
 	])
 
 
@@ -350,13 +474,14 @@ func _fall(f0: float, f1: float, sec: float, amp: float) -> PackedFloat32Array:
 
 
 func _tension() -> PackedFloat32Array:
-	## Audible swell for last-runner and pending delayed waves.
-	return _concat([
-		_blip(70.0, 160.0, 0.22, 0.22),
-		_tone(180.0, 0.16, 0.18, 0.06),
-		_blip(140.0, 280.0, 0.18, 0.16),
-		_tone(90.0, 0.20, 0.12, 0.08),
+	## Audible swell for last-runner and pending delayed waves (~35% louder).
+	var swell := _concat([
+		_blip(70.0, 160.0, 0.22, 0.30),
+		_tone(180.0, 0.16, 0.25, 0.08),
+		_blip(140.0, 280.0, 0.18, 0.22),
+		_tone(90.0, 0.20, 0.16, 0.10),
 	])
+	return _overlay([swell, _rumble(0.76, 0.10, 55.0)])
 
 
 func _escape() -> PackedFloat32Array:
@@ -444,37 +569,52 @@ func _spawn_pop() -> PackedFloat32Array:
 
 
 func _echo_ping() -> PackedFloat32Array:
-	## Morse-like radio ping for the 5.2s echo runner.
-	return _concat([
-		_tone(880.0, 0.05, 0.14, 0.03),
-		_silence(0.04),
-		_tone(880.0, 0.05, 0.14, 0.03),
-		_silence(0.10),
-		_tone(1320.0, 0.09, 0.12, 0.02),
+	## Longer morse radio ping with a decaying copy as a short reverb tail.
+	var ping := _concat([
+		_tone(880.0, 0.065, 0.16, 0.04),
+		_silence(0.048),
+		_tone(880.0, 0.065, 0.15, 0.04),
+		_silence(0.11),
+		_tone(1320.0, 0.12, 0.14, 0.03),
+		_silence(0.035),
+		_tone(1760.0, 0.07, 0.07, 0.02),
 	])
+	var carrier := _tone(440.0, 0.58, 0.035, 0.02)
+	return _with_reverb_tail(_overlay([ping, carrier]), 0.088, 0.36, 3)
 
 
 func _handoff() -> PackedFloat32Array:
-	## Night-turn page: two mid ticks then a rising third. Not win_stinger.
+	## Page-turn rustle then a 3-note night sting. Not win_stinger's major flourish.
 	return _concat([
-		_tone(330.0, 0.05, 0.12, 0.02),
-		_silence(0.04),
-		_tone(494.0, 0.06, 0.13, 0.02),
-		_silence(0.05),
-		_tone(740.0, 0.12, 0.11, 0.015),
+		_noise_burst(0.055, 0.11, 0.12),
+		_silence(0.018),
+		_tone(277.0, 0.07, 0.14, 0.02),
+		_silence(0.032),
+		_tone(370.0, 0.08, 0.15, 0.015),
+		_silence(0.038),
+		_tone(554.0, 0.16, 0.13, 0.012),
+	])
+
+
+func _footstep(sec: float, amp: float) -> PackedFloat32Array:
+	return _overlay([
+		_body_thump(sec, amp, 90.0),
+		_noise_burst(sec * 0.55, amp * 0.50, 0.62),
 	])
 
 
 func _leak() -> PackedFloat32Array:
 	## Footsteps-out + radio hiss. Not the escape two-tone, not the fail rumble.
-	return _concat([
-		_tone(160.0, 0.05, 0.12, 0.08),
-		_silence(0.03),
-		_tone(140.0, 0.05, 0.10, 0.07),
-		_silence(0.04),
-		_fall(420.0, 90.0, 0.18, 0.12),
-		_tone(70.0, 0.10, 0.08, 0.06),
+	var steps := _concat([
+		_footstep(0.07, 0.18),
+		_silence(0.055),
+		_footstep(0.065, 0.16),
+		_silence(0.065),
+		_footstep(0.075, 0.14),
+		_silence(0.075),
+		_footstep(0.08, 0.11),
 	])
+	return _overlay_offset(steps, _hiss(0.58, 0.13), int(0.11 * MIX_RATE), 1.0)
 
 
 func _night_enter() -> PackedFloat32Array:
@@ -499,59 +639,95 @@ func _rumble(sec: float, amp: float, freq: float) -> PackedFloat32Array:
 	return out
 
 
+func _cricket_chirp(sec: float, amp: float, carrier: float) -> PackedFloat32Array:
+	var n := maxi(int(sec * MIX_RATE), 1)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var phase := 0.0
+	var step := TAU * carrier / float(MIX_RATE)
+	for i in n:
+		var t := float(i) / float(MIX_RATE)
+		var trill := 1.0 if sin(t * TAU * 28.0) > 0.12 else 0.0
+		phase += step
+		out[i] = sin(phase) * amp * _env(i, n) * trill
+	return out
+
+
 func _ambient_yard() -> PackedFloat32Array:
-	## Distant dog + cricket ticks. Very quiet bed sting.
-	return _concat([
-		_tone(4100.0, 0.028, 0.05, 0.03),
-		_silence(0.09),
-		_tone(3650.0, 0.022, 0.04, 0.02),
-		_silence(0.16),
-		_tone(150.0, 0.08, 0.06, 0.04),
-		_silence(0.10),
-		_tone(4300.0, 0.018, 0.035, 0.02),
+	## Cricket chirps over a mid yard drone.
+	var chirps := _concat([
+		_cricket_chirp(0.12, 0.075, 4300.0),
+		_silence(0.08),
+		_cricket_chirp(0.09, 0.058, 3920.0),
+		_silence(0.15),
+		_cricket_chirp(0.07, 0.046, 4550.0),
 	])
+	return _overlay([chirps, _tone(148.0, 0.58, 0.05, 0.025)])
 
 
 func _ambient_warehouse() -> PackedFloat32Array:
-	## Metal creak — slow down-sweep with grit.
-	return _concat([
-		_blip(240.0, 128.0, 0.22, 0.10),
-		_tone(90.0, 0.12, 0.05, 0.08),
+	## Metal creak plus a ringing clang.
+	var creak := _concat([
+		_blip(280.0, 108.0, 0.30, 0.12),
+		_tone(88.0, 0.16, 0.06, 0.10),
 	])
+	var clang := _overlay([
+		_tone(1480.0, 0.22, 0.08, 0.03),
+		_tone(2220.0, 0.16, 0.04, 0.02),
+	])
+	return _overlay_offset(creak, clang, int(0.10 * MIX_RATE), 1.0)
 
 
 func _ambient_pump() -> PackedFloat32Array:
-	## Low electrical hum.
-	return _concat([
-		_tone(58.0, 0.42, 0.07, 0.015),
-		_tone(116.0, 0.28, 0.035, 0.01),
+	## 58Hz electrical hum + buzz.
+	return _overlay([
+		_tone(58.0, 0.58, 0.09, 0.018),
+		_tone(116.0, 0.58, 0.04, 0.01),
+		_tone(174.0, 0.50, 0.018, 0.008),
+		_hiss(0.58, 0.03),
+	])
+
+
+func _rail_click(sec: float, amp: float, freq: float) -> PackedFloat32Array:
+	return _overlay([
+		_tone(freq, sec, amp * 0.55, 0.08),
+		_noise_burst(sec * 1.15, amp * 0.70, 0.22),
+		_body_thump(sec * 1.35, amp * 0.32, 150.0),
 	])
 
 
 func _ambient_railcut() -> PackedFloat32Array:
-	## Distant train wheel click.
+	## Higher train-wheel clicks.
 	return _concat([
-		_tone(210.0, 0.035, 0.10, 0.06),
+		_rail_click(0.028, 0.13, 980.0),
+		_silence(0.05),
+		_rail_click(0.024, 0.11, 1180.0),
 		_silence(0.07),
-		_tone(180.0, 0.03, 0.08, 0.05),
-		_silence(0.11),
-		_tone(195.0, 0.028, 0.07, 0.04),
+		_rail_click(0.022, 0.09, 1040.0),
+		_silence(0.09),
+		_rail_click(0.020, 0.07, 1320.0),
 	])
 
 
 func _ambient_depot() -> PackedFloat32Array:
-	## Diesel idle rumble.
-	return _rumble(0.48, 0.09, 36.0)
+	## Diesel idle rumble with a mechanical knock.
+	return _overlay_offset(_rumble(0.64, 0.12, 36.0), _body_thump(0.14, 0.11, 82.0), int(0.24 * MIX_RATE), 1.0)
 
 
 func _ambient_radio() -> PackedFloat32Array:
-	## Morse ticks + thin carrier.
-	return _concat([
-		_tone(880.0, 0.04, 0.08, 0.05),
-		_silence(0.06),
-		_tone(880.0, 0.04, 0.08, 0.05),
-		_silence(0.14),
-		_tone(880.0, 0.09, 0.07, 0.05),
-		_silence(0.10),
-		_tone(210.0, 0.18, 0.04, 0.03),
+	## Morse on a thin carrier plus hiss.
+	var morse := _concat([
+		_tone(880.0, 0.05, 0.10, 0.04),
+		_silence(0.05),
+		_tone(880.0, 0.05, 0.10, 0.04),
+		_silence(0.12),
+		_tone(880.0, 0.12, 0.09, 0.04),
+		_silence(0.08),
+		_tone(880.0, 0.05, 0.08, 0.03),
+		_silence(0.18),
+	])
+	return _overlay([
+		_tone(1760.0, 0.72, 0.035, 0.012),
+		morse,
+		_hiss(0.72, 0.045),
 	])
