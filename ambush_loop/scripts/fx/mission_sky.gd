@@ -121,6 +121,11 @@ func _draw_yard() -> void:
 			var mx := sz.x * 0.62 + sin(_t * 0.55 + float(i) * 1.3) * 90.0 + float(i) * 28.0
 			var my := 70.0 + cos(_t * 0.72 + float(i) * 0.9) * 22.0 + float(i % 3) * 18.0
 			draw_circle(Vector2(mx, my), 1.6, Color(0.92, 0.95, 0.78, 0.18 + 0.10 * sin(_t * 3.0 + float(i))))
+		# Leaf drift — slow specks across the west garden.
+		for i in 4:
+			var lx := 80.0 + fmod(_t * 18.0 + float(i) * 90.0, 220.0)
+			var ly := 240.0 + sin(_t * 0.8 + float(i)) * 16.0 + float(i) * 22.0
+			draw_circle(Vector2(lx, ly), 1.8, Color(0.55, 0.62, 0.32, 0.16 + 0.08 * sin(_t + float(i))))
 
 
 func _draw_warehouse() -> void:
@@ -157,6 +162,11 @@ func _draw_warehouse() -> void:
 			var cx := 210.0 + float(i) * 220.0
 			var sway := sin(_t * 1.1 + float(i)) * 6.0
 			draw_line(Vector2(cx, 8.0), Vector2(cx + sway, 52.0), Color(0.22, 0.16, 0.08, 0.28), 1.4, true)
+		# Dust motes in the sodium aisle.
+		for i in 6:
+			var dx := 160.0 + float(i) * 140.0 + sin(_t * 0.4 + float(i)) * 18.0
+			var dy := 90.0 + fmod(_t * 12.0 + float(i) * 17.0, 80.0)
+			draw_circle(Vector2(dx, dy), 1.5, Color(0.95, 0.72, 0.28, 0.10 + 0.08 * sin(_t * 2.0 + float(i))))
 
 
 func _draw_pump() -> void:
@@ -199,6 +209,11 @@ func _draw_pump() -> void:
 		var dy := origin.y + 18.0 + drip * 36.0
 		var da := 0.16 * (1.0 - drip / 1.35)
 		draw_circle(Vector2(origin.x + 22.0, dy), 2.2, Color(0.55, 0.88, 0.78, da))
+		# Pump drizzle — short falling streaks over the valve block.
+		for i in 7:
+			var rx := origin.x - 50.0 + float(i) * 18.0 + sin(_t + float(i)) * 4.0
+			var ry := origin.y - 10.0 + fmod(_t * 70.0 + float(i) * 13.0, 64.0)
+			draw_line(Vector2(rx, ry), Vector2(rx + 1.5, ry + 8.0), Color(0.55, 0.82, 0.78, 0.12), 1.1, true)
 
 
 func _draw_railcut() -> void:
@@ -232,6 +247,12 @@ func _draw_railcut() -> void:
 	if not _is_power_saving():
 		var gx := 12.2 * AmbushGrid.TILE + fmod(_t * 42.0, 3.0 * AmbushGrid.TILE)
 		draw_rect(Rect2(gx, 5.2 * AmbushGrid.TILE, 18.0, 3.0), Color(0.82, 0.88, 0.95, 0.10 + 0.06 * sin(_t * 6.0)))
+		# Spark ticks off the signal mast.
+		for i in 3:
+			var sx := 21.5 * AmbushGrid.TILE + sin(_t * 4.0 + float(i)) * 10.0
+			var sy := 10.5 * AmbushGrid.TILE - 18.0 - float(i) * 8.0
+			var sa := 0.10 + 0.16 * maxf(0.0, sin(_t * 7.0 + float(i) * 2.1))
+			draw_circle(Vector2(sx, sy), 2.0, Color(1.0, 0.72, 0.28, sa))
 
 
 func _draw_depot() -> void:
@@ -263,6 +284,11 @@ func _draw_depot() -> void:
 			var hx := 15.5 * AmbushGrid.TILE + float(i) * 28.0 + sin(_t * 2.2 + float(i)) * 3.0
 			var hy := 13.8 * AmbushGrid.TILE + sin(_t * 3.1 + float(i) * 0.7) * 4.0
 			draw_rect(Rect2(hx, hy, 16.0, 2.0), Color(0.95, 0.48, 0.12, 0.08 + 0.05 * pulse))
+		# Diesel specks rising off the south tanks.
+		for i in 5:
+			var dx := 16.0 * AmbushGrid.TILE + float(i) * 36.0 + sin(_t * 0.7 + float(i)) * 8.0
+			var dy := 14.2 * AmbushGrid.TILE - fmod(_t * 22.0 + float(i) * 9.0, 48.0)
+			draw_circle(Vector2(dx, dy), 1.8, Color(0.92, 0.42, 0.12, 0.10 + 0.08 * pulse))
 
 
 func _draw_radio() -> void:
@@ -298,3 +324,8 @@ func _draw_radio() -> void:
 	if not _is_power_saving():
 		var spark := 0.5 + 0.5 * sin(_t * 6.4)
 		draw_circle(Vector2(10.4 * AmbushGrid.TILE, 7.6 * AmbushGrid.TILE), 4.0 + spark * 2.0, Color(0.70, 0.95, 1.0, 0.10 + 0.16 * spark))
+		# Phosphor motes drifting through the dish hall.
+		for i in 7:
+			var mx := 15.0 * AmbushGrid.TILE + float(i) * 28.0 + sin(_t * 0.6 + float(i)) * 14.0
+			var my := 8.4 * AmbushGrid.TILE + cos(_t * 0.85 + float(i) * 0.7) * 22.0
+			draw_circle(Vector2(mx, my), 1.7, Color(0.55, 0.90, 1.0, 0.10 + 0.10 * pulse * (0.5 + 0.5 * sin(_t * 3.0 + float(i)))))
