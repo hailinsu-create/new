@@ -46,6 +46,17 @@ func _ready() -> void:
 	tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	tag.add_theme_color_override("font_color", NightOps.OLIVE_DIM)
 	box.add_child(tag)
+	var rail := HBoxContainer.new()
+	rail.name = "NightRail"
+	rail.alignment = BoxContainer.ALIGNMENT_CENTER
+	rail.add_theme_constant_override("separation", 8)
+	box.add_child(rail)
+	for def in LevelDef.catalog():
+		var chip := Label.new()
+		chip.text = LevelDef.mood_tag(def.level_id)
+		chip.add_theme_font_size_override("font_size", 13)
+		chip.add_theme_color_override("font_color", LevelDef.signature_color(def.level_id))
+		rail.add_child(chip)
 	var body := Label.new()
 	body.name = "Body"
 	body.text = LevelDef.campaign_recap_body()
