@@ -304,7 +304,7 @@ static func campaign_recap_body() -> String:
 		if beat != "":
 			lines.append("%s — %s" % [def.title, beat])
 	lines.append("")
-	lines.append("北区补给链第三夜已切断。灯塔停转。情报已归档。计划锁死过的那些秒，就是这场胜负。")
+	lines.append("北区补给链第三夜已切断。灯塔停转。情报已归档。搜刮、埋伏、打扫过的那些波次，就是这场胜负。")
 	lines.append("")
 	lines.append("感谢游玩。")
 	return "\n".join(lines)
@@ -403,7 +403,7 @@ static func make_yard() -> LevelDef:
 	l.atmosphere_id = "yard"
 	l.title = "第1关 · 院子：交叉封锁"
 	l.teaching = "这关必须带铁砧扫东箱侧翼，灰狼补主路第一枪，夜枭长窄锁南闸。夜巡小队从北门进院子，要在南闸汇合前切断。陷阱：只盯主路，侧翼奔袭会从东廊绕出。青弧朝向才有掩体减免，侧背全伤。失败三种：逃逸、全灭、中止（X 留情报）。"
-	l.tutorial = "左卡选 灰狼/铁砧/夜枭（卡上写本关必须带谁）。点掩体部署；青弧=保护方向（来袭减伤 60%，侧背全伤）。黄锥是墙裁切后的真射界。夜枭部署后有淡青观察环（仅准备期）。A/D、右键或底栏↺↻调朝向，空格拉警报锁死。X 中止留情报。逃逸、全灭、中止都穿梭并恢复上轮计划。红线=主路，橙线=侧翼。"
+	l.tutorial = "三人从西插入点出发，开局只有刀。点地走路，走近匣拾步枪/机枪/手雷/地雷，点掩体趴下。空格拉第一波警报；清完打扫，空格拉第二波（橙线侧翼）。逃逸或全灭失败。红线=主路，橙线=侧翼。"
 	l.escape_cell = Vector2i(31, 19)
 	# All covers on open cells (yard crates leave spine / lanes free).
 	l.cover_defs = [
