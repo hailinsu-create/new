@@ -154,6 +154,15 @@ func _run() -> void:
 				quit(4)
 				return
 			print("SMOKE_OK_FAIL_CARD")
+			if main.has_method("fail_card_bitten_by_rail") and bool(main.fail_card_bitten_by_rail()):
+				push_error("SMOKE_FAIL_CARD_BITTEN")
+				quit(72)
+				return
+			if main.has_method("result_cta_buried_by_bars") and bool(main.result_cta_buried_by_bars()):
+				push_error("SMOKE_FAIL_CTA_BURIED")
+				quit(72)
+				return
+			print("SMOKE_OK_FAIL_CARD_CLEAR")
 			if leak_line_txt.find("情报已记录") < 0:
 				push_error("SMOKE_NO_INTEL_RECORDED %s" % leak_line_txt)
 				quit(4)
@@ -254,6 +263,11 @@ func _run() -> void:
 				quit(35)
 				return
 			print("SMOKE_OK_PLAN_RESTORE ", main.plan_restore_hint)
+			if main.has_method("intel_chip_overlaps_timeline") and bool(main.intel_chip_overlaps_timeline()):
+				push_error("SMOKE_INTEL_OVER_TIMELINE chip=%s" % (main.intel_chip_text() if main.has_method("intel_chip_text") else ""))
+				quit(72)
+				return
+			print("SMOKE_OK_INTEL_CHIP")
 			if not main.has_method("intel_path_ghost_active") or not bool(main.intel_path_ghost_active()):
 				push_error("SMOKE_NO_INTEL_GHOST")
 				quit(4)
@@ -464,6 +478,11 @@ func _run() -> void:
 				quit(61)
 				return
 			print("SMOKE_OK_CHAIN_STRIP")
+			if main.has_method("result_cta_buried_by_bars") and bool(main.result_cta_buried_by_bars()):
+				push_error("SMOKE_WIN_CTA_BURIED")
+				quit(72)
+				return
+			print("SMOKE_OK_WIN_CTA_CLEAR")
 			print("SMOKE_OK_PRESENTATION stats=", main.result_stats_block_text().replace("\n", " | "))
 			var gs_win = root.get_node_or_null("GameSettings")
 			if gs_win == null or not gs_win.is_level_cleared("yard") or not gs_win.is_level_unlocked("warehouse"):
@@ -1570,6 +1589,19 @@ func _assert_radio_contract(main) -> bool:
 		push_error("SMOKE_RADIO_LANE_BLOCKED")
 		quit(62)
 		return false
+	# Mast-hall vs depot tank farm: (15,8) is blocked on depot and must be open on radio.
+	if main.grid.is_blocked(15, 8):
+		push_error("SMOKE_RADIO_STILL_TANK_RECT")
+		quit(62)
+		return false
+	if not main.grid.is_blocked(17, 9) or not main.grid.is_blocked(19, 10):
+		push_error("SMOKE_RADIO_NO_TOWER")
+		quit(62)
+		return false
+	if not main.grid.is_blocked(29, 11):
+		push_error("SMOKE_RADIO_RACKS_SHORT")
+		quit(62)
+		return false
 	var max_main := 0.0
 	var min_sneak := 999.0
 	var min_echo := 999.0
@@ -1624,9 +1656,13 @@ func _assert_radio_contract(main) -> bool:
 		push_error("SMOKE_RADIO_ECHO_CALLOUT %s" % (echo_tag.text if echo_tag else "null"))
 		quit(62)
 		return false
+	if main.has_method("echo_wait_breathing") and not bool(main.echo_wait_breathing()):
+		push_error("SMOKE_RADIO_NO_ECHO_BREATH")
+		quit(62)
+		return false
 	print(
 		"SMOKE_OK_RADIO_CONTRACT covers=6 routes=4 sneak=", min_sneak,
-		" echo=", echo_d, " dish_pad kit=echo hall"
+		" echo=", echo_d, " dish_pad kit=echo hall breath=1"
 	)
 	return true
 
@@ -1991,6 +2027,20 @@ func _assert_sfx(main) -> bool:
 	main.operators[0].hp = hp0
 	main.operators[0].alive = true
 	main.operators[0]._apply_body_modulate()
+	if main.sfx.has_method("cue_peak"):
+		var fire_p: float = float(main.sfx.cue_peak("fire"))
+		var ui_p: float = float(main.sfx.cue_peak("ui"))
+		var ten_p: float = float(main.sfx.cue_peak("tension"))
+		var echo_p: float = float(main.sfx.cue_peak("echo_ping"))
+		if fire_p < ui_p * 1.15:
+			push_error("SMOKE_SFX_FIRE_THIN fire=%s ui=%s" % [fire_p, ui_p])
+			quit(36)
+			return false
+		if ten_p < 0.18 or echo_p < 0.10:
+			push_error("SMOKE_SFX_STING_THIN tension=%s echo=%s" % [ten_p, echo_p])
+			quit(36)
+			return false
+		print("SMOKE_OK_SFX_BODY fire=", snapped(fire_p, 0.01), " tension=", snapped(ten_p, 0.01), " echo=", snapped(echo_p, 0.01))
 	print("SMOKE_OK_SFX cues=role_fire muted=", main.sfx.muted, " every_shot=1 ui=1 hit=1")
 	return true
 
@@ -2908,6 +2958,7 @@ func _assert_props(main) -> bool:
 		"yard tree", "roof peak", "pump chimney", "tower block", "tank farm",
 		"Doorway jamb",
 		"Radio dish", "Guy wire", "Morse hut", "dish hall",
+		"Lighthouse mast", "Dish array", "Echo hall phosphor",
 		"Duty board", "Shift roster", "Valve log",
 		"Timetable slate", "Fuel ticket", "Call log",
 		"Rain barrel", "Spare dish", "Sandbag row",
@@ -3094,6 +3145,15 @@ func _assert_teaching(main) -> bool:
 		return false
 	if not yard.has_method("second_trap_text") or str(yard.second_trap_text()).find("东廊") < 0:
 		push_error("SMOKE_YARD_SECOND_TRAP %s" % (yard.second_trap_text() if yard.has_method("second_trap_text") else "no_api"))
+		quit(52)
+		return false
+	var wh_trap := str(wh.second_trap_text())
+	if wh_trap.find("第二层") < 0 or (wh_trap.find("黄区") < 0 and wh_trap.find("入伏") < 0):
+		push_error("SMOKE_WAREHOUSE_TRAP_NOT_HOLD %s" % wh_trap)
+		quit(52)
+		return false
+	if str(wh.spawn_teaching[1] if wh.spawn_teaching.size() > 1 else "").find("黄区") < 0:
+		push_error("SMOKE_WAREHOUSE_SECOND_TEACH %s" % str(wh.spawn_teaching))
 		quit(52)
 		return false
 	if main.second_callout != null and is_instance_valid(main.second_callout) and main.second_callout.visible:
