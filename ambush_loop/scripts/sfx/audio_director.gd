@@ -192,6 +192,8 @@ func mission_mood_pitch(level_id: String) -> float:
 			return 1.14
 		"depot":
 			return 0.55
+		"radio":
+			return 1.28
 		"yard":
 			return 0.92
 		_:
@@ -209,6 +211,8 @@ func mission_mood_filter_hz(level_id: String) -> float:
 			return 2100.0
 		"depot":
 			return 260.0
+		"radio":
+			return 2800.0
 		_:
 			return 1400.0
 

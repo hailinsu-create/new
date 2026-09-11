@@ -7,7 +7,7 @@ const MIX_RATE := 22050
 const CUES := [
 	"alarm", "alarm_stinger", "fire", "fire_mg", "fire_scout", "return_fire", "empty", "loot", "op_death", "escape", "fail", "win",
 	"win_stinger", "door", "trip", "barrel", "kill", "hit", "ui",
-	"ambient_yard", "ambient_warehouse", "ambient_pump", "ambient_railcut", "ambient_depot"
+	"ambient_yard", "ambient_warehouse", "ambient_pump", "ambient_railcut", "ambient_depot", "ambient_radio"
 ]
 
 var muted: bool = false
@@ -80,7 +80,7 @@ func has_cue(cue: String) -> bool:
 
 func ambient_cue_id(level_id: String) -> String:
 	match str(level_id):
-		"warehouse", "pump", "railcut", "depot":
+		"warehouse", "pump", "railcut", "depot", "radio":
 			return "ambient_%s" % level_id
 		_:
 			return "ambient_yard"
@@ -146,6 +146,8 @@ func _gain(cue: String) -> float:
 			return -24.0
 		"ambient_depot":
 			return -25.0
+		"ambient_radio":
+			return -26.0
 		_:
 			return -15.0
 
@@ -200,6 +202,8 @@ func _build_stream(cue: String) -> AudioStreamWAV:
 			return _pcm(_ambient_railcut())
 		"ambient_depot":
 			return _pcm(_ambient_depot())
+		"ambient_radio":
+			return _pcm(_ambient_radio())
 		_:
 			return _pcm(_crack(800.0, 0.04, 0.1))
 
@@ -453,3 +457,16 @@ func _ambient_railcut() -> PackedFloat32Array:
 func _ambient_depot() -> PackedFloat32Array:
 	## Diesel idle rumble.
 	return _rumble(0.48, 0.09, 36.0)
+
+
+func _ambient_radio() -> PackedFloat32Array:
+	## Morse ticks + thin carrier.
+	return _concat([
+		_tone(880.0, 0.04, 0.08, 0.05),
+		_silence(0.06),
+		_tone(880.0, 0.04, 0.08, 0.05),
+		_silence(0.14),
+		_tone(880.0, 0.09, 0.07, 0.05),
+		_silence(0.10),
+		_tone(210.0, 0.18, 0.04, 0.03),
+	])
