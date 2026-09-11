@@ -171,6 +171,16 @@ func _run() -> void:
 				quit(61)
 				return
 			print("SMOKE_OK_CHATTER")
+			if leak_line_txt.find("情报墙") < 0:
+				push_error("SMOKE_NO_INTEL_WALL %s" % leak_line_txt)
+				quit(4)
+				return
+			print("SMOKE_OK_INTEL_WALL")
+			if leak_line_txt.find("本世罩住") < 0 or leak_line_txt.find("缺口") < 0:
+				push_error("SMOKE_NO_COVER_VS_LEAK %s" % leak_line_txt)
+				quit(4)
+				return
+			print("SMOKE_OK_COVER_VS_LEAK")
 			if main.intel.records.is_empty():
 				push_error("SMOKE_NO_LEAKER_RECORD")
 				quit(56)
@@ -417,6 +427,11 @@ func _run() -> void:
 				push_error("SMOKE_NO_YARD_BEAT %s" % main.result_label.text)
 				quit(61)
 				return
+			if str(main.result_label.text).find("初阵✓") < 0 or str(main.result_label.text).find("下一夜") < 0:
+				push_error("SMOKE_NO_CHAIN_STRIP %s" % main.result_label.text)
+				quit(61)
+				return
+			print("SMOKE_OK_CHAIN_STRIP")
 			print("SMOKE_OK_PRESENTATION stats=", main.result_stats_block_text().replace("\n", " | "))
 			var gs_win = root.get_node_or_null("GameSettings")
 			if gs_win == null or not gs_win.is_level_cleared("yard") or not gs_win.is_level_unlocked("warehouse"):
@@ -910,6 +925,11 @@ func _run() -> void:
 			main.sim.set_speed(2.0)
 			main._on_alarm_pressed()
 			main.sim.set_speed(2.0)
+			if main.has_method("queued_kit_for") and str(main.queued_kit_for(5)) != "echo":
+				push_error("SMOKE_RADIO_KIT_NOT_QUEUED %s" % main.queued_kit_for(5))
+				quit(62)
+				return
+			print("SMOKE_OK_RADIO_KIT_QUEUED")
 			var radio_stack: bool = await _wait_phase(main, main.Phase.FAILED, 60 * 280)
 			if not radio_stack or main.fail_reason != "escape":
 				push_error(
@@ -1539,9 +1559,22 @@ func _assert_radio_contract(main) -> bool:
 		push_error("SMOKE_RADIO_ECHO_ACTOR %s" % echo_d)
 		quit(62)
 		return false
+	if not main.level.has_method("kit_for_actor") or str(main.level.kit_for_actor(5)) != "echo":
+		push_error("SMOKE_RADIO_NO_ECHO_KIT %s" % (main.level.kit_for_actor(5) if main.level.has_method("kit_for_actor") else "no_api"))
+		quit(62)
+		return false
+	if main.second_callout == null or not is_instance_valid(main.second_callout):
+		push_error("SMOKE_RADIO_NO_SECOND_CALLOUT")
+		quit(62)
+		return false
+	var echo_tag = main.second_callout.get_node_or_null("Tag")
+	if echo_tag == null or str(echo_tag.text).find("回波") < 0:
+		push_error("SMOKE_RADIO_ECHO_CALLOUT %s" % (echo_tag.text if echo_tag else "null"))
+		quit(62)
+		return false
 	print(
 		"SMOKE_OK_RADIO_CONTRACT covers=6 routes=3 sneak=", min_sneak,
-		" echo=", echo_d, " dish_pad"
+		" echo=", echo_d, " dish_pad kit=echo"
 	)
 	return true
 
@@ -1883,6 +1916,14 @@ func _assert_sfx(main) -> bool:
 		return false
 	if not main.sfx.has_cue("hit"):
 		push_error("SMOKE_NO_HIT_CUE")
+		quit(36)
+		return false
+	if not main.sfx.has_cue("echo_ping") or not main.sfx.has_cue("spawn"):
+		push_error("SMOKE_NO_SPAWN_ECHO_CUES")
+		quit(36)
+		return false
+	if audio != null and audio.has_method("has_layered_mood") and not bool(audio.has_layered_mood()):
+		push_error("SMOKE_NO_LAYERED_MOOD")
 		quit(36)
 		return false
 	var hp0: float = float(main.operators[0].hp)
@@ -2808,6 +2849,8 @@ func _assert_props(main) -> bool:
 		"Radio dish", "Guy wire", "Morse hut", "dish hall",
 		"Duty board", "Shift roster", "Valve log",
 		"Timetable slate", "Fuel ticket", "Call log",
+		"Rain barrel", "Spare dish", "Sandbag row",
+		"Oil stain", "Hose coil", "Switch box", "Drip pan",
 	]:
 		if src.find(token) < 0:
 			push_error("SMOKE_PROPS_TOKEN %s" % token)
@@ -2829,6 +2872,10 @@ func _assert_props(main) -> bool:
 		or sky_src.find("gauge blink") < 0
 		or sky_src.find("_draw_contrast_wash") < 0
 		or sky_src.find("Morse blink") < 0
+		or sky_src.find("Phosphor motes") < 0
+		or sky_src.find("Pump drizzle") < 0
+		or sky_src.find("Diesel specks") < 0
+		or sky_src.find("Dust motes") < 0
 	):
 		push_error("SMOKE_PROPS_SKY_MOTION")
 		quit(51)
@@ -2972,6 +3019,22 @@ func _assert_teaching(main) -> bool:
 		return false
 	if rd.spawn_teaching.is_empty() or str(rd.spawn_teaching[0]).find("5.2") < 0:
 		push_error("SMOKE_RADIO_SPAWN_TEACH %s" % str(rd.spawn_teaching))
+		quit(52)
+		return false
+	if rd.spawn_teaching.size() < 2 or str(rd.spawn_teaching[1]).find("第二层") < 0:
+		push_error("SMOKE_RADIO_SECOND_TEACH %s" % str(rd.spawn_teaching))
+		quit(52)
+		return false
+	if not yard.has_method("second_trap_text") or str(yard.second_trap_text()).find("东廊") < 0:
+		push_error("SMOKE_YARD_SECOND_TRAP %s" % (yard.second_trap_text() if yard.has_method("second_trap_text") else "no_api"))
+		quit(52)
+		return false
+	if main.second_callout == null or not is_instance_valid(main.second_callout):
+		push_error("SMOKE_NO_SECOND_CALLOUT")
+		quit(52)
+		return false
+	if str(LevelDef.campaign_recap_body()).find("电台") < 0 or str(LevelDef.campaign_chain_names()).find("油库") < 0:
+		push_error("SMOKE_NO_CAMPAIGN_RECAP")
 		quit(52)
 		return false
 	if main.trap_callout == null or not main.trap_callout.visible:
@@ -3286,6 +3349,10 @@ func _assert_launch_bar() -> bool:
 		push_error("SMOKE_NO_EXPORT_PRESETS")
 		quit(42)
 		return false
+	if not ResourceLoader.exists("res://scripts/ui/campaign_journal.gd"):
+		push_error("SMOKE_NO_JOURNAL_SCRIPT")
+		quit(42)
+		return false
 	var icon_src := FileAccess.get_file_as_string("res://icon.svg")
 	if icon_src.find("#e24a38") < 0 or icon_src.find("#c6d47a") < 0:
 		push_error("SMOKE_ICON_NOT_AMBUSH")
@@ -3426,6 +3493,26 @@ func _assert_launch_bar() -> bool:
 		inst.free()
 		quit(54)
 		return false
+	if not inst.has_method("briefing_night_text") or str(inst.briefing_night_text()).find("1 / 6") < 0:
+		push_error("SMOKE_NO_NIGHT_INDEX %s" % (inst.briefing_night_text() if inst.has_method("briefing_night_text") else "no_api"))
+		inst.free()
+		quit(54)
+		return false
+	if not inst.has_method("open_journal"):
+		push_error("SMOKE_NO_JOURNAL_API")
+		inst.free()
+		quit(54)
+		return false
+	inst.open_journal()
+	await process_frame
+	if not inst.journal_visible() or str(inst.journal_body_text()).find("电台") < 0:
+		push_error("SMOKE_JOURNAL_RADIO %s" % (inst.journal_body_text() if inst.has_method("journal_body_text") else "no_api"))
+		inst.free()
+		quit(54)
+		return false
+	print("SMOKE_OK_JOURNAL")
+	if inst._journal:
+		inst._journal.dismiss()
 	if not inst.has_method("mission_row_accent_exists") or not bool(inst.mission_row_accent_exists()):
 		push_error("SMOKE_NO_MISSION_ACCENT")
 		inst.free()
