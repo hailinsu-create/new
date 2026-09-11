@@ -309,6 +309,15 @@ func cleared_level_ids() -> PackedStringArray:
 	return cleared
 
 
+func latest_cleared_id() -> String:
+	var cleared := cleared_level_ids()
+	var last := ""
+	for id in LEVEL_ORDER:
+		if cleared.has(id):
+			last = str(id)
+	return last
+
+
 func is_level_cleared(id: String) -> bool:
 	return cleared_level_ids().has(id)
 
