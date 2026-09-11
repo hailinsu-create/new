@@ -1,0 +1,77 @@
+class_name RaidMine
+extends Node2D
+
+## Player-placed mine from inventory. Sim-tick proximity, like tripwire.
+
+signal triggered
+
+const RADIUS := 20.0
+
+var armed: bool = true
+var spent: bool = false
+var damage: float = 120.0
+var _pulse_t: float = 0.0
+
+
+func _ready() -> void:
+	z_index = 3
+	_ensure_visual()
+	set_process(true)
+
+
+func _ensure_visual() -> void:
+	if get_node_or_null("Disc") != null:
+		return
+	var disc := Polygon2D.new()
+	disc.name = "Disc"
+	var pts := PackedVector2Array()
+	for i in 12:
+		var a := TAU * float(i) / 12.0
+		pts.append(Vector2(cos(a), sin(a)) * 9.0)
+	disc.polygon = pts
+	disc.color = Color(0.28, 0.36, 0.18, 0.95)
+	add_child(disc)
+	var stud := Polygon2D.new()
+	stud.name = "Stud"
+	stud.polygon = PackedVector2Array([
+		Vector2(-3, -3), Vector2(3, -3), Vector2(3, 3), Vector2(-3, 3)
+	])
+	stud.color = Color(0.72, 0.22, 0.16, 0.95)
+	add_child(stud)
+	var tag := Label.new()
+	tag.name = "Tag"
+	tag.text = "雷"
+	tag.position = Vector2(-10, -20)
+	tag.add_theme_font_size_override("font_size", 10)
+	tag.add_theme_color_override("font_color", Color(0.72, 0.85, 0.42))
+	add_child(tag)
+
+
+func _process(delta: float) -> void:
+	_pulse_t += delta
+	if spent or not armed:
+		return
+	var wave := 0.5 + 0.5 * sin(_pulse_t * 5.0)
+	modulate = Color(1.0, 1.0, 1.0, 0.78 + 0.22 * wave)
+
+
+func sim_check(active_enemies: Array) -> EnemyRunner:
+	if not armed or spent:
+		return null
+	for node in active_enemies:
+		if node is EnemyRunner and node.alive and node.active:
+			if global_position.distance_to(node.global_position) <= RADIUS:
+				_trip(node)
+				return node
+	return null
+
+
+func _trip(enemy: EnemyRunner) -> void:
+	spent = true
+	armed = false
+	if enemy.has_method("apply_fire"):
+		enemy.apply_fire(damage, null)
+	elif enemy.has_method("kill"):
+		enemy.kill()
+	modulate = Color(0.4, 0.4, 0.38, 0.45)
+	triggered.emit()
