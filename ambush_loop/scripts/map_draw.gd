@@ -777,6 +777,11 @@ func _landmark_yard(c: CanvasItem) -> void:
 	# Gate shadow at the north entry (12-14,4) — wash only.
 	c.draw_rect(Rect2(12.0 * t, 4.0 * t, 3.0 * t, 18.0), Color(0.02, 0.03, 0.03, 0.22))
 	c.draw_rect(Rect2(12.2 * t, 3.7 * t, 2.6 * t, 6.0), Color(0.08, 0.10, 0.08, 0.35))
+	# Duty board on the east interior wall, south of the warm window.
+	c.draw_rect(Rect2(33.15 * t, 9.2 * t, 1.5 * t, 1.8 * t), Color(0.22, 0.18, 0.10, 0.70))
+	c.draw_rect(Rect2(33.25 * t, 9.35 * t, 1.3 * t, 1.5 * t), Color(0.42, 0.48, 0.32, 0.45))
+	c.draw_line(Vector2(33.35 * t, 9.6 * t), Vector2(34.2 * t, 9.6 * t), Color(0.12, 0.12, 0.08, 0.55), 1.2)
+	c.draw_line(Vector2(33.35 * t, 9.95 * t), Vector2(34.05 * t, 9.95 * t), Color(0.12, 0.12, 0.08, 0.40), 1.0)
 
 
 func _landmark_warehouse(c: CanvasItem) -> void:
@@ -805,6 +810,10 @@ func _landmark_warehouse(c: CanvasItem) -> void:
 	# Loading dock stripe on the south lane.
 	c.draw_rect(Rect2(18.0 * t, 17.15 * t, 10.0 * t, 8.0), Color(0.72, 0.48, 0.10, 0.22))
 	c.draw_rect(Rect2(18.0 * t, 17.15 * t, 10.0 * t, 8.0), Color(0.90, 0.72, 0.22, 0.35), false, 1.6)
+	# Shift roster clipped to the west shelf upright (blocked cell).
+	c.draw_rect(Rect2(7.25 * t, 10.35 * t, 18.0, 22.0), Color(0.55, 0.48, 0.28, 0.50))
+	c.draw_rect(Rect2(7.4 * t, 10.5 * t, 14.0, 3.0), Color(0.18, 0.12, 0.06, 0.55))
+	c.draw_rect(Rect2(7.4 * t, 11.0 * t, 12.0, 2.0), Color(0.18, 0.12, 0.06, 0.40))
 
 
 func _landmark_pump(c: CanvasItem) -> void:
@@ -836,6 +845,9 @@ func _landmark_pump(c: CanvasItem) -> void:
 	c.draw_circle(Vector2(16.2 * t, 15.8 * t), 10.0, Color(0.12, 0.26, 0.24, 0.22))
 	_lamp_post(c, Vector2(10.4 * t, 14.2 * t), Color(0.32, 0.82, 0.62))
 	_lamp_post(c, Vector2(22.6 * t, 13.6 * t), Color(0.28, 0.78, 0.58))
+	# Valve log on the west machine face.
+	c.draw_rect(Rect2(7.15 * t, 10.2 * t, 16.0, 20.0), Color(0.12, 0.22, 0.18, 0.55))
+	c.draw_rect(Rect2(7.3 * t, 10.35 * t, 12.0, 3.0), Color(0.28, 0.55, 0.42, 0.45))
 
 
 func _landmark_railcut(c: CanvasItem) -> void:
