@@ -210,9 +210,15 @@ func bind(op: OperatorUnit, is_sel: bool, can_pick: bool, watching: bool = false
 	var slot_txt := "未部署"
 	if op.visible and op.slot != null:
 		slot_txt = op.slot.label_text
-	_meta.text = "%s 弹 %d/%d  %s  ·  %s" % [ammo_mark, op.ammo, op.max_ammo, op.fire_mode_label(), slot_txt]
-	if not op.visible or op.slot == null:
-		_slot.text = "未部署"
+	if op.has_method("inventory_line"):
+		_meta.text = "%s  %s" % [op.inventory_line(), op.fire_mode_label()]
+	else:
+		_meta.text = "%s 弹 %d/%d  %s  ·  %s" % [ammo_mark, op.ammo, op.max_ammo, op.fire_mode_label(), slot_txt]
+	if not op.visible:
+		_slot.text = "未上场"
+		_slot.add_theme_color_override("font_color", Color(0.72, 0.55, 0.32))
+	elif op.slot == null:
+		_slot.text = "机动"
 		_slot.add_theme_color_override("font_color", Color(0.72, 0.55, 0.32))
 	else:
 		_slot.text = op.slot.label_text
@@ -271,6 +277,8 @@ func _refresh_ammo_pips(op: OperatorUnit) -> void:
 
 
 func _kit_short(op: OperatorUnit) -> String:
+	if op.has_method("inventory_line"):
+		return op.inventory_line()
 	match op.role:
 		OperatorUnit.Role.MG:
 			return "铁砧 · 宽锥短距"
