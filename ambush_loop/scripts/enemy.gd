@@ -331,6 +331,7 @@ func _process(delta: float) -> void:
 	_apply_body_modulate()
 	_update_hp_bar()
 	_tick_chevron_pulse()
+	_tick_echo_mast()
 
 
 func _ensure_contact_shadow() -> void:
@@ -405,6 +406,8 @@ func kind_id() -> String:
 
 
 func kind_short() -> String:
+	if echo_kit:
+		return "回"
 	match kind_id():
 		"flank":
 			return "奔"
@@ -439,6 +442,8 @@ func _kind_outline_color() -> Color:
 
 
 func _kind_rim_color() -> Color:
+	if echo_kit:
+		return Color(0.42, 0.88, 1.0, 0.95)
 	match kind_id():
 		"flank":
 			return Color(1.0, 0.62, 0.18, 0.95)
@@ -568,6 +573,22 @@ func _ensure_echo_mast() -> void:
 	tip.visible = echo_kit
 
 
+func _tick_echo_mast() -> void:
+	if not echo_kit or body == null:
+		return
+	var tip := body.get_node_or_null("EchoTip") as Polygon2D
+	var mast := body.get_node_or_null("EchoMast") as Polygon2D
+	if tip == null and mast == null:
+		return
+	var pulse := 0.55 + 0.45 * sin(_present_t * 6.2)
+	if tip:
+		tip.color = Color(0.62 + 0.30 * pulse, 0.92, 1.0, 0.70 + 0.28 * pulse)
+		tip.visible = alive
+	if mast:
+		mast.color = Color(0.40, 0.82, 0.96, 0.70 + 0.25 * pulse)
+		mast.visible = alive
+
+
 func _refresh_kind_rim() -> void:
 	if body == null:
 		return
@@ -670,9 +691,14 @@ func _refresh_tag() -> void:
 		tag.add_theme_color_override("font_color", Color(0.58, 0.56, 0.54))
 		return
 	var bang := "!" if alerted else ""
-	tag.text = "%s%d%s" % [kind_short(), label_id, bang]
+	if echo_kit:
+		tag.text = "回波%d%s" % [label_id, bang]
+	else:
+		tag.text = "%s%d%s" % [kind_short(), label_id, bang]
 	var col := _kind_color.lightened(0.25)
-	if kind_id() == "sneak":
+	if echo_kit:
+		col = Color(0.55, 0.92, 1.0)
+	elif kind_id() == "sneak":
 		col = Color(0.62, 0.78, 0.72)
 	tag.add_theme_color_override("font_color", col)
 
