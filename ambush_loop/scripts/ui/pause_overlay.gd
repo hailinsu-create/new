@@ -1,7 +1,7 @@
 class_name PauseOverlay
 extends CanvasLayer
 
-## Shared pause / settings: mute, Music/SFX volumes, return to title, redeploy (SETUP only).
+## Shared pause / settings: mute, Music/SFX volumes, return to title, redeploy (scout/sweep).
 
 signal closed
 signal return_to_title
