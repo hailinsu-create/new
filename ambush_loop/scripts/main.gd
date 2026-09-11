@@ -3909,6 +3909,8 @@ func _spawn_one(spec: Dictionary) -> void:
 	var route_name := str(spec["route"])
 	var route := _route_for_spawn(route_name)
 	e.setup(int(spec["id"]), route, grid, int(spec["loot"]), route_name)
+	if str(spec.get("kit", "")).strip_edges() == "echo" and e.has_method("mark_echo_kit"):
+		e.mark_echo_kit(true)
 	e.return_fired.connect(_on_return_fired)
 	enemies.append(e)
 	e.activate()

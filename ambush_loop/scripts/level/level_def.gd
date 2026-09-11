@@ -510,7 +510,7 @@ static func make_radio() -> LevelDef:
 		{"id": 2, "route": "flank", "delay": 0.5, "loot": 0, "teaching_note": "东廊先到"},
 		{"id": 3, "route": "sneak", "delay": 3.6, "loot": 2, "ambush_window": 3.6, "teaching_note": "西夹缝"},
 		{"id": 4, "route": "main", "delay": 0.9, "loot": 0},
-		{"id": 5, "route": "flank", "delay": 5.2, "loot": 0, "ambush_window": 5.2, "teaching_note": "灯塔回波"},
+		{"id": 5, "route": "flank", "delay": 5.2, "loot": 0, "ambush_window": 5.2, "teaching_note": "灯塔回波", "kit": "echo"},
 	]
 	l.ambush_zone = Rect2(260, 230, 520, 280)
 	l.has_ammo_pack = true

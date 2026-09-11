@@ -60,6 +60,7 @@ var _last_move_dir: Vector2 = Vector2(0, 1)
 var _outline_boost: bool = false
 var _fade_corpse: bool = false
 var _last_runner: bool = false
+var echo_kit: bool = false
 
 @onready var body: Polygon2D = $Body
 @onready var tag: Label = $Tag
@@ -96,6 +97,13 @@ func setup(id: int, p_route: PackedVector2Array, p_grid: AmbushGrid = null, p_lo
 		_face_move(route[1])
 	_update_hp_bar()
 	_apply_body_modulate()
+
+
+func mark_echo_kit(on: bool = true) -> void:
+	## Presentation only — radio call-in runner keeps flank combat stats.
+	echo_kit = on
+	if body != null:
+		_ensure_echo_mast()
 
 
 func activate() -> void:
@@ -529,6 +537,35 @@ func _apply_hostile_silhouette() -> void:
 	body_outline.rotation = body.rotation
 	_refresh_kind_rim()
 	_refresh_tag()
+	if echo_kit:
+		_ensure_echo_mast()
+
+
+func _ensure_echo_mast() -> void:
+	if body == null:
+		return
+	var mast := body.get_node_or_null("EchoMast") as Polygon2D
+	if mast == null:
+		mast = Polygon2D.new()
+		mast.name = "EchoMast"
+		mast.polygon = PackedVector2Array([
+			Vector2(-1.2, -18), Vector2(1.2, -18), Vector2(1.0, -28), Vector2(-1.0, -28)
+		])
+		mast.color = Color(0.55, 0.88, 0.98, 0.95)
+		mast.z_index = 4
+		body.add_child(mast)
+	mast.visible = echo_kit
+	var tip := body.get_node_or_null("EchoTip") as Polygon2D
+	if tip == null:
+		tip = Polygon2D.new()
+		tip.name = "EchoTip"
+		tip.polygon = PackedVector2Array([
+			Vector2(-3.0, -28), Vector2(3.0, -28), Vector2(2.2, -32), Vector2(-2.2, -32)
+		])
+		tip.color = Color(0.78, 0.96, 1.0, 0.95)
+		tip.z_index = 5
+		body.add_child(tip)
+	tip.visible = echo_kit
 
 
 func _refresh_kind_rim() -> void:
