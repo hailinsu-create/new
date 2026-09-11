@@ -38,10 +38,14 @@ func _draw() -> void:
 			_pool(Vector2(12.0 * t, 8.0 * t), 38.0, Color(0.55, 0.70, 0.82, 0.07 if saving else 0.11))
 			_pool(Vector2(28.6 * t, 11.4 * t), 22.0, Color(0.92, 0.40, 0.10, 0.06 if saving else 0.10))
 		"radio":
-			_pool(Vector2(19.0 * t, 11.0 * t), 58.0, Color(0.42, 0.82, 0.98, 0.10 if saving else 0.16))
-			_pool(Vector2(26.4 * t, 9.4 * t), 36.0, Color(0.55, 0.90, 1.0, 0.08 if saving else 0.13))
+			# Lighthouse wash on the tower, phosphor strip down the echo hall (x=24).
+			_pool(Vector2(18.6 * t, 10.2 * t), 62.0, Color(0.42, 0.82, 0.98, 0.10 if saving else 0.16))
+			_pool(Vector2(26.8 * t, 9.6 * t), 40.0, Color(0.55, 0.90, 1.0, 0.08 if saving else 0.13))
 			_pool(Vector2(13.6 * t, 8.4 * t), 32.0, Color(0.48, 0.80, 0.95, 0.07 if saving else 0.11))
 			_pool(Vector2(27.6 * t, 8.2 * t), 20.0, Color(0.55, 0.88, 1.0, 0.06 if saving else 0.10))
+			var echo_a := 0.07 if saving else 0.12
+			for i in 5:
+				_pool(Vector2(24.5 * t, (7.2 + float(i) * 2.0) * t), 16.0, Color(0.48, 0.90, 1.0, echo_a))
 		_:
 			_pool(Vector2(30.5 * t, 6.4 * t), 76.0, Color(0.82, 0.90, 0.68, 0.11 if saving else 0.18))
 			_pool(Vector2(18.5 * t, 11.0 * t), 44.0, Color(0.70, 0.80, 0.58, 0.07 if saving else 0.12))
