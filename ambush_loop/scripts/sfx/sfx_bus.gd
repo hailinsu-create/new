@@ -7,6 +7,7 @@ const MIX_RATE := 22050
 const CUES := [
 	"alarm", "alarm_stinger", "fire", "fire_mg", "fire_scout", "return_fire", "empty", "loot", "op_death", "escape", "fail", "win",
 	"win_stinger", "door", "trip", "barrel", "kill", "hit", "ui",
+	"spawn", "echo_ping",
 	"ambient_yard", "ambient_warehouse", "ambient_pump", "ambient_railcut", "ambient_depot", "ambient_radio"
 ]
 
@@ -136,6 +137,10 @@ func _gain(cue: String) -> float:
 			return -20.0
 		"hit":
 			return -18.0
+		"spawn":
+			return -16.0
+		"echo_ping":
+			return -14.0
 		"ambient_yard":
 			return -28.0
 		"ambient_warehouse":
@@ -192,6 +197,10 @@ func _build_stream(cue: String) -> AudioStreamWAV:
 			return _pcm(_ui_click())
 		"hit":
 			return _pcm(_hit())
+		"spawn":
+			return _pcm(_spawn_pop())
+		"echo_ping":
+			return _pcm(_echo_ping())
 		"ambient_yard":
 			return _pcm(_ambient_yard())
 		"ambient_warehouse":
@@ -398,6 +407,24 @@ func _ui_click() -> PackedFloat32Array:
 
 func _hit() -> PackedFloat32Array:
 	return _tone(340.0, 0.018, 0.12, 0.16)
+
+
+func _spawn_pop() -> PackedFloat32Array:
+	return _concat([
+		_tone(520.0, 0.028, 0.10, 0.04),
+		_tone(780.0, 0.04, 0.08, 0.02),
+	])
+
+
+func _echo_ping() -> PackedFloat32Array:
+	## Morse-like radio ping for the 5.2s echo runner.
+	return _concat([
+		_tone(880.0, 0.05, 0.14, 0.03),
+		_silence(0.04),
+		_tone(880.0, 0.05, 0.14, 0.03),
+		_silence(0.10),
+		_tone(1320.0, 0.09, 0.12, 0.02),
+	])
 
 
 func _rumble(sec: float, amp: float, freq: float) -> PackedFloat32Array:
