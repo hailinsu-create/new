@@ -871,6 +871,10 @@ func _landmark_railcut(c: CanvasItem) -> void:
 	c.draw_line(Vector2(15.2 * t, 7.45 * t), Vector2(28.4 * t, 7.55 * t), Color(0.22, 0.18, 0.10, 0.4), 1.4, true)
 	_lamp_post(c, Vector2(13.6 * t, 8.4 * t), Color(0.70, 0.80, 0.92))
 	_lamp_post(c, Vector2(32.4 * t, 8.4 * t), Color(0.70, 0.80, 0.92))
+	# Timetable slate on the west face of the core.
+	c.draw_rect(Rect2(15.15 * t, 8.3 * t, 18.0, 24.0), Color(0.10, 0.10, 0.08, 0.70))
+	c.draw_rect(Rect2(15.3 * t, 8.45 * t, 14.0, 3.0), Color(0.85, 0.28, 0.16, 0.55))
+	c.draw_rect(Rect2(15.3 * t, 8.85 * t, 12.0, 2.0), Color(0.70, 0.68, 0.52, 0.35))
 	# Crossing gate bar at the south mouth — overlay, not a collider.
 	c.draw_rect(Rect2(29.4 * t, 17.35 * t, 4.2 * t, 5.0), Color(0.72, 0.18, 0.12, 0.42))
 	c.draw_rect(Rect2(29.4 * t, 17.35 * t, 18.0, 5.0), Color(0.92, 0.82, 0.22, 0.45))
@@ -908,6 +912,9 @@ func _landmark_depot(c: CanvasItem) -> void:
 		c.draw_rect(Rect2(cx - 3, cy + 5, 6.0, 3.0), Color(0.12, 0.08, 0.04, 0.55))
 	_lamp_post(c, Vector2(12.4 * t, 8.6 * t), Color(0.55, 0.72, 0.82))
 	_lamp_post(c, Vector2(26.2 * t, 15.4 * t), Color(0.92, 0.48, 0.12))
+	# Fuel ticket clipped to the west tank stair.
+	c.draw_rect(Rect2(15.2 * t, 8.2 * t, 14.0, 18.0), Color(0.92, 0.78, 0.42, 0.50))
+	c.draw_rect(Rect2(15.35 * t, 8.35 * t, 10.0, 3.0), Color(0.22, 0.10, 0.04, 0.55))
 	# Chain-link shadow along the west alley wall (x=8-9 is blocked; sneak is x=7).
 	c.draw_rect(Rect2(8.15 * t, 7.2 * t, 6.0, 6.2 * t), Color(0.08, 0.10, 0.08, 0.28))
 	for i in 8:
@@ -930,6 +937,9 @@ func _landmark_radio(c: CanvasItem) -> void:
 	c.draw_rect(Rect2(25.4 * t, 8.4 * t, 2.4 * t, 2.8 * t), Color(0.10, 0.16, 0.20, 0.70))
 	c.draw_rect(Rect2(25.6 * t, 8.6 * t, 2.0 * t, 10.0), Color(0.32, 0.72, 0.88, 0.35))
 	c.draw_rect(Rect2(26.2 * t, 8.2 * t, 8.0, 6.0), Color(0.55, 0.88, 1.0, 0.45))
+	# Call log tucked under the Morse hut window.
+	c.draw_rect(Rect2(25.55 * t, 10.6 * t, 16.0, 12.0), Color(0.10, 0.16, 0.20, 0.55))
+	c.draw_rect(Rect2(25.7 * t, 10.75 * t, 12.0, 2.0), Color(0.42, 0.82, 0.95, 0.45))
 	# Antenna mast west of the core, off the sneak alley.
 	var mast := Vector2(10.4 * t, 9.2 * t)
 	c.draw_rect(Rect2(mast.x - 2, mast.y - 40, 4.0, 44.0), Color(0.14, 0.18, 0.22, 0.80))
