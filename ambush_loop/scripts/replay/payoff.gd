@@ -21,6 +21,12 @@ static func bark_text(kind: String, name: String = "") -> String:
 			return "%s：最后一个" % nm
 		"kill":
 			return "%s：倒了" % nm
+		"loot":
+			return "%s：搜到了" % nm
+		"sweep":
+			return "打扫战场"
+		"wave":
+			return "下一波"
 		_:
 			return ""
 
