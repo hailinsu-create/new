@@ -627,7 +627,7 @@ func _toggle_pause_menu() -> void:
 	if pause_overlay.is_open():
 		pause_overlay.dismiss()
 		return
-	pause_overlay.present(phase == Phase.SETUP, true)
+	pause_overlay.present(_is_command_phase(), true)
 	if phase == Phase.WATCHING and not sim.paused:
 		sim.paused = true
 		_menu_paused_sim = true
@@ -846,6 +846,8 @@ func _refresh_touch_hud() -> void:
 			phase_name = "WON"
 		Phase.REPLAY:
 			phase_name = "REPLAY"
+		Phase.SWEEP:
+			phase_name = "SWEEP"
 		_:
 			phase_name = "SETUP"
 	var paused := phase == Phase.WATCHING and sim.paused
@@ -6629,7 +6631,7 @@ func result_cta_buried_by_bars() -> bool:
 
 func _update_hud() -> void:
 	var lv_title := level.title if level else "AMBUSH LOOP"
-	title_label.text = "AMBUSH LOOP  ·  第 %d 世" % loop_index
+	title_label.text = "AMBUSH LOOP  ·  第 %d 世  ·  波 %d/%d" % [loop_index, wave_index() + 1, wave_total()]
 	if level_label:
 		level_label.text = lv_title
 	if tut_label and level:
@@ -7142,6 +7144,16 @@ func _tick_command_moves(delta: float) -> void:
 			_snap_op_to_cover_if_near(op)
 	if selected and not selected.is_moving() and _move_ghost:
 		_move_ghost.visible = false
+	_follow_selected_cam(delta)
+
+
+func _follow_selected_cam(delta: float) -> void:
+	if selected == null or not selected.visible or not selected.is_moving():
+		return
+	var center := Vector2(640, 360)
+	var want: Vector2 = (selected.global_position - center) * 0.28
+	_cam_pan = _cam_pan.lerp(want, 1.0 - exp(-delta * 3.2))
+	_apply_cam()
 
 
 func _snap_op_to_cover_if_near(op: OperatorUnit) -> void:
