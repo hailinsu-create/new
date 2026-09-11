@@ -135,6 +135,13 @@ func _ensure_crate_look() -> void:
 
 
 func _mount_kit_prop() -> void:
+	if kit_id == "dish" or kit_id == "drum":
+		for bit in _crate_bits:
+			if bit == null or not is_instance_valid(bit):
+				continue
+			var nam := str(bit.name)
+			if nam.begins_with("Sandbag") or nam == "BagStrap" or nam == "CratePlank":
+				bit.visible = false
 	match kit_id:
 		"pallet":
 			var slat := Polygon2D.new()
@@ -195,54 +202,85 @@ func _mount_kit_prop() -> void:
 			add_child(rail)
 			_crate_bits.append(rail)
 		"drum":
+			if pad:
+				pad.color = Color(0.42, 0.22, 0.10, 0.94)
 			var drum := Polygon2D.new()
 			drum.name = "OilDrum"
 			drum.polygon = PackedVector2Array([
-				Vector2(-9, -12), Vector2(9, -12), Vector2(11, -8), Vector2(11, 10),
-				Vector2(8, 14), Vector2(-8, 14), Vector2(-11, 10), Vector2(-11, -8)
+				Vector2(-8, -16), Vector2(8, -16), Vector2(12, -11), Vector2(12, 10),
+				Vector2(8, 17), Vector2(-8, 17), Vector2(-12, 10), Vector2(-12, -11)
 			])
-			drum.color = Color(0.55, 0.28, 0.10, 0.94)
+			drum.color = Color(0.58, 0.26, 0.08, 0.96)
 			drum.z_index = 3
 			add_child(drum)
 			_crate_bits.append(drum)
+			var lid := Polygon2D.new()
+			lid.name = "DrumLid"
+			lid.polygon = PackedVector2Array([
+				Vector2(-8, -16), Vector2(8, -16), Vector2(11, -12), Vector2(0, -10), Vector2(-11, -12)
+			])
+			lid.color = Color(0.72, 0.38, 0.12, 0.90)
+			lid.z_index = 4
+			add_child(lid)
+			_crate_bits.append(lid)
 			var band := Polygon2D.new()
 			band.name = "DrumBand"
 			band.polygon = PackedVector2Array([
-				Vector2(-11, -1), Vector2(11, -1), Vector2(11, 3), Vector2(-11, 3)
+				Vector2(-12, -2), Vector2(12, -2), Vector2(12, 3), Vector2(-12, 3)
 			])
-			band.color = Color(0.18, 0.10, 0.06, 0.85)
+			band.color = Color(0.18, 0.10, 0.06, 0.88)
 			band.z_index = 4
 			add_child(band)
 			_crate_bits.append(band)
+			var hazard := Polygon2D.new()
+			hazard.name = "DrumHazard"
+			hazard.polygon = PackedVector2Array([
+				Vector2(-11, 6), Vector2(11, 6), Vector2(10, 10), Vector2(-10, 10)
+			])
+			hazard.color = Color(0.92, 0.72, 0.12, 0.88)
+			hazard.z_index = 4
+			add_child(hazard)
+			_crate_bits.append(hazard)
 		"dish":
+			if pad:
+				pad.color = Color(0.18, 0.36, 0.44, 0.94)
+			var mast := Polygon2D.new()
+			mast.name = "DishMast"
+			mast.polygon = PackedVector2Array([
+				Vector2(-2.4, 10), Vector2(2.4, 10), Vector2(2.0, -18), Vector2(-2.0, -18)
+			])
+			mast.color = Color(0.16, 0.24, 0.28, 0.95)
+			mast.z_index = 3
+			add_child(mast)
+			_crate_bits.append(mast)
 			var dish := Polygon2D.new()
 			dish.name = "RadioDish"
 			dish.polygon = PackedVector2Array([
-				Vector2(-16, 8), Vector2(-10, -14), Vector2(10, -18), Vector2(16, 4),
-				Vector2(6, 12), Vector2(-8, 12)
+				Vector2(-18, 8), Vector2(-12, -14), Vector2(10, -18), Vector2(18, 4),
+				Vector2(8, 14), Vector2(-12, 14)
 			])
-			dish.color = Color(0.28, 0.58, 0.70, 0.96)
-			dish.z_index = 3
+			dish.color = Color(0.32, 0.58, 0.70, 0.96)
+			dish.z_index = 4
 			add_child(dish)
 			_crate_bits.append(dish)
 			var boom := Polygon2D.new()
 			boom.name = "DishBoom"
 			boom.polygon = PackedVector2Array([
-				Vector2(-1.2, -16), Vector2(2.4, -22), Vector2(4.2, -20), Vector2(0.8, -10)
+				Vector2(-2, -16), Vector2(6, -22), Vector2(8, -19), Vector2(1, -10)
 			])
 			boom.color = Color(0.62, 0.90, 1.0, 0.94)
-			boom.z_index = 4
+			boom.z_index = 5
 			add_child(boom)
 			_crate_bits.append(boom)
-			var mast := Polygon2D.new()
-			mast.name = "DishMast"
-			mast.polygon = PackedVector2Array([
-				Vector2(-1.6, 6), Vector2(1.6, 6), Vector2(1.2, -20), Vector2(-1.2, -20)
+			var feed := Polygon2D.new()
+			feed.name = "DishFeed"
+			feed.polygon = PackedVector2Array([
+				Vector2(5, -22), Vector2(9, -24), Vector2(10, -21), Vector2(6, -19)
 			])
-			mast.color = Color(0.16, 0.22, 0.26, 0.92)
-			mast.z_index = 2
-			add_child(mast)
-			_crate_bits.append(mast)
+			feed.color = Color(0.82, 0.96, 1.0, 0.95)
+			feed.z_index = 5
+			add_child(feed)
+			_crate_bits.append(feed)
 		_:
 			pass
 

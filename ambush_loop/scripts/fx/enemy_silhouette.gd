@@ -1,7 +1,7 @@
 extends RefCounted
 
 ## Top-down hostile volumes. Local -Y is travel after body.rotation = aim+90°.
-## 巡卫 rifleman / 奔袭 lean runner / 影探 crouched hood. Presentation only.
+## 巡卫 rifleman / 奔袭 lean runner / 影探 crouched hood / 回波 radio-runner. Presentation only.
 
 
 static func body_poly(kind: String) -> PackedVector2Array:
@@ -47,6 +47,8 @@ static func weapon_color(kind: String) -> Color:
 			return Color(0.12, 0.09, 0.07, 0.96)
 		"sneak":
 			return Color(0.08, 0.10, 0.10, 0.90)
+		"echo":
+			return Color(0.16, 0.28, 0.32, 0.96)
 		_:
 			return Color(0.14, 0.11, 0.09, 0.98)
 
@@ -72,11 +74,10 @@ static func mount(body: Polygon2D, kind: String) -> void:
 	_poly(body, "Weapon", weapon_poly(kind), weapon_color(kind), 3)
 	var moon := _poly(body, "MoonFill", _moon_fill(kind), Color(0.92, 0.78, 0.58, 0.28 if not saving else 0.12), 3)
 	moon.visible = not saving
-	var visor_echo := body.get_node_or_null("Visor") as Polygon2D
-	if visor_echo and kind == "echo":
-		visor_echo.color = Color(0.42, 0.92, 1.0, 0.95)
 	var mast := _poly(body, "EchoMast", _echo_mast_poly(), Color(0.55, 0.88, 0.98, 0.95), 4)
 	mast.visible = kind == "echo"
+	var tip := _poly(body, "MastTip", _mast_tip_poly(), Color(0.72, 0.96, 1.0, 0.95), 5)
+	tip.visible = kind == "echo"
 	_sight(body, kind)
 
 
@@ -133,7 +134,7 @@ static func pose_parts(body: Polygon2D, kind: String, pose: Dictionary) -> void:
 	var moon := body.get_node_or_null("MoonFill") as Polygon2D
 	if moon:
 		moon.visible = alive and not saving
-	var pm := body.get_node_or_null("PackMast") as Polygon2D
+	var pm := body.get_node_or_null("EchoMast") as Polygon2D
 	if pm:
 		pm.visible = kind == "echo" and alive
 		pm.position = Vector2(sway * 0.12, -absf(stride) * 0.2)
@@ -203,6 +204,13 @@ static func _echo_mast_poly() -> PackedVector2Array:
 	])
 
 
+static func _mast_tip_poly() -> PackedVector2Array:
+	return PackedVector2Array([
+		Vector2(-2.6, -36.0), Vector2(2.6, -36.0),
+		Vector2(1.6, -41.0), Vector2(-1.6, -41.0)
+	])
+
+
 static func _head(kind: String) -> PackedVector2Array:
 	match kind:
 		"flank":
@@ -214,6 +222,11 @@ static func _head(kind: String) -> PackedVector2Array:
 			return PackedVector2Array([
 				Vector2(0.0, -10.6), Vector2(-3.8, -8.4),
 				Vector2(-3.4, -4.6), Vector2(3.4, -4.6), Vector2(3.8, -8.4)
+			])
+		"echo":
+			return PackedVector2Array([
+				Vector2(-3.0, -18.2), Vector2(3.0, -18.2),
+				Vector2(2.6, -12.4), Vector2(-2.6, -12.4)
 			])
 		_:
 			return PackedVector2Array([
@@ -233,6 +246,11 @@ static func _visor(kind: String) -> PackedVector2Array:
 			return PackedVector2Array([
 				Vector2(-1.8, -8.6), Vector2(1.8, -8.6),
 				Vector2(1.6, -6.4), Vector2(-1.6, -6.4)
+			])
+		"echo":
+			return PackedVector2Array([
+				Vector2(-2.6, -16.0), Vector2(2.6, -16.0),
+				Vector2(2.4, -13.2), Vector2(-2.4, -13.2)
 			])
 		_:
 			return PackedVector2Array([
@@ -386,6 +404,11 @@ static func _helm(kind: String) -> PackedVector2Array:
 				Vector2(-2.2, -10.4), Vector2(2.2, -10.4),
 				Vector2(1.8, -7.2), Vector2(-1.8, -7.2)
 			])
+		"echo":
+			return PackedVector2Array([
+				Vector2(-3.6, -18.8), Vector2(3.6, -18.8),
+				Vector2(3.2, -14.6), Vector2(-3.2, -14.6)
+			])
 		_:
 			return PackedVector2Array([
 				Vector2(-5.2, -17.6), Vector2(5.2, -17.6),
@@ -440,6 +463,10 @@ static func _sight(body: Polygon2D, kind: String) -> void:
 			tip = -13.8
 			ln.width = 1.15
 			ln.default_color = Color(0.28, 0.42, 0.32, 0.80)
+		"echo":
+			tip = -24.8
+			ln.width = 1.35
+			ln.default_color = Color(0.40, 0.82, 0.96, 0.90)
 		_:
 			tip = -27.4
 			ln.width = 1.65
@@ -454,7 +481,7 @@ static func _sight(body: Polygon2D, kind: String) -> void:
 	bead.polygon = PackedVector2Array([
 		Vector2(-1.05, tip + 0.4), Vector2(1.05, tip + 0.4), Vector2(0.0, tip - 2.3)
 	])
-	bead.color = Color(1.0, 0.70, 0.28, 0.95)
+	bead.color = Color(0.55, 0.92, 1.0, 0.95) if kind == "echo" else Color(1.0, 0.70, 0.28, 0.95)
 
 
 static func _poly(body: Polygon2D, nam: String, pts: PackedVector2Array, col: Color, z: int) -> Polygon2D:
@@ -500,6 +527,8 @@ static func _base(kind: String) -> Color:
 			return Color(0.92, 0.40, 0.10)
 		"sneak":
 			return Color(0.14, 0.18, 0.16)
+		"echo":
+			return Color(0.28, 0.46, 0.52)
 		_:
 			return Color(0.84, 0.16, 0.12)
 
@@ -510,6 +539,8 @@ static func _head_color(kind: String) -> Color:
 			return Color(0.30, 0.12, 0.06, 0.98)
 		"sneak":
 			return Color(0.10, 0.14, 0.12, 0.96)
+		"echo":
+			return Color(0.16, 0.28, 0.34, 0.98)
 		_:
 			return Color(0.28, 0.10, 0.08, 0.98)
 
@@ -520,6 +551,8 @@ static func _visor_color(kind: String) -> Color:
 			return Color(0.18, 0.08, 0.04, 0.90)
 		"sneak":
 			return Color(0.28, 0.52, 0.38, 0.85)
+		"echo":
+			return Color(0.42, 0.92, 1.0, 0.95)
 		_:
 			return Color(0.12, 0.04, 0.04, 0.92)
 
@@ -530,6 +563,8 @@ static func _helm_color(kind: String) -> Color:
 			return Color(0.26, 0.10, 0.05, 0.95)
 		"sneak":
 			return Color(0.10, 0.14, 0.12, 0.90)
+		"echo":
+			return Color(0.14, 0.26, 0.32, 0.96)
 		_:
 			return Color(0.20, 0.08, 0.06, 0.96)
 
