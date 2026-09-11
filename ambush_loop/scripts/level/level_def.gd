@@ -351,7 +351,7 @@ func second_trap_text() -> String:
 	## SETUP second-layer callout. Copy only — does not change routes.
 	match str(level_id):
 		"warehouse":
-			return "第二层：等黄区再打（F 入伏）"
+			return "第二层：第一波等黄区再打（F 入伏），打扫后再打东廊"
 		"pump":
 			return "第二层：锁门后改走紫线"
 		"railcut":
@@ -361,7 +361,7 @@ func second_trap_text() -> String:
 		"radio":
 			return "第二层：暗道 3.6s 要绊索"
 		_:
-			return "第二层：橙线东廊绕出"
+			return "第二层：第一波主路，第二波橙线东廊"
 
 
 func second_trap_cell() -> Vector2i:
@@ -536,7 +536,7 @@ static func make_warehouse() -> LevelDef:
 	l.beat_kind = "barrel"
 	l.beat_text = "入伏再打 · 油桶靠近才炸 · 别站爆心"
 	l.highlight_hook = "入伏再打，弹包续上"
-	l.must_bring = "铁砧拿唯一弹包；过早开火会空。夜枭锁闸口。"
+	l.must_bring = "先搜机枪和弹包。第一波主路，打扫后再打东廊。别站爆心。"
 	l.role_why = {
 		"rifle": "本关：别站爆心",
 		"mg": "本关：弹包优先 · 入伏再打",
@@ -620,7 +620,7 @@ static func make_pump() -> LevelDef:
 	l.beat_kind = "decision"
 	l.beat_text = "决策格 · 锁门改线 · 紫线要罩住"
 	l.highlight_hook = "锁门后紫线改道被你罩住"
-	l.must_bring = "夜枭锁出水口；铁砧侧背对准西侧紫线。"
+	l.must_bring = "第一波锁主路。锁门的话，第二波前把铁砧青弧转向紫线。"
 	l.role_why = {
 		"rifle": "本关：阀廊补主路",
 		"mg": "本关：侧背对准紫线",
@@ -700,7 +700,7 @@ static func make_railcut() -> LevelDef:
 	l.beat_kind = "flank_delay"
 	l.beat_text = "东廊延迟 3.8s · 铁砧等住"
 	l.highlight_hook = "3.8s 东廊迟到，铁砧等住"
-	l.must_bring = "铁砧朝北等 3.8 秒东廊；灰狼补西廊；夜枭锁南闸。"
+	l.must_bring = "第一波西廊，打扫补弹后再让铁砧朝北等东廊。"
 	l.role_why = {
 		"rifle": "本关：西廊立刻到",
 		"mg": "本关：朝北等 3.8s 东廊",
@@ -784,7 +784,7 @@ static func make_depot() -> LevelDef:
 	l.beat_kind = "sneak_delay"
 	l.beat_text = "西暗道 2.2s · 绊索抽中"
 	l.highlight_hook = "2.2s 西暗道绊索抽中"
-	l.must_bring = "绊索就是第四人：铺在西暗道 7,11。铁砧等东廊，灰狼锁主路。"
+	l.must_bring = "第一波主路+东廊。打扫后把地雷铺西暗道，再拉第二波。"
 	l.role_why = {
 		"rifle": "本关：锁主路脊",
 		"mg": "本关：朝北等东廊",
@@ -879,7 +879,7 @@ static func make_radio() -> LevelDef:
 	l.beat_kind = "radio_echo"
 	l.beat_text = "灯塔回波 5.2s · 绊索封暗道"
 	l.highlight_hook = "5.2s 灯塔回波，绊索抽中"
-	l.must_bring = "绊索封西暗道 7,11；铁砧碟台朝南等 5.2 秒回波。夜枭锁东廊。"
+	l.must_bring = "三波：先廊道，再暗道地雷，再碟台等回波。每波打扫补弹。"
 	l.role_why = {
 		"rifle": "本关：锁灯塔脊",
 		"mg": "本关：碟台朝南等 5.2s 回波",
