@@ -1877,8 +1877,23 @@ func _assert_tripwire_tooling(main) -> bool:
 		quit(41)
 		return false
 	main._clear_tripwires()
+	main.tool = main.Tool.TRIPWIRE
+	if not main.has_method("_aim_world"):
+		push_error("SMOKE_NO_AIM_WORLD")
+		quit(41)
+		return false
+	main._pending_touch_world = on_route
+	main._touches = {0: Vector2(12, 12)}
+	main._update_tripwire_ghost()
+	if main.tripwire_ghost.global_position.distance_to(on_route) > 4.0:
+		push_error("SMOKE_TRIP_GHOST_NOT_TOUCH pos=%s want=%s" % [main.tripwire_ghost.global_position, on_route])
+		quit(41)
+		return false
+	main._touches.clear()
+	main._pending_touch_world = Vector2.ZERO
 	main.tool = main.Tool.DEPLOY
-	print("SMOKE_OK_TRIPWIRE_TOOLING relocate=1")
+	main._update_tripwire_ghost()
+	print("SMOKE_OK_TRIPWIRE_TOOLING relocate=1 touch_ghost=1")
 	return true
 
 
@@ -2114,6 +2129,10 @@ func _assert_watch_juice(main) -> bool:
 	var cfx: Variant = load("res://scripts/fx/combat_fx.gd")
 	if cfx == null or not (cfx as GDScript).has_method("spawn_pop"):
 		push_error("SMOKE_NO_SPAWN_POP")
+		quit(53)
+		return false
+	if not (cfx as GDScript).has_method("death_stain"):
+		push_error("SMOKE_NO_DEATH_STAIN")
 		quit(53)
 		return false
 	if not main.has_method("_shake_for_explosion") or not main.has_method("_ensure_watch_timeline"):

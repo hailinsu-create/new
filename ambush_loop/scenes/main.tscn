@@ -107,7 +107,7 @@ mouse_filter = 2
 clip_text = true
 theme_override_colors/font_color = Color(0.70, 0.74, 0.66, 0.9)
 theme_override_font_sizes/font_size = 12
-text = "点掩体 · 空格警报"
+text = "布置 → 警报锁死 → 观看"
 
 [node name="BottomBar" type="HBoxContainer" parent="HUD/Root"]
 layout_mode = 1
@@ -171,7 +171,7 @@ alignment = 1
 [node name="ResultLabel" type="Label" parent="HUD/Root/ResultPanel/Margin/VBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-text = "结果"
+text = "战报"
 horizontal_alignment = 1
 
 [node name="ContinueButton" type="Button" parent="HUD/Root/ResultPanel/Margin/VBox"]

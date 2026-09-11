@@ -2982,7 +2982,16 @@ func _slot_by_id(id: int) -> CoverSlot:
 	return null
 
 
+func _clear_death_stains() -> void:
+	if entities == null:
+		return
+	for c in entities.get_children():
+		if c != null and str(c.name).begins_with("CfxStain"):
+			c.queue_free()
+
+
 func _clear_enemies() -> void:
+	_clear_death_stains()
 	for e in enemies:
 		if is_instance_valid(e):
 			e.queue_free()
@@ -3211,6 +3220,8 @@ func _handle_touch_gestures(event: InputEvent) -> bool:
 			_cam_pan -= mid_delta / maxf(_cam_zoom, 0.01)
 			_apply_cam()
 			return true
+		if phase == Phase.SETUP:
+			_pending_touch_world = _screen_to_world(sd.position)
 		if phase == Phase.SETUP and sd.index == _facing_touch and selected and selected.visible and not selected.locked:
 			var world2 := _screen_to_world(sd.position)
 			var v := world2 - selected.global_position
@@ -3221,7 +3232,12 @@ func _handle_touch_gestures(event: InputEvent) -> bool:
 				_touch_dragged = true
 				_cover_hold_slot = null
 			return true
-		if phase == Phase.SETUP and sd.relative.length() >= 8.0:
+		if phase == Phase.SETUP and tool == Tool.TRIPWIRE:
+			_touch_dragged = true
+			_cover_hold_slot = null
+			_update_tripwire_ghost()
+			return true
+		if (phase == Phase.SETUP or phase == Phase.WATCHING) and sd.relative.length() >= 8.0:
 			_touch_dragged = true
 			_cover_hold_slot = null
 			_cam_pan -= sd.relative / maxf(_cam_zoom, 0.01)
@@ -4195,13 +4211,19 @@ func _ensure_tripwire_ghost() -> void:
 	$World.add_child(tripwire_ghost)
 
 
+func _aim_world() -> Vector2:
+	if phase == Phase.SETUP and not _touches.is_empty() and _pending_touch_world != Vector2.ZERO:
+		return _pending_touch_world
+	return get_global_mouse_position()
+
+
 func _update_tripwire_ghost() -> void:
 	_ensure_tripwire_ghost()
 	if phase != Phase.SETUP or tool != Tool.TRIPWIRE:
 		tripwire_ghost.visible = false
 		return
 	tripwire_ghost.visible = true
-	var pos := get_global_mouse_position()
+	var pos := _aim_world()
 	tripwire_ghost.global_position = pos
 	var ok := _near_any_route_segment(pos, TRIPWIRE_ROUTE_DIST)
 	var vis := tripwire_ghost.get_node_or_null("Visual") as Polygon2D
@@ -4355,6 +4377,10 @@ func _on_enemy_died(enemy: EnemyRunner) -> void:
 		_sfx("kill")
 		if not _is_power_saving():
 			_camera_punch(Vector2(3, -2))
+		var stain_tint := Color(0.55, 0.12, 0.10)
+		if enemy.has_method("_kind_rim_color"):
+			stain_tint = enemy._kind_rim_color()
+		CombatFxScript.death_stain(entities, enemy.global_position, stain_tint)
 	_update_event_log()
 	if phase == Phase.WATCHING:
 		_check_win()
@@ -5756,7 +5782,7 @@ func _update_cover_previews() -> void:
 		if _touch_preview_slot != null and is_instance_valid(_touch_preview_slot):
 			hover = _touch_preview_slot
 		else:
-			hover = _nearest_slot(get_global_mouse_position(), 32.0)
+			hover = _nearest_slot(_aim_world(), 32.0)
 	for s in cover_slots:
 		if not show:
 			s.set_protect_preview(0)

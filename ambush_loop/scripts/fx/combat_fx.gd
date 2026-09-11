@@ -234,6 +234,25 @@ static func land_dust(host: Node2D, world_pos: Vector2) -> void:
 	tw.tween_callback(n.queue_free)
 
 
+static func death_stain(host: Node2D, world_pos: Vector2, tint: Color = Color(0.55, 0.12, 0.10)) -> void:
+	if not _ok(host):
+		return
+	var n := _spawn(host, "CfxStain", world_pos + Vector2(0, 10), 2)
+	var pool := Polygon2D.new()
+	pool.polygon = PackedVector2Array([
+		Vector2(-11, -3), Vector2(4, -6), Vector2(13, -1), Vector2(10, 6),
+		Vector2(-2, 8), Vector2(-12, 4)
+	])
+	pool.color = Color(tint.r * 0.35, tint.g * 0.18, tint.b * 0.16, 0.72)
+	n.add_child(pool)
+	var drip := Polygon2D.new()
+	drip.polygon = PackedVector2Array([
+		Vector2(-4, 4), Vector2(3, 5), Vector2(1, 11), Vector2(-3, 9)
+	])
+	drip.color = Color(tint.r * 0.28, tint.g * 0.12, tint.b * 0.12, 0.55)
+	n.add_child(drip)
+
+
 static func spawn_pop(host: Node2D, world_pos: Vector2, tint: Color = Color(0.95, 0.32, 0.22)) -> void:
 	if not _ok(host) or _saving() or not _budget(host, "CfxSpawn", 4):
 		return
