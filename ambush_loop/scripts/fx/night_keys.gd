@@ -33,6 +33,10 @@ func _draw() -> void:
 			_pool(Vector2(19.0 * t, 12.0 * t), 60.0, Color(0.95, 0.42, 0.10, 0.11 if saving else 0.18))
 			_pool(Vector2(26.0 * t, 14.2 * t), 42.0, Color(0.90, 0.38, 0.10, 0.09 if saving else 0.13))
 			_pool(Vector2(12.0 * t, 8.0 * t), 38.0, Color(0.55, 0.70, 0.82, 0.07 if saving else 0.11))
+		"radio":
+			_pool(Vector2(19.0 * t, 11.0 * t), 58.0, Color(0.42, 0.82, 0.98, 0.10 if saving else 0.16))
+			_pool(Vector2(26.4 * t, 9.4 * t), 36.0, Color(0.55, 0.90, 1.0, 0.08 if saving else 0.13))
+			_pool(Vector2(13.6 * t, 8.4 * t), 32.0, Color(0.48, 0.80, 0.95, 0.07 if saving else 0.11))
 		_:
 			_pool(Vector2(30.5 * t, 6.4 * t), 76.0, Color(0.82, 0.90, 0.68, 0.11 if saving else 0.18))
 			_pool(Vector2(18.5 * t, 11.0 * t), 44.0, Color(0.70, 0.80, 0.58, 0.07 if saving else 0.12))

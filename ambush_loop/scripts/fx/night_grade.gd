@@ -27,6 +27,8 @@ func _grade_color(id: String) -> Color:
 			return Color(0.68 + mild, 0.78, 0.86, 1.0)
 		"depot":
 			return Color(0.88, 0.74 + mild * 0.4, 0.54, 1.0)
+		"radio":
+			return Color(0.62 + mild, 0.80, 0.90, 1.0)
 		_:
 			return Color(0.70 + mild, 0.80, 0.66, 1.0)
 
