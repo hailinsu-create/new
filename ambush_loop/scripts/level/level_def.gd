@@ -41,6 +41,32 @@ var situation: String = ""
 var intel_chatter: Array = []
 ## Win debrief campaign beat. Copy only.
 var campaign_beat: String = ""
+## Raid: insertion cells for the three operators (walkable).
+var insert_cells: Array = []
+## Raid: authored crates {cell, kind, amount}.
+var stashes: Array = []
+## Raid: array of spawn_schedule arrays. Empty = one wave from spawn_schedule.
+var waves: Array = []
+
+
+func wave_count() -> int:
+	if waves.is_empty():
+		return 1
+	return waves.size()
+
+
+func spawns_for_wave(index: int) -> Array:
+	if waves.is_empty():
+		return spawn_schedule
+	if index < 0 or index >= waves.size():
+		return []
+	return waves[index]
+
+
+func insert_cell_for(op_index: int) -> Vector2i:
+	if insert_cells.is_empty():
+		return Vector2i(6, 16)
+	return insert_cells[clampi(op_index, 0, insert_cells.size() - 1)]
 
 
 static func campaign_frame() -> String:
@@ -48,7 +74,7 @@ static func campaign_frame() -> String:
 
 
 static func campaign_kicker() -> String:
-	return "天亮前切断夜班巡线。警报锁死计划，失败穿梭带回情报。"
+	return "天亮前切断夜班巡线。搜刮组火力，埋伏拉警报，打扫带进下一波。"
 
 
 static func chatter_for(id: String, reason: String = "") -> String:
@@ -404,6 +430,25 @@ static func make_yard() -> LevelDef:
 		{"id": 2, "route": "main", "delay": 0.8, "loot": 0},
 		{"id": 3, "route": "flank", "delay": 0.4, "loot": 2, "teaching_note": "东廊绕出"},
 	]
+	l.waves = [
+		[
+			{"id": 1, "route": "main", "delay": 0.0, "loot": 2},
+			{"id": 2, "route": "main", "delay": 0.6, "loot": 0},
+		],
+		[
+			{"id": 3, "route": "flank", "delay": 0.2, "loot": 2, "teaching_note": "东廊绕出"},
+		],
+	]
+	l.insert_cells = [Vector2i(6, 16), Vector2i(7, 17), Vector2i(8, 17)]
+	l.stashes = [
+		{"cell": Vector2i(6, 12), "kind": "rifle", "amount": 7},
+		{"cell": Vector2i(26, 12), "kind": "mg", "amount": 12},
+		{"cell": Vector2i(29, 16), "kind": "scout", "amount": 6},
+		{"cell": Vector2i(11, 16), "kind": "grenade", "amount": 2},
+		{"cell": Vector2i(10, 13), "kind": "mine", "amount": 1},
+		{"cell": Vector2i(23, 13), "kind": "ammo", "amount": 6},
+		{"cell": Vector2i(6, 17), "kind": "pistol", "amount": 8},
+	]
 	l.ambush_zone = Rect2(320, 280, 400, 160)
 	l.has_ammo_pack = false
 	l.beat_kind = "ambush_zone"
@@ -465,6 +510,26 @@ static func make_warehouse() -> LevelDef:
 		{"id": 3, "route": "main", "delay": 1.2, "loot": 1},
 		{"id": 4, "route": "flank", "delay": 1.6, "loot": 0},
 		{"id": 5, "route": "flank", "delay": 2.4, "loot": 0},
+	]
+	l.waves = [
+		[
+			{"id": 1, "route": "main", "delay": 0.0, "loot": 1},
+			{"id": 3, "route": "main", "delay": 0.8, "loot": 1},
+		],
+		[
+			{"id": 2, "route": "flank", "delay": 0.3, "loot": 0, "teaching_note": "东廊侧翼"},
+			{"id": 4, "route": "flank", "delay": 0.9, "loot": 0},
+			{"id": 5, "route": "flank", "delay": 1.4, "loot": 2},
+		],
+	]
+	l.insert_cells = [Vector2i(10, 16), Vector2i(11, 17), Vector2i(12, 16)]
+	l.stashes = [
+		{"cell": Vector2i(11, 7), "kind": "rifle", "amount": 7},
+		{"cell": Vector2i(16, 13), "kind": "mg", "amount": 12},
+		{"cell": Vector2i(29, 16), "kind": "scout", "amount": 6},
+		{"cell": Vector2i(27, 13), "kind": "grenade", "amount": 2},
+		{"cell": Vector2i(10, 13), "kind": "mine", "amount": 1},
+		{"cell": Vector2i(23, 6), "kind": "ammo", "amount": 8},
 	]
 	l.ambush_zone = Rect2(360, 300, 360, 200)
 	l.has_ammo_pack = true
@@ -532,6 +597,24 @@ static func make_pump() -> LevelDef:
 		{"id": 2, "route": "flank", "delay": 0.6, "loot": 2, "teaching_note": "锁门改线"},
 		{"id": 3, "route": "main", "delay": 1.0, "loot": 0},
 	]
+	l.waves = [
+		[
+			{"id": 1, "route": "main", "delay": 0.0, "loot": 1},
+			{"id": 3, "route": "main", "delay": 0.7, "loot": 0},
+		],
+		[
+			{"id": 2, "route": "flank", "delay": 0.3, "loot": 2, "teaching_note": "锁门改线"},
+		],
+	]
+	l.insert_cells = [Vector2i(10, 16), Vector2i(11, 17), Vector2i(12, 16)]
+	l.stashes = [
+		{"cell": Vector2i(10, 12), "kind": "rifle", "amount": 7},
+		{"cell": Vector2i(22, 13), "kind": "mg", "amount": 12},
+		{"cell": Vector2i(29, 16), "kind": "scout", "amount": 6},
+		{"cell": Vector2i(16, 8), "kind": "grenade", "amount": 2},
+		{"cell": Vector2i(9, 12), "kind": "mine", "amount": 1},
+		{"cell": Vector2i(23, 16), "kind": "ammo", "amount": 6},
+	]
 	l.ambush_zone = Rect2(300, 250, 420, 220)
 	l.has_ammo_pack = true
 	l.beat_kind = "decision"
@@ -592,6 +675,25 @@ static func make_railcut() -> LevelDef:
 		{"id": 2, "route": "main", "delay": 0.7, "loot": 0},
 		{"id": 3, "route": "flank", "delay": 3.8, "loot": 2, "ambush_window": 3.8, "teaching_note": "晚到东廊"},
 		{"id": 4, "route": "flank", "delay": 4.6, "loot": 0, "ambush_window": 3.8},
+	]
+	l.waves = [
+		[
+			{"id": 1, "route": "main", "delay": 0.0, "loot": 1},
+			{"id": 2, "route": "main", "delay": 0.6, "loot": 0},
+		],
+		[
+			{"id": 3, "route": "flank", "delay": 0.4, "loot": 2, "teaching_note": "晚到东廊"},
+			{"id": 4, "route": "flank", "delay": 1.0, "loot": 0},
+		],
+	]
+	l.insert_cells = [Vector2i(11, 16), Vector2i(12, 17), Vector2i(14, 16)]
+	l.stashes = [
+		{"cell": Vector2i(11, 10), "kind": "rifle", "amount": 7},
+		{"cell": Vector2i(32, 13), "kind": "mg", "amount": 12},
+		{"cell": Vector2i(29, 16), "kind": "scout", "amount": 6},
+		{"cell": Vector2i(16, 17), "kind": "grenade", "amount": 2},
+		{"cell": Vector2i(7, 11), "kind": "mine", "amount": 1},
+		{"cell": Vector2i(22, 16), "kind": "ammo", "amount": 6},
 	]
 	l.ambush_zone = Rect2(280, 240, 500, 280)
 	l.has_ammo_pack = true
@@ -656,6 +758,26 @@ static func make_depot() -> LevelDef:
 		{"id": 2, "route": "flank", "delay": 0.5, "loot": 0},
 		{"id": 3, "route": "sneak", "delay": 2.2, "loot": 2, "ambush_window": 2.2, "teaching_note": "西夹缝"},
 		{"id": 4, "route": "main", "delay": 0.9, "loot": 0},
+	]
+	l.waves = [
+		[
+			{"id": 1, "route": "main", "delay": 0.0, "loot": 1},
+			{"id": 4, "route": "main", "delay": 0.6, "loot": 0},
+			{"id": 2, "route": "flank", "delay": 0.4, "loot": 0},
+		],
+		[
+			{"id": 3, "route": "sneak", "delay": 0.4, "loot": 2, "teaching_note": "西夹缝"},
+		],
+	]
+	l.insert_cells = [Vector2i(6, 16), Vector2i(7, 17), Vector2i(8, 16)]
+	l.stashes = [
+		{"cell": Vector2i(13, 16), "kind": "rifle", "amount": 7},
+		{"cell": Vector2i(32, 13), "kind": "mg", "amount": 12},
+		{"cell": Vector2i(29, 16), "kind": "scout", "amount": 6},
+		{"cell": Vector2i(15, 15), "kind": "grenade", "amount": 2},
+		{"cell": Vector2i(7, 12), "kind": "mine", "amount": 1},
+		{"cell": Vector2i(22, 16), "kind": "shotgun", "amount": 4},
+		{"cell": Vector2i(6, 8), "kind": "decoy", "amount": 1},
 	]
 	l.ambush_zone = Rect2(260, 230, 520, 280)
 	l.has_ammo_pack = true
@@ -728,6 +850,29 @@ static func make_radio() -> LevelDef:
 		{"id": 3, "route": "sneak", "delay": 3.6, "loot": 2, "ambush_window": 3.6, "teaching_note": "西夹缝"},
 		{"id": 4, "route": "main", "delay": 0.9, "loot": 0},
 		{"id": 5, "route": "echo", "delay": 5.2, "loot": 0, "ambush_window": 5.2, "teaching_note": "灯塔回波", "kit": "echo"},
+	]
+	l.waves = [
+		[
+			{"id": 1, "route": "main", "delay": 0.0, "loot": 1},
+			{"id": 4, "route": "main", "delay": 0.6, "loot": 0},
+			{"id": 2, "route": "flank", "delay": 0.4, "loot": 0, "teaching_note": "东廊先到"},
+		],
+		[
+			{"id": 3, "route": "sneak", "delay": 0.4, "loot": 2, "teaching_note": "西夹缝"},
+		],
+		[
+			{"id": 5, "route": "echo", "delay": 0.5, "loot": 2, "teaching_note": "灯塔回波", "kit": "echo"},
+		],
+	]
+	l.insert_cells = [Vector2i(6, 16), Vector2i(7, 17), Vector2i(8, 16)]
+	l.stashes = [
+		{"cell": Vector2i(13, 16), "kind": "rifle", "amount": 7},
+		{"cell": Vector2i(24, 16), "kind": "mg", "amount": 12},
+		{"cell": Vector2i(32, 13), "kind": "scout", "amount": 6},
+		{"cell": Vector2i(15, 15), "kind": "grenade", "amount": 2},
+		{"cell": Vector2i(7, 12), "kind": "mine", "amount": 1},
+		{"cell": Vector2i(22, 6), "kind": "decoy", "amount": 1},
+		{"cell": Vector2i(29, 16), "kind": "ammo", "amount": 8},
 	]
 	l.ambush_zone = Rect2(260, 230, 520, 280)
 	l.has_ammo_pack = true
