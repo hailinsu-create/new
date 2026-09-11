@@ -1710,6 +1710,22 @@ func _assert_engage_helpers(main) -> bool:
 		return false
 	print("SMOKE_OK_KEEP_FACING")
 	main._on_clear_pressed()
+	main._select_op(0)
+	main._deploy_selected_to(main.cover_slots[0], false)
+	main._select_op(1)
+	main._deploy_selected_to(main.cover_slots[1], false)
+	main._select_op(0)
+	main._deploy_selected_to(main.cover_slots[1], false)
+	if main.operators[0].slot != main.cover_slots[1]:
+		push_error("SMOKE_SWAP_MOVER_SLOT")
+		quit(40)
+		return false
+	if not main.operators[1].visible or main.operators[1].slot != main.cover_slots[0]:
+		push_error("SMOKE_SWAP_DISPLACED op1 vis=%s slot=%s" % [main.operators[1].visible, main.operators[1].slot])
+		quit(40)
+		return false
+	print("SMOKE_OK_SLOT_SWAP")
+	main._on_clear_pressed()
 	return true
 
 

@@ -3256,14 +3256,22 @@ func _deploy_selected_to(slot: CoverSlot, announce: bool = true) -> void:
 	var had_cover := selected.visible and selected.slot != null
 	var keep_deg := selected.facing_deg
 	var same_pad := selected.slot == slot
+	var prev_slot: CoverSlot = selected.slot
 	if selected.slot:
 		selected.slot.occupied_by = null
 		selected.slot.set_highlight(false)
 	if slot.occupied_by and slot.occupied_by != selected:
 		var other: OperatorUnit = slot.occupied_by
-		other.slot = null
-		other.visible = false
-		other.position = Vector2(-1000, -1000)
+		if prev_slot != null and prev_slot != slot:
+			other.slot = prev_slot
+			prev_slot.occupied_by = other
+			other.global_position = prev_slot.global_position
+			other.visible = true
+			prev_slot.set_highlight(true)
+		else:
+			other.slot = null
+			other.visible = false
+			other.position = Vector2(-1000, -1000)
 	slot.occupied_by = selected
 	slot.set_highlight(true)
 	selected.slot = slot
