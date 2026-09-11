@@ -94,6 +94,7 @@ func _build() -> void:
 	_row_watch.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(_row_watch)
 	_add(_row_watch, "abort", "中止", Color(0.55, 0.20, 0.20))
+	_add(_row_watch, "skip", "终局", Color(0.42, 0.52, 0.28))
 	_add(_row_watch, "pause", "暂停", Color(0.35, 0.38, 0.42))
 	_add(_row_watch, "speed", "倍速", Color(0.35, 0.38, 0.42))
 	_add_wave_chip(_row_watch)
@@ -245,7 +246,7 @@ func refresh_phase(
 		"SETUP":
 			set_hint("触控：点掩体部署 → ↺↻ 射界 → 警报锁死")
 		"WATCHING":
-			set_hint("计划已锁死 — 只能暂停 / 倍速 / 中止，不能改部署")
+			set_hint("计划已锁死 — 暂停 / 倍速 / 中止 / 跳到终局，不能改部署")
 		"REPLAY":
 			set_hint("复盘只读 — 拖时间轴；警报钮返回布置")
 		_:
@@ -280,6 +281,8 @@ func refresh_phase(
 		_btns["rotate_ccw"].disabled = phase_name != "SETUP"
 	if _btns.has("abort"):
 		_btns["abort"].disabled = phase_name != "WATCHING"
+	if _btns.has("skip"):
+		_btns["skip"].disabled = phase_name != "WATCHING"
 	if phase_name != "WATCHING" and _wave_chip:
 		_wave_chip.visible = false
 	_paint_lock_states(phase_name)
@@ -301,3 +304,5 @@ func _paint_lock_states(phase_name: String) -> void:
 			b.modulate = Color(1.18, 0.92, 0.88)
 		if str(cmd) == "abort" and phase_name == "WATCHING" and not b.disabled:
 			b.modulate = Color(1.12, 0.85, 0.82)
+		if str(cmd) == "skip" and phase_name == "WATCHING" and not b.disabled:
+			b.modulate = Color(1.05, 1.12, 0.88)

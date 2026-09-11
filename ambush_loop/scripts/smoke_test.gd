@@ -86,6 +86,8 @@ func _run() -> void:
 	print("SMOKE_OK_SPAWN_PREVIEW n=", main.setup_spawn_preview_count())
 	if not await _assert_fail_paths(main):
 		return
+	if not await _assert_skip_to_outcome(main):
+		return
 
 	# Life 1: 灰狼 on west cover, authored east face (0°) covers the spine so
 	# 敌1/敌2 die and flank 敌3 (delay 0.4s) is the leaker. South 90° covers neither.
@@ -1201,6 +1203,60 @@ func _assert_fail_paths(main) -> bool:
 		quit(60)
 		return false
 	print("SMOKE_OK_FAIL_PATHS")
+	return true
+
+
+func _assert_skip_to_outcome(main) -> bool:
+	## Viewing skip: frozen plan still leaks at yard tick 965. Not abort.
+	if not main.has_method("_on_skip_to_outcome_pressed"):
+		push_error("SMOKE_NO_SKIP_API")
+		quit(73)
+		return false
+	main._start_setup(false, false)
+	await process_frame
+	main._select_op(0)
+	main._deploy_selected_to(main.cover_slots[0], false)
+	main.selected.set_facing(0.0)
+	var face0 := float(main.operators[0].facing_deg)
+	var mode0 := int(main.operators[0].fire_mode)
+	var door0 := bool(main.door_locked)
+	var trips0: int = main.tripwires.size()
+	var pos0: Vector2 = main.operators[0].global_position
+	main._on_alarm_pressed()
+	if main.phase != main.Phase.WATCHING:
+		push_error("SMOKE_SKIP_NO_WATCH phase=%s" % main.phase)
+		quit(73)
+		return false
+	main._on_skip_to_outcome_pressed()
+	await process_frame
+	if main.phase != main.Phase.FAILED or main.fail_reason != "escape":
+		push_error("SMOKE_SKIP_NOT_LEAK phase=%s reason=%s tick=%s" % [main.phase, main.fail_reason, main.sim.tick])
+		quit(73)
+		return false
+	if int(main.sim.tick) != 965:
+		push_error("SMOKE_SKIP_TICK_DRIFT tick=%s want=965" % main.sim.tick)
+		quit(73)
+		return false
+	if absf(float(main.operators[0].facing_deg) - face0) > 0.01:
+		push_error("SMOKE_SKIP_FACING_MUTATED %s -> %s" % [face0, main.operators[0].facing_deg])
+		quit(73)
+		return false
+	if int(main.operators[0].fire_mode) != mode0 or bool(main.door_locked) != door0 or main.tripwires.size() != trips0:
+		push_error("SMOKE_SKIP_PLAN_MUTATED")
+		quit(73)
+		return false
+	if main.operators[0].global_position.distance_to(pos0) > 0.5:
+		push_error("SMOKE_SKIP_MOVED")
+		quit(73)
+		return false
+	print("SMOKE_OK_SKIP_OUTCOME tick=", main.sim.tick)
+	main._on_continue_pressed()
+	await process_frame
+	main._start_setup(false, false)
+	if main.phase != main.Phase.SETUP:
+		push_error("SMOKE_SKIP_NO_RESET phase=%s" % main.phase)
+		quit(73)
+		return false
 	return true
 
 

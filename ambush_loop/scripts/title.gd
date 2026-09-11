@@ -9,7 +9,7 @@ const HOWTO := """北区补给链第三夜：院子 → 仓道 → 泵站 → �
 灰狼补主路第一枪，铁砧宽锥耗弹（弹包优先），夜枭长窄锁出口。卡面会写这关必须带谁。
 
 【手机】点左侧作战卡选人 → 点掩体部署 → 底栏 ↺↻ 或拖队员调射界 → 点「警报」锁死。
-返回键打开菜单，不直接退出。中止 / 暂停 / 倍速 / 弹包 / 绊索 / 门锁都在底栏。清空记忆在设置里点两次。
+返回键打开菜单，不直接退出。中止 / 跳到终局 / 暂停 / 倍速 / 弹包 / 绊索 / 门锁都在底栏。清空记忆在设置里点两次。
 
 键 / 操作              作用
 1 / 2 / 3 或左侧卡片    选步枪手 / 机枪手 / 侦察兵
@@ -24,6 +24,7 @@ Tab                     绊索工具（路线附近，限额 1）
 P                       观看暂停
 + / −                   观看变速 1× / 2×（不改模拟结果）
 X                       中止尝试，保留目前情报（算失败）
+J                       观看时跳到终局（计划仍冻，只跳过走路）
 时间轴复盘 / ← →        只读回放，点击事件定位
 M                       静音（音乐+音效一起关；设置里可分轨调音量）
 R                       清空记忆并重新布置（手机：设置里确认）
@@ -440,20 +441,22 @@ func _show_briefing(level_id: String) -> void:
 		_brief_prev.visible = prev != ""
 		_brief_prev.text = "上一夜 · %s" % prev if prev != "" else ""
 	if _brief_hook:
-		var hook := str(def.highlight_hook).strip_edges()
-		_brief_hook.visible = hook != ""
-		_brief_hook.text = "高光 · %s" % hook if hook != "" else ""
-		_brief_hook.add_theme_color_override("font_color", LevelDef.signature_color(level_id))
+		# One trap/lesson lives in the teaching bullet. Hook stays in the
+		# string API but is not painted — briefing is night / must / trap.
+		_brief_hook.visible = false
+		_brief_hook.text = "高光 · %s" % str(def.highlight_hook).strip_edges()
 	if _brief_must:
 		var must := str(def.must_bring).strip_edges()
 		_brief_must.visible = must != ""
 		_brief_must.text = "必须带 · %s" % must if must != "" else ""
 	if _brief_sit:
 		var sit := str(def.situation).strip_edges()
-		_brief_sit.visible = sit != ""
 		_brief_sit.text = sit
+		_brief_sit.visible = false
 	_fill_teach_bullets(def.teaching, str(def.must_bring).strip_edges())
-	_brief_body.text = def.tutorial
+	if _brief_body:
+		_brief_body.text = def.tutorial
+		_brief_body.visible = false
 	_fill_route_chips(def)
 	_reveal_modal(_brief)
 
@@ -799,7 +802,7 @@ func _refresh_campaign_title() -> void:
 		if complete:
 			tagline.text = "灯塔停转 · 北区补给链已切断 · 档案已归档"
 		else:
-			tagline.text = "北区补给链 · 第三夜 · 锁死计划 · 时间穿梭"
+			tagline.text = "朋友包 · 六夜 · 程序多边形 · 合成音 · 横屏"
 	if _journal_btn:
 		if complete:
 			_journal_btn.text = "战役档案（已切断）"
@@ -868,11 +871,23 @@ func _fill_teach_bullets(teaching: String, must_bring: String = "") -> void:
 	var must := must_bring.strip_edges()
 	var must_shown := must != "" and _brief_must != null and _brief_must.visible
 	var must_head := must.substr(0, 8) if must.length() >= 8 else ""
+	var kept: PackedStringArray = PackedStringArray()
 	for line in parts:
 		if must_shown and line.begins_with("这关必须带"):
 			continue
 		if must_head != "" and line.find(must_head) >= 0:
 			continue
+		if line.find("陷阱") >= 0:
+			kept.append(line)
+	if kept.is_empty():
+		for line in parts:
+			if must_shown and line.begins_with("这关必须带"):
+				continue
+			if must_head != "" and line.find(must_head) >= 0:
+				continue
+			kept.append(line)
+			break
+	for line in kept:
 		var lab := Label.new()
 		lab.text = "·  %s" % line
 		lab.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

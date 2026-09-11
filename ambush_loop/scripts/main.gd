@@ -116,6 +116,8 @@ var mode_button: Button = null
 var door_button: Button = null
 var pack_button: Button = null
 var abort_button: Button = null
+var skip_outcome_button: Button = null
+var _skipping_outcome: bool = false
 var replay_button: Button = null
 var scrub_slider: HSlider = null
 var event_log: Control = null
@@ -250,6 +252,8 @@ func _resolve_optional_hud() -> void:
 	if status_label:
 		status_label.add_theme_font_size_override("font_size", 16)
 		status_label.add_theme_font_override("font", NightOps.ui_font_bold())
+		status_label.clip_text = true
+		status_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	if intel_label:
 		intel_label.add_theme_font_size_override("font_size", 13)
 		# TopBar Intel used to cross the route timeline. Count stays in
@@ -258,7 +262,11 @@ func _resolve_optional_hud() -> void:
 		intel_label.clip_text = true
 	var topbar := get_node_or_null("HUD/Root/TopBar") as Control
 	if topbar:
-		# Title + Status only. Third Intel line used to eat y=78–110 over the timeline.
+		# Title + Status only, left column. Full-width TopBar painted status
+		# across the route timeline (restore / facing strings).
+		topbar.anchor_right = 0.0
+		topbar.offset_left = 16.0
+		topbar.offset_right = 428.0
 		topbar.offset_bottom = 70.0
 	if result_panel:
 		result_panel.z_index = 20
@@ -317,6 +325,9 @@ func _resolve_optional_hud() -> void:
 	abort_button = _make_hud_btn("AbortButton", "中止尝试 (X)", bar)
 	abort_button.pressed.connect(_on_abort_pressed)
 	abort_button.visible = false
+	skip_outcome_button = _make_hud_btn("SkipOutcomeButton", "跳到终局 (J)", bar)
+	skip_outcome_button.pressed.connect(_on_skip_to_outcome_pressed)
+	skip_outcome_button.visible = false
 
 	replay_button = _make_hud_btn("ReplayButton", "时间轴复盘", bar)
 	replay_button.pressed.connect(_on_replay_pressed)
@@ -879,6 +890,8 @@ func apply_touch_command(cmd: String) -> void:
 				_on_alarm_pressed()
 		"abort":
 			_on_abort_pressed()
+		"skip":
+			_on_skip_to_outcome_pressed()
 		"pause":
 			_on_pause_pressed()
 		"speed":
@@ -964,6 +977,8 @@ func _on_memory_wipe_from_menu() -> void:
 
 func _sfx(cue: String) -> void:
 	if sfx == null:
+		return
+	if _skipping_outcome and cue != "fail" and cue != "win" and cue != "escape" and cue != "win_stinger":
 		return
 	sfx.play(cue)
 
@@ -3088,9 +3103,7 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 		watch_timeline.visible = false
 		if watch_timeline.has_method("set_live"):
 			watch_timeline.set_live(false)
-	if abort_button:
-		abort_button.visible = false
-		abort_button.disabled = true
+	_set_watch_view_buttons(false)
 	if replay_button:
 		replay_button.visible = false
 	if title_return_button:
@@ -3216,8 +3229,8 @@ func _restore_last_plan() -> void:
 	_build_plan_ghosts()
 	var summary := _plan_summary_text(last_plan)
 	plan_restore_hint = "已恢复上轮计划：%s" % summary
-	status_label.text = plan_restore_hint
-	_flash(plan_restore_hint, Color(0.7, 0.92, 0.75))
+	status_label.text = "已恢复上轮计划"
+	_flash("已恢复上轮计划", Color(0.7, 0.92, 0.75))
 
 
 func _compass_deg(deg: float) -> String:
@@ -3429,6 +3442,8 @@ func _unhandled_input(event: InputEvent) -> void:
 					_on_pause_pressed()
 				KEY_X:
 					_on_abort_pressed()
+				KEY_J:
+					_on_skip_to_outcome_pressed()
 				KEY_EQUAL, KEY_KP_ADD:
 					sim.set_speed(2.0)
 					if speed_button:
@@ -3701,8 +3716,8 @@ func _deploy_selected_to(slot: CoverSlot, announce: bool = true) -> void:
 	if announce:
 		var prot := slot.protect_compass()
 		var fire_dir := _compass_deg(selected.facing_deg)
-		status_label.text = "%s →「%s」弹%d · 射界朝%s · 掩体保护朝%s（来袭减伤60%%，侧背无减免）" % [
-			selected.display_name, slot.label_text, selected.ammo, fire_dir, prot
+		status_label.text = "%s · 射界朝%s · 保护朝%s" % [
+			selected.display_name, fire_dir, prot
 		]
 		_announce_plan_edit()
 	_update_observation_rings()
@@ -4501,15 +4516,13 @@ func _on_alarm_pressed() -> void:
 	_update_tripwire_ghost()
 	battle_log.add_event(0, "door", -1, -1, Vector2.ZERO, {"locked": door_locked})
 	_queue_spawns(this_run)
-	if abort_button:
-		abort_button.visible = true
-		abort_button.disabled = false
+	_set_watch_view_buttons(true)
 	if pause_button:
 		pause_button.disabled = false
 	if speed_button:
 		speed_button.disabled = false
 	_wave_tension_id = -1
-	status_label.text = "方案锁死 — 暂停/变速仅改变观看。跑掉或全灭均失败。中止(X)保留截止情报。"
+	status_label.text = "方案锁死 — 暂停/变速/跳到终局仅改变观看。跑掉或全灭均失败。中止(X)留情报。"
 	_fade_trap_callout()
 	_fade_second_callout()
 	_fade_echo_callout()
@@ -5179,6 +5192,30 @@ func _escape_route_hint(enemy: EnemyRunner) -> String:
 			return "主路巡卫从南闸漏出"
 
 
+func _set_watch_view_buttons(on: bool) -> void:
+	if abort_button:
+		abort_button.visible = on
+		abort_button.disabled = not on
+	if skip_outcome_button:
+		skip_outcome_button.visible = on
+		skip_outcome_button.disabled = not on
+
+
+func _on_skip_to_outcome_pressed() -> void:
+	## Viewing-only: run the frozen plan to the terminal tick. Not abort.
+	if phase != Phase.WATCHING or _skipping_outcome:
+		return
+	_skipping_outcome = true
+	var guard := 0
+	var cap := 60 * 60
+	while phase == Phase.WATCHING and guard < cap:
+		_sim_tick()
+		guard += 1
+	_skipping_outcome = false
+	if phase != Phase.WATCHING:
+		_set_watch_view_buttons(false)
+
+
 func _on_abort_pressed() -> void:
 	if phase != Phase.WATCHING:
 		return
@@ -5227,7 +5264,7 @@ func _muzzle_world(op: OperatorUnit) -> Vector2:
 
 func _spawn_watch_tracer(from: Vector2, to: Vector2, color: Color, width: float) -> void:
 	## Watching-phase tracer. Standard tier only; pooled Line2D, max 12 live/pool.
-	if phase != Phase.WATCHING or _is_power_saving():
+	if phase != Phase.WATCHING or _is_power_saving() or _skipping_outcome:
 		return
 	_trim_live_tracers()
 	var line: Line2D = null
@@ -5332,12 +5369,14 @@ func _flash(text: String, color: Color) -> void:
 		return
 	if _flash_tween != null:
 		_flash_tween.kill()
+	text = _clip_chip_line(text, 28)
 	if phase == Phase.WATCHING:
 		flash_label.offset_top = 118.0
 		flash_label.offset_bottom = 152.0
 	else:
-		flash_label.offset_top = 72.0
-		flash_label.offset_bottom = 104.0
+		# Under the timeline (76–120), not across the spawn marks.
+		flash_label.offset_top = 124.0
+		flash_label.offset_bottom = 152.0
 	flash_label.text = text
 	flash_label.add_theme_color_override("font_color", color)
 	flash_label.modulate = Color(1, 1, 1, 1)
@@ -5378,7 +5417,7 @@ func payoff_callout_active() -> bool:
 
 func _announce_payoff(kind: String, payload: Dictionary = {}, pos: Vector2 = Vector2.ZERO) -> void:
 	## Copy + camera hitch + world tag. Does not add battle_log events.
-	if kind == "":
+	if kind == "" or _skipping_outcome:
 		return
 	if kind == _last_payoff_kind and sim.tick == _last_payoff_tick and kind != "combo":
 		return
@@ -5389,8 +5428,6 @@ func _announce_payoff(kind: String, payload: Dictionary = {}, pos: Vector2 = Vec
 		return
 	var col: Color = PayoffCopy.watching_color(kind)
 	_flash(text, col)
-	if phase == Phase.WATCHING and status_label:
-		status_label.text = text
 	var hitch: Vector2 = PayoffCopy.hitch_for(kind)
 	if hitch != Vector2.ZERO and not _is_power_saving() and phase == Phase.WATCHING:
 		_camera_punch(hitch)
@@ -5458,8 +5495,7 @@ func _spawn_payoff_callout(pos: Vector2, text: String, color: Color) -> void:
 func _show_fail_result() -> void:
 	_play_fail_static()
 	_ensure_dossier_ui()
-	if abort_button:
-		abort_button.visible = false
+	_set_watch_view_buttons(false)
 	if title_return_button:
 		title_return_button.visible = false
 	result_panel.visible = true
@@ -5544,8 +5580,7 @@ func _show_fail_result() -> void:
 
 
 func _show_win_result() -> void:
-	if abort_button:
-		abort_button.visible = false
+	_set_watch_view_buttons(false)
 	_fail_dossier_text = ""
 	_dossier_open = false
 	if dossier_button:
@@ -6113,7 +6148,7 @@ func _on_continue_pressed() -> void:
 				intel_label.visible = false
 			var col := _intel_flash_color(intel.latest_route() if intel.has_method("latest_route") else "")
 			_refresh_intel_chip()
-			_flash(advice if advice != "" else ("情报 · %s" % leak), col)
+			_flash("情报已记录", col)
 		elif intel_line != "":
 			if intel_label:
 				intel_label.text = "情报已记录 · %s" % intel_line
