@@ -120,16 +120,21 @@ func _build_depot() -> void:
 
 
 func _build_radio() -> void:
-	# West alley x=6-8, spine x=12-14, east x=31-33 stay walkable.
-	# Echo hall is the 1-cell gap at x=24 between core tanks (ends x=23) and
-	# east annex. Extra transmitter racks at x=29-30 split echo from east
-	# corridor so 铁砧 on 东廊 cannot see the 5.2s wave.
-	_block_rect(9, 7, 11, 13)
-	_block_rect(15, 8, 23, 14)
-	_block_rect(25, 8, 28, 12)
-	_block_rect(29, 8, 30, 10)
-	_block_rect(25, 16, 27, 16)
-	_block_rect(16, 7, 22, 7)
+	# Lighthouse + transmitter hall + dish clusters — not depot's tank rectangle.
+	# West alley x=6-8, spine x=12-14, east x=31-33, echo hall x=24 stay walkable.
+	# 碟台 (24,6) looks south down x=24; taller racks split 东廊 from the hall.
+	# (20,10) stays blocked (tower). (18,7) stays blocked (dish pad).
+	_block_rect(9, 8, 11, 12)       # west equipment shed (shorter than depot)
+	_block_rect(17, 8, 20, 11)      # lighthouse tower (includes 20,10)
+	_block_rect(16, 12, 22, 14)     # transmitter hall south of the tower
+	_block_rect(15, 9, 16, 11)      # west radio wing — (15,8) stays open vs depot
+	_block_rect(21, 8, 23, 10)      # north-east dish house, west of echo
+	_block_rect(18, 7, 21, 7)       # dish-pad strip
+	_block_rect(25, 8, 25, 12)      # echo-hall east wall
+	_block_rect(26, 8, 27, 9)       # dish cluster north
+	_block_rect(27, 10, 28, 12)     # dish cluster south
+	_block_rect(29, 8, 30, 12)      # transmitter racks, taller than depot
+	_block_rect(26, 16, 28, 16)     # south crate, shifted vs depot (25,16)-(27,16)
 
 
 func _block_rect(x0: int, y0: int, x1: int, y1: int) -> void:
