@@ -338,7 +338,11 @@ func _refresh_mission_rows() -> void:
 		if unlocked:
 			badge = "可出击"
 		if cleared:
-			badge = "首通"
+			var loops := int(e.get("loops", 0))
+			if loops > 0:
+				badge = "首通 · %d世" % loops
+			else:
+				badge = "首通"
 		var lid := str(e["id"])
 		var glyph := _mission_glyph(lid)
 		var mood := LevelDef.mood_tag(lid)

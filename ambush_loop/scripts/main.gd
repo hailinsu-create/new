@@ -5153,7 +5153,7 @@ func _show_win_result() -> void:
 		_campaign_complete = true
 	var gs = _gs()
 	if gs and level:
-		gs.record_win(level.level_id)
+		gs.record_win(level.level_id, loop_index, not _mission_had_escape)
 	_refresh_route_timeline(true)
 	if replay_button:
 		replay_button.visible = true

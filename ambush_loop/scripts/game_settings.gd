@@ -344,11 +344,37 @@ func mission_entries() -> Array:
 			"title": def.title,
 			"unlocked": unlocked,
 			"cleared": complete or cleared.has(id),
+			"loops": best_loops(id),
+			"perfect": is_perfect(id),
 		})
 	return out
 
 
-func record_win(level_id: String) -> void:
+func best_loops(level_id: String) -> int:
+	var cfg := _progress_cfg()
+	return int(cfg.get_value("stats", "%s_loops" % level_id, 0))
+
+
+func is_perfect(level_id: String) -> bool:
+	var cfg := _progress_cfg()
+	return bool(cfg.get_value("stats", "%s_perfect" % level_id, false))
+
+
+func record_clear_stats(level_id: String, loops: int = 0, perfect: bool = false) -> void:
+	## Best-loop / perfect flags only. Does not unlock the next night.
+	if level_id.strip_edges() == "":
+		return
+	var cfg := _progress_cfg()
+	if loops > 0:
+		var prev := int(cfg.get_value("stats", "%s_loops" % level_id, 0))
+		if prev <= 0 or loops < prev:
+			cfg.set_value("stats", "%s_loops" % level_id, loops)
+	if perfect:
+		cfg.set_value("stats", "%s_perfect" % level_id, true)
+	cfg.save(PROGRESS_PATH)
+
+
+func record_win(level_id: String, loops: int = 0, perfect: bool = false) -> void:
 	var cfg := _progress_cfg()
 	var cleared := _read_cleared_raw(cfg)
 	if not cleared.has(level_id):
@@ -368,6 +394,7 @@ func record_win(level_id: String) -> void:
 		cfg.set_value("progress", "level_index", won_idx + 1)
 		cfg.set_value("progress", "complete", false)
 	cfg.save(PROGRESS_PATH)
+	record_clear_stats(level_id, loops, perfect)
 
 
 func _migrate_mute_from_progress() -> void:

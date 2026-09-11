@@ -3257,6 +3257,31 @@ func _assert_iteration_slice(main) -> bool:
 		quit(71)
 		return false
 	print("SMOKE_OK_BARK")
+	var gs_stats = root.get_node_or_null("GameSettings")
+	if gs_stats == null or not gs_stats.has_method("best_loops"):
+		push_error("SMOKE_NO_BEST_LOOPS")
+		quit(71)
+		return false
+	if not gs_stats.has_method("record_clear_stats"):
+		push_error("SMOKE_NO_CLEAR_STATS")
+		quit(71)
+		return false
+	gs_stats.record_clear_stats("yard", 3, false)
+	if int(gs_stats.best_loops("yard")) != 3:
+		push_error("SMOKE_BEST_LOOPS %s" % gs_stats.best_loops("yard"))
+		quit(71)
+		return false
+	gs_stats.record_clear_stats("yard", 2, false)
+	if int(gs_stats.best_loops("yard")) != 2:
+		push_error("SMOKE_BEST_LOOPS_MIN %s" % gs_stats.best_loops("yard"))
+		quit(71)
+		return false
+	var entries2: Array = gs_stats.mission_entries()
+	if int(entries2[0].get("loops", 0)) != 2:
+		push_error("SMOKE_ENTRY_LOOPS %s" % str(entries2[0]))
+		quit(71)
+		return false
+	print("SMOKE_OK_BEST_LOOPS")
 	return true
 
 
