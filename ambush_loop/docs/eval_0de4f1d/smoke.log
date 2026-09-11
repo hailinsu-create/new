@@ -1,0 +1,142 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SMOKE_OK_JOURNAL
+SMOKE_OK_LAUNCH_BAR title+GameSettings+AudioDirector+missions+android_preset
+SMOKE_OK_ATMO yard wall=brick kit=crate
+SMOKE_OK_CLOCK 1x=60 2x=120 hitch=104
+SMOKE_OK_ROLES mg_cone=48.0 scout_range=280.0 protect=西
+SMOKE_OK_IDENTITY rifle=灰狼 mg=铁砧 scout=夜枭 glyph=1
+SMOKE_OK_LOS wall=80.0 open=220.0
+SMOKE_OK_SFX cues=role_fire muted=false every_shot=1 ui=1 hit=1
+SMOKE_OK_ENGAGE_HELPERS killzone=3
+SMOKE_OK_KILLZONE_UNION n=2
+SMOKE_OK_KEEP_FACING
+SMOKE_OK_SLOT_SWAP
+SMOKE_OK_TRIPWIRE_TOOLING relocate=1 touch_ghost=1
+SMOKE_OK_TOUCH_NO_DESKTOP_BARS
+SMOKE_OK_TOUCH_PARITY
+SMOKE_OK_LIFECYCLE
+SMOKE_OK_WATCH_JUICE tracer_pool timeline chip cone_freeze hp_bar
+SMOKE_OK_STINGER cue=alarm_stinger
+SMOKE_OK_WIN_STINGER cue=win_stinger fade=0.2
+SMOKE_OK_PERF_TIER
+SMOKE_OK_READABILITY outlines=3 legend_chips=3
+SMOKE_OK_ANIM walk_bob_hook weapon=1 last_runner=1
+SMOKE_OK_COVER_IDLE
+FEEL_OK_YARD_HOOK 交叉封锁第一枪
+FEEL_OK_OP_PARTS Head,ShoulderL,LegL,Weapon
+FEEL_OK_CONTACT_SHADOW
+FEEL_OK_ENEMY_KINDS main:23,flank:24,sneak:18
+FEEL_OK_NIGHT_GRADE
+FEEL_OK_NIGHT_KEYS
+FEEL_OK_MISSION_SKY
+FEEL_OK_KILL_BURST
+SMOKE_OK_HUD_CHROME cards=96.0 dock=485.0
+SMOKE_OK_FEEL_GATE
+SMOKE_OK_PROPS landmarks=6 sig=yard:-1:-1:0:162399739|s|yard|yard
+SMOKE_OK_TEACHING_SINGLE
+SMOKE_OK_PAYOFF_COPY hooks=6 roles=3 first_shot=1
+SMOKE_OK_NIGHT_HANDOFF
+SMOKE_OK_TEACHING beats=6 timeline=1 path=1 spawn_teach=1 overlay=1
+SMOKE_OK_PENDING_BREATH
+SMOKE_OK_SPAWN_GHOSTS n=3
+SMOKE_OK_HIT_TICK
+SMOKE_OK_DRY_GUN
+SMOKE_OK_BARK
+SMOKE_OK_BEST_LOOPS
+SMOKE_OK_REPLAY_CONE
+SMOKE_OK_PLAN_GHOST
+SMOKE_OK_ROLE_HINT
+SMOKE_OK_DOOR_SLAM
+SMOKE_OK_BARREL_FUSE
+SMOKE_OK_METRONOME
+SMOKE_OK_TENSION
+SMOKE_OK_KILL_STAMP
+SMOKE_OK_COMPASS
+SMOKE_OK_FACING_WORDS
+SMOKE_OK_PERFECT
+SMOKE_OK_WAVE_PUNCH
+SMOKE_OK_WATCH_CLOCK
+SMOKE_OK_HOLD_PULSE
+SMOKE_OK_LOOT_STREAK
+SMOKE_OK_BOOT_PRINT
+SMOKE_OK_CHECKLIST ○  已部署≥1 / ○  射界覆盖主路 / ○  侧翼
+LEVEL=yard
+SMOKE_OK_SPAWN_PREVIEW n=2
+SMOKE_OK_ABORT_INTEL n=1 tick=31
+SMOKE_OK_ABORT_KEEP
+SMOKE_OK_WIPE tick=30
+SMOKE_OK_FAIL_PATHS
+LIFE1 deployed=1
+t=300 phase=1 loop=1 reason= level=yard tick=131
+t=600 phase=1 loop=1 reason= level=yard tick=257
+t=900 phase=1 loop=1 reason= level=yard tick=382
+t=1200 phase=1 loop=1 reason= level=yard tick=506
+t=1500 phase=1 loop=1 reason= level=yard tick=630
+t=1800 phase=1 loop=1 reason= level=yard tick=755
+t=2100 phase=1 loop=1 reason= level=yard tick=879
+SMOKE_FAIL_ESCAPE reason=escape intel=1 events=25 tick=965
+SMOKE_OK_ESCAPE_PANEL_CLEAR
+SMOKE_OK_FAIL_CARD
+SMOKE_OK_INTEL_RECORDED
+SMOKE_OK_LEAK_RESULT_LINE
+SMOKE_OK_FIX_ONE
+SMOKE_OK_CHATTER
+SMOKE_OK_INTEL_WALL
+SMOKE_OK_COVER_VS_LEAK
+SMOKE_OK_SECOND_TRAP_MISS
+SMOKE_OK_FAIL_LEAK_PAINT
+SMOKE_OK_FAIL_GAP
+SMOKE_1X_FP tick=965 fp=door:0,spawn:0,no_engage:0,spawn:24,no_engage:24,spawn:48,no_engage:48,no_engage:127,no_engage:131,no_engage:175,no_engage:179,fire:205,return_fire:205,fire:216,return_fire:222,fire:227,kill:227,fire:253,return_fire:253,fire:264,return_fire:270,fire:275,kill:275,escape:964,terminal:964
+LIFE2_RESTORED deployed=1
+SMOKE_OK_PLAN_RESTORE 已恢复上轮计划：灰狼→「西侧掩体」朝东0°
+SMOKE_OK_INTEL_GHOST
+SMOKE_OK_LEAK_ADVICE 改一处就能赢：侧翼奔袭从东廊漏出（敌3 · 0.4s出发）。建议在 15.7 秒前加强侧翼（敌3） leaker=3 delay=0.4
+SMOKE_OK_LEAK_COVER_RED chip=✓  已部署≥1 / ✓  射界覆盖主路 / ·  侧翼 / ·  漏网已罩住
+SMOKE_OK_SPEED_CONSISTENT tick=965
+SMOKE_OK_LEAK_COVER_GREEN
+LIFE3 deployed=3
+t=2400 phase=1 loop=3 reason= level=yard tick=47
+t=2700 phase=1 loop=3 reason= level=yard tick=171
+SMOKE_OK yard won loop=3 tick=283 events=34
+SMOKE_OK_CHAIN_STRIP
+SMOKE_OK_PRESENTATION stats=世数  3 | 第一枪是  铁砧 | 逃逸  无 | 用时  4.7s | 高光  交叉封锁第一枪
+SMOKE_OK_ATMO warehouse wall=brick kit=pallet
+SMOKE_LEVEL2_LOADED warehouse covers=6
+SMOKE_WAREHOUSE_DUMP_FAIL reason=escape route=flank leaker=5 tick=1419
+SMOKE_WAREHOUSE_HOLD_PACK_WIN tick=872 ambush=true repack=true
+BLAST_RADIUS warehouse tick 824 -> 872
+SMOKE_OK warehouse won tick=872
+SMOKE_OK_ATMO pump wall=pipe kit=valve
+SMOKE_OK pump_open won tick=694
+SMOKE_OK_DECISION_PULSE
+SMOKE_OK_ATMO pump wall=pipe kit=valve
+SMOKE_OK_SPAWN_PRIMARY_ROUTE
+SMOKE_OK_BRANCH_AFTER_DECISION
+SMOKE_PUMP_LOCKED_OLD_FACE_FAIL reason=escape route=alt tick=1052
+SMOKE_OK_PUMP_LEAK_CHIP ✓  已部署≥1 / ✓  射界覆盖主路 / ·  紫备用 / ·  漏网已罩住
+BLAST_RADIUS pump_locked tick 1016 -> 740
+SMOKE_OK pump_locked won tick=740
+SMOKE_OK_RAILCUT_UNLOCK
+SMOKE_OK_ATMO railcut wall=concrete kit=sleeper
+SMOKE_OK_RAILCUT_CONTRACT covers=6 no_door delayed_flank=3.8 trip_west/east
+SMOKE_RAILCUT_SOUTH_STACK_FAIL reason=escape route=flank leaker=3 tick=1191
+SMOKE_OK railcut won tick=818
+SMOKE_OK_DEPOT_UNLOCK
+SMOKE_OK_ATMO depot wall=plate kit=drum
+SMOKE_OK_DEPOT_CONTRACT covers=6 routes=3 delayed_sneak=2.2 trip_west_alley sneak_chip
+SMOKE_DEPOT_NO_TRIP_FAIL reason=escape route=sneak leaker=3 tick=1418
+SMOKE_OK_DEPOT_SNEAK_CHIP ✓  已部署≥1 / ✓  射界覆盖主路 / ✓  侧翼 / ·  暗道 / ·  漏网已罩住
+SMOKE_OK depot won tick=572
+SMOKE_OK_DEPOT_HOOK
+SMOKE_OK_RADIO_UNLOCK
+SMOKE_OK_ATMO radio wall=mesh kit=dish
+SMOKE_OK_RADIO_CONTRACT covers=6 routes=4 sneak=3.6 echo=5.2 dish_pad kit=echo hall
+SMOKE_OK_RADIO_KIT_QUEUED
+SMOKE_RADIO_NO_TRIP_FAIL reason=escape route=sneak leaker=3 tick=1502
+SMOKE_OK radio won tick=730
+SMOKE_OK_RADIO_HOOK
+SMOKE_OK_CREDITS_RADIO
+SMOKE_OK_TYPICAL_LOOPS yard,warehouse,pump,railcut,depot,radio
+SMOKE_SLICE_COMPLETE
+EXIT:0
