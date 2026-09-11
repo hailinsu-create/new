@@ -2,7 +2,7 @@
 
 对象：Draft [PR #4](https://github.com/hailinsu-create/new/pull/4)，分支 `cursor/ambush-loop-mvp-6a41`  
 基线：`ce9dd2d`（完成度 ~7.1，合进 main 可以，对外试玩不行）  
-本评 HEAD：**见文末 SHA**（本文件随该次 push 提交）  
+本评 HEAD：**94f38de42cd124b4a2b386c4e29d99d768587954**  
 日期：2026-09-11  
 评价人：窗口截图 + headless 冒烟 + 关卡/UI 源码走读（本环境无真机、无扬声器）
 
@@ -150,3 +150,5 @@ exit 0   ~126.6s
 - 时间轴：`scripts/ui/route_timeline.gd` pending breath
 - 冒烟：`scripts/smoke_test.gd`
 - 截图：`docs/eval_playable/*.png`
+
+HEAD：`94f38de42cd124b4a2b386c4e29d99d768587954`
