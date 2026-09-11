@@ -23,6 +23,8 @@ const CombatFxScript := preload("res://scripts/fx/combat_fx.gd")
 const OperatorSilhouetteScript := preload("res://scripts/fx/operator_silhouette.gd")
 const EnemySilhouetteScript := preload("res://scripts/fx/enemy_silhouette.gd")
 const NightGradeScript := preload("res://scripts/fx/night_grade.gd")
+const TrapPathFxScript := preload("res://scripts/fx/trap_path_fx.gd")
+const NightHandoffScript := preload("res://scripts/ui/night_handoff.gd")
 
 var grid: AmbushGrid = AmbushGrid.new()
 var phase: Phase = Phase.SETUP
@@ -64,6 +66,8 @@ var trap_callout: Node2D = null
 var _trap_callout_tween: Tween = null
 var second_callout: Node2D = null
 var _second_callout_tween: Tween = null
+var trap_path: Node2D = null
+var fail_gap_callout: Node2D = null
 var watch_wave_chip: Label = null
 var spawn_teach_label: Label = null
 var checklist_strip: Control = null
@@ -154,6 +158,7 @@ var sfx_muted: bool = false
 var pause_overlay: PauseOverlay = null
 var tutorial_overlay: TutorialOverlay = null
 var credits_overlay: CreditsOverlay = null
+var night_handoff = null
 var _menu_paused_sim: bool = false
 var _campaign_complete: bool = false
 var title_return_button: Button = null
@@ -494,6 +499,9 @@ func _build_modals() -> void:
 	credits_overlay = CreditsOverlay.new()
 	add_child(credits_overlay)
 	credits_overlay.finished.connect(_return_to_title)
+	night_handoff = NightHandoffScript.new()
+	add_child(night_handoff)
+	night_handoff.finished.connect(_on_night_handoff_finished)
 
 
 func _gs():
@@ -521,6 +529,8 @@ func _modal_blocks_input() -> bool:
 	if tutorial_overlay and tutorial_overlay.is_open():
 		return true
 	if credits_overlay and credits_overlay.is_open():
+		return true
+	if night_handoff and night_handoff.is_open():
 		return true
 	return false
 
@@ -599,6 +609,20 @@ func _show_credits() -> void:
 	result_panel.visible = false
 	if credits_overlay:
 		credits_overlay.present()
+
+
+func _present_night_handoff(from_id: String, to_id: String) -> void:
+	## Headless smoke advances immediately; players see the letterbox beat.
+	if DisplayServer.get_name() == "headless":
+		return
+	if night_handoff == null:
+		return
+	night_handoff.present(from_id, to_id)
+	_sfx("handoff")
+
+
+func _on_night_handoff_finished() -> void:
+	_sfx("ui")
 
 
 func _make_hud_btn(p_name: String, text: String, parent: Control) -> Button:
@@ -1126,6 +1150,10 @@ func _apply_watch_layers() -> void:
 		else:
 			second_callout.visible = true
 			second_callout.modulate.a = 1.0
+	if trap_path and is_instance_valid(trap_path):
+		trap_path.visible = phase == Phase.SETUP
+		if phase == Phase.SETUP:
+			trap_path.modulate.a = 1.0
 	if entities:
 		entities.modulate = Color.WHITE
 	if ghosts:
@@ -1139,7 +1167,8 @@ func _apply_watch_layers() -> void:
 		var banner := _watch_letterbox.get_node_or_null("WatchBanner") as Label
 		if banner:
 			var spd := "暂停" if sim.paused else ("2×" if sim.speed >= 1.5 else "1×")
-			banner.text = "锁死观战  ·  %s  ·  t=%.1fs  ·  %s" % [spd, sim.time_sec(), watch_census_text()]
+			var night := LevelDef.mood_tag(level.level_id) if level else "初阵"
+			banner.text = "锁死观战  ·  %s  ·  %s  ·  t=%.1fs  ·  %s" % [night, spd, sim.time_sec(), watch_census_text()]
 	if _watch_vignette:
 		_watch_vignette.visible = cinema
 	if title_label:
@@ -1720,6 +1749,7 @@ func _load_level(level_id: String, keep_intel: bool, restore_plan: bool) -> void
 	_build_barrels()
 	_build_trap_callout()
 	_build_second_callout()
+	_build_trap_path()
 	_start_setup(keep_intel, restore_plan)
 	_save_progress()
 	_maybe_show_tutorial()
@@ -1763,6 +1793,7 @@ func _play_mission_ambient() -> void:
 		sfx.play_mission_ambient(level.level_id)
 	if sfx.has_method("play_mission_mood"):
 		sfx.play_mission_mood(level.level_id)
+	_sfx("night_enter")
 
 
 func _build_route_world() -> void:
@@ -2640,6 +2671,47 @@ func leak_advice_text() -> String:
 	return leak_advice_shown
 
 
+func _second_trap_miss_line() -> String:
+	## Fail teaching: the leaked route was the authored second-layer trap.
+	if fail_reason != "escape" or level == null or intel == null:
+		return ""
+	if not level.has_method("second_trap_route"):
+		return ""
+	var route := str(intel.latest_route()) if intel.has_method("latest_route") else ""
+	var trap := str(level.second_trap_route())
+	if route == "" or trap == "":
+		return ""
+	if route != trap:
+		return ""
+	var text := str(level.second_trap_text()).strip_edges()
+	if text == "":
+		return "没打中第二层"
+	return "没打中第二层：%s" % text
+
+
+func _build_fail_gap_callout() -> void:
+	_clear_fail_gap_callout()
+	if fail_reason != "escape" or intel == null:
+		return
+	var recs: Array = intel.recent(1)
+	if recs.is_empty():
+		return
+	var path: PackedVector2Array = recs[0].get("path", PackedVector2Array())
+	if path.is_empty():
+		return
+	var route := str(recs[0].get("route", ""))
+	var zh := _route_zh_short(route)
+	var text := "缺口 · %s" % zh
+	var col := _intel_flash_color(route)
+	fail_gap_callout = _make_map_callout("FailGapCallout", text, path[path.size() - 1] + Vector2(-20, -28), col)
+
+
+func _clear_fail_gap_callout() -> void:
+	if fail_gap_callout != null and is_instance_valid(fail_gap_callout):
+		fail_gap_callout.queue_free()
+	fail_gap_callout = null
+
+
 func _cover_vs_leak_line() -> String:
 	## Fail teaching: which authored routes the current plan actually covers.
 	if level == null:
@@ -2751,6 +2823,10 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 	if level != null and level.door_cell.x >= 0:
 		grid.set_door_state(level.door_cell, door_locked)
 	_redraw_ghosts()
+	_clear_fail_gap_callout()
+	if trap_path != null and is_instance_valid(trap_path):
+		trap_path.visible = true
+		trap_path.modulate.a = 1.0
 	_refresh_door_visual()
 	for op in operators:
 		if op.visible:
@@ -3623,6 +3699,46 @@ func _fade_second_callout() -> void:
 	)
 
 
+func _build_trap_path() -> void:
+	if trap_path != null and is_instance_valid(trap_path):
+		trap_path.queue_free()
+	trap_path = null
+	if level == null or not level.has_method("second_trap_route"):
+		return
+	var route := str(level.second_trap_route())
+	var poly := _route_polyline_named(route)
+	if poly.size() < 2:
+		return
+	var col := Color(1.0, 0.72, 0.38, 0.90)
+	if str(level.level_id) == "radio":
+		col = Color(0.55, 0.90, 1.0, 0.90)
+	elif route == "sneak":
+		col = Color(0.68, 0.42, 0.92, 0.90)
+	elif route == "alt":
+		col = Color(0.78, 0.55, 1.0, 0.90)
+	var fx: Node2D = TrapPathFxScript.new()
+	var tag := str(level.second_trap_text()).strip_edges()
+	if tag == "":
+		tag = "第二层陷阱"
+	fx.setup(poly, col, tag)
+	var world := get_node_or_null("World")
+	if world:
+		world.add_child(fx)
+	else:
+		add_child(fx)
+	trap_path = fx
+
+
+func _fade_trap_path() -> void:
+	if trap_path == null or not is_instance_valid(trap_path):
+		return
+	trap_path.visible = false
+
+
+func trap_path_visible() -> bool:
+	return trap_path != null and is_instance_valid(trap_path) and trap_path.visible
+
+
 func _intel_flash_color(route: String) -> Color:
 	## Leaked-route flash: main=red, flank=orange, sneak=purple.
 	match route:
@@ -3947,6 +4063,7 @@ func _on_alarm_pressed() -> void:
 	status_label.text = "方案锁死 — 暂停/变速仅改变观看。跑掉或全灭均失败。中止(X)保留截止情报。"
 	_fade_trap_callout()
 	_fade_second_callout()
+	_fade_trap_path()
 	_update_event_log()
 	_refresh_watch_timeline()
 	_update_hud()
@@ -4865,6 +4982,9 @@ func _show_fail_result() -> void:
 	var cover_line := _cover_vs_leak_line()
 	if cover_line != "":
 		extra += "%s\n" % cover_line
+	var trap_miss := _second_trap_miss_line()
+	if trap_miss != "":
+		extra += "%s\n" % trap_miss
 	var wall := ""
 	if intel != null and intel.has_method("wall_text"):
 		wall = str(intel.wall_text(4)).strip_edges()
@@ -4894,6 +5014,9 @@ func _show_fail_result() -> void:
 	# Re-dock after text layout so a tall summary cannot cover the south-east mouth.
 	if fail_reason == "escape":
 		_dock_fail_result_panel(true)
+		_sfx("leak")
+		_play_intel_path_ghost(true)
+		_build_fail_gap_callout()
 
 
 func _show_win_result() -> void:
@@ -5396,9 +5519,12 @@ func _on_continue_pressed() -> void:
 			_flash("情报已记录", Color(0.55, 0.85, 1.0))
 	elif phase == Phase.WON:
 		if level_index + 1 < LEVEL_ORDER.size():
+			var from_id := str(LEVEL_ORDER[level_index])
 			level_index += 1
-			_load_level(LEVEL_ORDER[level_index], false, false)
+			var to_id := str(LEVEL_ORDER[level_index])
+			_load_level(to_id, false, false)
 			_save_progress()
+			_present_night_handoff(from_id, to_id)
 		else:
 			_campaign_complete = true
 			_save_progress()
@@ -5420,8 +5546,9 @@ func _clear_intel_path_ghost() -> void:
 	_intel_ghost = null
 
 
-func _play_intel_path_ghost() -> void:
+func _play_intel_path_ghost(hold: bool = false) -> void:
 	## Snapshot dashed leaked path (intel color). Hold ~2s then fade. Presentation only.
+	## hold=true keeps it up during the fail dossier so the leak reads on the map.
 	_clear_intel_path_ghost()
 	if intel == null:
 		return
@@ -5444,6 +5571,8 @@ func _play_intel_path_ghost() -> void:
 		ghost.setup(path, col)
 	_intel_ghost = ghost
 	ghost.modulate.a = 1.0
+	if hold:
+		return
 	_intel_ghost_tween = ghost.create_tween()
 	_intel_ghost_tween.tween_interval(2.0)
 	_intel_ghost_tween.tween_property(ghost, "modulate:a", 0.0, 0.45)
@@ -5902,6 +6031,11 @@ func _refresh_route_legend() -> void:
 		chips.append({"id": "sneak", "icon": "暗", "label": _route_chip_label("sneak", "暗道"), "color": Color(0.38, 0.78, 0.52)})
 	if level.level_id == "pump" and not level.alternate_route_cells.is_empty():
 		chips.append({"id": "alt", "icon": "门", "label": "备用", "color": Color(0.72, 0.55, 0.28)})
+	if level.has_method("second_trap_text") and str(level.second_trap_text()).strip_edges() != "":
+		var tcol := Color(1.0, 0.72, 0.38)
+		if str(level.level_id) == "radio":
+			tcol = Color(0.55, 0.90, 1.0)
+		chips.append({"id": "trap2", "icon": "二", "label": "第二层", "color": tcol})
 	_fill_route_chips(chips)
 
 
