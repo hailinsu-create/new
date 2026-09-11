@@ -1142,6 +1142,13 @@ func _assert_raid_contract(main) -> bool:
 		quit(80)
 		return false
 	print("SMOKE_OK_RAID_VERBS g=", main.raid_grenades.size(), " mines=", main.raid_mines.size(), " decoy=", main.raid_decoys.size())
+	var a: Vector2i = main.operators[0].grid_cell()
+	var taken := bool(main._cell_taken(a, main.operators[1]))
+	if not taken:
+		push_error("SMOKE_OCCUPANCY_MISS")
+		quit(80)
+		return false
+	print("SMOKE_OK_OCCUPANCY")
 	main._start_setup(false, false)
 	return true
 
