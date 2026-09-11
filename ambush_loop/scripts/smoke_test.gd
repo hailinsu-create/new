@@ -1728,7 +1728,29 @@ func _assert_tripwire_tooling(main) -> bool:
 		push_error("SMOKE_TRIP_GHOST_STILL_VISIBLE")
 		quit(41)
 		return false
-	print("SMOKE_OK_TRIPWIRE_TOOLING")
+	main.tool = main.Tool.TRIPWIRE
+	main._try_place_tripwire(on_route)
+	if main.tripwires.size() != 1:
+		push_error("SMOKE_TRIP_PLACE_COUNT %s" % main.tripwires.size())
+		quit(41)
+		return false
+	var moved: Vector2 = main.grid.cell_to_world_center(Vector2i(13, 15))
+	if not main._near_any_route_segment(moved, 24.0):
+		push_error("SMOKE_TRIP_MOVE_TARGET_OFF_ROUTE")
+		quit(41)
+		return false
+	main._try_place_tripwire(moved)
+	if main.tripwires.size() != 1:
+		push_error("SMOKE_TRIP_RELOCATE_COUNT %s" % main.tripwires.size())
+		quit(41)
+		return false
+	if main.tripwires[0].global_position.distance_to(moved) > 2.0:
+		push_error("SMOKE_TRIP_DID_NOT_MOVE pos=%s want=%s" % [main.tripwires[0].global_position, moved])
+		quit(41)
+		return false
+	main._clear_tripwires()
+	main.tool = main.Tool.DEPLOY
+	print("SMOKE_OK_TRIPWIRE_TOOLING relocate=1")
 	return true
 
 

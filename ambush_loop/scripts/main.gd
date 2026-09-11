@@ -3292,12 +3292,21 @@ func _deploy_selected_to(slot: CoverSlot, announce: bool = true) -> void:
 
 
 func _try_place_tripwire(world_pos: Vector2) -> void:
-	if tripwires.size() >= MAX_TRIPWIRES:
-		status_label.text = "绊索已用完（后勤限额 1）"
-		return
 	if not _near_any_route_segment(world_pos, TRIPWIRE_ROUTE_DIST):
 		status_label.text = "绊索只能布在路线线段附近"
 		return
+	if tripwires.size() >= MAX_TRIPWIRES:
+		var existing: Tripwire = tripwires[0]
+		if existing == null or not is_instance_valid(existing):
+			tripwires.clear()
+		else:
+			existing.global_position = world_pos
+			existing.armed = true
+			existing.spent = false
+			status_label.text = "绊索已改位（限额仍为 1）"
+			_announce_plan_edit()
+			_update_hud()
+			return
 	var tw := _make_tripwire(world_pos)
 	entities.add_child(tw)
 	tripwires.append(tw)
