@@ -1,9 +1,9 @@
 # Raid iterations
 
-This session landed the Commandos ambush loop (scout → alarm waves → sweep → extract).
+Commandos ambush loop (scout → alarm waves → sweep → extract).
 Smoke: `SMOKE_SLICE_COMPLETE` + `SMOKE_OK_RAID_LOOP`.
 
-## Landed (this session)
+## Landed 1–41 (previous)
 
 1. Contract doc (`COMMANDOS_RAID.md`)
 2. Weapon catalog (knife/pistol/rifle/mg/scout/shotgun/ammo/grenade/mine/decoy)
@@ -45,78 +45,83 @@ Smoke: `SMOKE_SLICE_COMPLETE` + `SMOKE_OK_RAID_LOOP`.
 38. Launch-bar tagline
 39. Scene CTA 拉警报 / 走路
 40. Occupancy smoke probe
+41. Depot tut still names 2.2s tripwire
 
-## Backlog toward 100 (playable polish, not a second game)
+## Landed 42–100 (this session)
 
-41. Search time on crates (0.4s channel)
-32. Body-carry / hide corpse (presentation)
-33. Knife lunge FX
-34. Grenade bounce + cook bar
-35. Mine placement ghost
-36. Decoy actually reroutes one runner one cell
-37. Noise meter if you sprint
-38. Per-weapon muzzle styles
-39. Ammo type per gun (no MG ammo in a pistol)
-40. Swap gun vs drop gun on the ground
-41. Transfer item between ops
-42. Yard teaching: first crate ping
-43. Warehouse: wave-2 barrel reminder
-44. Pump: door still taught between waves
-45. Railcut: ammo warning before wave 2
-46. Depot: mine crate is the fourth man
-47. Radio: decoy vs echo hall
-48. Sweep music bed
-49. Footstep ticks
-50. Pickup sting per kind
-51. Wave siren distinct from first alarm
-52. Extract letterbox
-53. Fail copy: “wave N leaked”
-54. Intel ghosts per wave
-55. Last-plan restore keeps facing not guns (already) — show that
-56. Touch: move joystick
-57. Touch: throw button
-58. Gamepad
-59. Difficulty: fewer crates
-60. Perfect-night star if no HP lost
-61. Shotgun yard crate
-62. Pistol as fallback after dry gun
-63. MG slow-turn
-64. Scout silent knife bonus
-65. Friendly-fire grenade tutorial
-66. Don’t auto-snap cover while walking past
-67. Path ghost fade
-68. Occupancy: two ops can’t share a cell
-69. Enemy drop table per night
-70. Echo kit drops radio parts (flavor)
-71. Sweep HP drip +10
-72. Wave preview ghosts only for next wave
-73. Alarm disabled until one firearm looted (soft)
-74. Checklist: guns / mines / covers
-75. Briefing: “loot then hold”
-76. Journal stamps per wave
-77. Credits mention sweep
-78. Android throw buttons
-79. Perf: stash cap
-80. Headless probe: grenade kill
-81. Headless probe: decoy pause
-82. Headless probe: mine inventory
-83. Move speed while carrying loot pile (flavor)
-84. Facing lock while in cover until A/D
-85. Camera follow selected op
-86. Double-tap cover to face route
-87. Minimap dots for crates
-88. Colorblind crate icons
-89. VO barks: 有匣 / 雷好了 / 下一波
-90. Slow-mo last enemy of a wave
-91. Extract requires walking to south mouth (optional hard mode)
-92. Seeded drop variance
-93. Save inventory mid-night (checkpoint)
-94. Photo mode
-95. Speedrun timer
-96. Accessibility: hold-to-move
-97. Localization keys
-98. Balance pass ammo counts
-99. Human playtest notes
-100. Playtest APK re-export
+42. Crate search channel 0.4s (stand still; lid opens). Smoke: `SMOKE_OK_CRATE_SEARCH`
+43. Ammo is per-gun. MG rounds sit in a pool, never load a pistol mag. `SMOKE_OK_AMMO_TYPES`
+44. T / 触控「递装」passes gun/nade/mine/decoy to the nearest teammate. `SMOKE_OK_TRANSFER`
+45. Alarm soft gate: first Space with knives warns 需枪; second press force-pulls. `SMOKE_OK_ALARM_GATE`
+46. Touch 手雷 on scout/sweep and during alert (throw along facing)
+47. Fail card: **第N波漏网：** keeps 漏网：/侧翼/敌/秒 so old fail-card smoke still matches
+48. Decoy peels one cell toward the pebble, then resumes the authored route. `SMOKE_OK_DECOY_REROUTE`
+49. H drags a corpse pile (move speed ×0.62); H again drops it
+50. Mine ghost says 埋雷 when the selected op has inventory mines, else 绊索
+51. Knife lunge slash FX on melee hits
+52. Pickup sting by kind (guns loot, nades/mines trip, decoy ui)
+53. Sweep drips +10 HP to living ops
+54. Walking past a cover pad no longer auto-snaps; only stopping on the pad cell mounts
+55. Intel chip prints 匣N 枪有/无 and the night clock
+56. First firearm crate pings (院子 flashes 先开这匣)
+57. Warehouse tut: G is grenade; 弹包 is the button; wave-2 barrel reminder
+58. Pump tut: decide the door after wave-1 sweep
+59. Railcut tut: ammo warning before the east corridor wave
+60. Depot tut: mine crate is the fourth man (still names 2.2s 绊索)
+61. Radio tut: decoy can tug the echo runner one cell
+62. Yard shotgun crate + pistol crate; dry mag falls back to pooled pistol
+63. MG rotate_by capped at 8° per tick (slow traverse)
+64. Scout knife deals ×1.25
+65. Pistol fallback after a dry primary if pistol ammo is pooled
+66. Muzzle style follows the gun (mg/scout/shotgun/pistol), not only role
+67. Move-path ghost fades after half a second
+68. Spawn ghosts show current wave + next wave only (yard still 3 ghosts)
+69. Per-night enemy drop tables
+70. Echo kit drops 电台零件 → decoy
+71. Drop table seeded by leaker/enemy id
+72. Grenade bounces once then cooks (pin heats)
+73. Hauling a corpse ticks footstep ui
+74. Wave 2+ uses `alarm_stinger` instead of the first-alarm cue
+75. Sweep plays tension bed; extract shows letterbox
+76. Last-plan restore copy: 朝向已恢复，枪要重搜
+77. Carry speed while hauling
+78. Player double-tap cover faces the next authored route (smoke announce=false keeps facing)
+79. Win star ★ 无人受伤 if nobody took return-fire/friendly nade
+80. Speedrun clock on the scout intel chip
+81. Howto/yard page: 先搜匣再埋伏; G is grenade; T/H listed
+82. Journal rows stamp 波 count
+83. Credits recap names 搜刮 / 警报 / 打扫
+84. GameSettings.few_crates skips ammo/pistol crates (off by default)
+85. `RaidLoc` Chinese key table. `SMOKE_OK_LOC`
+86. Colorblind crate silhouettes (shape + 中文 tag, not hue alone)
+87. Headless grenade kill probe. `SMOKE_OK_GRENADE_KILL`
+88. Headless decoy pause probe. `SMOKE_OK_DECOY_PAUSE`
+89. Headless mine inventory probe. `SMOKE_OK_MINE_INV`
+90. Touch 诱饵 / 递装 on the scout row; 手雷 on the alert row
+91. GameSettings.hold_to_move (hold LMB to repath)
+92. Stash node cap 12
+93. Balance: night-specific ammo/nade/mine drops, warehouse decoy crate
+94. VO barks 有匣 / 雷好了
+95. Last-runner bark already in; win letterbox on extract
+96. Fail records `_wave_fail_index` so the card names the leaking wave
+97. Intel ghosts still draw; restore hint no longer claims guns came back
+98. Human playtest notes: `docs/RAID_PLAYTEST.md`
+99. Occupancy + camera follow still in (31/32); raid contract still smokes both
+100. Playtest APK re-export attempted if the Android SDK is on the machine (non-blocking)
 
-Items 31–100 are the remaining path to “做好”. Core loop 1–30 is playable and smokable.
+## How to play now (delta vs 41)
+
+- Knives at insert. Walk onto a crate and **stand 0.4s**.
+- **Do not mix ammo.** T to pass a gun or nade.
+- Alarm wants a firearm; second press still lets you knife-leak.
+- Phone: 手雷 / 诱饵 / 递装. Alert bar has 手雷.
+- H drags bodies off the road. Sweep heals 10.
+- Fail card: 第N波漏网. Win: extra star if nobody was hit.
+
+## Remaining gaps (not a second game)
+
+- No climb / multi-floor / vehicles (contract cut).
+- Alarm still freezes walking (throw only).
+- Body drag is presentation + slow; no “spotted corpse” AI.
+- Hold-to-move and few-crates are flags, not title toggles.
+- Photo mode / mid-night inventory checkpoint / gamepad map not shipped.
