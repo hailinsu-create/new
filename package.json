@@ -1,0 +1,17 @@
+{
+  "name": "moxi-guofeng-avatar",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "墨汐：国风半身头像，文字对口型 / 表情 / 发丝二次运动",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 4173",
+    "test": "node --experimental-strip-types --no-warnings tests/viseme.test.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2",
+    "vite": "^7.1.3"
+  }
+}
