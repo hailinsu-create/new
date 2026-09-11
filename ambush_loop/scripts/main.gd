@@ -79,6 +79,7 @@ var plan_ghost_host: Node2D = null
 var fail_gap_callout: Node2D = null
 var watch_wave_chip: Label = null
 var spawn_teach_label: Label = null
+var intel_chip: Label = null
 var checklist_strip: Control = null
 var _checklist_labels: Array[Label] = []
 var _checklist_touch_layout: bool = false
@@ -251,6 +252,17 @@ func _resolve_optional_hud() -> void:
 		status_label.add_theme_font_override("font", NightOps.ui_font_bold())
 	if intel_label:
 		intel_label.add_theme_font_size_override("font_size", 13)
+		# TopBar Intel used to cross the route timeline. Count stays in
+		# intel_label.text for dumps; the painted chip sits under the strip.
+		intel_label.visible = false
+		intel_label.clip_text = true
+	var topbar := get_node_or_null("HUD/Root/TopBar") as Control
+	if topbar:
+		# Title + Status only. Third Intel line used to eat y=78–110 over the timeline.
+		topbar.offset_bottom = 70.0
+	if result_panel:
+		result_panel.z_index = 20
+		result_panel.z_as_relative = true
 	if help_label:
 		help_label.add_theme_font_size_override("font_size", 12)
 		help_label.add_theme_color_override("font_color", Color(0.68, 0.72, 0.66))
@@ -268,6 +280,7 @@ func _resolve_optional_hud() -> void:
 	extra.name = "ExtraBar"
 	extra.alignment = BoxContainer.ALIGNMENT_CENTER
 	extra.add_theme_constant_override("separation", 8)
+	extra.z_index = 0
 	extra.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	extra.offset_left = -400.0
 	extra.offset_right = 400.0
@@ -489,6 +502,7 @@ func _build_role_card_hud(root: Control) -> void:
 	spawn_teach_label.add_theme_constant_override("shadow_offset_y", 1)
 	spawn_teach_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(spawn_teach_label)
+	_ensure_intel_chip()
 	_ensure_checklist(root)
 	_pin_role_cards(_want_touch())
 
@@ -702,13 +716,24 @@ func _apply_phone_chrome(on: bool) -> void:
 	_sync_desktop_bars(not on)
 
 
+func _result_overlay_active() -> bool:
+	return (
+		result_panel != null
+		and result_panel.visible
+		and (phase == Phase.FAILED or phase == Phase.WON)
+	)
+
+
 func _sync_desktop_bars(show: bool) -> void:
 	## Touch HUD owns the command row. Never stack ExtraBar + BottomBar under it.
+	## Fail/win overlays hide the bars so the three-line card / 下一关 CTA is not buried.
+	var bars := show and not _result_overlay_active()
 	var bar: Control = get_node_or_null("HUD/Root/BottomBar") as Control
 	if bar:
-		bar.visible = show
+		bar.visible = bars
 	if extra_bar:
-		extra_bar.visible = show
+		extra_bar.visible = bars
+		extra_bar.z_index = 0
 
 
 func desktop_command_bars_visible() -> bool:
@@ -761,6 +786,14 @@ func _pin_role_cards(touch: bool) -> void:
 		var plan_h := 0.0 if touch else 56.0
 		h = 3.0 * card_min.y + seps + plan_h
 	role_box.offset_bottom = role_box.offset_top + h
+	_apply_result_rail()
+
+
+func _apply_result_rail() -> void:
+	## Fail/win: hide the left rail so the three-line card is not bitten.
+	if role_box == null or not is_instance_valid(role_box):
+		return
+	role_box.visible = not _result_overlay_active()
 
 
 func _safe_area_pad() -> Vector4:
@@ -2292,10 +2325,14 @@ func _build_ambush_zone_visual() -> void:
 	var fx = AmbushZoneFxScript.new()
 	fx.name = "AmbushZone"
 	var zone_tag := "伏击区"
+	if level != null and str(level.level_id) == "warehouse":
+		zone_tag = "伏击区 · F 入伏再打"
 	var tint := LevelDef.signature_color(level.atmosphere_id if level.atmosphere_id != "" else level.level_id)
 	fx.setup(level.ambush_zone, zone_tag, tint)
 	$World.add_child(fx)
 	ambush_zone_poly = fx
+	if level != null and str(level.level_id) == "warehouse" and fx.has_method("set_hot"):
+		fx.set_hot(true)
 
 
 func _build_door_marker() -> void:
@@ -4086,6 +4123,74 @@ func _refresh_spawn_teach() -> void:
 			text = str(level.spawn_teaching[0]).strip_edges()
 	spawn_teach_label.visible = text != ""
 	spawn_teach_label.text = text
+	_refresh_intel_chip()
+
+
+func _ensure_intel_chip() -> void:
+	if intel_chip != null and is_instance_valid(intel_chip):
+		return
+	var root: Control = get_node_or_null("HUD/Root") as Control
+	if root == null:
+		return
+	var lab := Label.new()
+	lab.name = "IntelChip"
+	lab.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	lab.offset_left = 220.0
+	lab.offset_top = 146.0
+	lab.offset_right = -16.0
+	lab.offset_bottom = 168.0
+	lab.autowrap_mode = TextServer.AUTOWRAP_OFF
+	lab.clip_text = true
+	lab.add_theme_font_size_override("font_size", 13)
+	lab.add_theme_font_override("font", NightOps.ui_font_bold())
+	lab.add_theme_color_override("font_color", Color(0.55, 0.88, 1.0))
+	lab.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.02, 0.92))
+	lab.add_theme_constant_override("shadow_offset_x", 1)
+	lab.add_theme_constant_override("shadow_offset_y", 1)
+	lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(lab)
+	intel_chip = lab
+
+
+func _clip_chip_line(text: String, max_chars: int = 28) -> String:
+	var t := text.strip_edges()
+	if t.length() <= max_chars:
+		return t
+	return t.substr(0, max_chars - 1) + "…"
+
+
+func _refresh_intel_chip() -> void:
+	_ensure_intel_chip()
+	if intel_chip == null:
+		return
+	var line := ""
+	if phase == Phase.SETUP:
+		if leak_advice_shown != "":
+			line = _clip_chip_line(leak_advice_shown, 28)
+		elif plan_restore_hint != "":
+			line = _clip_chip_line(plan_restore_hint, 28)
+	intel_chip.visible = line != "" and phase == Phase.SETUP
+	intel_chip.text = line
+	if _want_touch():
+		intel_chip.offset_top = 142.0
+		intel_chip.offset_bottom = 164.0
+	else:
+		intel_chip.offset_top = 146.0
+		intel_chip.offset_bottom = 168.0
+
+
+func intel_chip_text() -> String:
+	if intel_chip == null or not is_instance_valid(intel_chip) or not intel_chip.visible:
+		return ""
+	return str(intel_chip.text)
+
+
+func intel_chip_overlaps_timeline() -> bool:
+	if intel_chip == null or not intel_chip.visible or watch_timeline == null:
+		return false
+	if not is_instance_valid(intel_chip) or not is_instance_valid(watch_timeline):
+		return false
+	return intel_chip.get_global_rect().intersects(watch_timeline.get_global_rect())
 
 
 func setup_teaching_layers() -> Dictionary:
@@ -5359,6 +5464,7 @@ func _show_fail_result() -> void:
 	if result_stats:
 		result_stats.visible = false
 	_dock_fail_result_panel(fail_reason == "escape")
+	_raise_result_overlay()
 	var lines := battle_log.summary_lines(10)
 	var summary := "\n".join(lines)
 	var reason_zh: String = BattleLog.reason_zh(fail_reason)
@@ -5444,11 +5550,13 @@ func _show_win_result() -> void:
 	if result_dossier:
 		result_dossier.visible = false
 	_reset_result_panel_pos()
-	result_panel.offset_left = -340.0
-	result_panel.offset_right = 340.0
-	result_panel.offset_top = -240.0
-	result_panel.offset_bottom = 240.0
+	# Centered, shorter than ExtraBar's old bite. Bars hide while this is up.
+	result_panel.offset_left = -320.0
+	result_panel.offset_right = 320.0
+	result_panel.offset_top = -210.0
+	result_panel.offset_bottom = 190.0
 	result_panel.visible = true
+	_raise_result_overlay()
 	if title_return_button:
 		title_return_button.visible = true
 	var lines := battle_log.summary_lines(5)
@@ -5507,6 +5615,7 @@ func _show_win_result() -> void:
 	_update_hud()
 	_play_result_tone(true)
 	_fade_result_panel()
+	_raise_result_overlay()
 
 
 func _on_replay_pressed() -> void:
@@ -5996,12 +6105,17 @@ func _on_continue_pressed() -> void:
 			var line := "情报已记录 · %s" % leak
 			if advice != "":
 				line += "  ·  %s" % advice
-			intel_label.text = line
+			if intel_label:
+				intel_label.text = line
+				intel_label.visible = false
 			var col := _intel_flash_color(intel.latest_route() if intel.has_method("latest_route") else "")
-			intel_label.add_theme_color_override("font_color", col)
+			_refresh_intel_chip()
 			_flash(advice if advice != "" else ("情报 · %s" % leak), col)
 		elif intel_line != "":
-			intel_label.text = "情报已记录 · %s" % intel_line
+			if intel_label:
+				intel_label.text = "情报已记录 · %s" % intel_line
+				intel_label.visible = false
+			_refresh_intel_chip()
 			_flash("情报已记录", Color(0.55, 0.85, 1.0))
 	elif phase == Phase.WON:
 		if level_index + 1 < LEVEL_ORDER.size():
@@ -6343,37 +6457,39 @@ func _reset_result_panel_pos() -> void:
 	result_panel.offset_bottom = _result_panel_home.w
 	result_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	result_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+	result_panel.z_index = 20
+	_apply_result_rail()
 
 
-func _dock_fail_result_panel(keep_escape_visible: bool) -> void:
+func _raise_result_overlay() -> void:
 	if result_panel == null:
 		return
-	# Escape mouth is south-east; dock bottom-left so the marker stays readable.
-	# Other fails dock bottom-right, above the command bar.
-	if keep_escape_visible:
-		result_panel.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-		result_panel.anchor_left = 0.0
-		result_panel.anchor_top = 1.0
-		result_panel.anchor_right = 0.0
-		result_panel.anchor_bottom = 1.0
-		result_panel.offset_left = 16.0
-		result_panel.offset_right = 400.0
-		result_panel.offset_top = -200.0
-		result_panel.offset_bottom = -88.0
-		result_panel.grow_horizontal = Control.GROW_DIRECTION_END
-		result_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	else:
-		result_panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-		result_panel.anchor_left = 1.0
-		result_panel.anchor_top = 1.0
-		result_panel.anchor_right = 1.0
-		result_panel.anchor_bottom = 1.0
-		result_panel.offset_left = -380.0
-		result_panel.offset_right = -16.0
-		result_panel.offset_top = -200.0
-		result_panel.offset_bottom = -88.0
-		result_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-		result_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	result_panel.z_index = 50
+	result_panel.move_to_front()
+	if continue_button:
+		continue_button.custom_minimum_size = Vector2(0, 44)
+		continue_button.add_theme_font_size_override("font_size", 18)
+	_apply_result_rail()
+	_sync_desktop_bars(not _want_touch())
+
+
+func _dock_fail_result_panel(_keep_escape_visible: bool) -> void:
+	if result_panel == null:
+		return
+	# Center-bottom: left rail is hidden, ExtraBar is hidden, SE escape mouth
+	# stays to the right of a 560px card. Old bottom-left dock sat under 灰狼/夜枭.
+	result_panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	result_panel.anchor_left = 0.5
+	result_panel.anchor_top = 1.0
+	result_panel.anchor_right = 0.5
+	result_panel.anchor_bottom = 1.0
+	result_panel.offset_left = -280.0
+	result_panel.offset_right = 280.0
+	result_panel.offset_top = -248.0
+	result_panel.offset_bottom = -16.0
+	result_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	result_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_raise_result_overlay()
 
 
 func result_panel_covers_escape() -> bool:
@@ -6385,6 +6501,29 @@ func result_panel_covers_escape() -> bool:
 		for oy in [-24.0, 0.0, 24.0]:
 			if panel_rect.has_point(esc + Vector2(ox, oy)):
 				return true
+	return false
+
+
+func fail_card_bitten_by_rail() -> bool:
+	## True if the three-line fail card intersects the left operator dock.
+	if result_panel == null or not result_panel.visible:
+		return false
+	if role_box == null or not is_instance_valid(role_box) or not role_box.visible:
+		return false
+	return result_panel.get_global_rect().intersects(role_box.get_global_rect())
+
+
+func result_cta_buried_by_bars() -> bool:
+	if result_panel == null or not result_panel.visible or continue_button == null:
+		return false
+	if not continue_button.visible:
+		return false
+	var cta := continue_button.get_global_rect()
+	if extra_bar != null and extra_bar.visible and extra_bar.get_global_rect().intersects(cta):
+		return true
+	var bar: Control = get_node_or_null("HUD/Root/BottomBar") as Control
+	if bar != null and bar.visible and bar.get_global_rect().intersects(cta):
+		return true
 	return false
 
 
@@ -6402,12 +6541,16 @@ func _update_hud() -> void:
 		# letterbox and escape mouth stay clear. Never a paragraph over the map.
 		help_label.visible = phase == Phase.SETUP and not _want_touch()
 	_refresh_spawn_teach()
+	# Short dump string only. Painted advice lives on intel_chip under the timeline.
 	var intel_txt := "漏网记忆：%d   |   %s" % [intel.records.size(), _ammo_summary()]
 	if intel.latest_line() != "" and (phase == Phase.SETUP or phase == Phase.FAILED):
 		intel_txt += "   ·   %s" % intel.latest_line()
 	if leak_advice_shown != "" and phase == Phase.SETUP:
 		intel_txt += "   ·   %s" % leak_advice_shown
-	intel_label.text = intel_txt
+	if intel_label:
+		intel_label.text = intel_txt
+		intel_label.visible = false
+	_refresh_intel_chip()
 	_refresh_phase_chip()
 	_refresh_route_legend()
 	_refresh_watch_timeline()
@@ -6460,7 +6603,9 @@ func _tick_pending_wave_tension() -> void:
 		return
 	var remain := float(info.get("remain", 99.0))
 	var wid := int(info.get("id", -1))
-	if remain > 1.25 or remain <= 0.0:
+	var echo := str(info.get("route", "")) == "echo" or str(info.get("kit", "")) == "echo"
+	var window := 2.6 if echo else 1.25
+	if remain > window or remain <= 0.0:
 		return
 	if wid == _wave_tension_id:
 		return
@@ -6480,6 +6625,14 @@ func watch_pending_breathing() -> bool:
 			return true
 	if route_timeline != null and is_instance_valid(route_timeline) and route_timeline.has_method("pending_breathing"):
 		return bool(route_timeline.call("pending_breathing"))
+	return false
+
+
+func echo_wait_breathing() -> bool:
+	if watch_timeline == null or not is_instance_valid(watch_timeline):
+		return false
+	if watch_timeline.has_method("echo_mark_pending"):
+		return bool(watch_timeline.call("echo_mark_pending"))
 	return false
 
 
@@ -6695,6 +6848,7 @@ func _update_cover_previews() -> void:
 
 
 func _update_role_cards() -> void:
+	_apply_result_rail()
 	if role_box:
 		role_box.modulate = Color(1, 1, 1, 0.45) if phase == Phase.REPLAY else Color.WHITE
 	for i in role_cards.size():
