@@ -234,6 +234,7 @@ func apply_fire(amount: float, from: OperatorUnit = null) -> void:
 		kill()
 	else:
 		CombatFxScript.impact(self, global_position, _kind_color.lightened(0.25), false)
+		_play_hit_sfx()
 
 
 func kill() -> void:
@@ -357,6 +358,15 @@ func _ensure_contact_shadow() -> void:
 	core.position = Vector2(1.1, 0.8)
 	core.color = Color(0.02, 0.01, 0.01, a0 * 1.2)
 	core.visible = visible and not (gs != null and gs.has_method("is_power_saving") and bool(gs.is_power_saving()))
+
+
+func _play_hit_sfx() -> void:
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null:
+		return
+	var audio = tree.root.get_node_or_null("/root/AudioDirector")
+	if audio and audio.has_method("play"):
+		audio.play("hit")
 
 
 func kind_id() -> String:

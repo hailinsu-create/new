@@ -1671,7 +1671,20 @@ func _assert_sfx(main) -> bool:
 		push_error("SMOKE_UI_SELECT_CUE %s" % main.sfx.last_cue)
 		quit(36)
 		return false
-	print("SMOKE_OK_SFX cues=role_fire muted=", main.sfx.muted, " every_shot=1 ui=1")
+	if not main.sfx.has_cue("hit"):
+		push_error("SMOKE_NO_HIT_CUE")
+		quit(36)
+		return false
+	var hp0: float = float(main.operators[0].hp)
+	main.operators[0].take_damage(4.0)
+	if str(main.sfx.last_cue) != "hit":
+		push_error("SMOKE_HIT_CUE %s" % main.sfx.last_cue)
+		quit(36)
+		return false
+	main.operators[0].hp = hp0
+	main.operators[0].alive = true
+	main.operators[0]._apply_body_modulate()
+	print("SMOKE_OK_SFX cues=role_fire muted=", main.sfx.muted, " every_shot=1 ui=1 hit=1")
 	return true
 
 

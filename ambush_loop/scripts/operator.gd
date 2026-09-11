@@ -417,6 +417,16 @@ func take_damage(amount: float, from_pos: Vector2 = Vector2.INF) -> void:
 		_die()
 	else:
 		CombatFxScript.impact(self, global_position, Color(1.0, 0.55, 0.32), false)
+		_play_hit_sfx()
+
+
+func _play_hit_sfx() -> void:
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null:
+		return
+	var audio = tree.root.get_node_or_null("/root/AudioDirector")
+	if audio and audio.has_method("play"):
+		audio.play("hit")
 
 
 func cover_idle_planted() -> bool:

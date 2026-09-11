@@ -6,7 +6,7 @@ extends Node
 const MIX_RATE := 22050
 const CUES := [
 	"alarm", "alarm_stinger", "fire", "fire_mg", "fire_scout", "return_fire", "empty", "loot", "op_death", "escape", "fail", "win",
-	"win_stinger", "door", "trip", "barrel", "kill", "ui",
+	"win_stinger", "door", "trip", "barrel", "kill", "hit", "ui",
 	"ambient_yard", "ambient_warehouse", "ambient_pump", "ambient_railcut", "ambient_depot"
 ]
 
@@ -134,6 +134,8 @@ func _gain(cue: String) -> float:
 			return -14.0
 		"ui":
 			return -20.0
+		"hit":
+			return -18.0
 		"ambient_yard":
 			return -28.0
 		"ambient_warehouse":
@@ -186,6 +188,8 @@ func _build_stream(cue: String) -> AudioStreamWAV:
 			return _pcm(_kill())
 		"ui":
 			return _pcm(_ui_click())
+		"hit":
+			return _pcm(_hit())
 		"ambient_yard":
 			return _pcm(_ambient_yard())
 		"ambient_warehouse":
@@ -386,6 +390,10 @@ func _ui_click() -> PackedFloat32Array:
 		_tone(240.0, 0.018, 0.10, 0.02),
 		_tone(420.0, 0.022, 0.08, 0.01),
 	])
+
+
+func _hit() -> PackedFloat32Array:
+	return _tone(340.0, 0.018, 0.12, 0.16)
 
 
 func _rumble(sec: float, amp: float, freq: float) -> PackedFloat32Array:
