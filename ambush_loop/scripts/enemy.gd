@@ -59,6 +59,7 @@ var _base_poly: PackedVector2Array = PackedVector2Array()
 var _last_move_dir: Vector2 = Vector2(0, 1)
 var _outline_boost: bool = false
 var _fade_corpse: bool = false
+var _last_runner: bool = false
 
 @onready var body: Polygon2D = $Body
 @onready var tag: Label = $Tag
@@ -107,6 +108,15 @@ func play_spawn_pop() -> void:
 	_hit_punch = 0.85
 	var tint := _kind_rim_color()
 	CombatFxScript.spawn_pop(self, global_position, tint)
+
+
+func set_last_runner(on: bool) -> void:
+	_last_runner = on and alive and active
+	_outline_boost = _last_runner
+
+
+func last_runner_highlighted() -> bool:
+	return _last_runner
 
 
 func maybe_branch(door_locked: bool, decision_world: Vector2, alt_world: PackedVector2Array, blocked_route: String) -> bool:
@@ -548,8 +558,12 @@ func _refresh_kind_rim() -> void:
 		var loop := pts.duplicate()
 		loop.append(loop[0])
 		kind_rim.points = loop
-	kind_rim.width = 2.2 if _is_power_saving() else 2.8
-	kind_rim.default_color = _kind_rim_color()
+	kind_rim.width = (3.6 if _last_runner else 2.2) if _is_power_saving() else (4.2 if _last_runner else 2.8)
+	var rim_c := _kind_rim_color()
+	if _last_runner:
+		var pulse := 0.55 + 0.45 * sin(_present_t * 8.0)
+		rim_c = Color(1.0, 0.92, 0.42, pulse).lerp(rim_c, 0.25)
+	kind_rim.default_color = rim_c
 	kind_rim.visible = true
 	kind_rim.rotation = body.rotation
 	if moon_rim == null or not is_instance_valid(moon_rim):

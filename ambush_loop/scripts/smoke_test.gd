@@ -2460,10 +2460,26 @@ func _assert_unit_anim(main) -> bool:
 		push_error("SMOKE_ENEMY_KINDS_IDENTICAL")
 		quit(55)
 		return false
+	if not probe.has_method("set_last_runner") or not probe.has_method("last_runner_highlighted"):
+		probe.queue_free()
+		flank.queue_free()
+		sneak.queue_free()
+		push_error("SMOKE_NO_LAST_RUNNER")
+		quit(55)
+		return false
+	probe.activate()
+	probe.set_last_runner(true)
+	if not bool(probe.last_runner_highlighted()):
+		probe.queue_free()
+		flank.queue_free()
+		sneak.queue_free()
+		push_error("SMOKE_LAST_RUNNER_OFF")
+		quit(55)
+		return false
 	probe.queue_free()
 	flank.queue_free()
 	sneak.queue_free()
-	print("SMOKE_OK_ANIM walk_bob_hook weapon=1")
+	print("SMOKE_OK_ANIM walk_bob_hook weapon=1 last_runner=1")
 	main._select_op(0)
 	main._deploy_selected_to(main.cover_slots[0], false)
 	if not main.operators[0].has_method("cover_idle_planted") or not bool(main.operators[0].cover_idle_planted()):

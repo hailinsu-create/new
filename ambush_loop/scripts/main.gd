@@ -3983,6 +3983,7 @@ func _process(delta: float) -> void:
 			break
 		_sim_tick()
 	hud_tick += delta
+	_tick_last_enemy_highlight()
 	_refresh_phase_chip()
 	if hud_tick >= 0.20:
 		hud_tick = 0.0
@@ -5575,6 +5576,25 @@ func _update_hud() -> void:
 		_update_cover_previews()
 	_apply_watch_layers()
 	_refresh_touch_hud()
+
+
+func _pending_unspawned() -> int:
+	var n := 0
+	for spec in pending_spawns:
+		if spec is Dictionary and not bool(spec.get("spawned", false)):
+			n += 1
+	return n
+
+
+func _tick_last_enemy_highlight() -> void:
+	var live: Array = []
+	for e in enemies:
+		if e != null and is_instance_valid(e) and e.alive and e.active:
+			live.append(e)
+	var mark := live.size() == 1 and _pending_unspawned() == 0
+	for e in enemies:
+		if e != null and is_instance_valid(e) and e.has_method("set_last_runner"):
+			e.set_last_runner(mark and e.alive and e.active)
 
 
 func watch_census_text() -> String:
