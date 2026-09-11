@@ -32,7 +32,7 @@ not a Commandos clone. Full contract: `docs/COMMANDOS_RAID.md`.
 | Isometric / pixel Commandos art | Geometry + labels only; no art pipeline |
 | Steam/itch store page + CI export artifacts | Presets ship; builds are local (export templates required) |
 | Human playtest pass | Smoke is the regression gate, not a player report |
-| Mid-mission Commandos verbs | Climb, knife, distract, vehicles, multi-floor — explicitly out of design |
+| Climb / vehicles / multi-floor | Night-raid slice stays one floor; knife, mine, grenade, decoy shipped |
 | Real audio mix / VO / soundtrack | Quiet drone + beeps; Dummy driver in headless |
 
 Launch-bar checklist: `docs/LAUNCH_BAR.md`.  
