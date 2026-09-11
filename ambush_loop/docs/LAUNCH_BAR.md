@@ -4,7 +4,7 @@ Target: **indie Commandos-lite / Into-the-Breach-adjacent Steam early access ave
 
 Hard rules that must stay true: alarm freezes plan; no mid-fight micro; authored routes; escape/wipe fail; intel+plan across loops.
 
-## Score (this cut): **7.6 / 10**
+## Score (this cut): **7.7 / 10**
 
 Phase A presentation work is in (night floor grain, role silhouettes + motion, SETUP vs WATCHING route dim, Music/SFX sliders, per-level tutorials, 终局摘要). **Art/anim pass (procedural):** cooler asphalt with scrap, brick rim-light walls, idle bob / muzzle / death marks, title dust + CTA pulse, alarm rim + result desaturate. Score is **not 8** yet: no human playtest log of “typical fail → fix” on all five yards, and there is still no sprite pipeline. Treat 7.5 as honest progress toward the 8/10 presentation bar.
 
@@ -15,6 +15,7 @@ Average similar-game launch: title that lists missions, keyboard legend, quit co
 | **7** | Mission select + lock/clear from save, looping bed + SFX bus, win debrief, role glyphs, facing chevrons, full key table, quit confirm. Matches a small tactics Steam page that is honest about scope. |
 | **7.5** | Phase A code in: procedural art/anim pass (asphalt scrap, rim-lit walls, idle bob, muzzle, death X, title particles), WATCHING route dim, Music/SFX mix, warehouse/pump tutorial pages, Chinese 终局摘要. Not playtested as a set. |
 | **7.6** | Campaign journal on title, six-night credits recap, fail intel wall, second-layer trap callouts, radio echo kit actually queued, layered mood beds. Still no human playtest log. |
+| **7.7** | Night-to-night letterbox handoff, dashed second-layer trap path, fail leak paint + 缺口 callout, stars/horizon lights, handoff/leak/night-enter stings. Still no human playtest log. |
 | Not 8+ | No FOW, no human balance record, still no sprite pipeline or VO. Six authored nights are in (`railcut` + `depot` + `radio`); 8+ still wants playtest. |
 
 ## Launch bar (this cut)
@@ -28,7 +29,7 @@ Average similar-game launch: title that lists missions, keyboard legend, quit co
 | A5 | 开始行动 → **mission list** (6 levels, lock / 可出击 / 首通 from `ambush_loop.cfg`) → briefing → `main.tscn`. Sequential unlock; cannot skip locked | Done |
 | B6 | Autoload `GameSettings`: mute, **music_volume / sfx_volume** 0–1 (migrates old master), per-level `seen_*` tutorials with legacy `seen_tutorial` bool | Done |
 | B7 | In-game Esc pause/settings (mute, Music/SFX sliders, 返回标题, 重新部署 SETUP-only). M toggles mute. Title Esc / 退出 → quit confirm (设置 still reachable) | Done |
-| B8 | Progress save + settings; campaign complete → credits recap of six nights → title. Title **战役档案** keeps the six-night dossier after credits. Win records `cleared` and unlocks the next id | Done |
+| B8 | Progress save + settings; campaign complete → credits recap of six nights → title. Title **战役档案** keeps the six-night dossier after credits (封印邮戳). Win records `cleared` and unlocks the next id. **下一关** plays a night-handoff letterbox (headless skips) | Done |
 | C9 | First visit per level: yard 3-step; warehouse F/G/barrel; pump B/flank; railcut dual-corridor delay; depot three-route + 2.2s west sneak + tripwire; radio 3.6s sneak + 5.2s echo + tripwire. Page 1 cannot be skipped via dimmer; auto-mark seen on dismiss | Done |
 | C10 | Existing `tut_label` kept as secondary tip | Done |
 | D11 | Left operator cards: name/role **glyph**, ammo, HP, fire mode, slot or 未部署; click select; highlight; matching glyph on the map | Done |
