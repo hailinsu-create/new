@@ -270,18 +270,28 @@ func _apply_mood_mute() -> void:
 
 
 func _build_bed_wav() -> AudioStreamWAV:
-	## ~1.6s looping dual-drone with a slow pulse. Very quiet.
+	## ~1.6s looping drone with 3rd harmonic + slow noise floor. Very quiet.
 	var rate := 22050
 	var sec := 1.6
 	var n := int(sec * rate)
 	var data := PackedByteArray()
 	data.resize(n * 2)
+	var nacc := 0.0
+	var fade_n := mini(400, int(n / 8))
 	for i in n:
 		var t := float(i) / float(rate)
 		var pulse := 0.62 + 0.38 * sin(t * TAU * 0.625)
 		var s := sin(t * TAU * 46.0) * 0.016 * pulse
 		s += sin(t * TAU * 69.0) * 0.011 * pulse
 		s += sin(t * TAU * 92.5) * 0.005
+		s += sin(t * TAU * 138.0) * 0.004 * pulse
+		nacc = nacc * 0.98 + (randf() * 2.0 - 1.0) * 0.02
+		var edge := 1.0
+		if i < fade_n:
+			edge = float(i) / float(fade_n)
+		elif i > n - fade_n:
+			edge = float(n - 1 - i) / float(fade_n)
+		s += nacc * 0.0045 * edge
 		var v := int(clampf(s, -1.0, 1.0) * 32767.0)
 		data.encode_s16(i * 2, v)
 	var st := AudioStreamWAV.new()
@@ -306,60 +316,139 @@ func _build_mood_wav(level_id: String) -> AudioStreamWAV:
 	var n := int(sec * rate)
 	var data := PackedByteArray()
 	data.resize(n * 2)
-	var f1 := 46.0
-	var f2 := 69.0
-	var f3 := 92.5
+	var id := str(level_id)
+	var f1 := 52.0
+	var f2 := 78.0
+	var f3 := 104.0
+	var f4 := 156.0
 	var a1 := 0.014
 	var a2 := 0.009
 	var a3 := 0.004
+	var a4 := 0.003
 	var pulse_hz := 0.55
-	match str(level_id):
+	var noise_amp := 0.0035
+	match id:
 		"warehouse":
+			# Inharmonic metal stack.
 			f1 = 90.0
-			f2 = 128.0
-			f3 = 48.0
+			f2 = 143.0
+			f3 = 211.0
+			f4 = 48.0
 			a1 = 0.012
+			a2 = 0.007
+			a3 = 0.004
+			a4 = 0.006
 			pulse_hz = 0.38
+			noise_amp = 0.0045
 		"pump":
+			# Locked 58Hz electrical hum.
 			f1 = 58.0
 			f2 = 116.0
-			f3 = 29.0
-			a1 = 0.013
-			pulse_hz = 0.90
-		"railcut":
-			f1 = 210.0
-			f2 = 105.0
-			f3 = 420.0
-			a1 = 0.010
+			f3 = 174.0
+			f4 = 232.0
+			a1 = 0.016
+			a2 = 0.008
 			a3 = 0.003
+			a4 = 0.0015
+			pulse_hz = 0.90
+			noise_amp = 0.0025
+		"railcut":
+			# Higher rail drone; clicks mixed in below.
+			f1 = 210.0
+			f2 = 315.0
+			f3 = 420.0
+			f4 = 105.0
+			a1 = 0.009
+			a2 = 0.004
+			a3 = 0.003
+			a4 = 0.006
 			pulse_hz = 1.35
+			noise_amp = 0.003
 		"depot":
+			# Low diesel idle.
 			f1 = 32.0
 			f2 = 48.0
-			f3 = 18.0
+			f3 = 64.0
+			f4 = 18.0
 			a1 = 0.016
+			a2 = 0.010
+			a3 = 0.006
+			a4 = 0.008
 			pulse_hz = 0.28
+			noise_amp = 0.006
 		"radio":
-			f1 = 880.0
-			f2 = 220.0
+			# High thin carrier; morse rides 880.
+			f1 = 1760.0
+			f2 = 880.0
 			f3 = 440.0
-			a1 = 0.006
-			a2 = 0.008
-			a3 = 0.004
+			f4 = 220.0
+			a1 = 0.004
+			a2 = 0.007
+			a3 = 0.003
+			a4 = 0.002
 			pulse_hz = 1.8
+			noise_amp = 0.004
 		_:
+			# Yard mid drone.
 			f1 = 52.0
 			f2 = 78.0
 			f3 = 104.0
+			f4 = 156.0
+	var nacc := 0.0
+	var fade_n := mini(400, int(n / 8))
 	for i in n:
 		var t := float(i) / float(rate)
 		var pulse := 0.62 + 0.38 * sin(t * TAU * pulse_hz)
-		var s := sin(t * TAU * f1) * a1 * pulse
-		s += sin(t * TAU * f2) * a2 * pulse
-		s += sin(t * TAU * f3) * a3
-		if str(level_id) == "radio":
-			var morse := 1.0 if fmod(t * 1.8, 1.0) < 0.18 or (fmod(t * 1.8, 1.0) > 0.32 and fmod(t * 1.8, 1.0) < 0.44) else 0.22
-			s *= morse
+		var s := 0.0
+		if id == "radio":
+			var mt := fmod(t * (4.0 / sec), 1.0)
+			var gate := 1.0 if mt < 0.12 or (mt > 0.22 and mt < 0.34) or (mt > 0.50 and mt < 0.78) else 0.16
+			s = sin(t * TAU * f1) * a1
+			s += sin(t * TAU * f2) * a2 * gate * pulse
+			s += sin(t * TAU * f3) * a3 * 0.55
+		elif id == "depot":
+			var chug := 0.72 + 0.28 * pow(0.5 + 0.5 * sin(t * TAU * 8.2), 4.0)
+			s = sin(t * TAU * f1) * a1 * pulse
+			s += sin(t * TAU * f2) * a2 * pulse
+			s += sin(t * TAU * f3) * a3
+			s += sin(t * TAU * f4) * a4 * pulse
+			s *= chug
+		elif id == "warehouse":
+			s = sin(t * TAU * f1) * a1 * pulse
+			s += sin(t * TAU * f2) * a2 * pulse
+			s += sin(t * TAU * f3) * a3
+			s += sin(t * TAU * f4) * a4 * pulse
+			var ping_t := fmod(t + 0.15, 0.9)
+			if ping_t < 0.05:
+				var pe := 1.0 - ping_t / 0.05
+				s += sin(t * TAU * 1280.0) * 0.006 * pe * pe
+		elif id == "railcut":
+			s = sin(t * TAU * f1) * a1 * pulse
+			s += sin(t * TAU * f2) * a2 * pulse
+			s += sin(t * TAU * f3) * a3
+			s += sin(t * TAU * f4) * a4 * pulse
+			var ct := fmod(t * (4.0 / sec), 1.0)
+			if ct < 0.045:
+				var ce := 1.0 - ct / 0.045
+				s += sin(t * TAU * 1680.0) * 0.008 * ce
+				s += (randf() * 2.0 - 1.0) * 0.01 * ce
+		elif id == "pump":
+			s = sin(t * TAU * 58.0) * (a1 * pulse + 0.004)
+			s += sin(t * TAU * f2) * a2 * pulse
+			s += sin(t * TAU * f3) * a3
+			s += sin(t * TAU * f4) * a4
+		else:
+			s = sin(t * TAU * f1) * a1 * pulse
+			s += sin(t * TAU * f2) * a2 * pulse
+			s += sin(t * TAU * f3) * a3
+			s += sin(t * TAU * f4) * a4 * pulse
+		nacc = nacc * 0.97 + (randf() * 2.0 - 1.0) * 0.03
+		var edge := 1.0
+		if i < fade_n:
+			edge = float(i) / float(fade_n)
+		elif i > n - fade_n:
+			edge = float(n - 1 - i) / float(fade_n)
+		s += nacc * noise_amp * edge
 		var v := int(clampf(s, -1.0, 1.0) * 32767.0)
 		data.encode_s16(i * 2, v)
 	var st := AudioStreamWAV.new()
@@ -371,3 +460,4 @@ func _build_mood_wav(level_id: String) -> AudioStreamWAV:
 	st.loop_begin = 0
 	st.loop_end = n
 	return st
+
