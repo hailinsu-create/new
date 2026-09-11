@@ -3282,6 +3282,27 @@ func _assert_iteration_slice(main) -> bool:
 		quit(71)
 		return false
 	print("SMOKE_OK_BEST_LOOPS")
+	if not main.has_method("replay_has_cone") or not main.has_method("_add_replay_marker"):
+		push_error("SMOKE_NO_REPLAY_CONE_API")
+		quit(71)
+		return false
+	if main.replay_layer == null:
+		push_error("SMOKE_NO_REPLAY_LAYER")
+		quit(71)
+		return false
+	main._clear_replay_layer()
+	main._add_replay_marker(Vector2(80, 80), Color(0.52, 0.72, 0.92), "队员1", true, false, 0.0, true, false)
+	if not bool(main.replay_has_cone()):
+		push_error("SMOKE_REPLAY_NO_CONE")
+		quit(71)
+		return false
+	main._add_replay_marker(Vector2(120, 80), Color(0.75, 0.22, 0.2), "敌1", false, false, 90.0, false, true)
+	if not bool(main.replay_has_kill_stamp()):
+		push_error("SMOKE_REPLAY_NO_STAMP")
+		quit(71)
+		return false
+	main._clear_replay_layer()
+	print("SMOKE_OK_REPLAY_CONE")
 	return true
 
 

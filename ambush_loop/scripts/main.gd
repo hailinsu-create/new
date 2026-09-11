@@ -4550,10 +4550,24 @@ func _snapshot_data() -> Dictionary:
 	var ops := []
 	for op in operators:
 		if op.visible:
-			ops.append({"id": op.op_id, "hp": op.hp, "ammo": op.ammo, "alive": op.alive, "pos": op.global_position})
+			ops.append({
+				"id": op.op_id,
+				"hp": op.hp,
+				"ammo": op.ammo,
+				"alive": op.alive,
+				"pos": op.global_position,
+				"facing": op.facing_deg,
+				"role": op.role,
+			})
 	var ens := []
 	for e in enemies:
-		ens.append({"id": e.label_id, "hp": e.hp, "alive": e.alive, "pos": e.global_position})
+		ens.append({
+			"id": e.label_id,
+			"hp": e.hp,
+			"alive": e.alive,
+			"pos": e.global_position,
+			"route": e.spawn_route,
+		})
 	var bars := []
 	for b in barrels:
 		if is_instance_valid(b):
@@ -5221,7 +5235,16 @@ func _paint_replay_snapshot(snap: Dictionary) -> void:
 		var col := op.body_color if op != null else Color(0.35, 0.65, 0.95)
 		var alive := bool(o["alive"])
 		var hot := replay_focus_actor == int(o["id"]) and replay_focus_type in ["fire", "empty", "op_down", "loot", "ambush_armed", "repack", "return_fire", "no_engage"]
-		_add_replay_marker(o["pos"], col if alive else Color(0.3, 0.3, 0.32), "队员%d" % int(o["id"]), alive, hot)
+		_add_replay_marker(
+			o["pos"],
+			col if alive else Color(0.3, 0.3, 0.32),
+			"队员%d" % int(o["id"]),
+			alive,
+			hot,
+			float(o.get("facing", 90.0)),
+			true,
+			not alive
+		)
 	for e in data.get("enemies", []):
 		var alive := bool(e["alive"])
 		var hot := replay_focus_actor == int(e["id"]) and replay_focus_type in ["spawn", "kill", "escape", "fire", "return_fire", "trip", "route_choice", "no_engage"]
@@ -5230,7 +5253,10 @@ func _paint_replay_snapshot(snap: Dictionary) -> void:
 			Color(0.75, 0.22, 0.2) if alive else Color(0.35, 0.35, 0.38, 0.7),
 			"敌%d" % int(e["id"]),
 			alive,
-			hot
+			hot,
+			90.0,
+			false,
+			not alive
 		)
 	for b in data.get("barrels", []):
 		var spent := bool(b.get("spent", false))
@@ -5243,7 +5269,16 @@ func _paint_replay_snapshot(snap: Dictionary) -> void:
 		)
 
 
-func _add_replay_marker(pos: Vector2, color: Color, label: String, alive: bool, focused: bool = false) -> void:
+func _add_replay_marker(
+	pos: Vector2,
+	color: Color,
+	label: String,
+	alive: bool,
+	focused: bool = false,
+	facing: float = 90.0,
+	draw_cone: bool = false,
+	kill_stamp: bool = false
+) -> void:
 	var n := Node2D.new()
 	n.position = pos
 	if focused:
@@ -5255,10 +5290,34 @@ func _add_replay_marker(pos: Vector2, color: Color, label: String, alive: bool, 
 		halo.polygon = hpts
 		halo.color = Color(1.0, 0.92, 0.25, 0.38)
 		n.add_child(halo)
+	if draw_cone and alive:
+		var cone := Polygon2D.new()
+		cone.name = "ReplayCone"
+		var pts := PackedVector2Array([Vector2.ZERO])
+		for i in 8:
+			var t := lerpf(-26.0, 26.0, float(i) / 8.0)
+			var rad := deg_to_rad(facing + t)
+			pts.append(Vector2(cos(rad), sin(rad)) * 54.0)
+		cone.polygon = pts
+		cone.color = Color(color.r, color.g, color.b, 0.22)
+		n.add_child(cone)
 	var body := Polygon2D.new()
 	body.polygon = PackedVector2Array([Vector2(0, -10), Vector2(8, 8), Vector2(-8, 8)])
 	body.color = Color(1.0, 0.9, 0.3) if focused else color
 	n.add_child(body)
+	if kill_stamp:
+		var x1 := Line2D.new()
+		x1.name = "KillStamp"
+		x1.width = 2.4
+		x1.default_color = Color(1.0, 0.82, 0.32, 0.92)
+		x1.points = PackedVector2Array([Vector2(-8, -8), Vector2(8, 8)])
+		n.add_child(x1)
+		var x2 := Line2D.new()
+		x2.name = "KillStamp2"
+		x2.width = 2.4
+		x2.default_color = Color(1.0, 0.82, 0.32, 0.92)
+		x2.points = PackedVector2Array([Vector2(8, -8), Vector2(-8, 8)])
+		n.add_child(x2)
 	var t := Label.new()
 	t.text = label if alive else "%s·亡" % label
 	t.position = Vector2(-18, -28)
@@ -5266,6 +5325,24 @@ func _add_replay_marker(pos: Vector2, color: Color, label: String, alive: bool, 
 	t.add_theme_color_override("font_color", Color(1.0, 0.92, 0.4) if focused else color)
 	n.add_child(t)
 	replay_layer.add_child(n)
+
+
+func replay_has_cone() -> bool:
+	if replay_layer == null:
+		return false
+	for c in replay_layer.get_children():
+		if c.get_node_or_null("ReplayCone") != null:
+			return true
+	return false
+
+
+func replay_has_kill_stamp() -> bool:
+	if replay_layer == null:
+		return false
+	for c in replay_layer.get_children():
+		if c.get_node_or_null("KillStamp") != null:
+			return true
+	return false
 
 
 func _clear_replay_layer() -> void:
