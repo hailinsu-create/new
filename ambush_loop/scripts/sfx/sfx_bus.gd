@@ -5,7 +5,7 @@ extends Node
 
 const MIX_RATE := 22050
 const CUES := [
-	"alarm", "alarm_stinger", "fire", "return_fire", "empty", "loot", "op_death", "escape", "win",
+	"alarm", "alarm_stinger", "fire", "fire_mg", "fire_scout", "return_fire", "empty", "loot", "op_death", "escape", "win",
 	"win_stinger", "door", "trip", "barrel", "kill",
 	"ambient_yard", "ambient_warehouse", "ambient_pump", "ambient_railcut", "ambient_depot"
 ]
@@ -120,6 +120,10 @@ func _gain(cue: String) -> float:
 			return -11.0
 		"fire", "return_fire":
 			return -16.0
+		"fire_mg":
+			return -15.0
+		"fire_scout":
+			return -18.0
 		"door":
 			return -13.0
 		"trip":
@@ -150,6 +154,10 @@ func _build_stream(cue: String) -> AudioStreamWAV:
 			return _pcm(_stinger())
 		"fire":
 			return _pcm(_crack(1900.0, 0.055, 0.20))
+		"fire_mg":
+			return _pcm(_mg_burst())
+		"fire_scout":
+			return _pcm(_crack(2400.0, 0.080, 0.14))
 		"return_fire":
 			return _pcm(_crack(920.0, 0.07, 0.16))
 		"empty":
@@ -265,6 +273,16 @@ func _stinger() -> PackedFloat32Array:
 
 func _crack(freq: float, sec: float, amp: float) -> PackedFloat32Array:
 	return _tone(freq, sec, amp, 0.12)
+
+
+func _mg_burst() -> PackedFloat32Array:
+	return _concat([
+		_tone(720.0, 0.028, 0.18, 0.14),
+		_silence(0.012),
+		_tone(640.0, 0.026, 0.16, 0.12),
+		_silence(0.012),
+		_tone(580.0, 0.030, 0.15, 0.12),
+	])
 
 
 func _click() -> PackedFloat32Array:

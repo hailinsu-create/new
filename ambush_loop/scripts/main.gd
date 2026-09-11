@@ -857,9 +857,21 @@ func _sfx(cue: String) -> void:
 	sfx.play(cue)
 
 
-func _sfx_every_shot(_op: OperatorUnit = null) -> void:
-	## Every burst, not only the first-contact payoff.
-	_sfx("fire")
+func _sfx_every_shot(op: OperatorUnit = null) -> void:
+	## Every burst, not only the first-contact payoff. Kit timbre per role.
+	_sfx(fire_cue_for(op))
+
+
+func fire_cue_for(op: OperatorUnit = null) -> String:
+	if op == null:
+		return "fire"
+	match op.role:
+		OperatorUnit.Role.MG:
+			return "fire_mg"
+		OperatorUnit.Role.SCOUT:
+			return "fire_scout"
+		_:
+			return "fire"
 
 
 func _toggle_mute() -> void:

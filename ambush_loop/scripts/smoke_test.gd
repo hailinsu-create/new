@@ -1599,12 +1599,28 @@ func _assert_sfx(main) -> bool:
 		push_error("SMOKE_NO_EVERY_SHOT_SFX")
 		quit(36)
 		return false
+	if not main.sfx.has_cue("fire_mg") or not main.sfx.has_cue("fire_scout"):
+		push_error("SMOKE_NO_ROLE_FIRE_CUES")
+		quit(36)
+		return false
 	main._sfx_every_shot(main.operators[0] if not main.operators.is_empty() else null)
 	if str(main.sfx.last_cue) != "fire":
 		push_error("SMOKE_EVERY_SHOT_CUE %s" % main.sfx.last_cue)
 		quit(36)
 		return false
-	print("SMOKE_OK_SFX cues=8 muted=", main.sfx.muted, " every_shot=1")
+	if main.operators.size() >= 2:
+		main._sfx_every_shot(main.operators[1])
+		if str(main.sfx.last_cue) != "fire_mg":
+			push_error("SMOKE_MG_FIRE_CUE %s" % main.sfx.last_cue)
+			quit(36)
+			return false
+	if main.operators.size() >= 3:
+		main._sfx_every_shot(main.operators[2])
+		if str(main.sfx.last_cue) != "fire_scout":
+			push_error("SMOKE_SCOUT_FIRE_CUE %s" % main.sfx.last_cue)
+			quit(36)
+			return false
+	print("SMOKE_OK_SFX cues=role_fire muted=", main.sfx.muted, " every_shot=1")
 	return true
 
 
