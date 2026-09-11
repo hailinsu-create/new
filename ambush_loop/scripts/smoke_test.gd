@@ -3217,6 +3217,8 @@ func _assert_iteration_slice(main) -> bool:
 	print("SMOKE_OK_HIT_TICK")
 	var dry_op: OperatorUnit = main.operators[0]
 	var ammo0: int = int(dry_op.ammo)
+	var vis0: bool = bool(dry_op.visible)
+	dry_op.visible = true
 	dry_op.ammo = 0
 	dry_op._refresh_tag()
 	if not dry_op.has_method("dry_gun_visible") or not bool(dry_op.dry_gun_visible()):
@@ -3228,8 +3230,9 @@ func _assert_iteration_slice(main) -> bool:
 		quit(71)
 		return false
 	dry_op.ammo = ammo0
+	dry_op.visible = vis0
 	dry_op._refresh_tag()
-	if bool(dry_op.dry_gun_visible()):
+	if vis0 and bool(dry_op.dry_gun_visible()):
 		push_error("SMOKE_DRY_GUN_STUCK")
 		quit(71)
 		return false
@@ -3520,6 +3523,23 @@ func _assert_iteration_slice(main) -> bool:
 		quit(71)
 		return false
 	print("SMOKE_OK_LOOT_STREAK")
+	var boot: EnemyRunner = main._make_enemy(91)
+	main.entities.add_child(boot)
+	boot.setup(91, PackedVector2Array([Vector2(80, 80), Vector2(160, 80)]), main.grid, 0, "main")
+	boot.activate()
+	if not boot.has_method("_drop_boot_print"):
+		boot.queue_free()
+		push_error("SMOKE_NO_BOOT_PRINT")
+		quit(71)
+		return false
+	boot._drop_boot_print()
+	if not bool(boot.boot_print_dropped()):
+		boot.queue_free()
+		push_error("SMOKE_BOOT_PRINT_MISSING")
+		quit(71)
+		return false
+	boot.queue_free()
+	print("SMOKE_OK_BOOT_PRINT")
 	return true
 
 

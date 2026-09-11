@@ -1061,6 +1061,46 @@ func _tick_foot_dust(delta: float) -> void:
 	_ensure_foot_dust()
 	if _foot_dust:
 		_foot_dust.restart()
+	_drop_boot_print()
+
+
+func _drop_boot_print() -> void:
+	if _is_power_saving() or not alive or not active:
+		return
+	var host: Node2D = get_parent() as Node2D
+	if host == null:
+		host = self
+	var live := 0
+	for c in host.get_children():
+		if str(c.name).begins_with("BootPrint"):
+			live += 1
+	if live >= 10:
+		return
+	var n := Polygon2D.new()
+	n.name = "BootPrint"
+	n.z_index = -2
+	n.show_behind_parent = true
+	n.polygon = PackedVector2Array([
+		Vector2(-3.2, -4.5), Vector2(2.6, -4.2), Vector2(3.0, 4.8), Vector2(-2.8, 4.5)
+	])
+	n.color = Color(_kind_color.r, _kind_color.g, _kind_color.b, 0.28)
+	n.rotation = deg_to_rad(facing_deg)
+	host.add_child(n)
+	n.global_position = global_position + Vector2(0, 8)
+	var tw := n.create_tween()
+	tw.tween_interval(0.35)
+	tw.tween_property(n, "modulate:a", 0.0, 0.55)
+	tw.tween_callback(n.queue_free)
+
+
+func boot_print_dropped() -> bool:
+	var host: Node = get_parent()
+	if host == null:
+		return false
+	for c in host.get_children():
+		if str(c.name).begins_with("BootPrint"):
+			return true
+	return false
 
 
 func _ensure_foot_dust() -> void:
