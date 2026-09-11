@@ -408,6 +408,7 @@ func take_damage(amount: float, from_pos: Vector2 = Vector2.INF) -> void:
 	_hit_flash = 1.0
 	_hit_punch = 1.0
 	_hp_pulse = 1.0
+	CombatFxScript.hit_tick(self, global_position, amount * mult, Color(1.0, 0.42, 0.32), true)
 	if slot != null and from_pos != Vector2.INF and slot.protects_from(from_pos):
 		_shield_pulse = 1.0
 	_apply_body_modulate()

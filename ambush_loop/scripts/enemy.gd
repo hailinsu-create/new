@@ -255,6 +255,7 @@ func apply_fire(amount: float, from: OperatorUnit = null) -> void:
 	_update_hp_bar()
 	_apply_body_modulate()
 	_refresh_tag()
+	CombatFxScript.hit_tick(self, global_position, amount, _kind_color.lightened(0.35), false)
 	if hp <= 0.0:
 		kill()
 	else:

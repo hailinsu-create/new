@@ -3188,6 +3188,33 @@ func _assert_iteration_slice(main) -> bool:
 		quit(71)
 		return false
 	print("SMOKE_OK_SPAWN_GHOSTS n=", n_ghost)
+	var cfx: Variant = load("res://scripts/fx/combat_fx.gd")
+	if cfx == null or not (cfx as GDScript).has_method("hit_tick"):
+		push_error("SMOKE_NO_HIT_TICK")
+		quit(71)
+		return false
+	if main.operators.is_empty():
+		push_error("SMOKE_HIT_TICK_NO_OP")
+		quit(71)
+		return false
+	var tick_host: Node2D = main.entities if main.entities else main.operators[0]
+	(cfx as GDScript).hit_tick(tick_host, Vector2(80, 80), 34.0, Color(1.0, 0.86, 0.38), false)
+	var saw_tick := false
+	if tick_host:
+		for c in tick_host.get_children():
+			if str(c.name).begins_with("CfxTick"):
+				saw_tick = true
+				var amt = c.get_node_or_null("Amt")
+				if amt == null or str(amt.text).find("-34") < 0:
+					push_error("SMOKE_HIT_TICK_TEXT %s" % (amt.text if amt else "null"))
+					quit(71)
+					return false
+				break
+	if not saw_tick:
+		push_error("SMOKE_HIT_TICK_MISSING")
+		quit(71)
+		return false
+	print("SMOKE_OK_HIT_TICK")
 	return true
 
 

@@ -8,6 +8,34 @@ const PREFIX := "Cfx"
 const LIVE_CAP := 10
 
 
+static func hit_tick(host: Node2D, world_pos: Vector2, amount: float, tint: Color = Color(1.0, 0.86, 0.38), ally: bool = false) -> void:
+	## Floating damage number. Presentation only.
+	if not _ok(host) or not _budget(host, "CfxTick", 8):
+		return
+	var n := _spawn(host, "CfxTick", world_pos + Vector2(0, -10), 14)
+	var lab := Label.new()
+	lab.name = "Amt"
+	var shown := maxi(int(round(amount)), 1)
+	lab.text = "-%d" % shown
+	lab.add_theme_font_size_override("font_size", 13 if not ally else 12)
+	lab.add_theme_font_override("font", NightOps.ui_font_bold())
+	var col := Color(1.0, 0.42, 0.32) if ally else tint
+	lab.add_theme_color_override("font_color", col)
+	lab.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.02, 0.94))
+	lab.add_theme_constant_override("shadow_offset_x", 1)
+	lab.add_theme_constant_override("shadow_offset_y", 1)
+	lab.position = Vector2(-10, -8)
+	lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	n.add_child(lab)
+	if _saving():
+		n.queue_free()
+		return
+	var tw := n.create_tween()
+	tw.tween_property(n, "position", n.position + Vector2(randf_range(-6.0, 6.0), -22.0), 0.42).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(n, "modulate:a", 0.0, 0.42)
+	tw.tween_callback(n.queue_free)
+
+
 static func impact(host: Node2D, world_pos: Vector2, tint: Color = Color(1.0, 0.82, 0.38), heavy: bool = false) -> void:
 	if not _ok(host) or not _budget(host, "CfxImpact", 6):
 		return
