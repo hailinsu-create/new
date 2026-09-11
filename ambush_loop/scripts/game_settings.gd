@@ -21,6 +21,8 @@ var pending_level_id: String = ""
 var force_touch_hud: bool = false
 ## "standard" keeps current FX; "power_saving" drops particles/trails and uses sparse map tiles.
 var quality_tier: String = QUALITY_STANDARD
+var hold_to_move: bool = false
+var few_crates: bool = false
 
 
 func want_touch_controls() -> bool:

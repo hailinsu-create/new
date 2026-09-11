@@ -304,7 +304,7 @@ static func campaign_recap_body() -> String:
 		if beat != "":
 			lines.append("%s — %s" % [def.title, beat])
 	lines.append("")
-	lines.append("北区补给链第三夜已切断。灯塔停转。情报已归档。搜刮、埋伏、打扫过的那些波次，就是这场胜负。")
+	lines.append("北区补给链第三夜已切断。灯塔停转。情报已归档。搜刮组火力，埋伏拉警报，打扫带进下一波——那些波次，就是这场胜负。")
 	lines.append("")
 	lines.append("感谢游玩。")
 	return "\n".join(lines)
@@ -448,6 +448,7 @@ static func make_yard() -> LevelDef:
 		{"cell": Vector2i(10, 13), "kind": "mine", "amount": 1},
 		{"cell": Vector2i(23, 13), "kind": "ammo", "amount": 6},
 		{"cell": Vector2i(6, 17), "kind": "pistol", "amount": 8},
+		{"cell": Vector2i(18, 12), "kind": "shotgun", "amount": 4},
 	]
 	l.ambush_zone = Rect2(320, 280, 400, 160)
 	l.has_ammo_pack = false
@@ -530,6 +531,7 @@ static func make_warehouse() -> LevelDef:
 		{"cell": Vector2i(27, 13), "kind": "grenade", "amount": 2},
 		{"cell": Vector2i(10, 13), "kind": "mine", "amount": 1},
 		{"cell": Vector2i(23, 6), "kind": "ammo", "amount": 8},
+		{"cell": Vector2i(22, 9), "kind": "decoy", "amount": 1},
 	]
 	l.ambush_zone = Rect2(360, 300, 360, 200)
 	l.has_ammo_pack = true
@@ -647,7 +649,7 @@ static func make_railcut() -> LevelDef:
 	l.atmosphere_id = "railcut"
 	l.title = "第4关 · 信号楼：双走廊延迟"
 	l.teaching = "这关必须带铁砧朝北等 3.8 秒东廊。信号楼要切断两路巡轨：西廊巡卫立刻出发，东廊奔袭晚 3.8 秒才折下来。陷阱是南闸堆人——先到的西廊把弹药打空，延迟东廊再漏。核心墙挡住对射，必须分廊锁线。绊索只能铺一条。"
-	l.tutorial = "两波：西廊先打，打扫后再等东廊。核心墙挡住对射。铁砧朝北等第二波东廊。灰狼补西廊，夜枭锁南闸。地雷匣在西廊。"
+	l.tutorial = "两波：西廊先打，打扫补弹后再等东廊。核心墙挡住对射。第二波前看弹药——南闸打空会漏。铁砧朝北等东廊。地雷匣在西廊。"
 	l.escape_cell = Vector2i(31, 19)
 	# Six slots on open cells: west spine, east corridor, south mouth. No door (pump already teaches B).
 	l.cover_defs = [
@@ -727,7 +729,7 @@ static func make_depot() -> LevelDef:
 	l.atmosphere_id = "depot"
 	l.title = "第5关 · 油库：三路合围"
 	l.teaching = "油库夜班三路合围：主路巡卫、东廊奔袭、西暗道影探（晚 2.2 秒）。中间油罐挡住对射。陷阱是南闸堆人+忽略西暗道——先到的两路打空弹药，影探再从西夹缝漏。唯一绊索封西暗道（7,11 一带），弹包给铁砧。绊索就是第四人。"
-	l.tutorial = "两波：主路+东廊先到，打扫后再打西暗道。把地雷/绊索铺在 7,11（影探 2.2s）。灰狼锁主路，铁砧等东廊，夜枭看南闸。"
+	l.tutorial = "两波：主路+东廊先到，打扫后再打西暗道。地雷匣就是第四人：把地雷/绊索铺在 7,11（影探 2.2s）。灰狼锁主路，铁砧等东廊，夜枭看南闸。"
 	l.escape_cell = Vector2i(31, 19)
 	l.cover_defs = [
 		{"cell": Vector2i(6, 10), "name": "西暗道", "face": 0.0, "protect": 0.0},
@@ -811,7 +813,7 @@ static func make_radio() -> LevelDef:
 	l.atmosphere_id = "radio"
 	l.title = "第6关 · 电台：灯塔回波"
 	l.teaching = "油库切断后，电台还能把下一班叫回来。主路巡卫走灯塔脊，东廊奔袭先到一班，西暗道影探晚 3.6 秒，灯塔回波再在 5.2 秒走碟台夹缝——不是东廊那一枪。陷阱是不铺绊索：影探先从西夹缝漏。铁砧要在碟台朝南等回波，夜枭锁东廊。"
-	l.tutorial = "三波：主路+东廊，再暗道，再灯塔回波。每波之间打扫补弹。地雷封西暗道，铁砧碟台朝南等回波，夜枭锁东廊。"
+	l.tutorial = "三波：主路+东廊，再暗道，再灯塔回波。诱饵能把回波扯开一格。地雷封西暗道，铁砧碟台朝南等回波，夜枭锁东廊。"
 	l.escape_cell = Vector2i(31, 19)
 	# Unique stations vs depot: 灯塔脊 / 碟台 / 东廊. 碟台 looks south down the echo hall.
 	l.cover_defs = [

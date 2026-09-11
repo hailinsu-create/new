@@ -27,6 +27,31 @@ static func is_throwable(id: String) -> bool:
 	return id in [GRENADE, MINE, DECOY]
 
 
+static func ammo_kind_of(id: String) -> String:
+	## Firearm id that this loot feeds. Empty = not ammo / not a gun.
+	match id:
+		PISTOL, RIFLE, MG, SCOUT, SHOTGUN:
+			return id
+		"pistol_ammo":
+			return PISTOL
+		"rifle_ammo":
+			return RIFLE
+		"mg_ammo":
+			return MG
+		"scout_ammo":
+			return SCOUT
+		"shotgun_ammo":
+			return SHOTGUN
+		AMMO:
+			return ""
+		_:
+			return ""
+
+
+static func is_typed_ammo(id: String) -> bool:
+	return ammo_kind_of(id) != "" and not is_firearm(id)
+
+
 static func display_name(id: String) -> String:
 	match id:
 		KNIFE:
@@ -43,6 +68,18 @@ static func display_name(id: String) -> String:
 			return "散弹"
 		AMMO:
 			return "弹药"
+		"pistol_ammo":
+			return "手枪弹"
+		"rifle_ammo":
+			return "步枪弹"
+		"mg_ammo":
+			return "机枪弹"
+		"scout_ammo":
+			return "狙弹"
+		"shotgun_ammo":
+			return "散弹"
+		"radio_part":
+			return "电台零件"
 		GRENADE:
 			return "手雷"
 		MINE:
@@ -162,7 +199,7 @@ static func color(id: String) -> Color:
 			return Color(0.92, 0.78, 0.28)
 		PISTOL:
 			return Color(0.70, 0.70, 0.62)
-		AMMO:
+		AMMO, "pistol_ammo", "rifle_ammo", "mg_ammo", "scout_ammo", "shotgun_ammo":
 			return Color(0.92, 0.74, 0.28)
 		KNIFE:
 			return Color(0.78, 0.78, 0.72)
@@ -170,20 +207,56 @@ static func color(id: String) -> Color:
 			return Color(0.52, 0.72, 0.92)
 
 
-static func enemy_drop_for(loot_ammo: int, kit: String = "") -> Dictionary:
+static func enemy_drop_for(loot_ammo: int, kit: String = "", night_id: String = "", seed_n: int = 0) -> Dictionary:
 	if str(kit) == "echo":
-		return {"kind": AMMO, "amount": maxi(loot_ammo, 4)}
-	if loot_ammo >= 2:
-		var roll := loot_ammo % 5
-		match roll:
-			0:
-				return {"kind": GRENADE, "amount": 1}
-			1:
-				return {"kind": MINE, "amount": 1}
-			2:
-				return {"kind": PISTOL, "amount": 6}
-			_:
-				return {"kind": AMMO, "amount": maxi(loot_ammo, 3)}
-	if loot_ammo > 0:
-		return {"kind": AMMO, "amount": loot_ammo}
-	return {"kind": AMMO, "amount": 2}
+		return {"kind": "radio_part", "amount": 1}
+	var table: Array = drop_table_for_night(night_id)
+	var idx := absi(loot_ammo + seed_n) % maxi(table.size(), 1)
+	var pick: Dictionary = table[idx] if not table.is_empty() else {"kind": AMMO, "amount": 3}
+	if loot_ammo <= 0:
+		return {"kind": AMMO, "amount": 2}
+	if loot_ammo == 1:
+		return {"kind": AMMO, "amount": maxi(int(pick.get("amount", 3)), 3)}
+	return {"kind": str(pick.get("kind", AMMO)), "amount": int(pick.get("amount", maxi(loot_ammo, 3)))}
+
+
+static func drop_table_for_night(night_id: String) -> Array:
+	match str(night_id):
+		"warehouse":
+			return [
+				{"kind": AMMO, "amount": 5},
+				{"kind": GRENADE, "amount": 1},
+				{"kind": "rifle_ammo", "amount": 4},
+			]
+		"pump":
+			return [
+				{"kind": AMMO, "amount": 4},
+				{"kind": MINE, "amount": 1},
+				{"kind": GRENADE, "amount": 1},
+			]
+		"railcut":
+			return [
+				{"kind": "mg_ammo", "amount": 6},
+				{"kind": AMMO, "amount": 4},
+				{"kind": GRENADE, "amount": 1},
+			]
+		"depot":
+			return [
+				{"kind": MINE, "amount": 1},
+				{"kind": "shotgun_ammo", "amount": 3},
+				{"kind": AMMO, "amount": 5},
+			]
+		"radio":
+			return [
+				{"kind": DECOY, "amount": 1},
+				{"kind": "scout_ammo", "amount": 3},
+				{"kind": AMMO, "amount": 5},
+			]
+		_:
+			return [
+				{"kind": GRENADE, "amount": 1},
+				{"kind": MINE, "amount": 1},
+				{"kind": PISTOL, "amount": 6},
+				{"kind": AMMO, "amount": 4},
+				{"kind": AMMO, "amount": 3},
+			]

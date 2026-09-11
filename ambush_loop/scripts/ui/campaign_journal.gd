@@ -138,7 +138,8 @@ func _refresh() -> void:
 				state = "可出击"
 		var beat := str(def.campaign_beat).strip_edges()
 		var mood := LevelDef.mood_tag(def.level_id)
-		lines.append("%s  %s  [%s]" % [mood, def.title, state])
+		var waves: int = int(def.wave_count()) if def.has_method("wave_count") else 1
+		lines.append("%s  %s  [%s]  %d波" % [mood, def.title, state, waves])
 		if beat != "":
 			lines.append(beat)
 		if _board:

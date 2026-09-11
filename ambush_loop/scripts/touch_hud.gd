@@ -82,6 +82,9 @@ func _build() -> void:
 	_add(_row_setup, "fire", "开火", Color(0.55, 0.48, 0.28))
 	_add(_row_setup, "pack", "弹包", Color(0.40, 0.55, 0.40))
 	_add(_row_setup, "trip", "绊索", Color(0.55, 0.40, 0.28))
+	_add(_row_setup, "nade", "手雷", Color(0.82, 0.42, 0.18))
+	_add(_row_setup, "decoy", "诱饵", Color(0.82, 0.72, 0.28))
+	_add(_row_setup, "pass", "递装", Color(0.42, 0.62, 0.48))
 	_add(_row_setup, "door", "门锁", Color(0.50, 0.42, 0.28))
 	_add(_row_setup, "rotate_ccw", "↺", Color(0.42, 0.58, 0.36))
 	_add(_row_setup, "rotate_cw", "↻", Color(0.42, 0.58, 0.36))
@@ -94,6 +97,7 @@ func _build() -> void:
 	_row_watch.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(_row_watch)
 	_add(_row_watch, "abort", "中止", Color(0.55, 0.20, 0.20))
+	_add(_row_watch, "nade_watch", "手雷", Color(0.82, 0.42, 0.18))
 	_add(_row_watch, "skip", "终局", Color(0.42, 0.52, 0.28))
 	_add(_row_watch, "pause", "暂停", Color(0.35, 0.38, 0.42))
 	_add(_row_watch, "speed", "倍速", Color(0.35, 0.38, 0.42))
@@ -272,6 +276,14 @@ func refresh_phase(
 		_btns["pack"].disabled = (phase_name != "SETUP" and phase_name != "SWEEP") or not has_pack
 	if _btns.has("trip"):
 		_btns["trip"].disabled = phase_name != "SETUP" and phase_name != "SWEEP"
+	if _btns.has("nade"):
+		_btns["nade"].disabled = phase_name != "SETUP" and phase_name != "SWEEP"
+	if _btns.has("decoy"):
+		_btns["decoy"].disabled = phase_name != "SETUP" and phase_name != "SWEEP"
+	if _btns.has("pass"):
+		_btns["pass"].disabled = phase_name != "SETUP" and phase_name != "SWEEP"
+	if _btns.has("nade_watch"):
+		_btns["nade_watch"].disabled = phase_name != "WATCHING"
 	if _btns.has("door"):
 		_btns["door"].visible = has_door
 		_btns["door"].disabled = (phase_name != "SETUP" and phase_name != "SWEEP") or not has_door
@@ -291,7 +303,7 @@ func refresh_phase(
 
 
 func _paint_lock_states(phase_name: String) -> void:
-	var setup_cmds := ["fire", "pack", "trip", "door", "rotate_cw", "rotate_ccw", "clear", "alarm"]
+	var setup_cmds := ["fire", "pack", "trip", "nade", "decoy", "pass", "door", "rotate_cw", "rotate_ccw", "clear", "alarm"]
 	for cmd in _btns.keys():
 		var b: Button = _btns[cmd]
 		if b == null:

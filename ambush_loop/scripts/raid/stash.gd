@@ -5,11 +5,14 @@ const Weapons := preload("res://scripts/raid/weapon_catalog.gd")
 
 ## Authored map crate. Walk onto it during SCOUT/SWEEP to take the kit.
 
+const SEARCH_SECONDS := 0.4
+
 var kind: String = "ammo"
 var amount: int = 1
 var collected: bool = false
 var cell: Vector2i = Vector2i.ZERO
 var _t: float = 0.0
+var search_progress: float = 0.0
 
 var visual: Polygon2D = null
 var tag: Label = null
@@ -39,9 +42,7 @@ func _ensure_look() -> void:
 		visual.name = "Visual"
 		add_child(visual)
 	var col := Weapons.color(kind)
-	visual.polygon = PackedVector2Array([
-		Vector2(-10, -8), Vector2(10, -8), Vector2(9, 10), Vector2(-9, 10)
-	])
+	visual.polygon = _kind_poly(kind)
 	visual.color = Color(col.r * 0.55, col.g * 0.50, col.b * 0.40, 0.96)
 	if tag == null:
 		tag = get_node_or_null("Tag") as Label
@@ -63,15 +64,66 @@ func _ensure_look() -> void:
 		add_child(lid)
 
 
+func set_search_progress(p: float) -> void:
+	search_progress = clampf(p, 0.0, 1.0)
+	var lid := get_node_or_null("Lid") as Polygon2D
+	if lid:
+		lid.rotation = -0.85 * search_progress
+		lid.position.y = -6.0 * search_progress
+	if tag and search_progress > 0.02:
+		tag.text = "开匣 %d%%" % int(round(search_progress * 100.0))
+	elif tag:
+		tag.text = Weapons.tag_zh(kind)
+
+
 func _process(delta: float) -> void:
 	if collected:
 		return
 	_t += delta
 	var bob := sin(_t * 3.4) * 1.6
+	if search_progress > 0.02:
+		bob *= 0.25
 	if visual:
 		visual.position.y = bob
 	if tag:
 		tag.position.y = -22.0 + bob * 0.4
+
+
+func _kind_poly(id: String) -> PackedVector2Array:
+	## Colorblind-safe silhouettes (shape + tag, not hue alone).
+	match id:
+		"mine":
+			return PackedVector2Array([
+				Vector2(0, -11), Vector2(8, -2), Vector2(5, 10), Vector2(-5, 10), Vector2(-8, -2)
+			])
+		"grenade":
+			return PackedVector2Array([
+				Vector2(-6, -10), Vector2(6, -10), Vector2(8, 4), Vector2(0, 11), Vector2(-8, 4)
+			])
+		"decoy":
+			return PackedVector2Array([
+				Vector2(0, -11), Vector2(9, 8), Vector2(-9, 8)
+			])
+		"mg":
+			return PackedVector2Array([
+				Vector2(-12, -6), Vector2(12, -6), Vector2(12, 8), Vector2(-12, 8)
+			])
+		"scout":
+			return PackedVector2Array([
+				Vector2(-4, -11), Vector2(4, -11), Vector2(4, 11), Vector2(-4, 11)
+			])
+		"shotgun":
+			return PackedVector2Array([
+				Vector2(-11, -5), Vector2(11, -8), Vector2(11, 8), Vector2(-11, 5)
+			])
+		"pistol":
+			return PackedVector2Array([
+				Vector2(-8, -6), Vector2(6, -6), Vector2(10, 0), Vector2(6, 8), Vector2(-8, 8)
+			])
+		_:
+			return PackedVector2Array([
+				Vector2(-10, -8), Vector2(10, -8), Vector2(9, 10), Vector2(-9, 10)
+			])
 
 
 func take() -> Dictionary:

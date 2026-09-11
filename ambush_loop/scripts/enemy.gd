@@ -63,6 +63,7 @@ var _last_runner: bool = false
 var echo_kit: bool = false
 var _distract_t: float = 0.0
 var _distract_pos: Vector2 = Vector2.ZERO
+var _decoy_stepped: bool = false
 
 @onready var body: Polygon2D = $Body
 @onready var tag: Label = $Tag
@@ -74,6 +75,7 @@ func setup(id: int, p_route: PackedVector2Array, p_grid: AmbushGrid = null, p_lo
 	route = p_route.duplicate()
 	spawn_route = p_route_name
 	did_branch = false
+	_decoy_stepped = false
 	grid = p_grid
 	loot_ammo = p_loot
 	alive = true
@@ -163,6 +165,39 @@ func distract(pos: Vector2, seconds: float = 0.35) -> void:
 		return
 	_distract_pos = pos
 	_distract_t = maxf(_distract_t, seconds)
+	if not _decoy_stepped:
+		_decoy_stepped = true
+		_decoy_step_one_cell(pos)
+
+
+func _decoy_step_one_cell(pos: Vector2) -> void:
+	## Commandos pebble: peel one cell toward the noise, then resume the authored route.
+	if grid == null:
+		return
+	var cell: Vector2i = grid.world_to_cell(global_position)
+	var want: Vector2i = grid.world_to_cell(pos)
+	var dx := clampi(want.x - cell.x, -1, 1)
+	var dy := clampi(want.y - cell.y, -1, 1)
+	if dx == 0 and dy == 0:
+		return
+	if absi(want.x - cell.x) >= absi(want.y - cell.y):
+		dy = 0
+	else:
+		dx = 0
+	var next := Vector2i(cell.x + dx, cell.y + dy)
+	if not grid.in_bounds(next.x, next.y) or grid.is_blocked(next.x, next.y):
+		return
+	var world: Vector2 = grid.cell_to_world_center(next)
+	var rebuilt := PackedVector2Array()
+	rebuilt.append(global_position)
+	rebuilt.append(world)
+	if route_index < route.size():
+		for i in range(maxi(route_index, 0), route.size()):
+			rebuilt.append(route[i])
+	elif route.size() > 0:
+		rebuilt.append(route[route.size() - 1])
+	route = rebuilt
+	route_index = 1
 
 
 func sim_step(delta: float) -> void:

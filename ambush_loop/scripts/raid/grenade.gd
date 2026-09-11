@@ -14,6 +14,9 @@ var _flight: float = 0.0
 var _flight_t: float = 0.18
 var _done: bool = false
 var _t: float = 0.0
+var cooked: float = 0.0
+var cook_max: float = 0.55
+var bounced: bool = false
 
 
 func setup(from: Vector2, to: Vector2, p_fuse: float = 0.55, p_radius: float = 78.0, p_dmg: float = 78.0) -> void:
@@ -58,8 +61,18 @@ func sim_step(dt: float) -> bool:
 		global_position = _origin.lerp(target, _flight) + Vector2(0, -lift)
 		rotation = _t * 8.0
 		return false
+	if not bounced:
+		bounced = true
+		target += Vector2(8, 6)
+		_flight = 0.55
+		_flight_t = 0.10
+		return false
 	fuse -= dt
+	cooked = 1.0 - clampf(fuse / maxf(cook_max, 0.05), 0.0, 1.0)
 	global_position = target
+	var pin := get_node_or_null("Pin") as Polygon2D
+	if pin:
+		pin.modulate = Color(1.0, 0.45 + 0.55 * cooked, 0.2, 1.0)
 	if fuse <= 0.0:
 		_detonate()
 		return true

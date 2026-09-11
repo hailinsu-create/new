@@ -53,14 +53,16 @@ Cut (故意不做全 Commandos / 不做 RTS):
 | A/D / 右键 | 射界 | — |
 | Tab | 埋雷（消耗背包地雷） | — |
 | G | 丢手雷（消耗） | 丢手雷（消耗） |
-| E / 走近 | 拾取 | — |
+| T | 递给最近队友 | — |
+| H | 拖尸体（慢走） | — |
+| E / 走近 | 开匣（站定 0.4s）/ 拾取尸体 | — |
 | Space | 拉警报 / 下一波 / 撤离 | 暂停 |
 | X | — | 中止（失败，留情报） |
 | F | 见敌即打 / 入伏再打 | — |
 
 ## 掉落与背包
 
-每人：`weapon_id`、弹药、`grenades`、`mines`、`decoys`。开局只有刀。
+每人：`weapon_id`、弹药（按枪种分池，不能混用）、`grenades`、`mines`、`decoys`。开局只有刀。T 递给最近队友。
 
 地图匣：`rifle` / `mg` / `scout` / `pistol` / `shotgun` / `ammo` / `grenade` / `mine` / `decoy`。
 

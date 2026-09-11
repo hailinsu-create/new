@@ -36,6 +36,21 @@ static func hit_tick(host: Node2D, world_pos: Vector2, amount: float, tint: Colo
 	tw.tween_callback(n.queue_free)
 
 
+static func knife_lunge(host: Node2D, from: Vector2, to: Vector2) -> void:
+	if not _ok(host) or not _budget(host, "CfxLunge", 4):
+		return
+	var n := _spawn(host, "CfxLunge", from, 12)
+	var slash := Line2D.new()
+	slash.width = 2.4
+	slash.default_color = Color(0.92, 0.92, 0.78, 0.95)
+	slash.points = PackedVector2Array([Vector2.ZERO, to - from])
+	n.add_child(slash)
+	var tw := n.create_tween()
+	tw.tween_property(n, "modulate:a", 0.0, 0.16)
+	tw.parallel().tween_property(slash, "width", 0.4, 0.16)
+	tw.tween_callback(n.queue_free)
+
+
 static func impact(host: Node2D, world_pos: Vector2, tint: Color = Color(1.0, 0.82, 0.38), heavy: bool = false) -> void:
 	if not _ok(host) or not _budget(host, "CfxImpact", 6):
 		return

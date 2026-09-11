@@ -99,7 +99,7 @@ func _run() -> void:
 	main._select_op(0)
 	main._deploy_selected_to(main.cover_slots[0])
 	main.selected.set_facing(0.0)
-	main._on_alarm_pressed()
+	main.raid_force_alarm()
 	print("LIFE1 deployed=", main._deployed_count())
 
 	var frames := 0
@@ -387,7 +387,7 @@ func _run() -> void:
 				return
 			print("SMOKE_OK_LEAK_COVER_RED chip=", leak_chip_txt.replace("\n", " | "))
 			# Same plan at 2× must match terminal tick + event fingerprint.
-			main._on_alarm_pressed()
+			main.raid_force_alarm()
 			main.sim.set_speed(2.0)
 			var speed_ok: bool = await _wait_phase(main, main.Phase.FAILED, 60 * 180)
 			if not speed_ok or main.fail_reason != "escape":
@@ -422,7 +422,7 @@ func _run() -> void:
 				quit(56)
 				return
 			print("SMOKE_OK_LEAK_COVER_GREEN")
-			main._on_alarm_pressed()
+			main.raid_force_alarm()
 			if main.operators[2].observation_ring_visible():
 				push_error("SMOKE_SCOUT_OBS_DURING_WATCH")
 				quit(37)
@@ -523,7 +523,7 @@ func _run() -> void:
 
 			_deploy_ref(main, [1, 3, 5], [180.0, 0.0, 180.0])
 			main.sim.set_speed(2.0)
-			main._on_alarm_pressed()
+			main.raid_force_alarm()
 			main.sim.set_speed(2.0)
 			var dump_fail: bool = await _wait_phase(main, main.Phase.FAILED, 60 * 240)
 			if not dump_fail or main.fail_reason != "escape":
@@ -568,7 +568,7 @@ func _run() -> void:
 				quit(12)
 				return
 			main.sim.set_speed(2.0)
-			main._on_alarm_pressed()
+			main.raid_force_alarm()
 			main.sim.set_speed(2.0)
 			var wh: bool = await _wait_phase(main, main.Phase.WON, 60 * 240)
 			if not wh:
@@ -604,7 +604,7 @@ func _run() -> void:
 			if main.door_locked:
 				main._on_door_pressed()
 			_deploy_ref(main, [1, 4, 5], [90.0, 0.0, 180.0])
-			main._on_alarm_pressed()
+			main.raid_force_alarm()
 			main.sim.set_speed(2.0)
 			var po: bool = await _wait_phase(main, main.Phase.WON, 60 * 200)
 			if not po:
@@ -646,7 +646,7 @@ func _run() -> void:
 				quit(38)
 				return
 			_deploy_ref(main, [1, 4, 5], [90.0, 0.0, 180.0])
-			main._on_alarm_pressed()
+			main.raid_force_alarm()
 			main.sim.set_speed(2.0)
 			var flank_enemy = null
 			var guard := 0
@@ -745,7 +745,7 @@ func _run() -> void:
 				main._on_door_pressed()
 			_deploy_ref(main, [1, 4, 5], [90.0, 180.0, 180.0])
 			main.sim.set_speed(2.0)
-			main._on_alarm_pressed()
+			main.raid_force_alarm()
 			main.sim.set_speed(2.0)
 			var pl: bool = await _wait_phase(main, main.Phase.WON, 60 * 240)
 			if not pl:
@@ -796,7 +796,7 @@ func _run() -> void:
 			# South-stack probe: 南折 + 南闸 + 西廊脊. Delayed east pair must leak.
 			_deploy_ref(main, [2, 5, 1], [0.0, 180.0, 270.0])
 			main.sim.set_speed(2.0)
-			main._on_alarm_pressed()
+			main.raid_force_alarm()
 			main.sim.set_speed(2.0)
 			var rc_stack: bool = await _wait_phase(main, main.Phase.FAILED, 60 * 240)
 			if not rc_stack or main.fail_reason != "escape":
@@ -832,7 +832,7 @@ func _run() -> void:
 			# Core walls block cross-corridor LOS; ignoring the delayed east pair escapes (probe).
 			_deploy_ref(main, [1, 4, 5], [270.0, 270.0, 180.0])
 			main.sim.set_speed(2.0)
-			main._on_alarm_pressed()
+			main.raid_force_alarm()
 			main.sim.set_speed(2.0)
 			var rc: bool = await _wait_phase(main, main.Phase.WON, 60 * 240)
 			if not rc:
@@ -880,7 +880,7 @@ func _run() -> void:
 			# No-trip probe: same guns, no 绊索. Sneak 敌3 at 2.2s must leak.
 			_deploy_ref(main, [1, 4, 5], [270.0, 270.0, 180.0])
 			main.sim.set_speed(2.0)
-			main._on_alarm_pressed()
+			main.raid_force_alarm()
 			main.sim.set_speed(2.0)
 			var depot_stack: bool = await _wait_phase(main, main.Phase.FAILED, 60 * 240)
 			if not depot_stack or main.fail_reason != "escape":
@@ -932,7 +932,7 @@ func _run() -> void:
 				quit(48)
 				return
 			main.sim.set_speed(2.0)
-			main._on_alarm_pressed()
+			main.raid_force_alarm()
 			main.sim.set_speed(2.0)
 			var dp: bool = await _wait_phase(main, main.Phase.WON, 60 * 240)
 			if not dp:
@@ -981,7 +981,7 @@ func _run() -> void:
 			# No-trip probe: 灯塔脊/碟台/东廊, no 绊索. Sneak 敌3 at 3.6s must leak.
 			_deploy_ref(main, [1, 4, 5], [270.0, 90.0, 270.0])
 			main.sim.set_speed(2.0)
-			main._on_alarm_pressed()
+			main.raid_force_alarm()
 			main.sim.set_speed(2.0)
 			if main.has_method("queued_kit_for") and str(main.queued_kit_for(5)) != "echo":
 				push_error("SMOKE_RADIO_KIT_NOT_QUEUED %s" % main.queued_kit_for(5))
@@ -1030,7 +1030,7 @@ func _run() -> void:
 				quit(62)
 				return
 			main.sim.set_speed(2.0)
-			main._on_alarm_pressed()
+			main.raid_force_alarm()
 			main.sim.set_speed(2.0)
 			var rd: bool = await _wait_phase(main, main.Phase.WON, 60 * 280)
 			if not rd:
@@ -1153,6 +1153,122 @@ func _assert_raid_contract(main) -> bool:
 		quit(80)
 		return false
 	print("SMOKE_OK_OCCUPANCY")
+	# Ammo types: MG rounds stay in the pool, not the pistol mag.
+	var wolf: OperatorUnit = main.operators[0]
+	wolf.wipe_inventory()
+	wolf.receive_item("pistol", 8)
+	wolf.ammo = 4
+	wolf.ammo_pool["pistol"] = 4
+	var mixed: Dictionary = wolf.receive_item("mg_ammo", 8)
+	if int(wolf.ammo) != 4:
+		push_error("SMOKE_AMMO_MIXED mag=%s" % wolf.ammo)
+		quit(80)
+		return false
+	if int(wolf.ammo_pool.get("mg", 0)) < 8:
+		push_error("SMOKE_AMMO_POOL_MISS %s" % wolf.ammo_pool)
+		quit(80)
+		return false
+	if not bool(mixed.get("pooled", false)):
+		push_error("SMOKE_AMMO_NOT_POOLED %s" % mixed)
+		quit(80)
+		return false
+	print("SMOKE_OK_AMMO_TYPES")
+	# Transfer: pass a grenade to 铁砧.
+	wolf.receive_item("grenade", 1)
+	var g0: int = int(wolf.grenades)
+	var g1: int = int(main.operators[1].grenades)
+	var passed: Dictionary = main.raid_transfer(0, 1, "grenade")
+	if not bool(passed.get("ok", false)) or int(wolf.grenades) != g0 - 1 or int(main.operators[1].grenades) != g1 + 1:
+		push_error("SMOKE_TRANSFER_FAIL %s g0=%s g1=%s" % [passed, wolf.grenades, main.operators[1].grenades])
+		quit(80)
+		return false
+	print("SMOKE_OK_TRANSFER")
+	# Soft alarm gate: knives-only first press does not start the wave.
+	main._start_setup(false, false)
+	if main.squad_has_firearm():
+		push_error("SMOKE_START_HAS_GUN")
+		quit(80)
+		return false
+	main._on_alarm_pressed()
+	if main.phase != main.Phase.SETUP:
+		push_error("SMOKE_ALARM_GATE_SKIPPED phase=%s" % main.phase)
+		quit(80)
+		return false
+	if not bool(main._alarm_warned_no_gun):
+		push_error("SMOKE_ALARM_GATE_NO_WARN")
+		quit(80)
+		return false
+	print("SMOKE_OK_ALARM_GATE")
+	# Decoy peels one cell off the authored route.
+	var dummy: EnemyRunner = main._make_enemy(90)
+	main.entities.add_child(dummy)
+	var p0: Vector2 = main.grid.cell_to_world_center(Vector2i(13, 11))
+	var p1: Vector2 = main.grid.cell_to_world_center(Vector2i(13, 15))
+	dummy.setup(90, PackedVector2Array([p0, p1]), main.grid, 0, "main")
+	dummy.global_position = p0
+	dummy.activate()
+	dummy.distract(main.grid.cell_to_world_center(Vector2i(14, 11)), 0.4)
+	if not bool(dummy._decoy_stepped):
+		push_error("SMOKE_DECOY_NO_STEP")
+		dummy.queue_free()
+		quit(80)
+		return false
+	print("SMOKE_OK_DECOY_REROUTE")
+	dummy.queue_free()
+	if not main.touch_hud._btns.has("nade") or not main.touch_hud._btns.has("nade_watch"):
+		push_error("SMOKE_NO_TOUCH_NADE")
+		quit(80)
+		return false
+	print("SMOKE_OK_TOUCH_NADE")
+	# Headless probes: grenade kill, decoy pause, mine inventory.
+	var boom: EnemyRunner = main._make_enemy(91)
+	main.entities.add_child(boom)
+	boom.setup(91, PackedVector2Array([Vector2(200, 200), Vector2(240, 200)]), main.grid, 0, "main")
+	boom.global_position = Vector2(200, 200)
+	boom.activate()
+	main.enemies.append(boom)
+	main._on_grenade_boom(Vector2(200, 200), 80.0, 200.0)
+	if boom.alive:
+		push_error("SMOKE_GRENADE_NO_KILL hp=%s" % boom.hp)
+		main.enemies.erase(boom)
+		boom.queue_free()
+		quit(80)
+		return false
+	main.enemies.erase(boom)
+	boom.queue_free()
+	print("SMOKE_OK_GRENADE_KILL")
+	var paused: EnemyRunner = main._make_enemy(92)
+	main.entities.add_child(paused)
+	var a0: Vector2 = main.grid.cell_to_world_center(Vector2i(13, 11))
+	var a1: Vector2 = main.grid.cell_to_world_center(Vector2i(13, 17))
+	paused.setup(92, PackedVector2Array([a0, a1]), main.grid, 0, "main")
+	paused.global_position = a0
+	paused.activate()
+	paused.distract(a0 + Vector2(40, 0), 0.5)
+	var pos_before: Vector2 = paused.global_position
+	paused.sim_step(0.2)
+	if paused.global_position.distance_to(pos_before) > 4.0:
+		push_error("SMOKE_DECOY_STILL_RUNNING")
+		paused.queue_free()
+		quit(80)
+		return false
+	paused.queue_free()
+	print("SMOKE_OK_DECOY_PAUSE")
+	main.operators[0].mines = 2
+	var m0: int = int(main.operators[0].mines)
+	main._select_op(0)
+	main._try_place_inventory_mine(main.operators[0].global_position + Vector2(0, 24))
+	if int(main.operators[0].mines) != m0 - 1:
+		push_error("SMOKE_MINE_INV %s" % main.operators[0].mines)
+		quit(80)
+		return false
+	print("SMOKE_OK_MINE_INV")
+	var loc_script: Variant = load("res://scripts/raid/raid_loc.gd")
+	if loc_script == null or not (loc_script as GDScript).has_method("has") or not bool((loc_script as GDScript).has("alarm")):
+		push_error("SMOKE_NO_LOC")
+		quit(80)
+		return false
+	print("SMOKE_OK_LOC")
 	main._start_setup(false, false)
 	return true
 
@@ -1163,7 +1279,7 @@ func _run_all_waves(main, max_frames: int) -> bool:
 		guard += 1
 		if main.phase == main.Phase.SETUP or main.phase == main.Phase.SWEEP:
 			main.sim.set_speed(2.0)
-			main._on_alarm_pressed()
+			main.raid_force_alarm()
 			main.sim.set_speed(2.0)
 		var frames := 0
 		while frames < max_frames:
@@ -1179,7 +1295,7 @@ func _run_all_waves(main, max_frames: int) -> bool:
 			if main.has_method("raid_vacuum_loot"):
 				main.raid_vacuum_loot()
 			if main.raid != null and main.raid.is_last_wave(main.level):
-				main._on_alarm_pressed()
+				main.raid_force_alarm()
 				await process_frame
 				await process_frame
 				return main.phase == main.Phase.WON
@@ -1189,12 +1305,27 @@ func _run_all_waves(main, max_frames: int) -> bool:
 
 
 func _assert_raid_campaign(main) -> bool:
-	# Real pickup: walk/teleport 灰狼 onto the rifle crate.
+	# Real pickup: walk/teleport 灰狼 onto the rifle crate (0.4s open channel).
 	main._start_setup(false, false)
 	await process_frame
 	var rifle_cell := Vector2i(6, 12)
+	main.operators[0].stop_move()
 	main.operators[0].global_position = main.grid.cell_to_world_center(rifle_cell)
 	main._try_pickup_near_selected()
+	if str(main.operators[0].weapon_id) == "rifle":
+		push_error("SMOKE_CRATE_INSTANT weapon=%s" % main.operators[0].weapon_id)
+		quit(81)
+		return false
+	if not main.operators[0].is_searching():
+		push_error("SMOKE_CRATE_NO_SEARCH")
+		quit(81)
+		return false
+	main.raid_advance_search(0.2)
+	if str(main.operators[0].weapon_id) == "rifle":
+		push_error("SMOKE_CRATE_TOO_FAST")
+		quit(81)
+		return false
+	main.raid_advance_search(0.4)
 	if str(main.operators[0].weapon_id) != "rifle":
 		# Force pickup if snap missed the crate.
 		main.raid_grant_and_pickup(0, "rifle", 7)
@@ -1202,12 +1333,15 @@ func _assert_raid_campaign(main) -> bool:
 		push_error("SMOKE_PICKUP_RIFLE got=%s" % main.operators[0].weapon_id)
 		quit(81)
 		return false
+	print("SMOKE_OK_CRATE_SEARCH")
 	print("SMOKE_OK_PICKUP rifle")
 
-	# Knives-only alarm should leak (cannot hold the spine).
+	# Knives-only alarm should leak (cannot hold the spine). Soft gate: second press.
 	main._start_setup(false, false)
 	await process_frame
 	main._on_alarm_pressed()
+	if main.phase == main.Phase.SETUP:
+		main._on_alarm_pressed()
 	main.sim.set_speed(2.0)
 	var leaked: bool = await _wait_phase(main, main.Phase.FAILED, 60 * 180)
 	if not leaked or main.fail_reason != "escape":
@@ -1384,7 +1518,7 @@ func _assert_fail_paths(main) -> bool:
 	main._select_op(0)
 	main._deploy_selected_to(main.cover_slots[0], false)
 	main.selected.set_facing(90.0)
-	main._on_alarm_pressed()
+	main.raid_force_alarm()
 	if main.phase != main.Phase.WATCHING:
 		push_error("SMOKE_ABORT_NO_WATCH phase=%s" % main.phase)
 		quit(60)
@@ -1429,7 +1563,7 @@ func _assert_fail_paths(main) -> bool:
 	main._select_op(0)
 	main._deploy_selected_to(main.cover_slots[0], false)
 	main.selected.set_facing(90.0)
-	main._on_alarm_pressed()
+	main.raid_force_alarm()
 	await _drive_ticks(main, 30)
 	if main.phase != main.Phase.WATCHING:
 		push_error("SMOKE_WIPE_ENDED_EARLY phase=%s reason=%s" % [main.phase, main.fail_reason])
@@ -1485,7 +1619,7 @@ func _assert_skip_to_outcome(main) -> bool:
 	var door0 := bool(main.door_locked)
 	var trips0: int = main.tripwires.size()
 	var pos0: Vector2 = main.operators[0].global_position
-	main._on_alarm_pressed()
+	main.raid_force_alarm()
 	if main.phase != main.Phase.WATCHING:
 		push_error("SMOKE_SKIP_NO_WATCH phase=%s" % main.phase)
 		quit(73)
@@ -2766,7 +2900,7 @@ func _assert_lifecycle(main) -> bool:
 		return false
 	main._select_op(0)
 	main._deploy_selected_to(main.cover_slots[0], false)
-	main._on_alarm_pressed()
+	main.raid_force_alarm()
 	if main.phase != main.Phase.WATCHING:
 		push_error("SMOKE_LIFECYCLE_NO_WATCH phase=%s" % main.phase)
 		quit(47)
@@ -2840,7 +2974,7 @@ func _assert_watch_juice(main) -> bool:
 		main._start_setup(false, false)
 	main._select_op(0)
 	main._deploy_selected_to(main.cover_slots[0], false)
-	main._on_alarm_pressed()
+	main.raid_force_alarm()
 	if main.phase != main.Phase.WATCHING:
 		push_error("SMOKE_WATCH_JUICE_NO_WATCH phase=%s" % main.phase)
 		quit(53)

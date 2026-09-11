@@ -59,10 +59,12 @@ Desktop presets: `ambush_loop/export_presets.cfg` (Linux / Windows / **Android A
 | Hover cover | Preview that slot's protect arc |
 | A/D or RMB / phone ↺↻ or drag | Facing (fire cone is LOS-clipped by walls) |
 | F | Fire mode (见敌即打 / 入伏再打) |
-| G | Assign ammo pack (仓道 / 泵站 / 信号楼 / 油库 / 电台, one operator) |
+| G | Throw grenade (also during alarm) |
+| T | Pass gun/nade/mine/decoy to the nearest teammate |
+| H | Drag a corpse (slower walk) |
 | B | Toggle door lock (level 3; switches flank to authored alternate route) |
 | Tab | Cycle walk / mine / grenade / decoy |
-| Space | Pull alarm / next wave or extract after sweep / pause during alert / exit replay |
+| Space | Pull alarm (soft gate: loot a gun first) / next wave or extract after sweep / pause during alert / exit replay |
 | P | Pause during watch |
 | + / − or speed button | 1× / 2× watch speed (viewing only) |
 | X or 中止尝试 | Abort current attempt; keep intel up to now (counts as fail) |
