@@ -325,7 +325,7 @@ func second_trap_text() -> String:
 	## SETUP second-layer callout. Copy only — does not change routes.
 	match str(level_id):
 		"warehouse":
-			return "第二层：过早开火会打空"
+			return "第二层：等黄区再打（F 入伏）"
 		"pump":
 			return "第二层：锁门后改走紫线"
 		"railcut":
@@ -341,7 +341,7 @@ func second_trap_text() -> String:
 func second_trap_cell() -> Vector2i:
 	match str(level_id):
 		"warehouse":
-			return Vector2i(13, 14)
+			return Vector2i(17, 12)
 		"pump":
 			return door_cell if door_cell.x >= 0 else Vector2i(28, 6)
 		"railcut":
@@ -461,7 +461,7 @@ static func make_warehouse() -> LevelDef:
 	}
 	l.spawn_schedule = [
 		{"id": 1, "route": "main", "delay": 0.0, "loot": 1},
-		{"id": 2, "route": "flank", "delay": 0.5, "loot": 0, "teaching_note": "别站爆心"},
+		{"id": 2, "route": "flank", "delay": 0.5, "loot": 0, "teaching_note": "东廊侧翼"},
 		{"id": 3, "route": "main", "delay": 1.2, "loot": 1},
 		{"id": 4, "route": "flank", "delay": 1.6, "loot": 0},
 		{"id": 5, "route": "flank", "delay": 2.4, "loot": 0},
@@ -480,7 +480,7 @@ static func make_warehouse() -> LevelDef:
 	l.fix_one = "改一处就能赢：F 入伏再打，G 把弹包给铁砧，别在仓口见敌就打。"
 	l.spawn_teaching = [
 		"陷阱路线：过早开火打空弹药，橙线侧翼从东廊漏出。弹包给铁砧。",
-		"第二层：油桶靠近才炸，别把人塞进爆心。",
+		"第二层：等黄区再打（F 入伏），不是站爆心外。",
 	]
 	l.situation = "仓道是夜班搬运队的弹药窗。货架挡住对射，东廊还堆着他们自己的油桶。过早开火会把弹打空，侧翼就从爆心外漏。"
 	l.intel_chatter = [
