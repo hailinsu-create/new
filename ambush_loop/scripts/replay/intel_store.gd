@@ -82,6 +82,22 @@ func latest_leaker_id() -> int:
 	return int(records[records.size() - 1].get("leaker_id", -1))
 
 
+func wall_text(n: int = 4) -> String:
+	## Fail-panel dossier of recent loops. Presentation only.
+	if records.is_empty():
+		return ""
+	var lines: PackedStringArray = PackedStringArray()
+	lines.append("—— 情报墙 ——")
+	for rec in recent(n):
+		var summary := str(rec.get("summary", "")).strip_edges()
+		if summary == "":
+			continue
+		lines.append(summary)
+	if lines.size() <= 1:
+		return ""
+	return "\n".join(lines)
+
+
 func leak_advice_line(level, route_zh: String) -> String:
 	## Presentation math: how long that leaker walked after their authored spawn.
 	if records.is_empty():
