@@ -25,7 +25,7 @@ Average similar-game launch: title that lists missions, keyboard legend, quit co
 | # | Criterion | Status |
 |---|-----------|--------|
 | A1 | `scenes/title.tscn` + `scripts/title.gd` is `run/main_scene` | Done |
-| A2 | Brand-first title: **AMBUSH LOOP**, tagline 战前埋伏 · 锁死计划 · 时间穿梭, CTAs 开始行动 / 继续进度 / 操作说明 / 退出 | Done |
+| A2 | Brand-first title: **AMBUSH LOOP**, tagline 搜刮组火力 · 埋伏拉警报 · 打扫下一波, CTAs 开始行动 / 继续进度 / 操作说明 / 退出 | Done |
 | A3 | Night-ops asphalt/olive (no purple); grid + wordmark fade, **stronger CTA pulse**, route-line drift, **drifting dust/sparks**, **soft vignette** | Done |
 | A4 | 继续进度 loads `user://ambush_loop.cfg` if present; else disabled | Done |
 | A5 | 开始行动 → **mission list** (6 levels, lock / 可出击 / 首通 from `ambush_loop.cfg`) → briefing → `main.tscn`. Sequential unlock; cannot skip locked | Done |
