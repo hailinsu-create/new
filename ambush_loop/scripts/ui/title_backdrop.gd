@@ -22,6 +22,9 @@ func _ready() -> void:
 		PackedVector2Array([
 			Vector2(180, 70), Vector2(420, 130), Vector2(740, 110), Vector2(1080, 80)
 		]),
+		PackedVector2Array([
+			Vector2(40, 360), Vector2(180, 420), Vector2(320, 560), Vector2(520, 620)
+		]),
 	]
 	_dust = _make_particles(28, 7.5, Color(0.72, 0.76, 0.58, 0.28), Vector2(0.15, -1.0), 10.0)
 	_dust.initial_velocity_min = 3.0
@@ -137,6 +140,7 @@ func _draw() -> void:
 		Color(0.82, 0.90, 0.42, 0.52),
 		Color(0.68, 0.78, 0.38, 0.40),
 		Color(0.95, 0.84, 0.42, 0.32),
+		Color(0.42, 0.78, 0.92, 0.38),
 	]
 	for i in _routes.size():
 		var shifted := PackedVector2Array()
@@ -201,6 +205,12 @@ func _draw_courtyard(sz: Vector2) -> void:
 		]),
 		Color(0.10, 0.16, 0.08, 0.55)
 	)
+	# Radio dish on the east roof — campaign finale silhouette.
+	var dish := Vector2(sz.x - 150.0, sz.y * 0.20)
+	draw_arc(dish, 34.0, -2.5, 0.5, 12, Color(0.42, 0.78, 0.92, 0.45), 3.2, true)
+	draw_line(dish, dish + Vector2(18, -16), Color(0.62, 0.88, 0.98, 0.55), 1.8, true)
+	draw_circle(dish + Vector2(18, -16), 3.4, Color(0.78, 0.94, 1.0, 0.70))
+	draw_rect(Rect2(dish.x - 4.0, dish.y, 8.0, 28.0), Color(0.10, 0.14, 0.16, 0.70))
 
 
 func _draw_ops_stamps(sz: Vector2) -> void:
