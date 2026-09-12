@@ -80,6 +80,8 @@ static func mount(body: Polygon2D, role: int, weapon_id: String = "") -> void:
 	_poly(body, "KitHelm", _helm(role), _helm_color(role), 3).visible = true
 	_poly(body, "KitGear", _gear(role), _gear_color(role), 4).visible = true
 	_poly(body, "Webbing", _webbing(role), Color(0.28, 0.22, 0.12, 0.92), 4).visible = true
+	_poly(body, "PouchL", _pouch_l(role), Color(0.24, 0.18, 0.10, 0.94), 4).visible = true
+	_poly(body, "PouchR", _pouch_r(role), Color(0.26, 0.20, 0.10, 0.94), 4).visible = true
 	var wid := weapon_id if weapon_id != "" else ""
 	var wpoly := weapon_poly(role)
 	var wcol := weapon_color(role)
@@ -87,6 +89,12 @@ static func mount(body: Polygon2D, role: int, weapon_id: String = "") -> void:
 		wpoly = WeaponArtScript.silhouette(wid, role)
 		wcol = WeaponArtScript.steel_color(wid)
 	_poly(body, "Weapon", wpoly, wcol, 5).visible = true
+	if wid != "" and wid != "knife":
+		_poly(body, "Stock", WeaponArtScript.stock_poly(wid, role), WeaponArtScript.wood_color(wid), 4).visible = true
+	else:
+		var stock := body.get_node_or_null("Stock") as Polygon2D
+		if stock:
+			stock.visible = false
 	var flash := _poly(body, "ShoulderFlash", _shoulder_flash(role), _flash_color(role), 2)
 	flash.visible = true
 	var rim := _poly(body, "RimLight", _rim_light(role), _rim_light_color(role), 4)
@@ -485,6 +493,38 @@ static func _helm(role: int) -> PackedVector2Array:
 			])
 
 
+static func _pouch_l(role: int) -> PackedVector2Array:
+	match role:
+		1:
+			return PackedVector2Array([
+				Vector2(-10.4, 0.2), Vector2(-6.0, 0.4), Vector2(-6.2, 4.6), Vector2(-10.2, 4.4)
+			])
+		2:
+			return PackedVector2Array([
+				Vector2(-5.6, 0.6), Vector2(-2.8, 0.8), Vector2(-3.0, 3.6), Vector2(-5.4, 3.4)
+			])
+		_:
+			return PackedVector2Array([
+				Vector2(-7.2, 0.4), Vector2(-3.8, 0.6), Vector2(-4.0, 4.0), Vector2(-7.0, 3.8)
+			])
+
+
+static func _pouch_r(role: int) -> PackedVector2Array:
+	match role:
+		1:
+			return PackedVector2Array([
+				Vector2(6.0, 0.4), Vector2(10.4, 0.2), Vector2(10.2, 4.4), Vector2(6.2, 4.6)
+			])
+		2:
+			return PackedVector2Array([
+				Vector2(2.8, 0.8), Vector2(5.6, 0.6), Vector2(5.4, 3.4), Vector2(3.0, 3.6)
+			])
+		_:
+			return PackedVector2Array([
+				Vector2(3.8, 0.6), Vector2(7.2, 0.4), Vector2(7.0, 3.8), Vector2(4.0, 4.0)
+			])
+
+
 static func _webbing(role: int) -> PackedVector2Array:
 	match role:
 		1:
@@ -713,31 +753,31 @@ static func _base(role: int) -> Color:
 static func _head_color(role: int) -> Color:
 	match role:
 		1:
-			return Color(0.26, 0.30, 0.14, 0.98)
+			return Color(0.22, 0.20, 0.12, 0.98)
 		2:
-			return Color(0.14, 0.24, 0.22, 0.98)
+			return Color(0.16, 0.18, 0.14, 0.98)
 		_:
-			return Color(0.20, 0.28, 0.24, 0.98)
+			return Color(0.20, 0.18, 0.12, 0.98)
 
 
 static func _visor_color(role: int) -> Color:
 	match role:
 		1:
-			return Color(0.16, 0.16, 0.06, 0.94)
+			return Color(0.14, 0.12, 0.08, 0.94)
 		2:
-			return Color(0.38, 0.88, 0.58, 0.92)
+			return Color(0.18, 0.20, 0.14, 0.92)
 		_:
-			return Color(0.12, 0.22, 0.16, 0.94)
+			return Color(0.12, 0.10, 0.08, 0.94)
 
 
 static func _helm_color(role: int) -> Color:
 	match role:
 		1:
-			return Color(0.20, 0.22, 0.12, 0.96)
+			return Color(0.18, 0.16, 0.10, 0.96)
 		2:
-			return Color(0.10, 0.18, 0.16, 0.96)
+			return Color(0.12, 0.14, 0.10, 0.96)
 		_:
-			return Color(0.14, 0.20, 0.16, 0.96)
+			return Color(0.16, 0.14, 0.10, 0.96)
 
 
 static func _gear_color(role: int) -> Color:
@@ -773,4 +813,4 @@ static func _boot_color(role: int, k: float) -> Color:
 static func _cape_color(role: int) -> Color:
 	if role != 2:
 		return Color(0, 0, 0, 0)
-	return Color(0.08, 0.16, 0.14, 0.90)
+	return Color(0.12, 0.12, 0.08, 0.90)

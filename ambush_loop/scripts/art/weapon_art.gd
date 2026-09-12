@@ -193,6 +193,31 @@ static func steel_color(id: String) -> Color:
 			return Color(0.13, 0.14, 0.12, 0.98)
 
 
+static func stock_poly(id: String, _role: int = 0) -> PackedVector2Array:
+	var fam := id
+	if WeaponCatalog.is_firearm(id):
+		fam = WeaponCatalog.family_of(id)
+	match fam:
+		"mg":
+			return PackedVector2Array([
+				Vector2(-3.6, 4.4), Vector2(3.8, 4.4), Vector2(3.2, 9.2), Vector2(-3.0, 9.2)
+			])
+		"smg":
+			return PackedVector2Array([
+				Vector2(-2.4, 5.4), Vector2(1.8, 5.4), Vector2(1.4, 10.6), Vector2(-2.8, 10.6)
+			])
+		"pistol", "knife":
+			return PackedVector2Array([Vector2.ZERO, Vector2(1, 0), Vector2(0, 1)])
+		"scout":
+			return PackedVector2Array([
+				Vector2(-1.8, 3.8), Vector2(1.8, 3.8), Vector2(1.4, 8.8), Vector2(-1.6, 8.8)
+			])
+		_:
+			return PackedVector2Array([
+				Vector2(-2.2, 3.6), Vector2(2.2, 3.6), Vector2(1.8, 9.0), Vector2(-2.0, 9.0)
+			])
+
+
 static func wood_color(id: String) -> Color:
 	match id:
 		"lee_enfield", "enfield_t", "webley":
