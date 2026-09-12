@@ -9,14 +9,15 @@ static func silhouette(id: String, role: int = 0) -> PackedVector2Array:
 	match id:
 		"knife":
 			return PackedVector2Array([
-				Vector2(-1.1, 2.0), Vector2(1.1, 2.0), Vector2(0.7, -14.0),
-				Vector2(0.0, -18.4), Vector2(-0.7, -14.0)
+				Vector2(-1.4, 3.2), Vector2(1.4, 3.2), Vector2(1.0, -4.0),
+				Vector2(0.7, -14.0), Vector2(0.0, -19.2), Vector2(-0.55, -14.0),
+				Vector2(-1.0, -4.0)
 			])
 		"kar98k":
 			return PackedVector2Array([
-				Vector2(-1.7, 5.2), Vector2(1.8, 5.2), Vector2(1.5, -6.0),
-				Vector2(1.15, -24.0), Vector2(0.55, -36.8), Vector2(-0.55, -36.8),
-				Vector2(-1.15, -24.0), Vector2(-1.5, -6.0)
+				Vector2(-1.7, 5.2), Vector2(1.8, 5.2), Vector2(2.6, 2.2), Vector2(2.4, 0.6),
+				Vector2(1.5, -6.0), Vector2(1.15, -24.0), Vector2(0.55, -36.8),
+				Vector2(-0.55, -36.8), Vector2(-1.15, -24.0), Vector2(-1.5, -6.0)
 			])
 		"lee_enfield":
 			return PackedVector2Array([
