@@ -76,9 +76,9 @@ static func silhouette(id: String, role: int = 0) -> PackedVector2Array:
 			])
 		"pps43":
 			return PackedVector2Array([
-				Vector2(-2.2, 5.8), Vector2(1.8, 5.8), Vector2(1.5, -3.2),
-				Vector2(1.0, -15.6), Vector2(0.6, -23.2), Vector2(-0.45, -23.2),
-				Vector2(-1.2, -10.0), Vector2(-2.4, 0.4)
+				Vector2(-2.6, 6.0), Vector2(1.6, 5.4), Vector2(1.4, -3.2),
+				Vector2(1.0, -15.6), Vector2(0.55, -24.0), Vector2(-0.4, -24.0),
+				Vector2(-1.4, -9.2), Vector2(-2.8, 1.2)
 			])
 		"mg42":
 			return PackedVector2Array([
@@ -120,9 +120,9 @@ static func silhouette(id: String, role: int = 0) -> PackedVector2Array:
 			])
 		"luger":
 			return PackedVector2Array([
-				Vector2(-2.4, 5.2), Vector2(1.2, 4.0), Vector2(1.4, -3.0),
-				Vector2(0.9, -14.4), Vector2(0.35, -18.8), Vector2(-0.35, -18.8),
-				Vector2(-0.9, -14.4), Vector2(-1.6, -2.2)
+				Vector2(-2.8, 5.8), Vector2(1.0, 3.6), Vector2(1.4, -3.0),
+				Vector2(0.9, -14.4), Vector2(0.35, -19.4), Vector2(-0.35, -19.4),
+				Vector2(-0.9, -14.4), Vector2(-1.8, -1.6)
 			])
 		"p38":
 			return PackedVector2Array([
