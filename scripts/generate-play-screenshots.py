@@ -12,8 +12,9 @@ AMBER = (242, 167, 184, 255)
 PANEL = (31, 21, 32, 230)
 YELLOW = (242, 167, 184, 255)
 W, H = 1080, 1920
-# 96dp on a 360dp-wide 1080px composite ≈ 288px.
+# 96dp on a 360dp-wide 1080px composite ≈ 288px. 48dp close ≈ 144px.
 OVERLAY_FACE = 288
+OVERLAY_CLOSE = 144
 
 
 def font(size: int) -> ImageFont.FreeTypeFont:
@@ -147,12 +148,13 @@ def paint_overlay(base: Image.Image, line: str, face: Image.Image) -> Image.Imag
     ImageDraw.Draw(ring).ellipse((0, 0, ring.size[0] - 1, ring.size[1] - 1), outline=AMBER, width=5)
     img.alpha_composite(ring, (ax - 6, ay - 6))
     img.alpha_composite(face, (ax, ay))
-    # Small close affordance at the top-right of the 96dp face.
-    cx = ax + face.size[0] - 18
-    cy = ay + 6
-    d.ellipse((cx, cy, cx + 36, cy + 36), fill=(26, 18, 24, 220), outline=AMBER, width=2)
-    d.line((cx + 10, cy + 10, cx + 26, cy + 26), fill=FOAM, width=3)
-    d.line((cx + 26, cy + 10, cx + 10, cy + 26), fill=FOAM, width=3)
+    # 48dp close chip on the start/outer corner of the 96dp face (not a device photo).
+    cx = ax - 6
+    cy = ay - 6
+    d.ellipse((cx, cy, cx + OVERLAY_CLOSE, cy + OVERLAY_CLOSE), fill=(10, 6, 8, 240), outline=(255, 232, 238, 255), width=5)
+    pad = OVERLAY_CLOSE // 3
+    d.line((cx + pad, cy + pad, cx + OVERLAY_CLOSE - pad, cy + OVERLAY_CLOSE - pad), fill=FOAM, width=6)
+    d.line((cx + OVERLAY_CLOSE - pad, cy + pad, cx + pad, cy + OVERLAY_CLOSE - pad), fill=FOAM, width=6)
     return img.convert("RGB")
 
 
@@ -166,10 +168,10 @@ def overlay_closeup(face: Image.Image) -> Image.Image:
     d.text((72, 80), "演示模式 · 不看真屏", font=font(28), fill=MIST[:3])
     big = face.resize((420, 420), Image.Resampling.LANCZOS)
     img.paste(big, (330, 260), big)
-    # Close chip matching the overlay control.
-    d.ellipse((700, 250, 752, 302), fill=(26, 18, 24), outline=AMBER, width=3)
-    d.line((714, 264, 738, 288), fill=FOAM[:3], width=3)
-    d.line((738, 264, 714, 288), fill=FOAM[:3], width=3)
+    # Close chip matching the 48dp overlay control (composite, not a device photo).
+    d.ellipse((250, 230, 250 + OVERLAY_CLOSE, 230 + OVERLAY_CLOSE), fill=(10, 6, 8), outline=(255, 232, 238), width=5)
+    d.line((250 + 40, 230 + 40, 250 + OVERLAY_CLOSE - 40, 230 + OVERLAY_CLOSE - 40), fill=FOAM[:3], width=6)
+    d.line((250 + OVERLAY_CLOSE - 40, 230 + 40, 250 + 40, 230 + OVERLAY_CLOSE - 40), fill=FOAM[:3], width=6)
     rounded(d, (80, 860, 1000, 1280), 32, PANEL)
     d.text((120, 900), "小旁", font=font(28), fill=AMBER)
     d.text((120, 960), "短视频一条接一条，像夜里不停的潮。", font=font(32), fill=FOAM[:3])
@@ -188,7 +190,7 @@ def main() -> None:
         face = cut_face(face_path, OVERLAY_FACE)
         overlay_shot(face).save(OUT / "screenshot_overlay.png", "PNG")
         overlay_closeup(face).save(OUT / "screenshot_overlay_closeup.png", "PNG")
-        print("wrote listing screenshots including 96dp overlay composite")
+        print("wrote listing screenshot composites (96dp avatar, 48dp close; not device photos)")
     else:
         print("wrote listing screenshots (no moxi_face.png, skipped overlay)")
 

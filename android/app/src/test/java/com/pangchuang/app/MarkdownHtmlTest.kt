@@ -1,5 +1,6 @@
 package com.pangchuang.app
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -26,5 +27,24 @@ class MarkdownHtmlTest {
         assertTrue(page.contains("<h1>Title</h1>"))
         assertTrue(page.contains("#1A1218"))
         assertFalse(page.substringAfter("<body>").contains("# Title"))
+    }
+
+    @Test
+    fun linksBecomeAnchors() {
+        val html = MarkdownHtml.convert("See [privacy](https://example.com/p).")
+        assertTrue(html.contains("<a href=\"https://example.com/p\">privacy</a>"))
+    }
+
+    @Test
+    fun emptyMarkdownIsEmpty() {
+        assertEquals("", MarkdownHtml.convert(""))
+        assertEquals("", MarkdownHtml.convert("   \n\n"))
+    }
+
+    @Test
+    fun zhParagraphAndBoldSurvive() {
+        val html = MarkdownHtml.convert("**截图**不会保存到相册。")
+        assertTrue(html.contains("<strong>截图</strong>"))
+        assertTrue(html.contains("不会保存到相册"))
     }
 }

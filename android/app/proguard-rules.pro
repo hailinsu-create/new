@@ -1,12 +1,19 @@
 -keepattributes Signature
 -keepattributes *Annotation*
+-keepattributes JavascriptInterface
 
--keep class com.pangchuang.app.** { *; }
+# Activities/services are kept via the manifest. Do not keep the whole app package:
+# shrinking should drop unused Kotlin helpers. Keep the Live2D JS bridge and billing.
+
+-keepclassmembers class com.pangchuang.app.Live2DAvatarView$Bridge {
+    @android.webkit.JavascriptInterface <methods>;
+}
 
 -dontwarn okhttp3.**
 -dontwarn okio.**
--keep class okhttp3.** { *; }
--keep interface okhttp3.** { *; }
+-dontwarn org.bouncycastle.**
+-dontwarn org.conscrypt.**
+-dontwarn org.openjsse.**
 
 -keepclassmembers class kotlinx.coroutines.** {
     volatile <fields>;

@@ -62,3 +62,13 @@ R57 | companion | changeThreshold has a one-line explanation under the field | a
 R58 | companion | Restore-purchases hint sits above the restore button in advanced settings | activity_main.xml, strings.xml
 R59 | companion | Empty API key shows a dialog explaining what is missing before Play overlay | MainActivity.kt
 R60 | companion | SiliconFlow / OpenAI-compatible one-liner under base URL | activity_main.xml, strings.xml
+R61 | tests | OverlayGeometry: rotation, 96dp avatar, off-screen clamp, tablet/tiny phone, snap geometry | OverlayGeometryTest.kt
+R62 | tests | MarkdownHtml: headings, links, empty, zh bold | MarkdownHtmlTest.kt
+R63 | tests | SensitiveApps: WeChat not skipped; IME/bank/authenticator skipped | SensitiveAppsTest.kt
+R64 | shipping | ProGuard no longer keeps the entire app package; keep JS bridge + billing | proguard-rules.pro
+R65 | copy | User-visible roast wording already gone; overlay comment no longer says roasted | OverlayController.kt
+R66 | docs | README Android-first with 0.13.0 APK link; 0.12.0 APK link kept | README.md
+R67 | docs | listing, listing-i18n, release-notes, YOU-MUST-DO, checklist updated honestly (composites ≠ device; Pages still user) | docs/play/*.md, docs/play-store-checklist.md
+R68 | assets | Play icon and feature graphic remain 墨汐; overlay screenshots regenerated for 48dp close | docs/play/assets/
+R69 | assets | Screenshot generator draws 48dp close and 96dp avatar and does not claim a device | generate-play-screenshots.py
+R70 | about | App version shown on legal pages | LegalActivity.kt, activity_legal.xml

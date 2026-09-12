@@ -79,7 +79,7 @@ License testing：Settings → License testing，把你的 Gmail 加进去，内
 
 1. 打开 **App signing**：第一次上传时选择由 Google 管理应用签名密钥（推荐）
 2. Testing → Internal testing → 创建版本
-3. 上传 `pangchuang-0.12.0.aab`（见本地 `bundleRelease` 输出；不要把 `.jks` / AAB 提交进 Git）
+3. 上传 `pangchuang-0.13.0.aab`（见本地 `bundleRelease` 输出；不要把 `.jks` / AAB 提交进 Git）。仓库里的 `dist/pangchuang-0.12.0-debug.apk` 与 `dist/pangchuang-0.13.0-debug.apk` 只供侧载，不能用来测 Play 内购。
 4. 把你的 Google 账号加为测试员，用测试轨道链接安装（**不要用 GitHub debug APK 测购买**）
 
 ## 7. 按填表包复制粘贴
@@ -102,7 +102,7 @@ License testing：Settings → License testing，把你的 Gmail 加进去，内
 - 高清图标 `play_icon_512.png`
 - 特色图片 `feature_graphic_1024x500.png`
 - 手机截图至少 2 张，建议 4 张：`screenshot_settings.png`、`screenshot_consent.png`、`screenshot_overlay.png`、`screenshot_overlay_closeup.png`
-- 悬浮窗那两张是用原创国风角色「墨汐」拼的草稿（约 96dp 头像框，带关闭角标），**不是真机照片，提交前请用真机演示模式换掉**
+- 悬浮窗那两张是用原创国风角色「墨汐」拼的草稿（约 96dp 头像框、48dp 关闭角标），**是合成图，不是真机照片，提交前请用真机演示模式换掉**
 
 ## 8. 你必须拍的两段短视频（真机）
 

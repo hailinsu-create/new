@@ -225,7 +225,7 @@ class OverlayController(
     }
 
     /**
-     * Overlay is a face crop, not the screen content being roasted.
+     * Overlay is a face crop, not the screen content being captured.
      * Do not blink the whole window out for capture.
      */
     fun hideForCapture() {

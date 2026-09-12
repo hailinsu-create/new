@@ -111,4 +111,22 @@ class OverlayGeometryTest {
         assertTrue(OverlayGeometry.minTouchTargetDp() >= 48)
         assertEquals(96, OverlayGeometry.avatarSizeDp())
     }
+
+    @Test
+    fun clampOnTabletWideAndTinyPhone() {
+        val (x, y) = OverlayGeometry.clamp(40, 40, 96, 96, 2560, 1600, 8)
+        assertTrue(x >= 8)
+        assertTrue(y >= 8)
+        assertTrue(x + 96 <= 2560)
+        val (sx, sy) = OverlayGeometry.clamp(500, 500, 96, 160, 360, 640, 8)
+        assertTrue(sx + 96 <= 360)
+        assertTrue(sy + 160 <= 640)
+    }
+
+    @Test
+    fun snapXRtlDoesNotDependOnLanguageOnlyGeometry() {
+        // Gravity.START is applied by WindowManager; math stays LTR pixels.
+        assertEquals(8, OverlayGeometry.snapX(10, 96, 720, 8))
+        assertEquals(720 - 96 - 8, OverlayGeometry.snapX(400, 96, 720, 8))
+    }
 }

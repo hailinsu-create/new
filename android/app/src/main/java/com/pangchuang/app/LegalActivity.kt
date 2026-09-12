@@ -13,12 +13,16 @@ class LegalActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         val mode = intent.getStringExtra(EXTRA_MODE) ?: MODE_PRIVACY
-        val title = when (mode) {
+        val pageTitle = when (mode) {
             MODE_LICENSES -> getString(R.string.legal_licenses_title)
             MODE_TERMS -> getString(R.string.legal_terms_title)
             else -> getString(R.string.legal_privacy_title)
         }
-        binding.legalTitle.text = title
+        binding.legalTitle.text = pageTitle
+        binding.legalTitle.contentDescription = pageTitle
+        setTitle(pageTitle)
+        binding.legalVersion.text = getString(R.string.legal_about_version, BuildConfig.VERSION_NAME)
+        binding.btnLegalClose.contentDescription = getString(R.string.legal_up_cd)
 
         val web = binding.legalWeb
         web.setBackgroundColor(Color.parseColor("#1A1218"))
@@ -32,8 +36,28 @@ class LegalActivity : AppCompatActivity() {
             else -> MarkdownHtml.render(loadMarkdown("legal/privacy_policy.md"))
         }
         web.loadDataWithBaseURL(null, html, "text/html", "utf-8", null)
+        web.webViewClient = object : android.webkit.WebViewClient() {
+            override fun shouldOverrideUrlLoading(
+                view: android.webkit.WebView?,
+                request: android.webkit.WebResourceRequest?
+            ): Boolean {
+                val uri = request?.url ?: return true
+                if (uri.scheme == "https") {
+                    runCatching {
+                        startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, uri))
+                    }
+                }
+                return true
+            }
+        }
         binding.btnLegalClose.setOnClickListener { finish() }
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.setHomeActionContentDescription(R.string.legal_up_cd)
+    }
+
+    override fun onSupportNavigateUp(): Boolean {
+        finish()
+        return true
     }
 
     private fun loadMarkdown(path: String): String = loadAsset(path)

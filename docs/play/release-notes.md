@@ -2,6 +2,16 @@
 
 每次上传 AAB 时可改。没有新功能就沿用上一条。
 
+## 0.13.0
+
+中文：
+
+锁屏与敏感应用都会释放截屏镜像。悬浮窗 48dp 关闭、位置会记住。首页不再在同意前要通知权限。Debug 包有明显自动解锁提示。
+
+English:
+
+Lock and sensitive apps both release the capture mirror. 48dp overlay close, remembered position. Home no longer asks for notifications before privacy consent. Debug builds show an auto-unlock chip.
+
 ## 0.12.0
 
 中文：
