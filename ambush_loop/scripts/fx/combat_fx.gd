@@ -317,6 +317,42 @@ static func escape_streak(host: Node2D, world_pos: Vector2, dir: Vector2 = Vecto
 	tw.tween_callback(n.queue_free)
 
 
+static func mud_print(host: Node2D, world_pos: Vector2, facing_rad: float = 0.0) -> void:
+	if not _ok(host) or _saving() or not _budget(host, "CfxPrint", 6):
+		return
+	var n := _spawn(host, "CfxPrint", world_pos + Vector2(0, 10), 1)
+	var boot := Polygon2D.new()
+	boot.polygon = PackedVector2Array([
+		Vector2(-3.2, -5.0), Vector2(3.2, -5.0), Vector2(2.6, 5.2), Vector2(-2.6, 5.2)
+	])
+	boot.rotation = facing_rad + PI * 0.5
+	boot.color = Color(0.16, 0.12, 0.08, 0.42)
+	n.add_child(boot)
+	var tw := n.create_tween()
+	tw.tween_interval(2.4)
+	tw.tween_property(n, "modulate:a", 0.0, 1.1)
+	tw.tween_callback(n.queue_free)
+
+
+static func brass_eject(host: Node2D, world_pos: Vector2, facing_rad: float, heavy: bool = false) -> void:
+	if not _ok(host) or _saving() or not _budget(host, "CfxBrass", 8):
+		return
+	var n := _spawn(host, "CfxBrass", world_pos, 11)
+	var shell := Polygon2D.new()
+	shell.polygon = PackedVector2Array([
+		Vector2(-1.2, -3.4), Vector2(1.2, -3.4), Vector2(1.4, 3.0), Vector2(-1.4, 3.0)
+	])
+	shell.color = Color(0.78, 0.58, 0.22, 0.95)
+	n.add_child(shell)
+	var side := Vector2(-sin(facing_rad), cos(facing_rad))
+	var kick := side * (10.0 if heavy else 7.0) + Vector2(0, 6)
+	var tw := n.create_tween()
+	tw.tween_property(n, "position", n.position + kick, 0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(n, "rotation", 1.8 if heavy else 1.1, 0.22)
+	tw.parallel().tween_property(n, "modulate:a", 0.0, 0.28)
+	tw.tween_callback(n.queue_free)
+
+
 static func land_dust(host: Node2D, world_pos: Vector2) -> void:
 	if not _ok(host) or _saving() or not _budget(host, "CfxLand", 4):
 		return

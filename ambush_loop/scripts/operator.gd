@@ -767,6 +767,7 @@ func cover_idle_planted() -> bool:
 func play_land_pop() -> void:
 	_land_pop = 1.0
 	CombatFxScript.land_dust(self, global_position)
+	CombatFxScript.mud_print(self, global_position, deg_to_rad(facing_deg))
 
 
 func set_selected_visual(on: bool) -> void:
@@ -940,6 +941,7 @@ func _spawn_muzzle_flash() -> void:
 			tint = Color(1.0, 0.86, 0.58)
 	var tip := Vector2(cos(rad), sin(rad)) * tip_len
 	MuzzleFlashScript.burst(self, tip, rad, tint, intensity, style)
+	CombatFxScript.brass_eject(self, tip * 0.35, rad, muzzle_style == "mg")
 	apply_recoil_kick()
 
 
@@ -1349,7 +1351,7 @@ func _apply_body_modulate() -> void:
 func _tint_figure_parts(flash: Color) -> void:
 	if body == null:
 		return
-	for nam in ["Head", "Visor", "LegL", "LegR", "ShoulderL", "ShoulderR", "TorsoShade", "ArmGun", "Cape", "FrontSight", "Sight", "BootL", "BootR", "Hip", "Pack", "Collar", "MoonFill", "KitHelm", "KitGear", "Webbing"]:
+	for nam in ["Head", "Visor", "LegL", "LegR", "ShoulderL", "ShoulderR", "TorsoShade", "ArmGun", "Cape", "FrontSight", "Sight", "BootL", "BootR", "Hip", "Pack", "Collar", "MoonFill", "KitHelm", "KitGear", "Webbing", "Stock", "PouchL", "PouchR"]:
 		var n := body.get_node_or_null(nam)
 		if n is CanvasItem:
 			(n as CanvasItem).modulate = flash
