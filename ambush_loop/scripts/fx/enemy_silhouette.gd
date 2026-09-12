@@ -452,7 +452,8 @@ static func _cape(kind: String) -> PackedVector2Array:
 		return PackedVector2Array([Vector2.ZERO, Vector2(1, 0), Vector2(0, 1)])
 	return PackedVector2Array([
 		Vector2(-5.4, -6.8), Vector2(5.4, -6.8),
-		Vector2(13.0, 5.2), Vector2(0.0, 9.2), Vector2(-13.0, 5.2)
+		Vector2(14.2, 4.4), Vector2(6.0, 8.6), Vector2(0.0, 10.4),
+		Vector2(-6.0, 8.6), Vector2(-14.2, 4.4)
 	])
 
 

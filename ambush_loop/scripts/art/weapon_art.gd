@@ -48,7 +48,13 @@ static func silhouette(id: String, role: int = 0) -> PackedVector2Array:
 				Vector2(1.2, -19.2), Vector2(0.55, -32.0), Vector2(-0.5, -32.0),
 				Vector2(-1.15, -19.2), Vector2(-1.8, -5.6)
 			])
-		"mp40", "mp38", "smg":
+		"mp38":
+			return PackedVector2Array([
+				Vector2(-2.8, 6.4), Vector2(2.0, 6.2), Vector2(1.6, -2.0),
+				Vector2(1.1, -14.4), Vector2(0.7, -21.2), Vector2(-0.5, -21.2),
+				Vector2(-1.4, -8.8), Vector2(-3.2, 2.4)
+			])
+		"mp40", "smg":
 			return PackedVector2Array([
 				Vector2(-2.4, 6.2), Vector2(2.0, 6.2), Vector2(1.6, -2.0),
 				Vector2(1.1, -14.4), Vector2(0.7, -22.0), Vector2(-0.5, -22.0),
@@ -142,7 +148,21 @@ static func silhouette(id: String, role: int = 0) -> PackedVector2Array:
 				Vector2(0.48, -39.4), Vector2(-0.48, -39.4), Vector2(-1.00, -24.8),
 				Vector2(-1.35, -6.4)
 			])
-		"springfield", "enfield_t", "mosin_pu", "scout":
+		"springfield":
+			return PackedVector2Array([
+				Vector2(-1.6, 4.0), Vector2(1.8, 4.0), Vector2(1.5, -6.0),
+				Vector2(2.2, -16.8), Vector2(2.0, -20.4), Vector2(1.00, -24.8),
+				Vector2(0.48, -37.8), Vector2(-0.48, -37.8), Vector2(-1.00, -24.8),
+				Vector2(-1.35, -6.4)
+			])
+		"mosin_pu":
+			return PackedVector2Array([
+				Vector2(-1.4, 4.4), Vector2(1.6, 4.4), Vector2(1.3, -7.0),
+				Vector2(2.6, -19.2), Vector2(2.5, -22.6), Vector2(0.95, -25.6),
+				Vector2(0.42, -39.2), Vector2(-0.42, -39.2), Vector2(-0.95, -25.6),
+				Vector2(-1.3, -7.0)
+			])
+		"enfield_t", "scout":
 			return PackedVector2Array([
 				Vector2(-1.5, 4.2), Vector2(1.7, 4.2), Vector2(1.35, -6.4),
 				Vector2(1.00, -24.8), Vector2(0.48, -38.6), Vector2(-0.48, -38.6),
