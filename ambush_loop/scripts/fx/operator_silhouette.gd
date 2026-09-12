@@ -857,7 +857,7 @@ static func _boot_color(role: int, k: float) -> Color:
 		1:
 			c = Color(0.14, 0.12, 0.06, 0.96)
 		2:
-			c = Color(0.08, 0.10, 0.09, 0.94)
+			c = Color(0.10, 0.09, 0.07, 0.94)
 	return Color(c.r * k, c.g * k, c.b * k, c.a)
 
 
