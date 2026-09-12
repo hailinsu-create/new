@@ -29,6 +29,8 @@ Probe: `godot --headless --path ambush_loop -s res://scripts/art_weapon_probe.gd
 
 Class ids (`rifle`/`mg`/`scout`/`pistol`/`shotgun`) keep raid smoke. Models (Kar98k, MP40, MG42, …) swap cadence, mag, recoil, muzzle, sfx, silhouette, and loot weight.
 
+Counting: one git commit after play freeze `f5e16ae` = one art round. Target 100. HUD icons, dropped-gun stamps, bolt-cycle pose, MG heat, and per-night landmarks are presentation only.
+
 ## Do not
 
 - Live2D / side window
