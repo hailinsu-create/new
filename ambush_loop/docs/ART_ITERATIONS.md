@@ -52,8 +52,16 @@ Smoke: `SMOKE_SLICE_COMPLETE` + `SMOKE_OK_RAID_LOOP` + `SMOKE_OK_WEAPON_MODELS`.
 44. Scout leather boots / canvas packs / bolt extra kick
 45. Cordite muzzle smoke; MG42 heat; walk mud prints
 46. M1 Garand en-bloc hump; brown wool cape
+47. Playtest APK re-export
+48. Kar98k bolt knob; knife fuller
+49. Paper op-card chrome
+50. Khaki cover-arc edges
+51. Trip snap as cordite
+52. Luger vs 1911; PPS-43 vs MP40
+53. Brass dossier rails
+54. Stained-wood crate lids
 
-## Backlog 47–100
+## Backlog 55–100
 
 41. Mills / Mk2 grenade variants on later nights
 42. Bolt-cycle pose on Kar98k / Mosin
