@@ -4253,7 +4253,7 @@ func _ensure_intel_chip() -> void:
 	lab.clip_text = true
 	lab.add_theme_font_size_override("font_size", 13)
 	lab.add_theme_font_override("font", NightOps.ui_font_bold())
-	lab.add_theme_color_override("font_color", Color(0.55, 0.88, 1.0))
+	lab.add_theme_color_override("font_color", Color(0.78, 0.70, 0.48))
 	lab.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.02, 0.92))
 	lab.add_theme_constant_override("shadow_offset_x", 1)
 	lab.add_theme_constant_override("shadow_offset_y", 1)
@@ -6295,7 +6295,7 @@ func _on_continue_pressed() -> void:
 				intel_label.text = "情报已记录 · %s" % intel_line
 				intel_label.visible = false
 			_refresh_intel_chip()
-			_flash("情报已记录", Color(0.55, 0.85, 1.0))
+			_flash("情报已记录", Color(0.78, 0.68, 0.40))
 	elif phase == Phase.WON:
 		if level_index + 1 < LEVEL_ORDER.size():
 			var from_id := str(LEVEL_ORDER[level_index])
@@ -6431,12 +6431,12 @@ func _event_tint(ev: Dictionary) -> Color:
 	match typ:
 		"spawn":
 			if str(ev.get("payload", {}).get("kit", "")) == "echo":
-				return Color(0.55, 0.90, 1.0)
+				return Color(0.70, 0.58, 0.32)
 			match route:
 				"flank":
 					return Color(0.95, 0.62, 0.22)
 				"sneak":
-					return Color(0.42, 0.82, 0.62)
+					return Color(0.42, 0.48, 0.28)
 				_:
 					return Color(0.92, 0.40, 0.32)
 		"fire":
@@ -6897,7 +6897,7 @@ func _refresh_route_legend() -> void:
 	if level.route_cells.has("flank"):
 		chips.append({"id": "flank", "icon": "侧", "label": _route_chip_label("flank", "侧翼"), "color": Color(0.95, 0.55, 0.16)})
 	if level.route_cells.has("sneak"):
-		chips.append({"id": "sneak", "icon": "暗", "label": _route_chip_label("sneak", "暗道"), "color": Color(0.38, 0.78, 0.52)})
+		chips.append({"id": "sneak", "icon": "暗", "label": _route_chip_label("sneak", "暗道"), "color": Color(0.42, 0.48, 0.28)})
 	if level.route_cells.has("echo"):
 		chips.append({"id": "echo", "icon": "回", "label": _route_chip_label("echo", "回波"), "color": Color(0.70, 0.58, 0.32)})
 	if level.level_id == "pump" and not level.alternate_route_cells.is_empty():
@@ -6905,7 +6905,7 @@ func _refresh_route_legend() -> void:
 	if level.has_method("second_trap_text") and str(level.second_trap_text()).strip_edges() != "":
 		var tcol := Color(1.0, 0.72, 0.38)
 		if str(level.level_id) == "radio":
-			tcol = Color(0.55, 0.90, 1.0)
+			tcol = Color(0.70, 0.58, 0.32)
 		chips.append({"id": "trap2", "icon": "二", "label": "第二层", "color": tcol})
 	_fill_route_chips(chips)
 
