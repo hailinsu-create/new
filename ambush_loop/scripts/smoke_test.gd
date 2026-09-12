@@ -3555,6 +3555,8 @@ func _assert_props(main) -> bool:
 		"Courtyard well", "Conveyor rollers", "Pressure gauge",
 		"Milepost", "Fill nozzle", "Horn speaker",
 		"Wagon ruts", "horse dung",
+		"Coal dust",
+		"jamb rust", "Escape mouth lamplight",
 	]:
 		if src.find(token) < 0:
 			push_error("SMOKE_PROPS_TOKEN %s" % token)

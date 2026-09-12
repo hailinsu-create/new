@@ -649,6 +649,10 @@ func _draw_escape_mouth(erect: Rect2) -> void:
 	else:
 		draw_rect(erect, Color(sig.r, sig.g, sig.b, 0.20 + 0.10 * breathe))
 		draw_rect(erect, Color(sig.r, sig.g, sig.b, 0.78 + 0.16 * breathe), false, 2.4)
+		# Escape mouth lamplight — a warm pool on the threshold, not a neon gate.
+		draw_circle(cx + Vector2(0, -6), 18.0 + breathe * 2.0, Color(0.82, 0.62, 0.28, 0.10 + 0.05 * breathe))
+		draw_rect(Rect2(cx.x - 5.0, erect.position.y - 10.0, 10.0, 8.0), Color(0.22, 0.16, 0.08, 0.70))
+		draw_circle(Vector2(cx.x, erect.position.y - 12.0), 4.0, Color(0.92, 0.72, 0.32, 0.55 + 0.20 * breathe))
 
 
 func _draw_floor_accent_stripe(c: CanvasItem) -> void:
@@ -715,6 +719,10 @@ func _draw_doorway_detail(c: CanvasItem) -> void:
 	c.draw_rect(Rect2(r.position.x + 4.0, r.position.y + t - 6.0, t - 8.0, 5.0), Color(0.14, 0.10, 0.06, 0.70))
 	c.draw_rect(Rect2(r.position.x + 2.0, r.position.y + 2.0, 5.0, t - 4.0), Color(0.18, 0.12, 0.08, 0.55))
 	c.draw_rect(Rect2(r.position.x + t - 7.0, r.position.y + 2.0, 5.0, t - 4.0), Color(0.18, 0.12, 0.08, 0.55))
+	# Door jamb rust streaks — overlay only.
+	c.draw_rect(Rect2(r.position.x + 1.0, r.position.y + 8.0, 3.0, t - 14.0), Color(0.48, 0.22, 0.08, 0.45))
+	c.draw_rect(Rect2(r.position.x + t - 4.0, r.position.y + 10.0, 2.5, t - 16.0), Color(0.42, 0.18, 0.06, 0.38))
+	c.draw_rect(Rect2(r.position.x + 6.0, r.position.y + t - 8.0, 8.0, 3.0), Color(0.36, 0.16, 0.06, 0.32))
 	if locked:
 		c.draw_rect(r.grow(-6.0), Color(0.82, 0.18, 0.12, 0.22))
 
@@ -944,6 +952,16 @@ func _landmark_railcut(c: CanvasItem) -> void:
 	c.draw_rect(Rect2(11.35 * t, 10.2 * t, 5.0, 22.0), Color(0.16, 0.14, 0.10, 0.70))
 	c.draw_rect(Rect2(11.15 * t, 10.0 * t, 10.0, 8.0), Color(0.85, 0.28, 0.14, 0.55))
 	c.draw_rect(Rect2(11.25 * t, 10.15 * t, 7.0, 2.0), Color(0.92, 0.82, 0.22, 0.50))
+	# Coal dust fans along the corridor ties, off the walk spine.
+	for i in 6:
+		var cx := 12.4 * t + float(i % 3) * 18.0
+		var cy := 6.6 * t + float(i) * 22.0
+		c.draw_circle(Vector2(cx, cy), 7.0, Color(0.08, 0.07, 0.06, 0.28))
+		c.draw_circle(Vector2(cx + 8.0, cy + 4.0), 4.0, Color(0.10, 0.09, 0.08, 0.22))
+	for i in 5:
+		var dx := 31.3 * t + float(i % 2) * 14.0
+		var dy := 6.8 * t + float(i) * 24.0
+		c.draw_circle(Vector2(dx, dy), 6.0, Color(0.08, 0.07, 0.06, 0.24))
 
 
 func _landmark_depot(c: CanvasItem) -> void:
@@ -961,11 +979,11 @@ func _landmark_depot(c: CanvasItem) -> void:
 	c.draw_circle(b, 22.0, Color(0.38, 0.16, 0.06, 0.52))
 	c.draw_circle(d, 22.0, Color(0.24, 0.12, 0.05, 0.70))
 	c.draw_circle(d, 15.0, Color(0.40, 0.18, 0.06, 0.42))
-	# Hazard chevrons along the south face of the tanks.
+	# Hazard chevrons along the south face of the tanks. Muted diesel, not candy.
 	for i in 7:
 		var x := 15.6 * t + float(i) * 16.0
 		var y := 14.0 * t + 4.0
-		var col := Color(0.92, 0.62, 0.10, 0.62) if (i % 2) == 0 else Color(0.08, 0.07, 0.05, 0.62)
+		var col := Color(0.62, 0.38, 0.10, 0.42) if (i % 2) == 0 else Color(0.10, 0.08, 0.05, 0.48)
 		c.draw_rect(Rect2(x, y, 15.0, 9.0), col)
 	# Fuel pipe run from tanks toward the east wall (overlay on blocked core).
 	c.draw_rect(Rect2(22.2 * t, 10.7 * t, 6.0 * t, 7.0), Color(0.28, 0.14, 0.06, 0.55))
