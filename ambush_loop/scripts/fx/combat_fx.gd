@@ -389,6 +389,34 @@ static func land_dust(host: Node2D, world_pos: Vector2) -> void:
 	tw.tween_callback(n.queue_free)
 
 
+static func drag_smear(host: Node2D, world_pos: Vector2, dir: Vector2 = Vector2(0, 1), tint: Color = Color(0.38, 0.12, 0.08)) -> void:
+	if not _ok(host):
+		return
+	var d := dir.normalized() if dir.length_squared() > 0.04 else Vector2(0, 1)
+	var perp := Vector2(-d.y, d.x)
+	var n := _spawn(host, "CfxDrag", world_pos + Vector2(0, 8), 1)
+	var smear := Polygon2D.new()
+	smear.polygon = PackedVector2Array([
+		perp * -7.0 + d * -4.0,
+		perp * 6.0 + d * -3.0,
+		perp * 4.0 + d * 28.0,
+		perp * 1.2 + d * 38.0,
+		perp * -2.0 + d * 26.0,
+		perp * -5.5 + d * 10.0,
+	])
+	smear.color = Color(0.16, 0.10, 0.06, 0.58)
+	n.add_child(smear)
+	var blood := Polygon2D.new()
+	blood.polygon = PackedVector2Array([
+		perp * -3.4 + d * 2.0,
+		perp * 2.8 + d * 4.0,
+		perp * 1.6 + d * 22.0,
+		perp * -2.2 + d * 18.0,
+	])
+	blood.color = Color(tint.r * 0.42, tint.g * 0.16, tint.b * 0.12, 0.55)
+	n.add_child(blood)
+
+
 static func death_stain(host: Node2D, world_pos: Vector2, tint: Color = Color(0.55, 0.12, 0.10)) -> void:
 	if not _ok(host):
 		return
