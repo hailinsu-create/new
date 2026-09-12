@@ -836,9 +836,9 @@ static func _gear_color(role: int) -> Color:
 		1:
 			return Color(0.16, 0.14, 0.08, 0.95)
 		2:
-			return Color(0.16, 0.24, 0.20, 0.96)
+			return Color(0.16, 0.14, 0.10, 0.96)
 		_:
-			return Color(0.20, 0.24, 0.16, 0.88)
+			return Color(0.20, 0.16, 0.10, 0.88)
 
 
 static func _pack_color(role: int) -> Color:
