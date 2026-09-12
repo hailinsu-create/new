@@ -3,7 +3,7 @@ extends Node2D
 ## SETUP dashed pulse along the second-layer trap route. Overlay only.
 
 var pts: PackedVector2Array = PackedVector2Array()
-var col: Color = Color(1.0, 0.72, 0.38, 0.92)
+var col: Color = Color(0.72, 0.52, 0.24, 0.92)
 var tag: String = ""
 var tag_at: Vector2 = Vector2.ZERO
 var _t: float = 0.0

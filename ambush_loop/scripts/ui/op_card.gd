@@ -190,7 +190,10 @@ func bind(op: OperatorUnit, is_sel: bool, can_pick: bool, watching: bool = false
 	if _hot:
 		_hot.border_color = stripe.lerp(NightOps.OLIVE_HI, 0.35)
 		_hot.shadow_color = Color(0.50, 0.58, 0.28, 0.22)
-	_role.text = "%s · %s" % [OperatorUnit.role_display(op.role), _kit_short(op)]
+	var gun := ""
+	if op.weapon_id != "" and op.weapon_id != "knife":
+		gun = WeaponCatalog.display_name(op.weapon_id)
+	_role.text = "%s · %s" % [OperatorUnit.role_display(op.role), gun if gun != "" else _kit_short(op)]
 	_role.add_theme_color_override("font_color", stripe.lerp(NightOps.MUTED, 0.40))
 	var hp := op.hp if op.alive else 0.0
 	_hp_target = hp
