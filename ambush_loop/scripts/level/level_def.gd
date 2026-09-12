@@ -211,15 +211,15 @@ static func signature_color(id: String) -> Color:
 		"warehouse":
 			return Color(0.94, 0.68, 0.18) # amber
 		"pump":
-			return Color(0.18, 0.74, 0.70) # teal
+			return Color(0.42, 0.40, 0.24) # oil
 		"railcut":
 			return Color(0.92, 0.16, 0.16) # signal red
 		"depot":
 			return Color(0.98, 0.48, 0.10) # hazard orange
 		"radio":
-			return Color(0.38, 0.78, 0.96) # phosphor
+			return Color(0.62, 0.56, 0.36) # moonlight steel
 		_:
-			return Color(0.62, 0.74, 0.32) # olive
+			return Color(0.52, 0.46, 0.26) # olive
 
 
 static func mood_tag(id: String) -> String:

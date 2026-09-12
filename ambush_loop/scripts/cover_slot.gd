@@ -249,7 +249,7 @@ func _mount_kit_prop() -> void:
 			mast.polygon = PackedVector2Array([
 				Vector2(-2.4, 10), Vector2(2.4, 10), Vector2(2.0, -18), Vector2(-2.0, -18)
 			])
-			mast.color = Color(0.16, 0.24, 0.28, 0.95)
+			mast.color = Color(0.18, 0.16, 0.12, 0.95)
 			mast.z_index = 3
 			add_child(mast)
 			_crate_bits.append(mast)
@@ -259,7 +259,7 @@ func _mount_kit_prop() -> void:
 				Vector2(-18, 8), Vector2(-12, -14), Vector2(10, -18), Vector2(18, 4),
 				Vector2(8, 14), Vector2(-12, 14)
 			])
-			dish.color = Color(0.32, 0.58, 0.70, 0.96)
+			dish.color = Color(0.36, 0.32, 0.22, 0.96)
 			dish.z_index = 4
 			add_child(dish)
 			_crate_bits.append(dish)
@@ -268,7 +268,7 @@ func _mount_kit_prop() -> void:
 			boom.polygon = PackedVector2Array([
 				Vector2(-2, -16), Vector2(6, -22), Vector2(8, -19), Vector2(1, -10)
 			])
-			boom.color = Color(0.62, 0.90, 1.0, 0.94)
+			boom.color = Color(0.62, 0.52, 0.28, 0.94)
 			boom.z_index = 5
 			add_child(boom)
 			_crate_bits.append(boom)
@@ -277,7 +277,7 @@ func _mount_kit_prop() -> void:
 			feed.polygon = PackedVector2Array([
 				Vector2(5, -22), Vector2(9, -24), Vector2(10, -21), Vector2(6, -19)
 			])
-			feed.color = Color(0.82, 0.96, 1.0, 0.95)
+			feed.color = Color(0.78, 0.64, 0.32, 0.95)
 			feed.z_index = 5
 			add_child(feed)
 			_crate_bits.append(feed)

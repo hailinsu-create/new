@@ -2324,7 +2324,7 @@ func _draw_fixed_routes() -> void:
 		"main": Color(0.9, 0.4, 0.35, 0.35),
 		"flank": Color(0.95, 0.55, 0.2, 0.3),
 		"sneak": Color(0.55, 0.72, 0.38, 0.32),
-		"echo": Color(0.42, 0.78, 0.92, 0.42),
+		"echo": Color(0.62, 0.52, 0.28, 0.42),
 	}
 	var labels := {
 		"main": "主路·巡卫",
@@ -2500,7 +2500,7 @@ func _build_decision_marker() -> void:
 	pulse.name = "PulseRing"
 	pulse.width = 2.5
 	pulse.closed = true
-	pulse.default_color = Color(0.22, 0.92, 0.78, 0.92)
+	pulse.default_color = Color(0.62, 0.50, 0.24, 0.92)
 	pulse.z_index = 3
 	var pts := PackedVector2Array()
 	for i in 18:
@@ -4002,7 +4002,7 @@ func _build_echo_callout() -> void:
 	if not level.route_cells.has("echo"):
 		return
 	var pos := grid.cell_to_world_center(Vector2i(24, 12)) + Vector2(8, -22)
-	echo_callout = _make_map_callout("EchoCallout", "回波 5.2s", pos, Color(0.55, 0.90, 1.0))
+	echo_callout = _make_map_callout("EchoCallout", "回波 5.2s", pos, Color(0.72, 0.58, 0.28))
 
 
 func echo_callout_visible() -> bool:
@@ -4055,7 +4055,7 @@ func _build_trap_path() -> void:
 	if route == "sneak":
 		col = Color(0.68, 0.42, 0.92, 0.90)
 	elif route == "echo":
-		col = Color(0.55, 0.90, 1.0, 0.90)
+		col = Color(0.70, 0.56, 0.28, 0.90)
 	elif route == "alt":
 		col = Color(0.78, 0.55, 1.0, 0.90)
 	var fx: Node2D = TrapPathFxScript.new()
@@ -4215,11 +4215,11 @@ func _intel_flash_color(route: String) -> Color:
 		"sneak":
 			return Color(0.68, 0.32, 0.92)
 		"echo":
-			return Color(0.42, 0.82, 0.96)
+			return Color(0.70, 0.58, 0.32)
 		"main":
 			return Color(0.95, 0.28, 0.22)
 		_:
-			return Color(0.55, 0.85, 1.0)
+			return Color(0.62, 0.54, 0.32)
 
 
 func _refresh_spawn_teach() -> void:

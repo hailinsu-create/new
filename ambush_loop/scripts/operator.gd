@@ -1434,7 +1434,7 @@ func _ensure_observation_visual() -> void:
 		obs_ring.name = "ObsRing"
 		obs_ring.width = 1.6
 		obs_ring.closed = true
-		obs_ring.default_color = Color(0.42, 0.88, 1.0, 0.38)
+		obs_ring.default_color = Color(0.72, 0.68, 0.42, 0.38)
 		obs_ring.z_index = -1
 		obs_ring.show_behind_parent = true
 		add_child(obs_ring)
