@@ -30,6 +30,9 @@
     <string name="cd_home_debug">Debug auto-unlock notice</string>
     <string name="btn_overlay">Allow overlay</string>
     <string name="btn_usage">Allow usage access (optional)</string>
+    <string name="hint_base_url">Base URL</string>
+    <string name="hint_api_key">API key</string>
+    <string name="hint_model">Vision model</string>
     <string name="hint_interval">Companion interval (seconds)</string>
     <string name="hint_change_threshold">Screen-change threshold (higher = quieter)</string>
     <string name="switch_mock">Demo lines (no vision API)</string>

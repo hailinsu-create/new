@@ -1601,6 +1601,14 @@ romance("values-ar", {
 })
 
 
+def apply_013() -> None:
+    from locales_013 import apply as _apply_013
+    _apply_013(STRINGS)
+
+
+apply_013()
+
+
 
 
 

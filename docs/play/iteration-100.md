@@ -42,3 +42,13 @@ R37 | Live2D | Tighten WebView: no mixed content, no extra windows, JS only beca
 R38 | Live2D | Home preview uses the same overlay face crop as the floating window | character.json, Live2DAvatarView.kt
 R39 | Live2D | Unload home engine so Cubism Core is not kept twice; liveEngineCount tracks hosts | Live2DAvatarView.kt, MainActivity.kt
 R40 | copy | Sweep remaining Mao/sample user copy (none in strings); close-chip copy no longer says top-right | strings.xml
+R41 | i18n | ar: leftover purchase_*, data_disclosure, overlay errors, new 0.13 keys | locales_013.py, values-ar/strings.xml
+R42 | i18n | de: leftover purchase_* and 0.13 keys in natural German | locales_013.py, values-de/strings.xml
+R43 | i18n | es: leftover purchase_* and 0.13 keys | locales_013.py, values-es/strings.xml
+R44 | i18n | fr: leftover English purchase_summary/status and 0.13 keys | locales_013.py, values-fr/strings.xml
+R45 | i18n | in: leftover purchase_* and 0.13 keys | locales_013.py, values-in/strings.xml
+R46 | i18n | ja: app_name 傍窓, natural consent (no glued 旁窗), leftover keys | locales_013.py, values-ja/strings.xml
+R47 | i18n | ko: app_name 곁창 (not 旁窗), natural consent, leftover keys | locales_013.py, values-ko/strings.xml
+R48 | i18n | pt-rBR: leftover purchase_* and 0.13 keys | locales_013.py, values-pt-rBR/strings.xml
+R49 | i18n | ru: leftover purchase_* and 0.13 keys | locales_013.py, values-ru/strings.xml
+R50 | i18n | th+vi: th app_name ข้างหน้าต่าง and natural consent; vi leftover purchase_* | locales_013.py, values-th/strings.xml, values-vi/strings.xml
