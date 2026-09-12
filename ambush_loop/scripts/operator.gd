@@ -1572,7 +1572,7 @@ func _ensure_shield() -> void:
 		shield_glyph.polygon = PackedVector2Array([
 			Vector2(0, -9), Vector2(8, -4), Vector2(6, 6), Vector2(0, 10), Vector2(-6, 6), Vector2(-8, -4)
 		])
-		shield_glyph.color = Color(0.55, 0.88, 0.95, 0.92)
+		shield_glyph.color = Color(0.62, 0.54, 0.32, 0.92)
 		add_child(shield_glyph)
 	shield_glyph.position = Vector2(-20, -8)
 

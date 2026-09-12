@@ -96,7 +96,7 @@ func _ready() -> void:
 	visible = false
 	var dim := ColorRect.new()
 	dim.name = "Dimmer"
-	dim.color = Color(0.015, 0.025, 0.018, 0.82)
+	dim.color = Color(0.018, 0.016, 0.010, 0.82)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	dim.gui_input.connect(_on_dimmer_input)
