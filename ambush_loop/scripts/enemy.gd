@@ -497,14 +497,14 @@ func _kind_outline_color() -> Color:
 
 func _kind_rim_color() -> Color:
 	if echo_kit:
-		return Color(0.62, 0.58, 0.42, 0.95)
+		return Color(0.82, 0.70, 0.32, 0.95)
 	match kind_id():
 		"flank":
-			return Color(0.72, 0.42, 0.16, 0.95)
+			return Color(1.0, 0.62, 0.18, 0.95)
 		"sneak":
-			return Color(0.32, 0.38, 0.28, 0.92)
+			return Color(0.62, 0.72, 0.48, 0.92)
 		_:
-			return Color(0.62, 0.18, 0.12, 0.95)
+			return Color(1.0, 0.32, 0.22, 0.95)
 
 
 func _outline_pad() -> float:
