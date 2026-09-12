@@ -27,6 +27,8 @@ WWII models sit under those families with real cadence, recoil, mag, muzzle, sfx
 See `scripts/raid/weapon_catalog.gd` and `scripts/art/weapon_art.gd`.
 Probe: `godot --headless --path ambush_loop -s res://scripts/art_weapon_probe.gd`
 
+Class ids (`rifle`/`mg`/`scout`/`pistol`/`shotgun`) keep raid smoke. Models (Kar98k, MP40, MG42, …) swap cadence, mag, recoil, muzzle, sfx, silhouette, and loot weight.
+
 ## Do not
 
 - Live2D / side window
