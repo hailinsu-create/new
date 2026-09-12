@@ -43,12 +43,29 @@ func _ensure_pack_look() -> void:
 	if Weapons.is_firearm(kind):
 		var art: GDScript = load("res://scripts/art/weapon_art.gd") as GDScript
 		if art:
+			var shadow := Polygon2D.new()
+			shadow.name = "GunShadow"
+			shadow.polygon = art.ground_poly(kind)
+			shadow.color = Color(0.04, 0.03, 0.02, 0.42)
+			shadow.position = Vector2(2, 5)
+			shadow.z_index = 1
+			add_child(shadow)
 			var gun := Polygon2D.new()
 			gun.name = "DroppedGun"
-			gun.polygon = art.icon_poly(kind)
+			gun.polygon = art.ground_poly(kind)
 			gun.color = art.steel_color(kind)
+			gun.rotation = 0.18
 			gun.z_index = 2
 			add_child(gun)
+			var wood := Polygon2D.new()
+			wood.name = "DroppedStock"
+			wood.polygon = PackedVector2Array([
+				Vector2(-16, -3), Vector2(-8, -4), Vector2(-7, 3), Vector2(-15, 4)
+			])
+			wood.color = art.wood_color(kind)
+			wood.rotation = 0.18
+			wood.z_index = 2
+			add_child(wood)
 	visual.polygon = PackedVector2Array([
 		Vector2(-10, -8), Vector2(10, -8), Vector2(9, 10), Vector2(-9, 10)
 	])
