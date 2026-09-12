@@ -312,6 +312,25 @@ static func icon_poly(id: String) -> PackedVector2Array:
 			])
 
 
+static func is_bolt(id: String) -> bool:
+	match id:
+		"kar98k", "mosin", "lee_enfield", "kar98k_zf", "springfield", "enfield_t", "mosin_pu":
+			return true
+		_:
+			return false
+
+
+static func bolt_knob_poly(id: String) -> PackedVector2Array:
+	## Right-side bolt handle. Local space matches silhouette (muzzle -Y).
+	if not is_bolt(id):
+		return PackedVector2Array([Vector2.ZERO, Vector2(1, 0), Vector2(0, 1)])
+	var reach := 4.6 if id in ["mosin", "mosin_pu"] else 4.0
+	var y := 1.4 if id.begins_with("kar98") else (0.6 if id in ["lee_enfield", "enfield_t"] else 1.0)
+	return PackedVector2Array([
+		Vector2(1.4, y - 0.6), Vector2(reach, y - 1.2), Vector2(reach + 0.6, y + 0.6), Vector2(1.6, y + 1.2)
+	])
+
+
 static func muzzle_style(id: String) -> String:
 	var d: Dictionary = WeaponCatalog.def(id)
 	return str(d.get("muzzle", "rifle"))

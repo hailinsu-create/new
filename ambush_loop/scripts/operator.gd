@@ -73,6 +73,7 @@ var _present_t: float = 0.0
 var _death_tween: Tween = null
 var _recoil_off: Vector2 = Vector2.ZERO
 var _weapon_snap: float = 0.0
+var _bolt_cycle: float = 0.0
 var _hit_punch: float = 0.0
 var hp_bar: Polygon2D = null
 var shield_glyph: Polygon2D = null
@@ -806,6 +807,8 @@ func _process(delta: float) -> void:
 	if _recoil_off.length_squared() < 0.04:
 		_recoil_off = Vector2.ZERO
 	_weapon_snap = move_toward(_weapon_snap, 0.0, delta * 7.5)
+	if _bolt_cycle > 0.0:
+		_bolt_cycle = maxf(_bolt_cycle - delta * 2.35, 0.0)
 	_cover_lean = _cover_lean.lerp(Vector2.ZERO, 1.0 - exp(-delta * 11.0))
 	if _cover_lean.length_squared() < 0.04:
 		_cover_lean = Vector2.ZERO
@@ -953,6 +956,7 @@ func apply_recoil_kick() -> void:
 	var k := maxf(recoil_mul, 0.25)
 	if fire_sfx == "fire_bolt":
 		k *= 1.18
+		_bolt_cycle = 1.0
 	match role:
 		Role.MG:
 			_recoil_off = back * (5.4 * k)
@@ -1013,11 +1017,13 @@ func _apply_idle_bob() -> void:
 		Silhouette.pose_parts(body, role, {
 			"t": _present_t,
 			"recoil": _weapon_snap,
+			"bolt": _bolt_cycle,
 			"hit": _hit_punch,
 			"alive": alive and visible,
 			"saving": _is_power_saving(),
 			"id": float(op_id),
 			"planted": cover_idle_planted(),
+			"weapon_id": weapon_id,
 		})
 	if hp_bar:
 		hp_bar.position = Vector2(0.0, bob * 0.2)
@@ -1128,6 +1134,7 @@ func _reset_present_fx() -> void:
 		_death_tween = null
 	_recoil_off = Vector2.ZERO
 	_weapon_snap = 0.0
+	_bolt_cycle = 0.0
 	_hit_punch = 0.0
 	_cover_lean = Vector2.ZERO
 	_outline_boost = false

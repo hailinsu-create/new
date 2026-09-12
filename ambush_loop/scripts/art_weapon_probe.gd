@@ -34,6 +34,14 @@ func _run() -> void:
 		push_error("PROBE_SIL")
 		quit(6)
 		return
+	if not bool(Art.is_bolt("kar98k")) or bool(Art.is_bolt("mg42")):
+		push_error("PROBE_BOLT")
+		quit(8)
+		return
+	if Art.bolt_knob_poly("kar98k") == Art.bolt_knob_poly("mosin"):
+		push_error("PROBE_BOLT_KNOB")
+		quit(8)
+		return
 	if str(W.sfx_cue("mg42")) == str(W.sfx_cue("kar98k")):
 		push_error("PROBE_SFX")
 		quit(7)
