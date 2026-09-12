@@ -610,7 +610,7 @@ func _ensure_echo_mast() -> void:
 		mast.polygon = PackedVector2Array([
 			Vector2(-1.4, -16), Vector2(1.4, -16), Vector2(1.1, -38), Vector2(-1.1, -38)
 		])
-		mast.color = Color(0.55, 0.88, 0.98, 0.95)
+		mast.color = Color(0.28, 0.26, 0.20, 0.95)
 		mast.z_index = 4
 		body.add_child(mast)
 	mast.visible = echo_kit
@@ -621,7 +621,7 @@ func _ensure_echo_mast() -> void:
 		tip.polygon = PackedVector2Array([
 			Vector2(-4.2, -36), Vector2(4.2, -36), Vector2(2.6, -44), Vector2(-2.6, -44)
 		])
-		tip.color = Color(0.78, 0.96, 1.0, 0.95)
+		tip.color = Color(0.72, 0.56, 0.26, 0.95)
 		tip.z_index = 5
 		body.add_child(tip)
 	tip.visible = echo_kit
@@ -636,10 +636,10 @@ func _tick_echo_mast() -> void:
 		return
 	var pulse := 0.55 + 0.45 * sin(_present_t * 6.2)
 	if tip:
-		tip.color = Color(0.62 + 0.30 * pulse, 0.92, 1.0, 0.70 + 0.28 * pulse)
+		tip.color = Color(0.62 + 0.20 * pulse, 0.52, 0.28, 0.70 + 0.28 * pulse)
 		tip.visible = alive
 	if mast:
-		mast.color = Color(0.40, 0.82, 0.96, 0.70 + 0.25 * pulse)
+		mast.color = Color(0.32, 0.28, 0.18, 0.70 + 0.25 * pulse)
 		mast.visible = alive
 
 

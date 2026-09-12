@@ -1044,25 +1044,25 @@ func _landmark_radio(c: CanvasItem) -> void:
 	c.draw_line(Vector2(16.4 * t, 8.2 * t), Vector2(12.2 * t, 12.4 * t), Color(0.42, 0.36, 0.22, 0.32), 1.2, true)
 	c.draw_line(Vector2(mast.x - 8, mast.y - 70), Vector2(15.4 * t, 8.6 * t), Color(0.50, 0.74, 0.86, 0.36), 1.3, true)
 	# Morse hut on the east annex (already blocked).
-	c.draw_rect(Rect2(25.4 * t, 8.4 * t, 2.4 * t, 2.8 * t), Color(0.10, 0.16, 0.20, 0.70))
-	c.draw_rect(Rect2(25.6 * t, 8.6 * t, 2.0 * t, 10.0), Color(0.32, 0.72, 0.88, 0.35))
-	c.draw_rect(Rect2(26.2 * t, 8.2 * t, 8.0, 6.0), Color(0.55, 0.88, 1.0, 0.45))
+	c.draw_rect(Rect2(25.4 * t, 8.4 * t, 2.4 * t, 2.8 * t), Color(0.12, 0.10, 0.08, 0.70))
+	c.draw_rect(Rect2(25.6 * t, 8.6 * t, 2.0 * t, 10.0), Color(0.42, 0.34, 0.16, 0.35))
+	c.draw_rect(Rect2(26.2 * t, 8.2 * t, 8.0, 6.0), Color(0.72, 0.58, 0.28, 0.45))
 	# Call log tucked under the Morse hut window.
-	c.draw_rect(Rect2(25.55 * t, 10.6 * t, 16.0, 12.0), Color(0.10, 0.16, 0.20, 0.55))
-	c.draw_rect(Rect2(25.7 * t, 10.75 * t, 12.0, 2.0), Color(0.42, 0.82, 0.95, 0.45))
+	c.draw_rect(Rect2(25.55 * t, 10.6 * t, 16.0, 12.0), Color(0.12, 0.10, 0.08, 0.55))
+	c.draw_rect(Rect2(25.7 * t, 10.75 * t, 12.0, 2.0), Color(0.52, 0.42, 0.22, 0.45))
 	# Antenna mast west of the core, off the sneak alley.
 	var west_mast := Vector2(10.4 * t, 9.2 * t)
-	c.draw_rect(Rect2(west_mast.x - 2, west_mast.y - 40, 4.0, 44.0), Color(0.14, 0.18, 0.22, 0.80))
-	c.draw_circle(west_mast + Vector2(0, -44), 5.0, Color(0.42, 0.88, 0.95, 0.80))
-	c.draw_line(west_mast + Vector2(0, -20), west_mast + Vector2(14, -8), Color(0.40, 0.70, 0.82, 0.40), 1.2, true)
-	_lamp_post(c, Vector2(13.6 * t, 8.4 * t), Color(0.55, 0.86, 0.98))
-	_lamp_post(c, Vector2(32.4 * t, 8.4 * t), Color(0.55, 0.86, 0.98))
+	c.draw_rect(Rect2(west_mast.x - 2, west_mast.y - 40, 4.0, 44.0), Color(0.16, 0.14, 0.10, 0.80))
+	c.draw_circle(west_mast + Vector2(0, -44), 5.0, Color(0.72, 0.58, 0.28, 0.80))
+	c.draw_line(west_mast + Vector2(0, -20), west_mast + Vector2(14, -8), Color(0.40, 0.34, 0.18, 0.40), 1.2, true)
+	_lamp_post(c, Vector2(13.6 * t, 8.4 * t), Color(0.68, 0.56, 0.28))
+	_lamp_post(c, Vector2(32.4 * t, 8.4 * t), Color(0.68, 0.56, 0.28))
 	# Cable run along the south face of the core.
-	c.draw_line(Vector2(15.2 * t, 14.35 * t), Vector2(23.6 * t, 14.45 * t), Color(0.12, 0.18, 0.22, 0.70), 2.2, true)
-	c.draw_line(Vector2(15.2 * t, 14.55 * t), Vector2(23.6 * t, 14.65 * t), Color(0.28, 0.48, 0.58, 0.40), 1.4, true)
+	c.draw_line(Vector2(15.2 * t, 14.35 * t), Vector2(23.6 * t, 14.45 * t), Color(0.14, 0.12, 0.08, 0.70), 2.2, true)
+	c.draw_line(Vector2(15.2 * t, 14.55 * t), Vector2(23.6 * t, 14.65 * t), Color(0.32, 0.26, 0.14, 0.40), 1.4, true)
 	# Spare dish leaning on the west annex, off the sneak alley.
 	var spare := Vector2(9.6 * t, 13.4 * t)
-	c.draw_arc(spare, 16.0, 0.4, 3.2, 10, Color(0.32, 0.52, 0.62, 0.50), 2.4, true)
+	c.draw_arc(spare, 16.0, 0.4, 3.2, 10, Color(0.32, 0.28, 0.16, 0.50), 2.4, true)
 	c.draw_line(spare + Vector2(-10, 8), spare + Vector2(12, -6), Color(0.40, 0.62, 0.72, 0.40), 1.4, true)
 	# Sandbag row along the south mouth, not on the escape cell.
 	for i in 5:
