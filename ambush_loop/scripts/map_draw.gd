@@ -811,6 +811,16 @@ func _landmark_yard(c: CanvasItem) -> void:
 	c.draw_circle(well, 10.0, Color(0.12, 0.14, 0.10, 0.55))
 	c.draw_circle(well, 6.0, Color(0.06, 0.08, 0.06, 0.70))
 	c.draw_arc(well, 10.0, 0.2, 5.6, 10, Color(0.28, 0.32, 0.22, 0.55), 1.6, true)
+	# Wagon ruts + horse dung on the west garden, off the spine (x=13).
+	c.draw_line(Vector2(6.0 * t, 15.55 * t), Vector2(12.2 * t, 16.15 * t), Color(0.12, 0.08, 0.04, 0.46), 3.4, true)
+	c.draw_line(Vector2(6.15 * t, 15.92 * t), Vector2(12.35 * t, 16.52 * t), Color(0.10, 0.07, 0.03, 0.38), 2.6, true)
+	c.draw_line(Vector2(6.4 * t, 16.85 * t), Vector2(11.8 * t, 17.35 * t), Color(0.12, 0.08, 0.04, 0.40), 3.0, true)
+	c.draw_line(Vector2(6.55 * t, 17.18 * t), Vector2(11.95 * t, 17.68 * t), Color(0.10, 0.07, 0.03, 0.32), 2.2, true)
+	var dung := Vector2(7.55 * t, 16.35 * t)
+	c.draw_circle(dung, 4.4, Color(0.22, 0.14, 0.06, 0.64))
+	c.draw_circle(dung + Vector2(8, 4), 3.2, Color(0.20, 0.12, 0.05, 0.55))
+	c.draw_circle(dung + Vector2(3, 7), 2.4, Color(0.18, 0.10, 0.04, 0.48))
+	c.draw_circle(dung + Vector2(-3, 5), 2.0, Color(0.16, 0.10, 0.04, 0.40))
 
 
 func _landmark_warehouse(c: CanvasItem) -> void:
