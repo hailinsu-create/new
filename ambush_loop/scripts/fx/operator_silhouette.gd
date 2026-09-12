@@ -64,6 +64,12 @@ static func mount(body: Polygon2D, role: int, weapon_id: String = "") -> void:
 	var cape := _poly(body, "Cape", _cape_poly(role), _cape_color(role), -2)
 	cape.visible = role == 2
 	cape.show_behind_parent = true
+	var hem := _poly(body, "CapeHem", PackedVector2Array([
+		Vector2(-12.4, 7.2), Vector2(12.4, 7.2), Vector2(13.8, 8.6),
+		Vector2(0.0, 14.8), Vector2(-13.8, 8.6)
+	]), Color(0.10, 0.08, 0.04, 0.88), -2)
+	hem.visible = role == 2
+	hem.show_behind_parent = true
 	_poly(body, "Pack", _pack(role), _pack_color(role), -1).visible = not saving or role != 2
 	_poly(body, "BootL", _boot_l(role), _boot_color(role, 0.78), 0)
 	_poly(body, "BootR", _boot_r(role), _boot_color(role, 0.92), 0)
@@ -102,10 +108,20 @@ static func mount(body: Polygon2D, role: int, weapon_id: String = "") -> void:
 		]), Color(0.14, 0.12, 0.08, 0.95), 5)
 		bl.visible = is_mg
 		br.visible = is_mg
-		var drum := _poly(body, "Drum", PackedVector2Array([
-			Vector2(-4.8, -2.2), Vector2(-1.0, -2.4), Vector2(-1.2, 4.6), Vector2(-5.0, 4.4)
-		]), Color(0.16, 0.14, 0.10, 0.95), 6)
+		var drum_pts := PackedVector2Array()
+		for i in 8:
+			var da := TAU * float(i) / 8.0
+			drum_pts.append(Vector2(cos(da) * 3.6 - 3.2, sin(da) * 3.6 + 1.0))
+		var drum := _poly(body, "Drum", drum_pts, Color(0.16, 0.14, 0.10, 0.95), 6)
 		drum.visible = wid == "thompson"
+		var scope := _poly(body, "ScopeTube", PackedVector2Array([
+			Vector2(-1.2, -12.0), Vector2(1.4, -12.0), Vector2(1.2, -24.4), Vector2(-1.0, -24.4)
+		]), Color(0.10, 0.12, 0.10, 0.96), 6)
+		scope.visible = wid in ["kar98k_zf", "springfield", "enfield_t", "mosin_pu", "scout"]
+		var boxmag := _poly(body, "BoxMag", PackedVector2Array([
+			Vector2(-2.2, -2.0), Vector2(2.0, -2.0), Vector2(1.8, 6.4), Vector2(-2.0, 6.4)
+		]), Color(0.14, 0.12, 0.08, 0.95), 6)
+		boxmag.visible = wid == "bar"
 		var knob := _poly(body, "BoltKnob", WeaponArtScript.bolt_knob_poly(wid), Color(0.22, 0.18, 0.10, 0.96), 7)
 		knob.visible = WeaponArtScript.is_bolt(wid)
 		var heat := _poly(body, "HeatGlow", PackedVector2Array([
@@ -116,7 +132,7 @@ static func mount(body: Polygon2D, role: int, weapon_id: String = "") -> void:
 		var stock := body.get_node_or_null("Stock") as Polygon2D
 		if stock:
 			stock.visible = false
-		for nam in ["Bipod", "BipodL", "BipodR", "Drum", "BoltKnob", "HeatGlow"]:
+		for nam in ["Bipod", "BipodL", "BipodR", "Drum", "BoltKnob", "HeatGlow", "ScopeTube", "BoxMag"]:
 			var bipod_off := body.get_node_or_null(nam) as Polygon2D
 			if bipod_off:
 				bipod_off.visible = false
@@ -226,6 +242,12 @@ static func pose_parts(body: Polygon2D, role: int, pose: Dictionary) -> void:
 		if weap and hot_gun:
 			var steel := WeaponArtScript.steel_color(wid)
 			weap.color = steel.lerp(Color(0.72, 0.22, 0.08, 0.98), heat * 0.55) if heat > 0.12 else steel
+	if weap:
+		for nam in ["ScopeTube", "Drum", "BoxMag", "Stock"]:
+			var bit := body.get_node_or_null(nam) as Polygon2D
+			if bit and bit.visible:
+				bit.rotation = weap.rotation
+				bit.position = weap.position
 	var cape := body.get_node_or_null("Cape") as Polygon2D
 	if cape:
 		cape.visible = role == 2
@@ -235,6 +257,12 @@ static func pose_parts(body: Polygon2D, role: int, pose: Dictionary) -> void:
 		else:
 			cape.rotation = 0.0
 			cape.position = Vector2.ZERO
+	var hem := body.get_node_or_null("CapeHem") as Polygon2D
+	if hem:
+		hem.visible = role == 2 and alive
+		if cape:
+			hem.rotation = cape.rotation
+			hem.position = cape.position + Vector2(0, 0.4)
 	var pack := body.get_node_or_null("Pack") as Polygon2D
 	if pack:
 		pack.position = Vector2(-sway * 0.2, absf(stride) * 0.15)
@@ -828,7 +856,10 @@ static func _saving() -> bool:
 
 static func _shade(role: int, k: float) -> Color:
 	var c := _base(role)
-	return Color(c.r * k, c.g * k, c.b * k, 0.96)
+	var out := Color(c.r * k, c.g * k, c.b * k, 0.96)
+	if _saving():
+		out = Color(out.r * 1.12, out.g * 1.08, out.b * 0.92, out.a)
+	return out
 
 
 static func _base(role: int) -> Color:
