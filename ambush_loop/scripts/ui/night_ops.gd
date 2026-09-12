@@ -3,21 +3,21 @@ extends RefCounted
 
 ## Night-ops palette + fonts. Asphalt / olive, not purple or terracotta cream.
 
-const BG := Color(0.042, 0.055, 0.048)
-const ASPHALT := Color(0.09, 0.115, 0.10)
-const OLIVE := Color(0.38, 0.44, 0.28)
-const OLIVE_HI := Color(0.78, 0.84, 0.50)
-const OLIVE_DIM := Color(0.55, 0.60, 0.42)
-const WALL := Color(0.28, 0.22, 0.12)
-const TEXT := Color(0.88, 0.90, 0.82)
-const MUTED := Color(0.58, 0.62, 0.54)
-const DANGER := Color(0.82, 0.36, 0.22)
-const HP_OK := Color(0.42, 0.70, 0.38)
-const HP_LOW := Color(0.82, 0.40, 0.22)
-const PANEL := Color(0.055, 0.072, 0.062, 0.96)
-const ACCENT_LINE := Color(0.62, 0.68, 0.38, 0.85)
-const INK := Color(0.025, 0.035, 0.028, 0.94)
-const RAIL := Color(0.70, 0.76, 0.40, 0.92)
+const BG := Color(0.040, 0.042, 0.034)
+const ASPHALT := Color(0.10, 0.10, 0.08)
+const OLIVE := Color(0.42, 0.38, 0.24)
+const OLIVE_HI := Color(0.74, 0.66, 0.40)
+const OLIVE_DIM := Color(0.52, 0.48, 0.34)
+const WALL := Color(0.28, 0.20, 0.12)
+const TEXT := Color(0.86, 0.80, 0.64)
+const MUTED := Color(0.56, 0.52, 0.42)
+const DANGER := Color(0.72, 0.32, 0.16)
+const HP_OK := Color(0.42, 0.52, 0.30)
+const HP_LOW := Color(0.72, 0.34, 0.16)
+const PANEL := Color(0.055, 0.052, 0.040, 0.96)
+const ACCENT_LINE := Color(0.62, 0.52, 0.28, 0.85)
+const INK := Color(0.028, 0.024, 0.018, 0.94)
+const RAIL := Color(0.70, 0.58, 0.30, 0.92)
 
 
 static func display_font() -> Font:

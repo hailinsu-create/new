@@ -3,6 +3,8 @@ extends RefCounted
 ## Top-down operator as stacked volumes. Local -Y is facing after body.rotation = facing+90°.
 ## 灰狼 rifle / 铁砧 brick MG / 夜枭 hooded scout. Presentation only.
 
+const WeaponArtScript := preload("res://scripts/art/weapon_art.gd")
+
 
 static func body_poly(role: int) -> PackedVector2Array:
 	match role:
@@ -55,7 +57,7 @@ static func barrel_tip_y(role: int) -> float:
 			return -32.2
 
 
-static func mount(body: Polygon2D, role: int) -> void:
+static func mount(body: Polygon2D, role: int, weapon_id: String = "") -> void:
 	if body == null:
 		return
 	var saving := _saving()
@@ -77,7 +79,14 @@ static func mount(body: Polygon2D, role: int) -> void:
 	_poly(body, "Visor", _visor(role), _visor_color(role), 3)
 	_poly(body, "KitHelm", _helm(role), _helm_color(role), 3).visible = true
 	_poly(body, "KitGear", _gear(role), _gear_color(role), 4).visible = true
-	_poly(body, "Weapon", weapon_poly(role), weapon_color(role), 5).visible = true
+	_poly(body, "Webbing", _webbing(role), Color(0.28, 0.22, 0.12, 0.92), 4).visible = true
+	var wid := weapon_id if weapon_id != "" else ""
+	var wpoly := weapon_poly(role)
+	var wcol := weapon_color(role)
+	if wid != "":
+		wpoly = WeaponArtScript.silhouette(wid, role)
+		wcol = WeaponArtScript.steel_color(wid)
+	_poly(body, "Weapon", wpoly, wcol, 5).visible = true
 	var flash := _poly(body, "ShoulderFlash", _shoulder_flash(role), _flash_color(role), 2)
 	flash.visible = true
 	var rim := _poly(body, "RimLight", _rim_light(role), _rim_light_color(role), 4)
@@ -476,6 +485,25 @@ static func _helm(role: int) -> PackedVector2Array:
 			])
 
 
+static func _webbing(role: int) -> PackedVector2Array:
+	match role:
+		1:
+			return PackedVector2Array([
+				Vector2(-7.4, -3.2), Vector2(7.4, -3.2),
+				Vector2(6.6, -0.4), Vector2(-6.6, -0.4)
+			])
+		2:
+			return PackedVector2Array([
+				Vector2(-3.2, -3.6), Vector2(3.2, -3.6),
+				Vector2(2.8, -1.0), Vector2(-2.8, -1.0)
+			])
+		_:
+			return PackedVector2Array([
+				Vector2(-4.6, -3.4), Vector2(4.6, -3.4),
+				Vector2(4.0, -0.8), Vector2(-4.0, -0.8)
+			])
+
+
 static func _gear(role: int) -> PackedVector2Array:
 	match role:
 		1:
@@ -565,11 +593,11 @@ static func _shoulder_flash(role: int) -> PackedVector2Array:
 static func _flash_color(role: int) -> Color:
 	match role:
 		1:
-			return Color(0.82, 0.90, 0.28, 0.92)
+			return Color(0.62, 0.48, 0.18, 0.92)
 		2:
-			return Color(0.32, 0.86, 0.70, 0.92)
+			return Color(0.42, 0.46, 0.32, 0.92)
 		_:
-			return Color(0.58, 0.86, 0.62, 0.92)
+			return Color(0.55, 0.48, 0.28, 0.92)
 
 
 static func _rim_light(role: int) -> PackedVector2Array:
@@ -594,11 +622,11 @@ static func _rim_light(role: int) -> PackedVector2Array:
 static func _rim_light_color(role: int) -> Color:
 	match role:
 		1:
-			return Color(0.92, 0.96, 0.55, 0.42)
+			return Color(0.82, 0.74, 0.42, 0.38)
 		2:
-			return Color(0.62, 0.94, 0.82, 0.40)
+			return Color(0.70, 0.74, 0.58, 0.36)
 		_:
-			return Color(0.78, 0.94, 0.72, 0.38)
+			return Color(0.78, 0.76, 0.52, 0.36)
 
 
 static func _sight(body: Polygon2D, role: int) -> void:
@@ -675,11 +703,11 @@ static func _shade(role: int, k: float) -> Color:
 static func _base(role: int) -> Color:
 	match role:
 		1:
-			return Color(0.44, 0.52, 0.26)
+			return Color(0.38, 0.36, 0.22)
 		2:
-			return Color(0.22, 0.38, 0.34)
+			return Color(0.24, 0.28, 0.22)
 		_:
-			return Color(0.36, 0.48, 0.42)
+			return Color(0.36, 0.34, 0.24)
 
 
 static func _head_color(role: int) -> Color:

@@ -4,6 +4,8 @@ extends Node2D
 ## only rebuilt when grid geometry, doors, or quality tier change. Escape
 ## glow, fail flash, and barrel highlight stay on the live overlay.
 
+const Ww2Pal := preload("res://scripts/art/ww2_palette.gd")
+
 class StaticCacheLayer extends Node2D:
 	var map: Node2D
 
@@ -213,48 +215,44 @@ func _atmo() -> String:
 
 
 func _floor_palette() -> Dictionary:
+	var a: Color = Ww2Pal.floor_a(_atmo())
+	var b: Color = Ww2Pal.floor_b(_atmo())
 	match _atmo():
 		"warehouse":
 			return {
-				"a": Color(0.070, 0.062, 0.048),
-				"b": Color(0.056, 0.050, 0.038),
-				"grain": Color(0.22, 0.18, 0.10, 1),
-				"grid": Color(0.22, 0.18, 0.10, 0.12),
+				"a": a, "b": b,
+				"grain": Color(0.28, 0.18, 0.08, 1),
+				"grid": Color(0.24, 0.16, 0.08, 0.12),
 			}
 		"pump":
 			return {
-				"a": Color(0.042, 0.078, 0.074),
-				"b": Color(0.034, 0.064, 0.062),
-				"grain": Color(0.18, 0.38, 0.32, 1),
-				"grid": Color(0.16, 0.32, 0.28, 0.12),
+				"a": a, "b": b,
+				"grain": Color(0.22, 0.24, 0.16, 1),
+				"grid": Color(0.18, 0.20, 0.14, 0.12),
 			}
 		"railcut":
 			return {
-				"a": Color(0.058, 0.062, 0.060),
-				"b": Color(0.048, 0.052, 0.050),
+				"a": a, "b": b,
 				"grain": Color(0.22, 0.20, 0.16, 1),
 				"grid": Color(0.20, 0.18, 0.14, 0.12),
 			}
 		"depot":
 			return {
-				"a": Color(0.072, 0.058, 0.038),
-				"b": Color(0.058, 0.046, 0.030),
-				"grain": Color(0.32, 0.20, 0.08, 1),
-				"grid": Color(0.28, 0.18, 0.08, 0.12),
+				"a": a, "b": b,
+				"grain": Color(0.36, 0.20, 0.08, 1),
+				"grid": Color(0.30, 0.16, 0.06, 0.12),
 			}
 		"radio":
 			return {
-				"a": Color(0.042, 0.058, 0.072),
-				"b": Color(0.034, 0.048, 0.062),
-				"grain": Color(0.22, 0.38, 0.48, 1),
-				"grid": Color(0.18, 0.32, 0.42, 0.12),
+				"a": a, "b": b,
+				"grain": Color(0.22, 0.24, 0.20, 1),
+				"grid": Color(0.18, 0.20, 0.16, 0.12),
 			}
 		_:
 			return {
-				"a": Color(0.058, 0.082, 0.100),
-				"b": Color(0.046, 0.068, 0.086),
-				"grain": Color(0.16, 0.22, 0.22, 1),
-				"grid": Color(0.16, 0.22, 0.22, 0.10),
+				"a": a, "b": b,
+				"grain": Color(0.20, 0.22, 0.14, 1),
+				"grid": Color(0.16, 0.18, 0.12, 0.10),
 			}
 
 

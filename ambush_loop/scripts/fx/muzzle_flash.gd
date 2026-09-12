@@ -11,24 +11,30 @@ var style: String = "rifle"
 func _ready() -> void:
 	z_index = 8
 	var is_mg := style == "mg" or intensity >= 1.3
-	var is_rifle := style == "rifle" and not is_mg
+	var is_smg := style == "smg"
+	var is_rifle := style == "rifle" and not is_mg and not is_smg
 	var glow := Polygon2D.new()
 	glow.name = "Glow"
 	if is_mg:
 		glow.polygon = PackedVector2Array([
 			Vector2(30, 0), Vector2(9, 15), Vector2(-7, 4), Vector2(-7, -4), Vector2(9, -15)
 		])
-		glow.color = Color(1.0, 0.58, 0.14, 0.82)
+		glow.color = Color(1.0, 0.52, 0.16, 0.82)
+	elif is_smg:
+		glow.polygon = PackedVector2Array([
+			Vector2(14, 0), Vector2(5, 5.2), Vector2(-3, 1.6), Vector2(-3, -1.6), Vector2(5, -5.2)
+		])
+		glow.color = Color(1.0, 0.70, 0.28, 0.70)
 	elif style == "scout":
 		glow.polygon = PackedVector2Array([
 			Vector2(18, 0), Vector2(4, 3.6), Vector2(-3, 1.4), Vector2(-3, -1.4), Vector2(4, -3.6)
 		])
-		glow.color = Color(0.82, 0.95, 0.72, 0.55)
+		glow.color = Color(0.92, 0.86, 0.58, 0.55)
 	else:
 		glow.polygon = PackedVector2Array([
 			Vector2(16, 0), Vector2(5, 7), Vector2(-4, 2), Vector2(-4, -2), Vector2(5, -7)
 		])
-		glow.color = Color(1.0, 0.72, 0.22, 0.58)
+		glow.color = Color(1.0, 0.68, 0.22, 0.58)
 	add_child(glow)
 	var core := Polygon2D.new()
 	core.name = "Core"

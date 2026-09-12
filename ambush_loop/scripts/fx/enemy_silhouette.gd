@@ -72,7 +72,9 @@ static func mount(body: Polygon2D, kind: String) -> void:
 	var helm := _poly(body, "KitHelm", _helm(kind), _helm_color(kind), 2)
 	helm.visible = kind != "sneak"
 	_poly(body, "Weapon", weapon_poly(kind), weapon_color(kind), 3)
-	var moon := _poly(body, "MoonFill", _moon_fill(kind), Color(0.92, 0.78, 0.58, 0.28 if not saving else 0.12), 3)
+	var band := _poly(body, "Armband", _armband(kind), Color(0.62, 0.14, 0.10, 0.96), 2)
+	band.visible = kind != "sneak"
+	var moon := _poly(body, "MoonFill", _moon_fill(kind), Color(0.82, 0.74, 0.52, 0.22 if not saving else 0.10), 3)
 	moon.visible = not saving
 	var mast := _poly(body, "EchoMast", _echo_mast_poly(), Color(0.55, 0.88, 0.98, 0.95), 4)
 	mast.visible = kind == "echo"
@@ -392,6 +394,25 @@ static func _boot_r(kind: String) -> PackedVector2Array:
 			])
 
 
+static func _armband(kind: String) -> PackedVector2Array:
+	match kind:
+		"flank":
+			return PackedVector2Array([
+				Vector2(-7.8, -3.2), Vector2(-3.0, -2.8),
+				Vector2(-3.2, 0.6), Vector2(-7.4, 0.2)
+			])
+		"echo":
+			return PackedVector2Array([
+				Vector2(-6.8, -3.6), Vector2(-2.6, -3.2),
+				Vector2(-2.8, 0.4), Vector2(-6.4, 0.0)
+			])
+		_:
+			return PackedVector2Array([
+				Vector2(-8.6, -3.4), Vector2(-3.4, -2.8),
+				Vector2(-3.6, 0.8), Vector2(-8.2, 0.2)
+			])
+
+
 static func _helm(kind: String) -> PackedVector2Array:
 	match kind:
 		"flank":
@@ -524,13 +545,13 @@ static func _shade(kind: String, k: float) -> Color:
 static func _base(kind: String) -> Color:
 	match kind:
 		"flank":
-			return Color(0.92, 0.40, 0.10)
+			return Color(0.46, 0.30, 0.16)
 		"sneak":
-			return Color(0.14, 0.18, 0.16)
+			return Color(0.16, 0.18, 0.14)
 		"echo":
-			return Color(0.28, 0.46, 0.52)
+			return Color(0.28, 0.32, 0.30)
 		_:
-			return Color(0.84, 0.16, 0.12)
+			return Color(0.36, 0.34, 0.28)
 
 
 static func _head_color(kind: String) -> Color:
@@ -548,13 +569,13 @@ static func _head_color(kind: String) -> Color:
 static func _visor_color(kind: String) -> Color:
 	match kind:
 		"flank":
-			return Color(0.18, 0.08, 0.04, 0.90)
+			return Color(0.16, 0.10, 0.06, 0.90)
 		"sneak":
-			return Color(0.28, 0.52, 0.38, 0.85)
+			return Color(0.18, 0.22, 0.16, 0.85)
 		"echo":
-			return Color(0.42, 0.92, 1.0, 0.95)
+			return Color(0.22, 0.24, 0.20, 0.92)
 		_:
-			return Color(0.12, 0.04, 0.04, 0.92)
+			return Color(0.12, 0.08, 0.06, 0.92)
 
 
 static func _helm_color(kind: String) -> Color:
