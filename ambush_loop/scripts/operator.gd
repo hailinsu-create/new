@@ -1351,7 +1351,7 @@ func _apply_body_modulate() -> void:
 func _tint_figure_parts(flash: Color) -> void:
 	if body == null:
 		return
-	for nam in ["Head", "Visor", "LegL", "LegR", "ShoulderL", "ShoulderR", "TorsoShade", "ArmGun", "Cape", "FrontSight", "Sight", "BootL", "BootR", "Hip", "Pack", "Collar", "MoonFill", "KitHelm", "KitGear", "Webbing", "Stock", "PouchL", "PouchR", "PutteeL", "PutteeR", "BipodL", "BipodR"]:
+	for nam in ["Head", "Visor", "LegL", "LegR", "ShoulderL", "ShoulderR", "TorsoShade", "ArmGun", "Cape", "FrontSight", "Sight", "BootL", "BootR", "Hip", "Pack", "Collar", "MoonFill", "KitHelm", "KitGear", "Webbing", "Stock", "PouchL", "PouchR", "PutteeL", "PutteeR", "BipodL", "BipodR", "Drum"]:
 		var n := body.get_node_or_null(nam)
 		if n is CanvasItem:
 			(n as CanvasItem).modulate = flash
@@ -1908,7 +1908,7 @@ func _refresh_dry_mark() -> void:
 		dry_mark.text = "空"
 		dry_mark.add_theme_font_size_override("font_size", 14)
 		dry_mark.add_theme_font_override("font", NightOps.ui_font_bold())
-		dry_mark.add_theme_color_override("font_color", Color(1.0, 0.38, 0.18))
+		dry_mark.add_theme_color_override("font_color", Color(0.82, 0.36, 0.14))
 		dry_mark.add_theme_color_override("font_shadow_color", Color(0.05, 0.01, 0.01, 0.95))
 		dry_mark.add_theme_constant_override("shadow_offset_x", 1)
 		dry_mark.add_theme_constant_override("shadow_offset_y", 1)

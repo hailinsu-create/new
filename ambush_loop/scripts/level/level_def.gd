@@ -532,6 +532,7 @@ static func make_warehouse() -> LevelDef:
 		{"cell": Vector2i(10, 13), "kind": "mine", "amount": 1},
 		{"cell": Vector2i(23, 6), "kind": "ammo", "amount": 8},
 		{"cell": Vector2i(22, 9), "kind": "decoy", "amount": 1},
+		{"cell": Vector2i(14, 16), "kind": "mp40", "amount": 32},
 	]
 	l.ambush_zone = Rect2(360, 300, 360, 200)
 	l.has_ammo_pack = true
@@ -616,6 +617,7 @@ static func make_pump() -> LevelDef:
 		{"cell": Vector2i(16, 8), "kind": "grenade", "amount": 2},
 		{"cell": Vector2i(9, 12), "kind": "mine", "amount": 1},
 		{"cell": Vector2i(23, 16), "kind": "ammo", "amount": 6},
+		{"cell": Vector2i(14, 16), "kind": "sten", "amount": 32},
 	]
 	l.ambush_zone = Rect2(300, 250, 420, 220)
 	l.has_ammo_pack = true
@@ -696,6 +698,7 @@ static func make_railcut() -> LevelDef:
 		{"cell": Vector2i(16, 17), "kind": "grenade", "amount": 2},
 		{"cell": Vector2i(7, 11), "kind": "mine", "amount": 1},
 		{"cell": Vector2i(22, 16), "kind": "ammo", "amount": 6},
+		{"cell": Vector2i(18, 16), "kind": "mg42", "amount": 50},
 	]
 	l.ambush_zone = Rect2(280, 240, 500, 280)
 	l.has_ammo_pack = true

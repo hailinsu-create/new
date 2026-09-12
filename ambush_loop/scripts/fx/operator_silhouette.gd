@@ -102,11 +102,15 @@ static func mount(body: Polygon2D, role: int, weapon_id: String = "") -> void:
 		]), Color(0.14, 0.12, 0.08, 0.95), 5)
 		bl.visible = is_mg
 		br.visible = is_mg
+		var drum := _poly(body, "Drum", PackedVector2Array([
+			Vector2(-4.8, -2.2), Vector2(-1.0, -2.4), Vector2(-1.2, 4.6), Vector2(-5.0, 4.4)
+		]), Color(0.16, 0.14, 0.10, 0.95), 6)
+		drum.visible = wid == "thompson"
 	else:
 		var stock := body.get_node_or_null("Stock") as Polygon2D
 		if stock:
 			stock.visible = false
-		for nam in ["Bipod", "BipodL", "BipodR"]:
+		for nam in ["Bipod", "BipodL", "BipodR", "Drum"]:
 			var bipod_off := body.get_node_or_null(nam) as Polygon2D
 			if bipod_off:
 				bipod_off.visible = false
