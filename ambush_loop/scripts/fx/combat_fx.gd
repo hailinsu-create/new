@@ -66,6 +66,18 @@ static func grenade_scorch(host: Node2D, world_pos: Vector2) -> void:
 	])
 	burn.color = Color(0.08, 0.06, 0.04, 0.62)
 	n.add_child(burn)
+	var clod := Polygon2D.new()
+	clod.polygon = PackedVector2Array([
+		Vector2(-8, 2), Vector2(4, 0), Vector2(12, 6), Vector2(2, 11), Vector2(-10, 8)
+	])
+	clod.color = Color(0.18, 0.12, 0.06, 0.50)
+	n.add_child(clod)
+	var ash := Polygon2D.new()
+	ash.polygon = PackedVector2Array([
+		Vector2(-6, -2), Vector2(5, -3), Vector2(3, 3), Vector2(-5, 2)
+	])
+	ash.color = Color(0.12, 0.10, 0.08, 0.45)
+	n.add_child(ash)
 
 
 static func impact(host: Node2D, world_pos: Vector2, tint: Color = Color(1.0, 0.82, 0.38), heavy: bool = false) -> void:
