@@ -32,7 +32,7 @@ func _draw() -> void:
 
 
 func _draw_rifle(c: Vector2) -> void:
-	var kit := Color(0.46, 0.42, 0.28)
+	var kit := Color(0.42, 0.38, 0.24)
 	var body := PackedVector2Array([
 		c + Vector2(0, -10.2), c + Vector2(-3.4, -8.6), c + Vector2(-5.6, -4.0),
 		c + Vector2(-4.6, 2.2), c + Vector2(-5.4, 8.6), c + Vector2(-2.4, 8.8),
