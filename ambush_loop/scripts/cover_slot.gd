@@ -68,6 +68,16 @@ func _ensure_crate_look() -> void:
 	shadow.show_behind_parent = true
 	add_child(shadow)
 	_crate_bits.append(shadow)
+	var mud := Polygon2D.new()
+	mud.name = "MudLip"
+	mud.polygon = PackedVector2Array([
+		Vector2(-18, 12), Vector2(18, 12), Vector2(14, 22), Vector2(-14, 22)
+	])
+	mud.color = Color(0.16, 0.12, 0.06, 0.55)
+	mud.z_index = -1
+	mud.show_behind_parent = true
+	add_child(mud)
+	_crate_bits.append(mud)
 	var rim := Polygon2D.new()
 	rim.name = "CrateRim"
 	rim.polygon = PackedVector2Array([
