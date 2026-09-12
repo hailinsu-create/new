@@ -46,7 +46,14 @@ Smoke: `SMOKE_SLICE_COMPLETE` + `SMOKE_OK_RAID_LOOP` + `SMOKE_OK_WEAPON_MODELS`.
 39. Winter-bare yard tree, rust warehouse peak, brick pump stack
 40. Pump rust pipes/valves; warehouse oil; rail sodium; radio brass glass
 
-## Backlog 41–100
+41. HUD paper intel / olive sneak / brass echo chips
+42. Radio echo-hall lamplight ticks
+43. Icon tokens kept for launch-bar smoke
+44. Scout leather boots / canvas packs / bolt extra kick
+45. Cordite muzzle smoke; MG42 heat; walk mud prints
+46. M1 Garand en-bloc hump; brown wool cape
+
+## Backlog 47–100
 
 41. Mills / Mk2 grenade variants on later nights
 42. Bolt-cycle pose on Kar98k / Mosin
