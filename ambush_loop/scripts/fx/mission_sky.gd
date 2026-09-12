@@ -260,14 +260,14 @@ func _draw_pump() -> void:
 			var wx := origin.x - 18.0 + float(i) * 16.0 + sin(_t * 1.4 + float(i)) * 6.0
 			var wy := origin.y - 28.0 - fmod(_t * 18.0 + float(i) * 11.0, 36.0)
 			var wa := 0.10 + 0.06 * sin(_t * 2.2 + float(i))
-			draw_circle(Vector2(wx, wy), 7.0 + float(i % 2) * 3.0, Color(0.72, 0.92, 0.82, wa))
+			draw_circle(Vector2(wx, wy), 7.0 + float(i % 2) * 3.0, Color(0.62, 0.58, 0.42, wa))
 		# steam puff — a slower periodic bloom off the main vent.
 		var cycle := fmod(_t, 1.85)
 		if cycle < 0.62:
 			var puff := sin(cycle / 0.62 * PI)
 			var py := origin.y - 34.0 - puff * 22.0
-			draw_circle(origin + Vector2(6.0, py - origin.y), 10.0 + puff * 8.0, Color(0.78, 0.94, 0.86, 0.10 + 0.12 * puff))
-			draw_circle(origin + Vector2(-8.0, py - origin.y + 8.0), 7.0 + puff * 5.0, Color(0.70, 0.90, 0.82, 0.08 + 0.08 * puff))
+			draw_circle(origin + Vector2(6.0, py - origin.y), 10.0 + puff * 8.0, Color(0.70, 0.66, 0.50, 0.10 + 0.12 * puff))
+			draw_circle(origin + Vector2(-8.0, py - origin.y + 8.0), 7.0 + puff * 5.0, Color(0.62, 0.58, 0.42, 0.08 + 0.08 * puff))
 	# Puddle speculars on the south approach.
 	var puddle := Vector2(13.5 * AmbushGrid.TILE, 15.5 * AmbushGrid.TILE)
 	var shine := 0.08 + 0.05 * (0.5 + 0.5 * sin(_t * 2.4))

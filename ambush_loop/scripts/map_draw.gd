@@ -457,8 +457,8 @@ func _draw_floor_tile(c: CanvasItem, rect: Rect2, x: int, y: int) -> void:
 			c.draw_rect(Rect2(cx + 4.0, cy + 10.0, 24.0, 2.0), Color(0.28, 0.55, 0.68, 0.16))
 		elif _atmo() == "radio" and x == 24 and y >= 5 and y <= 15:
 			# Echo hall wash — the authored 5.2s path, not the east corridor.
-			c.draw_rect(Rect2(cx + 6.0, cy + 1.0, 20.0, 30.0), Color(0.22, 0.68, 0.88, 0.22))
-			c.draw_rect(Rect2(cx + 12.0, cy + 2.0, 8.0, 28.0), Color(0.48, 0.88, 1.0, 0.18))
+			c.draw_rect(Rect2(cx + 6.0, cy + 1.0, 20.0, 30.0), Color(0.22, 0.22, 0.16, 0.22))
+			c.draw_rect(Rect2(cx + 12.0, cy + 2.0, 8.0, 28.0), Color(0.42, 0.38, 0.24, 0.18))
 		_draw_layout_decal(c, rect, x, y, seed_n)
 		if (seed_n % 11) == 0:
 			var sx := cx + 4.0 + _frac(seed_n + 3) * 8.0
