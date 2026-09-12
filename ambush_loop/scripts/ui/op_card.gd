@@ -255,26 +255,28 @@ func _refresh_chrome() -> void:
 func _refresh_ammo_pips(op: OperatorUnit) -> void:
 	if _pips == null:
 		return
-	var n := mini(maxi(op.max_ammo, 1), 12)
+	var mag := maxi(op.start_ammo, 1) if op.start_ammo > 0 else maxi(op.max_ammo, 1)
+	var n := mini(mag, 16)
+	if op.weapon_id in ["mg42", "mg34", "dp28"]:
+		n = mini(maxi(op.max_ammo, mag), 16)
 	while _pips.get_child_count() > n:
 		var last := _pips.get_child(_pips.get_child_count() - 1)
 		_pips.remove_child(last)
 		last.free()
 	while _pips.get_child_count() < n:
 		var pip := ColorRect.new()
-		pip.custom_minimum_size = Vector2(8, 7)
+		pip.custom_minimum_size = Vector2(7, 6)
 		pip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_pips.add_child(pip)
-	var filled := int(round(float(maxi(op.ammo, 0)) / float(maxi(op.max_ammo, 1)) * float(n)))
+	var filled := mini(maxi(op.ammo, 0), n)
 	if not op.alive:
 		filled = 0
-	var kit := OperatorUnit.role_kit_color(op.role)
 	for i in n:
 		var pip: ColorRect = _pips.get_child(i) as ColorRect
 		if pip == null:
 			continue
 		if i < filled:
-			pip.color = Color(kit.r, kit.g, kit.b, 0.92).lerp(NightOps.OLIVE_HI, 0.18)
+			pip.color = Color(0.72, 0.56, 0.26, 0.95)
 		else:
 			pip.color = Color(0.16, 0.14, 0.10, 0.85)
 
