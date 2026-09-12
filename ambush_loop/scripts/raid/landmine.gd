@@ -47,6 +47,21 @@ func _ensure_visual() -> void:
 	])
 	stud.color = Color(0.62, 0.22, 0.12, 0.95)
 	add_child(stud)
+	var plate := Polygon2D.new()
+	plate.name = "Pressure"
+	var ppts := PackedVector2Array()
+	for i in 10:
+		var pa := TAU * float(i) / 10.0
+		ppts.append(Vector2(cos(pa), sin(pa)) * 4.4)
+	plate.polygon = ppts
+	plate.color = Color(0.42, 0.28, 0.10, 0.88)
+	add_child(plate)
+	var spider := Line2D.new()
+	spider.name = "Spider"
+	spider.width = 1.2
+	spider.default_color = Color(0.18, 0.14, 0.08, 0.80)
+	spider.points = PackedVector2Array([Vector2(-5, 0), Vector2(5, 0), Vector2(0, 0), Vector2(0, -5), Vector2(0, 5)])
+	add_child(spider)
 	var tag := Label.new()
 	tag.name = "Tag"
 	tag.text = "雷"
