@@ -94,12 +94,14 @@ static func silhouette(id: String, role: int = 0) -> PackedVector2Array:
 		"bren":
 			return PackedVector2Array([
 				Vector2(-3.6, 3.6), Vector2(4.8, 3.6), Vector2(4.2, -5.2),
-				Vector2(2.2, -17.2), Vector2(1.2, -26.4), Vector2(-1.0, -26.4),
-				Vector2(-2.2, -17.2), Vector2(-3.2, -5.2)
+				Vector2(5.6, -8.4), Vector2(5.4, -14.0), Vector2(2.2, -17.2),
+				Vector2(1.2, -26.4), Vector2(-1.0, -26.4), Vector2(-2.2, -17.2),
+				Vector2(-3.2, -5.2)
 			])
 		"dp28":
 			return PackedVector2Array([
 				Vector2(-5.8, 3.2), Vector2(5.0, 3.2), Vector2(4.2, -4.0),
+				Vector2(-6.8, -6.4), Vector2(-8.2, -10.8), Vector2(-4.0, -12.2),
 				Vector2(2.4, -15.2), Vector2(1.3, -24.8), Vector2(-1.0, -24.8),
 				Vector2(-2.6, -15.2), Vector2(-5.0, -4.0)
 			])
@@ -123,9 +125,9 @@ static func silhouette(id: String, role: int = 0) -> PackedVector2Array:
 			])
 		"webley":
 			return PackedVector2Array([
-				Vector2(-2.6, 4.4), Vector2(2.2, 4.4), Vector2(1.8, -1.6),
+				Vector2(-3.2, 4.6), Vector2(2.2, 4.4), Vector2(1.8, -1.6),
 				Vector2(1.1, -10.8), Vector2(0.5, -15.2), Vector2(-0.5, -15.2),
-				Vector2(-1.2, -10.8), Vector2(-2.4, -1.6)
+				Vector2(-1.2, -10.8), Vector2(-3.6, -0.4), Vector2(-3.8, 2.8)
 			])
 		"tt33":
 			return PackedVector2Array([
@@ -146,7 +148,14 @@ static func silhouette(id: String, role: int = 0) -> PackedVector2Array:
 				Vector2(1.00, -24.8), Vector2(0.48, -38.6), Vector2(-0.48, -38.6),
 				Vector2(-1.00, -24.8), Vector2(-1.35, -6.4)
 			])
-		"winchester_m12", "ithaca37", "m30_drilling", "shotgun":
+		"m30_drilling":
+			return PackedVector2Array([
+				Vector2(-2.6, 5.0), Vector2(2.8, 5.0), Vector2(2.4, -3.6),
+				Vector2(2.0, -14.0), Vector2(1.6, -23.4), Vector2(0.2, -23.4),
+				Vector2(-0.2, -14.0), Vector2(-0.8, -23.0), Vector2(-1.8, -23.0),
+				Vector2(-2.2, -3.6)
+			])
+		"winchester_m12", "ithaca37", "shotgun":
 			return PackedVector2Array([
 				Vector2(-2.4, 5.0), Vector2(2.6, 5.0), Vector2(2.2, -3.6),
 				Vector2(1.6, -14.0), Vector2(1.1, -22.4), Vector2(-0.7, -22.4),

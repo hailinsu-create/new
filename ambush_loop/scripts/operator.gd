@@ -1768,7 +1768,7 @@ func _refresh_compass_rose() -> void:
 		ring.name = "Ring"
 		ring.width = 1.4
 		ring.closed = true
-		ring.default_color = Color(0.92, 0.88, 0.45, 0.70)
+		ring.default_color = Color(0.70, 0.56, 0.28, 0.70)
 		var rpts := PackedVector2Array()
 		for i in 20:
 			var a := TAU * float(i) / 20.0
