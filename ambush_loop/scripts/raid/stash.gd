@@ -69,7 +69,7 @@ func _ensure_look() -> void:
 		lid.polygon = PackedVector2Array([
 			Vector2(-10, -8), Vector2(10, -8), Vector2(8, -3), Vector2(-8, -3)
 		])
-		lid.color = Color(col.r, col.g, col.b, 0.92)
+		lid.color = Color(0.38, 0.26, 0.12, 0.92)
 		add_child(lid)
 
 
