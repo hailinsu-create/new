@@ -274,32 +274,143 @@ static func wood_color(id: String) -> Color:
 
 
 static func icon_poly(id: String) -> PackedVector2Array:
-	## HUD stamp, ~22px wide, muzzle to the right.
-	var fam := id
-	if WeaponCatalog.is_firearm(id):
-		fam = WeaponCatalog.family_of(id)
-	match fam:
-		"mg":
+	## HUD stamp, ~22px wide, muzzle to the right. Per-model, not family blobs.
+	match id:
+		"mg42":
 			return PackedVector2Array([
-				Vector2(-10, -4), Vector2(11, -4), Vector2(11, 4), Vector2(-10, 4)
+				Vector2(-11, -5.2), Vector2(12, -4.6), Vector2(13, 0), Vector2(12, 4.6),
+				Vector2(-11, 5.2), Vector2(-12, 0)
 			])
-		"scout":
+		"mg34":
 			return PackedVector2Array([
-				Vector2(-8, -2.2), Vector2(12, -2.2), Vector2(12, 2.2), Vector2(-8, 2.2)
+				Vector2(-10, -3.6), Vector2(12, -3.2), Vector2(12, 3.2), Vector2(-10, 3.6)
 			])
-		"smg":
+		"bar":
+			return PackedVector2Array([
+				Vector2(-9, -3.2), Vector2(11, -3.2), Vector2(11, 3.2), Vector2(-4, 3.2),
+				Vector2(-5, 7.2), Vector2(-9, 7.2)
+			])
+		"bren":
+			return PackedVector2Array([
+				Vector2(-9, -3.0), Vector2(-2, -3.0), Vector2(-2, -8.2), Vector2(2.4, -8.2),
+				Vector2(2.4, -3.0), Vector2(11, -3.0), Vector2(11, 3.0), Vector2(-9, 3.0)
+			])
+		"dp28":
+			return PackedVector2Array([
+				Vector2(-9, -3.0), Vector2(-5, -3.0), Vector2(-4, -8.4), Vector2(4, -8.4),
+				Vector2(5, -3.0), Vector2(11, -3.0), Vector2(11, 3.0), Vector2(-9, 3.0)
+			])
+		"kar98k":
+			return PackedVector2Array([
+				Vector2(-10, -2.2), Vector2(13, -1.8), Vector2(13.6, 0), Vector2(13, 1.8),
+				Vector2(-10, 2.2), Vector2(-8, 0)
+			])
+		"lee_enfield":
+			return PackedVector2Array([
+				Vector2(-10, -2.4), Vector2(12, -2.4), Vector2(12, 2.4), Vector2(-4, 2.4),
+				Vector2(-4, 6.2), Vector2(-8, 6.2), Vector2(-10, 2.4)
+			])
+		"m1_garand":
+			return PackedVector2Array([
+				Vector2(-10, -2.6), Vector2(-3, -2.6), Vector2(-1, -6.0), Vector2(2, -6.0),
+				Vector2(3, -2.6), Vector2(12, -2.6), Vector2(12, 2.6), Vector2(-10, 2.6)
+			])
+		"mosin":
+			return PackedVector2Array([
+				Vector2(-9, -1.8), Vector2(14, -1.6), Vector2(14.4, 0), Vector2(14, 1.6),
+				Vector2(-9, 1.8)
+			])
+		"gewehr43":
+			return PackedVector2Array([
+				Vector2(-10, -2.8), Vector2(12, -2.8), Vector2(12, 2.8), Vector2(2, 2.8),
+				Vector2(2, 6.4), Vector2(-2, 6.4), Vector2(-2, 2.8), Vector2(-10, 2.8)
+			])
+		"svt40":
+			return PackedVector2Array([
+				Vector2(-10, -2.4), Vector2(13, -2.4), Vector2(13, 2.4), Vector2(3, 2.4),
+				Vector2(3, 5.6), Vector2(0, 5.6), Vector2(-1, 2.4), Vector2(-10, 2.4)
+			])
+		"sten":
+			return PackedVector2Array([
+				Vector2(-8, -2.4), Vector2(10, -2.4), Vector2(10, 2.4), Vector2(-8, 2.4),
+				Vector2(-2, 2.4), Vector2(-2, 8.4), Vector2(2, 8.4), Vector2(2, 2.4)
+			])
+		"thompson":
+			return PackedVector2Array([
+				Vector2(-9, -3.4), Vector2(-6, -3.4), Vector2(-5, -8.0), Vector2(1, -8.0),
+				Vector2(2, -3.4), Vector2(10, -3.4), Vector2(10, 3.4), Vector2(-9, 3.4)
+			])
+		"pps43":
+			return PackedVector2Array([
+				Vector2(-7, -2.6), Vector2(11, -2.2), Vector2(11, 2.2), Vector2(-7, 2.6),
+				Vector2(-10, 6.4), Vector2(-7, 6.4)
+			])
+		"mp38":
+			return PackedVector2Array([
+				Vector2(-9, -2.8), Vector2(9, -2.8), Vector2(9, 2.8), Vector2(-9, 2.8),
+				Vector2(-11, 7.2), Vector2(-8, 7.2)
+			])
+		"mp40", "smg":
 			return PackedVector2Array([
 				Vector2(-8, -3), Vector2(9, -3), Vector2(9, 3), Vector2(-4, 3),
 				Vector2(-8, 8), Vector2(-11, 8), Vector2(-11, 3)
 			])
-		"shotgun":
+		"luger":
 			return PackedVector2Array([
-				Vector2(-9, -3.4), Vector2(10, -4.4), Vector2(10, 4.4), Vector2(-9, 3.4)
+				Vector2(-5, -2.2), Vector2(9, -2.2), Vector2(10, 0), Vector2(8, 2.4),
+				Vector2(-2, 2.4), Vector2(-6, 7.2), Vector2(-9, 6.0)
 			])
-		"pistol":
+		"webley":
+			return PackedVector2Array([
+				Vector2(-6, -3.6), Vector2(7, -2.4), Vector2(8, 0), Vector2(6, 3.8),
+				Vector2(-6, 4.2), Vector2(-8, 0)
+			])
+		"p38":
+			return PackedVector2Array([
+				Vector2(-6, -2.4), Vector2(8, -2.4), Vector2(9, 0.4), Vector2(7, 3.2),
+				Vector2(-6, 3.2)
+			])
+		"tt33":
+			return PackedVector2Array([
+				Vector2(-5, -2.0), Vector2(9, -2.0), Vector2(9.6, 0), Vector2(8, 2.2),
+				Vector2(-5, 2.2)
+			])
+		"m1911", "pistol":
 			return PackedVector2Array([
 				Vector2(-6, -2.6), Vector2(7, -2.6), Vector2(8, 0), Vector2(6, 3.4),
 				Vector2(-6, 3.4)
+			])
+		"kar98k_zf":
+			return PackedVector2Array([
+				Vector2(-9, -1.8), Vector2(-2, -1.8), Vector2(-2, -5.4), Vector2(4, -5.4),
+				Vector2(4, -1.8), Vector2(14, -1.6), Vector2(14, 1.6), Vector2(-9, 1.8)
+			])
+		"springfield":
+			return PackedVector2Array([
+				Vector2(-9, -2.0), Vector2(0, -2.0), Vector2(0, -5.0), Vector2(5, -5.0),
+				Vector2(5, -2.0), Vector2(13, -2.0), Vector2(13, 2.0), Vector2(-9, 2.0)
+			])
+		"mosin_pu":
+			return PackedVector2Array([
+				Vector2(-8, -1.6), Vector2(-1, -1.6), Vector2(-1, -5.6), Vector2(3.6, -5.6),
+				Vector2(3.6, -1.6), Vector2(14, -1.4), Vector2(14, 1.4), Vector2(-8, 1.6)
+			])
+		"enfield_t", "scout":
+			return PackedVector2Array([
+				Vector2(-8, -2.2), Vector2(12, -2.2), Vector2(12, 2.2), Vector2(-8, 2.2)
+			])
+		"m30_drilling":
+			return PackedVector2Array([
+				Vector2(-9, -4.6), Vector2(11, -4.6), Vector2(11, -1.2), Vector2(-9, -1.2),
+				Vector2(-9, 1.2), Vector2(11, 1.2), Vector2(11, 4.6), Vector2(-9, 4.6)
+			])
+		"ithaca37":
+			return PackedVector2Array([
+				Vector2(-9, -3.0), Vector2(11, -4.2), Vector2(11, 2.6), Vector2(-9, 3.8)
+			])
+		"winchester_m12", "shotgun":
+			return PackedVector2Array([
+				Vector2(-9, -3.4), Vector2(10, -4.4), Vector2(10, 4.4), Vector2(-9, 3.4)
 			])
 		"knife":
 			return PackedVector2Array([
@@ -307,9 +418,45 @@ static func icon_poly(id: String) -> PackedVector2Array:
 				Vector2(-6, 1.4)
 			])
 		_:
-			return PackedVector2Array([
-				Vector2(-9, -2.6), Vector2(11, -2.6), Vector2(11, 2.6), Vector2(-9, 2.6)
-			])
+			var fam := id
+			if WeaponCatalog.is_firearm(id):
+				fam = WeaponCatalog.family_of(id)
+			match fam:
+				"mg":
+					return PackedVector2Array([
+						Vector2(-10, -4), Vector2(11, -4), Vector2(11, 4), Vector2(-10, 4)
+					])
+				"scout":
+					return PackedVector2Array([
+						Vector2(-8, -2.2), Vector2(12, -2.2), Vector2(12, 2.2), Vector2(-8, 2.2)
+					])
+				"smg":
+					return PackedVector2Array([
+						Vector2(-8, -3), Vector2(9, -3), Vector2(9, 3), Vector2(-4, 3),
+						Vector2(-8, 8), Vector2(-11, 8), Vector2(-11, 3)
+					])
+				"shotgun":
+					return PackedVector2Array([
+						Vector2(-9, -3.4), Vector2(10, -4.4), Vector2(10, 4.4), Vector2(-9, 3.4)
+					])
+				"pistol":
+					return PackedVector2Array([
+						Vector2(-6, -2.6), Vector2(7, -2.6), Vector2(8, 0), Vector2(6, 3.4),
+						Vector2(-6, 3.4)
+					])
+				_:
+					return PackedVector2Array([
+						Vector2(-9, -2.6), Vector2(11, -2.6), Vector2(11, 2.6), Vector2(-9, 2.6)
+					])
+
+
+static func ground_poly(id: String) -> PackedVector2Array:
+	## Dropped firearm on the mud: muzzle to the right, flattened silhouette.
+	var pts := silhouette(id)
+	var out := PackedVector2Array()
+	for p in pts:
+		out.append(Vector2(-p.y * 0.52, p.x * 0.52))
+	return out
 
 
 static func is_bolt(id: String) -> bool:

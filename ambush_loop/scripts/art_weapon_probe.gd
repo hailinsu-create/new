@@ -42,6 +42,14 @@ func _run() -> void:
 		push_error("PROBE_BOLT_KNOB")
 		quit(8)
 		return
+	if Art.icon_poly("mg42") == Art.icon_poly("bar") or Art.icon_poly("sten") == Art.icon_poly("luger"):
+		push_error("PROBE_ICON")
+		quit(9)
+		return
+	if Art.ground_poly("kar98k").is_empty():
+		push_error("PROBE_GROUND")
+		quit(9)
+		return
 	if str(W.sfx_cue("mg42")) == str(W.sfx_cue("kar98k")):
 		push_error("PROBE_SFX")
 		quit(7)
