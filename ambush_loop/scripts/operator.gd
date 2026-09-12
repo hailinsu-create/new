@@ -1553,12 +1553,12 @@ func _update_hp_bar() -> void:
 	var pulse := 1.0 + _hp_pulse * 0.42
 	hp_bar.scale = Vector2(pulse, pulse)
 	if _hp_pulse > 0.05:
-		hp_bar.color = Color(1.0, 0.55, 0.28).lerp(
-			Color(0.22, 0.90, 0.42) if hp > 40.0 else Color(0.95, 0.28, 0.18),
+		hp_bar.color = Color(0.82, 0.48, 0.20).lerp(
+			Color(0.42, 0.52, 0.24) if hp > 40.0 else Color(0.82, 0.28, 0.14),
 			1.0 - _hp_pulse
 		)
 	else:
-		hp_bar.color = Color(0.22, 0.88, 0.40) if hp > 40.0 else Color(0.92, 0.28, 0.18)
+		hp_bar.color = Color(0.42, 0.52, 0.24) if hp > 40.0 else Color(0.82, 0.28, 0.14)
 
 
 func _ensure_shield() -> void:

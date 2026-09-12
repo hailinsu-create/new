@@ -243,7 +243,7 @@ func _draw_pump() -> void:
 		Vector2(sz.x * 0.82, 21.0),
 	], Color(0.42, 0.92, 0.72, 0.50))
 	_draw_contrast_wash(Color(0.02, 0.08, 0.08, 0.22), Color(0.04, 0.10, 0.09, 0.05))
-	draw_rect(Rect2(0.0, 0.0, sz.x, 70.0), Color(0.10, 0.28, 0.24, 0.10))
+	draw_rect(Rect2(0.0, 0.0, sz.x, 70.0), Color(0.12, 0.12, 0.08, 0.10))
 	# Humming vent stripes over the machinery block.
 	var origin := Vector2(17.5 * AmbushGrid.TILE, 11.0 * AmbushGrid.TILE)
 	var phase := fmod(_t * 22.0, 14.0)
@@ -252,7 +252,7 @@ func _draw_pump() -> void:
 		var y := origin.y - 20.0 + float(i) * 7.0 + phase * 0.15
 		draw_rect(
 			Rect2(origin.x - 40.0, y, 88.0, 2.5),
-			Color(0.35, 0.92, 0.72, 0.08 + 0.04 * sin(_t * 4.0 + float(i)))
+			Color(0.42, 0.40, 0.24, 0.08 + 0.04 * sin(_t * 4.0 + float(i)))
 		)
 	# Steam wisps — standard tier only; 省电 keeps static vents.
 	if not _is_power_saving():

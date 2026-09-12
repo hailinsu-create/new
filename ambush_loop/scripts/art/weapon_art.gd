@@ -20,9 +20,9 @@ static func silhouette(id: String, role: int = 0) -> PackedVector2Array:
 			])
 		"lee_enfield":
 			return PackedVector2Array([
-				Vector2(-2.1, 5.0), Vector2(2.2, 5.0), Vector2(1.9, -4.4),
-				Vector2(1.2, -20.8), Vector2(0.55, -33.6), Vector2(-0.55, -33.6),
-				Vector2(-1.2, -20.8), Vector2(-1.9, -4.4)
+				Vector2(-2.1, 5.0), Vector2(2.2, 5.0), Vector2(3.4, 1.2), Vector2(3.2, -2.4),
+				Vector2(1.9, -4.4), Vector2(1.2, -20.8), Vector2(0.55, -33.6),
+				Vector2(-0.55, -33.6), Vector2(-1.2, -20.8), Vector2(-1.9, -4.4)
 			])
 		"m1_garand":
 			return PackedVector2Array([
