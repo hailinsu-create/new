@@ -1,7 +1,7 @@
 # Ambush Loop 试玩复评（v0.3.1 COMMANDOS/WW2）
 
 对象：分支 `cursor/commandos-ambush-0641`  
-HEAD：**`66f4a88fd56e182b12a2af62461d11a0d9882a77`**（`playtest(0.3.1): named crates, 警报中 cinema, touch CTA, >9 reeval`）  
+HEAD：**`8a754834ebde920170c7307bdba17162e5516710`**（`playtest(0.3.1): named crates, 警报中 cinema, touch CTA, >9 reeval`）  
 对照基线：`docs/Ambush_Loop_试玩复评_v0.3.0.md` 独立门槛加权 **8.3**（七维均分 8.0）。  
 本评：**独立复评**，不沿用 8.3 / 不沿用旧锁死观战 9.0。玩法切片仍是「搜刮→拉警报→打扫」。  
 日期：2026-09-12
