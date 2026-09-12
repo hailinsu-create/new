@@ -111,7 +111,7 @@
     <string name="overlay_welcome_back">Welcome back. I am with you again.</string>
     <string name="overlay_no_projection">No screen-capture grant. Resting for now.</string>
     <string name="overlay_capture_hello">I am here. Locking the phone fully stops capture.</string>
-    <string name="overlay_demo_hello">Demo mode uses fake screens. Tap to toggle the bubble, long-press for another line, use the corner to rest.</string>
+    <string name="overlay_demo_hello">Demo mode uses fake screens. Tap to toggle the bubble, long-press for another line, use the close chip beside the face to rest.</string>
     <string name="overlay_frame_wait">The frame is not ready yet. One moment…</string>
     <string name="overlay_unchanged">The screen barely changed. Long-press the avatar if you want a line anyway.</string>
     <string name="overlay_sensitive_skip">This looks like a password or banking screen. I will skip it.</string>

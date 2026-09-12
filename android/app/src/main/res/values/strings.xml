@@ -114,7 +114,7 @@
     <string name="overlay_welcome_back">欢迎回来，我继续陪着你。</string>
     <string name="overlay_no_projection">系统未给出录屏权限，先休息一下。</string>
     <string name="overlay_capture_hello">我在这儿陪着你。锁屏会真正停止截屏。</string>
-    <string name="overlay_demo_hello">演示模式：我会用合成画面陪你练对话。点按头像开关气泡，长按换一句，右上角让我休息。</string>
+    <string name="overlay_demo_hello">演示模式：我会用合成画面陪你练对话。点按头像开关气泡，长按换一句，头像旁的关闭按钮让我休息。</string>
     <string name="overlay_frame_wait">画面还没准备好，再等我一小下…</string>
     <string name="overlay_unchanged">画面没怎么变，我还在陪着你。长按头像可以说一句。</string>
     <string name="overlay_sensitive_skip">这一屏像密码或银行，我先不看。</string>

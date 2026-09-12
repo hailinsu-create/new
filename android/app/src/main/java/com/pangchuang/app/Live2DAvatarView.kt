@@ -75,6 +75,7 @@ class Live2DAvatarView @JvmOverloads constructor(
         }
         addView(touchShield)
 
+        liveEngineCount += 1
         post { reloadLive2D() }
         handler.postDelayed({
             if (!ready && !destroyed) {
@@ -116,6 +117,7 @@ class Live2DAvatarView @JvmOverloads constructor(
         settings.builtInZoomControls = false
         settings.displayZoomControls = false
         settings.javaScriptCanOpenWindowsAutomatically = false
+        settings.setSupportMultipleWindows(false)
         settings.setGeolocationEnabled(false)
         @Suppress("DEPRECATION")
         settings.allowFileAccessFromFileURLs = false
@@ -248,10 +250,12 @@ class Live2DAvatarView @JvmOverloads constructor(
         webView.alpha = 0f
         fallback.visibility = VISIBLE
         fallback.alpha = 1f
+        if (liveEngineCount > 0) liveEngineCount -= 1
     }
 
     fun reloadEngine() {
         if (destroyed) return
+        liveEngineCount += 1
         runCatching { webView.onResume() }
         reloadLive2D()
     }
@@ -273,6 +277,7 @@ class Live2DAvatarView @JvmOverloads constructor(
 
     fun destroy() {
         destroyed = true
+        if (liveEngineCount > 0) liveEngineCount -= 1
         handler.removeCallbacksAndMessages(null)
         runCatching {
             webView.removeJavascriptInterface("PangchuangBridge")
@@ -299,9 +304,10 @@ class Live2DAvatarView @JvmOverloads constructor(
                         webView.alpha = 0f
                         fallback.visibility = VISIBLE
                         fallback.alpha = 1f
-                        onError?.invoke(humanizeError(err))
                         if (loadAttempts < 4) {
                             handler.postDelayed({ reloadLive2D() }, 1000L)
+                        } else {
+                            onError?.invoke(humanizeError(err))
                         }
                     }
                     msg == "speak_end" -> Log.d(TAG, "speak_end")
@@ -316,5 +322,9 @@ class Live2DAvatarView @JvmOverloads constructor(
     companion object {
         private const val TAG = "PangchuangLive2D"
         private const val ASSET_DOMAIN = "appassets.androidplatform.net"
+
+        @Volatile
+        var liveEngineCount: Int = 0
+            private set
     }
 }

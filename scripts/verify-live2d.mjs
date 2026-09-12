@@ -138,6 +138,21 @@ async function main() {
   fs.writeFileSync(path.join(OUT, 'live2d-verify.json'), JSON.stringify({ result, pixels, logs: logs.slice(-120) }, null, 2));
   await page.screenshot({ path: path.join(OUT, 'live2d-face-idle.png'), omitBackground: false });
 
+  const motion = await page.evaluate(async () => {
+    if (!window.PangchuangLive2D) return { error: 'no api' };
+    const beforeBlink = PangchuangLive2D.paramEyeL ? PangchuangLive2D.paramEyeL() : null;
+    if (PangchuangLive2D.forceBlink) PangchuangLive2D.forceBlink();
+    await new Promise((r) => setTimeout(r, 40));
+    const duringBlink = PangchuangLive2D.paramEyeL ? PangchuangLive2D.paramEyeL() : null;
+    await new Promise((r) => setTimeout(r, 220));
+    const afterBlink = PangchuangLive2D.paramEyeL ? PangchuangLive2D.paramEyeL() : null;
+    if (PangchuangLive2D.setMood) PangchuangLive2D.setMood('THINK');
+    await new Promise((r) => setTimeout(r, 80));
+    const thinkAngle = PangchuangLive2D.paramAngleY ? PangchuangLive2D.paramAngleY() : null;
+    if (PangchuangLive2D.setMood) PangchuangLive2D.setMood('IDLE');
+    return { beforeBlink, duringBlink, afterBlink, thinkAngle };
+  });
+
   const mouth = await page.evaluate(async () => {
     if (!window.PangchuangLive2D || !PangchuangLive2D.speak) return { error: 'no api' };
     PangchuangLive2D.speak(2400, 'TALK');
@@ -153,11 +168,11 @@ async function main() {
 
   fs.writeFileSync(
     path.join(OUT, 'live2d-verify.json'),
-    JSON.stringify({ result, pixels, mouth, logs: logs.slice(-120) }, null, 2)
+    JSON.stringify({ result, pixels, mouth, motion, logs: logs.slice(-120) }, null, 2)
   );
   await browser.close();
   server.close();
-  console.log(JSON.stringify({ result, pixels, mouth }, null, 2));
+  console.log(JSON.stringify({ result, pixels, mouth, motion }, null, 2));
   if (!result.ok) {
     console.error('FAIL logs:\n' + logs.slice(-60).join('\n'));
     process.exit(1);
@@ -171,6 +186,16 @@ async function main() {
   if (!(paramMouth > 0.15)) {
     console.error('FAIL: mouth ParamMouthOpenY too low while speaking', mouth);
     process.exit(4);
+  }
+  const duringBlink = Number(motion && motion.duringBlink);
+  if (!(duringBlink < 0.4)) {
+    console.error('FAIL: ParamEyeLOpen did not close on forceBlink', motion);
+    process.exit(5);
+  }
+  const thinkAngle = Number(motion && motion.thinkAngle);
+  if (!(thinkAngle < -2)) {
+    console.error('FAIL: THINK mood did not lower ParamAngleY', motion);
+    process.exit(6);
   }
   console.log('PASS');
 }

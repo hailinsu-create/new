@@ -34,6 +34,15 @@ window.global = window.global || window;
     SURPRISE: "surprise",
     SHY: "smile"
   };
+  var currentMood = "IDLE";
+  var paused = false;
+  var blinkUntil = 0;
+  var nextBlink = Date.now() + 1800 + Math.random() * 2400;
+  var hasEyeL = null;
+  var hasEyeR = null;
+  var hasAngleY = null;
+  var hasBodyX = null;
+  var hasBreath = null;
 
   var app = null;
   var model = null;
@@ -120,6 +129,19 @@ window.global = window.global || window;
     if (typeof core.setParameterValueById === "function") core.setParameterValueById(id, value);
   }
 
+  function hasParam(id) {
+    return getParam(id) != null;
+  }
+
+  function probeParams() {
+    hasEyeL = hasParam("ParamEyeLOpen");
+    hasEyeR = hasParam("ParamEyeROpen");
+    hasAngleY = hasParam("ParamAngleY");
+    hasBodyX = hasParam("ParamBodyAngleX");
+    hasBreath = hasParam("ParamBreath");
+    log("params", "eyeL=" + hasEyeL, "eyeR=" + hasEyeR, "angleY=" + hasAngleY, "bodyX=" + hasBodyX, "breath=" + hasBreath);
+  }
+
   function setMouthDrawableOpacity(value) {
     var core = coreModel();
     if (!core) return;
@@ -162,12 +184,62 @@ window.global = window.global || window;
 
   function applyMood(mood) {
     var key = String(mood || "IDLE").toUpperCase();
+    currentMood = key;
     var expr = MOOD_EXPR[key] || "idle";
-    mouthHold = key === "SURPRISE" ? 0.35 : 0;
+    mouthHold = key === "SURPRISE" ? 0.35 : (key === "SHY" ? 0.12 : 0);
     clearExpression();
     if (expr && model && typeof model.expression === "function") {
       try { model.expression(expr); } catch (e) {}
     }
+    applyMoodParams(true);
+  }
+
+  function applyMoodParams(force) {
+    if (paused && !force) return;
+    if (currentMood === "THINK") {
+      if (hasAngleY) setParam("ParamAngleY", -7.5);
+      setParam("ParamEyeBallY", -0.28);
+      setParam("ParamBrowLY", -0.15);
+      setParam("ParamBrowRY", -0.15);
+    } else if (currentMood === "CARE") {
+      if (hasBodyX) setParam("ParamBodyAngleX", 2.4);
+      setParam("ParamBrowLY", -0.45);
+      setParam("ParamBrowRY", -0.45);
+      setParam("ParamEyeLSmile", 0.35);
+      setParam("ParamEyeRSmile", 0.35);
+    } else if (currentMood === "SHY") {
+      setParam("ParamAngleX", 8);
+      setParam("ParamEyeLSmile", 0.7);
+      setParam("ParamEyeRSmile", 0.7);
+      setParam("ParamBrowLForm", 0.3);
+      setParam("ParamBrowRForm", 0.3);
+    }
+  }
+
+  function applyBlink() {
+    if (paused) return;
+    if (hasEyeL === false && hasEyeR === false) return;
+    var now = Date.now();
+    if (now >= nextBlink) {
+      blinkUntil = now + 110;
+      nextBlink = now + 2200 + Math.random() * 3800;
+    }
+    var open = now < blinkUntil ? 0.08 : 1;
+    if (hasEyeL) setParam("ParamEyeLOpen", open);
+    if (hasEyeR) setParam("ParamEyeROpen", open);
+  }
+
+  function applyIdleMotion() {
+    if (paused || speaking) return;
+    if (currentMood === "THINK" || currentMood === "SHY") return;
+    var t = Date.now() / 1000;
+    if (hasAngleY && currentMood !== "CARE") {
+      setParam("ParamAngleY", Math.sin(t * 0.55) * 2.1);
+    }
+    if (hasBodyX && currentMood !== "CARE") {
+      setParam("ParamBodyAngleX", Math.sin(t * 0.33) * 1.15);
+    }
+    if (hasBreath) setParam("ParamBreath", 0.5 + 0.5 * Math.sin(t * 1.35));
   }
 
   function stopMotions() {
@@ -178,6 +250,8 @@ window.global = window.global || window;
   }
 
   function applyMouthOverride() {
+    if (paused) return;
+    applyBlink();
     if (speaking) {
       setMouthOpen(mouthOpen);
       setParam("ParamAngleX", Math.sin(Date.now() / 320) * 2.4);
@@ -185,6 +259,8 @@ window.global = window.global || window;
       return;
     }
     if (mouthHold > 0) setMouthOpen(mouthHold);
+    applyMoodParams(false);
+    applyIdleMotion();
   }
 
   function ensureClippingManager() {
@@ -385,6 +461,7 @@ window.global = window.global || window;
       app.stage.addChild(model);
       ensureClippingManager();
       patchModelUpdate();
+      probeParams();
       layoutModel();
       await sleep(80);
       layoutModel();
@@ -407,6 +484,24 @@ window.global = window.global || window;
     mouthOpen: function () { return mouthOpen; },
     paramA: function () { return getParam(lipSyncParam); },
     paramMouth: function () { return getParam(lipSyncParam); },
+    paramEyeL: function () { return getParam("ParamEyeLOpen"); },
+    paramAngleY: function () { return getParam("ParamAngleY"); },
+    paramBodyX: function () { return getParam("ParamBodyAngleX"); },
+    currentMood: function () { return currentMood; },
+    forceBlink: function () {
+      blinkUntil = Date.now() + 180;
+      nextBlink = Date.now() + 4000;
+      applyBlink();
+    },
+    setPaused: function (value) {
+      paused = !!value;
+      try {
+        if (app && app.ticker) {
+          if (paused) app.ticker.stop();
+          else app.ticker.start();
+        }
+      } catch (e) {}
+    },
     setMood: function (mood) { applyMood(String(mood || "IDLE").toUpperCase()); },
     speak: function (durationMs, mood) {
       if (!ready || !model) return;

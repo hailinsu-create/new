@@ -32,3 +32,13 @@ R27 | capture | Drop capture to 540p on low-RAM devices or low battery | ScreenC
 R28 | tests | CapturePolicy lock + sensitive + demo combinations, including mirroring pause/resume | CapturePolicyTest.kt
 R29 | safety | Redact Bearer/API keys in remaining logs | VisionClient.kt, EndpointPolicy.kt
 R30 | safety | Block non-HTTPS endpoints except loopback, with a visible overlay/home error | VisionClient.kt, EndpointPolicy.kt, strings.xml
+R31 | Live2D | Auto-blink when ParamEyeLOpen / ParamEyeROpen exist | live2d/index.html
+R32 | Live2D | Idle micro-motion on ParamAngleY / ParamBodyAngleX / ParamBreath | live2d/index.html
+R33 | Live2D | CARE / SHY / THINK map to distinct params (not all smile/idle) | live2d/index.html, CompanionMoodMatcher.kt
+R34 | Live2D | Humanize Live2D failures; only surface after retries, never WebGL stack traces | Live2DAvatarView.kt, OverlayController.kt
+R35 | Live2D | verify-live2d.mjs still PASS; now asserts blink close and THINK ParamAngleY | scripts/verify-live2d.mjs
+R36 | Live2D | Fallback PNGs stay distinct hashes; CARE uses talk PNG instead of happy alias | companion_avatar_*.png, CompanionMoodMatcher.kt
+R37 | Live2D | Tighten WebView: no mixed content, no extra windows, JS only because Cubism needs it | Live2DAvatarView.kt
+R38 | Live2D | Home preview uses the same overlay face crop as the floating window | character.json, Live2DAvatarView.kt
+R39 | Live2D | Unload home engine so Cubism Core is not kept twice; liveEngineCount tracks hosts | Live2DAvatarView.kt, MainActivity.kt
+R40 | copy | Sweep remaining Mao/sample user copy (none in strings); close-chip copy no longer says top-right | strings.xml
