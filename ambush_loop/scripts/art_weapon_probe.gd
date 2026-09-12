@@ -58,6 +58,14 @@ func _run() -> void:
 		push_error("PROBE_SEMI")
 		quit(10)
 		return
+	if Art.silhouette("ithaca37") == Art.silhouette("winchester_m12"):
+		push_error("PROBE_SHOT")
+		quit(11)
+		return
+	if Art.silhouette("sten") == Art.silhouette("pps43"):
+		push_error("PROBE_STEN")
+		quit(11)
+		return
 	if str(W.sfx_cue("mg42")) == str(W.sfx_cue("kar98k")):
 		push_error("PROBE_SFX")
 		quit(7)
