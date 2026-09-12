@@ -658,19 +658,19 @@ func _draw_floor_accent_stripe(c: CanvasItem) -> void:
 		"warehouse":
 			c.draw_rect(Rect2(10.0 * t, 16.85 * t, 22.0 * t, 6.0), Color(0.78, 0.48, 0.10, 0.10))
 		"pump":
-			c.draw_rect(Rect2(7.0 * t, 14.75 * t, 20.0 * t, 5.0), Color(0.12, 0.42, 0.36, 0.10))
+			c.draw_rect(Rect2(7.0 * t, 14.75 * t, 20.0 * t, 5.0), Color(0.22, 0.18, 0.08, 0.10))
 		"railcut":
-			c.draw_rect(Rect2(12.0 * t, 5.28 * t, 3.0 * t, 7.0), Color(0.42, 0.55, 0.68, 0.11))
-			c.draw_rect(Rect2(31.0 * t, 5.28 * t, 3.0 * t, 7.0), Color(0.42, 0.55, 0.68, 0.11))
+			c.draw_rect(Rect2(12.0 * t, 5.28 * t, 3.0 * t, 7.0), Color(0.36, 0.32, 0.22, 0.11))
+			c.draw_rect(Rect2(31.0 * t, 5.28 * t, 3.0 * t, 7.0), Color(0.36, 0.32, 0.22, 0.11))
 		"depot":
 			c.draw_rect(Rect2(14.0 * t, 14.15 * t, 14.0 * t, 6.0), Color(0.78, 0.34, 0.08, 0.11))
 		"radio":
 			# Echo hall phosphor ribbon down the authored x=24 gap.
-			c.draw_rect(Rect2(23.72 * t, 5.05 * t, 1.56 * t, 11.1 * t), Color(0.28, 0.78, 0.96, 0.16))
-			c.draw_rect(Rect2(24.12 * t, 5.05 * t, 0.62 * t, 11.1 * t), Color(0.55, 0.92, 1.0, 0.12))
+			c.draw_rect(Rect2(23.72 * t, 5.05 * t, 1.56 * t, 11.1 * t), Color(0.32, 0.28, 0.16, 0.16))
+			c.draw_rect(Rect2(24.12 * t, 5.05 * t, 0.62 * t, 11.1 * t), Color(0.48, 0.42, 0.22, 0.12))
 		_:
-			c.draw_rect(Rect2(22.0 * t, 4.55 * t, 14.0 * t, 5.0), Color(0.62, 0.78, 0.52, 0.08))
-			c.draw_rect(Rect2(8.0 * t, 16.35 * t, 18.0 * t, 4.0), Color(0.16, 0.26, 0.16, 0.07))
+			c.draw_rect(Rect2(22.0 * t, 4.55 * t, 14.0 * t, 5.0), Color(0.48, 0.42, 0.24, 0.08))
+			c.draw_rect(Rect2(8.0 * t, 16.35 * t, 18.0 * t, 4.0), Color(0.16, 0.14, 0.08, 0.07))
 
 
 func _draw_wall_ao(c: CanvasItem) -> void:
@@ -775,8 +775,8 @@ func _landmark_yard(c: CanvasItem) -> void:
 	c.draw_rect(win.grow(-6), Color(0.95, 0.68, 0.22, 0.55))
 	c.draw_rect(win.grow(-10), Color(1.0, 0.82, 0.40, 0.35))
 	c.draw_rect(win.grow(-6), Color(0.55, 0.32, 0.10, 0.8), false, 1.5)
-	_lamp_post(c, Vector2(10.6 * AmbushGrid.TILE, 8.4 * AmbushGrid.TILE), Color(0.82, 0.90, 0.62))
-	_lamp_post(c, Vector2(27.4 * AmbushGrid.TILE, 15.2 * AmbushGrid.TILE), Color(0.78, 0.86, 0.58))
+	_lamp_post(c, Vector2(10.6 * AmbushGrid.TILE, 8.4 * AmbushGrid.TILE), Color(0.72, 0.62, 0.32))
+	_lamp_post(c, Vector2(27.4 * AmbushGrid.TILE, 15.2 * AmbushGrid.TILE), Color(0.68, 0.52, 0.24))
 	# Courtyard crate-stack silhouette on the mid island (already blocked).
 	var crate := _cell_rect(19, 10, 3, 2)
 	c.draw_rect(crate.grow(-4), Color(0.28, 0.20, 0.10, 0.45))
@@ -970,7 +970,7 @@ func _landmark_depot(c: CanvasItem) -> void:
 			Color(0.92, 0.48, 0.10, 0.62)
 		)
 		c.draw_rect(Rect2(cx - 3, cy + 5, 6.0, 3.0), Color(0.12, 0.08, 0.04, 0.55))
-	_lamp_post(c, Vector2(12.4 * t, 8.6 * t), Color(0.55, 0.72, 0.82))
+	_lamp_post(c, Vector2(12.4 * t, 8.6 * t), Color(0.62, 0.48, 0.22))
 	_lamp_post(c, Vector2(26.2 * t, 15.4 * t), Color(0.92, 0.48, 0.12))
 	# Fuel ticket clipped to the west tank stair.
 	c.draw_rect(Rect2(15.2 * t, 8.2 * t, 14.0, 18.0), Color(0.92, 0.78, 0.42, 0.50))
@@ -1010,38 +1010,38 @@ func _landmark_radio(c: CanvasItem) -> void:
 			Vector2(mast.x + 2, mast.y - mast_h + 26),
 			Vector2(mast.x - 4, mast.y - mast_h + 26),
 		]),
-		Color(0.32, 0.58, 0.68, 0.28)
+		Color(0.32, 0.26, 0.14, 0.28)
 	)
 	# Lighthouse bands so the shaft reads as a beacon tower, not a pipe.
-	c.draw_rect(Rect2(mast.x - 15, mast.y - 16, 30.0, 11.0), Color(0.78, 0.92, 0.98, 0.32))
-	c.draw_rect(Rect2(mast.x - 13, mast.y - 52, 26.0, 10.0), Color(0.78, 0.92, 0.98, 0.26))
-	c.draw_rect(Rect2(mast.x - 11, mast.y - 86, 22.0, 9.0), Color(0.78, 0.92, 0.98, 0.22))
-	c.draw_rect(Rect2(mast.x - 4, mast.y - 42, 8.0, 16.0), Color(0.42, 0.82, 0.96, 0.42))
-	c.draw_rect(Rect2(mast.x - 3, mast.y - 74, 6.0, 12.0), Color(0.42, 0.82, 0.96, 0.36))
+	c.draw_rect(Rect2(mast.x - 15, mast.y - 16, 30.0, 11.0), Color(0.62, 0.52, 0.28, 0.32))
+	c.draw_rect(Rect2(mast.x - 13, mast.y - 52, 26.0, 10.0), Color(0.58, 0.48, 0.26, 0.26))
+	c.draw_rect(Rect2(mast.x - 11, mast.y - 86, 22.0, 9.0), Color(0.54, 0.44, 0.24, 0.22))
+	c.draw_rect(Rect2(mast.x - 4, mast.y - 42, 8.0, 16.0), Color(0.52, 0.42, 0.22, 0.42))
+	c.draw_rect(Rect2(mast.x - 3, mast.y - 74, 6.0, 12.0), Color(0.50, 0.40, 0.20, 0.36))
 	# Lantern house + cyan beacon glass.
-	c.draw_rect(Rect2(mast.x - 13, mast.y - mast_h, 26.0, 24.0), Color(0.14, 0.26, 0.32, 0.92))
-	c.draw_rect(Rect2(mast.x - 16, mast.y - mast_h - 7, 32.0, 9.0), Color(0.22, 0.38, 0.44, 0.90))
-	c.draw_rect(Rect2(mast.x - 17, mast.y - mast_h + 20, 34.0, 5.0), Color(0.18, 0.30, 0.36, 0.80))
-	c.draw_circle(Vector2(mast.x, mast.y - mast_h + 11), 9.0, Color(0.55, 0.92, 1.0, 0.82))
-	c.draw_circle(Vector2(mast.x, mast.y - mast_h + 11), 4.5, Color(0.92, 0.98, 1.0, 0.92))
-	c.draw_rect(Rect2(mast.x - 22, mast.y + 10, 44.0, 8.0), Color(0.08, 0.12, 0.16, 0.75))
+	c.draw_rect(Rect2(mast.x - 13, mast.y - mast_h, 26.0, 24.0), Color(0.16, 0.14, 0.10, 0.92))
+	c.draw_rect(Rect2(mast.x - 16, mast.y - mast_h - 7, 32.0, 9.0), Color(0.22, 0.18, 0.12, 0.90))
+	c.draw_rect(Rect2(mast.x - 17, mast.y - mast_h + 20, 34.0, 5.0), Color(0.18, 0.16, 0.10, 0.80))
+	c.draw_circle(Vector2(mast.x, mast.y - mast_h + 11), 9.0, Color(0.82, 0.68, 0.32, 0.82))
+	c.draw_circle(Vector2(mast.x, mast.y - mast_h + 11), 4.5, Color(0.94, 0.86, 0.58, 0.92))
+	c.draw_rect(Rect2(mast.x - 22, mast.y + 10, 44.0, 8.0), Color(0.10, 0.09, 0.06, 0.75))
 	# Radio dish / Dish array — large parabolas on the east annex (blocked cells x=25-28).
 	var dish_a := Vector2(27.05 * t, 9.45 * t)
-	c.draw_arc(dish_a, 56.0, -2.62, 0.48, 18, Color(0.50, 0.84, 0.98, 0.68), 6.0, true)
-	c.draw_arc(dish_a, 44.0, -2.62, 0.48, 16, Color(0.16, 0.32, 0.40, 0.80), 3.4, true)
-	c.draw_line(dish_a, dish_a + Vector2(30, -28), Color(0.62, 0.90, 1.0, 0.78), 2.4, true)
-	c.draw_circle(dish_a + Vector2(30, -28), 5.5, Color(0.80, 0.96, 1.0, 0.92))
+	c.draw_arc(dish_a, 56.0, -2.62, 0.48, 18, Color(0.52, 0.46, 0.28, 0.68), 6.0, true)
+	c.draw_arc(dish_a, 44.0, -2.62, 0.48, 16, Color(0.18, 0.16, 0.10, 0.80), 3.4, true)
+	c.draw_line(dish_a, dish_a + Vector2(30, -28), Color(0.62, 0.52, 0.28, 0.78), 2.4, true)
+	c.draw_circle(dish_a + Vector2(30, -28), 5.5, Color(0.80, 0.68, 0.36, 0.92))
 	var dish_b := Vector2(27.55 * t, 11.25 * t)
-	c.draw_arc(dish_b, 46.0, -2.15, 0.90, 16, Color(0.42, 0.76, 0.90, 0.58), 5.0, true)
-	c.draw_arc(dish_b, 34.0, -2.15, 0.90, 14, Color(0.16, 0.30, 0.38, 0.72), 2.8, true)
-	c.draw_line(dish_b, dish_b + Vector2(24, -18), Color(0.55, 0.86, 0.96, 0.70), 2.0, true)
-	c.draw_circle(dish_b + Vector2(24, -18), 4.0, Color(0.72, 0.94, 1.0, 0.85))
+	c.draw_arc(dish_b, 46.0, -2.15, 0.90, 16, Color(0.46, 0.40, 0.24, 0.58), 5.0, true)
+	c.draw_arc(dish_b, 34.0, -2.15, 0.90, 14, Color(0.16, 0.14, 0.10, 0.72), 2.8, true)
+	c.draw_line(dish_b, dish_b + Vector2(24, -18), Color(0.58, 0.48, 0.26, 0.70), 2.0, true)
+	c.draw_circle(dish_b + Vector2(24, -18), 4.0, Color(0.72, 0.60, 0.32, 0.85))
 	var dish_c := Vector2(25.85 * t, 10.95 * t)
-	c.draw_arc(dish_c, 40.0, -2.75, 0.28, 14, Color(0.36, 0.68, 0.82, 0.50), 4.2, true)
-	c.draw_arc(dish_c, 30.0, -2.75, 0.28, 12, Color(0.14, 0.26, 0.34, 0.62), 2.2, true)
+	c.draw_arc(dish_c, 40.0, -2.75, 0.28, 14, Color(0.40, 0.34, 0.20, 0.50), 4.2, true)
+	c.draw_arc(dish_c, 30.0, -2.75, 0.28, 12, Color(0.16, 0.14, 0.10, 0.62), 2.2, true)
 	# Guy wire from dish hall to east annex.
-	c.draw_line(Vector2(mast.x + 10, mast.y - 88), Vector2(27.0 * t, 9.6 * t), Color(0.55, 0.78, 0.88, 0.48), 1.6, true)
-	c.draw_line(Vector2(16.4 * t, 8.2 * t), Vector2(12.2 * t, 12.4 * t), Color(0.55, 0.78, 0.88, 0.32), 1.2, true)
+	c.draw_line(Vector2(mast.x + 10, mast.y - 88), Vector2(27.0 * t, 9.6 * t), Color(0.42, 0.36, 0.22, 0.48), 1.6, true)
+	c.draw_line(Vector2(16.4 * t, 8.2 * t), Vector2(12.2 * t, 12.4 * t), Color(0.42, 0.36, 0.22, 0.32), 1.2, true)
 	c.draw_line(Vector2(mast.x - 8, mast.y - 70), Vector2(15.4 * t, 8.6 * t), Color(0.50, 0.74, 0.86, 0.36), 1.3, true)
 	# Morse hut on the east annex (already blocked).
 	c.draw_rect(Rect2(25.4 * t, 8.4 * t, 2.4 * t, 2.8 * t), Color(0.10, 0.16, 0.20, 0.70))
