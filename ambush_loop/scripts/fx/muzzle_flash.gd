@@ -66,7 +66,7 @@ func _ready() -> void:
 	smoke.polygon = PackedVector2Array([
 		Vector2(2, -5), Vector2(10, -7), Vector2(16, -2), Vector2(12, 5), Vector2(3, 4), Vector2(-2, 1)
 	])
-	smoke.color = Color(0.82, 0.78, 0.62, 0.28 if is_mg else 0.18)
+	smoke.color = Color(0.28, 0.24, 0.18, 0.36 if is_mg else 0.22)
 	smoke.z_index = -1
 	smoke.show_behind_parent = true
 	add_child(smoke)
