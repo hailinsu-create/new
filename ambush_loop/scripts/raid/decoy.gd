@@ -25,7 +25,14 @@ func _ensure_visual() -> void:
 	p.polygon = PackedVector2Array([
 		Vector2(-4, -3), Vector2(5, -2), Vector2(3, 4), Vector2(-5, 3)
 	])
-	p.color = Color(0.78, 0.68, 0.32, 0.95)
+	p.color = Color(0.42, 0.36, 0.24, 0.95)
+	var chip := Polygon2D.new()
+	chip.name = "Chip"
+	chip.polygon = PackedVector2Array([
+		Vector2(-2, -1), Vector2(3, 0), Vector2(1, 2), Vector2(-3, 1)
+	])
+	chip.color = Color(0.32, 0.28, 0.18, 0.92)
+	add_child(chip)
 	add_child(p)
 	var ring := Line2D.new()
 	ring.name = "Ring"

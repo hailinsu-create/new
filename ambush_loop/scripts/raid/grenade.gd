@@ -38,16 +38,23 @@ func _ensure_visual() -> void:
 	var body := Polygon2D.new()
 	body.name = "Body"
 	body.polygon = PackedVector2Array([
-		Vector2(-5, -4), Vector2(5, -4), Vector2(4, 6), Vector2(-4, 6)
+		Vector2(-4.5, 0), Vector2(4.5, 0), Vector2(5.2, 7), Vector2(0, 10), Vector2(-5.2, 7)
 	])
-	body.color = Color(0.42, 0.48, 0.28, 0.96)
+	body.color = Color(0.32, 0.36, 0.22, 0.96)
 	add_child(body)
+	var stick := Polygon2D.new()
+	stick.name = "Stick"
+	stick.polygon = PackedVector2Array([
+		Vector2(-1.6, -11), Vector2(1.6, -11), Vector2(1.8, 1), Vector2(-1.8, 1)
+	])
+	stick.color = Color(0.28, 0.18, 0.08, 0.96)
+	add_child(stick)
 	var pin := Polygon2D.new()
 	pin.name = "Pin"
 	pin.polygon = PackedVector2Array([
-		Vector2(-2, -8), Vector2(2, -8), Vector2(2, -4), Vector2(-2, -4)
+		Vector2(-2.2, -13), Vector2(2.2, -13), Vector2(2.0, -10), Vector2(-2.0, -10)
 	])
-	pin.color = Color(0.82, 0.72, 0.28, 0.95)
+	pin.color = Color(0.72, 0.56, 0.26, 0.95)
 	add_child(pin)
 
 

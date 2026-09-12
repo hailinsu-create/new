@@ -29,14 +29,23 @@ func _ensure_visual() -> void:
 		var a := TAU * float(i) / 12.0
 		pts.append(Vector2(cos(a), sin(a)) * 9.0)
 	disc.polygon = pts
-	disc.color = Color(0.28, 0.36, 0.18, 0.95)
+	disc.color = Color(0.22, 0.20, 0.12, 0.95)
 	add_child(disc)
+	var rim := Polygon2D.new()
+	rim.name = "Rim"
+	var rpts := PackedVector2Array()
+	for i in 12:
+		var ra := TAU * float(i) / 12.0
+		rpts.append(Vector2(cos(ra), sin(ra)) * 6.4)
+	rim.polygon = rpts
+	rim.color = Color(0.16, 0.14, 0.08, 0.90)
+	add_child(rim)
 	var stud := Polygon2D.new()
 	stud.name = "Stud"
 	stud.polygon = PackedVector2Array([
-		Vector2(-3, -3), Vector2(3, -3), Vector2(3, 3), Vector2(-3, 3)
+		Vector2(-2.2, -2.2), Vector2(2.2, -2.2), Vector2(2.2, 2.2), Vector2(-2.2, 2.2)
 	])
-	stud.color = Color(0.72, 0.22, 0.16, 0.95)
+	stud.color = Color(0.62, 0.22, 0.12, 0.95)
 	add_child(stud)
 	var tag := Label.new()
 	tag.name = "Tag"
