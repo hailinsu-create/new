@@ -1072,17 +1072,17 @@ func _landmark_radio(c: CanvasItem) -> void:
 		c.draw_rect(Rect2(bx + 1.0, by + 1.0, 12.0, 3.0), Color(0.38, 0.32, 0.16, 0.40))
 	# Phosphor ticks down the echo hall (x=24), distinct from depot tank farm.
 	# Echo hall phosphor — brighter and denser than the old 4-tick wash.
-	c.draw_rect(Rect2(24.08 * t, 5.25 * t, 0.84 * t, 10.4 * t), Color(0.32, 0.78, 0.95, 0.22))
+	c.draw_rect(Rect2(24.08 * t, 5.25 * t, 0.84 * t, 10.4 * t), Color(0.32, 0.28, 0.16, 0.22))
 	for i in 11:
 		var ey := 5.45 * t + float(i) * 28.0
-		c.draw_rect(Rect2(24.22 * t, ey, 16.0, 4.0), Color(0.55, 0.92, 1.0, 0.50))
-		c.draw_rect(Rect2(24.38 * t, ey + 1.0, 8.0, 2.0), Color(0.82, 0.98, 1.0, 0.58))
+		c.draw_rect(Rect2(24.22 * t, ey, 16.0, 4.0), Color(0.62, 0.52, 0.28, 0.50))
+		c.draw_rect(Rect2(24.38 * t, ey + 1.0, 8.0, 2.0), Color(0.78, 0.66, 0.36, 0.58))
 	# Horn speaker on the east annex roof.
 	var horn := Vector2(27.6 * t, 8.15 * t)
-	c.draw_circle(horn, 6.0, Color(0.18, 0.28, 0.32, 0.70))
+	c.draw_circle(horn, 6.0, Color(0.18, 0.16, 0.10, 0.70))
 	c.draw_colored_polygon(
 		PackedVector2Array([horn + Vector2(4, -3), horn + Vector2(16, -8), horn + Vector2(16, 8), horn + Vector2(4, 3)]),
-		Color(0.32, 0.62, 0.72, 0.50)
+		Color(0.36, 0.30, 0.16, 0.50)
 	)
 
 
