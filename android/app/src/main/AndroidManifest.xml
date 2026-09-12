@@ -76,7 +76,7 @@
             android:foregroundServiceType="mediaProjection|specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="floating_screen_roast_companion" />
+                android:value="Keeps a floating Live2D companion overlay on screen while the user is in other apps." />
         </service>
 
         <!-- Persist per-app language on Android 12 and older. API 33+ uses localeConfig. -->

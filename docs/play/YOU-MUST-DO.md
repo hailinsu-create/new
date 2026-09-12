@@ -29,6 +29,8 @@ Play 必须填一个**不登录也能打开**的隐私政策网页。仓库里�
 - 使用条款：`https://hailinsu-create.github.io/new/terms.html`
 - Terms：`https://hailinsu-create.github.io/new/terms-en.html`
 
+**在你改好 Pages 源并跑通工作流之前，`https://hailinsu-create.github.io/new/privacy.html` 仍是 404。** 不要把打不开的链接填进 Play Console 当最终隐私政策 URL。
+
 若暂时不启用 Pages，公开仓库可用过渡 URL（这是源码页，Console 有时不认，尽快换成 Pages）：
 
 `https://github.com/hailinsu-create/new/blob/cursor/phone-roast-small-window-b0b5/docs/privacy.html`
@@ -77,7 +79,7 @@ License testing：Settings → License testing，把你的 Gmail 加进去，内
 
 1. 打开 **App signing**：第一次上传时选择由 Google 管理应用签名密钥（推荐）
 2. Testing → Internal testing → 创建版本
-3. 上传 `pangchuang-0.11.0.aab`（见 Cursor 产物或本地 `bundleRelease` 输出）
+3. 上传 `pangchuang-0.12.0.aab`（见本地 `bundleRelease` 输出；不要把 `.jks` / AAB 提交进 Git）
 4. 把你的 Google 账号加为测试员，用测试轨道链接安装（**不要用 GitHub debug APK 测购买**）
 
 ## 7. 按填表包复制粘贴
@@ -100,14 +102,14 @@ License testing：Settings → License testing，把你的 Gmail 加进去，内
 - 高清图标 `play_icon_512.png`
 - 特色图片 `feature_graphic_1024x500.png`
 - 手机截图至少 2 张，建议 4 张：`screenshot_settings.png`、`screenshot_consent.png`、`screenshot_overlay.png`、`screenshot_overlay_closeup.png`
-- 悬浮窗那两张是用原创国风角色「墨汐」拼的草稿，**请用真机演示模式换掉**
+- 悬浮窗那两张是用原创国风角色「墨汐」拼的草稿（约 96dp 头像框，带关闭角标），**不是真机照片，提交前请用真机演示模式换掉**
 
 ## 8. 你必须拍的两段短视频（真机）
 
 Play 对悬浮窗 + 录屏几乎一定会要视频：
 
-1. **屏幕录制用途**：从打开旁窗 → 同意披露 → 系统录屏授权 → 小旁出现在别的 App 上 → 锁屏暂停。
-2. **悬浮窗用途**：小旁浮在微信/浏览器上说话，点通知回到设置。
+1. **屏幕录制用途**：从打开旁窗 → 同意披露 → 系统录屏授权 → 小旁出现在别的 App 上 → 锁屏真正停止截屏（释放录屏）。
+2. **悬浮窗用途**：小旁浮在微信/浏览器上说话；点头像开关气泡；点悬浮窗关闭角标或通知停止。
 
 镜头脚本见 `docs/play/permission-declarations.md`。用手机自带录屏即可，上传到 Console 的权限声明处。
 

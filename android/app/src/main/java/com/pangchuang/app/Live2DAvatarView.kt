@@ -69,6 +69,8 @@ class Live2DAvatarView @JvmOverloads constructor(
         touchShield = View(context).apply {
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
             isClickable = true
+            importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
+            contentDescription = context.getString(R.string.cd_preview)
             setBackgroundColor(Color.TRANSPARENT)
         }
         addView(touchShield)

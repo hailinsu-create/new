@@ -8,23 +8,29 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.pangchuang.app.databinding.ActivityMainBinding
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity(), BillingManager.Listener {
     private lateinit var binding: ActivityMainBinding
     private lateinit var prefs: Prefs
     private var billingManager: BillingManager? = null
     private var displayedPrice: String? = null
+    private var advancedOpen = false
 
     private val overlaySettingsLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-            refreshPermissionLabels()
+            refreshHome()
         }
 
     private val notificationPermissionLauncher =
@@ -49,11 +55,7 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
         prefs = Prefs(this)
         prefs.migrateForPlayReadiness()
 
-        binding.inputBaseUrl.setText(prefs.baseUrl)
-        binding.inputApiKey.setText(prefs.apiKey)
-        binding.inputModel.setText(prefs.model)
-        binding.inputInterval.setText(prefs.intervalSec.toString())
-        binding.switchMock.isChecked = prefs.mockApi
+        loadForm()
         setupLanguagePicker()
 
         binding.btnOverlay.setOnClickListener { openOverlaySettings() }
@@ -73,12 +75,13 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
         binding.btnStop.setOnClickListener {
             RoastService.stop(this)
             Toast.makeText(this, R.string.toast_stopped, Toast.LENGTH_SHORT).show()
+            binding.root.postDelayed({ refreshHome() }, 250)
         }
+        binding.btnToggleSettings.setOnClickListener { toggleAdvanced() }
+        binding.btnPing.setOnClickListener { pingVision() }
 
         maybeAskNotificationPermission()
-        refreshPermissionLabels()
-        updatePrivacyStatus()
-        updatePurchaseUi()
+        refreshHome()
         billingManager = BillingManager(this, prefs, this).also { it.start() }
 
         if (intent?.getBooleanExtra(EXTRA_AUTO_DEMO, false) == true) {
@@ -86,6 +89,15 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
         } else {
             maybeShowPrivacyConsent()
         }
+    }
+
+    private fun loadForm() {
+        binding.inputBaseUrl.setText(prefs.baseUrl)
+        binding.inputApiKey.setText(prefs.apiKey)
+        binding.inputModel.setText(prefs.model)
+        binding.inputInterval.setText(prefs.intervalSec.toString())
+        binding.inputThreshold.setText(prefs.changeThreshold.toInt().toString())
+        binding.switchMock.isChecked = prefs.mockApi
     }
 
     private fun setupLanguagePicker() {
@@ -105,8 +117,14 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
                 current.equals(chosen.tag, ignoreCase = true)
             }
             if (same) return@setOnItemClickListener
+            saveForm()
             AppLanguages.apply(chosen.tag)
         }
+    }
+
+    override fun onPause() {
+        saveForm()
+        super.onPause()
     }
 
     override fun onDestroy() {
@@ -117,9 +135,7 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
 
     override fun onResume() {
         super.onResume()
-        refreshPermissionLabels()
-        updatePrivacyStatus()
-        updatePurchaseUi()
+        refreshHome()
         billingManager?.start()
     }
 
@@ -129,7 +145,7 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
     }
 
     override fun onPurchaseStateChanged(unlocked: Boolean) {
-        runOnUiThread { updatePurchaseUi() }
+        runOnUiThread { updatePurchaseUi(); refreshStatus() }
     }
 
     override fun onPurchaseMessage(message: String) {
@@ -137,6 +153,61 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
             Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
             updatePurchaseUi()
         }
+    }
+
+    private fun toggleAdvanced() {
+        advancedOpen = !advancedOpen
+        binding.advancedPanel.visibility = if (advancedOpen) View.VISIBLE else View.GONE
+        binding.btnToggleSettings.text = getString(
+            if (advancedOpen) R.string.settings_collapse else R.string.settings_expand
+        )
+        binding.btnToggleSettings.contentDescription = getString(R.string.cd_settings_toggle)
+    }
+
+    private fun refreshHome() {
+        refreshPermissionLabels()
+        updatePrivacyStatus()
+        updatePurchaseUi()
+        refreshStatus()
+        refreshPreview()
+    }
+
+    private fun refreshPreview() {
+        val overlayUp = RoastService.running
+        if (overlayUp) {
+            binding.homeLive2d.visibility = View.GONE
+            binding.homeStatic.visibility = View.VISIBLE
+        } else {
+            binding.homeLive2d.visibility = View.VISIBLE
+            binding.homeStatic.visibility = View.GONE
+        }
+    }
+
+    private fun refreshStatus() {
+        val unlocked = Entitlement.isUnlocked(this)
+        val overlayOk = Settings.canDrawOverlays(this)
+        val parts = mutableListOf<String>()
+        parts += when {
+            RoastService.running && RoastService.pausedLock ->
+                getString(R.string.home_status_locked_pause)
+            RoastService.running && RoastService.runningDemo ->
+                getString(R.string.home_status_demo)
+            RoastService.running ->
+                getString(R.string.home_status_full)
+            else ->
+                getString(R.string.home_status_idle)
+        }
+        parts += if (overlayOk) {
+            getString(R.string.overlay_on)
+        } else {
+            getString(R.string.overlay_hint)
+        }
+        parts += if (unlocked) {
+            getString(R.string.home_status_unlocked)
+        } else {
+            getString(R.string.home_status_locked)
+        }
+        binding.homeStatus.text = parts.joinToString("\n")
     }
 
     private fun updatePurchaseUi() {
@@ -155,9 +226,9 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
             getString(R.string.purchase_buy_with_price, price)
         }
         if (BuildConfig.DEBUG) {
-            binding.purchaseDebugNote.visibility = android.view.View.VISIBLE
+            binding.purchaseDebugNote.visibility = View.VISIBLE
         } else {
-            binding.purchaseDebugNote.visibility = android.view.View.GONE
+            binding.purchaseDebugNote.visibility = View.GONE
         }
     }
 
@@ -259,10 +330,13 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
     }
 
     private fun saveForm() {
+        if (!::binding.isInitialized || !::prefs.isInitialized) return
         prefs.baseUrl = binding.inputBaseUrl.text?.toString().orEmpty()
         prefs.apiKey = binding.inputApiKey.text?.toString().orEmpty()
         prefs.model = binding.inputModel.text?.toString().orEmpty()
         prefs.intervalSec = binding.inputInterval.text?.toString()?.toIntOrNull() ?: 15
+        prefs.changeThreshold =
+            binding.inputThreshold.text?.toString()?.toFloatOrNull() ?: Prefs.DEFAULT_THRESHOLD
         prefs.mockApi = binding.switchMock.isChecked
     }
 
@@ -275,7 +349,7 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
                 .setPositiveButton(R.string.purchase_buy) { _, _ ->
                     billingManager?.launchPurchase()
                 }
-                .setNeutralButton(R.string.start_demo, null)
+                .setNeutralButton(R.string.start_demo) { _, _ -> startDemoFlow() }
                 .setNegativeButton(android.R.string.cancel, null)
                 .show()
             return
@@ -286,7 +360,21 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
             return
         }
         saveForm()
-        if (!prefs.mockApi && prefs.apiKey.isBlank()) {
+        if (CapturePolicy.fullCompanionBlockedByDemoLines(prefs.mockApi)) {
+            MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.mock_blocks_full_title)
+                .setMessage(R.string.mock_blocks_full_message)
+                .setPositiveButton(R.string.mock_blocks_full_turn_off) { _, _ ->
+                    binding.switchMock.isChecked = false
+                    prefs.mockApi = false
+                    startRoastFlow()
+                }
+                .setNeutralButton(R.string.start_demo) { _, _ -> startDemoFlow() }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+            return
+        }
+        if (prefs.apiKey.isBlank()) {
             Toast.makeText(
                 this,
                 R.string.toast_need_api_key,
@@ -294,7 +382,7 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
             ).show()
             return
         }
-        if (!prefs.mockApi && !prefs.baseUrl.startsWith("https://") &&
+        if (!prefs.baseUrl.startsWith("https://") &&
             !prefs.baseUrl.contains("127.0.0.1") &&
             !prefs.baseUrl.contains("localhost") &&
             !prefs.baseUrl.contains("10.0.2.2")
@@ -325,11 +413,21 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
             return
         }
         saveForm()
-        prefs.mockApi = true
-        binding.switchMock.isChecked = true
+        // Demo uses an in-memory session flag in RoastService. Never persist mockApi=true.
         RoastService.startDemo(this)
         Toast.makeText(this, R.string.toast_demo_started, Toast.LENGTH_SHORT).show()
         moveTaskToBack(true)
+    }
+
+    private fun pingVision() {
+        saveForm()
+        binding.pingStatus.text = getString(R.string.ping_testing)
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                VisionClient(this@MainActivity, prefs).ping()
+            }
+            binding.pingStatus.text = result.text
+        }
     }
 
     companion object {

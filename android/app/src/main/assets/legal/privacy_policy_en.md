@@ -1,6 +1,6 @@
 # Pangchuang privacy policy (in-app)
 
-Last updated: 2026-09-12 (0.11.0)
+Last updated: 2026-09-12 (0.12.0)
 
 Pangchuang is an open-source Android floating companion. We do not run an account server.
 
@@ -9,7 +9,8 @@ Pangchuang is an open-source Android floating companion. We do not run an accoun
 - Screen JPEGs are sent only to the vision API you configure, to write companion lines.
 - Optional usage access reads the foreground app name as a hint.
 - API keys stay on device. Cloud backup is off.
-- Screenshots are not saved to the gallery. Capture pauses on the lock screen.
+- Screenshots are not saved to the gallery. Locking the phone releases capture and stops API calls so lock or PIN frames are not sent.
+- If usage access is on, keyboards, password managers, authenticators, and banking apps skip that tick (best-effort).
 
 ## Permissions
 

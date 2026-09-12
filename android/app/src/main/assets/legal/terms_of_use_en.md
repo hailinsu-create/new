@@ -1,6 +1,6 @@
 # Pangchuang terms of use
 
-Last updated: 2026-09-12 (0.11.0)
+Last updated: 2026-09-12 (0.12.0)
 
 Using Pangchuang means you agree to these terms and the privacy policy.
 

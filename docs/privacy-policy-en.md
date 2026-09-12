@@ -1,6 +1,6 @@
 # Pangchuang privacy policy
 
-Last updated: 2026-09-12 (0.11.0)
+Last updated: 2026-09-12 (0.12.0)
 
 Pangchuang (`com.pangchuang.app`) is an open-source Android floating companion. Web copy: https://hailinsu-create.github.io/new/privacy-en.html (after GitHub Pages is on).
 
@@ -17,7 +17,9 @@ The app does not run an account server. Data is processed on device, or sent to 
 | API key, base URL, model name | Call the vision API | On device. Cloud backup is off. |
 | Unlock state | Whether full companion is purchased | On device. Payment is handled by Google Play. |
 
-Screenshots are not saved to the gallery and are not uploaded to a server we control. Capture and API calls stop when the phone is locked.
+Screenshots are not saved to the gallery and are not uploaded to a server we control. Locking the phone releases the capture surface and stops API calls, so lock or PIN frames are not sent. If usage access is on, keyboards, password managers, authenticators, and banking apps skip that tick (best-effort; see `SensitiveApps.kt`).
+
+The GitHub Pages URL is 404 until Pages is enabled in repo Settings.
 
 ## Third parties
 

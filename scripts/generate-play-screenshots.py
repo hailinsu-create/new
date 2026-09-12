@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Phone-sized listing screenshots that match the real settings copy and overlay art."""
+"""Phone-sized listing screenshots that match the companion home and 96dp overlay."""
 from pathlib import Path
 
 from PIL import Image, ImageChops, ImageDraw, ImageFont
@@ -10,8 +10,10 @@ FOAM = (255, 247, 245, 255)
 MIST = (196, 168, 176, 255)
 AMBER = (242, 167, 184, 255)
 PANEL = (31, 21, 32, 230)
-YELLOW = (245, 196, 72, 255)
+YELLOW = (242, 167, 184, 255)
 W, H = 1080, 1920
+# 96dp on a 360dp-wide 1080px composite ≈ 288px.
+OVERLAY_FACE = 288
 
 
 def font(size: int) -> ImageFont.FreeTypeFont:
@@ -25,32 +27,25 @@ def rounded(draw, xy, r, fill):
 def settings_shot() -> Image.Image:
     img = Image.new("RGB", (W, H), INK[:3])
     d = ImageDraw.Draw(img)
-    d.text((72, 96), "旁窗", font=font(86), fill=FOAM[:3])
-    d.text((72, 210), "关掉「演示陪伴语」并填入视觉 API。", font=font(28), fill=MIST[:3])
-    d.text((72, 252), "默认使用稳定的 Qwen3-VL-8B。", font=font(28), fill=MIST[:3])
+    d.text((72, 80), "旁窗", font=font(86), fill=FOAM[:3])
+    d.text((72, 190), "屏幕边的国风伴侣。演示免费；", font=font(28), fill=MIST[:3])
+    d.text((72, 232), "完整陪伴会看你的屏幕。", font=font(28), fill=MIST[:3])
 
-    rounded(d, (56, 310, 1024, 418), 28, PANEL)
-    d.text((88, 328), "界面语言", font=font(22), fill=MIST[:3])
-    d.text((88, 364), "跟随系统", font=font(32), fill=FOAM[:3])
+    face_path = OUT / "moxi_face.png"
+    if face_path.exists():
+        face = cut_face(face_path, 280)
+        img.paste(face, (400, 300), face)
 
-    rounded(d, (56, 448, 1024, 728), 36, PANEL)
-    d.text((88, 480), "解锁完整陪伴", font=font(34), fill=FOAM[:3])
-    d.text((88, 538), "尚未解锁完整陪伴", font=font(26), fill=MIST[:3])
-    d.text((88, 586), "一次购买约 $0.99，永久解锁真屏陪伴。", font=font(24), fill=MIST[:3])
-    d.text((88, 624), "演示模式始终免费。", font=font(24), fill=MIST[:3])
-    rounded(d, (88, 668, 992, 736), 24, AMBER)
-    d.text((330, 684), "解锁完整陪伴（$0.99）", font=font(28), fill=INK[:3])
+    d.text((72, 620), "小旁在休息。先试免费演示，", font=font(26), fill=MIST[:3])
+    d.text((72, 662), "或解锁后开始完整陪伴。", font=font(26), fill=MIST[:3])
 
-    rounded(d, (56, 768, 1024, 1088), 36, PANEL)
-    d.text((88, 800), "隐私与合规", font=font(34), fill=FOAM[:3])
-    d.text((88, 860), "隐私政策：启动陪伴前需同意", font=font(26), fill=MIST[:3])
-    d.text((88, 908), "数据去向：你填写的视觉 API。", font=font(24), fill=MIST[:3])
-    d.text((88, 948), "默认模型 Qwen3-VL-8B。HTTPS 传输。", font=font(24), fill=MIST[:3])
-
-    rounded(d, (56, 1148, 1024, 1276), 28, YELLOW)
-    d.text((300, 1190), "召唤小旁陪看屏幕", font=font(34), fill=INK[:3])
-    rounded(d, (56, 1308, 1024, 1408), 28, (60, 44, 52))
-    d.text((320, 1340), "仅演示悬浮窗（不看真屏）", font=font(28), fill=FOAM[:3])
+    rounded(d, (56, 740, 1024, 868), 28, YELLOW)
+    d.text((400, 780), "演示召唤", font=font(36), fill=INK[:3])
+    rounded(d, (56, 900, 1024, 1012), 28, (60, 44, 52))
+    d.text((400, 934), "完整陪伴", font=font(32), fill=FOAM[:3])
+    rounded(d, (56, 1040, 1024, 1144), 28, (40, 28, 36))
+    d.text((360, 1072), "让小旁先休息", font=font(28), fill=MIST[:3])
+    d.text((340, 1220), "完整陪伴设置", font=font(26), fill=AMBER)
     return img
 
 
@@ -59,8 +54,8 @@ def consent_shot() -> Image.Image:
     overlay = Image.new("RGBA", (W, H), (0, 0, 0, 140))
     img = Image.alpha_composite(img.convert("RGBA"), overlay)
     d = ImageDraw.Draw(img)
-    rounded(d, (80, 360, 1000, 1560), 36, (36, 26, 38, 255))
-    d.text((120, 410), "使用前请知悉", font=font(40), fill=FOAM)
+    rounded(d, (80, 320, 1000, 1600), 36, (36, 26, 38, 255))
+    d.text((120, 370), "使用前请知悉", font=font(40), fill=FOAM)
     lines = [
         "旁窗会截取当前屏幕画面，并发送到",
         "你自行配置的视觉 API 以生成陪伴语。",
@@ -68,11 +63,11 @@ def consent_shot() -> Image.Image:
         "• 截图不会保存到相册",
         "• 也不会上传到我们控制的服务器",
         "• API Key 仅存在本机",
-        "• 锁屏时自动停止截屏与 API",
+        "• 锁屏时真正停止截屏（释放录屏）",
         "",
         "继续即表示你同意隐私政策。",
     ]
-    y = 500
+    y = 460
     for line in lines:
         d.text((120, y), line, font=font(28), fill=MIST)
         y += 48
@@ -84,7 +79,6 @@ def consent_shot() -> Image.Image:
 
 
 def overlay_host() -> Image.Image:
-    """A fake short-video / cart screen so the listing shows overlay on another app."""
     img = Image.new("RGB", (W, H), (18, 16, 22))
     d = ImageDraw.Draw(img)
     d.rectangle((0, 0, W, 88), fill=(12, 10, 14))
@@ -133,28 +127,32 @@ def cut_face(path: Path, size: int) -> Image.Image:
 def paint_overlay(base: Image.Image, line: str, face: Image.Image) -> Image.Image:
     img = base.convert("RGBA")
     d = ImageDraw.Draw(img)
-    # Bubble
-    bx0, by0, bx1, by1 = 48, 1180, 720, 1420
-    rounded(d, (bx0, by0, bx1, by1), 28, PANEL)
-    d.text((bx0 + 28, by0 + 22), "小旁", font=font(22), fill=AMBER)
-    # wrap line
-    y = by0 + 64
+    bx0, by0, bx1, by1 = 48, 1180, 640, 1400
+    rounded(d, (bx0, by0, bx1, by1), 24, PANEL)
+    d.text((bx0 + 24, by0 + 18), "小旁", font=font(22), fill=AMBER)
+    y = by0 + 58
     buf = ""
     for ch in line:
         trial = buf + ch
-        if font(26).getlength(trial) > (bx1 - bx0 - 56):
-            d.text((bx0 + 28, y), buf, font=font(26), fill=FOAM[:3])
-            y += 40
+        if font(26).getlength(trial) > (bx1 - bx0 - 48):
+            d.text((bx0 + 24, y), buf, font=font(26), fill=FOAM[:3])
+            y += 38
             buf = ch
         else:
             buf = trial
     if buf:
-        d.text((bx0 + 28, y), buf, font=font(26), fill=FOAM[:3])
-    ax, ay = 40, 1480
-    ring = Image.new("RGBA", (face.size[0] + 16, face.size[1] + 16), (0, 0, 0, 0))
-    ImageDraw.Draw(ring).ellipse((0, 0, ring.size[0] - 1, ring.size[1] - 1), outline=AMBER, width=6)
-    img.alpha_composite(ring, (ax - 8, ay - 8))
+        d.text((bx0 + 24, y), buf, font=font(26), fill=FOAM[:3])
+    ax, ay = 48, 1488
+    ring = Image.new("RGBA", (face.size[0] + 12, face.size[1] + 12), (0, 0, 0, 0))
+    ImageDraw.Draw(ring).ellipse((0, 0, ring.size[0] - 1, ring.size[1] - 1), outline=AMBER, width=5)
+    img.alpha_composite(ring, (ax - 6, ay - 6))
     img.alpha_composite(face, (ax, ay))
+    # Small close affordance at the top-right of the 96dp face.
+    cx = ax + face.size[0] - 18
+    cy = ay + 6
+    d.ellipse((cx, cy, cx + 36, cy + 36), fill=(26, 18, 24, 220), outline=AMBER, width=2)
+    d.line((cx + 10, cy + 10, cx + 26, cy + 26), fill=FOAM, width=3)
+    d.line((cx + 26, cy + 10, cx + 10, cy + 26), fill=FOAM, width=3)
     return img.convert("RGB")
 
 
@@ -166,13 +164,18 @@ def overlay_closeup(face: Image.Image) -> Image.Image:
     img = Image.new("RGB", (W, H), (18, 16, 22))
     d = ImageDraw.Draw(img)
     d.text((72, 80), "演示模式 · 不看真屏", font=font(28), fill=MIST[:3])
-    big = face.resize((560, 560), Image.Resampling.LANCZOS)
-    img.paste(big, (260, 220), big)
-    rounded(d, (80, 860, 1000, 1220), 32, PANEL)
+    big = face.resize((420, 420), Image.Resampling.LANCZOS)
+    img.paste(big, (330, 260), big)
+    # Close chip matching the overlay control.
+    d.ellipse((700, 250, 752, 302), fill=(26, 18, 24), outline=AMBER, width=3)
+    d.line((714, 264, 738, 288), fill=FOAM[:3], width=3)
+    d.line((738, 264, 714, 288), fill=FOAM[:3], width=3)
+    rounded(d, (80, 860, 1000, 1280), 32, PANEL)
     d.text((120, 900), "小旁", font=font(28), fill=AMBER)
     d.text((120, 960), "短视频一条接一条，像夜里不停的潮。", font=font(32), fill=FOAM[:3])
     d.text((120, 1020), "潮有涨有落，你也可以随时上岸。", font=font(32), fill=FOAM[:3])
-    d.text((120, 1110), "长按角色换一句。锁屏会自己停。", font=font(26), fill=MIST[:3])
+    d.text((120, 1110), "点按开关气泡。长按换一句。", font=font(26), fill=MIST[:3])
+    d.text((120, 1160), "右上角让小旁休息。锁屏会真正停截屏。", font=font(26), fill=MIST[:3])
     return img
 
 
@@ -182,10 +185,10 @@ def main() -> None:
     consent_shot().save(OUT / "screenshot_consent.png", "PNG")
     face_path = OUT / "moxi_face.png"
     if face_path.exists():
-        face = cut_face(face_path, 420)
+        face = cut_face(face_path, OVERLAY_FACE)
         overlay_shot(face).save(OUT / "screenshot_overlay.png", "PNG")
         overlay_closeup(face).save(OUT / "screenshot_overlay_closeup.png", "PNG")
-        print("wrote listing screenshots including overlay")
+        print("wrote listing screenshots including 96dp overlay composite")
     else:
         print("wrote listing screenshots (no moxi_face.png, skipped overlay)")
 

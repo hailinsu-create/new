@@ -2,40 +2,51 @@
 <resources>
     <string name="app_name">旁窗</string>
     <string name="companion_name">小旁</string>
-    <string name="subtitle">デモ台詞をオフにしてビジョン API を入れてください。既定は安定版 Qwen3-VL-8B。キャラはオリジナルの国風 Live2D「墨汐」です。</string>
+    <string name="subtitle">画面の端にいる国風の相棒。デモは無料。本機能は画面を見て、ロックすると撮影を本当に止めます。</string>
     <string name="language_title">表示言語</string>
     <string name="language_system">システムに合わせる</string>
     <string name="section_permissions">権限</string>
     <string name="section_vision">ビジョンモデル（OpenAI 互換）</string>
     <string name="section_privacy">プライバシー</string>
+    <string name="section_advanced">本機能の設定</string>
+    <string name="settings_expand">本機能の設定</string>
+    <string name="settings_collapse">設定を閉じる</string>
+    <string name="home_status_idle">小旁は休んでいます。無料デモか、解除して本機能を。</string>
+    <string name="home_status_demo">デモ実行中 · 本物の画面は見ません</string>
+    <string name="home_status_full">本機能実行中 · 画面を見ています</string>
+    <string name="home_status_locked_pause">ロック中 · 撮影を停止</string>
+    <string name="home_status_unlocked">本機能は解除済み</string>
+    <string name="home_status_locked">本機能は未解除</string>
     <string name="btn_overlay">オーバーレイを許可</string>
     <string name="btn_usage">使用状況へのアクセス（任意）</string>
     <string name="hint_interval">応答間隔（秒）</string>
+    <string name="hint_change_threshold">画面変化のしきい値（大きいほど無口）</string>
     <string name="switch_mock">デモ台詞（API を呼ばない）</string>
     <string name="btn_reset_model">推奨の 8B に戻す</string>
+    <string name="btn_test_connection">接続テスト</string>
     <string name="btn_privacy">プライバシーポリシー</string>
     <string name="btn_licenses">オープンソースと Live2D ライセンス</string>
     <string name="notification_title">小旁が画面を見ています</string>
     <string name="notification_text">コンパニオン実行中。タップで設定へ。</string>
     <string name="notification_channel">旁窗コンパニオン</string>
     <string name="notification_paused_demo">デモ一時停止 · ロック中</string>
-    <string name="notification_paused_capture">ロック中 · 撮影を停止（トークン節約）</string>
+    <string name="notification_paused_capture">ロック中 · 撮影を停止</string>
     <string name="notification_demo">デモモード · 合成画面のみ</string>
-    <string name="start_roast">本物の画面で始める</string>
-    <string name="start_demo">オーバーレイのデモだけ（本物の画面は見ない）</string>
+    <string name="start_roast">本機能</string>
+    <string name="start_demo">デモを呼ぶ</string>
     <string name="stop_roast">小旁を休ませる</string>
     <string name="overlay_hint">「他のアプリの上に表示」が必要です</string>
     <string name="overlay_on">オーバーレイ：オン</string>
-    <string name="capture_hint">メインボタンのあとで画面収録を許可します。コマは台詞用だけで、ロック時は止まります。</string>
-    <string name="usage_hint">使用状況アクセスは任意です。前景アプリ名のヒントになります。最終判断はスクリーンショットです。</string>
-    <string name="usage_on">使用状況：オン（アプリ名が正確）</string>
+    <string name="capture_hint">本機能のあとで画面収録を許可します。コマは台詞用だけ。ロックすると撮影を解放し、ロック画面は残しません。</string>
+    <string name="usage_hint">使用状況アクセスは任意です。前景アプリ名のヒントになり、キーボード・パスワード・銀行アプリではその回を飛ばします。</string>
+    <string name="usage_on">使用状況：オン（アプリ名が正確。機微なアプリは撮影しません）</string>
     <string name="privacy_consent_title">始める前に</string>
     <string name="privacy_consent_message">旁窗は今の画面を撮り、あなたが設定したビジョン API（例：SiliconFlow）に送って台詞を作ります。
 
 • スクショはアルバムにも当社サーバーにも保存しません
 • API キーはこの端末だけにあります
-• ロック中は撮影と API を止めます
-• 任意で前景アプリ名を読みます
+• ロック中は撮影を解放し、API も止めます
+• 任意で前景アプリ名を読み、キーボード・パスワード・銀行ではその回を飛ばします
 
 続けるとプライバシーポリシーに同意したことになります。</string>
     <string name="privacy_accept">同意して続ける</string>
@@ -63,11 +74,11 @@
     <string name="purchase_billing_unavailable">Google Play 課金に接続できません。Play から入れるか、あとで試してください。</string>
     <string name="purchase_debug_note">デバッグ版はサイドロード確認用に自動解除されます。Play 版は購入が必要です。</string>
     <string name="capture_disclosure_title">次は画面収録です</string>
-    <string name="capture_disclosure_message">Android が画面収録を尋ねます。旁窗は今のコマだけをあなたの API に送ります。アルバムには保存しません。ロックすると止まります。</string>
+    <string name="capture_disclosure_message">Android が画面収録を尋ねます。旁窗は今のコマだけをあなたの API に送ります。アルバムには保存しません。ロックすると撮影面を解放します。</string>
     <string name="capture_disclosure_continue">続ける</string>
     <string name="view_terms">利用規約</string>
     <string name="legal_privacy_title">プライバシーポリシー</string>
-    <string name="legal_licenses_title">オープンソースとサンプルライセンス</string>
+    <string name="legal_licenses_title">オープンソースとライセンス</string>
     <string name="legal_terms_title">利用規約</string>
     <string name="legal_back">戻る</string>
     <string name="legal_load_failed">%1$s を読み込めません</string>
@@ -77,21 +88,42 @@
     <string name="toast_stopped">停止しました</string>
     <string name="toast_usage_settings_fail">使用状況の設定を開けません。システム設定で検索してください。</string>
     <string name="toast_need_overlay">先にオーバーレイをオンにしてください</string>
-    <string name="toast_need_api_key">ビジョン API キーを入れるか、デモ台詞をオンにしてください</string>
+    <string name="toast_need_api_key">ビジョン API キーを入れてください</string>
     <string name="toast_https_only">製品版は HTTPS のみです。ローカル Ollama は http://127.0.0.1:11434/v1</string>
     <string name="toast_demo_started">デモを開始しました（本物の画面は見ません）</string>
+    <string name="mock_blocks_full_title">デモ台詞がまだオンです</string>
+    <string name="mock_blocks_full_message">本機能は本物の画面を撮り、ビジョン API を呼びます。先に「デモ台詞」をオフにしてください。オーバーレイだけならデモを呼んでください。</string>
+    <string name="mock_blocks_full_turn_off">オフにして続ける</string>
+    <string name="ping_testing">接続中…</string>
+    <string name="ping_ok">接続成功：%1$s</string>
+    <string name="ping_fail">接続失敗：%1$s</string>
     <string name="overlay_hello">小旁です。画面をいっしょに見ます。</string>
     <string name="overlay_looking">いま何してるか、見てみます…</string>
     <string name="overlay_thinking">この画面を見ています…</string>
     <string name="overlay_thinking_heavy">大きいモデルが見ています…</string>
-    <string name="overlay_locked_idle">ロック中です。戻ったらまた見ます。</string>
-    <string name="overlay_locked">ロックしました。トークンを使わないよう休みます。</string>
+    <string name="overlay_locked_idle">ロック中です。撮影は止まっています。戻ったらまた見ます。</string>
+    <string name="overlay_locked">ロックしました。撮影を止めてトークンを使いません。</string>
     <string name="overlay_welcome_back">おかえり。また隣にいます。</string>
     <string name="overlay_no_projection">画面収録がもらえませんでした。いったん休みます。</string>
-    <string name="overlay_capture_hello">ここにいます。ロックすると撮影は止まります。</string>
-    <string name="overlay_demo_hello">デモは偽の画面です。アバターを長押しすると別の台詞になります。</string>
+    <string name="overlay_capture_hello">ここにいます。ロックすると撮影は本当に止まります。</string>
+    <string name="overlay_demo_hello">デモは偽の画面です。タップで吹き出し、長押しで別の台詞、角で休みます。</string>
     <string name="overlay_frame_wait">コマがまだです。少し待って…</string>
     <string name="overlay_unchanged">画面はほとんど変わっていません。長押しすれば一言出します。</string>
+    <string name="overlay_sensitive_skip">パスワードや銀行の画面のようです。今回は見ません。</string>
+    <string name="overlay_close_cd">小旁を休ませる</string>
+    <string name="overlay_avatar_cd">小旁。タップで吹き出し、長押しで一瞥、ドラッグで端に吸着。</string>
+    <string name="cd_preview">墨汐プレビュー</string>
+    <string name="cd_api_key">API キー</string>
+    <string name="cd_base_url">ビジョン API の URL</string>
+    <string name="cd_model">ビジョンモデル</string>
+    <string name="cd_interval">応答間隔</string>
+    <string name="cd_threshold">画面変化のしきい値</string>
+    <string name="cd_language">表示言語</string>
+    <string name="cd_start_demo">デモを呼ぶ。本物の画面は見ない</string>
+    <string name="cd_start_full">本機能。画面を見る</string>
+    <string name="cd_stop">小旁を休ませる</string>
+    <string name="cd_test_connection">ビジョン API をテスト</string>
+    <string name="cd_settings_toggle">本機能の設定を開閉</string>
     <string name="demo_frame_label">小旁デモ #%1$d</string>
     <string name="demo_scene_shorts_title">深夜のショート</string>
     <string name="demo_scene_shorts_body">また同じ踊りのコピー</string>
@@ -115,4 +147,6 @@
     <string name="vision_bad_model">モデル名が違います。Vision Model を確認してください。</string>
     <string name="vision_http">API %1$d：%2$s</string>
     <string name="vision_http_generic">API %1$d：キーとモデルを確認</string>
+    <string name="vision_empty">モデルが黙っています。もう一度。</string>
+    <string name="vision_mock_blocked">本機能にデモ台詞は使えません。デモ台詞をオフにしてキーを入れてください。</string>
 </resources>

@@ -16,13 +16,14 @@
             android:id="@+id/brand"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="28dp"
+            android:layout_marginTop="20dp"
             android:text="@string/app_name"
             android:textColor="@color/foam"
             android:textSize="40sp"
             android:textStyle="bold" />
 
         <TextView
+            android:id="@+id/subtitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
@@ -30,342 +31,58 @@
             android:textColor="@color/mist"
             android:textSize="15sp" />
 
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="168dp"
+            android:layout_marginTop="20dp">
+
+            <com.pangchuang.app.Live2DAvatarView
+                android:id="@+id/homeLive2d"
+                android:layout_width="140dp"
+                android:layout_height="140dp"
+                android:layout_gravity="center"
+                android:contentDescription="@string/cd_preview" />
+
+            <ImageView
+                android:id="@+id/homeStatic"
+                android:layout_width="140dp"
+                android:layout_height="140dp"
+                android:layout_gravity="center"
+                android:contentDescription="@string/cd_preview"
+                android:scaleType="centerCrop"
+                android:src="@drawable/companion_avatar_idle"
+                android:visibility="gone" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/homeStatus"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:hint="@string/language_title">
-
-            <AutoCompleteTextView
-                android:id="@+id/inputLanguage"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="none"
-                android:focusable="false"
-                android:clickable="true" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            app:cardBackgroundColor="@color/panel"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="0dp"
-            app:strokeColor="#33A8B4C0"
-            app:strokeWidth="1dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/section_permissions"
-                    android:textColor="@color/foam"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/overlayStatus"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:text="@string/overlay_hint"
-                    android:textColor="@color/mist"
-                    android:textSize="13sp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnOverlay"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/btn_overlay" />
-
-                <TextView
-                    android:id="@+id/captureStatus"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:text="@string/capture_hint"
-                    android:textColor="@color/mist"
-                    android:textSize="13sp" />
-
-                <TextView
-                    android:id="@+id/usageStatus"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:text="@string/usage_hint"
-                    android:textColor="@color/mist"
-                    android:textSize="13sp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnUsage"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/btn_usage" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            app:cardBackgroundColor="@color/panel"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="0dp"
-            app:strokeColor="#33A8B4C0"
-            app:strokeWidth="1dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/section_vision"
-                    android:textColor="@color/foam"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-
-                <com.google.android.material.textfield.TextInputLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:hint="@string/hint_base_url">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/inputBaseUrl"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="textUri"
-                        android:text="https://api.siliconflow.cn/v1" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <com.google.android.material.textfield.TextInputLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:hint="@string/hint_api_key">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/inputApiKey"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="textPassword" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <com.google.android.material.textfield.TextInputLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:hint="@string/hint_model">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/inputModel"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="text"
-                        android:text="Qwen/Qwen3-VL-8B-Instruct" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <com.google.android.material.textfield.TextInputLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:hint="@string/hint_interval">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/inputInterval"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="number"
-                        android:text="15" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/switchMock"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:checked="false"
-                    android:text="@string/switch_mock"
-                    android:textColor="@color/foam" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnResetModel"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/btn_reset_model" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            app:cardBackgroundColor="@color/panel"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="0dp"
-            app:strokeColor="#33A8B4C0"
-            app:strokeWidth="1dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/purchase_title"
-                    android:textColor="@color/foam"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/purchaseStatus"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:text="@string/purchase_status_locked"
-                    android:textColor="@color/mist"
-                    android:textSize="13sp" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/purchase_summary"
-                    android:textColor="@color/mist"
-                    android:textSize="13sp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnPurchase"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:text="@string/purchase_buy" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnRestorePurchase"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/purchase_restore" />
-
-                <TextView
-                    android:id="@+id/purchaseDebugNote"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/purchase_debug_note"
-                    android:textColor="@color/mist"
-                    android:textSize="12sp"
-                    android:visibility="gone" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            app:cardBackgroundColor="@color/panel"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="0dp"
-            app:strokeColor="#33A8B4C0"
-            app:strokeWidth="1dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/section_privacy"
-                    android:textColor="@color/foam"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/privacyStatus"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:text="@string/privacy_required"
-                    android:textColor="@color/mist"
-                    android:textSize="13sp" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/data_disclosure_summary"
-                    android:textColor="@color/mist"
-                    android:textSize="13sp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnPrivacy"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/btn_privacy" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnLicenses"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/btn_licenses" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnTerms"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/view_terms" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+            android:layout_marginTop="8dp"
+            android:text="@string/home_status_idle"
+            android:textColor="@color/mist"
+            android:textSize="13sp" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnStart"
+            android:id="@+id/btnDemo"
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:layout_marginTop="20dp"
             android:background="@drawable/bg_button_primary"
-            android:text="@string/start_roast"
+            android:contentDescription="@string/cd_start_demo"
+            android:text="@string/start_demo"
             android:textColor="@color/ink"
             android:textStyle="bold"
             app:backgroundTint="@null" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnDemo"
+            android:id="@+id/btnStart"
             style="@style/Widget.Material3.Button.TonalButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="@string/start_demo" />
+            android:contentDescription="@string/cd_start_full"
+            android:text="@string/start_roast" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnStop"
@@ -373,7 +90,380 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:layout_marginBottom="24dp"
+            android:contentDescription="@string/cd_stop"
             android:text="@string/stop_roast" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnToggleSettings"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:contentDescription="@string/cd_settings_toggle"
+            android:text="@string/settings_expand" />
+
+        <LinearLayout
+            android:id="@+id/advancedPanel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:hint="@string/language_title">
+
+                <AutoCompleteTextView
+                    android:id="@+id/inputLanguage"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:clickable="true"
+                    android:contentDescription="@string/cd_language"
+                    android:focusable="false"
+                    android:inputType="none" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                app:cardBackgroundColor="@color/panel"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
+                app:strokeColor="#33A8B4C0"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/section_permissions"
+                        android:textColor="@color/foam"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/overlayStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="@string/overlay_hint"
+                        android:textColor="@color/mist"
+                        android:textSize="13sp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnOverlay"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/btn_overlay" />
+
+                    <TextView
+                        android:id="@+id/captureStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/capture_hint"
+                        android:textColor="@color/mist"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/usageStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/usage_hint"
+                        android:textColor="@color/mist"
+                        android:textSize="13sp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnUsage"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/btn_usage" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                app:cardBackgroundColor="@color/panel"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
+                app:strokeColor="#33A8B4C0"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/section_vision"
+                        android:textColor="@color/foam"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:hint="@string/hint_base_url">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inputBaseUrl"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:contentDescription="@string/cd_base_url"
+                            android:inputType="textUri"
+                            android:text="https://api.siliconflow.cn/v1" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:hint="@string/hint_api_key">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inputApiKey"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:contentDescription="@string/cd_api_key"
+                            android:inputType="textPassword" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:hint="@string/hint_model">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inputModel"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:contentDescription="@string/cd_model"
+                            android:inputType="text"
+                            android:text="Qwen/Qwen3-VL-8B-Instruct" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:hint="@string/hint_interval">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inputInterval"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:contentDescription="@string/cd_interval"
+                            android:inputType="number"
+                            android:text="15" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:hint="@string/hint_change_threshold">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inputThreshold"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:contentDescription="@string/cd_threshold"
+                            android:inputType="number"
+                            android:text="8" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchMock"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:checked="false"
+                        android:text="@string/switch_mock"
+                        android:textColor="@color/foam" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnResetModel"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/btn_reset_model" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPing"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:contentDescription="@string/cd_test_connection"
+                        android:text="@string/btn_test_connection" />
+
+                    <TextView
+                        android:id="@+id/pingStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:textColor="@color/mist"
+                        android:textSize="13sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                app:cardBackgroundColor="@color/panel"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
+                app:strokeColor="#33A8B4C0"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/purchase_title"
+                        android:textColor="@color/foam"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/purchaseStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="@string/purchase_status_locked"
+                        android:textColor="@color/mist"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/purchase_summary"
+                        android:textColor="@color/mist"
+                        android:textSize="13sp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPurchase"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/purchase_buy" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnRestorePurchase"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/purchase_restore" />
+
+                    <TextView
+                        android:id="@+id/purchaseDebugNote"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/purchase_debug_note"
+                        android:textColor="@color/mist"
+                        android:textSize="12sp"
+                        android:visibility="gone" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="24dp"
+                app:cardBackgroundColor="@color/panel"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
+                app:strokeColor="#33A8B4C0"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/section_privacy"
+                        android:textColor="@color/foam"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/privacyStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="@string/privacy_required"
+                        android:textColor="@color/mist"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/data_disclosure_summary"
+                        android:textColor="@color/mist"
+                        android:textSize="13sp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPrivacy"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/btn_privacy" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnLicenses"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/btn_licenses" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnTerms"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/view_terms" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
     </LinearLayout>
 </ScrollView>

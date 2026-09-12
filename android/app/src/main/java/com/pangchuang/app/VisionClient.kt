@@ -29,13 +29,33 @@ class VisionClient(
         .retryOnConnectionFailure(true)
         .build()
 
+    private val pingClient = OkHttpClient.Builder()
+        .connectTimeout(8, TimeUnit.SECONDS)
+        .writeTimeout(12, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
+        .callTimeout(20, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(false)
+        .build()
+
+    /**
+     * Demo-only canned line. Full companion must never call this.
+     */
+    fun mockRoast(scene: String?): RoastResult = RoastResult(mockLine(scene), "mock")
+
+    /**
+     * Live vision. Never returns a mock line — blank key / mock pref / empty model
+     * all surface as errors so we do not capture the real screen and joke over it.
+     */
     fun roast(
         bitmap: Bitmap,
-        scene: String? = null,
+        @Suppress("UNUSED_PARAMETER") scene: String? = null,
         appHint: AppHint? = null
     ): RoastResult {
-        if (prefs.mockApi || prefs.apiKey.isBlank()) {
-            return RoastResult(mockLine(scene), "mock")
+        if (prefs.mockApi) {
+            return RoastResult(context.getString(R.string.vision_mock_blocked), "error")
+        }
+        if (prefs.apiKey.isBlank()) {
+            return RoastResult(context.getString(R.string.toast_need_api_key), "error")
         }
 
         val heavy = isHeavyModel(prefs.model)
@@ -44,12 +64,10 @@ class VisionClient(
             maxSide = if (heavy) 640 else 768,
             quality = if (heavy) 55 else 70
         )
-        val systemPrompt = prefs.roastStyle.ifBlank {
-            context.getString(
-                R.string.vision_system_prompt,
-                context.getString(R.string.vision_reply_language)
-            )
-        }
+        val systemPrompt = context.getString(
+            R.string.vision_system_prompt,
+            context.getString(R.string.vision_reply_language)
+        )
         val hintLine = if (appHint != null) {
             context.getString(R.string.vision_hint_with_app, appHint.label, appHint.packageName)
         } else {
@@ -90,7 +108,6 @@ class VisionClient(
                                                         "url",
                                                         "data:image/jpeg;base64,$jpeg"
                                                     )
-                                                    // Lower vision tokens when supported (OpenAI-compatible).
                                                     .put("detail", if (heavy) "low" else "auto")
                                             )
                                     )
@@ -99,6 +116,36 @@ class VisionClient(
             )
             .toString()
 
+        return chat(client, bodyJson)
+    }
+
+    /** Tiny text-only ping so the user can test URL/key/model without the overlay loop. */
+    fun ping(): RoastResult {
+        if (prefs.apiKey.isBlank()) {
+            return RoastResult(context.getString(R.string.toast_need_api_key), "error")
+        }
+        val bodyJson = JSONObject()
+            .put("model", prefs.model)
+            .put("temperature", 0)
+            .put("max_tokens", 8)
+            .put(
+                "messages",
+                JSONArray().put(
+                    JSONObject()
+                        .put("role", "user")
+                        .put("content", "Reply with the single word pong.")
+                )
+            )
+            .toString()
+        val result = chat(pingClient, bodyJson)
+        return if (result.source == "api") {
+            RoastResult(context.getString(R.string.ping_ok, result.text.take(24)), "api")
+        } else {
+            RoastResult(context.getString(R.string.ping_fail, result.text), "error")
+        }
+    }
+
+    private fun chat(http: OkHttpClient, bodyJson: String): RoastResult {
         var lastError: RoastResult? = null
         repeat(MAX_ATTEMPTS) { attempt ->
             try {
@@ -109,7 +156,7 @@ class VisionClient(
                     .post(bodyJson.toRequestBody("application/json".toMediaType()))
                     .build()
 
-                client.newCall(request).execute().use { resp ->
+                http.newCall(request).execute().use { resp ->
                     val raw = resp.body?.string().orEmpty()
                     if (!resp.isSuccessful) {
                         val retryable = resp.code in RETRYABLE_CODES
@@ -132,13 +179,12 @@ class VisionClient(
                         .replace('\n', ' ')
                         .replace(Regex("\\s+"), " ")
                         .trim('"', '“', '”', '「', '」')
-                    // Strip common thinking/analysis preambles some larger models leak.
                     text = text
                         .replace(Regex("(?i)^(分析|思考|观察)[:：].{0,40}?。"), "")
                         .trim()
                     if (text.length > 96) text = text.take(95) + "…"
                     return if (text.isBlank()) {
-                        RoastResult(mockLine(null), "mock")
+                        RoastResult(context.getString(R.string.vision_empty), "error")
                     } else {
                         RoastResult(text, "api")
                     }

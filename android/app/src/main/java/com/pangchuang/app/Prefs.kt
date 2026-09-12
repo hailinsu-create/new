@@ -23,18 +23,19 @@ class Prefs(context: Context) {
         get() = sp.getInt(KEY_INTERVAL, DEFAULT_INTERVAL_SEC).coerceIn(5, 120)
         set(value) = sp.edit().putInt(KEY_INTERVAL, value.coerceIn(5, 120)).apply()
 
+    /**
+     * Settings switch: canned demo lines instead of vision.
+     * Demo overlay uses an in-memory session flag and does not persist this.
+     * Full companion refuses to start while this is on.
+     */
     var mockApi: Boolean
         get() = sp.getBoolean(KEY_MOCK, false)
         set(value) = sp.edit().putBoolean(KEY_MOCK, value).apply()
 
-    /** Optional custom system prompt. Empty = 扫地僧 / app-aware default. */
-    var roastStyle: String
-        get() = sp.getString(KEY_STYLE, "")!!
-        set(value) = sp.edit().putString(KEY_STYLE, value).apply()
-
+    /** Average RGB delta (0–255) that counts as a “screen changed” tick. */
     var changeThreshold: Float
-        get() = sp.getFloat(KEY_THRESHOLD, 8f)
-        set(value) = sp.edit().putFloat(KEY_THRESHOLD, value).apply()
+        get() = sp.getFloat(KEY_THRESHOLD, DEFAULT_THRESHOLD)
+        set(value) = sp.edit().putFloat(KEY_THRESHOLD, value.coerceIn(1f, 80f)).apply()
 
     /** Unix ms when user accepted privacy policy; 0 = not accepted. */
     var privacyConsentAt: Long
@@ -60,17 +61,19 @@ class Prefs(context: Context) {
     /** One-time migrations toward Play-ready defaults. */
     fun migrateForPlayReadiness() {
         val schema = sp.getInt(KEY_SCHEMA, 0)
-        if (schema < 5) {
+        if (schema < 6) {
             if (VisionClient.isHeavyModel(model)) {
                 model = MODEL_STABLE
             }
-            sp.edit().putInt(KEY_SCHEMA, 5).apply()
+            // Drop unused custom-style leftover; vision always uses the built-in prompt.
+            sp.edit().remove(KEY_STYLE).putInt(KEY_SCHEMA, 6).apply()
         }
     }
 
     companion object {
         const val DEFAULT_BASE = "https://api.siliconflow.cn/v1"
         const val MODEL_STABLE = "Qwen/Qwen3-VL-8B-Instruct"
+        const val DEFAULT_THRESHOLD = 8f
 
         private const val DEFAULT_INTERVAL_SEC = 15
         private const val KEY_BASE = "base_url"

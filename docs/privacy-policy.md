@@ -1,8 +1,8 @@
 # 旁窗隐私政策
 
-最后更新：2026-09-12（0.11.0）
+最后更新：2026-09-12（0.12.0）
 
-旁窗（「本应用」，包名 `com.pangchuang.app`）是一款开源 Android 悬浮窗伴侣。网页版：若已启用 GitHub Pages，见 https://hailinsu-create.github.io/new/privacy.html
+旁窗（「本应用」，包名 `com.pangchuang.app`）是一款开源 Android 悬浮窗伴侣。网页版：若已启用 GitHub Pages，见 https://hailinsu-create.github.io/new/privacy.html（启用前该地址仍是 404）
 
 ## 我们收集什么
 
@@ -15,7 +15,7 @@
 | API Key、Base URL、模型名 | 调用视觉接口 | 仅存于本机；已关闭云备份 |
 | 解锁状态 | 是否已购买完整陪伴 | 仅本机；付款由 Google Play 处理 |
 
-本应用**不会**将截图持久保存到相册或上传到我们控制的服务器。锁屏时自动停止截屏与 API 调用。
+本应用**不会**将截图持久保存到相册或上传到我们控制的服务器。锁屏时会释放录屏画面并停止 API，不会把锁屏或 PIN 画面送出。若已开启使用情况访问，键盘、密码管理器、验证器和银行类应用会跳过该次截屏（尽力而为，名单见 `SensitiveApps.kt`）。
 
 ## 第三方服务
 

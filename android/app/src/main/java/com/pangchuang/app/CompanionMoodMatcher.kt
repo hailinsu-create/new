@@ -86,12 +86,10 @@ object CompanionMoodMatcher {
     }
 
     fun restingDrawable(mood: CompanionMood): Int = when (mood) {
-        CompanionMood.THINK -> R.drawable.companion_avatar_think
-        CompanionMood.HAPPY -> R.drawable.companion_avatar_happy
-        CompanionMood.CARE -> R.drawable.companion_avatar_care
+        CompanionMood.THINK, CompanionMood.IDLE -> R.drawable.companion_avatar_idle
+        CompanionMood.HAPPY, CompanionMood.CARE, CompanionMood.SHY ->
+            R.drawable.companion_avatar_happy
         CompanionMood.SURPRISE -> R.drawable.companion_avatar_surprise
-        CompanionMood.SHY -> R.drawable.companion_avatar_shy
         CompanionMood.TALK -> R.drawable.companion_avatar_talk
-        CompanionMood.IDLE -> R.drawable.companion_avatar_idle
     }
 }

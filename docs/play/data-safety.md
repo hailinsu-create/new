@@ -21,7 +21,7 @@
 - **必填还是可选？** 完整陪伴必填；演示模式不收集
 - **临时处理？** 可以勾选 ephemeral：应用内存用完即丢弃，不写相册。第三方是否保存由该 API 决定，不要承诺对方不保存。
 - **用途：** 应用功能
-- **说明（可选英文）：** Screenshots of the current screen are sent to a user-configured vision API to generate companion text. Not saved to the gallery. Paused on lock screen.
+- **说明（可选英文）：** Screenshots of the current screen are sent to a user-configured vision API to generate companion text. Not saved to the gallery. Capture is released on the lock screen.
 
 ### 应用活动 → 已安装的应用
 

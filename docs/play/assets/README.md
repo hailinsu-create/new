@@ -10,7 +10,8 @@
 | `screenshot_overlay_closeup.png` | 手机截图 4 | 1080×1920，角色与气泡特写 |
 | `moxi_face.png` | 生成用素材 | 原创国风角色墨汐脸部截取，不上架 |
 
-`screenshot_settings.png` / `screenshot_consent.png` 按文案重建。悬浮窗两张用 `moxi_face.png` 拼出来，给 Console 先垫上「有 Live2D」的图。**提交前请用真机演示模式换掉**（云端模拟器 System UI 会 ANR，截不到真悬浮窗）。真机至少拍：
+`screenshot_settings.png` / `screenshot_consent.png` 按文案重建（陪伴首页，不是调试表单）。悬浮窗两张用 `moxi_face.png` 按约 **96dp** 头像框拼出来，并带关闭角标，给 Console 先垫上「有 Live2D」的图。**这些不是真机照片。提交前请用真机演示模式换掉**（云端模拟器 System UI 会 ANR，截不到真悬浮窗）。真机至少拍：
 
-1. 设置页（含「界面语言」与「解锁完整陪伴」）
-2. 演示模式：小旁浮在另一个 App 上
+1. 陪伴首页（演示召唤 / 完整陪伴）
+2. 演示模式：小旁浮在另一个 App 上（含关闭角标）
+3. 完整陪伴：锁屏后截屏已停

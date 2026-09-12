@@ -128,7 +128,7 @@ Does your app contain ads? **No**
 1. 内部测试轨道上传 AAB（产物 `pangchuang-0.10.0.aab`）
 2. Settings → License testing 加入你的 Gmail
 3. 用测试链接安装 **Release** 包，不要用 GitHub debug APK 测购买
-4. 测：演示免费 → 购买 → 恢复购买 → 锁屏暂停
+4. 测：演示免费 → 购买 → 恢复购买 → 锁屏真正停止截屏
 
 ## 封闭测试
 

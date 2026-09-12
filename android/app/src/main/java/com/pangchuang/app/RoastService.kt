@@ -12,6 +12,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -47,7 +48,7 @@ class RoastService : Service() {
     private var demoIndex = 0
     private var unchangedStreak = 0
     private val roasting = AtomicBoolean(false)
-    /** True while screen is off or keyguard is showing — skip capture/API to save tokens. */
+    /** True while screen is off or keyguard is showing — capture pipeline is released. */
     private val pausedForLock = AtomicBoolean(false)
     private var screenReceiverRegistered = false
     private lateinit var prefs: Prefs
@@ -110,7 +111,7 @@ class RoastService : Service() {
                 mainHandler.post { beginCapture(resultCode, data) }
             }
         }
-        return START_STICKY
+        return START_NOT_STICKY
     }
 
     private fun registerScreenReceiver() {
@@ -150,24 +151,37 @@ class RoastService : Service() {
     }
 
     private fun onScreenLocked(reason: String) {
-        if (!pausedForLock.compareAndSet(false, true)) return
+        if (!pausedForLock.compareAndSet(false, true)) {
+            // Already paused; still drop any leftover frame.
+            dropHeldFrames()
+            return
+        }
+        dropHeldFrames()
+        if (CapturePolicy.shouldReleaseMirroringOnLock(demoMode)) {
+            captor?.pauseMirroring()
+        }
+        pausedLock = true
         updateNotification(statusText())
         overlay?.showText(getString(R.string.overlay_locked))
-        android.util.Log.i(TAG, "paused for lock ($reason)")
+        android.util.Log.i(TAG, "stopped capture for lock ($reason)")
     }
 
     private fun onScreenUnlocked(reason: String) {
         if (isDeviceLockedOrOff()) return
         if (!pausedForLock.compareAndSet(true, false)) return
+        pausedLock = false
+        if (CapturePolicy.shouldResumeMirroring(running, demoMode, locked = false)) {
+            captor?.resumeMirroring()
+        }
         updateNotification(statusText())
         overlay?.showText(getString(R.string.overlay_welcome_back))
         android.util.Log.i(TAG, "resumed after unlock ($reason)")
-        if (loopJob?.isActive == true && !demoMode) {
-            scope.launch {
-                delay(600)
-                if (!pausedForLock.get()) roastOnce(force = true)
-            }
-        }
+        // Do not force-roast: lock-screen / PIN frames must never be sent.
+    }
+
+    private fun dropHeldFrames() {
+        lastFrame?.recycle()
+        lastFrame = null
     }
 
     private fun statusText(demo: Boolean = demoMode): String = when {
@@ -183,7 +197,6 @@ class RoastService : Service() {
             val type = if (demo) {
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
             } else {
-                // Full companion keeps the overlay up while capturing.
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or
                     ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
             }
@@ -222,16 +235,54 @@ class RoastService : Service() {
         nm.notify(NOTIF_ID, buildNotification(contentText))
     }
 
+    /** Stop the current loop / capture without dismissing the overlay or FGS. */
+    private fun teardownSession(keepOverlay: Boolean) {
+        loopJob?.cancel()
+        loopJob = null
+        captor?.release()
+        captor = null
+        projectionCallback?.let { cb ->
+            runCatching { mediaProjection?.unregisterCallback(cb) }
+        }
+        projectionCallback = null
+        runCatching { mediaProjection?.stop() }
+        mediaProjection = null
+        dropHeldFrames()
+        unchangedStreak = 0
+        if (!keepOverlay) {
+            overlay?.dismiss()
+            overlay = null
+        }
+    }
+
+    private fun ensureOverlay(hello: String): OverlayController {
+        val existing = overlay
+        if (existing != null) {
+            existing.showText(hello)
+            return existing
+        }
+        val created = OverlayController(
+            this,
+            onForceRoast = { scope.launch { roastOnce(force = true) } },
+            onClose = { stopSelfSafe() }
+        )
+        overlay = created
+        created.show(hello)
+        return created
+    }
+
     private fun beginCapture(resultCode: Int, data: Intent) {
-        if (loopJob?.isActive == true) return
+        teardownSession(keepOverlay = true)
         demoMode = false
+        runningDemo = false
+        running = true
         unchangedStreak = 0
         refreshLockState("beginCapture")
 
         val mpm = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         val projection = mpm.getMediaProjection(resultCode, data)
         if (projection == null) {
-            overlay?.show(getString(R.string.overlay_no_projection))
+            ensureOverlay(getString(R.string.overlay_no_projection))
             stopSelfSafe()
             return
         }
@@ -245,15 +296,13 @@ class RoastService : Service() {
         projectionCallback = callback
         projection.registerCallback(callback, mainHandler)
 
-        val overlayController = OverlayController(this) {
-            scope.launch { roastOnce(force = true) }
-        }
-        overlay = overlayController
-        overlayController.show(getString(R.string.overlay_capture_hello))
+        ensureOverlay(getString(R.string.overlay_capture_hello))
 
         val screenCaptor = ScreenCaptor(this, projection)
         captor = screenCaptor
-        screenCaptor.start()
+        if (!pausedForLock.get()) {
+            screenCaptor.start()
+        }
 
         loopJob = scope.launch {
             delay(900)
@@ -266,14 +315,12 @@ class RoastService : Service() {
     }
 
     private fun beginDemo() {
-        if (loopJob?.isActive == true) return
+        teardownSession(keepOverlay = true)
         demoMode = true
+        runningDemo = true
+        running = true
         refreshLockState("beginDemo")
-        val overlayController = OverlayController(this) {
-            scope.launch { roastOnce(force = true) }
-        }
-        overlay = overlayController
-        overlayController.show(getString(R.string.overlay_demo_hello))
+        ensureOverlay(getString(R.string.overlay_demo_hello))
 
         loopJob = scope.launch {
             delay(400)
@@ -290,19 +337,25 @@ class RoastService : Service() {
         try {
             if (pausedForLock.get()) return
             val o = overlay ?: return
+            val appHint = if (demoMode) {
+                null
+            } else {
+                withContext(Dispatchers.IO) { ForegroundAppResolver.resolve(this@RoastService) }
+            }
+            val sensitive = !demoMode && SensitiveApps.shouldSkip(appHint?.packageName)
+            if (CapturePolicy.shouldSkipTick(pausedForLock.get(), demoMode, sensitive)) {
+                if (sensitive) o.showText(getString(R.string.overlay_sensitive_skip))
+                return
+            }
             val frame = if (demoMode) {
                 withContext(Dispatchers.Default) { nextDemoFrame() }
             } else {
                 val c = captor ?: return
-                o.hideForCapture()
-                delay(180)
-                if (pausedForLock.get()) {
-                    o.restoreAfterCapture()
+                if (!c.isMirroring()) {
+                    o.showText(getString(R.string.overlay_frame_wait))
                     return
                 }
-                val captured = withContext(Dispatchers.Default) { c.captureBitmap(900) }
-                o.restoreAfterCapture()
-                captured
+                withContext(Dispatchers.Default) { c.captureBitmap(900) }
             }
             if (frame == null) {
                 o.showText(getString(R.string.overlay_frame_wait))
@@ -341,10 +394,11 @@ class RoastService : Service() {
                 )
             )
             val scene = if (demoMode) demoScenes[demoIndex % demoScenes.size].key else null
-            val appHint = if (demoMode) null else withContext(Dispatchers.IO) {
-                ForegroundAppResolver.resolve(this@RoastService)
+            val result = if (demoMode) {
+                vision.mockRoast(scene)
+            } else {
+                withContext(Dispatchers.IO) { vision.roast(frame, scene, appHint) }
             }
-            val result = withContext(Dispatchers.IO) { vision.roast(frame, scene, appHint) }
             frame.recycle()
             if (pausedForLock.get()) return
             o.showText(result.text)
@@ -356,6 +410,11 @@ class RoastService : Service() {
 
     private fun nextDemoFrame(): Bitmap {
         val scene = demoScenes[demoIndex % demoScenes.size]
+        val fromAsset = runCatching {
+            assets.open(scene.asset).use { BitmapFactory.decodeStream(it) }
+        }.getOrNull()
+        if (fromAsset != null) return fromAsset
+
         val bmp = Bitmap.createBitmap(720, 1280, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bmp)
         canvas.drawColor(scene.bg)
@@ -376,6 +435,9 @@ class RoastService : Service() {
     }
 
     private fun stopSelfSafe() {
+        running = false
+        runningDemo = false
+        pausedLock = false
         loopJob?.cancel()
         loopJob = null
         unregisterScreenReceiver()
@@ -398,6 +460,9 @@ class RoastService : Service() {
     }
 
     override fun onDestroy() {
+        running = false
+        runningDemo = false
+        pausedLock = false
         loopJob?.cancel()
         unregisterScreenReceiver()
         scope.cancel()
@@ -431,6 +496,15 @@ class RoastService : Service() {
         private const val CHANNEL_ID = "pangchuang_roast"
         private const val NOTIF_ID = 42
 
+        @Volatile
+        var running: Boolean = false
+
+        @Volatile
+        var runningDemo: Boolean = false
+
+        @Volatile
+        var pausedLock: Boolean = false
+
         fun start(context: Context, resultCode: Int, data: Intent) {
             if (!Entitlement.isUnlocked(context)) return
             val intent = Intent(context, RoastService::class.java).apply {
@@ -458,35 +532,40 @@ class RoastService : Service() {
             R.string.demo_scene_shorts_title,
             R.string.demo_scene_shorts_body,
             Color.parseColor("#0F172A"),
-            Color.parseColor("#38BDF8")
+            Color.parseColor("#38BDF8"),
+            "mock/feed.png"
         ),
         DemoScene(
             VisionClient.SCENE_CHAT,
             R.string.demo_scene_chat_title,
             R.string.demo_scene_chat_body,
             Color.parseColor("#111827"),
-            Color.parseColor("#34D399")
+            Color.parseColor("#34D399"),
+            "mock/chat.png"
         ),
         DemoScene(
             VisionClient.SCENE_CART,
             R.string.demo_scene_cart_title,
             R.string.demo_scene_cart_body,
             Color.parseColor("#1C1917"),
-            Color.parseColor("#FB923C")
+            Color.parseColor("#FB923C"),
+            "mock/shop.png"
         ),
         DemoScene(
             VisionClient.SCENE_RANKED,
             R.string.demo_scene_ranked_title,
             R.string.demo_scene_ranked_body,
             Color.parseColor("#0C1222"),
-            Color.parseColor("#A78BFA")
+            Color.parseColor("#A78BFA"),
+            "mock/game.png"
         ),
         DemoScene(
             VisionClient.SCENE_NOTES,
             R.string.demo_scene_notes_title,
             R.string.demo_scene_notes_body,
             Color.parseColor("#14221B"),
-            Color.parseColor("#86EFAC")
+            Color.parseColor("#86EFAC"),
+            "mock/note.png"
         )
     )
 }
@@ -496,5 +575,6 @@ private data class DemoScene(
     val titleRes: Int,
     val bodyRes: Int,
     val bg: Int,
-    val accent: Int
+    val accent: Int,
+    val asset: String
 )

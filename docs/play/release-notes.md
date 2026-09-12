@@ -2,6 +2,16 @@
 
 每次上传 AAB 时可改。没有新功能就沿用上一条。
 
+## 0.12.0
+
+中文：
+
+锁屏会真正停止截屏。演示不再改写设置。悬浮窗更小、可贴边，并带关闭按钮。首页改为陪伴入口。
+
+English:
+
+Locking the phone fully stops capture. Demo no longer flips settings. Smaller overlay with edge snap and a close control. Home is a companion screen, not a debug form.
+
 ## 0.11.0
 
 中文：

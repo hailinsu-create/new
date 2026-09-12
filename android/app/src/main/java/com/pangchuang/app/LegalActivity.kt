@@ -1,5 +1,6 @@
 package com.pangchuang.app
 
+import android.graphics.Color
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.pangchuang.app.databinding.ActivityLegalBinding
@@ -12,28 +13,37 @@ class LegalActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         val mode = intent.getStringExtra(EXTRA_MODE) ?: MODE_PRIVACY
-        val assetPath = when (mode) {
-            MODE_LICENSES -> "legal/open_source_licenses.txt"
-            MODE_TERMS -> "legal/terms_of_use.md"
-            else -> "legal/privacy_policy.md"
-        }
         val title = when (mode) {
             MODE_LICENSES -> getString(R.string.legal_licenses_title)
             MODE_TERMS -> getString(R.string.legal_terms_title)
             else -> getString(R.string.legal_privacy_title)
         }
         binding.legalTitle.text = title
-        binding.legalBody.text = loadAsset(assetPath)
+
+        val web = binding.legalWeb
+        web.setBackgroundColor(Color.parseColor("#1A1218"))
+        web.settings.javaScriptEnabled = false
+        web.settings.defaultTextEncodingName = "utf-8"
+        web.isVerticalScrollBarEnabled = true
+
+        val html = when (mode) {
+            MODE_LICENSES -> MarkdownHtml.wrapPlain(loadAsset("legal/open_source_licenses.txt"))
+            MODE_TERMS -> MarkdownHtml.render(loadMarkdown("legal/terms_of_use.md"))
+            else -> MarkdownHtml.render(loadMarkdown("legal/privacy_policy.md"))
+        }
+        web.loadDataWithBaseURL(null, html, "text/html", "utf-8", null)
         binding.btnLegalClose.setOnClickListener { finish() }
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
     }
+
+    private fun loadMarkdown(path: String): String = loadAsset(path)
 
     private fun loadAsset(path: String): String {
         val lang = resources.configuration.locales[0].language
         val localized = if (lang == "zh") {
             path
         } else {
-            path.replace(".md", "_en.md").replace(".txt", ".txt")
+            path.replace(".md", "_en.md")
         }
         val tryPaths = if (localized == path) listOf(path) else listOf(localized, path)
         for (candidate in tryPaths) {

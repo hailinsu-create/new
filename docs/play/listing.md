@@ -25,7 +25,7 @@
 
 • 截图只用于生成陪伴语，发往你自行配置的 API，不会上传到我们控制的服务器。
 • API Key 只存在本机，并已关闭云备份。
-• 锁屏自动暂停截屏与调用。
+• 锁屏会真正停止截屏（释放录屏画面）并停止 API。
 • 应用内提供隐私政策与使用条款。
 
 权限：
@@ -50,7 +50,7 @@ https://hailinsu-create.github.io/new/privacy.html
 
 英文商店页可用：https://hailinsu-create.github.io/new/privacy-en.html
 
-（启用 GitHub Pages 之前可用 docs/privacy.html 的 GitHub 链接。）
+启用 GitHub Pages 之前该 URL 仍是 404。过渡可用 `docs/privacy.html` 的 GitHub 源码链接；Console 有时不认，尽快换成 Pages。
 
 ## English
 
@@ -69,7 +69,9 @@ Pangchuang is an Android floating-window companion. A character sits at the edge
 • Demo mode is free: try the overlay and lip-sync without sending real screenshots.
 • A one-time $0.99 unlock enables real-screen companionship using a vision API that you configure (Qwen3-VL-8B by default).
 
-Screenshots are sent only to the API you enter. We do not operate an account server. Your API key stays on device. Capture pauses when the phone is locked.
+Screenshots are sent only to the API you enter. We do not operate an account server. Your API key stays on device. Locking the phone fully stops capture (the mirror is released) and API calls.
+
+The privacy URL `https://hailinsu-create.github.io/new/privacy.html` is 404 until GitHub Pages is enabled in repo Settings.
 
 You pay your own vision-API usage. The character is original Chinese-style Live2D Moxi (墨汐).
 

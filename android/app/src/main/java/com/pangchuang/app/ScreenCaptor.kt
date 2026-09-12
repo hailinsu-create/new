@@ -12,11 +12,13 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.util.DisplayMetrics
 import android.view.WindowManager
-import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Continuously mirrors the phone screen via MediaProjection into bitmaps
  * suitable for the vision companion.
+ *
+ * [latestBitmap] is only recycled while holding [frameLock], and callers
+ * receive a copy made under that lock so a recycle cannot race a copy.
  */
 class ScreenCaptor(
     context: Context,
@@ -26,7 +28,10 @@ class ScreenCaptor(
     private var virtualDisplay: VirtualDisplay? = null
     private var workerThread: HandlerThread? = null
     private var workerHandler: Handler? = null
-    private val latestBitmap = AtomicReference<Bitmap?>(null)
+    private val frameLock = Any()
+    private var latestBitmap: Bitmap? = null
+    @Volatile
+    private var mirroring = false
 
     private val width: Int
     private val height: Int
@@ -45,18 +50,84 @@ class ScreenCaptor(
     }
 
     fun start() {
+        ensureWorker()
+        startMirroring()
+    }
+
+    /** Release VirtualDisplay and drop any held frames (lock screen). */
+    fun pauseMirroring() {
+        stopMirroring(recycleFrames = true)
+    }
+
+    /** Recreate the mirror if the companion is still running. */
+    fun resumeMirroring() {
+        if (mirroring) return
+        ensureWorker()
+        startMirroring()
+    }
+
+    fun isMirroring(): Boolean = mirroring
+
+    /**
+     * Returns a copy of the newest frame, waiting briefly if the pipeline is still warming up.
+     * The copy is taken while holding [frameLock] so the original cannot be recycled mid-copy.
+     */
+    fun captureBitmap(waitMs: Long = 800): Bitmap? {
+        val deadline = System.currentTimeMillis() + waitMs
+        while (System.currentTimeMillis() < deadline) {
+            copyLatest()?.let { return it }
+            try {
+                Thread.sleep(40)
+            } catch (_: InterruptedException) {
+                break
+            }
+        }
+        return copyLatest()
+    }
+
+    fun release() {
+        stopMirroring(recycleFrames = true)
+        workerThread?.quitSafely()
+        workerThread = null
+        workerHandler = null
+    }
+
+    private fun copyLatest(): Bitmap? = synchronized(frameLock) {
+        val current = latestBitmap
+        if (current != null && !current.isRecycled) {
+            current.copy(Bitmap.Config.ARGB_8888, false)
+        } else {
+            null
+        }
+    }
+
+    private fun ensureWorker() {
+        if (workerThread != null && workerHandler != null) return
         val thread = HandlerThread("pangchuang-capture").also { it.start() }
         workerThread = thread
-        val handler = Handler(thread.looper)
-        workerHandler = handler
+        workerHandler = Handler(thread.looper)
+    }
 
+    private fun startMirroring() {
+        if (mirroring) return
+        val handler = workerHandler ?: return
         val reader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 3)
         imageReader = reader
         reader.setOnImageAvailableListener({ r ->
+            if (!mirroring) {
+                runCatching { r.acquireLatestImage()?.close() }
+                return@setOnImageAvailableListener
+            }
             val image = r.acquireLatestImage() ?: return@setOnImageAvailableListener
             try {
                 val bmp = imageToBitmap(image) ?: return@setOnImageAvailableListener
-                latestBitmap.getAndSet(bmp)?.recycle()
+                synchronized(frameLock) {
+                    val old = latestBitmap
+                    latestBitmap = bmp
+                    if (old != null && old !== bmp && !old.isRecycled) {
+                        old.recycle()
+                    }
+                }
             } finally {
                 image.close()
             }
@@ -72,42 +143,22 @@ class ScreenCaptor(
             null,
             handler
         )
+        mirroring = true
     }
 
-    /**
-     * Returns a copy of the newest frame, waiting briefly if the pipeline is still warming up.
-     */
-    fun captureBitmap(waitMs: Long = 800): Bitmap? {
-        val deadline = System.currentTimeMillis() + waitMs
-        while (System.currentTimeMillis() < deadline) {
-            val current = latestBitmap.get()
-            if (current != null && !current.isRecycled) {
-                return current.copy(Bitmap.Config.ARGB_8888, false)
-            }
-            try {
-                Thread.sleep(40)
-            } catch (_: InterruptedException) {
-                break
-            }
-        }
-        val fallback = latestBitmap.get()
-        return if (fallback != null && !fallback.isRecycled) {
-            fallback.copy(Bitmap.Config.ARGB_8888, false)
-        } else {
-            null
-        }
-    }
-
-    fun release() {
+    private fun stopMirroring(recycleFrames: Boolean) {
+        mirroring = false
         virtualDisplay?.release()
         virtualDisplay = null
         imageReader?.setOnImageAvailableListener(null, null)
         imageReader?.close()
         imageReader = null
-        latestBitmap.getAndSet(null)?.recycle()
-        workerThread?.quitSafely()
-        workerThread = null
-        workerHandler = null
+        if (recycleFrames) {
+            synchronized(frameLock) {
+                latestBitmap?.let { if (!it.isRecycled) it.recycle() }
+                latestBitmap = null
+            }
+        }
     }
 
     private fun imageToBitmap(image: Image): Bitmap? {
