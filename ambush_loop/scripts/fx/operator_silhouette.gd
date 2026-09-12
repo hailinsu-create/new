@@ -864,4 +864,4 @@ static func _boot_color(role: int, k: float) -> Color:
 static func _cape_color(role: int) -> Color:
 	if role != 2:
 		return Color(0, 0, 0, 0)
-	return Color(0.12, 0.12, 0.08, 0.90)
+	return Color(0.14, 0.12, 0.08, 0.90)

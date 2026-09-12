@@ -26,9 +26,9 @@ static func silhouette(id: String, role: int = 0) -> PackedVector2Array:
 			])
 		"m1_garand":
 			return PackedVector2Array([
-				Vector2(-2.0, 4.6), Vector2(2.4, 4.6), Vector2(2.2, -3.2),
-				Vector2(1.4, -16.8), Vector2(0.7, -30.4), Vector2(-0.5, -30.4),
-				Vector2(-1.3, -16.8), Vector2(-1.8, -3.2)
+				Vector2(-2.0, 4.6), Vector2(2.4, 4.6), Vector2(2.6, 1.2), Vector2(2.4, -1.0),
+				Vector2(2.2, -3.2), Vector2(1.4, -16.8), Vector2(0.7, -30.4),
+				Vector2(-0.5, -30.4), Vector2(-1.3, -16.8), Vector2(-1.8, -3.2)
 			])
 		"mosin":
 			return PackedVector2Array([
