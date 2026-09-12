@@ -22,6 +22,7 @@
     <string name="home_debug_chip">บิลด์ดีบัก: โหมดเต็มปลดล็อกอัตโนมัติ ไม่ใช่การซื้อ Play</string>
     <string name="home_version">ข้างหน้าต่าง %1$s (%2$d)</string>
     <string name="home_status_error">ข้อผิดพลาดล่าสุด: %1$s</string>
+    <string name="home_status_mock_on">“Demo lines” is on: full companion will not capture the real screen.</string>
     <string name="home_status_purchase_pending">กำลังซื้อ เมื่อเสร็จจะปลดล็อก</string>
     <string name="usage_optional_caption">ไม่บังคับ ปิดก็ใช้โหมดเต็มได้ แค่เดาชื่อแอปไม่แม่น และข้ามแอปอ่อนไหวไม่ได้</string>
     <string name="btn_revoke_privacy">ถอนความยินยอมความเป็นส่วนตัว</string>
@@ -164,6 +165,8 @@
     <string name="overlay_sensitive_resume">จอนี้ดูปลอดภัย จะอยู่ต่อ โดยไม่ส่งเฟรมส่วนตัวเมื่อกี้</string>
     <string name="cd_close_overlay">ปิดหน้าต่างลอย ให้เสี่ยวผางพัก</string>
     <string name="cd_preview">พรีวิวโมซี</string>
+    <string name="cd_preview_live">Moxi Live2D preview</string>
+    <string name="cd_preview_static">Still Moxi preview. The overlay is using Live2D, so home shows a still frame.</string>
     <string name="cd_api_key">คีย์ API</string>
     <string name="cd_base_url">URL ของ vision API</string>
     <string name="cd_model">โมเดลวิชัน</string>

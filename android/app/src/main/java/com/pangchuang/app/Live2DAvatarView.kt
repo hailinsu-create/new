@@ -126,12 +126,19 @@ class Live2DAvatarView @JvmOverloads constructor(
 
         wv.webChromeClient = object : WebChromeClient() {
             override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
-                Log.d(
-                    TAG,
-                    "${consoleMessage.messageLevel()} ${consoleMessage.sourceId()}:${consoleMessage.lineNumber()} ${consoleMessage.message()}"
-                )
+                if (BuildConfig.DEBUG) {
+                    Log.d(
+                        TAG,
+                        "${consoleMessage.messageLevel()} ${consoleMessage.sourceId()}:${consoleMessage.lineNumber()} ${consoleMessage.message()}"
+                    )
+                }
                 return true
             }
+        }
+        try {
+            wv.setLayerType(LAYER_TYPE_HARDWARE, null)
+        } catch (_: Throwable) {
+            wv.setLayerType(LAYER_TYPE_SOFTWARE, null)
         }
         wv.webViewClient = object : WebViewClient() {
             override fun shouldInterceptRequest(
@@ -307,6 +314,7 @@ class Live2DAvatarView @JvmOverloads constructor(
                         if (loadAttempts < 4) {
                             handler.postDelayed({ reloadLive2D() }, 1000L)
                         } else {
+                            runCatching { webView.setLayerType(LAYER_TYPE_SOFTWARE, null) }
                             onError?.invoke(humanizeError(err))
                         }
                     }

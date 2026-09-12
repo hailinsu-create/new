@@ -22,6 +22,7 @@
     <string name="home_debug_chip">Debug 包：完整陪伴已自動解鎖，不是 Play 內購</string>
     <string name="home_version">旁窗 %1$s（%2$d）</string>
     <string name="home_status_error">上次出錯：%1$s</string>
+    <string name="home_status_mock_on">“Demo lines” is on: full companion will not capture the real screen.</string>
     <string name="home_status_purchase_pending">購買處理中，完成後會自動解鎖</string>
     <string name="usage_optional_caption">這項是選用的。不開也能完整陪伴；只是前景 App 名會不准，敏感應用也沒法跳過。</string>
     <string name="btn_revoke_privacy">撤回隱私同意</string>
@@ -164,6 +165,8 @@
     <string name="overlay_sensitive_resume">這一屏安全了，我繼續陪著，但不偷看剛才那一拍。</string>
     <string name="cd_close_overlay">關閉懸浮窗，讓小旁休息</string>
     <string name="cd_preview">墨汐預覽</string>
+    <string name="cd_preview_live">Moxi Live2D preview</string>
+    <string name="cd_preview_static">Still Moxi preview. The overlay is using Live2D, so home shows a still frame.</string>
     <string name="cd_api_key">API Key</string>
     <string name="cd_base_url">視覺介面位址</string>
     <string name="cd_model">視覺模型</string>

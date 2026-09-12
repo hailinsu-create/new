@@ -1,6 +1,8 @@
 package com.pangchuang.app
 
 import android.app.Activity
+import android.os.Handler
+import android.os.Looper
 import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
@@ -33,6 +35,8 @@ class BillingManager(
         .build()
 
     private var productDetails: ProductDetails? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var reconnectAttempts = 0
 
     fun start() {
         if (!billingClient.isReady) {
@@ -83,6 +87,7 @@ class BillingManager(
 
     override fun onBillingSetupFinished(billingResult: BillingResult) {
         if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+            reconnectAttempts = 0
             refreshCatalogAndPurchases()
         } else {
             listener.onBillingReady(null)
@@ -91,7 +96,13 @@ class BillingManager(
     }
 
     override fun onBillingServiceDisconnected() {
-        // Play services may reconnect on the next user action.
+        if (reconnectAttempts >= 3) return
+        reconnectAttempts++
+        mainHandler.postDelayed({
+            if (!billingClient.isReady) {
+                billingClient.startConnection(this)
+            }
+        }, 1500L * reconnectAttempts)
     }
 
     override fun onPurchasesUpdated(billingResult: BillingResult, purchases: MutableList<Purchase>?) {
@@ -152,12 +163,17 @@ class BillingManager(
                 return@queryPurchasesAsync
             }
             var unlocked = false
+            var pending = false
             purchases.forEach { purchase ->
-                if (isOurProduct(purchase) && purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
+                if (!isOurProduct(purchase)) return@forEach
+                if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
                     unlocked = true
                     acknowledgeIfNeeded(purchase)
+                } else if (purchase.purchaseState == Purchase.PurchaseState.PENDING) {
+                    pending = true
                 }
             }
+            prefs.purchasePending = pending && !unlocked
             prefs.isPremiumUnlocked = unlocked
             listener.onPurchaseStateChanged(unlocked)
             if (showRestoreMessage) {
@@ -174,23 +190,33 @@ class BillingManager(
         when (purchase.purchaseState) {
             Purchase.PurchaseState.PURCHASED -> {
                 acknowledgeIfNeeded(purchase)
+                prefs.purchasePending = false
                 prefs.isPremiumUnlocked = true
                 listener.onPurchaseStateChanged(true)
                 listener.onPurchaseMessage(activity.getString(R.string.purchase_success))
             }
             Purchase.PurchaseState.PENDING -> {
+                prefs.purchasePending = true
+                listener.onPurchaseStateChanged(prefs.isPremiumUnlocked)
                 listener.onPurchaseMessage(activity.getString(R.string.purchase_pending))
             }
             else -> Unit
         }
     }
 
-    private fun acknowledgeIfNeeded(purchase: Purchase) {
+    private fun acknowledgeIfNeeded(purchase: Purchase, attempt: Int = 0) {
         if (purchase.isAcknowledged) return
         val params = AcknowledgePurchaseParams.newBuilder()
             .setPurchaseToken(purchase.purchaseToken)
             .build()
-        billingClient.acknowledgePurchase(params) { /* entitlement already granted */ }
+        billingClient.acknowledgePurchase(params) { result ->
+            if (result.responseCode != BillingClient.BillingResponseCode.OK && attempt < 3) {
+                mainHandler.postDelayed(
+                    { acknowledgeIfNeeded(purchase, attempt + 1) },
+                    800L * (attempt + 1)
+                )
+            }
+        }
     }
 
     private fun isOurProduct(purchase: Purchase): Boolean {

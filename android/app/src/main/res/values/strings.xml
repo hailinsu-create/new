@@ -22,6 +22,7 @@
     <string name="home_debug_chip">Debug 包：完整陪伴已自动解锁，不是 Play 内购</string>
     <string name="home_version">旁窗 %1$s（%2$d）</string>
     <string name="home_status_error">上次出错：%1$s</string>
+    <string name="home_status_mock_on">「演示陪伴语」开着：完整陪伴不会截真屏。</string>
     <string name="home_status_purchase_pending">购买处理中，完成后会自动解锁</string>
     <string name="usage_optional_caption">这项是可选的。不开启也能完整陪伴；只是前台 App 名会不准，敏感应用也没法跳过。</string>
     <string name="btn_revoke_privacy">撤回隐私同意</string>

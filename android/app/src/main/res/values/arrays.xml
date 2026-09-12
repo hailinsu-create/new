@@ -8,6 +8,7 @@
         <item>匹配界面干等最磨人。胜负都是过客，手别僵着就行。</item>
         <item>浏览器页签开得多，心也容易散。先关掉用不上的那几扇窗。</item>
         <item>地图在算路，你也在算今天还剩多少气力。近路远路，到了就好。</item>
+        <item>闹钟响过又被按掉。再贪五分钟可以，把明天的第一件事写在锁屏下面更好。</item>
     </string-array>
     <string-array name="mock_shorts">
         <item>短视频一条接一条，像夜里不停的潮。潮有涨有落，你也可以随时上岸。</item>
@@ -33,6 +34,7 @@
         <item>备忘录写得密，是把乱七八糟的事摊成一条条能走的路。很好。</item>
         <item>提醒设了，不等于压力到账。到点做一件，做完勾掉，日子就往前挪。</item>
         <item>列出待办的人，已经赢过只在心里打转的人。剩下的，交给时间表。</item>
+        <item>备忘录里那一行「尽快」最骗人。改成一个钟点，事情才肯落地。</item>
     </string-array>
     <string-array name="language_tags" translatable="false">
         <item></item>

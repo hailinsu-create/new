@@ -34,16 +34,20 @@ class ScreenCaptor(
     @Volatile
     private var mirroring = false
 
-    private val width: Int
-    private val height: Int
-    private val density: Int
+    private var width: Int = 720
+    private var height: Int = 1280
+    private var density: Int = 420
+    private val maxW = maxWidth.coerceIn(360, 720)
+    private val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
 
     init {
+        refreshMetrics()
+    }
+
+    private fun refreshMetrics() {
         val metrics = DisplayMetrics()
-        val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
         @Suppress("DEPRECATION")
-        wm.defaultDisplay.getRealMetrics(metrics)
-        val maxW = maxWidth.coerceIn(360, 720)
+        windowManager.defaultDisplay.getRealMetrics(metrics)
         val scale = maxW.toFloat() / metrics.widthPixels.coerceAtLeast(1)
         width = maxW
         height = (metrics.heightPixels * scale).toInt().coerceAtLeast(1)
@@ -63,6 +67,7 @@ class ScreenCaptor(
     /** Recreate the mirror if the companion is still running. */
     fun resumeMirroring() {
         if (mirroring) return
+        refreshMetrics()
         ensureWorker()
         startMirroring()
     }

@@ -35,6 +35,7 @@ class LegalActivity : AppCompatActivity() {
             MODE_TERMS -> MarkdownHtml.render(loadMarkdown("legal/terms_of_use.md"))
             else -> MarkdownHtml.render(loadMarkdown("legal/privacy_policy.md"))
         }
+        web.clearHistory()
         web.loadDataWithBaseURL(null, html, "text/html", "utf-8", null)
         web.webViewClient = object : android.webkit.WebViewClient() {
             override fun shouldOverrideUrlLoading(

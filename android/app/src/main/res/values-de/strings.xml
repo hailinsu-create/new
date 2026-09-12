@@ -22,6 +22,7 @@
     <string name="home_debug_chip">Debug-Build: voller Begleiter ist auto-freigeschaltet. Das ist kein Play-Kauf.</string>
     <string name="home_version">Pangchuang %1$s (%2$d)</string>
     <string name="home_status_error">Letzter Fehler: %1$s</string>
+    <string name="home_status_mock_on">“Demo lines” is on: full companion will not capture the real screen.</string>
     <string name="home_status_purchase_pending">Kauf ausstehend. Wird freigeschaltet, wenn Play fertig ist.</string>
     <string name="usage_optional_caption">Optional. Voller Begleiter geht auch ohne. App-Name wird ungenauer, sensible Apps werden nicht übersprungen.</string>
     <string name="btn_revoke_privacy">Datenschutz-Zustimmung widerrufen</string>
@@ -164,6 +165,8 @@ Weiter heißt, du stimmst der Datenschutzerklärung zu.</string>
     <string name="overlay_sensitive_resume">Dieser Bildschirm wirkt sicher. Ich bleibe, ohne den letzten privaten Frame zu senden.</string>
     <string name="cd_close_overlay">Overlay schließen und Xiao Pang pausieren</string>
     <string name="cd_preview">Moxi-Vorschau</string>
+    <string name="cd_preview_live">Moxi Live2D preview</string>
+    <string name="cd_preview_static">Still Moxi preview. The overlay is using Live2D, so home shows a still frame.</string>
     <string name="cd_api_key">API-Schlüssel</string>
     <string name="cd_base_url">Vision-API-URL</string>
     <string name="cd_model">Vision-Modell</string>

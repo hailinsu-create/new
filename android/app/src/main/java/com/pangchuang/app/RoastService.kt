@@ -8,9 +8,11 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.BroadcastReceiver
+import android.content.ComponentCallbacks
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.res.Configuration
 import android.os.BatteryManager
 import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
@@ -55,6 +57,21 @@ class RoastService : Service() {
     /** True while a sensitive app is foreground — VirtualDisplay is released like lock. */
     private val pausedForSensitive = AtomicBoolean(false)
     private var screenReceiverRegistered = false
+    private var configCallbacksRegistered = false
+
+    private val configCallbacks = object : ComponentCallbacks {
+        override fun onConfigurationChanged(newConfig: Configuration) {
+            if (demoMode || captor == null) return
+            if (pausedForLock.get() || pausedForSensitive.get()) return
+            captor?.pauseMirroring()
+            captor?.resumeMirroring()
+            overlay?.let { /* overlay controller already reclamps */ }
+        }
+
+        override fun onLowMemory() {
+            dropHeldFrames()
+        }
+    }
     private lateinit var prefs: Prefs
     private lateinit var vision: VisionClient
 
@@ -82,6 +99,10 @@ class RoastService : Service() {
         vision = VisionClient(this, prefs)
         createChannel()
         registerScreenReceiver()
+        if (!configCallbacksRegistered) {
+            applicationContext.registerComponentCallbacks(configCallbacks)
+            configCallbacksRegistered = true
+        }
         refreshLockState("onCreate")
     }
 
@@ -143,6 +164,12 @@ class RoastService : Service() {
         if (!screenReceiverRegistered) return
         runCatching { unregisterReceiver(screenReceiver) }
         screenReceiverRegistered = false
+    }
+
+    private fun unregisterConfigCallbacks() {
+        if (!configCallbacksRegistered) return
+        runCatching { applicationContext.unregisterComponentCallbacks(configCallbacks) }
+        configCallbacksRegistered = false
     }
 
     private fun isDeviceLockedOrOff(): Boolean {
@@ -282,6 +309,7 @@ class RoastService : Service() {
         mediaProjection = null
         dropHeldFrames()
         unchangedStreak = 0
+        roasting.set(false)
         if (!keepOverlay) {
             overlay?.dismiss()
             overlay = null
@@ -374,7 +402,7 @@ class RoastService : Service() {
             delay(400)
             while (isActive) {
                 roastOnce(force = true)
-                delay((prefs.intervalSec.coerceAtMost(8)) * 1000L)
+                delay((prefs.intervalSec.coerceIn(5, 30)) * 1000L)
             }
         }
     }
@@ -519,9 +547,11 @@ class RoastService : Service() {
         pausedLock = false
         pausedSensitive = false
         pausedForSensitive.set(false)
+        roasting.set(false)
         loopJob?.cancel()
         loopJob = null
         unregisterScreenReceiver()
+        unregisterConfigCallbacks()
         captor?.release()
         captor = null
         projectionCallback?.let { cb ->
@@ -546,8 +576,10 @@ class RoastService : Service() {
         pausedLock = false
         pausedSensitive = false
         pausedForSensitive.set(false)
+        roasting.set(false)
         loopJob?.cancel()
         unregisterScreenReceiver()
+        unregisterConfigCallbacks()
         scope.cancel()
         captor?.release()
         overlay?.dismiss()

@@ -82,3 +82,23 @@ R77 | overlay | Long German (and other) bubble text is capped at 140dp and scrol
 R78 | rtl | Overlay forces RTL layoutDirection when the configuration is RTL (ar) | OverlayController.kt, overlay_bubble.xml
 R79 | a11y | Settings expand/collapse button exposes expanded/collapsed state description | MainActivity.kt
 R80 | a11y | Home Live2D preview importantForAccessibility; hidden from TalkBack while overlay owns the engine | MainActivity.kt, activity_main.xml
+R81 | billing | Pending Play purchases set purchasePending and show on home until they finish | BillingManager.kt, MainActivity.kt
+R82 | billing | Acknowledge purchases with up to 3 retries | BillingManager.kt
+R83 | billing | Reconnect BillingClient after disconnect (capped) | BillingManager.kt
+R84 | Live2D | Hardware acceleration with software layer fallback after repeated WebGL failure | Live2DAvatarView.kt
+R85 | capture | Foreground hint skips launchers, System UI, and this app | ForegroundAppResolver.kt
+R86 | capture | Rotation pauses and recreates the VirtualDisplay with fresh metrics | RoastService.kt, ScreenCaptor.kt
+R87 | companion | Home status warns when the demo-lines switch is on | MainActivity.kt, strings.xml
+R88 | demo | Demo interval follows the user setting, capped 5–30s (no silent 8s) | RoastService.kt
+R89 | consent | Notification permission status and optional button after privacy consent | activity_main.xml, MainActivity.kt
+R90 | Live2D | WebView console logs only in debug builds | Live2DAvatarView.kt
+R91 | service | Reset in-flight roast flag on teardown so a stuck tick cannot block the next session | RoastService.kt
+R92 | ux | Persist advanced settings expanded/collapsed across rotation | MainActivity.kt
+R93 | content | Extra grounded demo lines in mock_generic and mock_notes | arrays.xml
+R94 | capture | ScreenCaptor refreshes width/height on resumeMirroring | ScreenCaptor.kt
+R95 | consent | Capture grant is ignored if privacy was revoked while the system sheet was open | MainActivity.kt
+R96 | shipping | Network security config comments document emulator 10.0.2.2 vs blocked LAN | network_security_config.xml
+R97 | Live2D | Mood matcher understands extra ja/ko/de/fr/es care/shy/think words | CompanionMoodMatcher.kt
+R98 | ux | Stop button enabled only while companion is running | MainActivity.kt
+R99 | legal | Legal WebView clears history and still refuses JS/HTTP navigations | LegalActivity.kt
+R100 | tests | ForegroundAppResolver ignores launchers; WeChat still not ignorable | ForegroundAppResolverTest.kt

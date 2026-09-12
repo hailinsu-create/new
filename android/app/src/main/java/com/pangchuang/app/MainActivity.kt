@@ -37,12 +37,16 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
         }
 
     private val notificationPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* no-op */ }
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { refreshHome() }
 
     private val captureLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode != Activity.RESULT_OK || result.data == null) {
                 Toast.makeText(this, R.string.toast_need_capture, Toast.LENGTH_SHORT).show()
+                return@registerForActivityResult
+            }
+            if (!prefs.hasPrivacyConsent) {
+                maybeShowPrivacyConsent()
                 return@registerForActivityResult
             }
             saveForm()
@@ -88,6 +92,15 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
         binding.btnToggleSettings.setOnClickListener { toggleAdvanced() }
         binding.btnPing.setOnClickListener { pingVision() }
         binding.btnRevokePrivacy.setOnClickListener { revokePrivacyConsent() }
+        binding.btnNotifications.setOnClickListener {
+            if (Build.VERSION.SDK_INT >= 33) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+        if (savedInstanceState?.getBoolean(STATE_ADVANCED) == true) {
+            advancedOpen = false
+            toggleAdvanced()
+        }
 
         refreshHome()
         billingManager = BillingManager(this, prefs, this).also { it.start() }
@@ -319,6 +332,10 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
         if (prefs.purchasePending && !unlocked) {
             parts += getString(R.string.home_status_purchase_pending)
         }
+        if (prefs.mockApi) {
+            parts += getString(R.string.home_status_mock_on)
+        }
+        binding.btnStop.isEnabled = RoastService.running
         val err = prefs.lastCompanionError
         if (err.isNotBlank() && !RoastService.running) {
             parts += getString(R.string.home_status_error, err)
@@ -384,6 +401,18 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
             getString(R.string.usage_hint)
         }
         binding.btnUsage.isEnabled = !usageOk
+        val notifGranted = if (Build.VERSION.SDK_INT < 33) {
+            true
+        } else {
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        }
+        binding.notificationStatus.text = getString(
+            if (notifGranted) R.string.notifications_status_on else R.string.notifications_status_off
+        )
+        binding.btnNotifications.isEnabled = !notifGranted && Build.VERSION.SDK_INT >= 33
     }
 
     private fun updatePrivacyStatus() {
@@ -585,7 +614,13 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
         }
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(STATE_ADVANCED, advancedOpen)
+    }
+
     companion object {
         const val EXTRA_AUTO_DEMO = "auto_demo"
+        private const val STATE_ADVANCED = "advanced_open"
     }
 }

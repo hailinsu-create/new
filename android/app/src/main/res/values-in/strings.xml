@@ -22,6 +22,7 @@
     <string name="home_debug_chip">Build debug: mode penuh terbuka otomatis. Ini bukan pembelian Play.</string>
     <string name="home_version">Pangchuang %1$s (%2$d)</string>
     <string name="home_status_error">Kesalahan terakhir: %1$s</string>
+    <string name="home_status_mock_on">“Demo lines” is on: full companion will not capture the real screen.</string>
     <string name="home_status_purchase_pending">Pembelian diproses. Akan terbuka saat Play selesai.</string>
     <string name="usage_optional_caption">Opsional. Mode penuh tetap jalan tanpanya. Nama aplikasi kurang akurat, dan aplikasi sensitif tidak dilewati.</string>
     <string name="btn_revoke_privacy">Cabut persetujuan privasi</string>
@@ -164,6 +165,8 @@ Melanjutkan berarti Anda setuju dengan kebijakan privasi.</string>
     <string name="overlay_sensitive_resume">Layar ini tampak aman. Aku tetap di sini, tanpa mengirim bingkai pribadi barusan.</string>
     <string name="cd_close_overlay">Tutup overlay dan istirahatkan Xiao Pang</string>
     <string name="cd_preview">Pratinjau Moxi</string>
+    <string name="cd_preview_live">Moxi Live2D preview</string>
+    <string name="cd_preview_static">Still Moxi preview. The overlay is using Live2D, so home shows a still frame.</string>
     <string name="cd_api_key">Kunci API</string>
     <string name="cd_base_url">URL API visi</string>
     <string name="cd_model">Model visi</string>

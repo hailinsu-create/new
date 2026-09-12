@@ -22,6 +22,7 @@
     <string name="home_debug_chip">Debug build: full companion is auto-unlocked. This is not a Play purchase.</string>
     <string name="home_version">Pangchuang %1$s (%2$d)</string>
     <string name="home_status_error">Last error: %1$s</string>
+    <string name="home_status_mock_on">“Demo lines” is on: full companion will not capture the real screen.</string>
     <string name="home_status_purchase_pending">Purchase pending. It will unlock when Play finishes.</string>
     <string name="usage_optional_caption">This is optional. Full companion works without it. You just get a weaker app name hint, and sensitive apps cannot be skipped.</string>
     <string name="btn_revoke_privacy">Revoke privacy consent</string>

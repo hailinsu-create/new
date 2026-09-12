@@ -55,11 +55,13 @@ object ForegroundAppResolver {
                 @Suppress("DEPRECATION")
                 event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND
             }
-            if (movedFront && !event.packageName.isNullOrBlank()) {
+            if (movedFront && !event.packageName.isNullOrBlank() &&
+                !isIgnorable(context.packageName, event.packageName)
+            ) {
                 lastPkg = event.packageName
             }
         }
-        val pkg = lastPkg?.takeIf { it != context.packageName } ?: return null
+        val pkg = lastPkg ?: return null
         val label = try {
             val pm = context.packageManager
             val info = pm.getApplicationInfo(pkg, 0)
@@ -68,5 +70,14 @@ object ForegroundAppResolver {
             pkg
         }
         return AppHint(pkg, label)
+    }
+
+    fun isIgnorable(selfPackage: String, packageName: String): Boolean {
+        val p = packageName.lowercase()
+        if (p == selfPackage.lowercase()) return true
+        if (p == "com.android.systemui") return true
+        if (p.contains("launcher")) return true
+        if (p.contains("systemui")) return true
+        return false
     }
 }

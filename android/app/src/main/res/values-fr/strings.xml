@@ -22,6 +22,7 @@
     <string name="home_debug_chip">Build debug : le mode complet est auto-débloqué. Ce n\'est pas un achat Play.</string>
     <string name="home_version">Pangchuang %1$s (%2$d)</string>
     <string name="home_status_error">Dernière erreur : %1$s</string>
+    <string name="home_status_mock_on">“Demo lines” is on: full companion will not capture the real screen.</string>
     <string name="home_status_purchase_pending">Achat en cours. Le déblocage suivra.</string>
     <string name="usage_optional_caption">Facultatif. Le mode complet marche sans cela. Le nom d\'app sera moins précis, et les apps sensibles ne seront pas sautées.</string>
     <string name="btn_revoke_privacy">Retirer le consentement de confidentialité</string>
@@ -164,6 +165,8 @@ Continuer signifie accepter la politique de confidentialité.</string>
     <string name="overlay_sensitive_resume">Cet écran a l\'air sûr. Je reste, sans envoyer la dernière image privée.</string>
     <string name="cd_close_overlay">Fermer le calque et laisser Xiao Pang se reposer</string>
     <string name="cd_preview">Aperçu de Moxi</string>
+    <string name="cd_preview_live">Moxi Live2D preview</string>
+    <string name="cd_preview_static">Still Moxi preview. The overlay is using Live2D, so home shows a still frame.</string>
     <string name="cd_api_key">Clé API</string>
     <string name="cd_base_url">URL de l\'API vision</string>
     <string name="cd_model">Modèle vision</string>

@@ -22,6 +22,7 @@
     <string name="home_debug_chip">Bản debug: chế độ đầy đủ tự mở khóa. Đây không phải mua Play.</string>
     <string name="home_version">Pangchuang %1$s (%2$d)</string>
     <string name="home_status_error">Lỗi gần nhất: %1$s</string>
+    <string name="home_status_mock_on">“Demo lines” is on: full companion will not capture the real screen.</string>
     <string name="home_status_purchase_pending">Đang xử lý mua. Sẽ mở khi Play xong.</string>
     <string name="usage_optional_caption">Tùy chọn. Chế độ đầy đủ vẫn chạy nếu tắt. Tên ứng dụng kém chính xác hơn, không bỏ qua ứng dụng nhạy cảm.</string>
     <string name="btn_revoke_privacy">Rút đồng ý quyền riêng tư</string>
@@ -164,6 +165,8 @@ Tiếp tục nghĩa là bạn đồng ý chính sách quyền riêng tư.</strin
     <string name="overlay_sensitive_resume">Màn hình này trông ổn. Mình ở lại, không gửi khung riêng tư vừa rồi.</string>
     <string name="cd_close_overlay">Đóng cửa sổ nổi và để Tiểu Bàng nghỉ</string>
     <string name="cd_preview">Xem trước Moxi</string>
+    <string name="cd_preview_live">Moxi Live2D preview</string>
+    <string name="cd_preview_static">Still Moxi preview. The overlay is using Live2D, so home shows a still frame.</string>
     <string name="cd_api_key">Khóa API</string>
     <string name="cd_base_url">URL API thị giác</string>
     <string name="cd_model">Mô hình thị giác</string>

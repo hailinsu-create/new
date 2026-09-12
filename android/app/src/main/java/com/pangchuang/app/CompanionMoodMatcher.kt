@@ -22,7 +22,8 @@ object CompanionMoodMatcher {
             CompanionMood.THINK,
             listOf(
                 "看看", "让我", "好像", "嗯", "判断", "想想", "准备", "等一下", "等我", "干嘛",
-                "look", "let me", "hmm", "wait", "thinking"
+                "look", "let me", "hmm", "wait", "thinking",
+                "見て", "考え", "잠깐", "생각", "mira", "warte", "regard"
             )
         ),
         Rule(
@@ -30,7 +31,8 @@ object CompanionMoodMatcher {
             listOf(
                 "歇", "休息", "夜里", "深夜", "眼睛", "慢慢", "陪着", "不急", "累", "保重",
                 "早点睡", "眨眼", "熬夜", "心疼", "温柔",
-                "rest", "sleep", "night", "slowly", "tired", "care", "gently"
+                "rest", "sleep", "night", "slowly", "tired", "care", "gently",
+                "休んで", "眠", "쉬어", "피곤", "descansa", "ruhe", "repose"
             ),
             weight = 3
         ),
@@ -55,7 +57,8 @@ object CompanionMoodMatcher {
             CompanionMood.SHY,
             listOf(
                 "害羞", "脸红", "不好意思", "夸", "谢谢", "喜欢你", "贴在", "身边",
-                "thanks", "blush", "shy"
+                "thanks", "blush", "shy",
+                "ありがとう", "恥ずかしい", "고마워", "부끄", "gracias", "danke", "merci"
             ),
             weight = 3
         )

@@ -22,6 +22,7 @@
     <string name="home_debug_chip">デバッグ版：本機能は自動解除。Play の購入ではありません。</string>
     <string name="home_version">傍窓 %1$s（%2$d）</string>
     <string name="home_status_error">前回のエラー：%1$s</string>
+    <string name="home_status_mock_on">“Demo lines” is on: full companion will not capture the real screen.</string>
     <string name="home_status_purchase_pending">購入処理中。完了すると解除されます。</string>
     <string name="usage_optional_caption">任意です。オフでも本機能は使えます。前景アプリ名が雑になり、機微なアプリを飛ばせません。</string>
     <string name="btn_revoke_privacy">プライバシー同意を取り消す</string>
@@ -164,6 +165,8 @@
     <string name="overlay_sensitive_resume">この画面は大丈夫そうです。先の機微なコマは送りません。</string>
     <string name="cd_close_overlay">オーバーレイを閉じて小旁を休ませる</string>
     <string name="cd_preview">墨汐プレビュー</string>
+    <string name="cd_preview_live">Moxi Live2D preview</string>
+    <string name="cd_preview_static">Still Moxi preview. The overlay is using Live2D, so home shows a still frame.</string>
     <string name="cd_api_key">API キー</string>
     <string name="cd_base_url">ビジョン API の URL</string>
     <string name="cd_model">ビジョンモデル</string>

@@ -22,6 +22,7 @@
     <string name="home_debug_chip">디버그 빌드: 전체 동반이 자동 해제됨. Play 구매가 아닙니다.</string>
     <string name="home_version">곁창 %1$s (%2$d)</string>
     <string name="home_status_error">마지막 오류: %1$s</string>
+    <string name="home_status_mock_on">“Demo lines” is on: full companion will not capture the real screen.</string>
     <string name="home_status_purchase_pending">구매 처리 중. 끝나면 해제됩니다.</string>
     <string name="usage_optional_caption">선택 사항입니다. 꺼도 전체 동반은 됩니다. 앱 이름 힌트가 약해지고 민감 앱을 건너뛸 수 없습니다.</string>
     <string name="btn_revoke_privacy">개인정보 동의 철회</string>
@@ -164,6 +165,8 @@
     <string name="overlay_sensitive_resume">이 화면은 괜찮아 보여요. 방금 그 민감 프레임은 보내지 않을게요.</string>
     <string name="cd_close_overlay">오버레이를 닫고 소팡 쉬게 하기</string>
     <string name="cd_preview">墨汐 미리보기</string>
+    <string name="cd_preview_live">Moxi Live2D preview</string>
+    <string name="cd_preview_static">Still Moxi preview. The overlay is using Live2D, so home shows a still frame.</string>
     <string name="cd_api_key">API 키</string>
     <string name="cd_base_url">비전 API 주소</string>
     <string name="cd_model">비전 모델</string>

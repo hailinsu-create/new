@@ -232,6 +232,24 @@
                         android:layout_marginTop="4dp"
                         android:minHeight="48dp"
                         android:text="@string/btn_usage" />
+
+                    <TextView
+                        android:id="@+id/notificationStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/notifications_status_off"
+                        android:textColor="@color/mist"
+                        android:textSize="13sp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnNotifications"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:minHeight="48dp"
+                        android:text="@string/btn_notifications" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

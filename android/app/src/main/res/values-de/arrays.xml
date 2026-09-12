@@ -8,6 +8,7 @@
         <item>Queue screens grind the most. Wins and losses pass. Keep your hands loose.</item>
         <item>Too many tabs scatter the mind. Close the ones you are not using.</item>
         <item>The map is calculating a route. So are you, with whatever energy is left today.</item>
+        <item>The alarm rang and you snoozed it. Five more minutes is fine. A real first task on the lock screen is better.</item>
     </string-array>
     <string-array name="mock_shorts">
         <item>Clip after clip, like a tide that does not sleep. Tides turn. You can step off.</item>
@@ -33,5 +34,6 @@
         <item>A messy life, listed. That already helps.</item>
         <item>A reminder is not extra weight. Do one thing when it rings, then tick it off.</item>
         <item>People who write the list are already ahead of people who only spin it in their head.</item>
+        <item>A note that says “soon” is a trap. Put a clock time on it and it can land.</item>
     </string-array>
 </resources>

@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Play default: HTTPS only. Cleartext limited to local dev endpoints (Ollama on device/emulator). -->
+<!-- Play default: HTTPS only. Cleartext is limited to loopback.
+     127.0.0.1 / localhost = Ollama on the phone.
+     10.0.2.2 = host machine as seen from the Android emulator.
+     LAN IPs stay blocked. -->
 <network-security-config>
     <base-config cleartextTrafficPermitted="false" />
     <domain-config cleartextTrafficPermitted="true">
