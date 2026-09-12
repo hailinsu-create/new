@@ -76,7 +76,7 @@ static func theme() -> Theme:
 	t.set_color("font_hover_color", "Button", OLIVE_HI)
 	t.set_color("font_pressed_color", "Button", Color(0.95, 0.96, 0.82))
 	t.set_color("font_disabled_color", "Button", Color(0.42, 0.44, 0.40))
-	var bn := flat(Color(0.11, 0.14, 0.11, 0.96), Color(0.36, 0.42, 0.26), 1, 12, 3)
+	var bn := flat(Color(0.12, 0.11, 0.08, 0.96), Color(0.42, 0.34, 0.18), 1, 12, 3)
 	bn.border_width_top = 2
 	var bh := flat(Color(0.16, 0.20, 0.13, 0.98), OLIVE_HI, 1, 12, 3)
 	bh.border_width_top = 2

@@ -26,14 +26,14 @@ func _ready() -> void:
 			Vector2(40, 360), Vector2(180, 420), Vector2(320, 560), Vector2(520, 620)
 		]),
 	]
-	_dust = _make_particles(28, 7.5, Color(0.72, 0.76, 0.58, 0.28), Vector2(0.15, -1.0), 10.0)
+	_dust = _make_particles(28, 7.5, Color(0.42, 0.36, 0.22, 0.28), Vector2(0.15, -1.0), 10.0)
 	_dust.initial_velocity_min = 3.0
 	_dust.initial_velocity_max = 12.0
 	_dust.gravity = Vector2(4.0, 6.0)
 	_dust.scale_amount_min = 0.5
 	_dust.scale_amount_max = 1.6
 	add_child(_dust)
-	_sparks = _make_particles(14, 3.2, Color(0.92, 0.84, 0.42, 0.55), Vector2(0.35, -1.0), 18.0)
+	_sparks = _make_particles(14, 3.2, Color(0.72, 0.52, 0.22, 0.55), Vector2(0.35, -1.0), 18.0)
 	_sparks.initial_velocity_min = 12.0
 	_sparks.initial_velocity_max = 28.0
 	_sparks.gravity = Vector2(2.0, 14.0)
