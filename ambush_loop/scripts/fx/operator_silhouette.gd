@@ -93,10 +93,23 @@ static func mount(body: Polygon2D, role: int, weapon_id: String = "") -> void:
 	_poly(body, "Weapon", wpoly, wcol, 5).visible = true
 	if wid != "" and wid != "knife":
 		_poly(body, "Stock", WeaponArtScript.stock_poly(wid, role), WeaponArtScript.wood_color(wid), 4).visible = true
+		var is_mg := wid in ["mg", "mg42", "mg34", "bar", "bren", "dp28"]
+		var bl := _poly(body, "BipodL", PackedVector2Array([
+			Vector2(-6.6, -8.2), Vector2(-5.2, -8.2), Vector2(-7.2, 2.6), Vector2(-8.4, 2.4)
+		]), Color(0.14, 0.12, 0.08, 0.95), 5)
+		var br := _poly(body, "BipodR", PackedVector2Array([
+			Vector2(5.2, -8.2), Vector2(6.6, -8.2), Vector2(8.4, 2.4), Vector2(7.2, 2.6)
+		]), Color(0.14, 0.12, 0.08, 0.95), 5)
+		bl.visible = is_mg
+		br.visible = is_mg
 	else:
 		var stock := body.get_node_or_null("Stock") as Polygon2D
 		if stock:
 			stock.visible = false
+		for nam in ["Bipod", "BipodL", "BipodR"]:
+			var bipod_off := body.get_node_or_null(nam) as Polygon2D
+			if bipod_off:
+				bipod_off.visible = false
 	var flash := _poly(body, "ShoulderFlash", _shoulder_flash(role), _flash_color(role), 2)
 	flash.visible = true
 	var rim := _poly(body, "RimLight", _rim_light(role), _rim_light_color(role), 4)

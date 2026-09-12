@@ -40,6 +40,15 @@ func _ensure_pack_look() -> void:
 	if visual.get_meta("pack_built", false):
 		return
 	visual.set_meta("pack_built", true)
+	if Weapons.is_firearm(kind):
+		var art: GDScript = load("res://scripts/art/weapon_art.gd") as GDScript
+		if art:
+			var gun := Polygon2D.new()
+			gun.name = "DroppedGun"
+			gun.polygon = art.icon_poly(kind)
+			gun.color = art.steel_color(kind)
+			gun.z_index = 2
+			add_child(gun)
 	visual.polygon = PackedVector2Array([
 		Vector2(-10, -8), Vector2(10, -8), Vector2(9, 10), Vector2(-9, 10)
 	])

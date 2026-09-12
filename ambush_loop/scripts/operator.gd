@@ -1351,7 +1351,7 @@ func _apply_body_modulate() -> void:
 func _tint_figure_parts(flash: Color) -> void:
 	if body == null:
 		return
-	for nam in ["Head", "Visor", "LegL", "LegR", "ShoulderL", "ShoulderR", "TorsoShade", "ArmGun", "Cape", "FrontSight", "Sight", "BootL", "BootR", "Hip", "Pack", "Collar", "MoonFill", "KitHelm", "KitGear", "Webbing", "Stock", "PouchL", "PouchR", "PutteeL", "PutteeR"]:
+	for nam in ["Head", "Visor", "LegL", "LegR", "ShoulderL", "ShoulderR", "TorsoShade", "ArmGun", "Cape", "FrontSight", "Sight", "BootL", "BootR", "Hip", "Pack", "Collar", "MoonFill", "KitHelm", "KitGear", "Webbing", "Stock", "PouchL", "PouchR", "PutteeL", "PutteeR", "BipodL", "BipodR"]:
 		var n := body.get_node_or_null(nam)
 		if n is CanvasItem:
 			(n as CanvasItem).modulate = flash
@@ -1658,7 +1658,7 @@ func _rebuild_cone_edge(pts: PackedVector2Array) -> void:
 	elif not fire_permitted:
 		cone_edge.default_color = Color(0.72, 0.68, 0.22, 0.55 if hot else 0.38)
 	else:
-		cone_edge.default_color = Color(1.0, 0.86, 0.38, 0.82 if hot else 0.48)
+		cone_edge.default_color = Color(0.82, 0.68, 0.32, 0.82 if hot else 0.48)
 
 
 func _ensure_sel_ring() -> void:

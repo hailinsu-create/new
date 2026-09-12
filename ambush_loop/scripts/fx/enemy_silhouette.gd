@@ -65,6 +65,8 @@ static func mount(body: Polygon2D, kind: String) -> void:
 	_poly(body, "ShoulderL", _shoulder_l(kind), _shade(kind, 0.70), 0)
 	_poly(body, "ShoulderR", _shoulder_r(kind), _shade(kind, 0.90), 0)
 	_poly(body, "TorsoShade", _torso(kind), _shade(kind, 0.62), 0)
+	var bag := _poly(body, "BreadBag", _breadbag(kind), Color(0.28, 0.22, 0.12, 0.90), 1)
+	bag.visible = kind == "flank"
 	_poly(body, "LegL", _leg_l(kind), _shade(kind, 0.52), 0)
 	_poly(body, "LegR", _leg_r(kind), _shade(kind, 0.68), 0)
 	_poly(body, "Head", _head(kind), _head_color(kind), 1)
@@ -392,6 +394,14 @@ static func _boot_r(kind: String) -> PackedVector2Array:
 				Vector2(2.0, 14.6), Vector2(6.4, 14.4),
 				Vector2(6.8, 17.2), Vector2(2.4, 17.4)
 			])
+
+
+static func _breadbag(kind: String) -> PackedVector2Array:
+	if kind != "flank":
+		return PackedVector2Array([Vector2.ZERO, Vector2(1, 0), Vector2(0, 1)])
+	return PackedVector2Array([
+		Vector2(4.2, 1.2), Vector2(8.4, 1.6), Vector2(8.0, 6.8), Vector2(3.8, 6.2)
+	])
 
 
 static func _armband(kind: String) -> PackedVector2Array:
