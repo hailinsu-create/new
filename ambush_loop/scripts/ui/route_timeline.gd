@@ -141,7 +141,7 @@ func _draw() -> void:
 			# 回波 wait has to shout — 5.2s mark breathes until the hall runner arrives.
 			var boom := 0.5 + 0.5 * sin(_pulse * 11.0)
 			draw_circle(Vector2(x, y), 12.0 + 5.5 * boom, Color(col.r, col.g, col.b, 0.12 + 0.38 * boom))
-			draw_circle(Vector2(x, y), 8.8 + 3.4 * boom, Color(0.85, 0.98, 1.0, 0.18 + 0.28 * boom))
+			draw_circle(Vector2(x, y), 8.8 + 3.4 * boom, Color(0.82, 0.70, 0.38, 0.18 + 0.28 * boom))
 		elif is_pending:
 			draw_circle(Vector2(x, y), 8.6 + 3.8 * pulse, Color(col.r, col.g, col.b, 0.16 + 0.40 * pulse))
 		elif is_preview:
