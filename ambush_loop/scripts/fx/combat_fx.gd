@@ -182,7 +182,7 @@ static func kill_burst(host: Node2D, world_pos: Vector2, tint: Color = Color(0.9
 				Vector2(0, -1.6), Vector2(13, 0), Vector2(0, 1.6)
 			])
 			shard.rotation = a
-			shard.color = Color(1.0, 0.85, 0.45, 0.88)
+			shard.color = Color(0.72, 0.52, 0.28, 0.88)
 			n.add_child(shard)
 		var x1 := Line2D.new()
 		x1.width = 2.2
