@@ -10,8 +10,8 @@
         <shape android:shape="oval">
             <solid android:color="#F20A0608" />
             <stroke
-                android:width="2dp"
-                android:color="#FFFFE8EE" />
+                android:width="2.5dp"
+                android:color="#FFFFFFFF" />
         </shape>
     </item>
 </ripple>

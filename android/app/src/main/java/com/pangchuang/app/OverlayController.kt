@@ -84,7 +84,8 @@ class OverlayController(
             return
         }
         val view = LayoutInflater.from(context).inflate(R.layout.overlay_bubble, null)
-        view.layoutDirection = View.LAYOUT_DIRECTION_LOCALE
+        val rtl = context.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL
+        view.layoutDirection = if (rtl) View.LAYOUT_DIRECTION_RTL else View.LAYOUT_DIRECTION_LOCALE
         ViewCompat.setAccessibilityPaneTitle(view, context.getString(R.string.overlay_pane_title))
         bubblePanel = view.findViewById(R.id.bubblePanel)
         bubbleText = view.findViewById(R.id.bubbleText)
@@ -202,6 +203,14 @@ class OverlayController(
         panel.alpha = 0f
         panel.translationY = 12f
         panel.scrollTo(0, 0)
+        panel.post {
+            val max = dp(140)
+            if (panel.height > max) {
+                val lp = panel.layoutParams
+                lp.height = max
+                panel.layoutParams = lp
+            }
+        }
         panel.animate()
             .alpha(1f)
             .translationY(0f)

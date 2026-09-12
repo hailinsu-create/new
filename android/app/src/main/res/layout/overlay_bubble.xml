@@ -3,6 +3,7 @@
     android:id="@+id/overlayRoot"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
+    android:accessibilityPaneTitle="@string/overlay_pane_title"
     android:clipChildren="false"
     android:clipToPadding="false"
     android:layoutDirection="locale"
@@ -69,6 +70,7 @@
             android:background="@drawable/bg_overlay_close"
             android:contentDescription="@string/overlay_close_cd"
             android:padding="12dp"
-            android:src="@drawable/ic_overlay_close" />
+            android:src="@drawable/ic_overlay_close"
+            android:tooltipText="@string/overlay_close_cd" />
     </FrameLayout>
 </LinearLayout>

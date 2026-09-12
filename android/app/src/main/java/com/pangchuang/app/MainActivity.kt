@@ -14,6 +14,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.pangchuang.app.databinding.ActivityMainBinding
@@ -61,6 +62,7 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
         setupLanguagePicker()
         setupModelPreset()
         setupIntervalPreset()
+        applySettingsToggleA11y()
 
         binding.btnOverlay.setOnClickListener { openOverlaySettings() }
         binding.btnUsage.setOnClickListener { openUsageAccessSettings() }
@@ -233,6 +235,20 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
             if (advancedOpen) R.string.settings_collapse else R.string.settings_expand
         )
         binding.btnToggleSettings.contentDescription = getString(R.string.cd_settings_toggle)
+        ViewCompat.setStateDescription(
+            binding.btnToggleSettings,
+            getString(
+                if (advancedOpen) R.string.settings_expanded_state
+                else R.string.settings_collapsed_state
+            )
+        )
+    }
+
+    private fun applySettingsToggleA11y() {
+        ViewCompat.setStateDescription(
+            binding.btnToggleSettings,
+            getString(R.string.settings_collapsed_state)
+        )
     }
 
     private fun refreshHome() {
@@ -257,10 +273,14 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
                 homeEngineUnloaded = true
             }
             binding.homeLive2d.visibility = View.GONE
+            binding.homeLive2d.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
             binding.homeStatic.visibility = View.VISIBLE
+            binding.homeStatic.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
         } else {
             binding.homeStatic.visibility = View.GONE
+            binding.homeStatic.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             binding.homeLive2d.visibility = View.VISIBLE
+            binding.homeLive2d.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
             if (homeEngineUnloaded) {
                 binding.homeLive2d.reloadEngine()
                 homeEngineUnloaded = false

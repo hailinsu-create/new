@@ -157,6 +157,8 @@
     <string name="overlay_sensitive_resume">This screen looks safe. I will stay, without sending the last private frame.</string>
     <string name="cd_close_overlay">Close the overlay and let Xiao Pang rest</string>
     <string name="cd_preview">Moxi preview</string>
+    <string name="cd_preview_live">Moxi Live2D preview</string>
+    <string name="cd_preview_static">Still Moxi preview. The overlay is using Live2D, so home shows a still frame.</string>
     <string name="cd_api_key">API key</string>
     <string name="cd_base_url">Vision API URL</string>
     <string name="cd_model">Vision model</string>

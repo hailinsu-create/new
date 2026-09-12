@@ -72,3 +72,13 @@ R67 | docs | listing, listing-i18n, release-notes, YOU-MUST-DO, checklist update
 R68 | assets | Play icon and feature graphic remain 墨汐; overlay screenshots regenerated for 48dp close | docs/play/assets/
 R69 | assets | Screenshot generator draws 48dp close and 96dp avatar and does not claim a device | generate-play-screenshots.py
 R70 | about | App version shown on legal pages | LegalActivity.kt, activity_legal.xml
+R71 | a11y | Remaining ImageViews have contentDescription; home static vs live are distinct | activity_main.xml, strings.xml
+R72 | a11y | Legal title is a heading; close/up navigation has legal_up_cd | activity_legal.xml, LegalActivity.kt
+R73 | overlay | Close chip tooltip plus white-stroke ripple pressed state | overlay_bubble.xml, bg_overlay_close.xml
+R74 | a11y | Overlay XML accessibilityPaneTitle plus window title | overlay_bubble.xml, OverlayController.kt
+R75 | a11y | Avatar, bubble, live preview, and still preview no longer share one string | strings.xml, overlay_bubble.xml, activity_main.xml
+R76 | a11y | Close chip stroke is white on near-black for contrast against the pink avatar ring | bg_overlay_close.xml
+R77 | overlay | Long German (and other) bubble text is capped at 140dp and scrolls | OverlayController.kt, overlay_bubble.xml
+R78 | rtl | Overlay forces RTL layoutDirection when the configuration is RTL (ar) | OverlayController.kt, overlay_bubble.xml
+R79 | a11y | Settings expand/collapse button exposes expanded/collapsed state description | MainActivity.kt
+R80 | a11y | Home Live2D preview importantForAccessibility; hidden from TalkBack while overlay owns the engine | MainActivity.kt, activity_main.xml

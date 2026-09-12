@@ -11,6 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
+        android:accessibilityHeading="true"
         android:text="@string/legal_privacy_title"
         android:textColor="@color/foam"
         android:textSize="22sp"

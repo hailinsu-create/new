@@ -157,6 +157,8 @@
     <string name="overlay_sensitive_resume">这一屏安全了，我继续陪着，但不偷看刚才那一拍。</string>
     <string name="cd_close_overlay">关闭悬浮窗，让小旁休息</string>
     <string name="cd_preview">墨汐预览</string>
+    <string name="cd_preview_live">墨汐 Live2D 预览</string>
+    <string name="cd_preview_static">墨汐静止预览。悬浮窗正在用 Live2D，这里只显示静图。</string>
     <string name="cd_api_key">API Key</string>
     <string name="cd_base_url">视觉接口地址</string>
     <string name="cd_model">视觉模型</string>
