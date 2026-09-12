@@ -5482,7 +5482,10 @@ func _exit_tree() -> void:
 
 func _on_op_ammo_empty(op: OperatorUnit) -> void:
 	_flash("%s 空弹" % op.display_name, Color(0.9, 0.55, 0.2))
-	_sfx("empty")
+	if op != null and str(op.weapon_id) == "m1_garand":
+		_sfx("fire_ping")
+	else:
+		_sfx("empty")
 	_operator_bark(op, "empty")
 
 

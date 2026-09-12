@@ -42,7 +42,7 @@ static func knife_lunge(host: Node2D, from: Vector2, to: Vector2) -> void:
 	var n := _spawn(host, "CfxLunge", from, 12)
 	var slash := Line2D.new()
 	slash.width = 2.4
-	slash.default_color = Color(0.92, 0.92, 0.78, 0.95)
+	slash.default_color = Color(0.78, 0.76, 0.62, 0.95)
 	slash.points = PackedVector2Array([Vector2.ZERO, to - from])
 	n.add_child(slash)
 	var tw := n.create_tween()

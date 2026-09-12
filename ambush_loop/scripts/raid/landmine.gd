@@ -52,7 +52,7 @@ func _ensure_visual() -> void:
 	tag.text = "雷"
 	tag.position = Vector2(-10, -20)
 	tag.add_theme_font_size_override("font_size", 10)
-	tag.add_theme_color_override("font_color", Color(0.72, 0.85, 0.42))
+	tag.add_theme_color_override("font_color", Color(0.72, 0.52, 0.22))
 	add_child(tag)
 
 

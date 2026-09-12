@@ -269,12 +269,12 @@ func _wall_palette() -> Dictionary:
 			}
 		"pump":
 			return {
-				"base": Color(0.06, 0.12, 0.10),
-				"fill_a": Color(0.18, 0.32, 0.26),
-				"fill_b": Color(0.14, 0.26, 0.22),
-				"edge": Color(0.32, 0.52, 0.42, 0.80),
-				"rim": Color(0.55, 0.82, 0.68, 0.78),
-				"mortar": Color(0.06, 0.12, 0.10, 0.55),
+				"base": Color(0.08, 0.10, 0.08),
+				"fill_a": Color(0.22, 0.24, 0.16),
+				"fill_b": Color(0.18, 0.20, 0.14),
+				"edge": Color(0.40, 0.38, 0.24, 0.80),
+				"rim": Color(0.58, 0.52, 0.32, 0.78),
+				"mortar": Color(0.08, 0.10, 0.08, 0.55),
 			}
 		"railcut":
 			return {
@@ -296,21 +296,21 @@ func _wall_palette() -> Dictionary:
 			}
 		"radio":
 			return {
-				"base": Color(0.06, 0.10, 0.14),
-				"fill_a": Color(0.16, 0.28, 0.36),
-				"fill_b": Color(0.12, 0.22, 0.30),
-				"edge": Color(0.32, 0.58, 0.72, 0.82),
-				"rim": Color(0.55, 0.84, 0.96, 0.85),
-				"mortar": Color(0.06, 0.10, 0.14, 0.50),
+				"base": Color(0.08, 0.08, 0.07),
+				"fill_a": Color(0.22, 0.22, 0.18),
+				"fill_b": Color(0.16, 0.16, 0.14),
+				"edge": Color(0.42, 0.40, 0.30, 0.82),
+				"rim": Color(0.62, 0.58, 0.42, 0.85),
+				"mortar": Color(0.08, 0.08, 0.07, 0.50),
 			}
 		_:
 			return {
-				"base": Color(0.14, 0.09, 0.05),
-				"fill_a": Color(0.38, 0.27, 0.13),
-				"fill_b": Color(0.33, 0.23, 0.10),
-				"edge": Color(0.48, 0.34, 0.14, 0.80),
-				"rim": Color(0.78, 0.62, 0.34, 0.88),
-				"mortar": Color(0.14, 0.09, 0.04, 0.50),
+				"base": Color(0.12, 0.09, 0.05),
+				"fill_a": Color(0.34, 0.26, 0.14),
+				"fill_b": Color(0.28, 0.20, 0.10),
+				"edge": Color(0.46, 0.34, 0.16, 0.80),
+				"rim": Color(0.62, 0.50, 0.28, 0.88),
+				"mortar": Color(0.12, 0.09, 0.04, 0.50),
 			}
 
 
@@ -374,6 +374,13 @@ func _draw_wall_language(c: CanvasItem, inset: Rect2, pal: Dictionary, x: int, y
 			)
 			c.draw_rect(inset.grow(-3.0), Color(pal["edge"].r, pal["edge"].g, pal["edge"].b, 0.35), false, 1.2)
 		_:
+			if (x + y) % 7 == 0:
+				c.draw_line(
+					Vector2(inset.position.x + 3.0, inset.position.y + 4.0),
+					Vector2(inset.position.x + inset.size.x - 4.0, inset.position.y + inset.size.y - 5.0),
+					Color(0.42, 0.22, 0.08, 0.22),
+					1.4, true
+				)
 			var y0 := inset.position.y + 5.0
 			var row := 0
 			while y0 < inset.position.y + inset.size.y - 2.0:
