@@ -26,7 +26,7 @@ var _emphasis: int = 0
 var _pulse_t: float = 0.0
 var _hold_p: float = 0.0
 var _role_hint: bool = false
-var _role_hint_col: Color = Color(0.62, 0.84, 0.42)
+var _role_hint_col: Color = Color(0.62, 0.52, 0.28)
 var _hint_ring: Line2D = null
 
 
@@ -327,7 +327,7 @@ func set_highlight(on: bool) -> void:
 			bit.modulate = Color(1.15, 1.2, 1.05) if on else Color.WHITE
 
 
-func set_role_hint(on: bool, tint: Color = Color(0.62, 0.84, 0.42)) -> void:
+func set_role_hint(on: bool, tint: Color = Color(0.62, 0.52, 0.28)) -> void:
 	_role_hint = on
 	_role_hint_col = tint
 	_ensure_hint_ring()
@@ -405,10 +405,10 @@ func set_protect_preview(emphasis: int) -> void:
 			protect_arc.color = Color(0.40, 0.48, 0.24, 0.26)
 			if _arc_edge:
 				_arc_edge.visible = true
-				_arc_edge.default_color = Color(0.32, 0.92, 0.68, 0.55)
+				_arc_edge.default_color = Color(0.48, 0.52, 0.28, 0.55)
 			if _arc_arrow:
 				_arc_arrow.visible = true
-				_arc_arrow.color = Color(0.32, 0.88, 0.62, 0.62)
+				_arc_arrow.color = Color(0.48, 0.50, 0.26, 0.62)
 		_:
 			protect_arc.visible = false
 			if _arc_edge:
@@ -493,7 +493,7 @@ func _rebuild_arc_edge(fan: PackedVector2Array) -> void:
 		loop.append(fan[i])
 	loop.append(Vector2.ZERO)
 	_arc_edge.points = loop
-	_arc_edge.default_color = Color(0.28, 0.95, 0.72, 0.78 if _emphasis >= 2 else 0.50)
+	_arc_edge.default_color = Color(0.48, 0.52, 0.28, 0.78 if _emphasis >= 2 else 0.50)
 	_arc_edge.visible = _emphasis > 0
 	if _arc_arrow == null or not is_instance_valid(_arc_arrow):
 		_arc_arrow = Polygon2D.new()
@@ -506,7 +506,7 @@ func _rebuild_arc_edge(fan: PackedVector2Array) -> void:
 	var back := Vector2(cos(rad), sin(rad)) * (PREVIEW_RANGE - 10.0)
 	var perp := Vector2(-sin(rad), cos(rad)) * 7.0
 	_arc_arrow.polygon = PackedVector2Array([tip, back + perp, back - perp])
-	_arc_arrow.color = Color(0.35, 0.98, 0.72, 0.75 if _emphasis >= 2 else 0.42)
+	_arc_arrow.color = Color(0.50, 0.54, 0.28, 0.75 if _emphasis >= 2 else 0.42)
 	_arc_arrow.visible = _emphasis > 0
 
 
