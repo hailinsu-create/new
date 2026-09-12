@@ -118,6 +118,13 @@ func _ready() -> void:
 	var reach := 22.0 if is_mg else (16.0 if is_rifle else 20.0)
 	spark.points = PackedVector2Array([Vector2(2, 0), Vector2(reach, 0)])
 	add_child(spark)
+	if is_rifle:
+		var linger_spark := Line2D.new()
+		linger_spark.name = "BoltSpark"
+		linger_spark.width = 1.0
+		linger_spark.default_color = Color(0.92, 0.78, 0.42, 0.70)
+		linger_spark.points = PackedVector2Array([Vector2(6, -2), Vector2(14, -5)])
+		add_child(linger_spark)
 	var tw := create_tween()
 	var pop := 0.028 if is_rifle else 0.04
 	var fade := 0.055 if is_rifle else (0.10 if is_mg else 0.08)
