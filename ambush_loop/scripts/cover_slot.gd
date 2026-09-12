@@ -321,7 +321,7 @@ func is_free() -> bool:
 func set_highlight(on: bool) -> void:
 	_ensure_crate_look()
 	if pad:
-		pad.color = Color(0.42, 0.62, 0.34, 0.95) if on else Color(0.30, 0.38, 0.24, 0.92)
+		pad.color = Color(0.46, 0.40, 0.22, 0.95) if on else Color(0.30, 0.26, 0.16, 0.92)
 	for bit in _crate_bits:
 		if bit != null and is_instance_valid(bit):
 			bit.modulate = Color(1.15, 1.2, 1.05) if on else Color.WHITE

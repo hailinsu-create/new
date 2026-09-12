@@ -1395,7 +1395,7 @@ func _refresh_watch_metronome() -> void:
 		if pip == null:
 			continue
 		var hot := i == beat and not sim.paused
-		pip.color = Color(0.92, 0.88, 0.42, 0.95) if hot else Color(0.62, 0.72, 0.38, 0.28)
+		pip.color = Color(0.78, 0.62, 0.28, 0.95) if hot else Color(0.42, 0.36, 0.20, 0.28)
 
 
 func _ensure_watch_clock() -> void:
@@ -1578,7 +1578,7 @@ func _dock_setup_help() -> void:
 	help_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	help_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	help_label.add_theme_font_size_override("font_size", 12)
-	help_label.add_theme_color_override("font_color", Color(0.70, 0.74, 0.66, 0.90))
+	help_label.add_theme_color_override("font_color", Color(0.70, 0.64, 0.46, 0.90))
 
 
 func _ensure_tut_plate(root: Control) -> void:
@@ -3020,7 +3020,7 @@ func _refresh_door_visual(animate: bool = false) -> void:
 				_door_tween.parallel().tween_property(panel, "rotation", target_rot, 0.18)
 			if handle:
 				_door_tween.parallel().tween_property(handle, "rotation", target_rot, 0.18)
-			var flash := Color(1.7, 1.45, 0.55, 1.0) if door_locked else Color(1.45, 1.55, 0.85, 1.0)
+			var flash := Color(1.7, 1.45, 0.55, 1.0) if door_locked else Color(1.35, 1.20, 0.70, 1.0)
 			leaf.modulate = flash
 			_door_tween.parallel().tween_property(leaf, "modulate", Color.WHITE, 0.28)
 			if pad:
@@ -3875,7 +3875,7 @@ func _make_tripwire(pos: Vector2) -> Tripwire:
 	var wire := Line2D.new()
 	wire.name = "Wire"
 	wire.width = 1.4
-	wire.default_color = Color(0.62, 0.98, 0.55, 0.92)
+	wire.default_color = Color(0.42, 0.36, 0.18, 0.92)
 	wire.points = PackedVector2Array([Vector2(-12, 0), Vector2(12, 0)])
 	t.add_child(wire)
 	var peg_a := Polygon2D.new()

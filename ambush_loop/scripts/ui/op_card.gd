@@ -276,7 +276,7 @@ func _refresh_ammo_pips(op: OperatorUnit) -> void:
 		if i < filled:
 			pip.color = Color(kit.r, kit.g, kit.b, 0.92).lerp(NightOps.OLIVE_HI, 0.18)
 		else:
-			pip.color = Color(0.16, 0.18, 0.14, 0.85)
+			pip.color = Color(0.16, 0.14, 0.10, 0.85)
 
 
 func _kit_short(op: OperatorUnit) -> String:
