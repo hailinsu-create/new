@@ -309,6 +309,7 @@ func apply_fire(amount: float, from: OperatorUnit = null) -> void:
 		kill()
 	else:
 		CombatFxScript.impact(self, global_position, _kind_color.lightened(0.25), false)
+		CombatFxScript.steel_spark(self, global_position + Vector2(randf_range(-4.0, 4.0), randf_range(-6.0, 2.0)))
 		_play_hit_sfx()
 
 
