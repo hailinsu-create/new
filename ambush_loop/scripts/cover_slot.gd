@@ -394,7 +394,7 @@ func set_protect_preview(emphasis: int) -> void:
 	match emphasis:
 		2:
 			protect_arc.visible = true
-			protect_arc.color = Color(0.22, 0.95, 0.68, 0.46)
+			protect_arc.color = Color(0.48, 0.58, 0.28, 0.46)
 			if _arc_edge:
 				_arc_edge.visible = true
 			if _arc_arrow:
@@ -402,7 +402,7 @@ func set_protect_preview(emphasis: int) -> void:
 			set_process(true)
 		1:
 			protect_arc.visible = true
-			protect_arc.color = Color(0.22, 0.78, 0.58, 0.26)
+			protect_arc.color = Color(0.40, 0.48, 0.24, 0.26)
 			if _arc_edge:
 				_arc_edge.visible = true
 				_arc_edge.default_color = Color(0.32, 0.92, 0.68, 0.55)
@@ -525,7 +525,7 @@ func _process(delta: float) -> void:
 		_pulse_t += delta
 		var wave := 0.5 + 0.5 * sin(_pulse_t * 4.8)
 		if protect_arc:
-			protect_arc.color = Color(0.22, 0.95, 0.68, 0.28 + 0.18 * wave)
+			protect_arc.color = Color(0.48, 0.58, 0.28, 0.28 + 0.18 * wave)
 		if _arc_edge:
 			_arc_edge.default_color = Color(0.40, 1.0, 0.78, 0.50 + 0.32 * wave)
 		if _arc_arrow:
