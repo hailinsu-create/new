@@ -844,8 +844,8 @@ func _landmark_warehouse(c: CanvasItem) -> void:
 	c.draw_rect(Rect2(7.4 * t, 10.5 * t, 14.0, 3.0), Color(0.18, 0.12, 0.06, 0.55))
 	c.draw_rect(Rect2(7.4 * t, 11.0 * t, 12.0, 2.0), Color(0.18, 0.12, 0.06, 0.40))
 	# Oil stain on the south loading stripe.
-	c.draw_circle(Vector2(22.6 * t, 17.55 * t), 10.0, Color(0.08, 0.10, 0.06, 0.32))
-	c.draw_circle(Vector2(23.2 * t, 17.7 * t), 6.0, Color(0.12, 0.14, 0.08, 0.22))
+	c.draw_circle(Vector2(22.6 * t, 17.55 * t), 10.0, Color(0.10, 0.08, 0.04, 0.32))
+	c.draw_circle(Vector2(23.2 * t, 17.7 * t), 6.0, Color(0.14, 0.10, 0.04, 0.22))
 	# Conveyor rollers along the east shelf face (blocked cells).
 	for i in 4:
 		var rx := 26.2 * t + float(i) * 10.0
@@ -888,12 +888,12 @@ func _landmark_pump(c: CanvasItem) -> void:
 	c.draw_rect(Rect2(7.3 * t, 10.35 * t, 12.0, 3.0), Color(0.32, 0.26, 0.12, 0.45))
 	# Hose coil on the south walk, off the spine.
 	var hose := Vector2(18.6 * t, 15.2 * t)
-	c.draw_arc(hose, 10.0, 0.2, 5.8, 12, Color(0.16, 0.32, 0.28, 0.55), 3.0, true)
-	c.draw_arc(hose, 6.0, 0.8, 6.4, 10, Color(0.22, 0.42, 0.36, 0.45), 2.2, true)
+	c.draw_arc(hose, 10.0, 0.2, 5.8, 12, Color(0.22, 0.16, 0.08, 0.55), 3.0, true)
+	c.draw_arc(hose, 6.0, 0.8, 6.4, 10, Color(0.28, 0.20, 0.10, 0.45), 2.2, true)
 	# Pressure gauge on the east machine face.
 	var gauge := Vector2(26.4 * t, 13.4 * t)
-	c.draw_circle(gauge, 8.0, Color(0.12, 0.18, 0.16, 0.75))
-	c.draw_circle(gauge, 5.0, Color(0.28, 0.55, 0.42, 0.45))
+	c.draw_circle(gauge, 8.0, Color(0.14, 0.12, 0.08, 0.75))
+	c.draw_circle(gauge, 5.0, Color(0.32, 0.26, 0.12, 0.45))
 	c.draw_line(gauge, gauge + Vector2(3.0, -4.0), Color(0.92, 0.28, 0.16, 0.80), 1.4, true)
 
 
@@ -916,8 +916,8 @@ func _landmark_railcut(c: CanvasItem) -> void:
 	# Cable run along the north face of the core.
 	c.draw_line(Vector2(15.2 * t, 7.25 * t), Vector2(28.4 * t, 7.35 * t), Color(0.12, 0.12, 0.10, 0.7), 2.2, true)
 	c.draw_line(Vector2(15.2 * t, 7.45 * t), Vector2(28.4 * t, 7.55 * t), Color(0.22, 0.18, 0.10, 0.4), 1.4, true)
-	_lamp_post(c, Vector2(13.6 * t, 8.4 * t), Color(0.70, 0.80, 0.92))
-	_lamp_post(c, Vector2(32.4 * t, 8.4 * t), Color(0.70, 0.80, 0.92))
+	_lamp_post(c, Vector2(13.6 * t, 8.4 * t), Color(0.72, 0.62, 0.32))
+	_lamp_post(c, Vector2(32.4 * t, 8.4 * t), Color(0.72, 0.62, 0.32))
 	# Timetable slate on the west face of the core.
 	c.draw_rect(Rect2(15.15 * t, 8.3 * t, 18.0, 24.0), Color(0.10, 0.10, 0.08, 0.70))
 	c.draw_rect(Rect2(15.3 * t, 8.45 * t, 14.0, 3.0), Color(0.85, 0.28, 0.16, 0.55))
