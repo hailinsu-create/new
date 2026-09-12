@@ -26,20 +26,20 @@ func _ready() -> void:
 	visible = false
 	var dim := ColorRect.new()
 	dim.name = "Dimmer"
-	dim.color = Color(0.010, 0.016, 0.014, 0.82)
+	dim.color = Color(0.014, 0.012, 0.008, 0.82)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(dim)
 	_letter_top = ColorRect.new()
 	_letter_top.name = "LetterTop"
-	_letter_top.color = Color(0.012, 0.018, 0.014, 0.96)
+	_letter_top.color = Color(0.016, 0.014, 0.010, 0.96)
 	_letter_top.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	_letter_top.offset_bottom = 54.0
 	_letter_top.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_letter_top)
 	_letter_bot = ColorRect.new()
 	_letter_bot.name = "LetterBot"
-	_letter_bot.color = Color(0.012, 0.018, 0.014, 0.96)
+	_letter_bot.color = Color(0.016, 0.014, 0.010, 0.96)
 	_letter_bot.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	_letter_bot.offset_top = -54.0
 	_letter_bot.mouse_filter = Control.MOUSE_FILTER_IGNORE

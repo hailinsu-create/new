@@ -125,10 +125,10 @@ func _draw() -> void:
 				col = Color(0.95, 0.55, 0.16)
 				lab = "侧"
 			"sneak":
-				col = Color(0.38, 0.78, 0.52)
+				col = Color(0.42, 0.48, 0.28)
 				lab = "暗"
 			"echo":
-				col = Color(0.42, 0.82, 0.96)
+				col = Color(0.70, 0.58, 0.32)
 				lab = "回"
 		var is_active := live and route == active
 		var is_preview := preview_ids.has(int(m.get("id", -2)))
@@ -178,7 +178,7 @@ func _draw_payoff_marks(w: float, y: float, tmax: float, pulse: float) -> void:
 			"barrel":
 				col = Color(1.0, 0.55, 0.22)
 			"ambush", "repack":
-				col = Color(0.45, 0.88, 0.95)
+				col = Color(0.70, 0.58, 0.32)
 			"route_choice":
 				col = Color(0.78, 0.55, 1.0)
 			"combo":

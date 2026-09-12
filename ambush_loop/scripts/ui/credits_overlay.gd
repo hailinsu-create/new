@@ -14,7 +14,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
 	var dim := ColorRect.new()
-	dim.color = Color(0.012, 0.020, 0.016, 0.92)
+	dim.color = Color(0.016, 0.014, 0.010, 0.92)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(dim)
