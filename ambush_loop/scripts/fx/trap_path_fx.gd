@@ -132,8 +132,8 @@ func _draw() -> void:
 		var bp := _point_along(fmod(0.08 + float(i) / float(boot_n) + _pip * 0.04, 1.0))
 		var nxt := _point_along(fmod(0.08 + float(i) / float(boot_n) + 0.04, 1.0))
 		var ang := (nxt - bp).angle() + PI * 0.5
-		var left := (i % 2) == 0
-		var off := Vector2(cos(ang), sin(ang)) * (3.2 if left else -3.2)
+		var boot_left := (i % 2) == 0
+		var off := Vector2(cos(ang), sin(ang)) * (3.2 if boot_left else -3.2)
 		var p := bp + off
 		draw_colored_polygon(
 			PackedVector2Array([
