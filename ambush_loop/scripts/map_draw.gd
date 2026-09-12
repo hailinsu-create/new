@@ -870,6 +870,11 @@ func _landmark_warehouse(c: CanvasItem) -> void:
 		var ry := 11.35 * t
 		c.draw_circle(Vector2(rx, ry), 4.0, Color(0.22, 0.16, 0.08, 0.55))
 		c.draw_rect(Rect2(rx - 4.0, ry - 2.0, 8.0, 4.0), Color(0.38, 0.28, 0.10, 0.40))
+	# Sodium lamp cages under the canopy housings.
+	for lamp in [Vector2i(13, 5), Vector2i(24, 5), Vector2i(32, 8)]:
+		var lp := Vector2(lamp.x * t + 16, lamp.y * t + 10)
+		c.draw_rect(Rect2(lp.x - 8, lp.y - 3, 16.0, 3.0), Color(0.18, 0.12, 0.06, 0.70))
+		c.draw_rect(Rect2(lp.x - 7, lp.y + 4, 14.0, 2.0), Color(0.55, 0.38, 0.10, 0.35))
 
 
 func _landmark_pump(c: CanvasItem) -> void:
@@ -913,6 +918,9 @@ func _landmark_pump(c: CanvasItem) -> void:
 	c.draw_circle(gauge, 8.0, Color(0.14, 0.12, 0.08, 0.75))
 	c.draw_circle(gauge, 5.0, Color(0.32, 0.26, 0.12, 0.45))
 	c.draw_line(gauge, gauge + Vector2(3.0, -4.0), Color(0.92, 0.28, 0.16, 0.80), 1.4, true)
+	# Oil vapour stains on the south walk, off the spine.
+	c.draw_circle(Vector2(14.8 * t, 15.2 * t), 8.0, Color(0.18, 0.16, 0.08, 0.22))
+	c.draw_circle(Vector2(21.4 * t, 14.8 * t), 6.0, Color(0.16, 0.14, 0.08, 0.18))
 
 
 func _landmark_railcut(c: CanvasItem) -> void:
@@ -1112,6 +1120,9 @@ func _landmark_radio(c: CanvasItem) -> void:
 		PackedVector2Array([horn + Vector2(4, -3), horn + Vector2(16, -8), horn + Vector2(16, 8), horn + Vector2(4, 3)]),
 		Color(0.36, 0.30, 0.16, 0.50)
 	)
+	# Lighthouse lantern panes — paper-white glass, not phosphor candy.
+	c.draw_rect(Rect2(mast.x - 10, mast.y - mast_h + 4, 8.0, 14.0), Color(0.86, 0.78, 0.48, 0.40))
+	c.draw_rect(Rect2(mast.x + 2, mast.y - mast_h + 4, 8.0, 14.0), Color(0.78, 0.70, 0.40, 0.32))
 
 
 func _draw_signature_silhouette(c: CanvasItem) -> void:
