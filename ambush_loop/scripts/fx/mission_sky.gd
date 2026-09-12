@@ -422,19 +422,19 @@ func _draw_radio() -> void:
 	if not _is_power_saving():
 		var cycle := fmod(_t * 1.8, 1.0)
 		morse = 1.0 if cycle < 0.18 or (cycle > 0.32 and cycle < 0.44) or (cycle > 0.70 and cycle < 0.82) else 0.18
-	draw_rect(Rect2(hut.x - 8.0, hut.y - 6.0, 16.0, 10.0), Color(0.45, 0.92, 1.0, 0.18 + 0.40 * morse))
-	draw_circle(hut, 6.0, Color(0.62, 0.95, 1.0, 0.12 + 0.22 * morse))
+	draw_rect(Rect2(hut.x - 8.0, hut.y - 6.0, 16.0, 10.0), Color(0.82, 0.68, 0.32, 0.18 + 0.40 * morse))
+	draw_circle(hut, 6.0, Color(0.88, 0.74, 0.38, 0.12 + 0.22 * morse))
 	# Antenna tip spark.
 	if not _is_power_saving():
 		var spark := 0.5 + 0.5 * sin(_t * 6.4)
-		draw_circle(Vector2(10.4 * AmbushGrid.TILE, 7.6 * AmbushGrid.TILE), 4.0 + spark * 2.0, Color(0.62, 0.95, 1.0, 0.10 + 0.16 * spark))
-		draw_circle(lantern, 5.0 + spark * 3.0, Color(0.70, 0.96, 1.0, 0.12 + 0.18 * spark))
+		draw_circle(Vector2(10.4 * AmbushGrid.TILE, 7.6 * AmbushGrid.TILE), 4.0 + spark * 2.0, Color(0.82, 0.70, 0.36, 0.10 + 0.16 * spark))
+		draw_circle(lantern, 5.0 + spark * 3.0, Color(0.88, 0.76, 0.42, 0.12 + 0.18 * spark))
 		# Phosphor motes drifting through the dish hall.
 		for i in 12:
 			var mx := 24.0 * AmbushGrid.TILE + sin(_t * 0.55 + float(i) * 0.9) * 12.0
 			var my := 5.3 * AmbushGrid.TILE + fmod(_t * 22.0 + float(i) * 27.0, 11.2 * AmbushGrid.TILE)
-			draw_circle(Vector2(mx, my), 1.9, Color(0.48, 0.92, 1.0, 0.14 + 0.12 * pulse * (0.5 + 0.5 * sin(_t * 3.0 + float(i)))))
+			draw_circle(Vector2(mx, my), 1.9, Color(0.72, 0.64, 0.38, 0.14 + 0.12 * pulse * (0.5 + 0.5 * sin(_t * 3.0 + float(i)))))
 		for i in 5:
 			var dx := 26.2 * AmbushGrid.TILE + float(i) * 14.0 + sin(_t * 0.7 + float(i)) * 8.0
 			var dy := 8.8 * AmbushGrid.TILE + cos(_t * 0.9 + float(i)) * 16.0
-			draw_circle(Vector2(dx, dy), 1.6, Color(0.55, 0.90, 1.0, 0.10 + 0.10 * pulse))
+			draw_circle(Vector2(dx, dy), 1.6, Color(0.70, 0.60, 0.34, 0.10 + 0.10 * pulse))

@@ -732,7 +732,7 @@ static func _sight(body: Polygon2D, role: int) -> void:
 			ln.default_color = Color(0.26, 0.22, 0.08, 0.95)
 			ln.width = 3.0
 		2:
-			ln.default_color = Color(0.58, 0.90, 0.62, 0.90)
+			ln.default_color = Color(0.22, 0.20, 0.12, 0.90)
 			ln.width = 1.05
 		_:
 			ln.default_color = Color(0.12, 0.16, 0.12, 0.95)
@@ -747,7 +747,7 @@ static func _sight(body: Polygon2D, role: int) -> void:
 		Vector2(-1.2, tip + 0.4), Vector2(1.2, tip + 0.4),
 		Vector2(0.0, tip - 2.8)
 	])
-	bead.color = Color(0.92, 0.86, 0.38, 0.95) if role != 2 else Color(0.72, 0.94, 0.62, 0.95)
+	bead.color = Color(0.72, 0.56, 0.26, 0.95)
 
 
 static func _poly(body: Polygon2D, nam: String, pts: PackedVector2Array, col: Color, z: int) -> Polygon2D:
