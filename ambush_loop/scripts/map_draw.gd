@@ -857,16 +857,16 @@ func _landmark_warehouse(c: CanvasItem) -> void:
 func _landmark_pump(c: CanvasItem) -> void:
 	# Teal pipe runs across the machinery — visual only.
 	var t := AmbushGrid.TILE
-	c.draw_rect(Rect2(7 * t + 8, 11 * t + 10, 12 * t, 8), Color(0.18, 0.42, 0.36, 0.55))
-	c.draw_rect(Rect2(7 * t + 8, 11 * t + 12, 12 * t, 4), Color(0.28, 0.62, 0.52, 0.35))
-	c.draw_rect(Rect2(18 * t + 10, 10 * t, 8, 3 * t), Color(0.16, 0.38, 0.32, 0.55))
-	c.draw_rect(Rect2(24 * t + 6, 11 * t + 4, 2 * t, 10), Color(0.18, 0.40, 0.34, 0.5))
+	c.draw_rect(Rect2(7 * t + 8, 11 * t + 10, 12 * t, 8), Color(0.28, 0.22, 0.12, 0.55))
+	c.draw_rect(Rect2(7 * t + 8, 11 * t + 12, 12 * t, 4), Color(0.38, 0.28, 0.12, 0.35))
+	c.draw_rect(Rect2(18 * t + 10, 10 * t, 8, 3 * t), Color(0.24, 0.20, 0.12, 0.55))
+	c.draw_rect(Rect2(24 * t + 6, 11 * t + 4, 2 * t, 10), Color(0.26, 0.20, 0.12, 0.5))
 	# Valve wheels.
 	for p in [Vector2(18.4 * t, 11.2 * t), Vector2(25.2 * t, 12.2 * t), Vector2(8.6 * t, 11.4 * t)]:
-		c.draw_circle(p, 8.0, Color(0.22, 0.55, 0.42, 0.72))
-		c.draw_circle(p, 3.0, Color(0.10, 0.18, 0.14, 0.85))
-		c.draw_line(p + Vector2(-7, 0), p + Vector2(7, 0), Color(0.10, 0.16, 0.12, 0.8), 1.4)
-		c.draw_line(p + Vector2(0, -7), p + Vector2(0, 7), Color(0.10, 0.16, 0.12, 0.8), 1.4)
+		c.draw_circle(p, 8.0, Color(0.32, 0.24, 0.12, 0.72))
+		c.draw_circle(p, 3.0, Color(0.12, 0.10, 0.06, 0.85))
+		c.draw_line(p + Vector2(-7, 0), p + Vector2(7, 0), Color(0.12, 0.10, 0.06, 0.8), 1.4)
+		c.draw_line(p + Vector2(0, -7), p + Vector2(0, 7), Color(0.12, 0.10, 0.06, 0.8), 1.4)
 	# Warning triangle on the east machinery face.
 	var tri := PackedVector2Array([
 		Vector2(26.6 * t, 10.4 * t),
@@ -879,13 +879,13 @@ func _landmark_pump(c: CanvasItem) -> void:
 	c.draw_polyline(tri_loop, Color(0.12, 0.10, 0.04, 0.85), 1.4, true)
 	c.draw_rect(Rect2(26.45 * t, 11.15 * t, 3.0, 8.0), Color(0.08, 0.08, 0.06, 0.85))
 	# Puddle plates on walkable floor (not a collider).
-	c.draw_circle(Vector2(13.5 * t, 15.5 * t), 14.0, Color(0.12, 0.28, 0.26, 0.28))
-	c.draw_circle(Vector2(16.2 * t, 15.8 * t), 10.0, Color(0.12, 0.26, 0.24, 0.22))
-	_lamp_post(c, Vector2(10.4 * t, 14.2 * t), Color(0.32, 0.82, 0.62))
-	_lamp_post(c, Vector2(22.6 * t, 13.6 * t), Color(0.28, 0.78, 0.58))
+	c.draw_circle(Vector2(13.5 * t, 15.5 * t), 14.0, Color(0.16, 0.14, 0.08, 0.28))
+	c.draw_circle(Vector2(16.2 * t, 15.8 * t), 10.0, Color(0.14, 0.12, 0.08, 0.22))
+	_lamp_post(c, Vector2(10.4 * t, 14.2 * t), Color(0.62, 0.48, 0.22))
+	_lamp_post(c, Vector2(22.6 * t, 13.6 * t), Color(0.58, 0.44, 0.20))
 	# Valve log on the west machine face.
-	c.draw_rect(Rect2(7.15 * t, 10.2 * t, 16.0, 20.0), Color(0.12, 0.22, 0.18, 0.55))
-	c.draw_rect(Rect2(7.3 * t, 10.35 * t, 12.0, 3.0), Color(0.28, 0.55, 0.42, 0.45))
+	c.draw_rect(Rect2(7.15 * t, 10.2 * t, 16.0, 20.0), Color(0.16, 0.14, 0.08, 0.55))
+	c.draw_rect(Rect2(7.3 * t, 10.35 * t, 12.0, 3.0), Color(0.32, 0.26, 0.12, 0.45))
 	# Hose coil on the south walk, off the spine.
 	var hose := Vector2(18.6 * t, 15.2 * t)
 	c.draw_arc(hose, 10.0, 0.2, 5.8, 12, Color(0.16, 0.32, 0.28, 0.55), 3.0, true)
