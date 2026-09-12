@@ -6879,7 +6879,7 @@ func _refresh_phase_chip() -> void:
 			phase_chip.add_theme_color_override("font_color", Color(0.55, 0.92, 0.48))
 		Phase.REPLAY:
 			phase_chip.text = "阶段 · 只读复盘"
-			phase_chip.add_theme_color_override("font_color", Color(0.72, 0.85, 0.95))
+			phase_chip.add_theme_color_override("font_color", Color(0.78, 0.70, 0.48))
 		_:
 			phase_chip.text = ""
 
@@ -6899,7 +6899,7 @@ func _refresh_route_legend() -> void:
 	if level.route_cells.has("sneak"):
 		chips.append({"id": "sneak", "icon": "暗", "label": _route_chip_label("sneak", "暗道"), "color": Color(0.38, 0.78, 0.52)})
 	if level.route_cells.has("echo"):
-		chips.append({"id": "echo", "icon": "回", "label": _route_chip_label("echo", "回波"), "color": Color(0.42, 0.82, 0.96)})
+		chips.append({"id": "echo", "icon": "回", "label": _route_chip_label("echo", "回波"), "color": Color(0.70, 0.58, 0.32)})
 	if level.level_id == "pump" and not level.alternate_route_cells.is_empty():
 		chips.append({"id": "alt", "icon": "门", "label": "备用", "color": Color(0.72, 0.55, 0.28)})
 	if level.has_method("second_trap_text") and str(level.second_trap_text()).strip_edges() != "":
