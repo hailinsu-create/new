@@ -28,13 +28,13 @@ static func night_grade(id: String, saving: bool = false) -> Color:
 	var mild := 0.10 if saving else 0.0
 	match id:
 		"warehouse":
-			return Color(0.88 + mild * 0.2, 0.70 + mild * 0.3, 0.46, 1.0)
+			return Color(0.92 + mild * 0.2, 0.66 + mild * 0.3, 0.38, 1.0)
 		"pump":
 			return Color(0.62 + mild, 0.68, 0.52, 1.0)
 		"railcut":
 			return Color(0.62 + mild, 0.64, 0.60, 1.0)
 		"depot":
-			return Color(0.90, 0.62 + mild * 0.3, 0.36, 1.0)
+			return Color(0.94, 0.56 + mild * 0.3, 0.26, 1.0)
 		"radio":
 			return Color(0.58 + mild, 0.66, 0.62, 1.0)
 		_:

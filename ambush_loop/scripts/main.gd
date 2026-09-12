@@ -64,6 +64,7 @@ var raid_decoys: Array = []
 var raid = RaidDirectorScript.new()
 var barrels: Array = []
 var _alarm_warned_no_gun: bool = false
+var _alarm_pulled_unarmed: bool = false
 var _night_hp_lost: bool = false
 var _night_timer: float = 0.0
 var _wave_fail_index: int = 0
@@ -147,6 +148,7 @@ var role_card_buttons: Array[Button] = []
 var role_cards: Array = []
 var plan_readout: Label = null
 var phase_chip: Label = null
+var stash_board: Label = null
 var route_legend: Control = null
 var _alarm_vignette: ColorRect = null
 var _watch_letterbox: Control = null
@@ -506,6 +508,23 @@ func _build_role_card_hud(root: Control) -> void:
 	phase_chip.add_theme_constant_override("shadow_offset_y", 1)
 	phase_chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(phase_chip)
+	stash_board = Label.new()
+	stash_board.name = "StashBoard"
+	stash_board.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	stash_board.offset_left = 12.0
+	stash_board.offset_right = -12.0
+	stash_board.offset_top = -88.0
+	stash_board.offset_bottom = -68.0
+	stash_board.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	stash_board.add_theme_font_size_override("font_size", 13)
+	stash_board.add_theme_font_override("font", NightOps.ui_font_bold())
+	stash_board.add_theme_color_override("font_color", Color(0.90, 0.82, 0.48))
+	stash_board.add_theme_color_override("font_shadow_color", Color(0.02, 0.03, 0.02, 0.9))
+	stash_board.add_theme_constant_override("shadow_offset_x", 1)
+	stash_board.add_theme_constant_override("shadow_offset_y", 1)
+	stash_board.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stash_board.text = ""
+	root.add_child(stash_board)
 	route_legend = HBoxContainer.new()
 	route_legend.name = "RouteLegend"
 	route_legend.set_anchors_preset(Control.PRESET_TOP_WIDE)
@@ -860,10 +879,13 @@ func _refresh_touch_hud() -> void:
 	var hi := phase == Phase.WATCHING and sim.speed >= 1.5
 	var has_pack := level != null and bool(level.has_ammo_pack)
 	var has_door := level != null and level.door_cell.x >= 0
+	_refresh_alarm_cta()
 	touch_hud.refresh_phase(
 		phase_name, paused, hi, sfx_muted, _event_log_open and event_log != null and event_log.visible,
 		has_pack, has_door
 	)
+	if touch_hud.has_method("set_alarm_cta") and alarm_button:
+		touch_hud.set_alarm_cta(str(alarm_button.text))
 	if touch_hud.has_method("set_next_wave"):
 		var show_wave := phase == Phase.WATCHING
 		var chip := ""
@@ -1335,7 +1357,14 @@ func _apply_watch_layers() -> void:
 		if banner:
 			var spd := "暂停" if sim.paused else ("2×" if sim.speed >= 1.5 else "1×")
 			var night := LevelDef.mood_tag(level.level_id) if level else "初阵"
-			banner.text = "锁死观战  ·  %s  ·  %s  ·  t=%.1fs  ·  %s" % [night, spd, sim.time_sec(), watch_census_text()]
+			if phase == Phase.WON:
+				banner.text = "封锁成功  ·  %s  ·  t=%.1fs" % [night, sim.time_sec()]
+			else:
+				var w := wave_index() + 1
+				var tot := maxi(wave_total(), 1)
+				banner.text = "警报中  ·  第%d/%d波  ·  %s  ·  %s  ·  t=%.1fs  ·  %s" % [
+					w, tot, night, spd, sim.time_sec(), watch_census_text()
+				]
 		_refresh_watch_metronome()
 		_refresh_watch_clock()
 	if _watch_vignette:
@@ -1641,7 +1670,7 @@ func _ensure_watch_cinema() -> void:
 		var banner := Label.new()
 		banner.name = "WatchBanner"
 		banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		banner.text = "锁死观战"
+		banner.text = "警报中"
 		banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		banner.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		banner.set_anchors_preset(Control.PRESET_TOP_WIDE)
@@ -3066,6 +3095,8 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 	if raid:
 		raid.reset()
 	_alarm_warned_no_gun = false
+	_alarm_pulled_unarmed = false
+	_clear_flash()
 	_night_hp_lost = false
 	_night_timer = 0.0
 	_wave_fail_index = 0
@@ -4280,13 +4311,16 @@ func _refresh_intel_chip() -> void:
 		elif plan_restore_hint != "":
 			line = _clip_chip_line(plan_restore_hint, 28)
 		else:
-			line = _clip_chip_line("匣%d 枪%s  波%d/%d  %s" % [
+			var named := PackedStringArray()
+			for k in named_crate_ids():
+				named.append(WeaponCatalogScript.display_name(k))
+			var named_bit := ("  " + "·".join(named)) if not named.is_empty() else ""
+			line = _clip_chip_line("匣%d 枪%s%s  %s" % [
 				stash_count(),
 				"有" if squad_has_firearm() else "无",
-				wave_index() + 1,
-				wave_total(),
+				named_bit,
 				_raid_clock_text(),
-			], 36)
+			], 48)
 	elif phase == Phase.SWEEP:
 		line = _clip_chip_line("掉落%d  空格%s" % [living_loot_count(), "撤离" if raid and raid.is_last_wave(level) else "下一波"], 32)
 	intel_chip.visible = line != "" and (phase == Phase.SETUP or phase == Phase.SWEEP)
@@ -4590,6 +4624,7 @@ func _on_alarm_pressed() -> void:
 		_flash(leak_warn, Color(1.0, 0.55, 0.28))
 		if status_label:
 			status_label.text = leak_warn
+	_alarm_pulled_unarmed = not squad_has_firearm()
 	_capture_plan()
 	frozen_plan = last_plan.duplicate_plan()
 	run_id += 1
@@ -5508,6 +5543,34 @@ func _on_op_ammo_repacked(op: OperatorUnit) -> void:
 	_update_role_cards()
 
 
+func _clear_flash() -> void:
+	if _flash_tween != null:
+		_flash_tween.kill()
+		_flash_tween = null
+	if flash_label:
+		flash_label.text = ""
+		flash_label.modulate.a = 0.0
+	if has_node("HUD/Root"):
+		var plate := $HUD/Root.get_node_or_null("FlashPlate") as ColorRect
+		if plate:
+			plate.modulate.a = 0.0
+
+
+func cinema_banner_text() -> String:
+	if _watch_letterbox == null or not is_instance_valid(_watch_letterbox):
+		return ""
+	var banner := _watch_letterbox.get_node_or_null("WatchBanner") as Label
+	if banner == null:
+		return ""
+	return str(banner.text)
+
+
+func flash_text() -> String:
+	if flash_label == null or float(flash_label.modulate.a) < 0.08:
+		return ""
+	return str(flash_label.text)
+
+
 func _flash(text: String, color: Color) -> void:
 	if flash_label == null:
 		return
@@ -5544,6 +5607,8 @@ func _flash(text: String, color: Color) -> void:
 func _fix_one_line() -> String:
 	if fail_reason != "escape":
 		return ""
+	if _alarm_pulled_unarmed:
+		return "改一处就能赢：先搜匣拿到枪再拉警报。刀强拉会漏网。"
 	if level != null:
 		var authored := str(level.fix_one).strip_edges()
 		if authored != "":
@@ -6742,9 +6807,10 @@ func _update_hud() -> void:
 		op.tag_emphasis = phase == Phase.WATCHING and op.alive and op.slot != null
 		if op.has_method("_refresh_tag"):
 			op._refresh_tag()
+	_refresh_alarm_cta()
 	var dep := _deployed_count()
 	if phase == Phase.SETUP:
-		help_label.text = "点地走 点匣拾 上掩体%d/3 · 空格警报" % dep
+		help_label.text = "点地走 开匣搜枪 上掩体%d/3 · 空格%s" % [dep, alarm_button.text if alarm_button else "警报"]
 	elif phase == Phase.WATCHING:
 		var spd := "暂停" if sim.paused else ("2×" if sim.speed >= 1.5 else "1×")
 		help_label.text = "警报 t=%.1fs %s  G手雷" % [sim.time_sec(), spd]
@@ -6758,7 +6824,7 @@ func _update_hud() -> void:
 		help_label.text = "复盘 t=%.1fs / %.1fs" % [
 			float(replay.scrub_tick) / 60.0, float(replay.max_tick()) / 60.0
 		]
-	_refresh_alarm_cta()
+	_refresh_stash_board()
 	_refresh_door_visual()
 	_refresh_mode_pack_buttons()
 	_update_role_cards()
@@ -6766,6 +6832,7 @@ func _update_hud() -> void:
 	if phase != Phase.SETUP:
 		_update_cover_previews()
 	_apply_watch_layers()
+	_ensure_touch_hud()
 	_refresh_touch_hud()
 
 
@@ -7162,22 +7229,41 @@ func _spawn_level_stashes() -> void:
 		return
 	var gs = get_node_or_null("/root/GameSettings")
 	var lean := gs != null and bool(gs.get("few_crates"))
+	var used: Dictionary = {}
 	for spec in level.stashes:
 		if not spec is Dictionary:
 			continue
-		if lean and str(spec.get("kind", "")) in ["ammo", "pistol"]:
+		var authored := str(spec.get("kind", ""))
+		if lean and authored in ["ammo", "pistol"]:
 			continue
 		var cell: Vector2i = spec.get("cell", Vector2i.ZERO)
 		if grid.is_blocked(cell.x, cell.y):
+			cell = RaidPathfinderScript.nearest_open(grid, cell)
+		if cell.x < 0:
 			continue
+		var key := "%d,%d" % [cell.x, cell.y]
+		if used.has(key):
+			cell = RaidPathfinderScript.nearest_open(grid, Vector2i(cell.x + 1, cell.y))
+			key = "%d,%d" % [cell.x, cell.y]
+			if cell.x < 0 or used.has(key):
+				continue
+		used[key] = true
+		var kind := WeaponCatalogScript.resolve_crate_kind(authored, str(level.level_id), raid_stashes.size())
+		var amount := int(spec.get("amount", 1))
+		if WeaponCatalogScript.is_firearm(kind):
+			var d: Dictionary = WeaponCatalogScript.def(kind)
+			var mx := int(d.get("max_ammo", amount))
+			if mx > 0:
+				amount = clampi(amount, 1, mx)
 		var st = RaidStashScript.new()
 		st.name = "Stash"
 		entities.add_child(st)
 		st.global_position = grid.cell_to_world_center(cell)
-		st.setup(str(spec.get("kind", "ammo")), int(spec.get("amount", 1)), cell)
+		st.setup(kind, amount, cell)
 		raid_stashes.append(st)
 	_ping_first_crate()
 	_cap_stashes()
+	_refresh_stash_board()
 
 
 func _command_move_selected(world_pos: Vector2) -> void:
@@ -7187,7 +7273,10 @@ func _command_move_selected(world_pos: Vector2) -> void:
 		return
 	var from_c := selected.grid_cell()
 	var to_c := grid.world_to_cell(world_pos)
-	if _cell_taken(to_c, selected):
+	var stash_c := _stash_cell_near(to_c, 1)
+	if stash_c.x >= 0:
+		to_c = stash_c
+	elif _cell_taken(to_c, selected):
 		to_c = _open_cell_near(to_c, selected)
 	var cells: Array[Vector2i] = RaidPathfinderScript.find_path(grid, from_c, to_c)
 	if cells.is_empty():
@@ -7225,8 +7314,8 @@ func _fade_move_ghost() -> void:
 	if _move_ghost == null or not is_instance_valid(_move_ghost):
 		return
 	var tw := _move_ghost.create_tween()
-	tw.tween_interval(0.45)
-	tw.tween_property(_move_ghost, "modulate:a", 0.25, 0.55)
+	tw.tween_interval(0.28)
+	tw.tween_property(_move_ghost, "modulate:a", 0.22, 0.90)
 
 
 func _tick_command_moves(delta: float) -> void:
@@ -7284,7 +7373,7 @@ func _follow_selected_cam(delta: float) -> void:
 		return
 	var center := Vector2(640, 360)
 	var want: Vector2 = (selected.global_position - center) * 0.28
-	_cam_pan = _cam_pan.lerp(want, 1.0 - exp(-delta * 3.2))
+	_cam_pan = _cam_pan.lerp(want, 1.0 - exp(-delta * 4.6))
 	_apply_cam()
 
 
@@ -7305,10 +7394,13 @@ func _tick_command_pickups(delta: float = 0.016) -> void:
 func _nearest_stash_for(op: OperatorUnit) -> Node2D:
 	if op == null or not op.alive or not op.visible:
 		return null
+	var oc := op.grid_cell()
 	var best: Node2D = null
-	var best_d := 28.0
+	var best_d := 22.0
 	for st in raid_stashes:
 		if st == null or not is_instance_valid(st) or st.collected:
+			continue
+		if st.cell != oc:
 			continue
 		var d := op.global_position.distance_to(st.global_position)
 		if d <= best_d:
@@ -7809,6 +7901,45 @@ func command_move_to_cell(op_index: int, cell: Vector2i) -> bool:
 	_select_op(op_index)
 	_command_move_selected(grid.cell_to_world_center(cell))
 	return selected != null and selected.is_moving()
+
+
+func _stash_cell_near(cell: Vector2i, radius: int = 1) -> Vector2i:
+	var best := Vector2i(-1, -1)
+	var best_d := 99
+	for st in raid_stashes:
+		if st == null or not is_instance_valid(st) or bool(st.collected):
+			continue
+		var c: Vector2i = st.cell
+		var d: int = maxi(absi(c.x - cell.x), absi(c.y - cell.y))
+		if d <= radius and d < best_d:
+			best_d = d
+			best = c
+	return best
+
+
+func named_crate_ids() -> PackedStringArray:
+	var out := PackedStringArray()
+	for st in raid_stashes:
+		if st == null or not is_instance_valid(st) or bool(st.collected):
+			continue
+		var k := str(st.kind)
+		if WeaponCatalogScript.is_firearm(k) and not WeaponCatalogScript.is_class_firearm(k):
+			out.append(k)
+	return out
+
+
+func _refresh_stash_board() -> void:
+	if stash_board == null:
+		return
+	## Names live on crate tags + intel chip. Keep the label for dumps, off the chrome.
+	var names: PackedStringArray = PackedStringArray()
+	for k in named_crate_ids():
+		names.append(WeaponCatalogScript.display_name(k))
+	if names.is_empty():
+		stash_board.text = "本夜匣  先走近木箱开盖"
+	else:
+		stash_board.text = "本夜枪  %s" % " · ".join(names)
+	stash_board.visible = false
 
 
 func stash_count() -> int:

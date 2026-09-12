@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.3.1 — Commandos / WW2 deepen (playtest)
+
+Sideload APK: `dist/AmbushLoop-v0.3.1-commandos-ww2-playtest.apk`  
+Release tag: `v0.3.1-commandos-ww2`
+
+Polish on the 0.3.0 raid loop: HUD copy, named crates every night, walk/loot/touch, distinct gunshots.
+
+### Play
+- Alert cinema reads **警报中 · 第N/M波** (win: **封锁成功**). No leftover 锁死观战.
+- Yard rifle crate is **Kar98k**; class crates resolve to a stable WWII model per night. Yard 9/9 crates spawn (m1911 / shotgun walkable).
+- Knife-force leak fail card teaches **先搜枪**. Win flash does not leak into the next night.
+- Touch alarm button matches desktop: 需枪 / 强拉警报 / 拉警报 / 下一波警报 / 撤离封锁.
+- Faster SCOUT walk, crate-cell click snap, bigger loot radius. Named-gun board during scout.
+
+### Audio / art
+- Distinct PCM: bolt clack, Garand ping, MG42 5-round burst, pistol, shotgun.
+- Larger crate gun stamps and tags.
+
+### Android
+- `versionName` 0.3.1 / `versionCode` 3 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title stamp **v0.3.1 COMMANDOS/WW2**.
+2. Yard crate tag **Kar98k** (not generic 步枪).
+3. Pull alarm: top bar **警报中 · 第1/2波**, not 锁死观战.
+
 ## 0.3.0 — Commandos / WW2 playtest
 
 Sideload APK: `dist/AmbushLoop-v0.3.0-commandos-ww2-playtest.apk`  

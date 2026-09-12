@@ -20,6 +20,7 @@ func setup(amount: int, p_kind: String = "ammo") -> void:
 	collected = false
 	add_to_group("loot")
 	if tag:
+		tag.add_theme_font_size_override("font_size", 13)
 		if kind == "ammo":
 			tag.text = "+%d弹" % amount
 		else:

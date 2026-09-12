@@ -447,9 +447,9 @@ static func make_yard() -> LevelDef:
 		{"cell": Vector2i(11, 16), "kind": "grenade", "amount": 2},
 		{"cell": Vector2i(10, 13), "kind": "mine", "amount": 1},
 		{"cell": Vector2i(23, 13), "kind": "ammo", "amount": 6},
-		{"cell": Vector2i(6, 17), "kind": "pistol", "amount": 8},
-		{"cell": Vector2i(18, 12), "kind": "shotgun", "amount": 4},
-		{"cell": Vector2i(20, 16), "kind": "m1911", "amount": 7},
+		{"cell": Vector2i(8, 13), "kind": "pistol", "amount": 8},
+		{"cell": Vector2i(17, 12), "kind": "shotgun", "amount": 4},
+		{"cell": Vector2i(21, 17), "kind": "m1911", "amount": 7},
 	]
 	l.ambush_zone = Rect2(320, 280, 400, 160)
 	l.has_ammo_pack = false
@@ -697,7 +697,7 @@ static func make_railcut() -> LevelDef:
 		{"cell": Vector2i(32, 13), "kind": "mg", "amount": 12},
 		{"cell": Vector2i(29, 16), "kind": "scout", "amount": 6},
 		{"cell": Vector2i(16, 17), "kind": "grenade", "amount": 2},
-		{"cell": Vector2i(7, 11), "kind": "mine", "amount": 1},
+		{"cell": Vector2i(10, 11), "kind": "mine", "amount": 1},
 		{"cell": Vector2i(22, 16), "kind": "ammo", "amount": 6},
 		{"cell": Vector2i(18, 16), "kind": "mg42", "amount": 50},
 	]

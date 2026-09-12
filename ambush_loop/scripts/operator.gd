@@ -9,7 +9,7 @@ enum FireMode { ENGAGE_ON_SIGHT, HOLD_FOR_AMBUSH }
 const MAX_HP := 100.0
 const COVER_DAMAGE_MULT := 0.4
 const EXPOSED_DAMAGE_MULT := 1.0
-const LOOT_RANGE := 40.0
+const LOOT_RANGE := 56.0
 const CONE_RAYS := 14
 const MuzzleFlashScript := preload("res://scripts/fx/muzzle_flash.gd")
 const CombatFxScript := preload("res://scripts/fx/combat_fx.gd")
@@ -185,8 +185,8 @@ func _apply_role_kit() -> void:
 			max_ammo = 18
 			body_color = Color(0.38, 0.36, 0.22)
 			role_short = "机"
-			move_speed = 72.0
-			base_move_speed = 72.0
+			move_speed = 90.0
+			base_move_speed = 90.0
 			kit_range_px = range_px
 		Role.SCOUT:
 			# Long narrow overwatch, scarce rounds — Commandos sniper/lookout.
@@ -199,8 +199,8 @@ func _apply_role_kit() -> void:
 			max_ammo = 10
 			body_color = Color(0.24, 0.28, 0.22)
 			role_short = "侦"
-			move_speed = 118.0
-			base_move_speed = 118.0
+			move_speed = 140.0
+			base_move_speed = 140.0
 			kit_range_px = range_px
 		_:
 			# Rifle: stable filler, same baseline as the original identical kits.
@@ -212,8 +212,8 @@ func _apply_role_kit() -> void:
 			max_ammo = 14
 			body_color = Color(0.36, 0.34, 0.24)
 			role_short = "步"
-			move_speed = 96.0
-			base_move_speed = 96.0
+			move_speed = 118.0
+			base_move_speed = 118.0
 			kit_range_px = range_px
 
 
@@ -430,7 +430,7 @@ func tick_move(delta: float) -> bool:
 	var aim := target - global_position
 	if aim.length_squared() > 4.0:
 		set_facing(rad_to_deg(atan2(aim.y, aim.x)))
-	if global_position.distance_to(target) <= 2.2:
+	if global_position.distance_to(target) <= 3.0:
 		_path_i += 1
 		if _path_i % 3 == 0:
 			CombatFxScript.mud_print(self, global_position, deg_to_rad(facing_deg))

@@ -59,7 +59,7 @@ func _ensure_look() -> void:
 		tag = Label.new()
 		tag.name = "Tag"
 		tag.position = Vector2(-18, -22)
-		tag.add_theme_font_size_override("font_size", 11)
+		tag.add_theme_font_size_override("font_size", 13)
 		add_child(tag)
 	tag.add_theme_color_override("font_color", col.lightened(0.25))
 	var lid := get_node_or_null("Lid") as Polygon2D
@@ -81,7 +81,7 @@ func _ensure_look() -> void:
 				add_child(stamp)
 			stamp.polygon = art.icon_poly(kind)
 			stamp.color = art.steel_color(kind)
-			stamp.scale = Vector2(0.72, 0.72)
+			stamp.scale = Vector2(1.05, 1.05)
 			stamp.position = Vector2(0, 1)
 			stamp.z_index = 2
 
@@ -90,8 +90,8 @@ func set_search_progress(p: float) -> void:
 	search_progress = clampf(p, 0.0, 1.0)
 	var lid := get_node_or_null("Lid") as Polygon2D
 	if lid:
-		lid.rotation = -0.85 * search_progress
-		lid.position.y = -6.0 * search_progress
+		lid.rotation = -1.25 * search_progress
+		lid.position.y = -9.0 * search_progress
 	if tag and search_progress > 0.02:
 		tag.text = "开匣 %d%%" % int(round(search_progress * 100.0))
 	elif tag:

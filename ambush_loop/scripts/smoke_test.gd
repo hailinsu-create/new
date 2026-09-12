@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.3.0":
+	if ver != "0.3.1":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -1113,6 +1113,13 @@ func _assert_raid_contract(main) -> bool:
 		push_error("SMOKE_OPS_NOT_ON_MAP n=%s" % visible_ops)
 		quit(80)
 		return false
+	main._tick_crate_search(0.5)
+	for op in main.operators:
+		if op and str(op.weapon_id) != "knife":
+			push_error("SMOKE_INSERT_AUTO_GUN %s %s" % [op.display_name, op.weapon_id])
+			quit(80)
+			return false
+	print("SMOKE_OK_INSERT_KNIVES")
 	if main.level.wave_count() < 2:
 		push_error("SMOKE_YARD_WAVES %s" % main.level.wave_count())
 		quit(80)
@@ -1129,6 +1136,53 @@ func _assert_raid_contract(main) -> bool:
 		push_error("SMOKE_OP_NOT_MOVING")
 		quit(80)
 		return false
+	if main.stash_count() < 9:
+		push_error("SMOKE_YARD_STASH_COUNT n=%s" % main.stash_count())
+		quit(80)
+		return false
+	var crate_kinds: PackedStringArray = PackedStringArray()
+	for s in main.raid_stashes:
+		if s != null and is_instance_valid(s):
+			crate_kinds.append(str(s.kind))
+	if not crate_kinds.has("kar98k") or not crate_kinds.has("m1911"):
+		push_error("SMOKE_YARD_NAMED_MISS %s" % " ".join(crate_kinds))
+		quit(80)
+		return false
+	if crate_kinds.has("rifle"):
+		push_error("SMOKE_CLASS_RIFLE_STILL %s" % " ".join(crate_kinds))
+		quit(80)
+		return false
+	print("SMOKE_OK_NAMED_CRATES n=", main.stash_count(), " ", " ".join(crate_kinds))
+	main._refresh_alarm_cta()
+	if str(main.alarm_button.text) != "需枪":
+		push_error("SMOKE_ALARM_CTA %s" % main.alarm_button.text)
+		quit(80)
+		return false
+	var gs_cta = root.get_node_or_null("GameSettings")
+	if gs_cta:
+		gs_cta.force_touch_hud = true
+	main._ensure_touch_hud()
+	main._refresh_touch_hud()
+	if main.touch_hud and main.touch_hud._btns.has("alarm") and str(main.touch_hud._btns["alarm"].text) != "需枪":
+		push_error("SMOKE_TOUCH_CTA %s" % main.touch_hud._btns["alarm"].text)
+		quit(80)
+		return false
+	print("SMOKE_OK_ALARM_CTA 需枪")
+	var saved_phase = main.phase
+	main.phase = main.Phase.WATCHING
+	main._apply_watch_layers()
+	var cine := str(main.cinema_banner_text()) if main.has_method("cinema_banner_text") else ""
+	if cine.find("锁死") >= 0:
+		push_error("SMOKE_CINEMA_LOCK %s" % cine)
+		quit(80)
+		return false
+	if cine.find("警报中") < 0:
+		push_error("SMOKE_CINEMA_COPY %s" % cine)
+		quit(80)
+		return false
+	print("SMOKE_OK_CINEMA ", cine)
+	main.phase = saved_phase
+	main._apply_watch_layers()
 	print("SMOKE_OK_RAID_CONTRACT stashes=", main.stash_count(), " waves=", main.level.wave_count())
 	main.raid_grant_and_pickup(0, "grenade", 2)
 	main.raid_grant_and_pickup(0, "mine", 1)
@@ -1320,7 +1374,7 @@ func _assert_raid_campaign(main) -> bool:
 	main.operators[0].stop_move()
 	main.operators[0].global_position = main.grid.cell_to_world_center(rifle_cell)
 	main._try_pickup_near_selected()
-	if str(main.operators[0].weapon_id) == "rifle":
+	if str(main.operators[0].weapon_id) != "knife":
 		push_error("SMOKE_CRATE_INSTANT weapon=%s" % main.operators[0].weapon_id)
 		quit(81)
 		return false
@@ -1329,20 +1383,20 @@ func _assert_raid_campaign(main) -> bool:
 		quit(81)
 		return false
 	main.raid_advance_search(0.2)
-	if str(main.operators[0].weapon_id) == "rifle":
+	if str(main.operators[0].weapon_id) != "knife":
 		push_error("SMOKE_CRATE_TOO_FAST")
 		quit(81)
 		return false
 	main.raid_advance_search(0.4)
-	if str(main.operators[0].weapon_id) != "rifle":
+	if str(main.operators[0].weapon_id) != "kar98k":
 		# Force pickup if snap missed the crate.
-		main.raid_grant_and_pickup(0, "rifle", 7)
-	if str(main.operators[0].weapon_id) != "rifle":
-		push_error("SMOKE_PICKUP_RIFLE got=%s" % main.operators[0].weapon_id)
+		main.raid_grant_and_pickup(0, "kar98k", 5)
+	if str(main.operators[0].weapon_id) != "kar98k":
+		push_error("SMOKE_PICKUP_KAR98K got=%s" % main.operators[0].weapon_id)
 		quit(81)
 		return false
 	print("SMOKE_OK_CRATE_SEARCH")
-	print("SMOKE_OK_PICKUP rifle")
+	print("SMOKE_OK_PICKUP kar98k")
 
 	# Knives-only alarm should leak (cannot hold the spine). Soft gate: second press.
 	main._start_setup(false, false)
@@ -1357,6 +1411,12 @@ func _assert_raid_campaign(main) -> bool:
 		quit(81)
 		return false
 	print("SMOKE_OK_KNIFE_LEAK tick=", main.sim.tick)
+	var fail_card := str(main.result_label.text) if main.result_label else ""
+	if fail_card.find("先搜") < 0:
+		push_error("SMOKE_KNIFE_FAIL_COPY %s" % fail_card.replace("\n", " / "))
+		quit(81)
+		return false
+	print("SMOKE_OK_KNIFE_FAIL_COPY")
 	main._on_continue_pressed()
 	await process_frame
 
@@ -1382,6 +1442,11 @@ func _assert_raid_campaign(main) -> bool:
 		push_error("SMOKE_BAD_ADVANCE expected=warehouse got=%s" % main.level.level_id)
 		quit(11)
 		return false
+	if main.has_method("flash_text") and str(main.flash_text()).find("零逃逸") >= 0:
+		push_error("SMOKE_FLASH_LEAK %s" % main.flash_text())
+		quit(11)
+		return false
+	print("SMOKE_OK_FLASH_CLEAR")
 	if not _assert_geometry(main, "warehouse"):
 		return false
 	if main.barrels.size() != 1:
@@ -2331,6 +2396,22 @@ func _assert_weapon_models(_main = null) -> bool:
 			quit(82)
 			return false
 		op.wipe_inventory()
+	if str(W.resolve_crate_kind("rifle", "yard")) != "kar98k":
+		push_error("SMOKE_RESOLVE_YARD_RIFLE %s" % W.resolve_crate_kind("rifle", "yard"))
+		quit(82)
+		return false
+	if str(W.resolve_crate_kind("m1911", "yard")) != "m1911":
+		push_error("SMOKE_RESOLVE_KEEP_NAMED")
+		quit(82)
+		return false
+	if str(W.sfx_cue("kar98k")) == str(W.sfx_cue("mg42")):
+		push_error("SMOKE_SFX_NOT_DISTINCT")
+		quit(82)
+		return false
+	if str(W.sfx_cue("m1911")) == str(W.sfx_cue("kar98k")):
+		push_error("SMOKE_PISTOL_SFX_SAME")
+		quit(82)
+		return false
 	print("SMOKE_OK_WEAPON_MODELS n=", W.model_ids().size())
 	return true
 
@@ -2635,6 +2716,24 @@ func _assert_sfx(main) -> bool:
 			quit(36)
 			return false
 		print("SMOKE_OK_SFX_BODY fire=", snapped(fire_p, 0.01), " tension=", snapped(ten_p, 0.01), " echo=", snapped(echo_p, 0.01))
+	if main.sfx.has_method("cue_duration_sec"):
+		var db := float(main.sfx.cue_duration_sec("fire_bolt"))
+		var ds := float(main.sfx.cue_duration_sec("fire_smg"))
+		var dmg := float(main.sfx.cue_duration_sec("fire_mg"))
+		var d42 := float(main.sfx.cue_duration_sec("fire_mg42"))
+		if db - ds < 0.06:
+			push_error("SMOKE_BOLT_NOT_LONGER bolt=%s smg=%s" % [db, ds])
+			quit(36)
+			return false
+		if absf(d42 - dmg) < 0.02:
+			push_error("SMOKE_MG42_DURATION_SAME mg=%s mg42=%s" % [dmg, d42])
+			quit(36)
+			return false
+		if not main.sfx.has_cue("fire_pistol") or not main.sfx.has_cue("fire_shotgun"):
+			push_error("SMOKE_NO_NEW_FIRE_CUES")
+			quit(36)
+			return false
+		print("SMOKE_OK_SFX_MODELS bolt=", snapped(db, 0.01), " smg=", snapped(ds, 0.01), " mg=", snapped(dmg, 0.01), " mg42=", snapped(d42, 0.01))
 	print("SMOKE_OK_SFX cues=role_fire muted=", main.sfx.muted, " every_shot=1 ui=1 hit=1")
 	return true
 

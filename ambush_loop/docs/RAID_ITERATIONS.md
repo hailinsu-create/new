@@ -109,6 +109,21 @@ Smoke: `SMOKE_SLICE_COMPLETE` + `SMOKE_OK_RAID_LOOP`.
 99. Occupancy + camera follow still in (31/32); raid contract still smokes both
 100. Playtest APK re-export attempted if the Android SDK is on the machine (non-blocking)
 
+## Landed 101–112 (v0.3.1)
+
+101. Cinema banner `警报中 · 第N/M波` (WON: `封锁成功`). No `锁死观战`. `SMOKE_OK_CINEMA`
+102. Class crates resolve to stable named WWII models per night (yard rifle = Kar98k). `SMOKE_OK_NAMED_CRATES` / `SMOKE_OK_PICKUP kar98k`
+103. Blocked crate cells snap to nearest walkable; yard shotgun/m1911 and railcut mine authored onto open cells. Yard 9/9.
+104. Fail card on knife-force leak teaches `先搜匣拿到枪`. `SMOKE_OK_KNIFE_FAIL_COPY`
+105. Win flash cleared on next-night setup. `SMOKE_OK_FLASH_CLEAR`
+106. Touch alarm CTA tracks 需枪 / 强拉 / 拉警报 / 下一波 / 撤离. `SMOKE_OK_ALARM_CTA`
+107. SCOUT walk ~20% faster; crate snap 1 cell; search radius 44px; loot range 56px
+108. Stash board lists named guns during SCOUT
+109. Per-model gunshots: bolt clack, Garand ping, MG42 5-burst, pistol, shotgun. `SMOKE_OK_SFX_MODELS`
+110. Howto / help / main.tscn leftover 锁死 copy cleared
+111. Version 0.3.1 / versionCode 3
+112. Independent reeval dump `eval_dump_v031.gd`
+
 ## How to play now (delta vs 41)
 
 - Knives at insert. Walk onto a crate and **stand 0.4s**.

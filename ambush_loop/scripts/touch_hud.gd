@@ -89,7 +89,7 @@ func _build() -> void:
 	_add(_row_setup, "rotate_ccw", "↺", Color(0.42, 0.58, 0.36))
 	_add(_row_setup, "rotate_cw", "↻", Color(0.42, 0.58, 0.36))
 	_add(_row_setup, "clear", "收回", Color(0.38, 0.40, 0.36))
-	_add(_row_setup, "alarm", "警报", Color(0.72, 0.22, 0.18))
+	_add(_row_setup, "alarm", "需枪", Color(0.72, 0.22, 0.18))
 
 	_row_watch = HBoxContainer.new()
 	_row_watch.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -232,6 +232,21 @@ func set_hint(text: String) -> void:
 		_hint.text = text
 
 
+func set_alarm_cta(text: String) -> void:
+	if not _btns.has("alarm"):
+		return
+	var b: Button = _btns["alarm"]
+	if b == null:
+		return
+	var lab := text.strip_edges()
+	if lab == "":
+		lab = "警报"
+	b.text = lab
+	b.set_meta("label", lab)
+	var wide := lab.length() >= 4
+	b.custom_minimum_size = Vector2(118 if wide else 88, 56)
+
+
 func refresh_phase(
 	phase_name: String,
 	watching_paused: bool,
@@ -248,9 +263,9 @@ func refresh_phase(
 		_row_watch.visible = phase_name != "SETUP" and phase_name != "SWEEP"
 	match phase_name:
 		"SETUP":
-			set_hint("触控：点队员/点地走 → 拾取匣 → 趴掩体 → 拉警报")
+			set_hint("触控：点队员/点地走 → 开匣搜枪 → 趴掩体 → 拉警报")
 		"SWEEP":
-			set_hint("打扫：走近尸体拾取 → 下一波或撤离")
+			set_hint("打扫：走近尸体拾取 → 下一波警报或撤离封锁")
 		"WATCHING":
 			set_hint("警报中 — 暂停 / 倍速 / 中止 / 手雷。走位等打扫")
 		"REPLAY":

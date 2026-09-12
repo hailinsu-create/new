@@ -4,8 +4,8 @@ Godot 4.7.2 vertical slice — Commandos-style night raid: scout, loot, ambush, 
 
 **朋友包 / 程序多边形 / 合成音 / 必须横屏。** 不是正式版，不要写成 9.5。  
 像素门槛加权 **9.0**（`docs/Ambush_Loop_试玩复评_71ca4af.md`，窗口 31 张）。旧自称 9.2 作废。  
-侧载试玩 **v0.3.0 Commandos / WW2**：`ambush_loop/dist/AmbushLoop-v0.3.0-commandos-ww2-playtest.apk`（包名 `com.ambushloop.game`，`versionName` 0.3.0）。  
-直链：https://github.com/hailinsu-create/new/releases/download/v0.3.0-commandos-ww2/AmbushLoop-v0.3.0-commandos-ww2-playtest.apk  
+侧载试玩 **v0.3.1 Commandos / WW2**：`ambush_loop/dist/AmbushLoop-v0.3.1-commandos-ww2-playtest.apk`（包名 `com.ambushloop.game`，`versionName` 0.3.1）。  
+直链：https://github.com/hailinsu-create/new/releases/download/v0.3.1-commandos-ww2/AmbushLoop-v0.3.1-commandos-ww2-playtest.apk  
 不要用 GitHub release `ambush-loop-playtest-0.2.0` 或 `main` 上的 `AmbushLoop-playtest.apk`（那是锁死观战包，没有搜刮/多波打扫/28 枪）。
 
 Blueprint: `docs/Ambush_Loop_开发蓝图.md`  

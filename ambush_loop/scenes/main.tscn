@@ -107,7 +107,7 @@ mouse_filter = 2
 clip_text = true
 theme_override_colors/font_color = Color(0.70, 0.74, 0.66, 0.9)
 theme_override_font_sizes/font_size = 12
-text = "布置 → 警报锁死 → 观看"
+text = "搜刮 → 拉警报 → 打扫"
 
 [node name="BottomBar" type="HBoxContainer" parent="HUD/Root"]
 layout_mode = 1

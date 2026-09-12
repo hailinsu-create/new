@@ -64,7 +64,7 @@ Cut (故意不做全 Commandos / 不做 RTS):
 
 每人：`weapon_id`、弹药（按枪种分池，不能混用）、`grenades`、`mines`、`decoys`。开局只有刀。T 递给最近队友。
 
-地图匣：`rifle` / `mg` / `scout` / `pistol` / `shotgun` / `ammo` / `grenade` / `mine` / `decoy`。
+地图匣：作者可写 class（`rifle` / `mg` / `scout` / `pistol` / `shotgun` / `smg`）或具名型号。运行时 class 匣按夜 resolve 成稳定 WWII 型号（院子步枪匣 = Kar98k）。被墙格会 snap 到最近可行走格。
 
 敌人死亡掉落留在尸体处，**警报中不自动吸入**；打扫期走进拾取范围才进背包，带入下一波。
 
