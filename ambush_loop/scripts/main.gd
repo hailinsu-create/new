@@ -7421,7 +7421,15 @@ func _throw_grenade_at(world_pos: Vector2) -> void:
 	selected.grenades -= 1
 	var g = RaidGrenadeScript.new()
 	entities.add_child(g)
-	g.setup(selected.global_position, dest, float(d.get("fuse", 0.55)), float(d.get("radius", 78.0)), float(d.get("damage", 78.0)))
+	var gvar := "stiel"
+	match str(level.level_id) if level else "":
+		"pump", "railcut":
+			gvar = "mills"
+		"depot", "radio":
+			gvar = "mk2"
+		_:
+			gvar = "stiel"
+	g.setup(selected.global_position, dest, float(d.get("fuse", 0.55)), float(d.get("radius", 78.0)), float(d.get("damage", 78.0)), gvar)
 	g.detonated.connect(_on_grenade_boom)
 	raid_grenades.append(g)
 	status_label.text = "%s 丢手雷 剩余%d" % [selected.display_name, selected.grenades]

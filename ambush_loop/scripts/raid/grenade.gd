@@ -17,15 +17,18 @@ var _t: float = 0.0
 var cooked: float = 0.0
 var cook_max: float = 0.55
 var bounced: bool = false
+var variant: String = "stiel"
 
 
-func setup(from: Vector2, to: Vector2, p_fuse: float = 0.55, p_radius: float = 78.0, p_dmg: float = 78.0) -> void:
+func setup(from: Vector2, to: Vector2, p_fuse: float = 0.55, p_radius: float = 78.0, p_dmg: float = 78.0, p_variant: String = "") -> void:
 	global_position = from
 	_origin = from
 	target = to
 	fuse = p_fuse
 	radius = p_radius
 	damage = p_dmg
+	if p_variant != "":
+		variant = p_variant
 	_flight = 0.0
 	_done = false
 	z_index = 8
@@ -35,6 +38,16 @@ func setup(from: Vector2, to: Vector2, p_fuse: float = 0.55, p_radius: float = 7
 func _ensure_visual() -> void:
 	if get_node_or_null("Body") != null:
 		return
+	match variant:
+		"mills":
+			_mills_visual()
+		"mk2":
+			_mk2_visual()
+		_:
+			_stiel_visual()
+
+
+func _stiel_visual() -> void:
 	var body := Polygon2D.new()
 	body.name = "Body"
 	body.polygon = PackedVector2Array([
@@ -53,6 +66,58 @@ func _ensure_visual() -> void:
 	pin.name = "Pin"
 	pin.polygon = PackedVector2Array([
 		Vector2(-2.2, -13), Vector2(2.2, -13), Vector2(2.0, -10), Vector2(-2.0, -10)
+	])
+	pin.color = Color(0.72, 0.56, 0.26, 0.95)
+	add_child(pin)
+
+
+func _mills_visual() -> void:
+	var body := Polygon2D.new()
+	body.name = "Body"
+	var pts := PackedVector2Array()
+	for i in 10:
+		var a := TAU * float(i) / 10.0 - PI * 0.5
+		var r := 6.2 if (i % 2) == 0 else 5.0
+		pts.append(Vector2(cos(a), sin(a)) * r + Vector2(0, 2))
+	body.polygon = pts
+	body.color = Color(0.28, 0.32, 0.18, 0.96)
+	add_child(body)
+	var lever := Polygon2D.new()
+	lever.name = "Stick"
+	lever.polygon = PackedVector2Array([
+		Vector2(-1.2, -8), Vector2(1.4, -8), Vector2(1.6, 2), Vector2(-1.0, 2)
+	])
+	lever.color = Color(0.42, 0.40, 0.28, 0.95)
+	add_child(lever)
+	var pin := Polygon2D.new()
+	pin.name = "Pin"
+	pin.polygon = PackedVector2Array([
+		Vector2(-2.0, -10), Vector2(2.4, -10), Vector2(2.2, -7), Vector2(-1.8, -7)
+	])
+	pin.color = Color(0.72, 0.56, 0.26, 0.95)
+	add_child(pin)
+
+
+func _mk2_visual() -> void:
+	var body := Polygon2D.new()
+	body.name = "Body"
+	body.polygon = PackedVector2Array([
+		Vector2(-4.2, -2), Vector2(4.2, -2), Vector2(5.4, 4), Vector2(2.4, 9),
+		Vector2(-2.4, 9), Vector2(-5.4, 4)
+	])
+	body.color = Color(0.34, 0.30, 0.16, 0.96)
+	add_child(body)
+	var groove := Polygon2D.new()
+	groove.name = "Stick"
+	groove.polygon = PackedVector2Array([
+		Vector2(-4.0, 2), Vector2(4.0, 2), Vector2(3.6, 4.4), Vector2(-3.6, 4.4)
+	])
+	groove.color = Color(0.22, 0.18, 0.10, 0.90)
+	add_child(groove)
+	var pin := Polygon2D.new()
+	pin.name = "Pin"
+	pin.polygon = PackedVector2Array([
+		Vector2(-1.8, -6), Vector2(1.8, -6), Vector2(1.6, -2), Vector2(-1.6, -2)
 	])
 	pin.color = Color(0.72, 0.56, 0.26, 0.95)
 	add_child(pin)
