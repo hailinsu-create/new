@@ -1932,7 +1932,7 @@ func _refresh_dry_mark() -> void:
 		dry_mark.text = "空"
 		dry_mark.add_theme_font_size_override("font_size", 14)
 		dry_mark.add_theme_font_override("font", NightOps.ui_font_bold())
-		dry_mark.add_theme_color_override("font_color", Color(0.82, 0.36, 0.14))
+		dry_mark.add_theme_color_override("font_color", Color(0.72, 0.48, 0.22))
 		dry_mark.add_theme_color_override("font_shadow_color", Color(0.05, 0.01, 0.01, 0.95))
 		dry_mark.add_theme_constant_override("shadow_offset_x", 1)
 		dry_mark.add_theme_constant_override("shadow_offset_y", 1)
