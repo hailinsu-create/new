@@ -1,5 +1,9 @@
 # 0.13.0 · 100-round companion deepening
 
+Landed **100** real rounds. `versionName` 0.13.0 / `versionCode` 22.
+Debug APK: `dist/pangchuang-0.13.0-debug.apk`. Previous `dist/pangchuang-0.12.0-debug.apk` is unchanged.
+Release AAB was built locally and **not** committed.
+
 Each row is a user-visible, safety, a11y, i18n, performance, test, or shipping-honesty change. Skipped 0.12.0 items were replaced.
 
 R01 | consent | Do not request POST_NOTIFICATIONS before privacy consent; rationale dialog only after accept | MainActivity.kt
