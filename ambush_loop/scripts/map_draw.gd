@@ -1226,11 +1226,11 @@ func _silhouette_radio_dish(c: CanvasItem) -> void:
 			Vector2(p.x + 11, p.y - 96),
 			Vector2(p.x - 11, p.y - 96),
 		]),
-		Color(0.08, 0.14, 0.18, 0.78)
+		Color(0.10, 0.10, 0.08, 0.78)
 	)
-	c.draw_rect(Rect2(p.x - 16, p.y - 118, 32.0, 24.0), Color(0.12, 0.22, 0.28, 0.82))
-	c.draw_rect(Rect2(p.x - 18, p.y - 126, 36.0, 10.0), Color(0.18, 0.32, 0.38, 0.80))
-	c.draw_circle(Vector2(p.x, p.y - 108), 8.0, Color(0.42, 0.82, 0.96, 0.55))
+	c.draw_rect(Rect2(p.x - 16, p.y - 118, 32.0, 24.0), Color(0.16, 0.14, 0.10, 0.82))
+	c.draw_rect(Rect2(p.x - 18, p.y - 126, 36.0, 10.0), Color(0.22, 0.18, 0.12, 0.80))
+	c.draw_circle(Vector2(p.x, p.y - 108), 8.0, Color(0.72, 0.58, 0.28, 0.55))
 	# Dish array bowls on the east annex (blocked x=25-28).
 	var d1 := Vector2(27.05 * t, 9.5 * t)
 	c.draw_colored_polygon(
@@ -1240,7 +1240,7 @@ func _silhouette_radio_dish(c: CanvasItem) -> void:
 			Vector2(d1.x + 24, d1.y - 44),
 			Vector2(d1.x - 22, d1.y + 22),
 		]),
-		Color(0.10, 0.18, 0.24, 0.62)
+		Color(0.12, 0.12, 0.10, 0.62)
 	)
 	c.draw_colored_polygon(
 		PackedVector2Array([
@@ -1249,7 +1249,7 @@ func _silhouette_radio_dish(c: CanvasItem) -> void:
 			Vector2(d1.x + 14, d1.y - 36),
 			Vector2(d1.x - 12, d1.y + 12),
 		]),
-		Color(0.28, 0.52, 0.64, 0.34)
+		Color(0.32, 0.28, 0.18, 0.34)
 	)
 	var d2 := Vector2(27.5 * t, 11.3 * t)
 	c.draw_colored_polygon(
@@ -1259,10 +1259,10 @@ func _silhouette_radio_dish(c: CanvasItem) -> void:
 			Vector2(d2.x + 18, d2.y - 30),
 			Vector2(d2.x - 16, d2.y + 18),
 		]),
-		Color(0.10, 0.16, 0.22, 0.50)
+		Color(0.12, 0.11, 0.08, 0.50)
 	)
 	# Echo hall phosphor ribbon so x=24 reads as the dish-gap path.
-	c.draw_rect(Rect2(24.05 * t, 5.2 * t, 0.9 * t, 10.5 * t), Color(0.28, 0.72, 0.92, 0.22))
+	c.draw_rect(Rect2(24.05 * t, 5.2 * t, 0.9 * t, 10.5 * t), Color(0.36, 0.32, 0.18, 0.22))
 
 
 func _lamp_post(c: CanvasItem, p: Vector2, glow: Color, stem: bool = true) -> void:
