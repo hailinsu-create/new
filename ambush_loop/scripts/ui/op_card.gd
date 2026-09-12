@@ -37,11 +37,11 @@ func setup(i: int) -> void:
 	size_flags_vertical = 0
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	_normal = NightOps.flat(Color(0.055, 0.072, 0.062, 0.94), Color(0.28, 0.34, 0.22), 1, 8, 3)
+	_normal = NightOps.flat(Color(0.055, 0.050, 0.038, 0.94), Color(0.36, 0.28, 0.16), 1, 8, 3)
 	_normal.border_width_top = 2
 	_normal.border_width_left = 4
 	_normal.content_margin_left = 12
-	_hot = NightOps.flat(Color(0.09, 0.12, 0.08, 0.98), NightOps.OLIVE_HI, 1, 8, 3)
+	_hot = NightOps.flat(Color(0.10, 0.09, 0.06, 0.98), NightOps.OLIVE_HI, 1, 8, 3)
 	_hot.border_width_left = 6
 	_hot.border_width_top = 3
 	_hot.content_margin_left = 14
