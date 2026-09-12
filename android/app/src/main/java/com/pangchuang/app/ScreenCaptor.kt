@@ -22,7 +22,8 @@ import android.view.WindowManager
  */
 class ScreenCaptor(
     context: Context,
-    private val mediaProjection: MediaProjection
+    private val mediaProjection: MediaProjection,
+    maxWidth: Int = 720
 ) {
     private var imageReader: ImageReader? = null
     private var virtualDisplay: VirtualDisplay? = null
@@ -42,7 +43,7 @@ class ScreenCaptor(
         val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
         @Suppress("DEPRECATION")
         wm.defaultDisplay.getRealMetrics(metrics)
-        val maxW = 720
+        val maxW = maxWidth.coerceIn(360, 720)
         val scale = maxW.toFloat() / metrics.widthPixels.coerceAtLeast(1)
         width = maxW
         height = (metrics.heightPixels * scale).toInt().coerceAtLeast(1)
@@ -67,6 +68,14 @@ class ScreenCaptor(
     }
 
     fun isMirroring(): Boolean = mirroring
+
+    /** Drop the cached frame on every pause path (lock, sensitive, stop). */
+    fun dropLatest() {
+        synchronized(frameLock) {
+            latestBitmap?.let { if (!it.isRecycled) it.recycle() }
+            latestBitmap = null
+        }
+    }
 
     /**
      * Returns a copy of the newest frame, waiting briefly if the pipeline is still warming up.

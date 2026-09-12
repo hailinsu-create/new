@@ -146,6 +146,9 @@ class VisionClient(
     }
 
     private fun chat(http: OkHttpClient, bodyJson: String): RoastResult {
+        if (!EndpointPolicy.isAllowedBaseUrl(prefs.baseUrl)) {
+            return RoastResult(context.getString(R.string.vision_https_blocked), "error")
+        }
         var lastError: RoastResult? = null
         repeat(MAX_ATTEMPTS) { attempt ->
             try {
@@ -163,7 +166,10 @@ class VisionClient(
                         val friendly = friendlyHttpError(resp.code, raw)
                         lastError = RoastResult(friendly, "error")
                         if (retryable && attempt < MAX_ATTEMPTS - 1) {
-                            Log.w(TAG, "API ${resp.code}, retry ${attempt + 1}: ${raw.take(200)}")
+                            Log.w(
+                                TAG,
+                                "API ${resp.code}, retry ${attempt + 1}: ${EndpointPolicy.redact(raw.take(200))}"
+                            )
                             Thread.sleep(700L * (attempt + 1))
                             return@repeat
                         }

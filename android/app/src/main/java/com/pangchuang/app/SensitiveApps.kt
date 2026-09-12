@@ -34,6 +34,17 @@ object SensitiveApps {
         "com.sina.input",
         "com.htc.sense.ime",
         "com.sonyericsson.textinput.uxp",
+        "com.google.android.inputmethod.japanese",
+        "com.google.android.inputmethod.korean",
+        "com.samsung.android.svoiceime",
+        "com.huawei.ohos.inputmethod",
+        "com.baidu.input_huawei",
+        "com.iflytek.inputmethod.google",
+        "com.emoji.keyboard.touchpal",
+        "com.jb.gokeyboard",
+        "org.pocketworkstation.pckeyboard",
+        "com.menny.android.anysoftkeyboard",
+        "com.syntellicore.ime",
         // Password managers
         "com.1password.android",
         "com.lastpass.lpandroid",
@@ -48,6 +59,9 @@ object SensitiveApps {
         "com.nordpass.android",
         "com.sovell.password",
         "com.agilebits.onepassword",
+        "me.proton.pass.android",
+        "com.kunzisoft.keepass.pro",
+        "com.samsung.android.authfw",
         // Authenticators
         "com.google.android.apps.authenticator2",
         "com.azure.authenticator",
@@ -57,6 +71,9 @@ object SensitiveApps {
         "com.snowballtech.otpauthenticator",
         "org.fedorahosted.freeotp",
         "com.google.android.apps.authenticator",
+        "com.beemdevelopment.aegis",
+        "org.liberty.android.freeotpplus",
+        "com.twofasapp",
         // Wallets / banking (CN + common global)
         "com.eg.android.AlipayGphone",
         "com.eg.android.AlipayGphoneRC",
@@ -84,7 +101,22 @@ object SensitiveApps {
         "com.infonow.bofa",
         "com.konylabs.capitalone",
         "com.usaa.mobile.android.usaa",
-        "com.citi.citimobile"
+        "com.citi.citimobile",
+        "com.revolut.revolut",
+        "com.starlingbank.android",
+        "com.binance.dev",
+        "com.coinbase.android",
+        "com.google.android.apps.nbu.paisa.user",
+        "net.one97.paytm",
+        "com.phonepe.app",
+        "com.samsung.android.spay",
+        "com.ccb.android",
+        "jp.co.rakuten.bank",
+        "jp.mufg.bk.android",
+        "com.kakaobank.channel",
+        "com.shinhan.sbank",
+        "com.wooribank.smart",
+        "com.wise.android"
     )
 
     val KEYWORDS: List<String> = listOf(
@@ -103,7 +135,18 @@ object SensitiveApps {
         "unionpay",
         "bankofamerica",
         "wellsfargo",
-        "capitalone"
+        "capitalone",
+        "spay",
+        "gopay",
+        "phonepe",
+        "paytm",
+        "coinbase",
+        "binance",
+        "gokeyboard",
+        "anysoftkeyboard",
+        "kakaobank",
+        "freeotp",
+        "aegis"
     )
 
     fun shouldSkip(packageName: String?): Boolean {

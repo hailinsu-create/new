@@ -22,3 +22,13 @@ R17 | notification | Distinct notification titles for demo vs full companion | R
 R18 | notification | Stop action uses rest wording consistent with overlay close | RoastService.kt, strings.xml
 R19 | overlay | Clamp and persist position on configuration change / rotation | OverlayController.kt, OverlayGeometry.kt
 R20 | overlay | Permissionless long-press haptic via performHapticFeedback | OverlayController.kt
+R21 | capture | Sensitive apps pause VirtualDisplay like lock, not only skip JPEG/API | RoastService.kt, CapturePolicy.kt, ScreenCaptor.kt
+R22 | capture | Recreate mirroring when leaving a sensitive app if companion still running | RoastService.kt, CapturePolicy.kt
+R23 | capture | Clear latestBitmap / lastFrame on lock, sensitive, and stop | ScreenCaptor.kt, RoastService.kt
+R24 | capture | Do not force-roast after leaving a sensitive app (same as unlock) | RoastService.kt, CapturePolicy.kt
+R25 | privacy | Expand SensitiveApps with more IME, password, bank, authenticator packages; tests kept | SensitiveApps.kt, SensitiveAppsTest.kt
+R26 | battery | Low battery lengthens interval or skips a tick; missing battery info does not crash | BatteryPolicy.kt, RoastService.kt
+R27 | capture | Drop capture to 540p on low-RAM devices or low battery | ScreenCaptor.kt, BatteryPolicy.kt, RoastService.kt
+R28 | tests | CapturePolicy lock + sensitive + demo combinations, including mirroring pause/resume | CapturePolicyTest.kt
+R29 | safety | Redact Bearer/API keys in remaining logs | VisionClient.kt, EndpointPolicy.kt
+R30 | safety | Block non-HTTPS endpoints except loopback, with a visible overlay/home error | VisionClient.kt, EndpointPolicy.kt, strings.xml

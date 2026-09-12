@@ -1,5 +1,6 @@
 package com.pangchuang.app
 
+import android.app.ActivityManager
 import android.app.KeyguardManager
 import android.app.Notification
 import android.app.NotificationChannel
@@ -10,6 +11,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.BatteryManager
 import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -50,6 +52,8 @@ class RoastService : Service() {
     private val roasting = AtomicBoolean(false)
     /** True while screen is off or keyguard is showing — capture pipeline is released. */
     private val pausedForLock = AtomicBoolean(false)
+    /** True while a sensitive app is foreground — VirtualDisplay is released like lock. */
+    private val pausedForSensitive = AtomicBoolean(false)
     private var screenReceiverRegistered = false
     private lateinit var prefs: Prefs
     private lateinit var vision: VisionClient
@@ -163,9 +167,7 @@ class RoastService : Service() {
             return
         }
         dropHeldFrames()
-        if (CapturePolicy.shouldReleaseMirroringOnLock(demoMode)) {
-            captor?.pauseMirroring()
-        }
+        captor?.let { if (CapturePolicy.shouldReleaseMirroringOnLock(demoMode)) it.pauseMirroring() }
         pausedLock = true
         updateNotification(statusText())
         overlay?.showText(getString(R.string.overlay_locked))
@@ -188,11 +190,31 @@ class RoastService : Service() {
     private fun dropHeldFrames() {
         lastFrame?.recycle()
         lastFrame = null
+        captor?.dropLatest()
+    }
+
+    private data class BatterySnap(val percent: Int?, val charging: Boolean, val powerSave: Boolean)
+
+    private fun batterySnap(): BatterySnap {
+        val sticky = runCatching {
+            registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+        }.getOrNull()
+        val level = sticky?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
+        val scale = sticky?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
+        val percent = if (level >= 0 && scale > 0) (level * 100) / scale else null
+        val status = sticky?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
+        val charging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
+            status == BatteryManager.BATTERY_STATUS_FULL
+        val saver = runCatching {
+            (getSystemService(POWER_SERVICE) as PowerManager).isPowerSaveMode
+        }.getOrDefault(false)
+        return BatterySnap(percent, charging, saver)
     }
 
     private fun statusText(demo: Boolean = demoMode): String = when {
         pausedForLock.get() && demo -> getString(R.string.notification_paused_demo)
         pausedForLock.get() -> getString(R.string.notification_paused_capture)
+        pausedForSensitive.get() -> getString(R.string.notification_paused_sensitive)
         demo -> getString(R.string.notification_demo)
         else -> getString(R.string.notification_title)
     }
@@ -309,7 +331,12 @@ class RoastService : Service() {
 
         ensureOverlay(getString(R.string.overlay_capture_hello))
 
-        val screenCaptor = ScreenCaptor(this, projection)
+        val snap = batterySnap()
+        val lowRam = runCatching {
+            (getSystemService(ACTIVITY_SERVICE) as ActivityManager).isLowRamDevice
+        }.getOrDefault(false)
+        val maxW = BatteryPolicy.captureMaxWidth(lowRam, snap.percent, snap.charging)
+        val screenCaptor = ScreenCaptor(this, projection, maxW)
         captor = screenCaptor
         if (!pausedForLock.get()) {
             screenCaptor.start()
@@ -319,7 +346,17 @@ class RoastService : Service() {
             delay(900)
             roastOnce(force = true)
             while (isActive) {
-                delay(prefs.intervalSec * 1000L)
+                val snap = batterySnap()
+                val waitSec = prefs.intervalSec * BatteryPolicy.intervalMultiplier(
+                    snap.percent,
+                    snap.charging,
+                    snap.powerSave
+                )
+                delay(waitSec * 1000L)
+                if (BatteryPolicy.shouldSkipTick(snap.percent, snap.charging)) {
+                    overlay?.showText(getString(R.string.overlay_low_battery))
+                    continue
+                }
                 roastOnce(force = false)
             }
         }
@@ -354,6 +391,32 @@ class RoastService : Service() {
                 withContext(Dispatchers.IO) { ForegroundAppResolver.resolve(this@RoastService) }
             }
             val sensitive = !demoMode && SensitiveApps.shouldSkip(appHint?.packageName)
+            if (CapturePolicy.shouldPauseMirroringOnSensitive(demoMode, sensitive)) {
+                if (pausedForSensitive.compareAndSet(false, true)) {
+                    pausedSensitive = true
+                    dropHeldFrames()
+                    captor?.pauseMirroring()
+                    updateNotification(statusText())
+                    o.showText(getString(R.string.overlay_sensitive_skip))
+                }
+                return
+            }
+            if (pausedForSensitive.get() &&
+                CapturePolicy.shouldResumeMirroringAfterSensitive(
+                    companionRunning = running,
+                    demo = demoMode,
+                    locked = pausedForLock.get(),
+                    sensitive = false
+                )
+            ) {
+                pausedForSensitive.set(false)
+                pausedSensitive = false
+                captor?.resumeMirroring()
+                updateNotification(statusText())
+                o.showText(getString(R.string.overlay_sensitive_resume))
+                // Same as unlock: never force-roast the frame that was just private.
+                if (!CapturePolicy.shouldForceRoastAfterSensitiveLeave()) return
+            }
             if (CapturePolicy.shouldSkipTick(pausedForLock.get(), demoMode, sensitive)) {
                 if (sensitive) o.showText(getString(R.string.overlay_sensitive_skip))
                 return
@@ -450,6 +513,7 @@ class RoastService : Service() {
         runningDemo = false
         pausedLock = false
         pausedSensitive = false
+        pausedForSensitive.set(false)
         loopJob?.cancel()
         loopJob = null
         unregisterScreenReceiver()
@@ -476,6 +540,7 @@ class RoastService : Service() {
         runningDemo = false
         pausedLock = false
         pausedSensitive = false
+        pausedForSensitive.set(false)
         loopJob?.cancel()
         unregisterScreenReceiver()
         scope.cancel()

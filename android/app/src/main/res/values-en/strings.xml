@@ -43,6 +43,7 @@
     <string name="notification_paused_demo">Demo paused. Screen is locked.</string>
     <string name="notification_paused_capture">Locked. Capture stopped.</string>
     <string name="notification_demo">Demo mode. Synthetic screens only.</string>
+    <string name="notification_paused_sensitive">Sensitive app in front. Screen mirror paused.</string>
     <string name="start_roast">Full companion</string>
     <string name="start_demo">Summon demo</string>
     <string name="stop_roast">Let Xiao Pang rest</string>

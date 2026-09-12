@@ -46,6 +46,7 @@
     <string name="notification_paused_demo">演示已暂停 · 锁屏中</string>
     <string name="notification_paused_capture">锁屏中 · 已停止截屏</string>
     <string name="notification_demo">演示模式 · 小旁用合成画面陪聊</string>
+    <string name="notification_paused_sensitive">敏感应用前台 · 已暂停截屏镜像</string>
     <string name="start_roast">完整陪伴</string>
     <string name="start_demo">演示召唤</string>
     <string name="stop_roast">让小旁先休息</string>
