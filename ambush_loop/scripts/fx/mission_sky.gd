@@ -142,7 +142,7 @@ func _draw_yard() -> void:
 	var sz := _map_size()
 	_draw_top_haze(Color(0.55, 0.68, 0.52, 0.10), 5)
 	_draw_horizon(Color(0.18, 0.24, 0.16, 0.10))
-	_draw_starfield(22, Color(0.88, 0.94, 0.72, 1.0))
+	_draw_starfield(22, Color(0.86, 0.82, 0.66, 1.0))
 	_draw_clouds(3, Color(0.22, 0.28, 0.18, 0.10))
 	_draw_distant_lights([
 		Vector2(sz.x * 0.12, 22.0),
@@ -283,14 +283,14 @@ func _draw_pump() -> void:
 		for i in 7:
 			var rx := origin.x - 50.0 + float(i) * 18.0 + sin(_t + float(i)) * 4.0
 			var ry := origin.y - 10.0 + fmod(_t * 70.0 + float(i) * 13.0, 64.0)
-			draw_line(Vector2(rx, ry), Vector2(rx + 1.5, ry + 8.0), Color(0.55, 0.82, 0.78, 0.12), 1.1, true)
+			draw_line(Vector2(rx, ry), Vector2(rx + 1.5, ry + 8.0), Color(0.48, 0.44, 0.28, 0.12), 1.1, true)
 
 
 func _draw_railcut() -> void:
 	var sz := _map_size()
 	_draw_top_haze(Color(0.42, 0.52, 0.62, 0.10), 5)
 	_draw_horizon(Color(0.16, 0.20, 0.28, 0.10))
-	_draw_starfield(18, Color(0.82, 0.88, 0.95, 1.0))
+	_draw_starfield(18, Color(0.84, 0.80, 0.68, 1.0))
 	_draw_clouds(2, Color(0.18, 0.22, 0.28, 0.10))
 	_draw_distant_lights([
 		Vector2(sz.x * 0.15, 19.0),
@@ -326,7 +326,7 @@ func _draw_railcut() -> void:
 	# Rail glint — a traveling specular on the west corridor steel.
 	if not _is_power_saving():
 		var gx := 12.2 * AmbushGrid.TILE + fmod(_t * 42.0, 3.0 * AmbushGrid.TILE)
-		draw_rect(Rect2(gx, 5.2 * AmbushGrid.TILE, 18.0, 3.0), Color(0.82, 0.88, 0.95, 0.10 + 0.06 * sin(_t * 6.0)))
+		draw_rect(Rect2(gx, 5.2 * AmbushGrid.TILE, 18.0, 3.0), Color(0.72, 0.68, 0.48, 0.10 + 0.06 * sin(_t * 6.0)))
 		# Spark ticks off the signal mast.
 		for i in 3:
 			var sx := 21.5 * AmbushGrid.TILE + sin(_t * 4.0 + float(i)) * 10.0
