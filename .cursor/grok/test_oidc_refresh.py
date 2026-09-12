@@ -180,6 +180,118 @@ class OidcRefreshTests(unittest.TestCase):
             self.assertEqual(rc, 1)
             self.assertEqual(secrets_leaked(stdout.getvalue() + stderr.getvalue()), [])
 
+    def test_skips_when_access_still_valid_does_not_http(self) -> None:
+        future = (datetime.now(timezone.utc) + timedelta(hours=5)).strftime(
+            "%Y-%m-%dT%H:%M:%S.000000Z"
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "auth.json")
+            original = sample_auth(future)
+            with open(path, "w", encoding="utf-8") as handle:
+                json.dump(original, handle)
+            fake = MagicMock(
+                side_effect=AssertionError(
+                    "urlopen must not be called when access is still valid"
+                )
+            )
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                rc = oidc_refresh.main(["--auth-file", path], urlopen=fake)
+            out = stdout.getvalue()
+            err = stderr.getvalue()
+            self.assertEqual(rc, 0)
+            self.assertIn("skipped", out)
+            self.assertIn("email=user@example.com", out)
+            self.assertEqual(secrets_leaked(out + err), [])
+            fake.assert_not_called()
+            with open(path, encoding="utf-8") as handle:
+                saved = json.load(handle)
+            entry = next(iter(saved.values()))
+            self.assertEqual(entry["key"], SECRET_ACCESS)
+            self.assertEqual(entry["refresh_token"], SECRET_REFRESH)
+            self.assertEqual(entry["expires_at"], future)
+
+    def test_force_refreshes_even_when_valid(self) -> None:
+        future = (datetime.now(timezone.utc) + timedelta(hours=5)).strftime(
+            "%Y-%m-%dT%H:%M:%S.000000Z"
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "auth.json")
+            with open(path, "w", encoding="utf-8") as handle:
+                json.dump(sample_auth(future), handle)
+            fake = FakeUrlOpen(
+                [
+                    FakeResponse(DISCOVERY),
+                    FakeResponse(
+                        {
+                            "access_token": NEW_ACCESS,
+                            "refresh_token": NEW_REFRESH,
+                            "expires_in": 21600,
+                            "token_type": "Bearer",
+                        }
+                    ),
+                ]
+            )
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                rc = oidc_refresh.main(
+                    ["--auth-file", path, "--force"], urlopen=fake
+                )
+            out = stdout.getvalue()
+            err = stderr.getvalue()
+            self.assertEqual(rc, 0)
+            self.assertIn("refreshed", out)
+            self.assertNotIn("skipped", out)
+            self.assertEqual(secrets_leaked(out + err), [])
+            self.assertGreaterEqual(len(fake.requests), 2)
+            self.assertEqual(fake.requests[1].get_method(), "POST")
+            with open(path, encoding="utf-8") as handle:
+                saved = json.load(handle)
+            entry = next(iter(saved.values()))
+            self.assertEqual(entry["key"], NEW_ACCESS)
+            self.assertEqual(entry["refresh_token"], NEW_REFRESH)
+
+    def test_refreshes_when_within_min_remaining_window(self) -> None:
+        soon = (datetime.now(timezone.utc) + timedelta(seconds=10)).strftime(
+            "%Y-%m-%dT%H:%M:%S.000000Z"
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "auth.json")
+            with open(path, "w", encoding="utf-8") as handle:
+                json.dump(sample_auth(soon), handle)
+            fake = FakeUrlOpen(
+                [
+                    FakeResponse(DISCOVERY),
+                    FakeResponse(
+                        {
+                            "access_token": NEW_ACCESS,
+                            "refresh_token": NEW_REFRESH,
+                            "expires_in": 21600,
+                            "token_type": "Bearer",
+                        }
+                    ),
+                ]
+            )
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                rc = oidc_refresh.main(["--auth-file", path], urlopen=fake)
+            out = stdout.getvalue()
+            err = stderr.getvalue()
+            self.assertEqual(rc, 0)
+            self.assertIn("refreshed", out)
+            self.assertNotIn("skipped", out)
+            self.assertEqual(secrets_leaked(out + err), [])
+            self.assertGreaterEqual(len(fake.requests), 2)
+            self.assertEqual(fake.requests[1].get_method(), "POST")
+            with open(path, encoding="utf-8") as handle:
+                saved = json.load(handle)
+            entry = next(iter(saved.values()))
+            self.assertEqual(entry["key"], NEW_ACCESS)
+            self.assertEqual(entry["refresh_token"], NEW_REFRESH)
+
 
 if __name__ == "__main__":
     unittest.main()
