@@ -207,7 +207,7 @@ static func trip_snap(host: Node2D, world_pos: Vector2) -> void:
 	var ring := Line2D.new()
 	ring.width = 2.0
 	ring.closed = true
-	ring.default_color = Color(0.55, 0.98, 0.52, 0.85)
+	ring.default_color = Color(0.62, 0.52, 0.28, 0.85)
 	var pts := PackedVector2Array()
 	for i in 10:
 		var a := TAU * float(i) / 10.0
