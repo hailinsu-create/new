@@ -71,6 +71,19 @@ func _ensure_look() -> void:
 		])
 		lid.color = Color(0.38, 0.26, 0.12, 0.92)
 		add_child(lid)
+	if Weapons.is_firearm(kind):
+		var art: GDScript = load("res://scripts/art/weapon_art.gd") as GDScript
+		if art:
+			var stamp := get_node_or_null("GunStamp") as Polygon2D
+			if stamp == null:
+				stamp = Polygon2D.new()
+				stamp.name = "GunStamp"
+				add_child(stamp)
+			stamp.polygon = art.icon_poly(kind)
+			stamp.color = art.steel_color(kind)
+			stamp.scale = Vector2(0.72, 0.72)
+			stamp.position = Vector2(0, 1)
+			stamp.z_index = 2
 
 
 func set_search_progress(p: float) -> void:
