@@ -38,7 +38,17 @@ static func night_grade(id: String, saving: bool = false) -> Color:
 		"radio":
 			return Color(0.58 + mild, 0.66, 0.62, 1.0)
 		_:
-			return Color(0.68 + mild, 0.72, 0.54, 1.0)
+			return Color(0.62 + mild, 0.68, 0.48, 1.0)
+
+
+static func saving_contrast(c: Color) -> Color:
+	## Power-saving still has to split wool from feldgrau without neon.
+	return Color(
+		clampf(c.r * 0.82 + 0.04, 0.0, 1.0),
+		clampf(c.g * 0.88 + 0.02, 0.0, 1.0),
+		clampf(c.b * 0.78, 0.0, 1.0),
+		c.a
+	)
 
 
 static func floor_a(id: String) -> Color:
