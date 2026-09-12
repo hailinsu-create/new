@@ -34,7 +34,7 @@
 • 屏幕录制：完整陪伴需要，用于截取当前画面。
 • 使用情况访问：可选，辅助识别前台应用。
 
-视觉 API 的费用由你自行承担。角色使用 Live2D 官方虹色 Mao 样例。
+视觉 API 的费用由你自行承担。角色为原创国风 Live2D「墨汐」。
 
 **应用类别**
 
@@ -71,7 +71,7 @@ Pangchuang is an Android floating-window companion. A character sits at the edge
 
 Screenshots are sent only to the API you enter. We do not operate an account server. Your API key stays on device. Capture pauses when the phone is locked.
 
-You pay your own vision-API usage. The character is the official Live2D Mao sample.
+You pay your own vision-API usage. The character is original Chinese-style Live2D Moxi (墨汐).
 
 ## 图形资源
 

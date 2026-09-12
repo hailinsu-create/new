@@ -1,6 +1,6 @@
 # 旁窗隐私政策
 
-最后更新：2026-09-01（0.9.0）
+最后更新：2026-09-12（0.11.0）
 
 旁窗（「本应用」，包名 `com.pangchuang.app`）是一款开源 Android 悬浮窗伴侣。网页版：若已启用 GitHub Pages，见 https://hailinsu-create.github.io/new/privacy.html
 
@@ -46,7 +46,7 @@
 
 ## Live2D 素材
 
-角色使用 Live2D 官方样例「虹色 Mao」，遵循 Live2D 样例素材许可。详见应用内「开源许可」。
+角色使用原创国风 Live2D「墨汐」（Moxi），不是 Live2D 官方样例。Cubism Core 仍须遵守 Live2D SDK 许可。详见应用内「开源许可」。
 
 ## 联系我们
 

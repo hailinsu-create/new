@@ -1,6 +1,6 @@
 # Pangchuang terms of use
 
-Last updated: 2026-09-01 (0.9.0)
+Last updated: 2026-09-12 (0.11.0)
 
 Using Pangchuang means you agree to these terms and the privacy policy.
 
@@ -22,7 +22,7 @@ Payments and refunds follow Google Play policy. We do not collect card numbers. 
 
 ## Assets
 
-The Live2D character is the official Mao sample. App code is MIT.
+The Live2D character is original Chinese-style Moxi (墨汐), not a Live2D sample. Cubism Core still follows Live2D SDK terms. App code is MIT.
 
 ## Disclaimer
 

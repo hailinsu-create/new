@@ -1,6 +1,6 @@
 # Pangchuang privacy policy
 
-Last updated: 2026-09-01 (0.9.0)
+Last updated: 2026-09-12 (0.11.0)
 
 Pangchuang (`com.pangchuang.app`) is an open-source Android floating companion. Web copy: https://hailinsu-create.github.io/new/privacy-en.html (after GitHub Pages is on).
 
@@ -48,7 +48,7 @@ Not directed at children under 13. Play target age should be 18+ because full co
 
 ## Live2D
 
-The character is the official Mao sample. See in-app open-source licenses.
+The character is original Chinese-style Live2D Moxi (墨汐), not a Live2D sample. Cubism Core still follows Live2D SDK terms. See in-app open-source licenses.
 
 ## Contact
 

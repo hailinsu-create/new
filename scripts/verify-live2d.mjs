@@ -145,6 +145,7 @@ async function main() {
     return {
       mouthOpen: PangchuangLive2D.mouthOpen ? PangchuangLive2D.mouthOpen() : null,
       paramA: PangchuangLive2D.paramA ? PangchuangLive2D.paramA() : null,
+      paramMouth: PangchuangLive2D.paramMouth ? PangchuangLive2D.paramMouth() : null,
     };
   });
   await page.waitForTimeout(80);
@@ -166,9 +167,9 @@ async function main() {
     console.error('FAIL: ready but no painted pixels', pixels);
     process.exit(2);
   }
-  const paramA = Number(mouth && mouth.paramA);
-  if (!(paramA > 0.15)) {
-    console.error('FAIL: mouth ParamA too low while speaking', mouth);
+  const paramMouth = Number((mouth && (mouth.paramMouth != null ? mouth.paramMouth : mouth.paramA)));
+  if (!(paramMouth > 0.15)) {
+    console.error('FAIL: mouth ParamMouthOpenY too low while speaking', mouth);
     process.exit(4);
   }
   console.log('PASS');

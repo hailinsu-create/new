@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Pangchuang</string>
     <string name="companion_name">شياو بانغ</string>
-    <string name="subtitle">أوقف جمل التجربة وأضف واجهة الرؤية. النموذج الافتراضي هو Qwen3-VL-8B المستقر. الشخصية هي Mao الرسمية من Live2D.</string>
+    <string name="subtitle">أوقف جمل التجربة وأضف واجهة الرؤية. النموذج الافتراضي هو Qwen3-VL-8B المستقر. الشخصية هي موشي (墨汐)، Live2D أصلية بطراز صيني.</string>
     <string name="language_title">اللغة</string>
     <string name="language_system">اتبع النظام</string>
     <string name="section_permissions">الأذونات</string>

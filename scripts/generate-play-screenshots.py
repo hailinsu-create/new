@@ -109,7 +109,7 @@ def overlay_host() -> Image.Image:
     return img
 
 
-def cut_mao(path: Path, size: int) -> Image.Image:
+def cut_face(path: Path, size: int) -> Image.Image:
     src = Image.open(path).convert("RGBA")
     pix = src.load()
     w, h = src.size
@@ -120,18 +120,17 @@ def cut_mao(path: Path, size: int) -> Image.Image:
         for x in range(w):
             r, g, b, a = pix[x, y]
             dist = abs(r - key[0]) + abs(g - key[1]) + abs(b - key[2])
-            if dist < 90:
+            if a < 16 or dist < 36:
                 op[x, y] = (0, 0, 0, 0)
             else:
                 op[x, y] = (r, g, b, 255)
-    # Circle crop
     circle = Image.new("L", (w, h), 0)
     ImageDraw.Draw(circle).ellipse((8, 8, w - 8, h - 8), fill=255)
     out.putalpha(ImageChops.multiply(out.split()[3], circle))
     return out.resize((size, size), Image.Resampling.LANCZOS)
 
 
-def paint_overlay(base: Image.Image, line: str, mao: Image.Image) -> Image.Image:
+def paint_overlay(base: Image.Image, line: str, face: Image.Image) -> Image.Image:
     img = base.convert("RGBA")
     d = ImageDraw.Draw(img)
     # Bubble
@@ -152,22 +151,22 @@ def paint_overlay(base: Image.Image, line: str, mao: Image.Image) -> Image.Image
     if buf:
         d.text((bx0 + 28, y), buf, font=font(26), fill=FOAM[:3])
     ax, ay = 40, 1480
-    ring = Image.new("RGBA", (mao.size[0] + 16, mao.size[1] + 16), (0, 0, 0, 0))
+    ring = Image.new("RGBA", (face.size[0] + 16, face.size[1] + 16), (0, 0, 0, 0))
     ImageDraw.Draw(ring).ellipse((0, 0, ring.size[0] - 1, ring.size[1] - 1), outline=AMBER, width=6)
     img.alpha_composite(ring, (ax - 8, ay - 8))
-    img.alpha_composite(mao, (ax, ay))
+    img.alpha_composite(face, (ax, ay))
     return img.convert("RGB")
 
 
-def overlay_shot(mao: Image.Image) -> Image.Image:
-    return paint_overlay(overlay_host(), "购物车比存款诚实。喜欢就买，犹豫就先晾着。", mao)
+def overlay_shot(face: Image.Image) -> Image.Image:
+    return paint_overlay(overlay_host(), "购物车比存款诚实。喜欢就买，犹豫就先晾着。", face)
 
 
-def overlay_closeup(mao: Image.Image) -> Image.Image:
+def overlay_closeup(face: Image.Image) -> Image.Image:
     img = Image.new("RGB", (W, H), (18, 16, 22))
     d = ImageDraw.Draw(img)
     d.text((72, 80), "演示模式 · 不看真屏", font=font(28), fill=MIST[:3])
-    big = mao.resize((560, 560), Image.Resampling.LANCZOS)
+    big = face.resize((560, 560), Image.Resampling.LANCZOS)
     img.paste(big, (260, 220), big)
     rounded(d, (80, 860, 1000, 1220), 32, PANEL)
     d.text((120, 900), "小旁", font=font(28), fill=AMBER)
@@ -181,14 +180,14 @@ def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     settings_shot().save(OUT / "screenshot_settings.png", "PNG")
     consent_shot().save(OUT / "screenshot_consent.png", "PNG")
-    mao_path = OUT / "mao_face.png"
-    if mao_path.exists():
-        mao = cut_mao(mao_path, 420)
-        overlay_shot(mao).save(OUT / "screenshot_overlay.png", "PNG")
-        overlay_closeup(mao).save(OUT / "screenshot_overlay_closeup.png", "PNG")
+    face_path = OUT / "moxi_face.png"
+    if face_path.exists():
+        face = cut_face(face_path, 420)
+        overlay_shot(face).save(OUT / "screenshot_overlay.png", "PNG")
+        overlay_closeup(face).save(OUT / "screenshot_overlay_closeup.png", "PNG")
         print("wrote listing screenshots including overlay")
     else:
-        print("wrote listing screenshots (no mao_face.png, skipped overlay)")
+        print("wrote listing screenshots (no moxi_face.png, skipped overlay)")
 
 
 if __name__ == "__main__":

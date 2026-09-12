@@ -77,7 +77,7 @@ License testing：Settings → License testing，把你的 Gmail 加进去，内
 
 1. 打开 **App signing**：第一次上传时选择由 Google 管理应用签名密钥（推荐）
 2. Testing → Internal testing → 创建版本
-3. 上传 `pangchuang-0.10.0.aab`（见 Cursor 产物或本地 `bundleRelease` 输出）
+3. 上传 `pangchuang-0.11.0.aab`（见 Cursor 产物或本地 `bundleRelease` 输出）
 4. 把你的 Google 账号加为测试员，用测试轨道链接安装（**不要用 GitHub debug APK 测购买**）
 
 ## 7. 按填表包复制粘贴
@@ -100,7 +100,7 @@ License testing：Settings → License testing，把你的 Gmail 加进去，内
 - 高清图标 `play_icon_512.png`
 - 特色图片 `feature_graphic_1024x500.png`
 - 手机截图至少 2 张，建议 4 张：`screenshot_settings.png`、`screenshot_consent.png`、`screenshot_overlay.png`、`screenshot_overlay_closeup.png`
-- 悬浮窗那两张是用官方 Mao 样例拼的草稿，**请用真机演示模式换掉**
+- 悬浮窗那两张是用原创国风角色「墨汐」拼的草稿，**请用真机演示模式换掉**
 
 ## 8. 你必须拍的两段短视频（真机）
 
@@ -119,7 +119,7 @@ Play 对悬浮窗 + 录屏几乎一定会要视频：
 
 ## 10. 你必须自己确认的法律项
 
-- **Live2D 虹色 Mao 样例**：确认你的主体规模符合 [Live2D 免费素材许可](https://www.live2d.com/eula/live2d-free-material-license-agreement_en.html)。若你是较大商业主体，需要换成自有/授权模型后再上架。
+- **Live2D / Cubism SDK**：角色「墨汐」是本项目原创，不是 Live2D 官方样例。Cubism Core 仍须遵守 [Live2D 专有软件许可](https://www.live2d.com/eula/live2d-proprietary-software-license-agreement_en.html) 与发布条款；按你的主体规模核对 Publication License。
 - 商店「目标年龄」建议选 **18+**（可能截取任意屏幕内容）。
 
 ## 11. 申请生产并提交审核

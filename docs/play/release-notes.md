@@ -2,6 +2,16 @@
 
 每次上传 AAB 时可改。没有新功能就沿用上一条。
 
+## 0.11.0
+
+中文：
+
+悬浮窗角色换成原创国风 Live2D「墨汐」。不再使用 Live2D 官方虹色 Mao 样例。
+
+English:
+
+The overlay character is now original Chinese-style Live2D Moxi. The official Live2D Mao sample has been removed.
+
 ## 0.10.0
 
 中文：

@@ -12,7 +12,7 @@ def _a(folder, data):
 _s("values-zh-rTW", {
     "app_name": "旁窗",
     "companion_name": "小旁",
-    "subtitle": "關掉「示範陪伴語」並填入視覺 API。預設使用穩定的 Qwen3-VL-8B。角色為官方虹色 Mao 樣例。",
+    "subtitle": "關掉「示範陪伴語」並填入視覺 API。預設使用穩定的 Qwen3-VL-8B。角色為原創國風 Live2D「墨汐」。",
     "language_title": "介面語言",
     "language_system": "跟隨系統",
     "section_permissions": "權限",
@@ -167,7 +167,7 @@ def ui(folder, reply_language, d):
 ui("values-ja", "日本語", {
     "app_name": "旁窗",
     "companion_name": "小旁",
-    "subtitle": "デモ台詞をオフにしてビジョン API を入れてください。既定は安定版 Qwen3-VL-8B。キャラは公式 Live2D Mao です。",
+    "subtitle": "デモ台詞をオフにしてビジョン API を入れてください。既定は安定版 Qwen3-VL-8B。キャラはオリジナルの国風 Live2D「墨汐」です。",
     "language_title": "表示言語",
     "language_system": "システムに合わせる",
     "section_permissions": "権限",
@@ -277,7 +277,7 @@ ui("values-ja", "日本語", {
 ui("values-ko", "한국어", {
     "app_name": "旁窗",
     "companion_name": "소팡",
-    "subtitle": "데모 대사를 끄고 비전 API를 넣으세요. 기본은 안정적인 Qwen3-VL-8B. 캐릭터는 공식 Live2D Mao입니다.",
+    "subtitle": "데모 대사를 끄고 비전 API를 넣으세요. 기본은 안정적인 Qwen3-VL-8B. 캐릭터는 오리지널 국풍 Live2D 墨汐입니다.",
     "language_title": "언어",
     "language_system": "시스템 따라가기",
     "section_permissions": "권한",
@@ -594,15 +594,15 @@ def pack(folder, lang, name, companion, start, demo, buy):
         }[folder],
     })
 
-pack("values-es", "español", "Desactiva las frases de demo y añade una API de visión. El modelo por defecto es Qwen3-VL-8B estable. El personaje es el Mao oficial de Live2D.", "Xiao Pang", "Empezar con la pantalla real", "Solo demo del recuadro (sin pantalla real)", "Desbloquear compañero completo")
-pack("values-pt-rBR", "português do Brasil", "Desligue as falas de demo e coloque uma API de visão. O padrão é o Qwen3-VL-8B estável. O personagem é o Mao oficial do Live2D.", "Xiao Pang", "Começar com a tela de verdade", "Só a demo flutuante (sem tela real)", "Desbloquear companhia completa")
-pack("values-fr", "français", "Désactivez les répliques de démo et ajoutez une API vision. Modèle par défaut : Qwen3-VL-8B stable. Personnage : Mao officiel Live2D.", "Xiao Pang", "Lancer le compagnon réel", "Démo du calque seulement (pas d'écran réel)", "Débloquer le compagnon complet")
-pack("values-de", "Deutsch", "Demo-Sätze aus und Vision-API eintragen. Standard ist das stabile Qwen3-VL-8B. Figur ist das offizielle Live2D-Mao.", "Xiao Pang", "Echten Bildschirm starten", "Nur Overlay-Demo (kein echter Bildschirm)", "Vollen Begleiter freischalten")
-pack("values-ru", "русский", "Выключите демо-реплики и укажите vision API. По умолчанию стабильный Qwen3-VL-8B. Персонаж — официальный Live2D Mao.", "Сяо Пан", "Начать с настоящего экрана", "Только демо-оверлей (без настоящего экрана)", "Открыть полного компаньона")
-pack("values-in", "Bahasa Indonesia", "Matikan kalimat demo dan isi vision API. Default-nya Qwen3-VL-8B yang stabil. Karakternya Mao resmi Live2D.", "Xiao Pang", "Mulai dengan layar asli", "Demo overlay saja (tanpa layar asli)", "Buka pendamping penuh")
-pack("values-vi", "tiếng Việt", "Tắt câu demo và điền vision API. Mặc định là Qwen3-VL-8B ổn định. Nhân vật là Mao Live2D chính thức.", "Tiểu Bàng", "Bắt đầu với màn hình thật", "Chỉ demo cửa sổ nổi (không xem màn hình thật)", "Mở khóa bạn đồng hành đầy đủ")
-pack("values-th", "ภาษาไทย", "ปิดประโยคเดโม แล้วใส่ vision API ค่าเริ่มต้นคือ Qwen3-VL-8B ที่เสถียร ตัวละครคือ Mao ทางการของ Live2D", "เสี่ยวผาง", "เริ่มดูหน้าจอจริง", "เดโมหน้าต่างลอยอย่างเดียว (ไม่ดูจอจริง)", "ปลดล็อกเพื่อนคู่ใจแบบเต็ม")
-pack("values-ar", "العربية", "أوقف جمل التجربة وأضف واجهة الرؤية. النموذج الافتراضي هو Qwen3-VL-8B المستقر. الشخصية هي Mao الرسمية من Live2D.", "شياو بانغ", "ابدأ مع الشاشة الحقيقية", "تجربة الطبقة العائمة فقط (بدون شاشة حقيقية)", "فتح المرافق الكامل")
+pack("values-es", "español", "Desactiva las frases de demo y añade una API de visión. El modelo por defecto es Qwen3-VL-8B estable. El personaje es Moxi, un Live2D original de estilo chino.", "Xiao Pang", "Empezar con la pantalla real", "Solo demo del recuadro (sin pantalla real)", "Desbloquear compañero completo")
+pack("values-pt-rBR", "português do Brasil", "Desligue as falas de demo e coloque uma API de visão. O padrão é o Qwen3-VL-8B estável. O personagem é Moxi, um Live2D original de estilo chinês.", "Xiao Pang", "Começar com a tela de verdade", "Só a demo flutuante (sem tela real)", "Desbloquear companhia completa")
+pack("values-fr", "français", "Désactivez les répliques de démo et ajoutez une API vision. Modèle par défaut : Qwen3-VL-8B stable. Personnage : Moxi, Live2D original de style chinois.", "Xiao Pang", "Lancer le compagnon réel", "Démo du calque seulement (pas d'écran réel)", "Débloquer le compagnon complet")
+pack("values-de", "Deutsch", "Demo-Sätze aus und Vision-API eintragen. Standard ist das stabile Qwen3-VL-8B. Figur ist Moxi, ein originales Live2D im chinesischen Stil.", "Xiao Pang", "Echten Bildschirm starten", "Nur Overlay-Demo (kein echter Bildschirm)", "Vollen Begleiter freischalten")
+pack("values-ru", "русский", "Выключите демо-реплики и укажите vision API. По умолчанию стабильный Qwen3-VL-8B. Персонаж — оригинальный Live2D в китайском стиле Моси (墨汐).", "Сяо Пан", "Начать с настоящего экрана", "Только демо-оверлей (без настоящего экрана)", "Открыть полного компаньона")
+pack("values-in", "Bahasa Indonesia", "Matikan kalimat demo dan isi vision API. Default-nya Qwen3-VL-8B yang stabil. Karakternya Moxi, Live2D original bergaya Tionghoa.", "Xiao Pang", "Mulai dengan layar asli", "Demo overlay saja (tanpa layar asli)", "Buka pendamping penuh")
+pack("values-vi", "tiếng Việt", "Tắt câu demo và điền vision API. Mặc định là Qwen3-VL-8B ổn định. Nhân vật là Moxi, Live2D nguyên tác phong cách Trung Hoa.", "Tiểu Bàng", "Bắt đầu với màn hình thật", "Chỉ demo cửa sổ nổi (không xem màn hình thật)", "Mở khóa bạn đồng hành đầy đủ")
+pack("values-th", "ภาษาไทย", "ปิดประโยคเดโม แล้วใส่ vision API ค่าเริ่มต้นคือ Qwen3-VL-8B ที่เสถียร ตัวละครคือโมซี (墨汐) Live2D สไตล์จีนต้นฉบับ", "เสี่ยวผาง", "เริ่มดูหน้าจอจริง", "เดโมหน้าต่างลอยอย่างเดียว (ไม่ดูจอจริง)", "ปลดล็อกเพื่อนคู่ใจแบบเต็ม")
+pack("values-ar", "العربية", "أوقف جمل التجربة وأضف واجهة الرؤية. النموذج الافتراضي هو Qwen3-VL-8B المستقر. الشخصية هي موشي (墨汐)، Live2D أصلية بطراز صيني.", "شياو بانغ", "ابدأ مع الشاشة الحقيقية", "تجربة الطبقة العائمة فقط (بدون شاشة حقيقية)", "فتح المرافق الكامل")
 
 
 
