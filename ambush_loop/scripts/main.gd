@@ -5384,7 +5384,7 @@ func _on_op_fired_shot(op: OperatorUnit, target_pos: Vector2) -> void:
 				col = Color(1.0, 0.88, 0.40, 0.96)
 				w = 2.95
 			OperatorUnit.Role.SCOUT:
-				col = Color(0.88, 0.98, 1.0, 0.92)
+				col = Color(0.88, 0.82, 0.58, 0.92)
 				w = 1.85
 		for i in operators.size():
 			if operators[i] == op and i < role_cards.size():
@@ -7431,6 +7431,8 @@ func _throw_grenade_at(world_pos: Vector2) -> void:
 func _on_grenade_boom(pos: Vector2, radius: float, damage: float) -> void:
 	_sfx("barrel")
 	_shake_for_explosion(pos)
+	if entities:
+		CombatFxScript.grenade_scorch(entities, pos)
 	for e in enemies:
 		if e != null and is_instance_valid(e) and e.alive:
 			if e.global_position.distance_to(pos) <= radius:

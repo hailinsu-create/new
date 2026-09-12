@@ -21,92 +21,59 @@ Smoke: `SMOKE_SLICE_COMPLETE` + `SMOKE_OK_RAID_LOOP` + `SMOKE_OK_WEAPON_MODELS`.
 14. Stash silhouettes by family (incl. SMG)
 15. Extra model crates: depot Thompson, radio Springfield + Luger
 16. Fast probe `art_weapon_probe.gd` + smoke `_assert_weapon_models`
+17. Wool visor, khaki helm, pouches, wood stocks
+18. Stielhandgranate / Tellermine / granite decoy
+19. Brass casings + mud boot prints
+20. Moonlight keys; radio lantern not phosphor candy
+21. Wooden ammo boxes, crate grain, burlap, bullet pocks
+22. Khaki glyphs, brass buttons, wartime icon
+23. Stahlhelm brim, puttees, 98K ZF bulge, steel echo mast
+24. Model name on op cards; khaki ambush chalk
+25. Rust brick streaks; olive pump/radio walls; Garand ping
+26. Radio hall steel wash; pump oil vapour
+27. Brass touch rail; paper journal/credits; wartime title dish
+28. Rust drum, dropped-gun stamp, bread-bag, MG bipod
+29. Moonlight overwatch ring, steel radio dish, brass echo paint
+30. Lantern hut, brass motes, steel front sight
+31. Paper stars, rail glint, khaki yard pools
+32. Thompson drum; MP40/Sten/MG42 crates
+33. Olive protect arc
+34. Rust tags, paper title moon, oil sheen
+35. Olive HP, Enfield mag box, pump vent bars
+36. Webley cylinder, Bren top mag, DP pan, M30 twin pipes
+37. Steel lighthouse + dish bowls
+38. MP38 vs MP40, Springfield/PU scopes, sneak smock
+39. Winter-bare yard tree, rust warehouse peak, brick pump stack
+40. Pump rust pipes/valves; warehouse oil; rail sodium; radio brass glass
 
-## Backlog 17–100
+## Backlog 41–100
 
-17. Kar98k bolt-knob + wood furniture overlay
-18. Lee-Enfield magazine box on silhouette
-19. M1 Garand en-bloc hump
-20. Mosin extra-long barrel vs G43
-21. MP40 folding-stock vs Sten side mag
-22. Thompson compensator vs PPS-43
-23. MG42 vented barrel vs BAR bipod
-24. Bren top mag vs DP pan
-25. M1911 vs Luger grip angle on HUD icon
-26. Scoped Kar98k / Springfield tube
-27. Shotgun rib vs Drilling twin pipes
-28. Knife fuller, not a grey stick
-29. Operator Brodie / wool cap vs Stahlhelm enemies
-30. Puttees / ankle wraps
-31. Pouches on webbing
-32. MG gunner ammo box on pack
-33. Scout hood wool, not cyan visor
-34. Enemy helmet brim + rain cover
-35. Flank runner bread-bag
-36. Sneak smock folds
-37. Echo radio pack (not phosphor mast only)
-38. Corpse dropped-gun silhouette uses the model
-39. Loot crate as wooden ammo box + stencil
-40. Grenade as Stielhandgranate
-41. Mills / Mk2 variants later nights
-42. Tellermine dish + fuze
-43. Decoy as pebble/tin, not triangle
-44. Brass casing eject
+41. Mills / Mk2 grenade variants on later nights
+42. Bolt-cycle pose on Kar98k / Mosin
+43. MG42 barrel heat after a burst
+44. Cordite puff lingering on MG
 45. Spark ticks on steel hits
-46. Bullet pock on walls
-47. Scorch under grenade
-48. Mud footprints behind walk
-49. Cordite puff lingering after MG
-50. Night-specific key lights (less cyan radio)
-51. Yard ruts + horse dung
-52. Warehouse oil + pallet grain
-53. Pump rust pipes, less teal
-54. Railcut coal dust
-55. Depot hazard chevrons muted
-56. Radio moonlight steel, not phosphor candy
-57. Sky: fewer lime stars, more sodium windows
-58. Title backdrop wartime courtyard
-59. Briefing dossier paper stock
-60. Op-card brass pip + gun icon
-61. Role glyph khaki, not lime
-62. Cover sandbags burlap weave
-63. Killzone overlay cordite, not neon
-64. Ambush zone chalk, not cyan
-65. Trap path as boot prints
-66. Spawn ghost feldgrau
-67. Intel ghost paper overlay
-68. HUD gun name uses model (Kar98k not 步枪 when looted)
-69. Ammo pips match mag size
-70. Dry-gun mark as open bolt
-71. Muzzle smoke blob per family
-72. Recoil kick scaled already — add bolt cycling pose
-73. Garand ping on empty
-74. MG42 barrel glow after burst
-75. Shotgun flash wider than SMG
-76. Pistol flash short
-77. Scout flash tight spark
-78. Footstep mud puffs
-79. Body drag smear
-80. Mine pulse as dull red, not lime
-81. Grenade pin brass
-82. Crate lid wood grain
-83. Six-night wall language: brick / plate / pipe more material
-84. Door jamb rust
-85. Escape mouth lamplight
-86. Pause overlay paper
-87. Tutorial chrome khaki
-88. Credits wartime type
-89. Icon.svg olive/brass
-90. Clear color asphalt-mud
-91. Power-saving still reads wool vs feldgrau
-92. Colorblind: armband + helmet shape, not hue alone
-93. Visual dump still captures setup
-94. Feel-gate still green
-95. Model loot weights per night
-96. Rare ZF/Springfield on radio
-97. Sten common on pump
-98. MG42 rare on railcut
-99. Screenshot pass / APK
+46. Scorch under grenade
+47. Yard ruts + horse dung
+48. Railcut coal dust
+49. Depot chevrons muted further
+50. Echo radio pack (not mast only)
+51. Intel ghost paper overlay
+52. Trap path as boot prints
+53. Ammo pips match mag size
+54. Dry-gun as open bolt, not just 空
+55. Body drag smear
+56. Door jamb rust
+57. Escape mouth lamplight
+58. Colorblind: helmet shape + armband (already started)
+59. Power-saving still reads wool vs feldgrau
+60. Visual dump still captures setup
+61. Feel-gate still green
+62. Model loot weights per night (tables started)
+63. Rare ZF crate on radio
+64. Screenshot pass
+65. Playtest APK re-export
+66–99. Further silhouette/VFX/HUD passes
 100. Close-out: HEAD, smoke, model table
 
 Empty docs-only commits stay ≤5.

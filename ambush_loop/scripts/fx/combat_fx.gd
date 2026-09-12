@@ -51,6 +51,23 @@ static func knife_lunge(host: Node2D, from: Vector2, to: Vector2) -> void:
 	tw.tween_callback(n.queue_free)
 
 
+static func steel_spark(host: Node2D, world_pos: Vector2) -> void:
+	impact(host, world_pos, Color(0.92, 0.78, 0.42), false)
+
+
+static func grenade_scorch(host: Node2D, world_pos: Vector2) -> void:
+	if not _ok(host):
+		return
+	var n := _spawn(host, "CfxScorch", world_pos + Vector2(0, 6), 1)
+	var burn := Polygon2D.new()
+	burn.polygon = PackedVector2Array([
+		Vector2(-14, -4), Vector2(6, -7), Vector2(16, 1), Vector2(8, 8),
+		Vector2(-6, 9), Vector2(-16, 3)
+	])
+	burn.color = Color(0.08, 0.06, 0.04, 0.62)
+	n.add_child(burn)
+
+
 static func impact(host: Node2D, world_pos: Vector2, tint: Color = Color(1.0, 0.82, 0.38), heavy: bool = false) -> void:
 	if not _ok(host) or not _budget(host, "CfxImpact", 6):
 		return
