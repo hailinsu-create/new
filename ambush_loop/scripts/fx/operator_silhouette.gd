@@ -83,6 +83,9 @@ static func mount(body: Polygon2D, role: int, weapon_id: String = "") -> void:
 	_poly(body, "ShoulderR", _shoulder_r(role), _shade(role, 0.96), 1)
 	_poly(body, "Collar", _collar(role), _head_color(role).lightened(0.08), 1)
 	_poly(body, "ArmGun", _arm_gun(role), _shade(role, 0.82), 3)
+	_poly(body, "Glove", PackedVector2Array([
+		Vector2(1.2, -16.4), Vector2(3.6, -15.6), Vector2(2.4, -19.2), Vector2(0.8, -18.6)
+	]), Color(0.16, 0.12, 0.08, 0.94), 4)
 	_poly(body, "Head", _head(role), _head_color(role), 2)
 	_poly(body, "Visor", _visor(role), _visor_color(role), 3)
 	_poly(body, "KitHelm", _helm(role), _helm_color(role), 3).visible = true
@@ -122,6 +125,10 @@ static func mount(body: Polygon2D, role: int, weapon_id: String = "") -> void:
 			Vector2(-2.2, -2.0), Vector2(2.0, -2.0), Vector2(1.8, 6.4), Vector2(-2.0, 6.4)
 		]), Color(0.14, 0.12, 0.08, 0.95), 6)
 		boxmag.visible = wid == "bar"
+		var belt := _poly(body, "AmmoBelt", PackedVector2Array([
+			Vector2(-7.4, -4.0), Vector2(-3.0, -4.4), Vector2(-2.6, 1.6), Vector2(-7.0, 2.0)
+		]), Color(0.42, 0.32, 0.12, 0.92), 6)
+		belt.visible = wid in ["mg42", "mg34"]
 		var knob := _poly(body, "BoltKnob", WeaponArtScript.bolt_knob_poly(wid), Color(0.22, 0.18, 0.10, 0.96), 7)
 		knob.visible = WeaponArtScript.is_bolt(wid)
 		var heat := _poly(body, "HeatGlow", PackedVector2Array([
@@ -132,7 +139,7 @@ static func mount(body: Polygon2D, role: int, weapon_id: String = "") -> void:
 		var stock := body.get_node_or_null("Stock") as Polygon2D
 		if stock:
 			stock.visible = false
-		for nam in ["Bipod", "BipodL", "BipodR", "Drum", "BoltKnob", "HeatGlow", "ScopeTube", "BoxMag"]:
+		for nam in ["Bipod", "BipodL", "BipodR", "Drum", "BoltKnob", "HeatGlow", "ScopeTube", "BoxMag", "AmmoBelt"]:
 			var bipod_off := body.get_node_or_null(nam) as Polygon2D
 			if bipod_off:
 				bipod_off.visible = false
@@ -218,6 +225,10 @@ static func pose_parts(body: Polygon2D, role: int, pose: Dictionary) -> void:
 	if arm:
 		arm.rotation = recoil * 1.15 + bolt_yaw * 0.55
 		arm.position = Vector2(-kick * 0.15 + bolt_yaw * 1.6, kick * 0.45 + bolt_pull * 3.2)
+		var glove := body.get_node_or_null("Glove") as Polygon2D
+		if glove:
+			glove.rotation = arm.rotation
+			glove.position = arm.position
 	var weap := body.get_node_or_null("Weapon") as Polygon2D
 	if weap:
 		weap.rotation = recoil + bolt_yaw * 0.18
@@ -243,7 +254,7 @@ static func pose_parts(body: Polygon2D, role: int, pose: Dictionary) -> void:
 			var steel := WeaponArtScript.steel_color(wid)
 			weap.color = steel.lerp(Color(0.72, 0.22, 0.08, 0.98), heat * 0.55) if heat > 0.12 else steel
 	if weap:
-		for nam in ["ScopeTube", "Drum", "BoxMag", "Stock"]:
+		for nam in ["ScopeTube", "Drum", "BoxMag", "Stock", "AmmoBelt"]:
 			var bit := body.get_node_or_null(nam) as Polygon2D
 			if bit and bit.visible:
 				bit.rotation = weap.rotation
