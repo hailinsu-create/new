@@ -12,3 +12,13 @@ R07 | permissions | Usage-access copy marked optional, caption + text-button so 
 R08 | capture | Second capture disclosure matches lock behavior: VirtualDisplay released, frames dropped, no forced glance on unlock | strings.xml
 R09 | a11y | Home primary buttons use minHeight 56dp and vertical padding so large font does not clip | activity_main.xml
 R10 | Live2D | Unload home preview WebView while overlay is running so Cubism is not loaded twice | Live2DAvatarView.kt, MainActivity.kt
+R11 | overlay | Close control is 48dp with ripple/pressed contrast against the pink border | overlay_bubble.xml, bg_overlay_close.xml
+R12 | a11y | Distinct contentDescriptions for avatar, bubble, and close | OverlayController.kt, overlay_bubble.xml, strings.xml
+R13 | overlay | Persist overlay X/Y and restore clamped on next show | OverlayController.kt, Prefs.kt, OverlayGeometry.kt
+R14 | rtl | Overlay uses locale layoutDirection; close chip on start (outer) side for ar | overlay_bubble.xml, OverlayGeometry.kt
+R15 | overlay | SCREEN_OFF pauses Live2D WebView rendering; SCREEN_ON resumes if still running | RoastService.kt, OverlayController.kt, Live2DAvatarView.kt
+R16 | overlay | Bubble sits above the avatar so it cannot cover the close chip | overlay_bubble.xml
+R17 | notification | Distinct notification titles for demo vs full companion | RoastService.kt, strings.xml
+R18 | notification | Stop action uses rest wording consistent with overlay close | RoastService.kt, strings.xml
+R19 | overlay | Clamp and persist position on configuration change / rotation | OverlayController.kt, OverlayGeometry.kt
+R20 | overlay | Permissionless long-press haptic via performHapticFeedback | OverlayController.kt

@@ -57,8 +57,14 @@ class RoastService : Service() {
     private val screenReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.action) {
-                Intent.ACTION_SCREEN_OFF -> onScreenLocked("screen_off")
-                Intent.ACTION_SCREEN_ON -> refreshLockState("screen_on")
+                Intent.ACTION_SCREEN_OFF -> {
+                    overlay?.pauseRendering()
+                    onScreenLocked("screen_off")
+                }
+                Intent.ACTION_SCREEN_ON -> {
+                    if (running) overlay?.resumeRendering()
+                    refreshLockState("screen_on")
+                }
                 Intent.ACTION_USER_PRESENT -> onScreenUnlocked("user_present")
             }
         }
@@ -200,13 +206,13 @@ class RoastService : Service() {
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or
                     ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
             }
-            startForeground(NOTIF_ID, buildNotification(text), type)
+            startForeground(NOTIF_ID, buildNotification(text, demo), type)
         } else {
-            startForeground(NOTIF_ID, buildNotification(text))
+            startForeground(NOTIF_ID, buildNotification(text, demo))
         }
     }
 
-    private fun buildNotification(contentText: String): Notification {
+    private fun buildNotification(contentText: String, demo: Boolean = demoMode): Notification {
         val open = PendingIntent.getActivity(
             this,
             0,
@@ -219,12 +225,17 @@ class RoastService : Service() {
             Intent(this, RoastService::class.java).setAction(ACTION_STOP),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        val title = if (demo) {
+            getString(R.string.notification_title_demo)
+        } else {
+            getString(R.string.notification_title_full)
+        }
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle(getString(R.string.notification_title))
+            .setContentTitle(title)
             .setContentText(contentText)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentIntent(open)
-            .addAction(0, getString(R.string.stop_roast), stop)
+            .addAction(0, getString(R.string.notification_action_rest), stop)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .build()
@@ -232,7 +243,7 @@ class RoastService : Service() {
 
     private fun updateNotification(contentText: String) {
         val nm = getSystemService(NotificationManager::class.java) ?: return
-        nm.notify(NOTIF_ID, buildNotification(contentText))
+        nm.notify(NOTIF_ID, buildNotification(contentText, demoMode))
     }
 
     /** Stop the current loop / capture without dismissing the overlay or FGS. */

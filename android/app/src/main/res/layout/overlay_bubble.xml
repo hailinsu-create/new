@@ -1,47 +1,58 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/overlayRoot"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:clipChildren="false"
-    android:clipToPadding="false">
+    android:clipToPadding="false"
+    android:layoutDirection="locale"
+    android:orientation="vertical">
 
-    <LinearLayout
+    <!-- Above the avatar so it cannot cover the 48dp close chip. -->
+    <ScrollView
         android:id="@+id/bubblePanel"
         android:layout_width="220dp"
         android:layout_height="wrap_content"
-        android:layout_gravity="top|start"
+        android:layout_marginStart="8dp"
         android:layout_marginBottom="8dp"
         android:background="@drawable/bg_bubble"
-        android:contentDescription="@string/overlay_avatar_cd"
-        android:orientation="vertical"
+        android:contentDescription="@string/overlay_bubble_cd"
+        android:fillViewport="true"
+        android:maxHeight="140dp"
         android:padding="10dp"
+        android:scrollbars="vertical"
         android:visibility="gone">
 
-        <TextView
-            android:id="@+id/bubbleBrand"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/companion_name"
-            android:textColor="@color/blush"
-            android:textSize="11sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/bubbleText"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:lineSpacingExtra="2dp"
-            android:textColor="@color/foam"
-            android:textSize="13sp" />
-    </LinearLayout>
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/bubbleBrand"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/companion_name"
+                android:textColor="@color/blush"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/bubbleText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:lineSpacingExtra="2dp"
+                android:scrollbars="vertical"
+                android:textColor="@color/foam"
+                android:textSize="13sp" />
+        </LinearLayout>
+    </ScrollView>
 
     <FrameLayout
         android:layout_width="96dp"
         android:layout_height="96dp"
-        android:layout_gravity="bottom|start"
-        android:layout_marginTop="72dp">
+        android:layout_gravity="start">
 
         <com.pangchuang.app.Live2DAvatarView
             android:id="@+id/fab"
@@ -52,12 +63,12 @@
 
         <ImageButton
             android:id="@+id/overlayClose"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:layout_gravity="top|end"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="top|start"
             android:background="@drawable/bg_overlay_close"
             android:contentDescription="@string/overlay_close_cd"
-            android:padding="5dp"
+            android:padding="12dp"
             android:src="@drawable/ic_overlay_close" />
     </FrameLayout>
-</FrameLayout>
+</LinearLayout>

@@ -1,7 +1,9 @@
 package com.pangchuang.app
 
 import android.annotation.SuppressLint
+import android.content.ComponentCallbacks
 import android.content.Context
+import android.content.res.Configuration
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.Handler
@@ -9,6 +11,7 @@ import android.os.Looper
 import android.os.SystemClock
 import android.util.DisplayMetrics
 import android.view.Gravity
+import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
@@ -17,8 +20,9 @@ import android.view.WindowManager
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.DecelerateInterpolator
 import android.widget.ImageButton
-import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
+import androidx.core.view.ViewCompat
 import kotlin.math.abs
 
 class OverlayController(
@@ -28,11 +32,13 @@ class OverlayController(
 ) {
     private val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     private val handler = Handler(Looper.getMainLooper())
+    private val prefs = Prefs(context)
     private var root: View? = null
-    private var bubblePanel: LinearLayout? = null
+    private var bubblePanel: ScrollView? = null
     private var bubbleText: TextView? = null
     private var avatar: Live2DAvatarView? = null
     private var params: WindowManager.LayoutParams? = null
+    private var callbacksRegistered = false
 
     private val bobLoop = object : Runnable {
         override fun run() {
@@ -56,6 +62,21 @@ class OverlayController(
         }
     }
 
+    private val configCallbacks = object : ComponentCallbacks {
+        override fun onConfigurationChanged(newConfig: Configuration) {
+            val view = root ?: return
+            val lp = params ?: return
+            view.layoutDirection = View.LAYOUT_DIRECTION_LOCALE
+            view.post {
+                applyClamp(view, lp, snap = true)
+                runCatching { windowManager.updateViewLayout(view, lp) }
+                persistPosition(lp)
+            }
+        }
+
+        override fun onLowMemory() {}
+    }
+
     @SuppressLint("ClickableViewAccessibility", "InflateParams")
     fun show(initialText: String? = null) {
         if (root != null) {
@@ -63,6 +84,8 @@ class OverlayController(
             return
         }
         val view = LayoutInflater.from(context).inflate(R.layout.overlay_bubble, null)
+        view.layoutDirection = View.LAYOUT_DIRECTION_LOCALE
+        ViewCompat.setAccessibilityPaneTitle(view, context.getString(R.string.overlay_pane_title))
         bubblePanel = view.findViewById(R.id.bubblePanel)
         bubbleText = view.findViewById(R.id.bubbleText)
         avatar = view.findViewById(R.id.fab)
@@ -71,11 +94,12 @@ class OverlayController(
         live2d.contentDescription = context.getString(R.string.overlay_avatar_cd)
         live2d.touchTarget().contentDescription = context.getString(R.string.overlay_avatar_cd)
         live2d.touchTarget().importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
+        bubblePanel?.contentDescription = context.getString(R.string.overlay_bubble_cd)
+        bubblePanel?.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
         close.contentDescription = context.getString(R.string.overlay_close_cd)
         close.setOnClickListener { onClose?.invoke() }
         live2d.onError = { err ->
-            val short = err.take(48)
-            showText("Live2D：$short")
+            showText(live2d.humanizeError(err))
         }
         live2d.onReady = {
             // Keep current bubble; model is now live.
@@ -89,7 +113,6 @@ class OverlayController(
             WindowManager.LayoutParams.TYPE_PHONE
         }
 
-        // No FLAG_LAYOUT_NO_LIMITS: that flag lets the window fly off-screen.
         val lp = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -99,15 +122,26 @@ class OverlayController(
             PixelFormat.TRANSLUCENT
         )
         lp.gravity = Gravity.TOP or Gravity.START
-        lp.x = 24
-        lp.y = 180
+        lp.title = context.getString(R.string.overlay_pane_title)
+        val (sw, sh) = screenSize()
+        val restored = OverlayGeometry.restoreClamped(
+            prefs.overlayX,
+            prefs.overlayY,
+            dp(OverlayGeometry.avatarSizeDp()),
+            dp(OverlayGeometry.avatarSizeDp() + 48),
+            sw,
+            sh,
+            dp(8)
+        )
+        lp.x = restored.first
+        lp.y = restored.second
 
         var downX = 0f
         var downY = 0f
         var startX = 0
         var startY = 0
         var downAt = 0L
-        touchTarget.setOnTouchListener { _, event ->
+        touchTarget.setOnTouchListener { v, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     downX = event.rawX
@@ -129,8 +163,10 @@ class OverlayController(
                     val held = SystemClock.uptimeMillis() - downAt >= 450
                     applyClamp(view, lp, snap = moved)
                     windowManager.updateViewLayout(view, lp)
+                    persistPosition(lp)
                     if (!moved && event.action == MotionEvent.ACTION_UP) {
                         if (held) {
+                            v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                             showText(context.getString(R.string.overlay_looking))
                             onForceRoast?.invoke()
                         } else {
@@ -147,7 +183,12 @@ class OverlayController(
         windowManager.addView(view, lp)
         root = view
         params = lp
-        view.post { applyClamp(view, lp, snap = true); windowManager.updateViewLayout(view, lp) }
+        registerConfigCallbacks()
+        view.post {
+            applyClamp(view, lp, snap = !prefs.hasOverlayPos)
+            windowManager.updateViewLayout(view, lp)
+            persistPosition(lp)
+        }
         handler.post(bobLoop)
         showText(initialText ?: context.getString(R.string.overlay_hello))
     }
@@ -156,9 +197,11 @@ class OverlayController(
         val panel = bubblePanel ?: return
         val label = bubbleText ?: return
         label.text = text
+        label.maxLines = 8
         panel.visibility = View.VISIBLE
         panel.alpha = 0f
         panel.translationY = 12f
+        panel.scrollTo(0, 0)
         panel.animate()
             .alpha(1f)
             .translationY(0f)
@@ -171,6 +214,14 @@ class OverlayController(
 
     fun showThinking(text: String? = null) {
         showText(text ?: context.getString(R.string.overlay_thinking))
+    }
+
+    fun pauseRendering() {
+        avatar?.pauseRendering()
+    }
+
+    fun resumeRendering() {
+        avatar?.resumeRendering()
     }
 
     /**
@@ -192,8 +243,8 @@ class OverlayController(
 
     private fun applyClamp(view: View, lp: WindowManager.LayoutParams, snap: Boolean) {
         val (sw, sh) = screenSize()
-        val vw = view.width.coerceAtLeast(dp(96))
-        val vh = view.height.coerceAtLeast(dp(96))
+        val vw = view.width.coerceAtLeast(dp(OverlayGeometry.avatarSizeDp()))
+        val vh = view.height.coerceAtLeast(dp(OverlayGeometry.avatarSizeDp()))
         val pad = dp(8)
         val (nx, ny) = if (snap) {
             OverlayGeometry.snapAndClamp(lp.x, lp.y, vw, vh, sw, sh, pad)
@@ -202,6 +253,11 @@ class OverlayController(
         }
         lp.x = nx
         lp.y = ny
+    }
+
+    private fun persistPosition(lp: WindowManager.LayoutParams) {
+        prefs.overlayX = lp.x
+        prefs.overlayY = lp.y
     }
 
     private fun screenSize(): Pair<Int, Int> {
@@ -224,8 +280,21 @@ class OverlayController(
     private fun dp(v: Int): Int =
         (v * context.resources.displayMetrics.density).toInt()
 
+    private fun registerConfigCallbacks() {
+        if (callbacksRegistered) return
+        context.applicationContext.registerComponentCallbacks(configCallbacks)
+        callbacksRegistered = true
+    }
+
+    private fun unregisterConfigCallbacks() {
+        if (!callbacksRegistered) return
+        runCatching { context.applicationContext.unregisterComponentCallbacks(configCallbacks) }
+        callbacksRegistered = false
+    }
+
     fun dismiss() {
         handler.removeCallbacksAndMessages(null)
+        unregisterConfigCallbacks()
         avatar?.animate()?.cancel()
         avatar?.destroy()
         root?.let {
