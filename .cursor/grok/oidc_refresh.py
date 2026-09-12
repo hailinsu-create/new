@@ -4,8 +4,11 @@
 Prints only safe metadata (email, expires_at, remaining_hours).
 Never prints access tokens, refresh tokens, JWTs, or auth.json contents.
 
+By default skips the token endpoint when access remaining > 60s. Unconditional
+refresh rotates refresh_token and poisons other agents on the same Saved disk.
+
 Exit codes:
-  0  refreshed
+  0  refreshed or skipped (access still valid)
   1  no refresh_token / no OIDC entry
   2  invalid_grant or HTTP/protocol error (device login required)
 """
@@ -24,6 +27,11 @@ from datetime import datetime, timedelta, timezone
 DEFAULT_ISSUER = "https://auth.x.ai"
 TIMEOUT = 20
 AUTH_PATH = os.path.expanduser("~/.grok/auth.json")
+DEFAULT_MIN_REMAINING_SECONDS = 60
+USAGE = (
+    "usage: oidc_refresh.py [--auth-file PATH] [--force] "
+    "[--min-remaining SECONDS]"
+)
 
 
 class OIDCRefreshError(Exception):
@@ -71,6 +79,20 @@ def find_oidc_entry(data: object) -> tuple[str, dict] | None:
         if value.get("refresh_token") and value.get("oidc_client_id"):
             return str(key), value
     return None
+
+
+def access_remaining_seconds(entry: dict) -> float | None:
+    """Seconds until entry["expires_at"] (ISO, including Z). None => must refresh."""
+    raw = entry.get("expires_at")
+    if not raw or not isinstance(raw, str):
+        return None
+    try:
+        dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return (dt - datetime.now(timezone.utc)).total_seconds()
+    except Exception:
+        return None
 
 
 def http_json(
@@ -161,6 +183,8 @@ def refresh_auth_file(
     path: str,
     urlopen=urllib.request.urlopen,
     timeout: int = TIMEOUT,
+    force: bool = False,
+    min_remaining_seconds: float = DEFAULT_MIN_REMAINING_SECONDS,
 ) -> dict:
     try:
         with open(path, encoding="utf-8") as handle:
@@ -178,6 +202,19 @@ def refresh_auth_file(
     client_id = entry.get("oidc_client_id")
     if not refresh_token or not client_id:
         raise OIDCRefreshError("no refresh_token", 1)
+
+    remaining = access_remaining_seconds(entry)
+    if (
+        not force
+        and remaining is not None
+        and remaining > min_remaining_seconds
+    ):
+        return {
+            "email": str(entry.get("email") or ""),
+            "expires_at": str(entry.get("expires_at") or ""),
+            "remaining_hours": remaining / 3600.0,
+            "skipped": True,
+        }
 
     issuer = entry.get("oidc_issuer") or DEFAULT_ISSUER
     token_endpoint = discover_token_endpoint(urlopen, str(issuer), timeout=timeout)
@@ -207,28 +244,52 @@ def refresh_auth_file(
         "email": str(entry.get("email") or ""),
         "expires_at": expires_at,
         "remaining_hours": remaining / 3600.0,
+        "skipped": False,
     }
 
 
 def main(argv: list[str] | None = None, urlopen=urllib.request.urlopen) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     path = AUTH_PATH
-    if args[:1] == ["--auth-file"] and len(args) >= 2:
-        path = args[1]
-        args = args[2:]
-    elif args:
-        print("usage: oidc_refresh.py [--auth-file PATH]", file=sys.stderr)
+    force = False
+    min_remaining_seconds = float(DEFAULT_MIN_REMAINING_SECONDS)
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        if arg == "--auth-file" and i + 1 < len(args):
+            path = args[i + 1]
+            i += 2
+            continue
+        if arg == "--force":
+            force = True
+            i += 1
+            continue
+        if arg == "--min-remaining" and i + 1 < len(args):
+            try:
+                min_remaining_seconds = float(args[i + 1])
+            except ValueError:
+                print(USAGE, file=sys.stderr)
+                return 1
+            i += 2
+            continue
+        print(USAGE, file=sys.stderr)
         return 1
     try:
-        meta = refresh_auth_file(path, urlopen=urlopen)
+        meta = refresh_auth_file(
+            path,
+            urlopen=urlopen,
+            force=force,
+            min_remaining_seconds=min_remaining_seconds,
+        )
     except OIDCRefreshError as exc:
         print(f"oidc refresh: {exc}", file=sys.stderr)
         return exc.code
     except OSError as exc:
         print(f"oidc refresh: HTTP error: {exc}", file=sys.stderr)
         return 2
+    verb = "skipped" if meta.get("skipped") else "refreshed"
     print(
-        "refreshed"
+        f"{verb}"
         f" email={meta['email']}"
         f" expires_at={meta['expires_at']}"
         f" remaining_hours={meta['remaining_hours']:.2f}"
