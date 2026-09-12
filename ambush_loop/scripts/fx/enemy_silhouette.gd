@@ -60,6 +60,9 @@ static func mount(body: Polygon2D, kind: String) -> void:
 	var cape := _poly(body, "Cape", _cape(kind), _cape_color(kind), -1)
 	cape.visible = kind == "sneak"
 	cape.show_behind_parent = true
+	var dirt := _poly(body, "SmockDirt", _smock_dirt(), Color(0.10, 0.08, 0.05, 0.70), -1)
+	dirt.visible = kind == "sneak"
+	dirt.show_behind_parent = true
 	_poly(body, "BootL", _boot_l(kind), _boot_color(kind, 0.78), 0)
 	_poly(body, "BootR", _boot_r(kind), _boot_color(kind, 0.92), 0)
 	_poly(body, "PutteeL", _puttee_l(kind), Color(0.28, 0.24, 0.16, 0.90), 0)
@@ -148,6 +151,12 @@ static func pose_parts(body: Polygon2D, kind: String, pose: Dictionary) -> void:
 	elif cape:
 		cape.rotation = 0.0
 		cape.position = Vector2.ZERO
+	var dirt := body.get_node_or_null("SmockDirt") as Polygon2D
+	if dirt:
+		dirt.visible = kind == "sneak" and alive
+		if cape:
+			dirt.rotation = cape.rotation
+			dirt.position = cape.position + Vector2(0, 0.6)
 	var moon := body.get_node_or_null("MoonFill") as Polygon2D
 	if moon:
 		moon.visible = alive and not saving
@@ -529,6 +538,12 @@ static func _cape(kind: String) -> PackedVector2Array:
 		Vector2(-5.4, -6.8), Vector2(5.4, -6.8),
 		Vector2(14.2, 4.4), Vector2(6.0, 8.6), Vector2(0.0, 10.4),
 		Vector2(-6.0, 8.6), Vector2(-14.2, 4.4)
+	])
+
+
+static func _smock_dirt() -> PackedVector2Array:
+	return PackedVector2Array([
+		Vector2(-8.0, 5.0), Vector2(8.0, 5.0), Vector2(10.0, 8.2), Vector2(0.0, 10.4), Vector2(-10.0, 8.2)
 	])
 
 
