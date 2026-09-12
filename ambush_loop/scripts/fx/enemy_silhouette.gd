@@ -607,7 +607,7 @@ static func _boot_color(kind: String, k: float) -> Color:
 		"flank":
 			c = Color(0.16, 0.08, 0.04, 0.95)
 		"sneak":
-			c = Color(0.08, 0.10, 0.09, 0.92)
+			c = Color(0.08, 0.08, 0.06, 0.92)
 	return Color(c.r * k, c.g * k, c.b * k, c.a)
 
 
