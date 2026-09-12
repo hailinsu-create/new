@@ -1028,7 +1028,7 @@ func _apply_idle_bob() -> void:
 		Silhouette.pose_parts(body, role, {
 			"t": _present_t,
 			"recoil": _weapon_snap,
-			"bolt": _bolt_cycle,
+			"bolt": _bolt_cycle if ammo > 0 or melee else maxf(_bolt_cycle, 0.42),
 			"heat": _barrel_heat,
 			"hit": _hit_punch,
 			"alive": alive and visible,
