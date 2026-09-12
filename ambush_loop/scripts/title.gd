@@ -918,7 +918,7 @@ func _fill_route_chips(def: LevelDef) -> void:
 				col = Color(0.95, 0.62, 0.22)
 			"sneak":
 				label = "暗道"
-				col = Color(0.42, 0.78, 0.62)
+				col = Color(0.42, 0.48, 0.28)
 			"main":
 				label = "主路"
 				col = Color(0.92, 0.28, 0.22)

@@ -126,7 +126,7 @@ func _draw() -> void:
 	_draw_courtyard(sz)
 	var step := 44.0
 	var drift := 0.0 if _particles_suppressed() else fmod(t * 6.0, step)
-	var grid_c := Color(0.22, 0.28, 0.18, 0.10)
+	var grid_c := Color(0.22, 0.18, 0.10, 0.10)
 	var x := -step + drift * 0.25
 	while x < sz.x + step:
 		draw_line(Vector2(x, sz.y * 0.42), Vector2(x, sz.y), grid_c, 1.0)
@@ -137,8 +137,8 @@ func _draw() -> void:
 		y += step
 	var off := Vector2.ZERO if _particles_suppressed() else Vector2(sin(t * 0.32) * 14.0, cos(t * 0.21) * 9.0)
 	var cols := [
-		Color(0.82, 0.90, 0.42, 0.52),
-		Color(0.68, 0.78, 0.38, 0.40),
+		Color(0.72, 0.58, 0.28, 0.52),
+		Color(0.52, 0.44, 0.24, 0.40),
 		Color(0.95, 0.84, 0.42, 0.32),
 		Color(0.62, 0.52, 0.28, 0.38),
 	]
@@ -203,7 +203,7 @@ func _draw_courtyard(sz: Vector2) -> void:
 			Vector2(90, sz.y * 0.40), Vector2(150, sz.y * 0.58),
 			Vector2(90, sz.y * 0.54), Vector2(30, sz.y * 0.58)
 		]),
-		Color(0.10, 0.16, 0.08, 0.55)
+		Color(0.12, 0.12, 0.06, 0.55)
 	)
 	# Radio dish on the east roof — campaign finale silhouette.
 	var dish := Vector2(sz.x - 150.0, sz.y * 0.20)
