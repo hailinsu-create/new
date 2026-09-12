@@ -67,6 +67,8 @@ static func mount(body: Polygon2D, role: int, weapon_id: String = "") -> void:
 	_poly(body, "Pack", _pack(role), _pack_color(role), -1).visible = not saving or role != 2
 	_poly(body, "BootL", _boot_l(role), _boot_color(role, 0.78), 0)
 	_poly(body, "BootR", _boot_r(role), _boot_color(role, 0.92), 0)
+	_poly(body, "PutteeL", _puttee_l(role), Color(0.32, 0.28, 0.18, 0.92), 0)
+	_poly(body, "PutteeR", _puttee_r(role), Color(0.34, 0.30, 0.18, 0.92), 0)
 	_poly(body, "LegL", _leg_l(role), _shade(role, 0.58), 0)
 	_poly(body, "LegR", _leg_r(role), _shade(role, 0.72), 0)
 	_poly(body, "Hip", _hip(role), _shade(role, 0.66), 0)
@@ -99,7 +101,7 @@ static func mount(body: Polygon2D, role: int, weapon_id: String = "") -> void:
 	flash.visible = true
 	var rim := _poly(body, "RimLight", _rim_light(role), _rim_light_color(role), 4)
 	rim.visible = not saving
-	var moon := _poly(body, "MoonFill", _moon_fill(role), Color(0.88, 0.94, 0.70, 0.34 if not saving else 0.16), 4)
+	var moon := _poly(body, "MoonFill", _moon_fill(role), Color(0.78, 0.74, 0.52, 0.28 if not saving else 0.14), 4)
 	moon.visible = not saving
 	_sight(body, role)
 
@@ -417,6 +419,38 @@ static func _leg_r(role: int) -> PackedVector2Array:
 			])
 
 
+static func _puttee_l(role: int) -> PackedVector2Array:
+	match role:
+		1:
+			return PackedVector2Array([
+				Vector2(-7.6, 11.4), Vector2(-2.8, 11.6), Vector2(-3.0, 14.4), Vector2(-7.8, 14.2)
+			])
+		2:
+			return PackedVector2Array([
+				Vector2(-4.6, 12.2), Vector2(-1.6, 12.4), Vector2(-1.8, 14.2), Vector2(-4.8, 14.0)
+			])
+		_:
+			return PackedVector2Array([
+				Vector2(-6.2, 11.6), Vector2(-2.2, 11.8), Vector2(-2.4, 14.4), Vector2(-6.4, 14.2)
+			])
+
+
+static func _puttee_r(role: int) -> PackedVector2Array:
+	match role:
+		1:
+			return PackedVector2Array([
+				Vector2(2.8, 11.6), Vector2(7.6, 11.4), Vector2(7.8, 14.2), Vector2(3.0, 14.4)
+			])
+		2:
+			return PackedVector2Array([
+				Vector2(1.6, 12.4), Vector2(4.6, 12.2), Vector2(4.8, 14.0), Vector2(1.8, 14.2)
+			])
+		_:
+			return PackedVector2Array([
+				Vector2(2.2, 11.8), Vector2(6.2, 11.6), Vector2(6.4, 14.2), Vector2(2.4, 14.4)
+			])
+
+
 static func _boot_l(role: int) -> PackedVector2Array:
 	match role:
 		1:
@@ -568,8 +602,8 @@ static func _pack(role: int) -> PackedVector2Array:
 	match role:
 		1:
 			return PackedVector2Array([
-				Vector2(-5.6, 1.0), Vector2(5.6, 1.0),
-				Vector2(4.8, 8.4), Vector2(-4.8, 8.4)
+				Vector2(-6.4, 0.4), Vector2(6.4, 0.4),
+				Vector2(5.6, 9.2), Vector2(-5.6, 9.2)
 			])
 		2:
 			return PackedVector2Array([

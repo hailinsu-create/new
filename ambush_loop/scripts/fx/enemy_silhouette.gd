@@ -76,9 +76,9 @@ static func mount(body: Polygon2D, kind: String) -> void:
 	band.visible = kind != "sneak"
 	var moon := _poly(body, "MoonFill", _moon_fill(kind), Color(0.82, 0.74, 0.52, 0.22 if not saving else 0.10), 3)
 	moon.visible = not saving
-	var mast := _poly(body, "EchoMast", _echo_mast_poly(), Color(0.55, 0.88, 0.98, 0.95), 4)
+	var mast := _poly(body, "EchoMast", _echo_mast_poly(), Color(0.28, 0.26, 0.20, 0.95), 4)
 	mast.visible = kind == "echo"
-	var tip := _poly(body, "MastTip", _mast_tip_poly(), Color(0.72, 0.96, 1.0, 0.95), 5)
+	var tip := _poly(body, "MastTip", _mast_tip_poly(), Color(0.62, 0.48, 0.22, 0.95), 5)
 	tip.visible = kind == "echo"
 	_sight(body, kind)
 
@@ -417,8 +417,8 @@ static func _helm(kind: String) -> PackedVector2Array:
 	match kind:
 		"flank":
 			return PackedVector2Array([
-				Vector2(-3.2, -19.0), Vector2(3.2, -19.0),
-				Vector2(2.8, -15.0), Vector2(-2.8, -15.0)
+				Vector2(-3.6, -19.4), Vector2(3.6, -19.4),
+				Vector2(4.2, -15.4), Vector2(-4.2, -15.4)
 			])
 		"sneak":
 			return PackedVector2Array([
@@ -427,13 +427,13 @@ static func _helm(kind: String) -> PackedVector2Array:
 			])
 		"echo":
 			return PackedVector2Array([
-				Vector2(-3.6, -18.8), Vector2(3.6, -18.8),
-				Vector2(3.2, -14.6), Vector2(-3.2, -14.6)
+				Vector2(-4.0, -19.2), Vector2(4.0, -19.2),
+				Vector2(4.6, -14.8), Vector2(-4.6, -14.8)
 			])
 		_:
 			return PackedVector2Array([
-				Vector2(-5.2, -17.6), Vector2(5.2, -17.6),
-				Vector2(4.6, -13.4), Vector2(-4.6, -13.4)
+				Vector2(-5.6, -18.2), Vector2(5.6, -18.2),
+				Vector2(6.2, -13.6), Vector2(-6.2, -13.6)
 			])
 
 
@@ -487,7 +487,7 @@ static func _sight(body: Polygon2D, kind: String) -> void:
 		"echo":
 			tip = -24.8
 			ln.width = 1.35
-			ln.default_color = Color(0.40, 0.82, 0.96, 0.90)
+			ln.default_color = Color(0.28, 0.24, 0.16, 0.90)
 		_:
 			tip = -27.4
 			ln.width = 1.65
@@ -502,7 +502,7 @@ static func _sight(body: Polygon2D, kind: String) -> void:
 	bead.polygon = PackedVector2Array([
 		Vector2(-1.05, tip + 0.4), Vector2(1.05, tip + 0.4), Vector2(0.0, tip - 2.3)
 	])
-	bead.color = Color(0.55, 0.92, 1.0, 0.95) if kind == "echo" else Color(1.0, 0.70, 0.28, 0.95)
+	bead.color = Color(0.72, 0.58, 0.28, 0.95) if kind == "echo" else Color(0.82, 0.62, 0.28, 0.95)
 
 
 static func _poly(body: Polygon2D, nam: String, pts: PackedVector2Array, col: Color, z: int) -> Polygon2D:

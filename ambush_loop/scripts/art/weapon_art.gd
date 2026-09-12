@@ -133,7 +133,14 @@ static func silhouette(id: String, role: int = 0) -> PackedVector2Array:
 				Vector2(0.95, -13.2), Vector2(0.38, -17.2), Vector2(-0.38, -17.2),
 				Vector2(-0.95, -13.2), Vector2(-1.5, -3.2)
 			])
-		"kar98k_zf", "springfield", "enfield_t", "mosin_pu", "scout":
+		"kar98k_zf":
+			return PackedVector2Array([
+				Vector2(-1.5, 4.2), Vector2(1.7, 4.2), Vector2(1.35, -6.4),
+				Vector2(2.4, -18.0), Vector2(2.4, -22.0), Vector2(1.00, -24.8),
+				Vector2(0.48, -39.4), Vector2(-0.48, -39.4), Vector2(-1.00, -24.8),
+				Vector2(-1.35, -6.4)
+			])
+		"springfield", "enfield_t", "mosin_pu", "scout":
 			return PackedVector2Array([
 				Vector2(-1.5, 4.2), Vector2(1.7, 4.2), Vector2(1.35, -6.4),
 				Vector2(1.00, -24.8), Vector2(0.48, -38.6), Vector2(-0.48, -38.6),

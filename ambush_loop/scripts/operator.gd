@@ -613,7 +613,7 @@ func _rebuild_cone() -> void:
 		elif ammo <= 0:
 			cone.color = Color(0.45, 0.45, 0.5, 0.18)
 		else:
-			cone.color = Color(0.95, 0.75, 0.25, 0.30)
+			cone.color = Color(0.82, 0.68, 0.32, 0.30)
 		# Snapshot the un-boosted hue so WATCHING freeze doesn't depend on selection.
 		_cone_plan_color = cone.color
 		if _selected_visual:
@@ -1351,7 +1351,7 @@ func _apply_body_modulate() -> void:
 func _tint_figure_parts(flash: Color) -> void:
 	if body == null:
 		return
-	for nam in ["Head", "Visor", "LegL", "LegR", "ShoulderL", "ShoulderR", "TorsoShade", "ArmGun", "Cape", "FrontSight", "Sight", "BootL", "BootR", "Hip", "Pack", "Collar", "MoonFill", "KitHelm", "KitGear", "Webbing", "Stock", "PouchL", "PouchR"]:
+	for nam in ["Head", "Visor", "LegL", "LegR", "ShoulderL", "ShoulderR", "TorsoShade", "ArmGun", "Cape", "FrontSight", "Sight", "BootL", "BootR", "Hip", "Pack", "Collar", "MoonFill", "KitHelm", "KitGear", "Webbing", "Stock", "PouchL", "PouchR", "PutteeL", "PutteeR"]:
 		var n := body.get_node_or_null(nam)
 		if n is CanvasItem:
 			(n as CanvasItem).modulate = flash
