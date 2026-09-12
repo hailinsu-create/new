@@ -751,9 +751,9 @@ func _refresh_tag() -> void:
 		tag.text = "%s%d%s" % [kind_short(), label_id, bang]
 	var col := _kind_color.lightened(0.25)
 	if echo_kit:
-		col = Color(0.55, 0.92, 1.0)
+		col = Color(0.72, 0.62, 0.36)
 	elif kind_id() == "sneak":
-		col = Color(0.62, 0.78, 0.72)
+		col = Color(0.52, 0.50, 0.36)
 	tag.add_theme_color_override("font_color", col)
 
 

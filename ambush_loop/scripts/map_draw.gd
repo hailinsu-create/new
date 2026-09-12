@@ -442,7 +442,7 @@ func _draw_floor_tile(c: CanvasItem, rect: Rect2, x: int, y: int) -> void:
 			c.draw_line(
 				Vector2(cx + 4.0, cy + 18.0),
 				Vector2(cx + 26.0, cy + 22.0),
-				Color(0.22, 0.38, 0.32, 0.16),
+				Color(0.22, 0.18, 0.08, 0.16),
 				1.6, true
 			)
 		elif _atmo() == "pump" and (seed_n % 8) == 0:
