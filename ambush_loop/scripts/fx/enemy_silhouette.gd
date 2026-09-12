@@ -82,6 +82,12 @@ static func mount(body: Polygon2D, kind: String) -> void:
 	mast.visible = kind == "echo"
 	var tip := _poly(body, "MastTip", _mast_tip_poly(), Color(0.62, 0.48, 0.22, 0.95), 5)
 	tip.visible = kind == "echo"
+	var pack := _poly(body, "RadioPack", _radio_pack_poly(), Color(0.22, 0.20, 0.14, 0.94), 2)
+	pack.visible = kind == "echo"
+	var pack_strap := _poly(body, "RadioStrap", PackedVector2Array([
+		Vector2(-3.2, -10.0), Vector2(-1.6, -10.2), Vector2(2.4, 2.0), Vector2(0.8, 2.4)
+	]), Color(0.18, 0.14, 0.08, 0.90), 3)
+	pack_strap.visible = kind == "echo"
 	_sight(body, kind)
 
 
@@ -146,6 +152,14 @@ static func pose_parts(body: Polygon2D, kind: String, pose: Dictionary) -> void:
 	if tip:
 		tip.visible = kind == "echo" and alive
 		tip.position = Vector2(sway * 0.12, -absf(stride) * 0.2)
+	var pack := body.get_node_or_null("RadioPack") as Polygon2D
+	if pack:
+		pack.visible = kind == "echo" and alive
+		pack.position = Vector2(sway * 0.18, absf(stride) * 0.12)
+	var strap := body.get_node_or_null("RadioStrap") as Polygon2D
+	if strap:
+		strap.visible = kind == "echo" and alive
+		strap.position = Vector2(sway * 0.14, absf(stride) * 0.10)
 
 
 static func _patrol_body() -> PackedVector2Array:
@@ -212,6 +226,12 @@ static func _mast_tip_poly() -> PackedVector2Array:
 	return PackedVector2Array([
 		Vector2(-2.6, -36.0), Vector2(2.6, -36.0),
 		Vector2(1.6, -41.0), Vector2(-1.6, -41.0)
+	])
+
+
+static func _radio_pack_poly() -> PackedVector2Array:
+	return PackedVector2Array([
+		Vector2(3.2, -4.0), Vector2(9.4, -4.4), Vector2(9.0, 6.2), Vector2(2.8, 5.6)
 	])
 
 
