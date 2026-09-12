@@ -776,6 +776,7 @@ func _build_ops_stamp() -> void:
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui.add_child(row)
 	_ops_stamp = row
+	row.add_child(_stamp_chip("StampVersion", "v%s COMMANDOS/WW2" % NightOps.game_version(), NightOps.OLIVE_HI, Vector2(228, 28)))
 	row.add_child(_stamp_chip("StampDate", _ops_stamp_text(), NightOps.MUTED, Vector2(210, 28)))
 	row.add_child(_stamp_chip("NightOpsBadge", "NIGHT OPS / 夜袭", NightOps.OLIVE_HI, Vector2(180, 28)))
 	row.add_child(_stamp_chip("CampaignChip", "第三夜", NightOps.OLIVE_DIM, Vector2(84, 28)))
@@ -803,9 +804,9 @@ func _refresh_campaign_title() -> void:
 	var complete := gs != null and gs.has_method("is_campaign_complete") and bool(gs.is_campaign_complete())
 	if tagline:
 		if complete:
-			tagline.text = "灯塔停转 · 北区补给链已切断 · 档案已归档"
+			tagline.text = "v%s · 灯塔停转 · 北区补给链已切断 · 档案已归档" % NightOps.game_version()
 		else:
-			tagline.text = "朋友包 · 六夜 · 程序多边形 · 合成音 · 横屏"
+			tagline.text = "v%s · COMMANDOS/WW2 · 搜刮埋伏 · 多波打扫 · 横屏" % NightOps.game_version()
 	if _journal_btn:
 		if complete:
 			_journal_btn.text = "战役档案（已切断）"

@@ -20,6 +20,10 @@ const INK := Color(0.028, 0.024, 0.018, 0.94)
 const RAIL := Color(0.70, 0.58, 0.30, 0.92)
 
 
+static func game_version() -> String:
+	return str(ProjectSettings.get_setting("application/config/version", "0.0.0"))
+
+
 static func display_font() -> Font:
 	var f := SystemFont.new()
 	f.font_names = PackedStringArray(["Noto Sans Display", "Noto Sans", "DejaVu Sans"])

@@ -14,6 +14,12 @@ func _init() -> void:
 
 
 func _run() -> void:
+	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
+	print("SMOKE_GAME_VERSION ", ver)
+	if ver != "0.3.0":
+		push_error("SMOKE_BAD_VERSION %s" % ver)
+		quit(90)
+		return
 	_wipe_save()
 	if not await _assert_launch_bar():
 		return

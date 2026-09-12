@@ -48,7 +48,7 @@ offset_right = -40.0
 offset_bottom = 228.0
 theme_override_colors/font_color = Color(0.55, 0.6, 0.42, 1)
 theme_override_font_sizes/font_size = 18
-text = "朋友包 · 六夜 · 程序多边形 · 合成音 · 横屏"
+text = "v0.3.0 · COMMANDOS/WW2 · 搜刮埋伏 · 多波打扫 · 横屏"
 horizontal_alignment = 1
 
 [node name="Rule" type="ColorRect" parent="UI"]
