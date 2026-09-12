@@ -68,6 +68,20 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	if pts.size() < 2:
 		return
+	# Paper overlay — a dossier wash under the leak so it reads as intel, not neon tape.
+	for i in range(pts.size() - 1):
+		var a: Vector2 = pts[i]
+		var b: Vector2 = pts[i + 1]
+		var mid := a.lerp(b, 0.5)
+		var dir := (b - a)
+		if dir.length_squared() < 4.0:
+			continue
+		var nrm := Vector2(-dir.y, dir.x).normalized() * 5.0
+		draw_colored_polygon(
+			PackedVector2Array([a + nrm, b + nrm, b - nrm, a - nrm]),
+			Color(0.78, 0.70, 0.48, 0.10)
+		)
+		draw_line(a + nrm * 0.4, b + nrm * 0.4, Color(0.22, 0.16, 0.08, 0.22), 1.0, true)
 	var dash := 11.0
 	var gap := 7.0
 	var phase := fmod(_t * 28.0, dash + gap)
