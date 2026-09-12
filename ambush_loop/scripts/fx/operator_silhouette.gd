@@ -108,11 +108,15 @@ static func mount(body: Polygon2D, role: int, weapon_id: String = "") -> void:
 		drum.visible = wid == "thompson"
 		var knob := _poly(body, "BoltKnob", WeaponArtScript.bolt_knob_poly(wid), Color(0.22, 0.18, 0.10, 0.96), 7)
 		knob.visible = WeaponArtScript.is_bolt(wid)
+		var heat := _poly(body, "HeatGlow", PackedVector2Array([
+			Vector2(-1.6, -8.0), Vector2(1.8, -8.0), Vector2(1.2, -26.4), Vector2(-1.0, -26.4)
+		]), Color(0.92, 0.32, 0.08, 0.0), 6)
+		heat.visible = wid in ["mg42", "mg34", "mg"]
 	else:
 		var stock := body.get_node_or_null("Stock") as Polygon2D
 		if stock:
 			stock.visible = false
-		for nam in ["Bipod", "BipodL", "BipodR", "Drum", "BoltKnob"]:
+		for nam in ["Bipod", "BipodL", "BipodR", "Drum", "BoltKnob", "HeatGlow"]:
 			var bipod_off := body.get_node_or_null(nam) as Polygon2D
 			if bipod_off:
 				bipod_off.visible = false
@@ -149,6 +153,7 @@ static func pose_parts(body: Polygon2D, role: int, pose: Dictionary) -> void:
 	var kick := recoil * (2.8 if role == 1 else (1.4 if role == 2 else 1.8))
 	var punch := hit * 0.9
 	var bolt := float(pose.get("bolt", 0.0))
+	var heat := float(pose.get("heat", 0.0))
 	var wid := str(pose.get("weapon_id", ""))
 	var leg_amp := 2.4 if role == 1 else (1.6 if role == 2 else 2.0)
 	if saving:
@@ -208,6 +213,19 @@ static func pose_parts(body: Polygon2D, role: int, pose: Dictionary) -> void:
 			knob.rotation = bolt_yaw
 			knob.position = Vector2(bolt_yaw * 2.8, kick * 0.4 + bolt_pull * 5.4)
 			knob.color = Color(0.22, 0.18, 0.10, 0.96).lerp(Color(0.62, 0.48, 0.22, 0.98), bolt_yaw)
+	var glow := body.get_node_or_null("HeatGlow") as Polygon2D
+	if glow:
+		var hot_gun := wid in ["mg42", "mg34", "mg"]
+		glow.visible = hot_gun and alive and heat > 0.04
+		if glow.visible:
+			glow.position = Vector2(0.0, kick * 0.4)
+			var ember := Color(0.92, 0.28, 0.06, 0.12 + heat * 0.55)
+			if wid == "mg42":
+				ember = Color(1.0, 0.34, 0.06, 0.16 + heat * 0.68)
+			glow.color = ember
+		if weap and hot_gun:
+			var steel := WeaponArtScript.steel_color(wid)
+			weap.color = steel.lerp(Color(0.72, 0.22, 0.08, 0.98), heat * 0.55) if heat > 0.12 else steel
 	var cape := body.get_node_or_null("Cape") as Polygon2D
 	if cape:
 		cape.visible = role == 2
