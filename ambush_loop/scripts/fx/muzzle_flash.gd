@@ -55,8 +55,16 @@ func _ready() -> void:
 		bloom.polygon = PackedVector2Array([
 			Vector2(10, 0), Vector2(2, 14), Vector2(-2, 3), Vector2(-2, -3), Vector2(2, -14)
 		])
-		bloom.color = Color(1.0, 0.85, 0.35, 0.40)
+		bloom.color = Color(1.0, 0.55, 0.18, 0.40)
 		add_child(bloom)
+		if intensity >= 1.6:
+			var heat := Polygon2D.new()
+			heat.name = "Heat"
+			heat.polygon = PackedVector2Array([
+				Vector2(-6, -2), Vector2(8, -3), Vector2(8, 3), Vector2(-6, 2)
+			])
+			heat.color = Color(0.95, 0.32, 0.08, 0.35)
+			add_child(heat)
 	var s0 := (0.50 if is_rifle else 0.42) * intensity
 	var s1 := (Vector2(1.55, 1.05) if is_rifle else (Vector2(1.72, 1.28) if is_mg else Vector2(1.4, 1.18))) * intensity
 	scale = Vector2(s0, s0)
