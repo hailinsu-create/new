@@ -430,6 +430,8 @@ func tick_move(delta: float) -> bool:
 		set_facing(rad_to_deg(atan2(aim.y, aim.x)))
 	if global_position.distance_to(target) <= 2.2:
 		_path_i += 1
+		if _path_i % 3 == 0:
+			CombatFxScript.mud_print(self, global_position, deg_to_rad(facing_deg))
 		if _path_i >= move_path.size():
 			stop_move()
 			return false
