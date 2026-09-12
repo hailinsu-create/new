@@ -39,15 +39,15 @@ static func silhouette(id: String, role: int = 0) -> PackedVector2Array:
 			])
 		"gewehr43":
 			return PackedVector2Array([
-				Vector2(-2.4, 4.6), Vector2(2.6, 4.4), Vector2(2.2, -4.2),
-				Vector2(1.5, -17.6), Vector2(0.7, -30.4), Vector2(-0.4, -30.4),
-				Vector2(-1.3, -17.6), Vector2(-2.1, -4.2)
+				Vector2(-2.6, 4.8), Vector2(2.8, 4.6), Vector2(2.6, 0.4), Vector2(2.2, -4.0),
+				Vector2(1.6, -16.4), Vector2(0.75, -29.2), Vector2(-0.35, -29.2),
+				Vector2(-1.4, -16.4), Vector2(-2.4, -3.6)
 			])
 		"svt40":
 			return PackedVector2Array([
-				Vector2(-2.0, 4.2), Vector2(2.2, 4.2), Vector2(1.9, -5.6),
-				Vector2(1.2, -19.2), Vector2(0.55, -32.8), Vector2(-0.5, -32.8),
-				Vector2(-1.15, -19.2), Vector2(-1.8, -5.6)
+				Vector2(-1.8, 4.0), Vector2(2.0, 4.0), Vector2(1.7, -6.8),
+				Vector2(1.15, -20.4), Vector2(0.48, -34.6), Vector2(-0.48, -34.6),
+				Vector2(-1.1, -20.4), Vector2(-1.6, -6.8)
 			])
 		"mp38":
 			return PackedVector2Array([
@@ -82,15 +82,17 @@ static func silhouette(id: String, role: int = 0) -> PackedVector2Array:
 			])
 		"mg42":
 			return PackedVector2Array([
-				Vector2(-6.2, 4.2), Vector2(6.4, 4.2), Vector2(5.6, -2.8),
-				Vector2(4.0, -14.0), Vector2(2.6, -26.8), Vector2(-1.8, -26.8),
-				Vector2(-3.6, -14.0), Vector2(-5.4, -2.8)
+				Vector2(-6.8, 4.4), Vector2(7.0, 4.4), Vector2(6.2, -2.2),
+				Vector2(4.6, -12.4), Vector2(3.4, -22.0), Vector2(2.8, -29.2),
+				Vector2(-2.0, -29.2), Vector2(-3.8, -22.0), Vector2(-4.4, -12.4),
+				Vector2(-6.0, -2.2)
 			])
 		"mg34":
 			return PackedVector2Array([
-				Vector2(-5.4, 3.8), Vector2(5.6, 3.8), Vector2(4.8, -3.6),
-				Vector2(3.4, -16.4), Vector2(2.2, -25.6), Vector2(-1.6, -25.6),
-				Vector2(-3.2, -16.4), Vector2(-4.8, -3.6)
+				Vector2(-4.8, 3.6), Vector2(5.0, 3.6), Vector2(4.2, -4.2),
+				Vector2(3.0, -14.8), Vector2(2.0, -24.2), Vector2(1.5, -27.6),
+				Vector2(-1.2, -27.6), Vector2(-1.8, -24.2), Vector2(-2.8, -14.8),
+				Vector2(-4.2, -4.2)
 			])
 		"bar":
 			return PackedVector2Array([
@@ -126,9 +128,9 @@ static func silhouette(id: String, role: int = 0) -> PackedVector2Array:
 			])
 		"p38":
 			return PackedVector2Array([
-				Vector2(-1.9, 4.0), Vector2(1.7, 4.0), Vector2(1.5, -2.8),
-				Vector2(1.05, -13.6), Vector2(0.42, -17.6), Vector2(-0.42, -17.6),
-				Vector2(-1.05, -13.6), Vector2(-1.7, -2.8)
+				Vector2(-2.2, 4.4), Vector2(2.0, 4.2), Vector2(1.7, -2.2),
+				Vector2(1.15, -12.4), Vector2(0.55, -16.4), Vector2(-0.35, -16.4),
+				Vector2(-1.0, -12.4), Vector2(-1.9, -1.8)
 			])
 		"webley":
 			return PackedVector2Array([
