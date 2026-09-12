@@ -34,6 +34,13 @@ func _ensure_visual() -> void:
 	chip.color = Color(0.32, 0.28, 0.18, 0.92)
 	add_child(chip)
 	add_child(p)
+	var fleck := Polygon2D.new()
+	fleck.name = "Fleck"
+	fleck.polygon = PackedVector2Array([
+		Vector2(1, -2), Vector2(3, -1), Vector2(2, 1), Vector2(0, 0)
+	])
+	fleck.color = Color(0.62, 0.58, 0.42, 0.80)
+	add_child(fleck)
 	var ring := Line2D.new()
 	ring.name = "Ring"
 	ring.width = 1.4
