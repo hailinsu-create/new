@@ -22,11 +22,14 @@ func _draw() -> void:
 			_pool(Vector2(24.5 * t, 8.2 * t), 58.0, Color(0.95, 0.62, 0.14, 0.11 if saving else 0.18))
 			_pool(Vector2(32.5 * t, 10.4 * t), 46.0, Color(0.92, 0.55, 0.10, 0.09 if saving else 0.14))
 			_pool(Vector2(26.4 * t, 11.4 * t), 28.0, Color(0.90, 0.50, 0.10, 0.07 if saving else 0.11))
+			_pool(Vector2(16.4 * t, 8.4 * t), 24.0, Color(0.92, 0.58, 0.12, 0.06 if saving else 0.10))
+			_pool(Vector2(22.6 * t, 17.5 * t), 22.0, Color(0.18, 0.12, 0.06, 0.05 if saving else 0.08))
 		"pump":
 			_pool(Vector2(17.5 * t, 12.2 * t), 52.0, Color(0.42, 0.48, 0.28, 0.11 if saving else 0.17))
 			_pool(Vector2(13.5 * t, 15.4 * t), 38.0, Color(0.28, 0.36, 0.24, 0.09 if saving else 0.13))
 			_pool(Vector2(10.4 * t, 14.2 * t), 28.0, Color(0.36, 0.42, 0.26, 0.07 if saving else 0.11))
 			_pool(Vector2(26.4 * t, 13.4 * t), 22.0, Color(0.40, 0.46, 0.28, 0.06 if saving else 0.10))
+			_pool(Vector2(18.6 * t, 15.2 * t), 20.0, Color(0.28, 0.24, 0.12, 0.05 if saving else 0.09))
 		"railcut":
 			_pool(Vector2(21.5 * t, 11.0 * t), 54.0, Color(0.48, 0.46, 0.38, 0.09 if saving else 0.14))
 			_pool(Vector2(13.5 * t, 7.5 * t), 34.0, Color(0.62, 0.60, 0.48, 0.07 if saving else 0.11))
