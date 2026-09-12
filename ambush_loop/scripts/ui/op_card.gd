@@ -6,6 +6,7 @@ extends PanelContainer
 signal picked(idx: int)
 
 const RoleGlyphScript := preload("res://scripts/ui/role_glyph.gd")
+const GunStampScript := preload("res://scripts/ui/gun_stamp.gd")
 
 var idx: int = 0
 var _name: Label
@@ -16,6 +17,7 @@ var _meta: Label
 var _slot: Label
 var _why: Label
 var _glyph: Control
+var _gun: Control
 var _fill_col: Color = Color(0, 0, 0, 0)
 var _normal: StyleBoxFlat
 var _hot: StyleBoxFlat
@@ -76,6 +78,9 @@ func setup(i: int) -> void:
 	_glyph = RoleGlyphScript.new()
 	_glyph.custom_minimum_size = Vector2(26, 26)
 	name_row.add_child(_glyph)
+	_gun = GunStampScript.new()
+	_gun.custom_minimum_size = Vector2(28, 16)
+	name_row.add_child(_gun)
 	_name = Label.new()
 	_name.add_theme_font_size_override("font_size", 16)
 	_name.add_theme_font_override("font", NightOps.ui_font_bold())
@@ -181,6 +186,9 @@ func bind(op: OperatorUnit, is_sel: bool, can_pick: bool, watching: bool = false
 	if _glyph:
 		_glyph.set("role", op.role)
 		_glyph.visible = true
+	if _gun:
+		_gun.set("weapon_id", op.weapon_id)
+		_gun.visible = op.weapon_id != "" and op.weapon_id != "knife"
 	var kit := OperatorUnit.role_kit_color(op.role)
 	var stripe := kit.lerp(NightOps.OLIVE, 0.42)
 	_name.text = op.display_name
