@@ -476,6 +476,11 @@ class RoastService : Service() {
             frame.recycle()
             if (pausedForLock.get()) return
             o.showText(result.text)
+            if (result.source == "error") {
+                prefs.recordCompanionError(result.text)
+            } else {
+                prefs.clearCompanionError()
+            }
             if (demoMode) demoIndex++
         } finally {
             roasting.set(false)

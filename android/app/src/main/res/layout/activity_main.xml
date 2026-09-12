@@ -272,11 +272,22 @@
                             android:text="https://api.siliconflow.cn/v1" />
                     </com.google.android.material.textfield.TextInputLayout>
 
+                    <TextView
+                        android:id="@+id/baseUrlHelp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/hint_base_url_help"
+                        android:textColor="@color/mist"
+                        android:textSize="12sp" />
+
                     <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/inputApiKeyLayout"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:hint="@string/hint_api_key">
+                        android:hint="@string/hint_api_key"
+                        app:endIconMode="password_toggle">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/inputApiKey"
@@ -287,10 +298,27 @@
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:hint="@string/hint_model">
+                        android:hint="@string/hint_model_preset">
+
+                        <AutoCompleteTextView
+                            android:id="@+id/inputModelPreset"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:contentDescription="@string/cd_model_preset"
+                            android:inputType="none" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/inputModelLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:hint="@string/hint_model"
+                        android:visibility="gone">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/inputModel"
@@ -302,10 +330,27 @@
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:hint="@string/hint_interval">
+                        android:hint="@string/hint_interval_preset">
+
+                        <AutoCompleteTextView
+                            android:id="@+id/inputIntervalPreset"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:contentDescription="@string/cd_interval_preset"
+                            android:inputType="none" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/inputIntervalLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:hint="@string/hint_interval"
+                        android:visibility="gone">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/inputInterval"
@@ -331,12 +376,22 @@
                             android:text="8" />
                     </com.google.android.material.textfield.TextInputLayout>
 
+                    <TextView
+                        android:id="@+id/thresholdHelp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/hint_threshold_explain"
+                        android:textColor="@color/mist"
+                        android:textSize="12sp" />
+
                     <com.google.android.material.materialswitch.MaterialSwitch
                         android:id="@+id/switchMock"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:checked="false"
+                        android:contentDescription="@string/switch_mock_cd"
                         android:text="@string/switch_mock"
                         android:textColor="@color/foam" />
 
@@ -415,12 +470,22 @@
                         android:layout_marginTop="12dp"
                         android:text="@string/purchase_buy" />
 
+                    <TextView
+                        android:id="@+id/restorePurchasesHint"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/restore_purchases_hint"
+                        android:textColor="@color/mist"
+                        android:textSize="12sp" />
+
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnRestorePurchase"
                         style="@style/Widget.Material3.Button.OutlinedButton"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
+                        android:layout_marginTop="4dp"
+                        android:minHeight="48dp"
                         android:text="@string/purchase_restore" />
 
                     <TextView

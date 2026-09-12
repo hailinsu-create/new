@@ -59,6 +59,8 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
 
         loadForm()
         setupLanguagePicker()
+        setupModelPreset()
+        setupIntervalPreset()
 
         binding.btnOverlay.setOnClickListener { openOverlaySettings() }
         binding.btnUsage.setOnClickListener { openUsageAccessSettings() }
@@ -68,6 +70,8 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
         binding.btnResetModel.setOnClickListener {
             prefs.useStableModel()
             binding.inputModel.setText(Prefs.MODEL_STABLE)
+            binding.inputModelPreset.setText(getString(R.string.model_preset_8b), false)
+            binding.inputModelLayout.visibility = View.GONE
             Toast.makeText(this, R.string.toast_reset_model, Toast.LENGTH_SHORT).show()
         }
         binding.btnPurchase.setOnClickListener { billingManager?.launchPurchase() }
@@ -100,6 +104,60 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
         binding.inputInterval.setText(prefs.intervalSec.toString())
         binding.inputThreshold.setText(prefs.changeThreshold.toInt().toString())
         binding.switchMock.isChecked = prefs.mockApi
+        binding.switchMock.setOnCheckedChangeListener { _, checked ->
+            prefs.mockApi = checked
+        }
+    }
+
+    private fun setupModelPreset() {
+        val labels = listOf(
+            getString(R.string.model_preset_8b),
+            getString(R.string.model_preset_custom)
+        )
+        binding.inputModelPreset.setAdapter(
+            ArrayAdapter(this, android.R.layout.simple_list_item_1, labels)
+        )
+        val isStable = prefs.model == Prefs.MODEL_STABLE
+        binding.inputModelPreset.setText(if (isStable) labels[0] else labels[1], false)
+        binding.inputModelLayout.visibility = if (isStable) View.GONE else View.VISIBLE
+        binding.inputModelPreset.setOnClickListener { binding.inputModelPreset.showDropDown() }
+        binding.inputModelPreset.setOnItemClickListener { _, _, pos, _ ->
+            if (pos == 0) {
+                prefs.useStableModel()
+                binding.inputModel.setText(Prefs.MODEL_STABLE)
+                binding.inputModelLayout.visibility = View.GONE
+            } else {
+                binding.inputModelLayout.visibility = View.VISIBLE
+            }
+        }
+    }
+
+    private fun setupIntervalPreset() {
+        val labels = IntervalPolicy.PRESETS_SEC.map { "${it}s" } +
+            getString(R.string.interval_preset_custom)
+        binding.inputIntervalPreset.setAdapter(
+            ArrayAdapter(this, android.R.layout.simple_list_item_1, labels)
+        )
+        val sec = prefs.intervalSec
+        val presetIndex = IntervalPolicy.PRESETS_SEC.indexOf(sec)
+        if (presetIndex >= 0) {
+            binding.inputIntervalPreset.setText(labels[presetIndex], false)
+            binding.inputIntervalLayout.visibility = View.GONE
+        } else {
+            binding.inputIntervalPreset.setText(labels.last(), false)
+            binding.inputIntervalLayout.visibility = View.VISIBLE
+        }
+        binding.inputIntervalPreset.setOnClickListener { binding.inputIntervalPreset.showDropDown() }
+        binding.inputIntervalPreset.setOnItemClickListener { _, _, pos, _ ->
+            if (pos < IntervalPolicy.PRESETS_SEC.size) {
+                val chosen = IntervalPolicy.PRESETS_SEC[pos]
+                binding.inputInterval.setText(chosen.toString())
+                prefs.intervalSec = chosen
+                binding.inputIntervalLayout.visibility = View.GONE
+            } else {
+                binding.inputIntervalLayout.visibility = View.VISIBLE
+            }
+        }
     }
 
     private fun setupLanguagePicker() {
@@ -383,7 +441,10 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
         prefs.baseUrl = binding.inputBaseUrl.text?.toString().orEmpty()
         prefs.apiKey = binding.inputApiKey.text?.toString().orEmpty()
         prefs.model = binding.inputModel.text?.toString().orEmpty()
-        prefs.intervalSec = binding.inputInterval.text?.toString()?.toIntOrNull() ?: 15
+        val parsedInterval = IntervalPolicy.parse(binding.inputInterval.text?.toString())
+        if (parsedInterval != null) {
+            prefs.intervalSec = parsedInterval
+        }
         prefs.changeThreshold =
             binding.inputThreshold.text?.toString()?.toFloatOrNull() ?: Prefs.DEFAULT_THRESHOLD
         prefs.mockApi = binding.switchMock.isChecked
@@ -408,7 +469,7 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
             openOverlaySettings()
             return
         }
-        saveForm()
+        if (!saveFormOrExplain()) return
         if (CapturePolicy.fullCompanionBlockedByDemoLines(prefs.mockApi)) {
             MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.mock_blocks_full_title)
@@ -424,11 +485,18 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
             return
         }
         if (prefs.apiKey.isBlank()) {
-            Toast.makeText(
-                this,
-                R.string.toast_need_api_key,
-                Toast.LENGTH_LONG
-            ).show()
+            MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.toast_need_api_key)
+                .setMessage(R.string.empty_key_explain)
+                .setPositiveButton(R.string.settings_expand) { _, _ ->
+                    if (!advancedOpen) toggleAdvanced()
+                    binding.advancedPanel.post {
+                        binding.inputApiKey.requestFocus()
+                    }
+                }
+                .setNeutralButton(R.string.start_demo) { _, _ -> startDemoFlow() }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
             return
         }
         if (!prefs.baseUrl.startsWith("https://") &&
@@ -461,21 +529,39 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
             openOverlaySettings()
             return
         }
-        saveForm()
+        if (!saveFormOrExplain()) return
         // Demo uses an in-memory session flag in RoastService. Never persist mockApi=true.
         RoastService.startDemo(this)
         Toast.makeText(this, R.string.toast_demo_started, Toast.LENGTH_SHORT).show()
         moveTaskToBack(true)
     }
 
-    private fun pingVision() {
+    private fun saveFormOrExplain(): Boolean {
+        val raw = binding.inputInterval.text?.toString()
+        if (IntervalPolicy.parse(raw) == null &&
+            binding.inputIntervalLayout.visibility == View.VISIBLE
+        ) {
+            Toast.makeText(this, R.string.toast_interval_invalid, Toast.LENGTH_LONG).show()
+            return false
+        }
         saveForm()
+        return true
+    }
+
+    private fun pingVision() {
+        if (!saveFormOrExplain()) return
         binding.pingStatus.text = getString(R.string.ping_testing)
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) {
                 VisionClient(this@MainActivity, prefs).ping()
             }
             binding.pingStatus.text = result.text
+            if (result.source == "error") {
+                prefs.recordCompanionError(result.text)
+            } else {
+                prefs.clearCompanionError()
+            }
+            refreshStatus()
         }
     }
 

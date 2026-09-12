@@ -12,6 +12,7 @@ import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.net.SocketTimeoutException
+import android.os.SystemClock
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
 
@@ -137,9 +138,14 @@ class VisionClient(
                 )
             )
             .toString()
+        val started = SystemClock.elapsedRealtime()
         val result = chat(pingClient, bodyJson)
+        val ms = (SystemClock.elapsedRealtime() - started).toInt().coerceAtLeast(0)
         return if (result.source == "api") {
-            RoastResult(context.getString(R.string.ping_ok, result.text.take(24)), "api")
+            RoastResult(
+                context.getString(R.string.ping_ok_ms, ms, result.text.take(24)),
+                "api"
+            )
         } else {
             RoastResult(context.getString(R.string.ping_fail, result.text), "error")
         }

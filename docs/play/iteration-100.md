@@ -52,3 +52,13 @@ R47 | i18n | ko: app_name 곁창 (not 旁窗), natural consent, leftover keys | 
 R48 | i18n | pt-rBR: leftover purchase_* and 0.13 keys | locales_013.py, values-pt-rBR/strings.xml
 R49 | i18n | ru: leftover purchase_* and 0.13 keys | locales_013.py, values-ru/strings.xml
 R50 | i18n | th+vi: th app_name ข้างหน้าต่าง and natural consent; vi leftover purchase_* | locales_013.py, values-th/strings.xml, values-vi/strings.xml
+R51 | companion | Model presets: recommended 8B + custom field | activity_main.xml, MainActivity.kt
+R52 | companion | Interval presets 10/15/30/60s + custom | activity_main.xml, MainActivity.kt, IntervalPolicy.kt
+R53 | companion | Ping shows success/fail plus latency ms | VisionClient.kt, strings.xml
+R54 | companion | Last vision/companion error stays on home until the next success | RoastService.kt, MainActivity.kt, Prefs.kt
+R55 | companion | API key is a password field with visibility toggle | activity_main.xml
+R56 | companion | Interval rejects 0 and out-of-range with a toast instead of silent clamp | MainActivity.kt, IntervalPolicy.kt, IntervalPolicyTest.kt
+R57 | companion | changeThreshold has a one-line explanation under the field | activity_main.xml, strings.xml
+R58 | companion | Restore-purchases hint sits above the restore button in advanced settings | activity_main.xml, strings.xml
+R59 | companion | Empty API key shows a dialog explaining what is missing before Play overlay | MainActivity.kt
+R60 | companion | SiliconFlow / OpenAI-compatible one-liner under base URL | activity_main.xml, strings.xml
