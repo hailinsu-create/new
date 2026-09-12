@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "墨汐：国风半身头像，文字对口型 / 表情 / 发丝二次运动",
+  "description": "墨汐：国风半身/全身立绘，文字对口型 / 表情 / 发丝与裙摆二次运动",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
@@ -13,7 +13,8 @@
     "sim:rounds": "node --experimental-strip-types --no-warnings scripts/run-100-rounds.mjs",
     "record:tour": "node scripts/record-all-animations.mjs",
     "record:blink-hair": "node scripts/record-blink-hair.mjs",
-    "record:motion-100": "node scripts/record-motion-100.mjs"
+    "record:motion-100": "node scripts/record-motion-100.mjs",
+    "record:fullbody": "node scripts/record-fullbody.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.2",

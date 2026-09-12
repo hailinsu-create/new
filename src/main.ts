@@ -6,6 +6,7 @@ import {
   EXPRESSIONS,
   EXPRESSION_LABELS,
   type Expression,
+  type ViewMode,
 } from "./avatar/rig";
 import { MOTION } from "./avatar/motion";
 import {
@@ -74,12 +75,18 @@ const visemeLive = el("div", { className: "viseme-live" }, [
   el("small", {}, ["口型"]),
   el("b", { id: "viseme-glyph" }, ["静"]),
 ]);
+const bustBtn = el("button", { className: "view-btn", type: "button" }, ["半身"]);
+const fullBtn = el("button", { className: "view-btn", type: "button" }, ["全身"]);
+const viewToggle = el("div", { className: "view-toggle", role: "group", ariaLabel: "立绘构图" }, [
+  bustBtn,
+  fullBtn,
+]);
 const topbar = el("header", { className: "topbar" }, [
   el("div", { className: "brand" }, [
     seal,
     el("div", {}, [el("h1", {}, ["墨汐"]), el("p", {}, ["庭前对口 · 纸鹤听风"])]),
   ]),
-  visemeLive,
+  el("div", { className: "top-tools" }, [viewToggle, visemeLive]),
 ]);
 
 const stage = el("section", { className: "stage" });
@@ -159,10 +166,31 @@ speech.configure({
 });
 
 let windValue = 1;
-const rig = new AvatarRig(canvas, {
-  sampleMouth: () => speech.sample(),
-  wind: () => windValue,
-});
+const query = new URLSearchParams(location.search);
+const initialView: ViewMode = query.get("view") === "bust" ? "bust" : "full";
+const rig = new AvatarRig(
+  canvas,
+  {
+    sampleMouth: () => speech.sample(),
+    wind: () => windValue,
+  },
+  initialView,
+);
+
+function applyView(view: ViewMode): void {
+  rig.setView(view);
+  scene.classList.toggle("is-full", view === "full");
+  scene.classList.toggle("is-bust", view === "bust");
+  bustBtn.classList.toggle("is-on", view === "bust");
+  fullBtn.classList.toggle("is-on", view === "full");
+  if (status.textContent && !status.classList.contains("is-error")) {
+    setStatus(view === "full" ? "墨汐已站到庭中。可切半身，或写一句开口。" : "墨汐已入座。写一句，或点口型试张嘴。");
+  }
+}
+
+bustBtn.addEventListener("click", () => applyView("bust"));
+fullBtn.addEventListener("click", () => applyView("full"));
+applyView(initialView);
 
 wind.addEventListener("input", () => {
   windValue = Number(wind.value);
@@ -215,8 +243,8 @@ function setExpression(name: Expression): void {
   }
 }
 
-function holdViseme(id: VisemeId): void {
-  if (paramsHold === id) {
+function holdViseme(id: VisemeId | null): void {
+  if (id == null || paramsHold === id) {
     speech.holdViseme(null);
     paramsHold = null;
     highlightViseme("rest");
@@ -273,7 +301,6 @@ async function speakNow(): Promise<void> {
   await speech.speak(text, mode.value as VoiceMode);
 }
 
-const query = new URLSearchParams(location.search);
 if (query.get("mute") === "1") speech.muted = true;
 const exprParam = query.get("expr");
 if (exprParam && (EXPRESSIONS as readonly string[]).includes(exprParam)) {
@@ -303,10 +330,13 @@ const api = {
   speak: (text: string) => speech.speak(text, mode.value as VoiceMode),
   setExpression,
   holdViseme,
+  setView: applyView,
+  getView: () => rig.getView(),
   getState: () => ({
     viseme: rig.visemeId,
     expression: rig.getExpression(),
     speaking: speech.speaking,
+    view: rig.getView(),
     duration: timelineDuration(speech.timeline),
     events: speech.timeline.length,
   }),
@@ -322,7 +352,7 @@ void rig
   .load()
   .then(() => {
     api.ready = true;
-    setStatus("墨汐已入座。写一句，或点口型试张嘴。");
+    setStatus(rig.getView() === "full" ? "墨汐已站到庭中。可切半身，或写一句开口。" : "墨汐已入座。写一句，或点口型试张嘴。");
     watchViseme();
     const autoText = query.get("say");
     if (autoText) {

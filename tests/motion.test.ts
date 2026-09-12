@@ -77,6 +77,11 @@ assert("speaking blinks less often", sim.speakingBlink.meanIntervalS + 0.05 >= s
 assert("post-speech compensation exists", sim.postSpeechExtra >= 1, `extra=${sim.postSpeechExtra}`);
 assert("layered hair still independent", sim.hair1.bangsHairCorr < 0.98, `corr=${sim.hair1.bangsHairCorr}`);
 assert("hair jerk stays tame", sim.hair1.maxJerk < 80, `jerk=${sim.hair1.maxJerk}`);
+assert("idle weight shift", sim.body.weightRms > 0.05, `weight=${sim.body.weightRms}`);
+assert("skirt idle motion", sim.body.skirtRms > 0.002, `skirt=${sim.body.skirtRms}`);
+assert("shawl idle motion", sim.body.shawlRms > 0.002, `shawl=${sim.body.shawlRms}`);
+assert("hem idle motion", sim.body.hemRms > 0.002, `hem=${sim.body.hemRms}`);
+assert("shawl not glued to skirt", sim.body.shawlSkirtCorr < 0.98, `corr=${sim.body.shawlSkirtCorr}`);
 
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);

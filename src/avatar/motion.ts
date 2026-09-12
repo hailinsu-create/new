@@ -61,6 +61,16 @@ export type BreathState = {
   phase: number;
 };
 
+export type BodyState = {
+  weight: number;
+  skirt: StrandState;
+  shawlL: StrandState;
+  shawlR: StrandState;
+  hem: StrandState;
+  crane: StrandState;
+  leg: StrandState;
+};
+
 export type IdleBeat = "rest" | "glance" | "almostSmile" | "sigh" | "peek";
 
 export type IdleState = {
@@ -93,6 +103,7 @@ export type MotionDebug = {
   breath: BreathState;
   idle: IdleState;
   afterglow: AfterglowState;
+  body: BodyState;
 };
 
 type Rng = {
@@ -351,6 +362,139 @@ export const MOTION = {
     vignettePulse: 0.07,
     courtyard: 38,
     warmth: 0.03,
+  },
+  body: {
+    weightHz: 0.17,
+    weightAmp: 0.72,
+    lean: 0.014,
+    hipShift: 16,
+    chestBreath: 1.05,
+    bellyBreath: 0.72,
+    shoulderBreath: 0.9,
+    skirtCoupling: 0.85,
+    shawlCoupling: 1.05,
+    hemCoupling: 1.2,
+    craneCoupling: 0.55,
+    legAmp: 0.007,
+    talkKick: 0.048,
+    plantY: 0.96,
+    hipY: 0.36,
+    hemY: 0.7,
+  },
+  skirt: {
+    integrator: "sho" as "legacy" | "sho",
+    k: 0.038,
+    damp: 0.9,
+    freq: 0.36,
+    zeta: 0.42,
+    lookCoupling: 0.018,
+    windScale: 1.22,
+    impulseScale: 0.82,
+    minAngle: -0.2,
+    maxAngle: 0.2,
+    lookDelay: 0.12,
+    windDelay: 0.22,
+    sagFreq: 0.28,
+    sagZeta: 0.5,
+    sagAmount: 0.32,
+    drag: 1.45,
+    idleAmp: 0.016,
+    idleFreq: 0.48,
+    phase: 0.85,
+    turbAmp: 0.1,
+    gravity: 0.28,
+  },
+  shawl: {
+    integrator: "sho" as "legacy" | "sho",
+    k: 0.04,
+    damp: 0.88,
+    freq: 0.42,
+    zeta: 0.38,
+    lookCoupling: 0.03,
+    windScale: 1.45,
+    impulseScale: 0.95,
+    minAngle: -0.26,
+    maxAngle: 0.26,
+    lookDelay: 0.08,
+    windDelay: 0.16,
+    sagFreq: 0.3,
+    sagZeta: 0.48,
+    sagAmount: 0.28,
+    drag: 1.35,
+    idleAmp: 0.018,
+    idleFreq: 0.55,
+    phase: 1.7,
+    turbAmp: 0.12,
+    gravity: 0.22,
+  },
+  hem: {
+    integrator: "sho" as "legacy" | "sho",
+    k: 0.045,
+    damp: 0.87,
+    freq: 0.5,
+    zeta: 0.36,
+    lookCoupling: 0.012,
+    windScale: 1.55,
+    impulseScale: 1.05,
+    minAngle: -0.24,
+    maxAngle: 0.24,
+    lookDelay: 0.16,
+    windDelay: 0.28,
+    sagFreq: 0.34,
+    sagZeta: 0.44,
+    sagAmount: 0.38,
+    drag: 1.25,
+    idleAmp: 0.02,
+    idleFreq: 0.62,
+    phase: 2.6,
+    turbAmp: 0.14,
+    gravity: 0.32,
+  },
+  crane: {
+    integrator: "sho" as "legacy" | "sho",
+    k: 0.08,
+    damp: 0.78,
+    freq: 1.05,
+    zeta: 0.72,
+    lookCoupling: 0.01,
+    windScale: 0.22,
+    impulseScale: 0.2,
+    minAngle: -0.08,
+    maxAngle: 0.08,
+    lookDelay: 0.02,
+    windDelay: 0.04,
+    sagFreq: 0.8,
+    sagZeta: 0.8,
+    sagAmount: 0.12,
+    drag: 3.1,
+    idleAmp: 0.006,
+    idleFreq: 0.9,
+    phase: 0.4,
+    turbAmp: 0.03,
+    gravity: 0,
+  },
+  leg: {
+    integrator: "sho" as "legacy" | "sho",
+    k: 0.05,
+    damp: 0.9,
+    freq: 0.28,
+    zeta: 0.78,
+    lookCoupling: 0.008,
+    windScale: 0.12,
+    impulseScale: 0.1,
+    minAngle: -0.035,
+    maxAngle: 0.035,
+    lookDelay: 0.18,
+    windDelay: 0.3,
+    sagFreq: 0.22,
+    sagZeta: 0.8,
+    sagAmount: 0.08,
+    drag: 2.4,
+    idleAmp: 0.0045,
+    idleFreq: 0.33,
+    phase: 4.1,
+    turbAmp: 0.02,
+    gravity: 0,
   },
 };
 
@@ -1143,6 +1287,131 @@ export class GazeController {
   }
 }
 
+export class BodySystem {
+  weight = 0;
+  weightVel = 0;
+  skirt = emptyStrand();
+  shawlL = emptyStrand();
+  shawlR = emptyStrand();
+  hem = emptyStrand();
+  crane = emptyStrand();
+  leg = emptyStrand();
+  private lastEnergy = 0;
+
+  reset(): void {
+    this.weight = 0;
+    this.weightVel = 0;
+    this.skirt = emptyStrand();
+    this.shawlL = emptyStrand();
+    this.shawlR = emptyStrand();
+    this.hem = emptyStrand();
+    this.crane = emptyStrand();
+    this.leg = emptyStrand();
+    this.lastEnergy = 0;
+  }
+
+  impulse(strength: number): void {
+    const gain = MOTION.skirt.integrator === "sho" ? MOTION.talk.kickGain : 1;
+    this.skirt.velocity += strength * MOTION.skirt.impulseScale * gain;
+    this.hem.velocity += strength * MOTION.hem.impulseScale * gain;
+    this.shawlL.velocity -= strength * MOTION.shawl.impulseScale * gain * 0.85;
+    this.shawlR.velocity += strength * MOTION.shawl.impulseScale * gain;
+    this.crane.velocity += strength * MOTION.crane.impulseScale * gain * 0.4;
+    this.leg.velocity += strength * MOTION.leg.impulseScale * gain * 0.3;
+  }
+
+  step(
+    dt: number,
+    seconds: number,
+    input: {
+      lookX: number;
+      wind: number;
+      speaking: boolean;
+      energy: number;
+      breath: number;
+      field?: WindSample;
+    },
+  ): BodyState {
+    const cfg = MOTION.body;
+    const target =
+      Math.sin(seconds * Math.PI * 2 * cfg.weightHz) * cfg.weightAmp * 0.62 +
+      Math.sin(seconds * 0.39 + 1.15) * cfg.weightAmp * 0.38;
+    this.weightVel += (target - this.weight) * 5.4 * dt;
+    this.weightVel *= Math.exp(-7.2 * dt);
+    this.weight += this.weightVel * dt;
+    this.weight = clamp(this.weight, -1.15, 1.15);
+
+    if (input.speaking) {
+      const spike = Math.max(0, input.energy - this.lastEnergy);
+      if (spike > MOTION.talk.spikeThreshold) {
+        this.impulse(cfg.talkKick + spike * MOTION.talk.spikeKick);
+      }
+      if (input.energy > 0.18) {
+        this.skirt.velocity += input.energy * MOTION.talk.energyKick * 0.55;
+        this.hem.velocity += input.energy * MOTION.talk.energyKick * 0.7;
+        this.shawlL.velocity -= input.energy * MOTION.talk.energyKick * 0.4;
+        this.shawlR.velocity += input.energy * MOTION.talk.energyKick * 0.45;
+      }
+    }
+    this.lastEnergy = input.energy;
+
+    const field: WindSample = input.field ?? {
+      wander: 0,
+      gust: 0,
+      turb: Math.sin(seconds * 0.7) * 0.02 * input.wind,
+      sines: Math.sin(seconds * 0.85) * 0.04 * input.wind,
+      value: Math.sin(seconds * 0.85) * 0.04 * input.wind,
+      dir: 0,
+    };
+    const breath = input.breath * 0.01;
+    const look = input.lookX;
+    this.drive(this.skirt, MOTION.skirt, dt, seconds, look, field, 0, this.weight * 0.04 + breath);
+    this.drive(this.hem, MOTION.hem, dt, seconds, look, field, 1, this.weight * 0.05 + breath * 0.6);
+    this.drive(this.shawlL, MOTION.shawl, dt, seconds, look, field, 2, -this.weight * 0.03 + breath);
+    this.drive(this.shawlR, MOTION.shawl, dt, seconds, look, field, 3, this.weight * 0.03 + breath);
+    this.drive(this.crane, MOTION.crane, dt, seconds, look, field, 4, breath * 1.4);
+    this.drive(this.leg, MOTION.leg, dt, seconds, look, field, 5, this.weight * cfg.legAmp);
+    return this.snapshot();
+  }
+
+  debug(): BodyState {
+    return this.snapshot();
+  }
+
+  private snapshot(): BodyState {
+    return {
+      weight: this.weight,
+      skirt: { ...this.skirt },
+      shawlL: { ...this.shawlL },
+      shawlR: { ...this.shawlR },
+      hem: { ...this.hem },
+      crane: { ...this.crane },
+      leg: { ...this.leg },
+    };
+  }
+
+  private drive(
+    strand: StrandState,
+    spec: StrandTuning,
+    dt: number,
+    seconds: number,
+    lookX: number,
+    field: WindSample,
+    layer: number,
+    extra: number,
+  ): void {
+    const phase =
+      MOTION.wind.goldenPhase > 0 ? spec.phase + layer * 2.399963 * MOTION.wind.goldenPhase : spec.phase;
+    const idle = Math.sin(seconds * spec.idleFreq + phase) * spec.idleAmp;
+    const layerTurb = field.turb * spec.turbAmp * (0.7 + 0.4 * Math.sin(phase + 0.8));
+    const dirScale = 1 + Math.cos(field.dir + layer * 0.7) * Math.min(0.35, Math.abs(field.dir));
+    const gust = field.value * spec.windScale * dirScale;
+    const grav = spec.gravity ? -spec.gravity * 0.05 : 0;
+    const target = -lookX * spec.lookCoupling + gust + idle + layerTurb + grav + extra;
+    stepStrand(strand, dt, target, spec);
+  }
+}
+
 export class BreathSystem {
   phase = 0;
   chest = 0;
@@ -1564,6 +1833,14 @@ export type BreathAnalysis = {
   peak: number;
 };
 
+export type BodyAnalysis = {
+  weightRms: number;
+  skirtRms: number;
+  shawlRms: number;
+  hemRms: number;
+  shawlSkirtCorr: number;
+};
+
 export type SimResult = {
   blink: BlinkAnalysis;
   hair0: HairAnalysis;
@@ -1574,6 +1851,7 @@ export type SimResult = {
   speakingBlink: BlinkAnalysis;
   gaze: GazeAnalysis;
   breath: BreathAnalysis;
+  body: BodyAnalysis;
   postSpeechExtra: number;
   idleBeats: number;
   browBlinkCorr: number;
@@ -1732,5 +2010,42 @@ export function simulateMotion(opts?: {
     idleBeats,
     browBlinkCorr: pearson(closedness, brows),
     waveform: wave,
+    body: runBody(),
+  };
+}
+
+function runBody(): BodyAnalysis {
+  const dt = 1 / 60;
+  const body = new BodySystem();
+  body.reset();
+  const skirt: number[] = [];
+  const shawl: number[] = [];
+  const hem: number[] = [];
+  const weight: number[] = [];
+  const wind = new WindField(0xb0d4);
+  wind.reset(0xb0d4);
+  for (let i = 0; i < Math.floor(16 / dt); i += 1) {
+    const t = i * dt;
+    const field = wind.step(t, dt, 1);
+    const st = body.step(dt, t, {
+      lookX: Math.sin(t * 0.45) * 0.3,
+      wind: 1,
+      speaking: false,
+      energy: 0,
+      breath: Math.sin(t * 1.3) * 2,
+      field,
+    });
+    skirt.push(st.skirt.angle);
+    shawl.push(st.shawlL.angle);
+    hem.push(st.hem.angle);
+    weight.push(st.weight);
+  }
+  const rms = (values: number[]) => Math.sqrt(mean(values.map((v) => v * v)));
+  return {
+    weightRms: rms(weight),
+    skirtRms: rms(skirt),
+    shawlRms: rms(shawl),
+    hemRms: rms(hem),
+    shawlSkirtCorr: pearson(skirt, shawl),
   };
 }
