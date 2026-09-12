@@ -57,7 +57,7 @@ func _ensure_crate_look() -> void:
 		Vector2(-17, -13), Vector2(-10, -19), Vector2(10, -19), Vector2(17, -13),
 		Vector2(17, 14), Vector2(10, 19), Vector2(-10, 19), Vector2(-17, 14)
 	])
-	pad.color = Color(0.28, 0.36, 0.22, 0.94)
+	pad.color = Color(0.30, 0.26, 0.16, 0.94)
 	var shadow := Polygon2D.new()
 	shadow.name = "CrateShadow"
 	shadow.polygon = PackedVector2Array([
@@ -91,7 +91,7 @@ func _ensure_crate_look() -> void:
 	bag_a.polygon = PackedVector2Array([
 		Vector2(-15, 3), Vector2(-1, 1), Vector2(2, 9), Vector2(-13, 13)
 	])
-	bag_a.color = Color(0.44, 0.40, 0.22, 0.92)
+	bag_a.color = Color(0.40, 0.34, 0.18, 0.92)
 	bag_a.z_index = 1
 	add_child(bag_a)
 	_crate_bits.append(bag_a)

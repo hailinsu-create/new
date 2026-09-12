@@ -41,38 +41,53 @@ func _ensure_pack_look() -> void:
 		return
 	visual.set_meta("pack_built", true)
 	visual.polygon = PackedVector2Array([
-		Vector2(-9, -7), Vector2(9, -7), Vector2(8, 9), Vector2(-8, 9)
+		Vector2(-10, -8), Vector2(10, -8), Vector2(9, 10), Vector2(-9, 10)
 	])
-	visual.color = Weapons.color(kind)
+	visual.color = Color(0.28, 0.20, 0.10, 0.96)
+	var lid := Polygon2D.new()
+	lid.name = "BoxLid"
+	lid.polygon = PackedVector2Array([
+		Vector2(-10, -8), Vector2(10, -8), Vector2(8, -4), Vector2(-8, -4)
+	])
+	lid.color = Color(0.36, 0.26, 0.12, 0.94)
+	add_child(lid)
 	var strap := Polygon2D.new()
 	strap.name = "Strap"
 	strap.polygon = PackedVector2Array([
 		Vector2(-7, -2), Vector2(7, -2), Vector2(7, 1.4), Vector2(-7, 1.4)
 	])
-	strap.color = Color(0.20, 0.14, 0.07, 0.92)
+	strap.color = Color(0.18, 0.12, 0.06, 0.92)
 	add_child(strap)
+	var stencil := Polygon2D.new()
+	stencil.name = "Stencil"
+	stencil.polygon = PackedVector2Array([
+		Vector2(-6, 2), Vector2(6, 2), Vector2(5.4, 6.5), Vector2(-5.4, 6.5)
+	])
+	stencil.color = Weapons.color(kind)
+	stencil.z_index = 1
+	add_child(stencil)
 	var brass := Polygon2D.new()
 	brass.name = "Brass"
 	brass.polygon = PackedVector2Array([
-		Vector2(-5, 2), Vector2(-2, 2), Vector2(-2, 7), Vector2(-5, 7)
+		Vector2(-5, 3), Vector2(-2, 3), Vector2(-2, 8), Vector2(-5, 8)
 	])
-	brass.color = Color(0.92, 0.74, 0.28, 0.95)
-	brass.z_index = 1
+	brass.color = Color(0.72, 0.56, 0.22, 0.95)
+	brass.z_index = 2
 	add_child(brass)
 	var brass2 := Polygon2D.new()
 	brass2.name = "Brass2"
 	brass2.polygon = PackedVector2Array([
-		Vector2(1, 2), Vector2(4, 2), Vector2(4, 7), Vector2(1, 7)
+		Vector2(1, 3), Vector2(4, 3), Vector2(4, 8), Vector2(1, 8)
 	])
-	brass2.color = Color(0.86, 0.68, 0.22, 0.95)
-	brass2.z_index = 1
+	brass2.color = Color(0.68, 0.52, 0.18, 0.95)
+	brass2.z_index = 2
 	add_child(brass2)
 	var glow := Polygon2D.new()
 	glow.name = "Glow"
 	glow.polygon = PackedVector2Array([
 		Vector2(-12, 6), Vector2(12, 6), Vector2(9, 13), Vector2(-9, 13)
 	])
-	glow.color = Color(0.95, 0.82, 0.28, 0.32)
+	glow.color = Color(0.55, 0.42, 0.16, 0.28)
 	glow.z_index = -1
 	glow.show_behind_parent = true
 	add_child(glow)

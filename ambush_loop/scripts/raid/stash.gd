@@ -43,7 +43,16 @@ func _ensure_look() -> void:
 		add_child(visual)
 	var col := Weapons.color(kind)
 	visual.polygon = _kind_poly(kind)
-	visual.color = Color(col.r * 0.55, col.g * 0.50, col.b * 0.40, 0.96)
+	visual.color = Color(0.26, 0.18, 0.10, 0.96)
+	var grain := get_node_or_null("Grain") as Polygon2D
+	if grain == null:
+		grain = Polygon2D.new()
+		grain.name = "Grain"
+		grain.polygon = PackedVector2Array([
+			Vector2(-8, -2), Vector2(8, -2), Vector2(7, 0.6), Vector2(-7, 0.6)
+		])
+		add_child(grain)
+	grain.color = Color(col.r * 0.35, col.g * 0.28, col.b * 0.18, 0.88)
 	if tag == null:
 		tag = get_node_or_null("Tag") as Label
 	if tag == null:

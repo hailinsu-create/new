@@ -476,6 +476,12 @@ func _draw_floor_tile(c: CanvasItem, rect: Rect2, x: int, y: int) -> void:
 				7.0 + _frac(seed_n + 4) * 5.0,
 				stain
 			)
+		if (seed_n % 23) == 0:
+			# Bullet pock — steel/brick nick, visual only.
+			var px := cx + 8.0 + _frac(seed_n + 5) * 16.0
+			var py := cy + 8.0 + _frac(seed_n + 11) * 16.0
+			c.draw_circle(Vector2(px, py), 1.6, Color(0.08, 0.07, 0.05, 0.55))
+			c.draw_circle(Vector2(px + 0.6, py - 0.4), 0.7, Color(0.22, 0.18, 0.12, 0.35))
 	var grid_c: Color = pal["grid"]
 	c.draw_rect(rect, Color(grid_c.r, grid_c.g, grid_c.b, 0.16), false, 1.0)
 	if x % 4 == 0:
