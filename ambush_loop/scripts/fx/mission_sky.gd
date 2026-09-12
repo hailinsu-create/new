@@ -383,14 +383,14 @@ func _draw_radio() -> void:
 	var sz := _map_size()
 	_draw_top_haze(Color(0.12, 0.40, 0.58, 0.14), 6)
 	_draw_horizon(Color(0.06, 0.22, 0.34, 0.12))
-	_draw_starfield(22, Color(0.55, 0.92, 1.0, 1.0))
+	_draw_starfield(22, Color(0.86, 0.84, 0.70, 1.0))
 	_draw_clouds(2, Color(0.08, 0.20, 0.30, 0.10))
 	_draw_distant_lights([
 		Vector2(sz.x * 0.14, 20.0),
 		Vector2(sz.x * 0.38, 17.0),
 		Vector2(sz.x * 0.61, 21.0),
 		Vector2(sz.x * 0.86, 18.0),
-	], Color(0.42, 0.90, 1.0, 0.58))
+	], Color(0.78, 0.72, 0.42, 0.58))
 	_draw_contrast_wash(Color(0.01, 0.06, 0.12, 0.26), Color(0.04, 0.14, 0.20, 0.06))
 	# Phosphor night over the dish hall.
 	var pulse := 0.5 + 0.5 * sin(_t * 1.05)
@@ -408,9 +408,9 @@ func _draw_radio() -> void:
 	for i in steps:
 		var a := ang - half + (half * 2.0) * (float(i) / float(maxi(steps - 1, 1)))
 		pts.append(lantern + Vector2(cos(a), sin(a)) * reach)
-	draw_colored_polygon(pts, Color(0.32, 0.86, 1.0, 0.09 if _is_power_saving() else 0.14))
-	draw_circle(lantern, 16.0, Color(0.42, 0.90, 1.0, 0.20 + 0.10 * pulse))
-	draw_circle(lantern, 7.0, Color(0.78, 0.96, 1.0, 0.40 + 0.18 * pulse))
+	draw_colored_polygon(pts, Color(0.78, 0.74, 0.48, 0.09 if _is_power_saving() else 0.14))
+	draw_circle(lantern, 16.0, Color(0.82, 0.76, 0.48, 0.20 + 0.10 * pulse))
+	draw_circle(lantern, 7.0, Color(0.92, 0.88, 0.62, 0.40 + 0.18 * pulse))
 	# Echo hall phosphor underglow down x=24 — cooler cyan vs depot orange sodium.
 	draw_rect(
 		Rect2(23.55 * AmbushGrid.TILE, 5.0 * AmbushGrid.TILE, 1.9 * AmbushGrid.TILE, 12.0 * AmbushGrid.TILE),
