@@ -512,6 +512,9 @@ func _draw_layout_decal(c: CanvasItem, rect: Rect2, x: int, y: int, seed_n: int)
 				)
 			elif (seed_n % 19) == 0:
 				c.draw_arc(Vector2(cx + 18.0, cy + 20.0), 7.0, 0.4, 2.6, 5, Color(0.18, 0.28, 0.16, 0.12), 1.2, true)
+			elif (seed_n % 17) == 0:
+				# Horseshoe print in the yard mud.
+				c.draw_arc(Vector2(cx + 14.0, cy + 16.0), 4.5, 0.4, 2.8, 6, Color(0.12, 0.08, 0.04, 0.28), 1.6, true)
 		"warehouse":
 			if y == 16 and x % 3 == 0:
 				c.draw_rect(Rect2(cx + 6.0, cy + 22.0, 20.0, 4.0), Color(0.55, 0.42, 0.12, 0.22))
@@ -1086,6 +1089,10 @@ func _landmark_radio(c: CanvasItem) -> void:
 	# Call log tucked under the Morse hut window.
 	c.draw_rect(Rect2(25.55 * t, 10.6 * t, 16.0, 12.0), Color(0.12, 0.10, 0.08, 0.55))
 	c.draw_rect(Rect2(25.7 * t, 10.75 * t, 12.0, 2.0), Color(0.52, 0.42, 0.22, 0.45))
+	# Rare ZF crate on the east annex, already blocked.
+	c.draw_rect(Rect2(28.2 * t, 12.4 * t, 18.0, 12.0), Color(0.26, 0.18, 0.08, 0.62))
+	c.draw_rect(Rect2(28.35 * t, 12.5 * t, 14.0, 4.0), Color(0.38, 0.26, 0.10, 0.50))
+	c.draw_rect(Rect2(28.6 * t, 12.85 * t, 10.0, 2.0), Color(0.12, 0.12, 0.08, 0.70))
 	# Antenna mast west of the core, off the sneak alley.
 	var west_mast := Vector2(10.4 * t, 9.2 * t)
 	c.draw_rect(Rect2(west_mast.x - 2, west_mast.y - 40, 4.0, 44.0), Color(0.16, 0.14, 0.10, 0.80))
