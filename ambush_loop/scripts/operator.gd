@@ -945,6 +945,10 @@ func _spawn_muzzle_flash() -> void:
 			tint = Color(0.92, 0.90, 0.72)
 		"smg":
 			tint = Color(1.0, 0.82, 0.48)
+		"shotgun":
+			tint = Color(1.0, 0.72, 0.32)
+		"pistol":
+			tint = Color(1.0, 0.88, 0.62)
 		_:
 			tint = Color(1.0, 0.86, 0.58)
 	var tip := Vector2(cos(rad), sin(rad)) * tip_len

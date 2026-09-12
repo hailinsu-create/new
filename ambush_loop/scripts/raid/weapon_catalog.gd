@@ -265,7 +265,7 @@ static func def(id: String) -> Dictionary:
 				"muzzle": "rifle", "muzzle_i": 0.0, "sfx": "", "rarity": 0, "loot_weight": 0,
 			}
 		PISTOL:
-			return _class_gun(PISTOL, PISTOL, 150.0, 22.0, 28.0, 0.16, 8, 16, 0.85, 2.0, 0.42, "rifle", 0.78, "fire")
+			return _class_gun(PISTOL, PISTOL, 150.0, 22.0, 28.0, 0.16, 8, 16, 0.85, 2.0, 0.42, "pistol", 0.78, "fire")
 		RIFLE:
 			return _class_gun(RIFLE, RIFLE, 220.0, 28.0, 34.0, 0.18, 7, 14, 1.0, 1.5, 0.55, "rifle", 1.05, "fire")
 		MG:
@@ -273,7 +273,7 @@ static func def(id: String) -> Dictionary:
 		SCOUT:
 			return _class_gun(SCOUT, SCOUT, 280.0, 20.0, 42.0, 0.28, 6, 10, 0.72, 0.8, 0.85, "scout", 0.82, "fire_scout")
 		SHOTGUN:
-			return _class_gun(SHOTGUN, SHOTGUN, 110.0, 52.0, 48.0, 0.36, 4, 8, 1.35, 6.0, 0.70, "mg", 1.35, "fire")
+			return _class_gun(SHOTGUN, SHOTGUN, 110.0, 52.0, 48.0, 0.36, 4, 8, 1.35, 6.0, 0.70, "shotgun", 1.35, "fire")
 		SMG:
 			return _class_gun(SMG, SMG, 138.0, 38.0, 18.0, 0.08, 24, 32, 0.70, 5.5, 0.90, "smg", 0.92, "fire_smg")
 		GRENADE:
@@ -317,15 +317,15 @@ static func def(id: String) -> Dictionary:
 		DP28:
 			return _model(DP28, MG, 206.0, 40.0, 24.0, 0.102, 47, 47, 1.22, 3.8, 1.15, "mg", 1.28, "fire_mg", 2, 5)
 		M1911:
-			return _model(M1911, PISTOL, 146.0, 20.0, 26.0, 0.18, 7, 21, 0.90, 2.2, 0.50, "rifle", 0.80, "fire", 2, 8)
+			return _model(M1911, PISTOL, 146.0, 20.0, 26.0, 0.18, 7, 21, 0.90, 2.2, 0.50, "pistol", 0.80, "fire", 2, 8)
 		LUGER:
-			return _model(LUGER, PISTOL, 158.0, 16.0, 22.0, 0.15, 8, 24, 0.70, 1.6, 0.55, "rifle", 0.72, "fire", 3, 5)
+			return _model(LUGER, PISTOL, 158.0, 16.0, 22.0, 0.15, 8, 24, 0.70, 1.6, 0.55, "pistol", 0.72, "fire", 3, 5)
 		P38:
-			return _model(P38, PISTOL, 152.0, 19.0, 24.0, 0.16, 8, 24, 0.78, 1.9, 0.52, "rifle", 0.76, "fire", 2, 7)
+			return _model(P38, PISTOL, 152.0, 19.0, 24.0, 0.16, 8, 24, 0.78, 1.9, 0.52, "pistol", 0.76, "fire", 2, 7)
 		WEBLEY:
-			return _model(WEBLEY, PISTOL, 138.0, 26.0, 32.0, 0.24, 6, 18, 1.20, 3.4, 0.70, "rifle", 0.90, "fire", 2, 5)
+			return _model(WEBLEY, PISTOL, 138.0, 26.0, 32.0, 0.24, 6, 18, 1.20, 3.4, 0.70, "pistol", 0.90, "fire", 2, 5)
 		TT33:
-			return _model(TT33, PISTOL, 148.0, 21.0, 25.0, 0.17, 8, 24, 0.82, 2.0, 0.54, "rifle", 0.74, "fire", 2, 6)
+			return _model(TT33, PISTOL, 148.0, 21.0, 25.0, 0.17, 8, 24, 0.82, 2.0, 0.54, "pistol", 0.74, "fire", 2, 6)
 		KAR98K_ZF:
 			return _model(KAR98K_ZF, SCOUT, 322.0, 11.0, 58.0, 0.62, 5, 10, 1.55, 0.4, 1.35, "scout", 0.70, "fire_scout", 4, 2)
 		SPRINGFIELD:
@@ -335,11 +335,11 @@ static func def(id: String) -> Dictionary:
 		MOSIN_PU:
 			return _model(MOSIN_PU, SCOUT, 316.0, 12.0, 55.0, 0.56, 5, 10, 1.45, 0.45, 1.28, "scout", 0.72, "fire_scout", 3, 2)
 		WINCHESTER_M12:
-			return _model(WINCHESTER_M12, SHOTGUN, 108.0, 50.0, 52.0, 0.40, 5, 10, 1.40, 5.5, 0.62, "mg", 1.38, "fire", 2, 5)
+			return _model(WINCHESTER_M12, SHOTGUN, 108.0, 50.0, 52.0, 0.40, 5, 10, 1.40, 5.5, 0.62, "shotgun", 1.38, "fire", 2, 5)
 		ITHACA37:
-			return _model(ITHACA37, SHOTGUN, 104.0, 48.0, 50.0, 0.34, 5, 10, 1.28, 5.0, 0.58, "mg", 1.30, "fire", 2, 5)
+			return _model(ITHACA37, SHOTGUN, 104.0, 48.0, 50.0, 0.34, 5, 10, 1.28, 5.0, 0.58, "shotgun", 1.30, "fire", 2, 5)
 		M30_DRILLING:
-			return _model(M30_DRILLING, SHOTGUN, 118.0, 44.0, 58.0, 0.48, 2, 6, 1.60, 4.2, 0.85, "mg", 1.50, "fire", 3, 3)
+			return _model(M30_DRILLING, SHOTGUN, 118.0, 44.0, 58.0, 0.48, 2, 6, 1.60, 4.2, 0.85, "shotgun", 1.50, "fire", 3, 3)
 		_:
 			return def(KNIFE)
 
