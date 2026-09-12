@@ -951,6 +951,8 @@ func apply_recoil_kick() -> void:
 	var rad := deg_to_rad(facing_deg)
 	var back := Vector2(cos(rad), sin(rad)) * -1.0
 	var k := maxf(recoil_mul, 0.25)
+	if fire_sfx == "fire_bolt":
+		k *= 1.18
 	match role:
 		Role.MG:
 			_recoil_off = back * (5.4 * k)

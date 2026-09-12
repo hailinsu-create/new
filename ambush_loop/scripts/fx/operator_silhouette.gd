@@ -844,11 +844,11 @@ static func _gear_color(role: int) -> Color:
 static func _pack_color(role: int) -> Color:
 	match role:
 		1:
-			return Color(0.22, 0.24, 0.12, 0.90)
+			return Color(0.22, 0.18, 0.10, 0.90)
 		2:
-			return Color(0.10, 0.16, 0.14, 0.88)
+			return Color(0.12, 0.11, 0.08, 0.88)
 		_:
-			return Color(0.16, 0.20, 0.14, 0.88)
+			return Color(0.18, 0.14, 0.08, 0.88)
 
 
 static func _boot_color(role: int, k: float) -> Color:
