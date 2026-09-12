@@ -780,6 +780,7 @@ static func make_depot() -> LevelDef:
 		{"cell": Vector2i(7, 12), "kind": "mine", "amount": 1},
 		{"cell": Vector2i(22, 16), "kind": "shotgun", "amount": 4},
 		{"cell": Vector2i(6, 8), "kind": "decoy", "amount": 1},
+		{"cell": Vector2i(16, 16), "kind": "thompson", "amount": 20},
 	]
 	l.ambush_zone = Rect2(260, 230, 520, 280)
 	l.has_ammo_pack = true
@@ -875,6 +876,8 @@ static func make_radio() -> LevelDef:
 		{"cell": Vector2i(7, 12), "kind": "mine", "amount": 1},
 		{"cell": Vector2i(22, 6), "kind": "decoy", "amount": 1},
 		{"cell": Vector2i(29, 16), "kind": "ammo", "amount": 8},
+		{"cell": Vector2i(18, 16), "kind": "springfield", "amount": 5},
+		{"cell": Vector2i(10, 16), "kind": "luger", "amount": 8},
 	]
 	l.ambush_zone = Rect2(260, 230, 520, 280)
 	l.has_ammo_pack = true

@@ -5,7 +5,7 @@ extends Node
 
 const MIX_RATE := 22050
 const CUES := [
-	"alarm", "alarm_stinger", "fire", "fire_mg", "fire_scout", "return_fire", "empty", "loot", "op_death", "escape", "fail", "win",
+	"alarm", "alarm_stinger", "fire", "fire_mg", "fire_scout", "fire_smg", "fire_bolt", "fire_garand", "fire_mg42", "return_fire", "empty", "loot", "op_death", "escape", "fail", "win",
 	"win_stinger", "door", "trip", "barrel", "kill", "hit", "ui",
 	"spawn", "echo_ping",
 	"handoff", "leak", "night_enter", "tension",
@@ -149,6 +149,14 @@ func _gain(cue: String) -> float:
 			return -12.0
 		"fire_scout":
 			return -15.0
+		"fire_smg":
+			return -14.0
+		"fire_bolt":
+			return -12.0
+		"fire_garand":
+			return -13.0
+		"fire_mg42":
+			return -11.0
 		"door":
 			return -13.0
 		"trip":
@@ -201,6 +209,14 @@ func _build_stream(cue: String) -> AudioStreamWAV:
 			return _pcm(_mg_burst())
 		"fire_scout":
 			return _pcm(_crack(2400.0, 0.080, 0.14))
+		"fire_smg":
+			return _pcm(_crack(1650.0, 0.032, 0.22))
+		"fire_bolt":
+			return _pcm(_crack(1550.0, 0.095, 0.16))
+		"fire_garand":
+			return _pcm(_crack(2100.0, 0.048, 0.18))
+		"fire_mg42":
+			return _pcm(_mg_burst())
 		"return_fire":
 			return _pcm(_crack(920.0, 0.07, 0.16))
 		"empty":

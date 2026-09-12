@@ -91,7 +91,8 @@ func _process(delta: float) -> void:
 
 func _kind_poly(id: String) -> PackedVector2Array:
 	## Colorblind-safe silhouettes (shape + tag, not hue alone).
-	match id:
+	var fam := Weapons.family_of(id)
+	match fam:
 		"mine":
 			return PackedVector2Array([
 				Vector2(0, -11), Vector2(8, -2), Vector2(5, 10), Vector2(-5, 10), Vector2(-8, -2)
@@ -119,6 +120,11 @@ func _kind_poly(id: String) -> PackedVector2Array:
 		"pistol":
 			return PackedVector2Array([
 				Vector2(-8, -6), Vector2(6, -6), Vector2(10, 0), Vector2(6, 8), Vector2(-8, 8)
+			])
+		"smg":
+			return PackedVector2Array([
+				Vector2(-10, -5), Vector2(8, -5), Vector2(8, 4), Vector2(-4, 4),
+				Vector2(-8, 10), Vector2(-12, 10)
 			])
 		_:
 			return PackedVector2Array([

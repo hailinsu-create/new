@@ -1020,6 +1020,8 @@ func _sfx_every_shot(op: OperatorUnit = null) -> void:
 func fire_cue_for(op: OperatorUnit = null) -> String:
 	if op == null:
 		return "fire"
+	if op.weapon_id != "" and WeaponCatalogScript.is_firearm(str(op.weapon_id)):
+		return WeaponCatalogScript.sfx_cue(str(op.weapon_id))
 	match op.role:
 		OperatorUnit.Role.MG:
 			return "fire_mg"

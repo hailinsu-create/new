@@ -36,6 +36,8 @@ func _run() -> void:
 		return
 	if not _assert_sim_clock():
 		return
+	if not _assert_weapon_models(main):
+		return
 	if not _assert_roles_and_cover(main):
 		return
 	if not _assert_los_cone(main):
@@ -2194,6 +2196,136 @@ func _assert_sim_clock() -> bool:
 		quit(26)
 		return false
 	print("SMOKE_OK_CLOCK 1x=60 2x=120 hitch=", total)
+	return true
+
+
+func _assert_weapon_models(_main = null) -> bool:
+	var W: GDScript = load("res://scripts/raid/weapon_catalog.gd") as GDScript
+	if W == null:
+		push_error("SMOKE_NO_WEAPON_CATALOG")
+		quit(82)
+		return false
+	var rifle: Dictionary = W.def("rifle")
+	if str(rifle.get("id", "")) != "rifle":
+		push_error("SMOKE_RIFLE_CLASS_ID %s" % rifle.get("id", ""))
+		quit(82)
+		return false
+	if absf(float(rifle.get("range_px", 0.0)) - 220.0) > 0.1:
+		push_error("SMOKE_RIFLE_RANGE %s" % rifle.get("range_px", 0.0))
+		quit(82)
+		return false
+	if not bool(W.is_firearm("kar98k")) or W.family_of("kar98k") != "rifle":
+		push_error("SMOKE_K98_FAMILY %s" % W.family_of("kar98k"))
+		quit(82)
+		return false
+	if W.ammo_kind_of("kar98k") != "rifle" or W.ammo_kind_of("rifle_ammo") != "rifle":
+		push_error("SMOKE_K98_AMMO")
+		quit(82)
+		return false
+	var k98: Dictionary = W.def("kar98k")
+	var garand: Dictionary = W.def("m1_garand")
+	var enfield: Dictionary = W.def("lee_enfield")
+	if float(k98.get("shot_interval", 0.0)) <= float(garand.get("shot_interval", 0.0)):
+		push_error("SMOKE_K98_NOT_SLOWER_THAN_GARAND")
+		quit(82)
+		return false
+	if int(k98.get("start_ammo", 0)) >= int(enfield.get("start_ammo", 0)):
+		push_error("SMOKE_ENFIELD_MAG_NOT_LARGER")
+		quit(82)
+		return false
+	if absf(float(k98.get("damage", 0.0)) - float(garand.get("damage", 0.0))) < 4.0:
+		push_error("SMOKE_RIFLE_MODELS_SAME_DMG")
+		quit(82)
+		return false
+	var mg42: Dictionary = W.def("mg42")
+	var bar: Dictionary = W.def("bar")
+	if float(mg42.get("shot_interval", 1.0)) >= float(bar.get("shot_interval", 0.0)):
+		push_error("SMOKE_MG42_NOT_FASTER_THAN_BAR")
+		quit(82)
+		return false
+	if int(mg42.get("start_ammo", 0)) <= int(bar.get("start_ammo", 0)):
+		push_error("SMOKE_MG42_BELT_NOT_LARGER")
+		quit(82)
+		return false
+	var mp40: Dictionary = W.def("mp40")
+	var sten: Dictionary = W.def("sten")
+	var thompson: Dictionary = W.def("thompson")
+	if W.family_of("mp40") != "smg" or W.family_of("sten") != "smg":
+		push_error("SMOKE_SMG_FAMILY")
+		quit(82)
+		return false
+	if float(thompson.get("shot_interval", 1.0)) >= float(sten.get("shot_interval", 0.0)):
+		push_error("SMOKE_THOMPSON_NOT_FASTER_THAN_STEN")
+		quit(82)
+		return false
+	if float(mp40.get("spread_deg", 0.0)) >= float(sten.get("spread_deg", 0.0)):
+		push_error("SMOKE_STEN_NOT_LOOSER")
+		quit(82)
+		return false
+	if str(W.sfx_cue("mg42")) == str(W.sfx_cue("kar98k")):
+		push_error("SMOKE_SFX_NOT_DISTINCT")
+		quit(82)
+		return false
+	if str(W.sfx_cue("rifle")) != "fire" or str(W.sfx_cue("mg")) != "fire_mg":
+		push_error("SMOKE_CLASS_SFX")
+		quit(82)
+		return false
+	var Art: GDScript = load("res://scripts/art/weapon_art.gd") as GDScript
+	if Art == null:
+		push_error("SMOKE_NO_WEAPON_ART")
+		quit(82)
+		return false
+	if Art.silhouette("kar98k") == Art.silhouette("m1_garand"):
+		push_error("SMOKE_RIFLE_SILHOUETTES_IDENTICAL")
+		quit(82)
+		return false
+	if Art.silhouette("mp40") == Art.silhouette("sten"):
+		push_error("SMOKE_SMG_SILHOUETTES_IDENTICAL")
+		quit(82)
+		return false
+	if Art.silhouette("mg42") == Art.silhouette("bar"):
+		push_error("SMOKE_MG_SILHOUETTES_IDENTICAL")
+		quit(82)
+		return false
+	var k98_tip := 0.0
+	for p in Art.silhouette("kar98k"):
+		k98_tip = minf(k98_tip, p.y)
+	if k98_tip > -16.0:
+		push_error("SMOKE_K98_BARREL_SHORT %s" % k98_tip)
+		quit(82)
+		return false
+	if W.model_ids().size() < 20:
+		push_error("SMOKE_TOO_FEW_MODELS n=%s" % W.model_ids().size())
+		quit(82)
+		return false
+	if _main != null and _main.operators.size() >= 1:
+		var op: OperatorUnit = _main.operators[0]
+		op.apply_weapon("kar98k", true)
+		if str(op.weapon_id) != "kar98k":
+			push_error("SMOKE_APPLY_K98 %s" % op.weapon_id)
+			quit(82)
+			return false
+		if absf(op.shot_interval - float(k98.get("shot_interval", 0.0))) > 0.001:
+			push_error("SMOKE_APPLY_K98_INTERVAL %s" % op.shot_interval)
+			quit(82)
+			return false
+		op.apply_weapon("m1_garand", true)
+		if op.shot_interval >= float(k98.get("shot_interval", 0.0)):
+			push_error("SMOKE_GARAND_NOT_FASTER_IN_HAND")
+			quit(82)
+			return false
+		var mixed: Dictionary = op.receive_item("mg_ammo", 8)
+		if int(op.ammo_pool.get("mg", 0)) < 8 or not bool(mixed.get("pooled", false)):
+			push_error("SMOKE_MODEL_AMMO_POOL %s %s" % [op.ammo_pool, mixed])
+			quit(82)
+			return false
+		op.apply_weapon("rifle", true)
+		if str(op.weapon_id) != "rifle":
+			push_error("SMOKE_REVERT_RIFLE %s" % op.weapon_id)
+			quit(82)
+			return false
+		op.wipe_inventory()
+	print("SMOKE_OK_WEAPON_MODELS n=", W.model_ids().size())
 	return true
 
 
