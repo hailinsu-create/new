@@ -39,4 +39,40 @@ object OverlayGeometry {
         val snappedX = snapX(x, viewW, screenW, pad)
         return clamp(snappedX, y, viewW, viewH, screenW, screenH, pad)
     }
+
+    /** Close chip sits on the start (outer) edge so RTL puts it on the right in Arabic. */
+    fun closeGravityStart(): Boolean = true
+
+    fun minTouchTargetDp(): Int = 48
+
+    fun avatarSizeDp(): Int = 96
+
+    /**
+     * After rotation, [screenW]/[screenH] swap. Re-clamp saved x/y so the window
+     * stays on-screen.
+     */
+    fun clampAfterRotation(
+        x: Int,
+        y: Int,
+        viewW: Int,
+        viewH: Int,
+        screenW: Int,
+        screenH: Int,
+        pad: Int
+    ): Pair<Int, Int> = clamp(x, y, viewW, viewH, screenW, screenH, pad)
+
+    fun restoreClamped(
+        savedX: Int,
+        savedY: Int,
+        viewW: Int,
+        viewH: Int,
+        screenW: Int,
+        screenH: Int,
+        pad: Int
+    ): Pair<Int, Int> {
+        if (savedX < 0 || savedY < 0) {
+            return pad to 180.coerceAtMost((screenH - viewH - pad).coerceAtLeast(pad))
+        }
+        return clamp(savedX, savedY, viewW, viewH, screenW, screenH, pad)
+    }
 }

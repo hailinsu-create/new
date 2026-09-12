@@ -24,4 +24,20 @@ object CapturePolicy {
     ): Boolean = companionRunning && !demo && !locked
 
     fun shouldReleaseMirroringOnLock(demo: Boolean): Boolean = !demo
+
+    /** Sensitive apps must pause VirtualDisplay, not only skip JPEG/API. */
+    fun shouldPauseMirroringOnSensitive(demo: Boolean, sensitive: Boolean): Boolean =
+        !demo && sensitive
+
+    fun shouldResumeMirroringAfterSensitive(
+        companionRunning: Boolean,
+        demo: Boolean,
+        locked: Boolean,
+        sensitive: Boolean
+    ): Boolean = companionRunning && !demo && !locked && !sensitive
+
+    /** Leaving a sensitive app must not force a roast (same as unlock). */
+    fun shouldForceRoastAfterSensitiveLeave(): Boolean = false
+
+    fun shouldForceRoastAfterUnlock(): Boolean = false
 }

@@ -27,6 +27,8 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
     private var billingManager: BillingManager? = null
     private var displayedPrice: String? = null
     private var advancedOpen = false
+    private var homeEngineUnloaded = false
+    private var consentDialogShowing = false
 
     private val overlaySettingsLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -79,8 +81,8 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
         }
         binding.btnToggleSettings.setOnClickListener { toggleAdvanced() }
         binding.btnPing.setOnClickListener { pingVision() }
+        binding.btnRevokePrivacy.setOnClickListener { revokePrivacyConsent() }
 
-        maybeAskNotificationPermission()
         refreshHome()
         billingManager = BillingManager(this, prefs, this).also { it.start() }
 
@@ -124,6 +126,9 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
 
     override fun onPause() {
         saveForm()
+        if (!RoastService.running && !homeEngineUnloaded && ::binding.isInitialized) {
+            binding.homeLive2d.pauseRendering()
+        }
         super.onPause()
     }
 
@@ -137,6 +142,14 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
         super.onResume()
         refreshHome()
         billingManager?.start()
+        if (!prefs.hasPrivacyConsent) {
+            maybeShowPrivacyConsent()
+        } else {
+            maybeAskNotificationPermission()
+        }
+        if (!RoastService.running && !homeEngineUnloaded && ::binding.isInitialized) {
+            binding.homeLive2d.resumeRendering()
+        }
     }
 
     override fun onBillingReady(priceLabel: String?) {
@@ -170,16 +183,30 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
         updatePurchaseUi()
         refreshStatus()
         refreshPreview()
+        binding.homeVersion.text = getString(
+            R.string.home_version,
+            BuildConfig.VERSION_NAME,
+            BuildConfig.VERSION_CODE
+        )
+        binding.homeDebugChip.visibility = if (BuildConfig.DEBUG) View.VISIBLE else View.GONE
     }
 
     private fun refreshPreview() {
         val overlayUp = RoastService.running
         if (overlayUp) {
+            if (!homeEngineUnloaded) {
+                binding.homeLive2d.unloadEngine()
+                homeEngineUnloaded = true
+            }
             binding.homeLive2d.visibility = View.GONE
             binding.homeStatic.visibility = View.VISIBLE
         } else {
-            binding.homeLive2d.visibility = View.VISIBLE
             binding.homeStatic.visibility = View.GONE
+            binding.homeLive2d.visibility = View.VISIBLE
+            if (homeEngineUnloaded) {
+                binding.homeLive2d.reloadEngine()
+                homeEngineUnloaded = false
+            }
         }
     }
 
@@ -188,8 +215,12 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
         val overlayOk = Settings.canDrawOverlays(this)
         val parts = mutableListOf<String>()
         parts += when {
+            RoastService.running && RoastService.pausedLock && RoastService.runningDemo ->
+                getString(R.string.home_status_locked_pause_demo)
             RoastService.running && RoastService.pausedLock ->
                 getString(R.string.home_status_locked_pause)
+            RoastService.running && RoastService.pausedSensitive ->
+                getString(R.string.home_status_sensitive_pause)
             RoastService.running && RoastService.runningDemo ->
                 getString(R.string.home_status_demo)
             RoastService.running ->
@@ -206,6 +237,13 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
             getString(R.string.home_status_unlocked)
         } else {
             getString(R.string.home_status_locked)
+        }
+        if (prefs.purchasePending && !unlocked) {
+            parts += getString(R.string.home_status_purchase_pending)
+        }
+        val err = prefs.lastCompanionError
+        if (err.isNotBlank() && !RoastService.running) {
+            parts += getString(R.string.home_status_error, err)
         }
         binding.homeStatus.text = parts.joinToString("\n")
     }
@@ -233,15 +271,23 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
     }
 
     private fun maybeAskNotificationPermission() {
-        if (Build.VERSION.SDK_INT >= 33) {
-            val granted = ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.POST_NOTIFICATIONS
-            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-            if (!granted) {
+        if (!prefs.hasPrivacyConsent) return
+        if (Build.VERSION.SDK_INT < 33) return
+        val granted = ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.POST_NOTIFICATIONS
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (granted) return
+        if (prefs.notificationPrompted) return
+        prefs.notificationPrompted = true
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.notification_rationale_title)
+            .setMessage(R.string.notification_rationale_message)
+            .setPositiveButton(R.string.notification_rationale_allow) { _, _ ->
                 notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
-        }
+            .setNegativeButton(R.string.notification_rationale_skip, null)
+            .show()
     }
 
     private fun refreshPermissionLabels() {
@@ -268,10 +314,13 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
         } else {
             getString(R.string.privacy_required)
         }
+        binding.btnRevokePrivacy.isEnabled = prefs.hasPrivacyConsent
     }
 
     private fun maybeShowPrivacyConsent() {
         if (prefs.hasPrivacyConsent) return
+        if (consentDialogShowing) return
+        consentDialogShowing = true
         val message = getString(R.string.privacy_consent_message)
         val dialog = MaterialAlertDialogBuilder(this)
             .setTitle(R.string.privacy_consent_title)
@@ -279,6 +328,7 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
             .setPositiveButton(R.string.privacy_accept) { _, _ ->
                 prefs.acceptPrivacy()
                 updatePrivacyStatus()
+                maybeAskNotificationPermission()
             }
             .setNeutralButton(R.string.privacy_view_policy) { _, _ ->
                 openLegal(LegalActivity.MODE_PRIVACY)
@@ -286,23 +336,22 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
             .setNegativeButton(R.string.privacy_decline, null)
             .setCancelable(false)
             .create()
+        dialog.setOnDismissListener { consentDialogShowing = false }
         dialog.show()
+    }
+
+    private fun revokePrivacyConsent() {
+        prefs.revokePrivacy()
+        RoastService.stop(this)
+        updatePrivacyStatus()
+        refreshHome()
+        Toast.makeText(this, R.string.privacy_revoked, Toast.LENGTH_LONG).show()
+        binding.root.postDelayed({ maybeShowPrivacyConsent() }, 300)
     }
 
     private fun ensurePrivacyConsent(): Boolean {
         if (prefs.hasPrivacyConsent) return true
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.privacy_consent_title)
-            .setMessage(R.string.privacy_consent_message)
-            .setPositiveButton(R.string.privacy_accept) { _, _ ->
-                prefs.acceptPrivacy()
-                updatePrivacyStatus()
-            }
-            .setNeutralButton(R.string.privacy_view_policy) { _, _ ->
-                openLegal(LegalActivity.MODE_PRIVACY)
-            }
-            .setNegativeButton(R.string.privacy_decline, null)
-            .show()
+        maybeShowPrivacyConsent()
         return false
     }
 

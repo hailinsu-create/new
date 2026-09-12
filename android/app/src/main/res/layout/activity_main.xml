@@ -31,6 +31,22 @@
             android:textColor="@color/mist"
             android:textSize="15sp" />
 
+        <TextView
+            android:id="@+id/homeDebugChip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_debug_chip"
+            android:contentDescription="@string/cd_home_debug"
+            android:paddingStart="12dp"
+            android:paddingTop="6dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="6dp"
+            android:text="@string/home_debug_chip"
+            android:textColor="@color/ink"
+            android:textSize="12sp"
+            android:visibility="gone" />
+
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="168dp"
@@ -41,7 +57,8 @@
                 android:layout_width="140dp"
                 android:layout_height="140dp"
                 android:layout_gravity="center"
-                android:contentDescription="@string/cd_preview" />
+                android:contentDescription="@string/cd_preview"
+                android:importantForAccessibility="yes" />
 
             <ImageView
                 android:id="@+id/homeStatic"
@@ -59,6 +76,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
+            android:accessibilityLiveRegion="polite"
             android:text="@string/home_status_idle"
             android:textColor="@color/mist"
             android:textSize="13sp" />
@@ -66,10 +84,13 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnDemo"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
             android:background="@drawable/bg_button_primary"
             android:contentDescription="@string/cd_start_demo"
+            android:minHeight="56dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="12dp"
             android:text="@string/start_demo"
             android:textColor="@color/ink"
             android:textStyle="bold"
@@ -82,6 +103,9 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:contentDescription="@string/cd_start_full"
+            android:minHeight="56dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="12dp"
             android:text="@string/start_roast" />
 
         <com.google.android.material.button.MaterialButton
@@ -91,6 +115,9 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:contentDescription="@string/cd_stop"
+            android:minHeight="56dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="12dp"
             android:text="@string/stop_roast" />
 
         <com.google.android.material.button.MaterialButton
@@ -100,6 +127,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:contentDescription="@string/cd_settings_toggle"
+            android:minHeight="48dp"
             android:text="@string/settings_expand" />
 
         <LinearLayout
@@ -185,12 +213,22 @@
                         android:textColor="@color/mist"
                         android:textSize="13sp" />
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnUsage"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
+                    <TextView
+                        android:id="@+id/usageOptionalCaption"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/usage_optional_caption"
+                        android:textColor="@color/amber"
+                        android:textSize="12sp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnUsage"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:minHeight="48dp"
                         android:text="@string/btn_usage" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -462,8 +500,28 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:text="@string/view_terms" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnRevokePrivacy"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:contentDescription="@string/cd_revoke_privacy"
+                        android:minHeight="48dp"
+                        android:text="@string/btn_revoke_privacy" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
+
+        <TextView
+            android:id="@+id/homeVersion"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="12dp"
+            android:gravity="center"
+            android:textColor="@color/mist"
+            android:textSize="12sp" />
     </LinearLayout>
 </ScrollView>

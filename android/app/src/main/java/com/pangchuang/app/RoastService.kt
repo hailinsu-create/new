@@ -438,6 +438,7 @@ class RoastService : Service() {
         running = false
         runningDemo = false
         pausedLock = false
+        pausedSensitive = false
         loopJob?.cancel()
         loopJob = null
         unregisterScreenReceiver()
@@ -463,6 +464,7 @@ class RoastService : Service() {
         running = false
         runningDemo = false
         pausedLock = false
+        pausedSensitive = false
         loopJob?.cancel()
         unregisterScreenReceiver()
         scope.cancel()
@@ -504,6 +506,9 @@ class RoastService : Service() {
 
         @Volatile
         var pausedLock: Boolean = false
+
+        @Volatile
+        var pausedSensitive: Boolean = false
 
         fun start(context: Context, resultCode: Int, data: Intent) {
             if (!Entitlement.isUnlocked(context)) return

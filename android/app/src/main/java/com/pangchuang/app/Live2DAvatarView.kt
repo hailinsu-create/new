@@ -103,14 +103,24 @@ class Live2DAvatarView @JvmOverloads constructor(
         val settings = wv.settings
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
-        settings.databaseEnabled = true
+        settings.databaseEnabled = false
         settings.allowFileAccess = false
         settings.allowContentAccess = false
-        settings.mediaPlaybackRequiresUserGesture = false
+        settings.mediaPlaybackRequiresUserGesture = true
         settings.cacheMode = WebSettings.LOAD_NO_CACHE
-        settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+        // Assets are intercepted; never load mixed third-party HTTP.
+        settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
         settings.useWideViewPort = true
         settings.loadWithOverviewMode = true
+        settings.setSupportZoom(false)
+        settings.builtInZoomControls = false
+        settings.displayZoomControls = false
+        settings.javaScriptCanOpenWindowsAutomatically = false
+        settings.setGeolocationEnabled(false)
+        @Suppress("DEPRECATION")
+        settings.allowFileAccessFromFileURLs = false
+        @Suppress("DEPRECATION")
+        settings.allowUniversalAccessFromFileURLs = false
 
         wv.webChromeClient = object : WebChromeClient() {
             override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
@@ -148,7 +158,7 @@ class Live2DAvatarView @JvmOverloads constructor(
                 Log.e(TAG, "webview error isMain=${request?.isForMainFrame} url=${request?.url} $desc")
                 if (request?.isForMainFrame == true) {
                     lastError = desc
-                    onError?.invoke(desc)
+                    onError?.invoke(humanizeError(desc))
                 }
             }
         }
@@ -213,6 +223,54 @@ class Live2DAvatarView @JvmOverloads constructor(
         onReady?.invoke()
     }
 
+    /**
+     * Pause WebGL without [WebView.pauseTimers] (that is process-wide).
+     * Used on SCREEN_OFF and when the home preview yields to the overlay.
+     */
+    fun pauseRendering() {
+        if (destroyed) return
+        runCatching { webView.onPause() }
+        eval("window.PangchuangLive2D && PangchuangLive2D.setPaused(true);")
+    }
+
+    fun resumeRendering() {
+        if (destroyed) return
+        runCatching { webView.onResume() }
+        eval("window.PangchuangLive2D && PangchuangLive2D.setPaused(false);")
+    }
+
+    /** Drop Cubism so only one Live2D WebView stays alive in this process. */
+    fun unloadEngine() {
+        if (destroyed) return
+        ready = false
+        runCatching { webView.onPause() }
+        webView.loadUrl("about:blank")
+        webView.alpha = 0f
+        fallback.visibility = VISIBLE
+        fallback.alpha = 1f
+    }
+
+    fun reloadEngine() {
+        if (destroyed) return
+        runCatching { webView.onResume() }
+        reloadLive2D()
+    }
+
+    fun humanizeError(raw: String): String {
+        val r = raw.lowercase()
+        return when {
+            "webgl" in r || "gl_" in r || "context lost" in r ->
+                context.getString(R.string.overlay_live2d_fail)
+            "cubism" in r || "live2d" in r || "moc3" in r ->
+                context.getString(R.string.overlay_live2d_fail)
+            "net::" in r || "err_" in r || "failed to load" in r ->
+                context.getString(R.string.overlay_live2d_fail)
+            raw.length > 80 || raw.contains('\n') || raw.contains("at ") ->
+                context.getString(R.string.overlay_live2d_fail)
+            else -> context.getString(R.string.overlay_live2d_fail)
+        }
+    }
+
     fun destroy() {
         destroyed = true
         handler.removeCallbacksAndMessages(null)
@@ -241,7 +299,7 @@ class Live2DAvatarView @JvmOverloads constructor(
                         webView.alpha = 0f
                         fallback.visibility = VISIBLE
                         fallback.alpha = 1f
-                        onError?.invoke(err)
+                        onError?.invoke(humanizeError(err))
                         if (loadAttempts < 4) {
                             handler.postDelayed({ reloadLive2D() }, 1000L)
                         }
