@@ -1125,7 +1125,7 @@ func _silhouette_yard_tree(c: CanvasItem) -> void:
 			Vector2(base.x - 18, base.y - 14),
 			Vector2(base.x - 36, base.y - 18),
 		]),
-		Color(0.12, 0.18, 0.10, 0.62)
+		Color(0.14, 0.14, 0.08, 0.62)
 	)
 	c.draw_colored_polygon(
 		PackedVector2Array([
@@ -1133,7 +1133,7 @@ func _silhouette_yard_tree(c: CanvasItem) -> void:
 			Vector2(base.x + 22, base.y - 32),
 			Vector2(base.x - 20, base.y - 28),
 		]),
-		Color(0.16, 0.24, 0.12, 0.40)
+		Color(0.18, 0.16, 0.08, 0.40)
 	)
 
 
@@ -1158,7 +1158,7 @@ func _silhouette_warehouse_roof(c: CanvasItem) -> void:
 			Vector2(origin.x + 92, origin.y + 18),
 			Vector2(origin.x, origin.y - 8),
 		]),
-		Color(0.42, 0.28, 0.10, 0.28)
+		Color(0.48, 0.26, 0.08, 0.32)
 	)
 
 
@@ -1167,10 +1167,10 @@ func _silhouette_pump_chimney(c: CanvasItem) -> void:
 	var t := AmbushGrid.TILE
 	var x := 25.35 * t
 	var y := 10.2 * t
-	c.draw_rect(Rect2(x, y - 88, 18.0, 96.0), Color(0.10, 0.18, 0.16, 0.72))
-	c.draw_rect(Rect2(x + 3, y - 88, 5.0, 96.0), Color(0.22, 0.40, 0.34, 0.28))
-	c.draw_rect(Rect2(x - 6, y - 98, 30.0, 12.0), Color(0.12, 0.22, 0.18, 0.80))
-	c.draw_circle(Vector2(x + 9, y - 104), 8.0, Color(0.16, 0.28, 0.24, 0.55))
+	c.draw_rect(Rect2(x, y - 88, 18.0, 96.0), Color(0.16, 0.12, 0.08, 0.72))
+	c.draw_rect(Rect2(x + 3, y - 88, 5.0, 96.0), Color(0.32, 0.22, 0.10, 0.28))
+	c.draw_rect(Rect2(x - 6, y - 98, 30.0, 12.0), Color(0.18, 0.14, 0.08, 0.80))
+	c.draw_circle(Vector2(x + 9, y - 104), 8.0, Color(0.22, 0.16, 0.10, 0.55))
 	c.draw_colored_polygon(
 		PackedVector2Array([
 			Vector2(x - 4, y - 110),
@@ -1178,7 +1178,7 @@ func _silhouette_pump_chimney(c: CanvasItem) -> void:
 			Vector2(x + 16, y - 128),
 			Vector2(x + 2, y - 128),
 		]),
-		Color(0.14, 0.22, 0.20, 0.45)
+		Color(0.18, 0.14, 0.08, 0.45)
 	)
 
 
