@@ -363,15 +363,33 @@ static func mud_print(host: Node2D, world_pos: Vector2, facing_rad: float = 0.0)
 	tw.tween_callback(n.queue_free)
 
 
-static func brass_eject(host: Node2D, world_pos: Vector2, facing_rad: float, heavy: bool = false) -> void:
+static func brass_eject(host: Node2D, world_pos: Vector2, facing_rad: float, heavy: bool = false, caliber: String = "") -> void:
 	if not _ok(host) or _saving() or not _budget(host, "CfxBrass", 8):
 		return
 	var n := _spawn(host, "CfxBrass", world_pos, 11)
 	var shell := Polygon2D.new()
+	var w := 1.2
+	var h := 3.4
+	match caliber:
+		"mg":
+			w = 1.6
+			h = 4.6
+		"pistol", "smg":
+			w = 0.9
+			h = 2.4
+		"shotgun":
+			w = 1.8
+			h = 3.0
+		"scout":
+			w = 1.3
+			h = 4.2
+		_:
+			w = 1.2
+			h = 3.4
 	shell.polygon = PackedVector2Array([
-		Vector2(-1.2, -3.4), Vector2(1.2, -3.4), Vector2(1.4, 3.0), Vector2(-1.4, 3.0)
+		Vector2(-w, -h), Vector2(w, -h), Vector2(w + 0.2, h * 0.88), Vector2(-w - 0.2, h * 0.88)
 	])
-	shell.color = Color(0.78, 0.58, 0.22, 0.95)
+	shell.color = Color(0.78, 0.58, 0.22, 0.95) if caliber != "shotgun" else Color(0.72, 0.62, 0.38, 0.95)
 	n.add_child(shell)
 	var side := Vector2(-sin(facing_rad), cos(facing_rad))
 	var kick := side * (10.0 if heavy else 7.0) + Vector2(0, 6)

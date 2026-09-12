@@ -953,7 +953,7 @@ func _spawn_muzzle_flash() -> void:
 			tint = Color(1.0, 0.86, 0.58)
 	var tip := Vector2(cos(rad), sin(rad)) * tip_len
 	MuzzleFlashScript.burst(self, tip, rad, tint, intensity, style)
-	CombatFxScript.brass_eject(self, tip * 0.35, rad, muzzle_style == "mg")
+	CombatFxScript.brass_eject(self, tip * 0.35, rad, muzzle_style == "mg", Weapons.family_of(weapon_id))
 	apply_recoil_kick()
 
 
