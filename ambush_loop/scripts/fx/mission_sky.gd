@@ -414,7 +414,7 @@ func _draw_radio() -> void:
 	# Echo hall phosphor underglow down x=24 — cooler cyan vs depot orange sodium.
 	draw_rect(
 		Rect2(23.55 * AmbushGrid.TILE, 5.0 * AmbushGrid.TILE, 1.9 * AmbushGrid.TILE, 12.0 * AmbushGrid.TILE),
-		Color(0.22, 0.78, 0.98, 0.08 + 0.05 * pulse)
+		Color(0.62, 0.52, 0.28, 0.08 + 0.05 * pulse)
 	)
 	# Morse blink on the hut window — standard tier only.
 	var hut := Vector2(26.4 * AmbushGrid.TILE, 9.2 * AmbushGrid.TILE)
