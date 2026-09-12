@@ -449,6 +449,7 @@ static func make_yard() -> LevelDef:
 		{"cell": Vector2i(23, 13), "kind": "ammo", "amount": 6},
 		{"cell": Vector2i(6, 17), "kind": "pistol", "amount": 8},
 		{"cell": Vector2i(18, 12), "kind": "shotgun", "amount": 4},
+		{"cell": Vector2i(20, 16), "kind": "m1911", "amount": 7},
 	]
 	l.ambush_zone = Rect2(320, 280, 400, 160)
 	l.has_ammo_pack = false

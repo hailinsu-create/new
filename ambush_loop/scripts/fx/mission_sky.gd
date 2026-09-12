@@ -203,7 +203,7 @@ func _draw_warehouse() -> void:
 		flicker = 0.72 + 0.28 * abs(sin(_t * 1.15))
 		if fmod(_t * 4.7, 1.0) > 0.84:
 			flicker = 0.18 + 0.22 * abs(sin(_t * 37.0))
-	draw_rect(Rect2(0.0, 0.0, sz.x, 110.0), Color(0.62, 0.40, 0.08, (0.14 + 0.04 * pulse) * flicker))
+	draw_rect(Rect2(0.0, 0.0, sz.x, 110.0), Color(0.58, 0.36, 0.08, (0.16 + 0.04 * pulse) * flicker))
 	var lamps := [
 		Vector2(13.5 * AmbushGrid.TILE, 5.4 * AmbushGrid.TILE),
 		Vector2(24.5 * AmbushGrid.TILE, 5.4 * AmbushGrid.TILE),

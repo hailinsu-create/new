@@ -78,7 +78,7 @@ static func theme() -> Theme:
 	t.set_color("font_disabled_color", "Button", Color(0.42, 0.44, 0.40))
 	var bn := flat(Color(0.12, 0.11, 0.08, 0.96), Color(0.42, 0.34, 0.18), 1, 12, 3)
 	bn.border_width_top = 2
-	var bh := flat(Color(0.16, 0.20, 0.13, 0.98), OLIVE_HI, 1, 12, 3)
+	var bh := flat(Color(0.18, 0.16, 0.10, 0.98), OLIVE_HI, 1, 12, 3)
 	bh.border_width_top = 2
 	var bp := flat(Color(0.09, 0.12, 0.08, 1), OLIVE, 2, 12, 3)
 	t.set_stylebox("normal", "Button", bn)
