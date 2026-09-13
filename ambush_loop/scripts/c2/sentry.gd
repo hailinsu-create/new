@@ -74,6 +74,16 @@ func bind_gag() -> bool:
 	state = State.BOUND
 	if mark:
 		mark.kind = 3
+	var rope := get_node_or_null("Rope") as Line2D
+	if rope == null:
+		rope = Line2D.new()
+		rope.name = "Rope"
+		rope.width = 1.6
+		rope.default_color = Color(0.62, 0.48, 0.22, 0.9)
+		rope.z_index = 6
+		add_child(rope)
+	rope.points = PackedVector2Array([Vector2(-8, 2), Vector2(8, 4), Vector2(-6, 8), Vector2(7, 10)])
+	rope.visible = true
 	return true
 
 
@@ -89,6 +99,28 @@ func hear_at(world: Vector2, loud: float) -> void:
 	if state == State.PATROL:
 		state = State.SUSPICIOUS
 		_look_t = 1.4
+	if loud >= 0.9 and grid != null:
+		_peel_one_cell(world)
+
+
+func _peel_one_cell(pos: Vector2) -> void:
+	if grid == null:
+		return
+	var cell: Vector2i = grid.world_to_cell(global_position)
+	var want: Vector2i = grid.world_to_cell(pos)
+	var dx := clampi(want.x - cell.x, -1, 1)
+	var dy := clampi(want.y - cell.y, -1, 1)
+	if dx == 0 and dy == 0:
+		return
+	if absi(want.x - cell.x) >= absi(want.y - cell.y):
+		dy = 0
+	else:
+		dx = 0
+	var next := Vector2i(cell.x + dx, cell.y + dy)
+	if not grid.in_bounds(next.x, next.y) or grid.is_blocked(next.x, next.y):
+		return
+	global_position = grid.cell_to_world_center(next)
+	_face_to(pos)
 
 
 func tick(delta: float, ops: Array, hidden_at: Callable) -> Node:
@@ -257,13 +289,28 @@ func _rebuild_cone() -> void:
 		var dist := _clip(dirv)
 		pts.append(dirv * dist)
 	cone.polygon = pts
+	var edge := get_node_or_null("ConeEdge") as Line2D
+	if edge == null:
+		edge = Line2D.new()
+		edge.name = "ConeEdge"
+		edge.width = 1.4
+		edge.z_index = 0
+		add_child(edge)
+	var epts := PackedVector2Array()
+	for i in range(1, pts.size()):
+		epts.append(pts[i])
+	edge.points = epts
 	match state:
 		State.ALERT:
 			cone.color = Color(0.92, 0.22, 0.14, 0.28)
+			edge.default_color = Color(0.92, 0.28, 0.16, 0.72)
 		State.SUSPICIOUS:
 			cone.color = Color(0.92, 0.78, 0.18, 0.24)
+			edge.default_color = Color(0.94, 0.82, 0.22, 0.65)
 		_:
-			cone.color = Color(0.72, 0.82, 0.28, 0.18)
+			cone.color = Color(0.78, 0.86, 0.28, 0.16)
+			edge.default_color = Color(0.82, 0.88, 0.32, 0.42)
+	edge.visible = cone.visible
 
 
 func _clip(dirv: Vector2) -> float:
