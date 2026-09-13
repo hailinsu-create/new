@@ -6913,7 +6913,7 @@ func _update_hud() -> void:
 		var spd := "暂停" if sim.paused else ("2×" if sim.speed >= 1.5 else "1×")
 		help_label.text = "警报 t=%.1fs %s  自动火力/自动手雷" % [sim.time_sec(), spd]
 	elif phase == Phase.SWEEP:
-		help_label.text = "打扫：走近尸体拾取 · 空格%s" % ("撤离" if raid and raid.is_last_wave(level) else "下一波")
+		help_label.text = "打扫：搜尸换枪 包扎(Z) · 空格%s" % ("撤离" if raid and raid.is_last_wave(level) else "下一波")
 	elif phase == Phase.FAILED:
 		help_label.text = "失败：%s" % fail_reason
 	elif phase == Phase.WON:
