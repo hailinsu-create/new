@@ -74,7 +74,7 @@ func _ready() -> void:
 	box.add_child(frame)
 	var keys := Label.new()
 	keys.name = "C2Keys"
-	keys.text = "C匍匐  Q割喉/技能  W口哨  Z包扎  双击跑  滚轮缩放"
+	keys.text = "C匍匐  Q技能  W口哨  Z包扎  双击跑  F2回中  滚轮缩放"
 	keys.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	keys.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	keys.add_theme_font_size_override("font_size", 12)
