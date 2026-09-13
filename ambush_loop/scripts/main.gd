@@ -6911,7 +6911,7 @@ func _update_hud() -> void:
 		help_label.text = "点地走 双击跑 C匍 Q技能 W哨 I包 G雷点 上掩体%d/3 · 空格%s" % [dep, alarm_button.text if alarm_button else "警报"]
 	elif phase == Phase.WATCHING:
 		var spd := "暂停" if sim.paused else ("2×" if sim.speed >= 1.5 else "1×")
-		help_label.text = "警报 t=%.1fs %s  自动火力/自动手雷" % [sim.time_sec(), spd]
+		help_label.text = "警报 t=%.1fs %s  自动火力/自动手雷 · 走位等打扫" % [sim.time_sec(), spd]
 	elif phase == Phase.SWEEP:
 		help_label.text = "打扫：搜尸换枪 包扎(Z) · 空格%s" % ("撤离" if raid and raid.is_last_wave(level) else "下一波")
 	elif phase == Phase.FAILED:
