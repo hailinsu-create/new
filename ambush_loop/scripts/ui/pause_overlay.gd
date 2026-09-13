@@ -72,6 +72,14 @@ func _ready() -> void:
 	frame.add_theme_font_size_override("font_size", 13)
 	frame.add_theme_color_override("font_color", NightOps.OLIVE_DIM)
 	box.add_child(frame)
+	var keys := Label.new()
+	keys.name = "C2Keys"
+	keys.text = "C匍匐  Q割喉/技能  W口哨  Z包扎  双击跑  滚轮缩放"
+	keys.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	keys.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	keys.add_theme_font_size_override("font_size", 12)
+	keys.add_theme_color_override("font_color", NightOps.MUTED)
+	box.add_child(keys)
 	_mute_btn = _fat_btn()
 	_mute_btn.pressed.connect(_on_mute)
 	box.add_child(_mute_btn)
