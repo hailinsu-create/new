@@ -1484,6 +1484,23 @@ func _assert_raid_contract(main) -> bool:
 		quit(80)
 		return false
 	print("SMOKE_OK_C2_LOC")
+	if not main.touch_hud._btns.has("crouch") or not main.touch_hud._btns.has("knife"):
+		push_error("SMOKE_NO_TOUCH_CROUCH")
+		quit(80)
+		return false
+	print("SMOKE_OK_TOUCH_CROUCH")
+	c2op.set_sprint(true)
+	if not bool(c2op.sprinting) or c2op.move_speed <= c2op.base_move_speed:
+		push_error("SMOKE_SPRINT %s %s" % [c2op.sprinting, c2op.move_speed])
+		quit(80)
+		return false
+	print("SMOKE_OK_SPRINT speed=", snapped(c2op.move_speed, 0.1))
+	c2op.set_sprint(false)
+	if not (loc_script as GDScript).has("quiet_yard"):
+		push_error("SMOKE_NO_QUIET_LOC")
+		quit(80)
+		return false
+	print("SMOKE_OK_QUIET_LOC")
 	main._start_setup(false, false)
 	return true
 
