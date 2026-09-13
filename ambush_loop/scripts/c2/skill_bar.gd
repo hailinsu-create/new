@@ -23,7 +23,7 @@ func _ready() -> void:
 	add_child(row)
 	for i in 5:
 		var b := Button.new()
-		b.custom_minimum_size = Vector2(52, 60)
+		b.custom_minimum_size = Vector2(54, 62)
 		b.focus_mode = Control.FOCUS_NONE
 		b.theme = NightOps.theme()
 		b.add_theme_font_size_override("font_size", 10)
