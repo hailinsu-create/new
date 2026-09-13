@@ -713,8 +713,13 @@ export class AvatarRig {
             };
 
     context.save();
-    context.translate(this.layout.face.mouth.x + this.lookX * 1.8, this.layout.face.mouth.y + this.lookY * 1.1);
+    const mouthScale = this.layout.mouthScale;
+    context.translate(
+      this.layout.face.mouth.x + this.lookX * 1.8 * mouthScale,
+      this.layout.face.mouth.y + this.lookY * 1.1 * mouthScale,
+    );
     context.rotate(this.layout.mouthTilt);
+    context.scale(mouthScale, mouthScale);
     this.paintMouthCover(context, shape);
 
     if (shape.closed > 0.65 || shape.open < 0.12) {
@@ -876,9 +881,11 @@ export class AvatarRig {
     const closed = (1 - clamp(open, 0, 1)) * amount;
     if (closed < 0.04) return;
     const context = this.featureCtx;
+    const faceScale = this.layout.faceScale;
     context.save();
-    context.translate(center.x + this.lookX * 2.4, center.y + this.lookY * 1.4);
+    context.translate(center.x + this.lookX * 2.4 * faceScale, center.y + this.lookY * 1.4 * faceScale);
     context.rotate(this.layout.mouthTilt * 0.2);
+    context.scale(faceScale, faceScale);
     context.strokeStyle = `rgba(32, 24, 28, ${0.35 + closed * 0.4})`;
     context.lineWidth = 0.7;
     context.lineCap = "round";
@@ -904,8 +911,9 @@ export class AvatarRig {
     side: -1 | 1,
   ): void {
     const context = this.featureCtx;
-    const cx = center.x + this.lookX * 2.6 + side * Math.abs(this.lookX) * 1.15;
-    const cy = center.y + this.lookY * 1.55;
+    const faceScale = this.layout.faceScale;
+    const cx = center.x + this.lookX * 2.6 * faceScale + side * Math.abs(this.lookX) * 1.15 * faceScale;
+    const cy = center.y + this.lookY * 1.55 * faceScale;
     const width = 39 * this.pose.eyeWidth;
     const height = 18.5;
     const openClamped = clamp(open, 0, 1.16);
@@ -915,12 +923,14 @@ export class AvatarRig {
     context.save();
     context.translate(cx, cy);
     context.rotate(this.layout.mouthTilt * 0.22);
+    context.scale(faceScale, faceScale);
     context.beginPath();
     context.moveTo(-width, (upper + lower) * 0.12);
     context.bezierCurveTo(-width * 0.46, upper, width * 0.46, upper, width, (upper + lower) * 0.08);
     context.bezierCurveTo(width * 0.42, lower, -width * 0.42, lower, -width, (upper + lower) * 0.12);
     context.closePath();
     context.clip();
+    context.scale(1 / faceScale, 1 / faceScale);
     context.rotate(-this.layout.mouthTilt * 0.22);
     context.scale(1 + side * this.lookX * 0.035, 1);
     context.translate(-cx, -cy);
@@ -931,6 +941,7 @@ export class AvatarRig {
       context.save();
       context.translate(cx, cy);
       context.rotate(this.layout.mouthTilt * 0.22);
+      context.scale(faceScale, faceScale);
       context.lineCap = "round";
       context.strokeStyle = `rgba(38, 30, 34, ${lidAlpha})`;
       context.lineWidth = 1.45 + (1 - openClamped) * 1.2;
@@ -945,9 +956,10 @@ export class AvatarRig {
   private drawLowerLid(center: { x: number; y: number }, amount: number, side: -1 | 1): void {
     if (amount < 0.04) return;
     const context = this.featureCtx;
+    const faceScale = this.layout.faceScale;
     context.save();
-    context.translate(center.x + this.lookX * 2.6, center.y + this.lookY * 1.55);
-    context.scale(1 + side * this.lookX * 0.035, 1);
+    context.translate(center.x + this.lookX * 2.6 * faceScale, center.y + this.lookY * 1.55 * faceScale);
+    context.scale(faceScale * (1 + side * this.lookX * 0.035), faceScale);
     context.lineCap = "round";
     context.strokeStyle = SKIN(0.42 * amount);
     context.lineWidth = 6.2;
@@ -973,13 +985,15 @@ export class AvatarRig {
     const amount = this.pose.sparkle * Math.max(0, open - 0.35);
     if (amount < 0.05) return;
     const context = this.featureCtx;
+    const faceScale = this.layout.faceScale;
     const pulse = 0.85 + 0.15 * Math.sin(seconds * MOTION.pupil.pulseHz * 8 + side);
     const follow = 1 + MOTION.pupil.catchlightFollow;
     context.save();
     context.translate(
-      center.x + this.lookX * 4.2 * follow + side * (3 + MOTION.gaze.vergence * 8),
-      center.y + this.lookY * 2.4 * follow - 3,
+      center.x + this.lookX * 4.2 * follow * faceScale + side * (3 + MOTION.gaze.vergence * 8) * faceScale,
+      center.y + this.lookY * 2.4 * follow * faceScale - 3 * faceScale,
     );
+    context.scale(faceScale, faceScale);
     context.beginPath();
     context.ellipse(0, 0, 14, 12, 0, 0, Math.PI * 2);
     context.clip();
@@ -996,12 +1010,14 @@ export class AvatarRig {
 
   private drawClosedEye(center: { x: number; y: number }, alpha: number, side: -1 | 1): void {
     const context = this.featureCtx;
+    const faceScale = this.layout.faceScale;
     const happy = Math.max(0, this.pose.mouthCurve);
     const sad = Math.max(0, -this.pose.mouthCurve);
     context.save();
     context.globalAlpha = alpha;
-    context.translate(center.x + this.lookX * 2.1, center.y + this.lookY * 1.05);
+    context.translate(center.x + this.lookX * 2.1 * faceScale, center.y + this.lookY * 1.05 * faceScale);
     context.rotate(this.layout.mouthTilt * 0.2);
+    context.scale(faceScale, faceScale);
     context.lineCap = "round";
     const half = 27;
     const outerLift = happy * 6.2 - sad * 4.6;
@@ -1027,35 +1043,40 @@ export class AvatarRig {
     const inner = this.pose.browInner;
     const raise = this.pose.browRaise;
     if (Math.abs(inner) < 0.22 && Math.abs(raise) < 0.2) return;
-    const lift = -raise * 6.5;
+    const faceScale = this.layout.faceScale;
+    const lift = -raise * 6.5 * faceScale;
+    const lookX = this.lookX * 1.3 * faceScale;
+    const lookY = this.lookY * 0.7 * faceScale;
+    const innerLift = inner * 7.5 * faceScale;
     this.strokeBrow({
-      outerX: this.layout.face.browLeft.outerX + this.lookX * 1.3,
-      outerY: this.layout.face.browLeft.outerY + lift * 0.4 + this.lookY * 0.7,
-      innerX: this.layout.face.browLeft.innerX + this.lookX * 1.3,
-      innerY: this.layout.face.browLeft.innerY - inner * 7.5 + lift + this.lookY * 0.7,
+      outerX: this.layout.face.browLeft.outerX + lookX,
+      outerY: this.layout.face.browLeft.outerY + lift * 0.4 + lookY,
+      innerX: this.layout.face.browLeft.innerX + lookX,
+      innerY: this.layout.face.browLeft.innerY - innerLift + lift + lookY,
     });
     this.strokeBrow({
-      outerX: this.layout.face.browRight.outerX + this.lookX * 1.3,
-      outerY: this.layout.face.browRight.outerY + lift * 0.4 + this.lookY * 0.7,
-      innerX: this.layout.face.browRight.innerX + this.lookX * 1.3,
-      innerY: this.layout.face.browRight.innerY - inner * 7.5 + lift + this.lookY * 0.7,
+      outerX: this.layout.face.browRight.outerX + lookX,
+      outerY: this.layout.face.browRight.outerY + lift * 0.4 + lookY,
+      innerX: this.layout.face.browRight.innerX + lookX,
+      innerY: this.layout.face.browRight.innerY - innerLift + lift + lookY,
     });
   }
 
   private strokeBrow(points: { outerX: number; outerY: number; innerX: number; innerY: number }): void {
     const context = this.featureCtx;
     const midX = (points.outerX + points.innerX) / 2;
-    const midY = (points.outerY + points.innerY) / 2 - 1.6;
+    const midY = (points.outerY + points.innerY) / 2 - 1.6 * this.layout.faceScale;
     context.save();
     context.lineCap = "round";
     context.beginPath();
     context.moveTo(points.outerX, points.outerY);
     context.quadraticCurveTo(midX, midY, points.innerX, points.innerY);
+    const faceScale = this.layout.faceScale;
     context.strokeStyle = SKIN(0.92);
-    context.lineWidth = 5.4;
+    context.lineWidth = 5.4 * faceScale;
     context.stroke();
     context.strokeStyle = "rgba(42, 34, 38, 0.72)";
-    context.lineWidth = 2.1;
+    context.lineWidth = 2.1 * faceScale;
     context.stroke();
     context.restore();
   }
@@ -1066,9 +1087,22 @@ export class AvatarRig {
     const context = this.portraitCtx;
     const breathWave = Math.sin(this.breathSys.phase);
     const pulse = 0.85 + 0.15 * Math.sin(seconds * 2.05) + breathWave * MOTION.breath.blushCoupling * 0.08;
-    const squeeze = this.lastLids.cheek * 4;
-    this.fillBlush(context, this.layout.face.cheekLeft.x, this.layout.face.cheekLeft.y + squeeze * 0.3, 38 + squeeze, amount * pulse * 0.72);
-    this.fillBlush(context, this.layout.face.cheekRight.x, this.layout.face.cheekRight.y + squeeze * 0.3, 36 + squeeze, amount * pulse * 0.66);
+    const faceScale = this.layout.faceScale;
+    const squeeze = this.lastLids.cheek * 4 * faceScale;
+    this.fillBlush(
+      context,
+      this.layout.face.cheekLeft.x,
+      this.layout.face.cheekLeft.y + squeeze * 0.3,
+      (38 + this.lastLids.cheek * 4) * faceScale,
+      amount * pulse * 0.72,
+    );
+    this.fillBlush(
+      context,
+      this.layout.face.cheekRight.x,
+      this.layout.face.cheekRight.y + squeeze * 0.3,
+      (36 + this.lastLids.cheek * 4) * faceScale,
+      amount * pulse * 0.66,
+    );
   }
 
   private fillBlush(context: CanvasRenderingContext2D, x: number, y: number, radius: number, alpha: number): void {
@@ -1090,21 +1124,31 @@ export class AvatarRig {
       : (Math.sin(seconds * 2.4) + 1) * 0.5;
     context.save();
     context.globalAlpha = amount * (0.55 + 0.45 * (phys > 0 ? Math.min(1, drip * 1.4) : drip));
-    this.paintTear(context, this.layout.face.tearLeft.x, this.layout.face.tearLeft.y + drip * (phys > 0 ? 16 : 9));
-    this.paintTear(context, this.layout.face.tearRight.x, this.layout.face.tearRight.y + drip * (phys > 0 ? 14 : 8));
+    const faceScale = this.layout.faceScale;
+    this.paintTear(
+      context,
+      this.layout.face.tearLeft.x,
+      this.layout.face.tearLeft.y + drip * (phys > 0 ? 16 : 9) * faceScale,
+    );
+    this.paintTear(
+      context,
+      this.layout.face.tearRight.x,
+      this.layout.face.tearRight.y + drip * (phys > 0 ? 14 : 8) * faceScale,
+    );
     context.restore();
   }
 
   private paintTear(context: CanvasRenderingContext2D, x: number, y: number): void {
-    const gloss = context.createLinearGradient(x - 3, y - 4, x + 4, y + 10);
+    const s = this.layout.faceScale;
+    const gloss = context.createLinearGradient(x - 3 * s, y - 4 * s, x + 4 * s, y + 10 * s);
     gloss.addColorStop(0, "rgba(210, 232, 240, 0.85)");
     gloss.addColorStop(0.45, "rgba(140, 188, 210, 0.7)");
     gloss.addColorStop(1, "rgba(140, 188, 210, 0)");
     context.fillStyle = gloss;
     context.beginPath();
-    context.moveTo(x, y - 5);
-    context.quadraticCurveTo(x + 4, y + 2, x, y + 11);
-    context.quadraticCurveTo(x - 4, y + 2, x, y - 5);
+    context.moveTo(x, y - 5 * s);
+    context.quadraticCurveTo(x + 4 * s, y + 2 * s, x, y + 11 * s);
+    context.quadraticCurveTo(x - 4 * s, y + 2 * s, x, y - 5 * s);
     context.fill();
   }
 

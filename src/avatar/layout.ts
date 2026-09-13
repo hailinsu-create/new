@@ -24,6 +24,10 @@ export type Layout = {
   w: number;
   h: number;
   mouthTilt: number;
+  /** Procedural eye / brow / blush size vs the bust plate (1 = bust pixels). */
+  faceScale: number;
+  /** Viseme + mouth-cover size vs the bust plate. Full-body lips are smaller than the head. */
+  mouthScale: number;
   face: FaceMarks;
   hair: Pivot;
   bangs: Pivot;
@@ -51,16 +55,17 @@ export const FACE_BUST: FaceMarks = {
   tearRight: { x: 770, y: 310 },
 };
 
+/** Landmarks in 1536×2304 plate pixels, measured on the painted features. */
 export const FACE_FULL: FaceMarks = {
-  eyeLeft: { x: 700, y: 302 },
-  eyeRight: { x: 812, y: 288 },
-  mouth: { x: 762, y: 378 },
-  browLeft: { innerX: 731, innerY: 266, outerX: 671, outerY: 271 },
-  browRight: { innerX: 774, innerY: 255, outerX: 848, outerY: 249 },
-  cheekLeft: { x: 674, y: 352 },
-  cheekRight: { x: 865, y: 342 },
-  tearLeft: { x: 731, y: 321 },
-  tearRight: { x: 780, y: 309 },
+  eyeLeft: { x: 686, y: 292 },
+  eyeRight: { x: 792, y: 270 },
+  mouth: { x: 756, y: 354 },
+  browLeft: { innerX: 702, innerY: 258, outerX: 655, outerY: 265 },
+  browRight: { innerX: 768, innerY: 248, outerX: 820, outerY: 246 },
+  cheekLeft: { x: 665, y: 325 },
+  cheekRight: { x: 828, y: 308 },
+  tearLeft: { x: 705, y: 305 },
+  tearRight: { x: 775, y: 285 },
 };
 
 export const BUST_LAYOUT: Layout = {
@@ -68,6 +73,8 @@ export const BUST_LAYOUT: Layout = {
   w: BUST_W,
   h: BUST_H,
   mouthTilt: -0.175,
+  faceScale: 1,
+  mouthScale: 1,
   face: FACE_BUST,
   hair: { x: 526, y: 292 },
   bangs: { x: 724, y: 176 },
@@ -80,7 +87,9 @@ export const FULL_LAYOUT: Layout = {
   id: "full",
   w: FULL_W,
   h: FULL_H,
-  mouthTilt: -0.05,
+  mouthTilt: 0.1,
+  faceScale: 0.8,
+  mouthScale: 0.55,
   face: FACE_FULL,
   hair: { x: 560, y: 300 },
   bangs: { x: 750, y: 155 },
