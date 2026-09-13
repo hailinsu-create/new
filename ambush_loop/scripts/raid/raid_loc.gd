@@ -34,6 +34,7 @@ const KEYS := {
 	"pass_range": "走近再递装",
 	"ko_loot": "割喉掉弹",
 	"quiet_nade": "无声院子+雷",
+	"phase_scout": "搜刮潜行",
 }
 
 
