@@ -143,7 +143,7 @@ func tick(delta: float, ops: Array, hidden_at: Callable) -> Node:
 		_face_to(seen.global_position)
 		_rebuild_cone()
 		return seen
-	suspicion = maxf(suspicion - delta * 0.28, 0.0)
+	suspicion = maxf(suspicion - delta * 0.18, 0.0)
 	if suspicion < 0.12 and state != State.PATROL:
 		state = State.PATROL
 		if mark:
@@ -241,8 +241,13 @@ func _ensure_visual() -> void:
 	add_child(body)
 	var helm := Polygon2D.new()
 	helm.name = "Helm"
-	helm.polygon = PackedVector2Array([Vector2(-4, -12), Vector2(4, -12), Vector2(3.4, -8), Vector2(-3.4, -8)])
-	helm.color = Color(0.28, 0.30, 0.18)
+	helm.polygon = PackedVector2Array([Vector2(-5, -13), Vector2(5, -13), Vector2(4.2, -8), Vector2(-4.2, -8)])
+	helm.color = Color(0.22, 0.24, 0.14)
+	var brim := Polygon2D.new()
+	brim.name = "Brim"
+	brim.polygon = PackedVector2Array([Vector2(-7, -9), Vector2(7, -9), Vector2(6, -7.4), Vector2(-6, -7.4)])
+	brim.color = Color(0.16, 0.18, 0.10)
+	body.add_child(brim)
 	body.add_child(helm)
 	cone = Polygon2D.new()
 	cone.name = "Cone"
