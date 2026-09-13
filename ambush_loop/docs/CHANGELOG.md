@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.5.0 — Commandos 2 portraits, skills, sentry cones
+
+Sideload APK: `dist/AmbushLoop-v0.5.0-commandos2-kit.apk`  
+Release tag: `v0.5.0-commandos2-kit`
+
+100 perceivable iterations on the v0.4.0 kit. RAID is still SCOUT → ALERT → SWEEP. Alarm still freezes walking.
+
+### Play
+- Bottom **portraits**, skill hotbar (C/Q/W/Z, 4–8), minimap, context cursor, dest X.
+- SCOUT **岗哨** with yellow LOS cones. Crouch in bushes to hide. Q backstab. Whistle peels. Does **not** auto-pull the alarm.
+- Double-click sprint, Shift walk, wheel zoom, F1 follow / F2 recage, middle-pan.
+- Quiet yard (all sentries down) → extra nade + win star.
+- ALERT: enemy red cones; auto fire + auto nade unchanged.
+
+### Android
+- `versionName` 0.5.0 / `versionCode` 6 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title **v0.5.0 COMMANDOS/WW2** · **点选单兵 · 搜刮潜行**.
+2. Bottom three portraits. Yard spine has a walking 岗哨 with a yellow cone.
+3. Pull alarm: **警报中 · 第N/M波**, walking still frozen.
+
 ## 0.4.0 — Commandos 2 kit (weapons / backpack / auto nade)
 
 Sideload APK: `dist/AmbushLoop-v0.4.0-commandos2-kit.apk`  
