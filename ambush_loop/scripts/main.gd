@@ -248,6 +248,8 @@ var _sprint_hold_armed: bool = false
 var _last_touch_gesture: String = ""
 var _pending_flank = null
 var _follow_dest: Dictionary = {}
+var _stealth_avoid_cache: Dictionary = {}
+var _stealth_avoid_msec: int = 0
 var _move_ghost: Line2D = null
 var c2 = null
 var _c2_sprint_next: bool = false
@@ -819,6 +821,16 @@ func _fold_phone_north_hud(on: bool) -> void:
 		spawn_teach_label.visible = false
 	if route_legend and on:
 		route_legend.visible = false
+	if flash_label:
+		if on:
+			flash_label.offset_top = 4.0
+			flash_label.offset_bottom = 26.0
+			flash_label.add_theme_font_size_override("font_size", 14)
+		else:
+			flash_label.offset_top = 72.0
+			flash_label.offset_bottom = 104.0
+			flash_label.add_theme_font_size_override("font_size", 18)
+	_apply_phone_world_ink()
 
 
 func _result_overlay_active() -> bool:
@@ -2371,6 +2383,7 @@ func _make_slot(id: int, text: String, pos: Vector2) -> CoverSlot:
 	tag.position = Vector2(-40, 16)
 	tag.add_theme_font_size_override("font_size", 11)
 	tag.add_theme_color_override("font_color", Color(0.65, 0.85, 0.7))
+	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tag.z_index = 2
 	s.add_child(tag)
 	s.setup(id, text, 0.0, cover_kit_for_level())
@@ -2446,6 +2459,7 @@ func _make_operator(id: int, pname: String) -> OperatorUnit:
 	tag.add_theme_color_override("font_shadow_color", Color(0.02, 0.03, 0.03, 0.9))
 	tag.add_theme_constant_override("shadow_offset_x", 1)
 	tag.add_theme_constant_override("shadow_offset_y", 1)
+	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	op.add_child(tag)
 	var glyph := Polygon2D.new()
 	glyph.name = "RoleGlyph"
@@ -2502,6 +2516,8 @@ func _add_route_line(points: PackedVector2Array, color: Color, label: String) ->
 		t.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.02, 0.92))
 		t.add_theme_constant_override("shadow_offset_x", 1)
 		t.add_theme_constant_override("shadow_offset_y", 1)
+		t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		t.set_meta("route_ink", true)
 		routes_draw.add_child(t)
 
 
@@ -4352,6 +4368,7 @@ func _build_spawn_ghosts() -> void:
 		g.position = pos + Vector2(-28.0, -12.0 + float(stack) * 16.0)
 		host.add_child(g)
 	host.visible = phase == Phase.SETUP or phase == Phase.SWEEP
+	_apply_phone_world_ink()
 
 
 func setup_spawn_ghosts_visible() -> bool:
@@ -5799,7 +5816,10 @@ func _flash(text: String, color: Color) -> void:
 	if _flash_tween != null:
 		_flash_tween.kill()
 	text = _clip_chip_line(text, 28)
-	if phase == Phase.WATCHING:
+	if _want_touch():
+		flash_label.offset_top = 4.0
+		flash_label.offset_bottom = 26.0
+	elif phase == Phase.WATCHING:
 		flash_label.offset_top = 118.0
 		flash_label.offset_bottom = 152.0
 	else:
@@ -7061,6 +7081,7 @@ func _update_hud() -> void:
 	_apply_watch_layers()
 	_ensure_touch_hud()
 	_refresh_touch_hud()
+	_apply_phone_world_ink()
 
 
 func _pending_unspawned() -> int:
@@ -7506,7 +7527,7 @@ func _command_move_op(op: OperatorUnit, world_pos: Vector2, sprint: bool = false
 		return false
 	var from_c := op.grid_cell()
 	var to_c := grid.world_to_cell(world_pos)
-	var stash_c := _stash_cell_near(to_c, 1)
+	var stash_c := _stash_cell_near(to_c, 0 if _want_touch() else 1)
 	if stash_c.x >= 0:
 		to_c = stash_c
 	elif _cell_taken(to_c, op):
@@ -7629,26 +7650,30 @@ func flank_dest_world(sentry, op: Node = null) -> Vector2:
 	var back := Vector2(-cos(rad), -sin(rad))
 	var side := Vector2(-back.y, back.x)
 	var cands: Array[Vector2] = [
-		sentry.global_position + back * 28.0,
-		sentry.global_position + back * 28.0 + side * 32.0,
-		sentry.global_position + back * 28.0 - side * 32.0,
+		sentry.global_position + back * 26.0,
+		sentry.global_position + back * 26.0 + side * 32.0,
+		sentry.global_position + back * 26.0 - side * 32.0,
+		sentry.global_position + back * 44.0 + side * 32.0,
+		sentry.global_position + back * 44.0 - side * 32.0,
 		sentry.global_position + back * 48.0,
 	]
 	var from_c: Vector2i = grid.world_to_cell(sentry.global_position)
 	if lead != null and lead.has_method("grid_cell"):
 		from_c = lead.call("grid_cell") as Vector2i
-	var best: Vector2 = cands[0]
+	var best: Vector2 = sentry.global_position + back * 26.0
 	var best_len := 9999
 	for w in cands:
 		var except_op: OperatorUnit = lead as OperatorUnit
 		var cell: Vector2i = _open_cell_near(grid.world_to_cell(w), except_op)
-		var path: Array[Vector2i] = _trim_path_before_cone(
-			RaidPathfinderScript.find_path(grid, from_c, cell),
-			lead
-		)
+		if _sentry_blocks_stealth(grid.cell_to_world_center(cell), lead):
+			continue
+		var path: Array[Vector2i] = stealth_path_cells(from_c, cell, lead)
 		if path.is_empty():
 			continue
-		if path[path.size() - 1] == cell and path.size() < best_len:
+		var dest_c: Vector2i = path[path.size() - 1]
+		if _path_hits_cone(path, lead):
+			continue
+		if dest_c == cell and path.size() < best_len:
 			best_len = path.size()
 			best = grid.cell_to_world_center(cell)
 	return best
@@ -7666,9 +7691,8 @@ func _start_flank_approach(world: Vector2) -> void:
 		return
 	var dest: Vector2 = flank_dest_world(sent, selected)
 	_pending_flank = sent
-	var cells: Array[Vector2i] = _trim_path_before_cone(
-		RaidPathfinderScript.find_path(grid, selected.grid_cell(), grid.world_to_cell(dest)),
-		selected
+	var cells: Array[Vector2i] = stealth_path_cells(
+		selected.grid_cell(), grid.world_to_cell(dest), selected
 	)
 	if cells.size() >= 2:
 		_apply_move_cells(selected, cells, false)
@@ -7741,10 +7765,7 @@ func _tick_squad_follow() -> void:
 			continue
 		if op.grid_cell() == want:
 			continue
-		var cells: Array[Vector2i] = _trim_path_before_cone(
-			RaidPathfinderScript.find_path(grid, op.grid_cell(), want),
-			op
-		)
+		var cells: Array[Vector2i] = stealth_path_cells(op.grid_cell(), want, op)
 		if cells.size() < 2:
 			continue
 		var dest_c: Vector2i = cells[cells.size() - 1]
@@ -7765,21 +7786,93 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 			break
 		n_follow += 1
 	var side := Vector2(-back.y, back.x) * float(n_follow) * 32.0
-	var world: Vector2 = lead.global_position + back * 32.0 + side
-	return _open_cell_near(grid.world_to_cell(world), follower)
+	var world: Vector2 = lead.global_position + back * 36.0 + side
+	var cell: Vector2i = _open_cell_near(grid.world_to_cell(world), follower)
+	if not _sentry_blocks_stealth(grid.cell_to_world_center(cell), follower):
+		return cell
+	return _open_cell_outside_cone(cell, follower)
+
+
+func stealth_path_cells(from: Vector2i, to: Vector2i, op: Node) -> Array[Vector2i]:
+	if grid == null:
+		return []
+	var avoid: Dictionary = _stealth_blocked_cells(op)
+	if avoid.has(to):
+		to = _open_cell_outside_cone(to, op)
+		if to.x < 0:
+			return []
+	var soft := {}
+	for key in avoid.keys():
+		var cell: Vector2i = key
+		for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var n: Vector2i = cell + d
+			if not avoid.has(n) and RaidPathfinderScript.walkable(grid, n):
+				soft[n] = 6
+	var path: Array[Vector2i] = RaidPathfinderScript.find_path_avoiding(grid, from, to, avoid, soft)
+	if path.size() >= 2 and not _path_hits_cone(path, op):
+		return path
+	return _trim_path_before_cone(RaidPathfinderScript.find_path(grid, from, to), op)
+
+
+func _stealth_blocked_cells(op: Node) -> Dictionary:
+	var key := op.get_instance_id() if op else 0
+	var now := Time.get_ticks_msec()
+	if now - _stealth_avoid_msec < 220 and _stealth_avoid_cache.has(key):
+		return _stealth_avoid_cache[key]
+	var avoid := {}
+	if grid == null:
+		return avoid
+	for y in range(AmbushGrid.ROWS):
+		for x in range(AmbushGrid.COLS):
+			if grid.is_blocked(x, y):
+				continue
+			var cell := Vector2i(x, y)
+			if _sentry_blocks_stealth(grid.cell_to_world_center(cell), op):
+				avoid[cell] = true
+	_stealth_avoid_cache[key] = avoid
+	_stealth_avoid_msec = now
+	return avoid
+
+
+func _open_cell_outside_cone(cell: Vector2i, op: Node) -> Vector2i:
+	if not _sentry_blocks_stealth(grid.cell_to_world_center(cell), op) and RaidPathfinderScript.walkable(grid, cell):
+		return cell
+	for r in range(1, 8):
+		for dx in range(-r, r + 1):
+			for dy in range(-r, r + 1):
+				var n := Vector2i(cell.x + dx, cell.y + dy)
+				if not RaidPathfinderScript.walkable(grid, n):
+					continue
+				if _sentry_blocks_stealth(grid.cell_to_world_center(n), op):
+					continue
+				if _cell_taken(n, op as OperatorUnit):
+					continue
+				return n
+	return Vector2i(-1, -1)
+
+
+func _path_hits_cone(cells: Array[Vector2i], op: Node) -> bool:
+	for c in cells:
+		if _sentry_blocks_stealth(grid.cell_to_world_center(c), op):
+			return true
+	return false
 
 
 func _trim_path_before_cone(cells: Array[Vector2i], op: Node) -> Array[Vector2i]:
 	var out: Array[Vector2i] = []
 	for c in cells:
 		var w: Vector2 = grid.cell_to_world_center(c)
-		if _sentry_sees_world(w, op):
+		if _sentry_blocks_stealth(w, op):
 			break
 		out.append(c)
 	return out
 
 
 func _sentry_sees_world(world: Vector2, op: Node) -> bool:
+	return _sentry_blocks_stealth(world, op)
+
+
+func _sentry_blocks_stealth(world: Vector2, op: Node) -> bool:
 	if c2 == null:
 		return false
 	if op != null and op.get("hidden_in_shadow") != null and bool(op.hidden_in_shadow):
@@ -7787,12 +7880,16 @@ func _sentry_sees_world(world: Vector2, op: Node) -> bool:
 	for s in c2.sentries:
 		if s == null or not is_instance_valid(s) or bool(s.is_down()):
 			continue
-		if s.has_method("sees_world") and bool(s.sees_world(world)):
+		if s.has_method("blocks_stealth_world"):
+			if bool(s.blocks_stealth_world(world)):
+				return true
+		elif s.has_method("sees_world") and bool(s.sees_world(world)):
 			return true
 	return false
 
 
 func dump_touch_feel() -> Dictionary:
+	_apply_phone_world_ink()
 	var caps := PackedStringArray()
 	var cmds := PackedStringArray()
 	if c2 and c2.prompt and c2.prompt.has_method("visible_captions"):
@@ -7803,6 +7900,7 @@ func dump_touch_feel() -> Dictionary:
 	for op in operators:
 		if op and bool(op.follow_lead):
 			follows.append(str(op.display_name))
+	var ink: Dictionary = dump_world_ink()
 	return {
 		"intel_y": intel_chip.offset_top if intel_chip else -1.0,
 		"intel_bot": intel_chip.offset_bottom if intel_chip else -1.0,
@@ -7820,7 +7918,145 @@ func dump_touch_feel() -> Dictionary:
 		"follow": follows,
 		"pan_slop": TOUCH_PAN_SLOP,
 		"sprint_ms": TOUCH_SPRINT_MS,
+		"north_labels": int(ink.get("north_visible", 0)),
+		"spawn_tags": int(ink.get("spawn_visible", 0)),
+		"route_tags": int(ink.get("route_visible", 0)),
+		"mouse_eat": int(ink.get("mouse_eat", 0)),
+		"cover_tags": int(ink.get("cover_visible", 0)),
 	}
+
+
+func dump_world_ink() -> Dictionary:
+	var north_vis := 0
+	var spawn_vis := 0
+	var route_vis := 0
+	var cover_vis := 0
+	var mouse_eat := 0
+	var world := get_node_or_null("World") as Node
+	if world == null:
+		return {"north_visible": 0, "spawn_visible": 0, "route_visible": 0, "mouse_eat": 0, "cover_visible": 0}
+	var xf: Transform2D = get_viewport().get_canvas_transform()
+	var stack: Array = [world]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		for c in n.get_children():
+			stack.append(c)
+		if not (n is Label):
+			continue
+		var lab := n as Label
+		if lab.mouse_filter != Control.MOUSE_FILTER_IGNORE:
+			mouse_eat += 1
+		if not lab.visible or lab.modulate.a < 0.08:
+			continue
+		var parent_n := lab.get_parent()
+		var wp: Vector2 = parent_n.global_position if parent_n is Node2D else lab.global_position
+		var screen: Vector2 = xf * wp if parent_n is Node2D else lab.global_position
+		var cell_y := grid.world_to_cell(wp).y if grid else 99
+		if screen.y < 148.0 or cell_y <= 6:
+			north_vis += 1
+		var p_name := str(parent_n.name) if parent_n else ""
+		if p_name.begins_with("SpawnGhost") or str(lab.text).begins_with("敌"):
+			spawn_vis += 1
+		if bool(lab.get_meta("route_ink", false)) or str(lab.text).find("·巡") >= 0 or str(lab.text).find("·奔袭") >= 0:
+			route_vis += 1
+		if str(lab.text).ends_with("掩体"):
+			cover_vis += 1
+	return {
+		"north_visible": north_vis,
+		"spawn_visible": spawn_vis,
+		"route_visible": route_vis,
+		"mouse_eat": mouse_eat,
+		"cover_visible": cover_vis,
+	}
+
+
+func _apply_phone_world_ink() -> void:
+	var world := get_node_or_null("World") as Node
+	if world == null:
+		return
+	var phone := _want_touch()
+	var xf: Transform2D = get_viewport().get_canvas_transform()
+	var stack: Array = [world]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		for c in n.get_children():
+			stack.append(c)
+		if n is Label:
+			_ink_world_label(n as Label, phone, xf)
+
+
+func _ink_world_label(lab: Label, phone: bool, xf: Transform2D) -> void:
+	lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var p := lab.get_parent()
+	if p != null and str(p.name).begins_with("Cfx"):
+		return
+	if not phone:
+		if lab.has_meta("ink_saved"):
+			lab.visible = bool(lab.get_meta("ink_vis", true))
+			lab.modulate.a = float(lab.get_meta("ink_a", 1.0))
+			lab.remove_meta("ink_saved")
+		if p is OperatorUnit and (p as OperatorUnit).tag_plate:
+			(p as OperatorUnit).tag_plate.visible = true
+		return
+	if not lab.has_meta("ink_saved"):
+		lab.set_meta("ink_saved", true)
+		lab.set_meta("ink_vis", lab.visible)
+		lab.set_meta("ink_a", lab.modulate.a)
+	var txt := str(lab.text)
+	var p_name := str(p.name) if p else ""
+	var wp: Vector2 = p.global_position if p is Node2D else lab.global_position
+	var screen: Vector2 = xf * wp if p is Node2D else lab.global_position
+	var cell_y := grid.world_to_cell(wp).y if grid else 99
+	var hide := false
+	if p_name.begins_with("SpawnGhost") or txt.begins_with("敌"):
+		hide = true
+	if bool(lab.get_meta("route_ink", false)):
+		hide = true
+	if txt.find("侧翼") >= 0 or txt.find("主路") >= 0 or txt.find("暗道") >= 0 or txt.find("·巡") >= 0 or txt.find("·奔袭") >= 0:
+		hide = true
+	if txt.ends_with("掩体") or txt.find("伏击区") >= 0 or txt.find("第二层") >= 0 or txt.find("橙线") >= 0:
+		hide = true
+	if txt == "岗哨" or txt == "观察环":
+		hide = true
+	if lab.name == "Tag" and p is OperatorUnit:
+		hide = true
+	if lab.name == "FaceChip":
+		hide = true
+	if screen.y < 148.0 or cell_y <= 6:
+		hide = true
+	lab.visible = (not hide) and bool(lab.get_meta("ink_vis", true))
+	if p is OperatorUnit and (p as OperatorUnit).tag_plate:
+		(p as OperatorUnit).tag_plate.visible = lab.visible
+	if lab.visible:
+		lab.modulate.a = minf(float(lab.get_meta("ink_a", 1.0)), 0.62)
+
+
+func yard_touch_loop_cells() -> Array[Vector2i]:
+	return [
+		Vector2i(6, 16),
+		Vector2i(6, 8),
+		Vector2i(18, 6),
+		Vector2i(32, 8),
+		Vector2i(32, 16),
+		Vector2i(18, 17),
+		Vector2i(6, 16),
+	]
+
+
+func simulate_touch_tap(world: Vector2) -> void:
+	var xf: Transform2D = get_viewport().get_canvas_transform()
+	var screen: Vector2 = xf * world
+	_touches.clear()
+	var press := InputEventScreenTouch.new()
+	press.index = 0
+	press.pressed = true
+	press.position = screen
+	_unhandled_input(press)
+	var rel := InputEventScreenTouch.new()
+	rel.index = 0
+	rel.pressed = false
+	rel.position = screen
+	_unhandled_input(rel)
 
 
 func _tick_command_moves(delta: float) -> void:
@@ -8449,7 +8685,7 @@ func _ping_first_crate() -> void:
 	if best == null:
 		best = raid_stashes[0]
 	CombatFxScript.select_ping(best, best.global_position, WeaponCatalogScript.color(str(best.kind)))
-	if level != null and str(level.level_id) == "yard":
+	if level != null and str(level.level_id) == "yard" and not _want_touch():
 		_flash("先开这匣", Color(0.95, 0.82, 0.38))
 
 

@@ -6,13 +6,13 @@ extends CanvasLayer
 
 const Pathfinder := preload("res://scripts/raid/pathfinder.gd")
 
-const PROBE_CRATE := 48.0
-const PROBE_COVER := 22.0
+const PROBE_CRATE := 22.0
+const PROBE_COVER := 16.0
 const PROBE_KNIFE := 36.0
-const PROBE_FLANK := 120.0
-const PROBE_WHISTLE := 52.0
-const HOLD_SEC := 1.2
-const BTN_SIZE := Vector2(120, 48)
+const PROBE_FLANK := 92.0
+const PROBE_WHISTLE := 40.0
+const HOLD_SEC := 0.55
+const BTN_SIZE := Vector2(108, 44)
 var host: Node = null
 var _root: Control = null
 var _draw: Control = null
@@ -142,21 +142,19 @@ func _probe() -> Array:
 	var origin: Vector2 = op.global_position
 	var moving := _moving(op)
 	var cands: Array = []
-	if host.get("raid_stashes") != null:
-		var crate_r := 28.0 if moving else PROBE_CRATE
+	if not moving and host.get("raid_stashes") != null:
 		for st in host.raid_stashes:
 			if st == null or not is_instance_valid(st) or bool(st.collected):
 				continue
 			var d: float = origin.distance_to(st.global_position)
-			if d <= crate_r:
+			if d <= PROBE_CRATE:
 				cands.append({"d": d, "pri": 1, "kind": "crate", "world": st.global_position, "node": st})
-	if host.get("loot_piles") != null:
-		var loot_r := 28.0 if moving else PROBE_CRATE
+	if not moving and host.get("loot_piles") != null:
 		for loot in host.loot_piles:
 			if loot == null or not is_instance_valid(loot) or bool(loot.collected):
 				continue
 			var d2: float = origin.distance_to(loot.global_position)
-			if d2 <= loot_r:
+			if d2 <= PROBE_CRATE:
 				cands.append({"d": d2, "pri": 1, "kind": "corpse", "world": loot.global_position, "node": loot})
 	if not moving and host.has_method("_nearest_slot"):
 		var slot = host._nearest_slot(origin, PROBE_COVER)
@@ -169,7 +167,7 @@ func _probe() -> Array:
 				continue
 			var d3: float = origin.distance_to(s.global_position)
 			if bool(s.is_down()):
-				if int(s.state) == 3 and d3 <= 40.0:
+				if not moving and int(s.state) == 3 and d3 <= 40.0:
 					cands.append({"d": d3, "pri": 2, "kind": "bind", "world": s.global_position, "node": s})
 				continue
 			var rear: bool = s.has_method("rear_hemisphere") and bool(s.rear_hemisphere(origin))
@@ -180,7 +178,7 @@ func _probe() -> Array:
 				cands.append({"d": d3, "pri": 3, "kind": "flank", "world": s.global_position, "node": s})
 			elif (not rear) and d3 <= PROBE_WHISTLE and not moving:
 				cands.append({"d": d3, "pri": 4, "kind": "whistle", "world": s.global_position, "node": s})
-	if host.get("operators") != null:
+	if not moving and host.get("operators") != null:
 		for other in host.operators:
 			if other == null or other == op or not bool(other.alive):
 				continue
@@ -236,7 +234,11 @@ func _flank_guide(op: Node, sentry) -> PackedVector2Array:
 		dest = sentry.backstab_world()
 	var from_c: Vector2i = op.grid_cell() if op.has_method("grid_cell") else host.grid.world_to_cell(op.global_position)
 	var to_c: Vector2i = host.grid.world_to_cell(dest)
-	var cells: Array[Vector2i] = Pathfinder.find_path(host.grid, from_c, to_c)
+	var cells: Array[Vector2i] = []
+	if host.has_method("stealth_path_cells"):
+		cells = host.stealth_path_cells(from_c, to_c, op)
+	if cells.is_empty():
+		cells = Pathfinder.find_path(host.grid, from_c, to_c)
 	if cells.is_empty():
 		out.append(op.global_position)
 		out.append(dest)
@@ -252,8 +254,8 @@ func _act(cmd: String, caption: String, world: Vector2, tint: Color) -> Dictiona
 
 
 func _map_safe(vis: Vector2) -> Rect2:
-	## Keep hotspots off the folded north chrome and the thumb bar.
-	return Rect2(8.0, 56.0, vis.x - 16.0, vis.y - 56.0 - 140.0)
+	## Keep hotspots off the title band / north wall and the thumb bar.
+	return Rect2(8.0, 64.0, vis.x - 16.0, vis.y - 64.0 - 148.0)
 
 
 func _apply(actions: Array) -> void:
@@ -279,13 +281,15 @@ func _apply(actions: Array) -> void:
 		var screen: Vector2 = xf * a["world"]
 		var n: int = mini(actions.size(), 2)
 		var x_off := (float(i) - (float(n) - 1.0) * 0.5) * (BTN_SIZE.x + 8.0)
-		var pos := screen + Vector2(-BTN_SIZE.x * 0.5 + x_off, -BTN_SIZE.y - 22.0)
+		var pos := screen + Vector2(-BTN_SIZE.x * 0.5 + x_off, -BTN_SIZE.y - 18.0)
 		if pos.y < safe.position.y:
-			pos = screen + Vector2(18.0 + x_off, -BTN_SIZE.y * 0.5)
+			pos = screen + Vector2(20.0 + x_off, 8.0)
 		if op_screen != Vector2.INF:
 			var hr := Rect2(pos, BTN_SIZE)
-			if hr.has_point(op_screen):
-				pos.x = op_screen.x + 22.0
+			if hr.has_point(op_screen) or hr.grow(10.0).has_point(op_screen):
+				pos.x = op_screen.x + 26.0
+				if pos.x + BTN_SIZE.x > safe.end.x:
+					pos.x = op_screen.x - BTN_SIZE.x - 26.0
 		pos.x = clampf(pos.x, safe.position.x, safe.end.x - BTN_SIZE.x)
 		pos.y = clampf(pos.y, safe.position.y, maxf(safe.position.y, safe.end.y - BTN_SIZE.y))
 		b.position = pos

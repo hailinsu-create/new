@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.5.3 — Phone feel: north ink, cone-avoid 绕背/跟上, tighter hotspots, yard loop
+
+Sideload APK: `dist/AmbushLoop-v0.5.3-touch-smooth.apk`  
+Release tag: `v0.5.3-touch-smooth`
+
+Same RAID as 0.5.2 (`SCOUT → ALERT → SWEEP`, auto fire + auto nade). Phone default stays 简配夜袭.
+
+### Play (phone)
+- North-edge world text hides: spawn captions, 主路/侧翼 route tags, cover names, 伏击区/第二层, 岗哨/观察环/干员名牌. Diamonds and dashed paths stay. Labels never eat taps.
+- 绕背 and **跟上** path around the yellow cone (plus a body halo). They no longer walk the cone rim and brush the sentry.
+- Crate/cover/口哨 hotspots only while standing still, and only on the object (not the next cell). Walking a courtyard loop no longer pops 开匣.
+- Force-touch dump walks the yard by simulated taps; smoke asserts the loop.
+
+### Android
+- `versionName` 0.5.3 / `versionCode` 9 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title **v0.5.3 COMMANDOS/WW2**.
+2. Force-touch: north wall of the yard has no 敌1/主路·巡/北廊掩体 captions. Bottom bar still 匍匐 / 背包 / 需枪.
+3. Stand west of a south-facing sentry and 绕背: dashed path wraps the cone, does not cut the yellow.
+
 ## 0.5.2 — Phone feel: north fold, 绕背, gesture split, follow
 
 Sideload APK: `dist/AmbushLoop-v0.5.2-touch-feel.apk`  

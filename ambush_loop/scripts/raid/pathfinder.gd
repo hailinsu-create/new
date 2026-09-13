@@ -5,13 +5,23 @@ extends RefCounted
 
 
 static func find_path(grid: AmbushGrid, from: Vector2i, to: Vector2i) -> Array[Vector2i]:
+	return find_path_avoiding(grid, from, to, {}, {})
+
+
+static func find_path_avoiding(
+	grid: AmbushGrid,
+	from: Vector2i,
+	to: Vector2i,
+	avoid: Dictionary = {},
+	soft: Dictionary = {}
+) -> Array[Vector2i]:
 	var empty: Array[Vector2i] = []
 	if grid == null:
 		return empty
 	if not grid.in_bounds(from.x, from.y) or not grid.in_bounds(to.x, to.y):
 		return empty
-	if grid.is_blocked(to.x, to.y):
-		to = nearest_open(grid, to)
+	if grid.is_blocked(to.x, to.y) or (avoid.has(to) and to != from):
+		to = nearest_open_except(grid, to, avoid)
 		if to.x < 0:
 			return empty
 	if grid.is_blocked(from.x, from.y):
@@ -28,7 +38,7 @@ static func find_path(grid: AmbushGrid, from: Vector2i, to: Vector2i) -> Array[V
 	fscore[from] = _h(from, to)
 	var closed := {}
 	var guard := 0
-	while not open.is_empty() and guard < 1200:
+	while not open.is_empty() and guard < 1600:
 		guard += 1
 		var cur_i := 0
 		var cur: Vector2i = open[0]
@@ -47,7 +57,10 @@ static func find_path(grid: AmbushGrid, from: Vector2i, to: Vector2i) -> Array[V
 		for n in _neighbors(grid, cur):
 			if closed.has(n):
 				continue
-			var tg: int = int(gscore.get(cur, 99999)) + 1
+			if avoid.has(n) and n != to:
+				continue
+			var step := 1 + int(soft.get(n, 0))
+			var tg: int = int(gscore.get(cur, 99999)) + step
 			if tg < int(gscore.get(n, 99999)):
 				came[n] = cur
 				gscore[n] = tg
@@ -85,13 +98,17 @@ static func _neighbors(grid: AmbushGrid, c: Vector2i) -> Array[Vector2i]:
 
 
 static func nearest_open(grid: AmbushGrid, cell: Vector2i) -> Vector2i:
-	if grid.in_bounds(cell.x, cell.y) and not grid.is_blocked(cell.x, cell.y):
+	return nearest_open_except(grid, cell, {})
+
+
+static func nearest_open_except(grid: AmbushGrid, cell: Vector2i, avoid: Dictionary) -> Vector2i:
+	if grid.in_bounds(cell.x, cell.y) and not grid.is_blocked(cell.x, cell.y) and not avoid.has(cell):
 		return cell
-	for r in range(1, 6):
+	for r in range(1, 8):
 		for dx in range(-r, r + 1):
 			for dy in range(-r, r + 1):
 				var n := Vector2i(cell.x + dx, cell.y + dy)
-				if grid.in_bounds(n.x, n.y) and not grid.is_blocked(n.x, n.y):
+				if grid.in_bounds(n.x, n.y) and not grid.is_blocked(n.x, n.y) and not avoid.has(n):
 					return n
 	return Vector2i(-1, -1)
 

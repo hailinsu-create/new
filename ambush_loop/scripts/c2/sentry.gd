@@ -196,6 +196,31 @@ func sees_world(world: Vector2) -> bool:
 	return _sees(world)
 
 
+func sees_world_padded(world: Vector2, extra_r: float = 22.0, extra_deg: float = 10.0) -> bool:
+	if is_down():
+		return false
+	var v := world - global_position
+	var dist := v.length()
+	if dist > SEE_R + extra_r:
+		return false
+	var ang := rad_to_deg(atan2(v.y, v.x))
+	if absf(_ang_diff(facing_deg, ang)) > HALF_ANG + extra_deg:
+		return false
+	if grid != null and grid.has_method("has_los") and not bool(grid.has_los(global_position, world)):
+		return false
+	return true
+
+
+func blocks_stealth_world(world: Vector2, extra_r: float = 22.0, extra_deg: float = 10.0) -> bool:
+	## Planning clearance: cone + a body halo, but the rear stay is still legal.
+	if is_down():
+		return false
+	var dist := global_position.distance_to(world)
+	if dist < 18.0 and not rear_hemisphere(world):
+		return true
+	return sees_world_padded(world, extra_r, extra_deg)
+
+
 func rear_hemisphere(world: Vector2) -> bool:
 	var v := world - global_position
 	if v.length() < 4.0:
@@ -292,6 +317,7 @@ func _ensure_visual() -> void:
 	tag.add_theme_font_size_override("font_size", 10)
 	tag.add_theme_color_override("font_color", Color(0.82, 0.32, 0.22))
 	tag.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.02, 0.9))
+	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(tag)
 
 

@@ -86,6 +86,9 @@ func _draw() -> void:
 		Vector2(0, -7), Vector2(5, 0), Vector2(0, 7), Vector2(-5, 0)
 	])
 	draw_colored_polygon(diamond, Color(col.r, col.g, col.b, 0.95))
+	var gs = get_node_or_null("/root/GameSettings")
+	if gs != null and gs.has_method("want_touch_controls") and bool(gs.want_touch_controls()):
+		return
 	var tick := "主"
 	match route:
 		"flank":

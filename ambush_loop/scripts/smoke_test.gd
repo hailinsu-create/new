@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.5.2":
+	if ver != "0.5.3":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3390,6 +3390,8 @@ func _assert_simplified_touch(main) -> bool:
 		return false
 	if not await _assert_touch_feel_052(main):
 		return false
+	if not await _assert_touch_feel_053(main):
+		return false
 	return true
 
 
@@ -3626,6 +3628,255 @@ func _assert_touch_feel_052(main) -> bool:
 	main.operators[0].set_sprint(false)
 	main.operators[0].global_position = home
 	print("SMOKE_OK_TOUCH_FEEL")
+	return true
+
+
+func _assert_touch_feel_053(main) -> bool:
+	## North world ink, cone-avoiding 绕背/跟上, tighter hotspots, yard loop taps.
+	main._ensure_touch_hud()
+	main._update_hud()
+	await process_frame
+	await process_frame
+	if not main.has_method("dump_world_ink"):
+		push_error("SMOKE_NO_WORLD_INK_API")
+		quit(44)
+		return false
+	var ink: Dictionary = main.dump_world_ink()
+	if int(ink.get("spawn_visible", 9)) > 0:
+		push_error("SMOKE_SPAWN_TAGS_ON n=%s" % ink.get("spawn_visible"))
+		quit(44)
+		return false
+	if int(ink.get("route_visible", 9)) > 0:
+		push_error("SMOKE_ROUTE_TAGS_ON n=%s" % ink.get("route_visible"))
+		quit(44)
+		return false
+	if int(ink.get("cover_visible", 9)) > 0:
+		push_error("SMOKE_COVER_TAGS_ON n=%s" % ink.get("cover_visible"))
+		quit(44)
+		return false
+	if int(ink.get("north_visible", 9)) > 0:
+		push_error("SMOKE_NORTH_LABELS n=%s" % ink.get("north_visible"))
+		quit(44)
+		return false
+	if int(ink.get("mouse_eat", 9)) > 0:
+		push_error("SMOKE_WORLD_LABEL_MOUSE n=%s" % ink.get("mouse_eat"))
+		quit(44)
+		return false
+	print(
+		"SMOKE_OK_WORLD_INK spawn=", ink.get("spawn_visible"),
+		" route=", ink.get("route_visible"),
+		" north=", ink.get("north_visible"),
+		" eat=", ink.get("mouse_eat")
+	)
+	if not await _assert_hotspot_crate_tight(main):
+		return false
+	if not await _assert_stealth_cone_paths(main):
+		return false
+	if not await _assert_yard_touch_loop(main):
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_053")
+	return true
+
+
+func _assert_hotspot_crate_tight(main) -> bool:
+	var prompt = main.c2.prompt if main.c2 else null
+	if prompt == null or main.raid_stashes.is_empty() or main.operators.is_empty():
+		push_error("SMOKE_NO_CRATE_TIGHT")
+		quit(44)
+		return false
+	var op: OperatorUnit = main.operators[0]
+	var home: Vector2 = op.global_position
+	var st = main.raid_stashes[0]
+	main._select_op(0)
+	op.stop_move()
+	var side: Vector2 = st.global_position + Vector2(32, 0)
+	if main.grid:
+		var cell: Vector2i = main.grid.world_to_cell(side)
+		if main.grid.is_blocked(cell.x, cell.y):
+			side = st.global_position + Vector2(0, 32)
+			cell = main.grid.world_to_cell(side)
+			if main.grid.is_blocked(cell.x, cell.y):
+				side = st.global_position + Vector2(-32, 0)
+		side = main.grid.cell_to_world_center(main.grid.world_to_cell(side))
+	op.global_position = side
+	prompt.refresh_now()
+	await process_frame
+	if bool(prompt.has_caption("开匣")):
+		push_error("SMOKE_CRATE_ADJACENT_HOTSPOT d=%s caps=%s" % [op.global_position.distance_to(st.global_position), " ".join(prompt.visible_captions())])
+		quit(44)
+		return false
+	print("SMOKE_OK_HOTSPOT_CRATE_TIGHT")
+	op.global_position = st.global_position
+	prompt.refresh_now()
+	await process_frame
+	if not bool(prompt.has_caption("开匣")):
+		push_error("SMOKE_HOTSPOT_CRATE_LOST caps=%s" % " ".join(prompt.visible_captions()))
+		quit(44)
+		return false
+	op.global_position = home
+	prompt.refresh_now()
+	return true
+
+
+func _assert_stealth_cone_paths(main) -> bool:
+	if not main.has_method("stealth_path_cells") or main.c2 == null or main.c2.sentries.is_empty():
+		push_error("SMOKE_NO_STEALTH_PATH_API")
+		quit(44)
+		return false
+	var sent = main.c2.sentries[0]
+	var op: OperatorUnit = main.operators[0]
+	var sent_home: Vector2 = sent.global_position
+	var sent_face: float = float(sent.facing_deg)
+	var op_home: Vector2 = op.global_position
+	var sent_c := Vector2i(10, 12)
+	var from_c := Vector2i(6, 12)
+	var to_c := Vector2i(14, 12)
+	if main.grid:
+		if main.grid.is_blocked(sent_c.x, sent_c.y):
+			sent_c = main.grid.world_to_cell(_empty_probe_world(main))
+		if main.grid.is_blocked(from_c.x, from_c.y):
+			from_c = Vector2i(6, 13)
+		if main.grid.is_blocked(to_c.x, to_c.y):
+			to_c = Vector2i(14, 13)
+	sent.global_position = main.grid.cell_to_world_center(sent_c)
+	sent.facing_deg = 0.0
+	if sent.has_method("_rebuild_cone"):
+		sent._rebuild_cone()
+	main._stealth_avoid_cache.clear()
+	main._stealth_avoid_msec = 0
+	op.global_position = main.grid.cell_to_world_center(from_c)
+	main._select_op(0)
+	var around: Array[Vector2i] = main.stealth_path_cells(from_c, to_c, op)
+	if around.size() < 3:
+		push_error("SMOKE_STEALTH_PATH_SHORT n=%s" % around.size())
+		quit(44)
+		return false
+	var hits := 0
+	for c in around:
+		if main._sentry_blocks_stealth(main.grid.cell_to_world_center(c), op):
+			hits += 1
+	if hits > 0:
+		push_error("SMOKE_STEALTH_HITS_CONE n=%s path=%s" % [hits, around])
+		quit(44)
+		return false
+	print("SMOKE_OK_STEALTH_AROUND n=", around.size())
+	main._start_flank_approach(sent.global_position)
+	await process_frame
+	var flank_hits := 0
+	if op.move_path.size() > 0:
+		for pt in op.move_path:
+			if main._sentry_blocks_stealth(pt, op):
+				flank_hits += 1
+	if flank_hits > 0:
+		push_error("SMOKE_FLANK_HITS_CONE n=%s" % flank_hits)
+		quit(44)
+		return false
+	print("SMOKE_OK_FLANK_AVOID_CONE pts=", op.move_path.size())
+	op.stop_move()
+	if main.operators.size() >= 2:
+		var fol: OperatorUnit = main.operators[1]
+		var fol_home: Vector2 = fol.global_position
+		if not bool(fol.follow_lead):
+			main.toggle_follow(1)
+		fol.global_position = main.grid.cell_to_world_center(from_c + Vector2i(0, 2))
+		main._tick_squad_follow()
+		var fol_hits := 0
+		for pt2 in fol.move_path:
+			if main._sentry_blocks_stealth(pt2, fol):
+				fol_hits += 1
+		if fol_hits > 0:
+			push_error("SMOKE_FOLLOW_HITS_CONE n=%s" % fol_hits)
+			quit(44)
+			return false
+		print("SMOKE_OK_FOLLOW_AVOID_CONE pts=", fol.move_path.size())
+		fol.stop_move()
+		if bool(fol.follow_lead):
+			main.toggle_follow(1)
+		fol.global_position = fol_home
+	sent.global_position = sent_home
+	sent.facing_deg = sent_face
+	if sent.has_method("_rebuild_cone"):
+		sent._rebuild_cone()
+	op.global_position = op_home
+	op.stop_move()
+	main._pending_flank = null
+	return true
+
+
+func _assert_yard_touch_loop(main) -> bool:
+	if not main.has_method("simulate_touch_tap") or not main.has_method("yard_touch_loop_cells"):
+		push_error("SMOKE_NO_YARD_LOOP_API")
+		quit(44)
+		return false
+	if main.operators.is_empty() or main.grid == null:
+		push_error("SMOKE_YARD_LOOP_NO_OP")
+		quit(44)
+		return false
+	var op: OperatorUnit = main.operators[0]
+	var home: Vector2 = op.global_position
+	main._select_op(0)
+	op.stop_move()
+	var cells: Array[Vector2i] = main.yard_touch_loop_cells()
+	if cells.size() < 6:
+		push_error("SMOKE_YARD_LOOP_SHORT n=%s" % cells.size())
+		quit(44)
+		return false
+	var prompt = main.c2.prompt if main.c2 else null
+	var n_ok := 0
+	for i in cells.size():
+		var cell: Vector2i = cells[i]
+		if main.grid.is_blocked(cell.x, cell.y):
+			push_error("SMOKE_YARD_LOOP_BLOCKED %s" % str(cell))
+			quit(44)
+			return false
+		var world: Vector2 = main.grid.cell_to_world_center(cell)
+		op.stop_move()
+		main.simulate_touch_tap(world)
+		await process_frame
+		var gest := str(main._last_touch_gesture)
+		if gest != "tap" and gest != "sprint":
+			push_error("SMOKE_YARD_LOOP_GESTURE i=%s got=%s cell=%s" % [i, gest, cell])
+			quit(44)
+			return false
+		if main._nearest_slot(world, 14.0) != null and op.slot != null:
+			push_error("SMOKE_YARD_LOOP_COVER_SNAP i=%s cell=%s" % [i, cell])
+			quit(44)
+			return false
+		if not op.is_moving() and op.grid_cell() != cell:
+			## Tap issued a walk; snap so the next tap is from this corner.
+			if not op.is_moving():
+				var path_ok := op.move_path.size() >= 2 or op.grid_cell() == cell
+				if not path_ok and world.distance_to(op.global_position) > 8.0:
+					push_error("SMOKE_YARD_LOOP_NO_WALK i=%s cell=%s at=%s" % [i, cell, op.grid_cell()])
+					quit(44)
+					return false
+		op.stop_move()
+		op.global_position = world
+		if prompt:
+			prompt.refresh_now()
+		await process_frame
+		if prompt and op.grid_cell() != cell:
+			pass
+		if prompt and bool(prompt.has_caption("上掩体")):
+			push_error("SMOKE_YARD_LOOP_COVER_HOT i=%s cell=%s" % [i, cell])
+			quit(44)
+			return false
+		var on_crate := false
+		for st in main.raid_stashes:
+			if st != null and is_instance_valid(st) and not bool(st.collected):
+				if op.global_position.distance_to(st.global_position) <= 22.0:
+					on_crate = true
+					break
+		if prompt and not on_crate and bool(prompt.has_caption("开匣")):
+			push_error("SMOKE_YARD_LOOP_CRATE_HOT i=%s cell=%s caps=%s" % [i, cell, " ".join(prompt.visible_captions())])
+			quit(44)
+			return false
+		n_ok += 1
+	print("SMOKE_OK_YARD_TOUCH_LOOP n=", n_ok)
+	op.stop_move()
+	op.global_position = home
+	if prompt:
+		prompt.refresh_now()
 	return true
 
 

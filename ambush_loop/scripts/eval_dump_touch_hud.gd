@@ -1,7 +1,7 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.2 phone feel: folded north chrome,
-## 绕背 guide, courtyard loop, follow badge.
+## Forced-touch HUD stills for v0.5.3 phone feel: north world ink,
+## cone-avoiding 绕背/跟上, tighter hotspots, courtyard loop taps.
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
@@ -98,6 +98,12 @@ func _run() -> void:
 			main.apply_context_action("flank", sent.global_position)
 		await _settle(10)
 		_count_chrome(main, "scout_flank_path")
+		var cone_hits := 0
+		if main.operators.size() > 0:
+			for pt in main.operators[0].move_path:
+				if main.has_method("_sentry_blocks_stealth") and bool(main._sentry_blocks_stealth(pt, main.operators[0])):
+					cone_hits += 1
+		print("DUMP_FLANK_PATH hits=", cone_hits, " pts=", main.operators[0].move_path.size() if main.operators.size() > 0 else 0)
 		await _save("05b_scout_flank_path")
 
 	await _walk_yard_loop(main)
@@ -132,14 +138,9 @@ func _walk_yard_loop(main) -> void:
 		return
 	main._select_op(0)
 	var op = main.operators[0]
-	var cells: Array = [
-		Vector2i(6, 16),
-		Vector2i(6, 8),
-		Vector2i(18, 6),
-		Vector2i(30, 8),
-		Vector2i(30, 16),
-		Vector2i(18, 17),
-		Vector2i(6, 16),
+	var cells: Array = main.yard_touch_loop_cells() if main.has_method("yard_touch_loop_cells") else [
+		Vector2i(6, 16), Vector2i(6, 8), Vector2i(18, 6), Vector2i(32, 8),
+		Vector2i(32, 16), Vector2i(18, 17), Vector2i(6, 16),
 	]
 	var names: PackedStringArray = PackedStringArray([
 		"loop_sw", "loop_nw", "loop_n", "loop_ne", "loop_se", "loop_s", "loop_home"
@@ -149,10 +150,13 @@ func _walk_yard_loop(main) -> void:
 		if main.grid.has_method("is_blocked") and bool(main.grid.is_blocked(cell.x, cell.y)):
 			cell = _open_near(main, cell)
 		var world: Vector2 = main.grid.cell_to_world_center(cell)
-		if main.has_method("_command_move_selected"):
+		op.stop_move()
+		if main.has_method("simulate_touch_tap"):
+			main.simulate_touch_tap(world)
+		elif main.has_method("_command_move_selected"):
 			main._command_move_selected(world)
 		var frames := 0
-		while op.is_moving() and frames < 220:
+		while op.is_moving() and frames < 260:
 			await process_frame
 			frames += 1
 		if not op.is_moving():
@@ -163,7 +167,15 @@ func _walk_yard_loop(main) -> void:
 		await _settle(6)
 		_count_chrome(main, str(names[i]))
 		_dump_feel(main, str(names[i]))
-		if str(names[i]) in ["loop_nw", "loop_n", "loop_ne", "loop_home"]:
+		var slot_hit := main._nearest_slot(world, 14.0) != null and op.slot != null
+		print(
+			"DUMP_LOOP i=", i, " name=", names[i], " cell=", cell,
+			" gest=", main._last_touch_gesture,
+			" moving=", op.is_moving(),
+			" cover_snap=", slot_hit,
+			" caps=", " ".join(main.c2.prompt.visible_captions() if main.c2 and main.c2.prompt else PackedStringArray())
+		)
+		if str(names[i]) in ["loop_nw", "loop_n", "loop_ne", "loop_se", "loop_home"]:
 			await _save("06_%s" % names[i])
 
 
@@ -191,7 +203,11 @@ func _dump_feel(main, tag: String) -> void:
 		" caps=", " ".join(f.get("hotspots", PackedStringArray())),
 		" cmds=", " ".join(f.get("cmds", PackedStringArray())),
 		" gesture=", f.get("gesture"),
-		" follow=", " ".join(f.get("follow", PackedStringArray()))
+		" follow=", " ".join(f.get("follow", PackedStringArray())),
+		" north_labels=", f.get("north_labels", -1),
+		" spawn_tags=", f.get("spawn_tags", -1),
+		" route_tags=", f.get("route_tags", -1),
+		" mouse_eat=", f.get("mouse_eat", -1)
 	)
 
 

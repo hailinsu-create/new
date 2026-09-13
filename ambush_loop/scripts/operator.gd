@@ -1310,6 +1310,7 @@ func _ensure_tag_plate(bob: float = 0.0) -> void:
 	tag.add_theme_color_override("font_shadow_color", Color(0.02, 0.03, 0.03, 0.9))
 	tag.add_theme_constant_override("shadow_offset_x", 1)
 	tag.add_theme_constant_override("shadow_offset_y", 1)
+	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
 func _ensure_death_mark() -> void:
@@ -1738,7 +1739,9 @@ func set_observation_ring(show: bool) -> void:
 	if obs_fill:
 		obs_fill.visible = on
 	if obs_tag:
-		obs_tag.visible = on
+		var gs = get_node_or_null("/root/GameSettings")
+		var phone := gs != null and gs.has_method("want_touch_controls") and bool(gs.want_touch_controls())
+		obs_tag.visible = on and not phone
 
 
 func observation_ring_visible() -> bool:
@@ -2008,6 +2011,9 @@ func _refresh_face_chip() -> void:
 		face_chip.z_index = 5
 		add_child(face_chip)
 	var on := _selected_visual and alive and visible and not locked
+	var gs = get_node_or_null("/root/GameSettings")
+	if gs and gs.has_method("want_touch_controls") and bool(gs.want_touch_controls()):
+		on = false
 	face_chip.visible = on
 	if not on:
 		return

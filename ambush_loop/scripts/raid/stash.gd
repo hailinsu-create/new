@@ -60,6 +60,7 @@ func _ensure_look() -> void:
 		tag.name = "Tag"
 		tag.position = Vector2(-18, -22)
 		tag.add_theme_font_size_override("font_size", 13)
+		tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(tag)
 	tag.add_theme_color_override("font_color", col.lightened(0.25))
 	var lid := get_node_or_null("Lid") as Polygon2D
