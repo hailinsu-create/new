@@ -53,6 +53,8 @@ godot --headless --path ambush_loop --export-debug "Android APK" build/android/A
 
 ## 触控对照
 
+小屏塞不下敢死队键位、触屏潜行误触：制作人方案见 `docs/TOUCH_UX_OPTIONS.md`（未改输入，先定手机默认 / 桌面完整两轨）。
+
 | 手指 | 键盘时代 |
 | --- | --- |
 | 点掩体格 | 左键 |
