@@ -71,8 +71,8 @@ func _ensure_hud() -> void:
 		portraits.anchor_right = 0.5
 		portraits.offset_left = -168.0
 		portraits.offset_right = 168.0
-		portraits.offset_top = -268.0
-		portraits.offset_bottom = -156.0
+		portraits.offset_top = -272.0
+		portraits.offset_bottom = -158.0
 		_hud_root.add_child(portraits)
 		portraits.picked.connect(func(idx: int) -> void:
 			if host.has_method("_select_op"):
