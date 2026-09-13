@@ -14,7 +14,7 @@ var _grid = null
 
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(176, 100)
+	custom_minimum_size = Vector2(184, 104)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	gui_input.connect(_on_gui)
 
