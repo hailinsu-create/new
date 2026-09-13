@@ -23,7 +23,7 @@ func _ready() -> void:
 	_icon.draw.connect(_draw_icon)
 	root.add_child(_icon)
 	_lab = Label.new()
-	_lab.add_theme_font_size_override("font_size", 12)
+	_lab.add_theme_font_size_override("font_size", 13)
 	_lab.add_theme_font_override("font", NightOps.ui_font_bold())
 	_lab.add_theme_color_override("font_color", Color(0.92, 0.86, 0.52))
 	_lab.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.02, 0.9))
