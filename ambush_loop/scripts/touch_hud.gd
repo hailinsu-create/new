@@ -85,6 +85,9 @@ func _build() -> void:
 	_add(_row_setup, "nade", "雷点", Color(0.82, 0.42, 0.18))
 	_add(_row_setup, "bag", "背包", Color(0.48, 0.44, 0.28))
 	_add(_row_setup, "decoy", "诱饵", Color(0.82, 0.72, 0.28))
+	_add(_row_setup, "crouch", "匍匐", Color(0.36, 0.48, 0.32))
+	_add(_row_setup, "knife", "割喉", Color(0.62, 0.28, 0.22))
+	_add(_row_setup, "whistle", "口哨", Color(0.72, 0.62, 0.28))
 	_add(_row_setup, "pass", "递装", Color(0.42, 0.62, 0.48))
 	_add(_row_setup, "door", "门锁", Color(0.50, 0.42, 0.28))
 	_add(_row_setup, "rotate_ccw", "↺", Color(0.42, 0.58, 0.36))
@@ -298,6 +301,12 @@ func refresh_phase(
 		_btns["bag"].disabled = false
 	if _btns.has("decoy"):
 		_btns["decoy"].disabled = phase_name != "SETUP" and phase_name != "SWEEP"
+	if _btns.has("crouch"):
+		_btns["crouch"].disabled = phase_name != "SETUP" and phase_name != "SWEEP"
+	if _btns.has("knife"):
+		_btns["knife"].disabled = phase_name != "SETUP" and phase_name != "SWEEP"
+	if _btns.has("whistle"):
+		_btns["whistle"].disabled = phase_name != "SETUP" and phase_name != "SWEEP"
 	if _btns.has("pass"):
 		_btns["pass"].disabled = phase_name != "SETUP" and phase_name != "SWEEP"
 	if _btns.has("nade_watch"):
@@ -321,7 +330,7 @@ func refresh_phase(
 
 
 func _paint_lock_states(phase_name: String) -> void:
-	var setup_cmds := ["fire", "pack", "trip", "nade", "decoy", "pass", "door", "rotate_cw", "rotate_ccw", "clear", "alarm"]
+	var setup_cmds := ["fire", "pack", "trip", "nade", "decoy", "crouch", "knife", "whistle", "pass", "door", "rotate_cw", "rotate_ccw", "clear", "alarm"]
 	for cmd in _btns.keys():
 		var b: Button = _btns[cmd]
 		if b == null:
