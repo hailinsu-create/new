@@ -268,7 +268,7 @@ func refresh_phase(
 		_row_watch.visible = phase_name != "SETUP" and phase_name != "SWEEP"
 	match phase_name:
 		"SETUP":
-			set_hint("触控：点队员/点地走 → 开匣搜枪 → 背包取舍 → 雷点 → 趴掩体 → 拉警报")
+			set_hint("触控：点肖像/点地走 → 匍匐躲岗 → 开匣搜枪 → 背包取舍 → 雷点 → 趴掩体 → 拉警报")
 		"SWEEP":
 			set_hint("打扫：走近尸体拾取 → 背包换枪 → 下一波警报或撤离封锁")
 		"WATCHING":
