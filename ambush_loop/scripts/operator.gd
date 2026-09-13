@@ -518,6 +518,25 @@ func apply_stance_speed() -> void:
 	move_speed = s
 	if body:
 		body.scale = Vector2(1.0, 0.86) if stance == Stance.CROUCH else Vector2.ONE
+	_refresh_stance_glyph()
+
+
+func _refresh_stance_glyph() -> void:
+	var g := get_node_or_null("StanceGlyph")
+	if g == null:
+		var StanceScript := load("res://scripts/c2/c2_stance_glyph.gd")
+		g = StanceScript.new()
+		g.name = "StanceGlyph"
+		add_child(g)
+	var m := "stand"
+	if hidden_in_shadow:
+		m = "hide"
+	elif stance == Stance.CROUCH:
+		m = "crouch"
+	elif sprinting:
+		m = "sprint"
+	if g.has_method("set_mode"):
+		g.set_mode(m)
 
 
 func begin_search(stash: Node2D) -> void:
@@ -581,8 +600,12 @@ func noise_level() -> float:
 	if sprinting:
 		return 0.85
 	if stance == Stance.CROUCH:
-		return 0.10
-	return 0.35 if role == Role.MG else 0.22
+		return 0.07 if role == Role.SCOUT else 0.10
+	if role == Role.MG:
+		return 0.42
+	if role == Role.SCOUT:
+		return 0.16
+	return 0.22
 
 
 func tick_search(delta: float) -> bool:
@@ -616,6 +639,8 @@ func tick_move(delta: float) -> bool:
 		_path_i += 1
 		if _path_i % 3 == 0:
 			CombatFxScript.mud_print(self, global_position, deg_to_rad(facing_deg))
+		if sprinting and _path_i % 2 == 0:
+			CombatFxScript.land_dust(self, global_position)
 		if _path_i >= move_path.size():
 			stop_move()
 			return false
@@ -758,6 +783,8 @@ func rotate_by(delta_deg: float) -> void:
 	var step := delta_deg
 	if role == Role.MG:
 		step = clampf(delta_deg, -8.0, 8.0)
+	if stance == Stance.CROUCH:
+		step *= 0.55
 	set_facing(facing_deg + step)
 
 
