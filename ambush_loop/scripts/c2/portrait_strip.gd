@@ -27,6 +27,18 @@ func _ready() -> void:
 		b.focus_mode = Control.FOCUS_NONE
 		b.theme = NightOps.theme()
 		var idx := i
+		b.gui_input.connect(func(ev: InputEvent) -> void:
+			if ev is InputEventMouseButton and ev.pressed and ev.double_click:
+				picked.emit(idx)
+				if get_parent() != null:
+					var main = get_tree().current_scene
+					if main and main.has_method("_reset_cam_view") and main.get("operators") != null and idx < main.operators.size():
+						var op = main.operators[idx]
+						if op:
+							var center := Vector2(640, 360)
+							main._cam_pan = (op.global_position - center) * 0.42
+							main._apply_cam()
+		)
 		b.pressed.connect(func() -> void:
 			picked.emit(idx)
 		)
