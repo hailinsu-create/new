@@ -222,7 +222,12 @@ func bind(op: OperatorUnit, is_sel: bool, can_pick: bool, watching: bool = false
 	if op.visible and op.slot != null:
 		slot_txt = op.slot.label_text
 	if op.has_method("inventory_line"):
-		_meta.text = "%s  %s" % [op.inventory_line(), op.fire_mode_label()]
+		var stance_bit := ""
+		if op.get("stance") != null and int(op.stance) == 1:
+			stance_bit = " 匍"
+		elif op.get("sprinting") != null and bool(op.sprinting):
+			stance_bit = " 奔"
+		_meta.text = "%s%s  %s" % [op.inventory_line(), stance_bit, op.fire_mode_label()]
 	else:
 		_meta.text = "%s 弹 %d/%d  %s  ·  %s" % [ammo_mark, op.ammo, op.max_ammo, op.fire_mode_label(), slot_txt]
 	if not op.visible:
