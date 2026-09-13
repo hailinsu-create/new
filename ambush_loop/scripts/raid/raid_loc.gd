@@ -30,6 +30,10 @@ const KEYS := {
 	"shift_walk": "Shift 慢走",
 	"examine": "悬停匣看型号",
 	"shadow_hide": "阴影里蹲下",
+	"f2_cam": "F2 镜头回中",
+	"pass_range": "走近再递装",
+	"ko_loot": "割喉掉弹",
+	"quiet_nade": "无声院子+雷",
 }
 
 
