@@ -600,7 +600,8 @@ func _skill_aid(op: Node) -> bool:
 	op.hp = minf(float(op.hp) + heal, OperatorUnit.MAX_HP)
 	if op.has_method("_update_hp_bar"):
 		op._update_hp_bar()
-	_hint("包扎 +18")
+	_hint("包扎 +%d" % int(heal))
+	_spawn_ring(op.global_position, 40.0, Color(0.72, 0.22, 0.18, 0.35))
 	return true
 
 
