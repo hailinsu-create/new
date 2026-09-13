@@ -46,6 +46,9 @@ func _draw() -> void:
 		return
 	var pulse := 0.55 + 0.45 * sin(Time.get_ticks_msec() * 0.008)
 	var col := Color(0.92, 0.82, 0.28, 0.55 + 0.35 * pulse)
+	if _owner != null and is_instance_valid(_owner) and _owner.get("role") != null:
+		var kit: Color = OperatorUnit.role_kit_color(int(_owner.role))
+		col = Color(kit.r, kit.g, kit.b, 0.55 + 0.35 * pulse)
 	draw_line(Vector2(-10, -10), Vector2(10, 10), col, 2.4, true)
 	draw_line(Vector2(10, -10), Vector2(-10, 10), col, 2.4, true)
 	draw_arc(Vector2.ZERO, 13.0, 0.0, TAU, 18, Color(col.r, col.g, col.b, 0.35), 1.2, true)
