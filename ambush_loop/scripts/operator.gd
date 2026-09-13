@@ -2146,6 +2146,10 @@ func _refresh_tag() -> void:
 		extras += " 雷%d" % grenades
 	if mines > 0:
 		extras += " 埋%d" % mines
+	if stance == Stance.CROUCH:
+		extras += " 匍"
+	elif sprinting:
+		extras += " 奔"
 	var mode := "伏" if fire_mode == FireMode.HOLD_FOR_AMBUSH else "即"
 	if fire_mode == FireMode.HOLD_FOR_AMBUSH and not fire_permitted:
 		mode = "等"
