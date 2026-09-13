@@ -64,6 +64,10 @@ var echo_kit: bool = false
 var _distract_t: float = 0.0
 var _distract_pos: Vector2 = Vector2.ZERO
 var _decoy_stepped: bool = false
+var vis_cone: Polygon2D = null
+const SEE_R := 110.0
+const SEE_HALF := 24.0
+const CONE_RAYS := 12
 
 @onready var body: Polygon2D = $Body
 @onready var tag: Label = $Tag
@@ -92,6 +96,7 @@ func setup(id: int, p_route: PackedVector2Array, p_grid: AmbushGrid = null, p_lo
 	_trail_world = PackedVector2Array()
 	_reset_present_fx()
 	_apply_hostile_silhouette()
+	_ensure_vision_cone()
 	_refresh_tag()
 	if route.size() > 0:
 		global_position = route[0]
@@ -253,6 +258,7 @@ func _face_move(target: Vector2) -> void:
 		kind_rim.rotation = body.rotation
 	if weapon and is_instance_valid(weapon):
 		weapon.rotation = _weapon_snap
+	_rebuild_vision_cone()
 
 
 func resolve_return_fire() -> void:
@@ -320,6 +326,8 @@ func kill() -> void:
 	active = false
 	alerted = false
 	returning_fire = false
+	if vis_cone:
+		vis_cone.visible = false
 	_hit_flash = 0.0
 	_return_flash = 0.0
 	if body:
@@ -383,6 +391,8 @@ func _process(delta: float) -> void:
 	_update_hp_bar()
 	_tick_chevron_pulse()
 	_tick_echo_mast()
+	if alive and active:
+		_rebuild_vision_cone()
 
 
 func _ensure_contact_shadow() -> void:
@@ -1265,3 +1275,53 @@ func _update_hp_bar() -> void:
 	var rc := _kind_rim_color()
 	hp_bar.color = Color(rc.r, rc.g, rc.b, 1.0)
 	hp_bar.z_index = 6
+
+
+func _ensure_vision_cone() -> void:
+	if vis_cone != null and is_instance_valid(vis_cone):
+		return
+	vis_cone = get_node_or_null("VisCone") as Polygon2D
+	if vis_cone == null:
+		vis_cone = Polygon2D.new()
+		vis_cone.name = "VisCone"
+		vis_cone.z_index = -1
+		add_child(vis_cone)
+		move_child(vis_cone, 0)
+	_rebuild_vision_cone()
+
+
+func _rebuild_vision_cone() -> void:
+	_ensure_vision_cone()
+	if vis_cone == null:
+		return
+	if not alive or not active:
+		vis_cone.visible = false
+		return
+	vis_cone.visible = true
+	var pts := PackedVector2Array([Vector2.ZERO])
+	for i in range(CONE_RAYS + 1):
+		var t := lerpf(-SEE_HALF, SEE_HALF, float(i) / float(CONE_RAYS))
+		var rad := deg_to_rad(facing_deg + t)
+		var dirv := Vector2(cos(rad), sin(rad))
+		var dist := _clip_see(dirv)
+		pts.append(dirv * dist)
+	vis_cone.polygon = pts
+	if alerted or returning_fire:
+		vis_cone.color = Color(0.92, 0.22, 0.14, 0.22)
+	else:
+		vis_cone.color = Color(0.78, 0.82, 0.28, 0.16)
+
+
+func _clip_see(dirv: Vector2) -> float:
+	if grid == null:
+		return SEE_R
+	var step := 16.0
+	var traveled := step
+	var last_ok := step
+	while traveled <= SEE_R:
+		var sample: Vector2 = global_position + dirv * traveled
+		if grid.has_method("has_los") and not bool(grid.has_los(global_position, sample)):
+			return last_ok
+		last_ok = traveled
+		traveled += step
+	return SEE_R
