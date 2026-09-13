@@ -62,8 +62,9 @@ func bind(op: Node, cds: Dictionary, command_phase: bool) -> void:
 		b.text = "%s\n%s%s" % [key, Skills.label_zh(id), cd_txt]
 		b.disabled = not command_phase and id != "crouch"
 		var hot := id == "crouch" and op.get("stance") != null and int(op.stance) == 1
+		var kit: Color = OperatorUnit.role_kit_color(int(op.role))
 		var bg := Color(0.08, 0.07, 0.05, 0.94)
-		var border := Color(0.42, 0.36, 0.22, 0.85)
+		var border := Color(kit.r, kit.g, kit.b, 0.75)
 		if hot:
 			border = NightOps.OLIVE_HI
 			bg = Color(0.14, 0.12, 0.06, 0.96)
