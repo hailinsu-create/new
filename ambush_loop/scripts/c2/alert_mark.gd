@@ -16,7 +16,7 @@ var _t: float = 0.0
 
 func _ready() -> void:
 	z_index = 12
-	position = Vector2(0, -28)
+	position = Vector2(0, -30)
 
 
 func _process(delta: float) -> void:
