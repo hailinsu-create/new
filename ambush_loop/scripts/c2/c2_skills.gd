@@ -76,7 +76,7 @@ static func hint_zh(id: String) -> String:
 		"aid":
 			return "站住包扎 8 秒外的伤。打扫期更快。"
 		"bind":
-			return "捆住已击倒的岗哨，免得醒。"
+			return "捆住已击倒的岗哨，免得醒。Z 靠近再用。"
 		"decoy":
 			return "丢石子/烟头，岗哨转头。"
 		"mine":
