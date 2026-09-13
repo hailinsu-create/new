@@ -31,6 +31,12 @@ static func bark_text(kind: String, name: String = "") -> String:
 			return "%s：有匣" % nm
 		"mine_ready":
 			return "%s：雷好了" % nm
+		"spotted":
+			return "%s：被看见了" % nm
+		"ko":
+			return "%s：岗哨倒了" % nm
+		"crouch":
+			return "%s：匍匐" % nm
 		_:
 			return ""
 
