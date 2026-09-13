@@ -77,7 +77,7 @@ func label_for_main_phase(phase_i: int) -> String:
 func hud_chip(phase_i: int, wave: int, total: int, sim_t: float, paused: bool, speed: float) -> String:
 	match phase_i:
 		0:
-			return "阶段 · 搜刮埋伏  波次 %d/%d" % [wave + 1, total]
+			return "阶段 · 搜刮潜行  波次 %d/%d" % [wave + 1, total]
 		1:
 			var spd := "暂停" if paused else ("2×" if speed >= 1.5 else "1×")
 			return "警报中  第%d/%d波  %s  t=%.1fs" % [wave + 1, total, spd, sim_t]
