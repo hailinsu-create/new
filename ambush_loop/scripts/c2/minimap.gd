@@ -99,4 +99,4 @@ func _draw() -> void:
 				continue
 			var p3: Vector2 = st.global_position
 			var c3 := Vector2(p3.x / float(COLS * TILE) * w, p3.y / float(ROWS * TILE) * h)
-			draw_rect(Rect2(c3.x - 1.4, c3.y - 1.4, 2.8, 2.8), Color(0.82, 0.68, 0.28, 0.9))
+			draw_rect(Rect2(c3.x - 1.6, c3.y - 1.6, 3.2, 3.2), Color(0.88, 0.72, 0.28, 0.95))
