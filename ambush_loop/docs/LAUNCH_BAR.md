@@ -34,7 +34,7 @@ Average similar-game launch: title that lists missions, keyboard legend, quit co
 | B8 | Progress save + settings; campaign complete → credits recap of six nights → title. Title **战役档案** keeps the six-night dossier after credits (封印邮戳). Win records `cleared` and unlocks the next id. **下一关** plays a night-handoff letterbox (headless skips) | Done |
 | C9 | First visit per level: yard 3-step; warehouse F/G/barrel; pump B/flank; railcut dual-corridor delay; depot three-route + 2.2s west sneak + tripwire; radio 3.6s sneak + 5.2s echo + tripwire. Page 1 cannot be skipped via dimmer; auto-mark seen on dismiss | Done |
 | C10 | Existing `tut_label` kept as secondary tip | Done |
-| D11 | Left operator cards: name/role **glyph**, ammo, HP, fire mode, slot or 未部署; click select; highlight; matching glyph on the map | Done |
+| D11 | Left operator cards: name/role **glyph**, ammo, HP, fire mode, slot or 未部署; click select; highlight; matching glyph on the map. **v0.5 Commandos 2:** bottom portraits, skill hotbar, minimap, sentry cones | Done |
 | D12 | **Art/anim pass (procedural):** cooler night asphalt + noise/scrap, brick/crate walls with N/W rim light, breathing lime-gold escape, crate/sandbag pads, dashed ambush-zone edge; friend triangles + weapon stubs vs enemy diamond/chevron | Done |
 | D13 | Fail panels stay docked off the escape mouth; **win debrief** (loops used, 终局摘要, last 5 events, 下一关 / 返回标题) before advance; campaign win → credits; **briefing/result fade-in** | Done |
 | E14 | `export_presets.cfg` Linux + Windows Desktop + **Android APK** (arm64, minSdk 24). Touch HUD + 返回键 + mobile GL Compatibility | Done (sideload APK still needs local templates/SDK) |
