@@ -17,18 +17,23 @@ func setup(grid, level_id: String) -> void:
 			_add_strip(Vector2i(6, 14), Vector2i(6, 17), false)
 			_add_strip(Vector2i(10, 16), Vector2i(12, 17), true)
 			_add_strip(Vector2i(22, 15), Vector2i(24, 16), true)
+			_add_strip(Vector2i(14, 16), Vector2i(16, 17), true)
 		"pump":
 			_add_strip(Vector2i(6, 14), Vector2i(6, 17), false)
 			_add_strip(Vector2i(21, 16), Vector2i(23, 17), true)
+			_add_strip(Vector2i(9, 16), Vector2i(11, 17), true)
 		"railcut":
 			_add_strip(Vector2i(10, 16), Vector2i(12, 17), true)
 			_add_strip(Vector2i(31, 15), Vector2i(33, 16), false)
+			_add_strip(Vector2i(13, 16), Vector2i(14, 17), true)
 		"depot":
 			_add_strip(Vector2i(6, 14), Vector2i(8, 17), true)
 			_add_strip(Vector2i(29, 15), Vector2i(30, 17), false)
+			_add_strip(Vector2i(10, 16), Vector2i(11, 17), true)
 		"radio":
 			_add_strip(Vector2i(6, 14), Vector2i(8, 17), true)
 			_add_strip(Vector2i(23, 15), Vector2i(24, 17), false)
+			_add_strip(Vector2i(10, 16), Vector2i(12, 17), true)
 		_:
 			_add_strip(Vector2i(5, 11), Vector2i(5, 17), false)
 			_add_strip(Vector2i(9, 17), Vector2i(11, 17), true)
