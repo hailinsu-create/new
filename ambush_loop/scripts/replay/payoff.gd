@@ -21,6 +21,16 @@ static func bark_text(kind: String, name: String = "") -> String:
 			return "%s：最后一个" % nm
 		"kill":
 			return "%s：倒了" % nm
+		"loot":
+			return "%s：搜到了" % nm
+		"sweep":
+			return "打扫战场"
+		"wave":
+			return "下一波"
+		"crate":
+			return "%s：有匣" % nm
+		"mine_ready":
+			return "%s：雷好了" % nm
 		_:
 			return ""
 
@@ -101,17 +111,17 @@ static func watching_color(kind: String) -> Color:
 		"combo":
 			return Color(1.0, 0.92, 0.45)
 		"trip":
-			return Color(0.45, 0.95, 0.55)
+			return Color(0.52, 0.48, 0.28)
 		"barrel":
 			return Color(1.0, 0.55, 0.22)
 		"ambush", "hold_mode", "repack":
-			return Color(0.45, 0.88, 0.95)
+			return Color(0.72, 0.62, 0.36)
 		"route_choice":
-			return Color(0.78, 0.55, 1.0)
+			return Color(0.62, 0.42, 0.22)
 		"pack_mg":
-			return Color(0.62, 0.88, 0.40)
+			return Color(0.52, 0.46, 0.24)
 		"echo":
-			return Color(0.55, 0.90, 1.0)
+			return Color(0.70, 0.58, 0.32)
 		"wave":
 			return Color(0.95, 0.72, 0.32)
 		_:

@@ -1,10 +1,12 @@
 # Ambush Loop
 
-Godot 4.7.2 vertical slice — Commandos-style ambush prep + time-loop intel.
+Godot 4.7.2 vertical slice — Commandos-style night raid: scout, loot, ambush, multi-wave alarm, sweep.
 
 **朋友包 / 程序多边形 / 合成音 / 必须横屏。** 不是正式版，不要写成 9.5。  
 像素门槛加权 **9.0**（`docs/Ambush_Loop_试玩复评_71ca4af.md`，窗口 31 张）。旧自称 9.2 作废。  
-侧载试玩：`ambush_loop/dist/AmbushLoop-playtest.apk`（包名 `com.ambushloop.game`）。
+侧载试玩 **v0.4.0 Commandos 2 kit**：`ambush_loop/dist/AmbushLoop-v0.4.0-commandos2-kit.apk`（包名 `com.ambushloop.game`，`versionName` 0.4.0）。  
+直链：https://github.com/hailinsu-create/new/releases/download/v0.4.0-commandos2-kit/AmbushLoop-v0.4.0-commandos2-kit.apk  
+不要用 GitHub release `ambush-loop-playtest-0.2.0` 或 `main` 上的 `AmbushLoop-playtest.apk`（那是锁死观战包）。0.3.x 的 28 型号表已收成 10 枪。
 
 Blueprint: `docs/Ambush_Loop_开发蓝图.md`  
 Launch criteria: `docs/LAUNCH_BAR.md`  
@@ -27,9 +29,11 @@ godot --path ambush_loop
 godot --headless --path ambush_loop -s res://scripts/smoke_test.gd
 ```
 
-The editor **Main Scene** is `scenes/title.tscn`. Smoke bypasses the title and loads `scenes/main.tscn` directly; it must print `SMOKE_SLICE_COMPLETE` and exit 0.
+The editor **Main Scene** is `scenes/title.tscn`. Smoke bypasses the title and loads `scenes/main.tscn` directly; it must print `SMOKE_SLICE_COMPLETE` and `SMOKE_OK_RAID_LOOP` and exit 0.
 
-Reference wins: yard slots 1,2,5 facings 90/180/180; warehouse 1,3,5; pump 1,4,5 (open and locked door); railcut 1,4,5 facings 270/270/180; depot 1,4,5 facings 270/270/180 + tripwire at west alley `(7,11)`; radio 1,4,5 facings 270/90/270 + tripwire at `(7,11)` (铁砧 on 碟台 facing south waits the 5.2s echo hall).
+Raid contract: `docs/COMMANDOS_RAID.md`. Kit: `docs/COMMANDOS2_KIT.md`. Operators spawn at insertion cells with a knife, loot crates into a 6-slot pack, take cover, pull the alarm per wave (auto fire + auto grenades), sweep loot, extract after the last wave.
+
+Reference raids (after looting role guns): yard slots 1,2,5 facings 90/180/180; warehouse 1,3,5; pump 1,4,5; railcut 1,4,5 facings 270/270/180; depot 1,4,5 facings 270/270/180 + tripwire at `(7,11)`; radio 1,4,5 facings 270/90/270 + tripwire at `(7,11)`.
 
 ## Export (Linux + Windows + Android)
 
@@ -51,14 +55,19 @@ Desktop presets: `ambush_loop/export_presets.cfg` (Linux / Windows / **Android A
 | Title | 开始行动 → 任务列表（锁定/可出击/首通）→ 简报 / 继续进度 / 操作说明（全键表） / 退出（确认） |
 | Esc | 标题：退出确认（可进设置）；战场：暂停 / 设置（静音、音乐/音效、返回标题、布置期重新部署） |
 | 1 / 2 / 3 or left operator cards | Select 步枪手 / 机枪手 / 侦察兵 |
-| LMB cover | Deploy selected operator (cyan arc = cover protect direction) |
+| LMB empty ground | Walk selected operator (A* on the grid) |
+| LMB crate / corpse | Walk in and pick up |
+| LMB cover | Take the pad (cyan arc = cover protect direction) |
 | Hover cover | Preview that slot's protect arc |
 | A/D or RMB / phone ↺↻ or drag | Facing (fire cone is LOS-clipped by walls) |
 | F | Fire mode (见敌即打 / 入伏再打) |
-| G | Assign ammo pack (仓道 / 泵站 / 信号楼 / 油库 / 电台, one operator) |
+| G | Place/clear a grenade mark (ALERT auto-throws) |
+| I | Toggle the selected operator's 6-slot backpack |
+| T | Pass gun/nade/mine/decoy to the nearest teammate |
+| H | Drag a corpse (slower walk) |
 | B | Toggle door lock (level 3; switches flank to authored alternate route) |
-| Tab | 绊索 tool (max 1, on route segments only) |
-| Space | Sound alarm (freezes plan) / pause while watching / exit replay |
+| Tab | Cycle walk / mine / grenade / decoy |
+| Space | Pull alarm (soft gate: loot a gun first) / next wave or extract after sweep / pause during alert / exit replay |
 | P | Pause during watch |
 | + / − or speed button | 1× / 2× watch speed (viewing only) |
 | X or 中止尝试 | Abort current attempt; keep intel up to now (counts as fail) |

@@ -41,6 +41,32 @@ var situation: String = ""
 var intel_chatter: Array = []
 ## Win debrief campaign beat. Copy only.
 var campaign_beat: String = ""
+## Raid: insertion cells for the three operators (walkable).
+var insert_cells: Array = []
+## Raid: authored crates {cell, kind, amount}.
+var stashes: Array = []
+## Raid: array of spawn_schedule arrays. Empty = one wave from spawn_schedule.
+var waves: Array = []
+
+
+func wave_count() -> int:
+	if waves.is_empty():
+		return 1
+	return waves.size()
+
+
+func spawns_for_wave(index: int) -> Array:
+	if waves.is_empty():
+		return spawn_schedule
+	if index < 0 or index >= waves.size():
+		return []
+	return waves[index]
+
+
+func insert_cell_for(op_index: int) -> Vector2i:
+	if insert_cells.is_empty():
+		return Vector2i(6, 16)
+	return insert_cells[clampi(op_index, 0, insert_cells.size() - 1)]
 
 
 static func campaign_frame() -> String:
@@ -48,7 +74,7 @@ static func campaign_frame() -> String:
 
 
 static func campaign_kicker() -> String:
-	return "天亮前切断夜班巡线。警报锁死计划，失败穿梭带回情报。"
+	return "天亮前切断夜班巡线。搜刮组火力，埋伏拉警报，打扫带进下一波。"
 
 
 static func chatter_for(id: String, reason: String = "") -> String:
@@ -185,15 +211,15 @@ static func signature_color(id: String) -> Color:
 		"warehouse":
 			return Color(0.94, 0.68, 0.18) # amber
 		"pump":
-			return Color(0.18, 0.74, 0.70) # teal
+			return Color(0.42, 0.40, 0.24) # oil
 		"railcut":
 			return Color(0.92, 0.16, 0.16) # signal red
 		"depot":
 			return Color(0.98, 0.48, 0.10) # hazard orange
 		"radio":
-			return Color(0.38, 0.78, 0.96) # phosphor
+			return Color(0.62, 0.56, 0.36) # moonlight steel
 		_:
-			return Color(0.62, 0.74, 0.32) # olive
+			return Color(0.52, 0.46, 0.26) # olive
 
 
 static func mood_tag(id: String) -> String:
@@ -278,7 +304,7 @@ static func campaign_recap_body() -> String:
 		if beat != "":
 			lines.append("%s — %s" % [def.title, beat])
 	lines.append("")
-	lines.append("北区补给链第三夜已切断。灯塔停转。情报已归档。计划锁死过的那些秒，就是这场胜负。")
+	lines.append("北区补给链第三夜已切断。灯塔停转。情报已归档。搜刮组火力，埋伏拉警报，打扫带进下一波——那些波次，就是这场胜负。")
 	lines.append("")
 	lines.append("感谢游玩。")
 	return "\n".join(lines)
@@ -325,7 +351,7 @@ func second_trap_text() -> String:
 	## SETUP second-layer callout. Copy only — does not change routes.
 	match str(level_id):
 		"warehouse":
-			return "第二层：等黄区再打（F 入伏）"
+			return "第二层：第一波等黄区再打（F 入伏），打扫后再打东廊"
 		"pump":
 			return "第二层：锁门后改走紫线"
 		"railcut":
@@ -335,7 +361,7 @@ func second_trap_text() -> String:
 		"radio":
 			return "第二层：暗道 3.6s 要绊索"
 		_:
-			return "第二层：橙线东廊绕出"
+			return "第二层：第一波主路，第二波橙线东廊"
 
 
 func second_trap_cell() -> Vector2i:
@@ -377,7 +403,7 @@ static func make_yard() -> LevelDef:
 	l.atmosphere_id = "yard"
 	l.title = "第1关 · 院子：交叉封锁"
 	l.teaching = "这关必须带铁砧扫东箱侧翼，灰狼补主路第一枪，夜枭长窄锁南闸。夜巡小队从北门进院子，要在南闸汇合前切断。陷阱：只盯主路，侧翼奔袭会从东廊绕出。青弧朝向才有掩体减免，侧背全伤。失败三种：逃逸、全灭、中止（X 留情报）。"
-	l.tutorial = "左卡选 灰狼/铁砧/夜枭（卡上写本关必须带谁）。点掩体部署；青弧=保护方向（来袭减伤 60%，侧背全伤）。黄锥是墙裁切后的真射界。夜枭部署后有淡青观察环（仅准备期）。A/D、右键或底栏↺↻调朝向，空格拉警报锁死。X 中止留情报。逃逸、全灭、中止都穿梭并恢复上轮计划。红线=主路，橙线=侧翼。"
+	l.tutorial = "三人从西插入点出发，开局只有刀。点地走路，走近匣拾步枪/机枪/手雷/地雷，点掩体趴下。I 开背包。G 放雷点，警报中自动丢。空格拉第一波；清完打扫再拉第二波（橙线侧翼）。逃逸或全灭失败。红线=主路，橙线=侧翼。"
 	l.escape_cell = Vector2i(31, 19)
 	# All covers on open cells (yard crates leave spine / lanes free).
 	l.cover_defs = [
@@ -404,12 +430,33 @@ static func make_yard() -> LevelDef:
 		{"id": 2, "route": "main", "delay": 0.8, "loot": 0},
 		{"id": 3, "route": "flank", "delay": 0.4, "loot": 2, "teaching_note": "东廊绕出"},
 	]
+	l.waves = [
+		[
+			{"id": 1, "route": "main", "delay": 0.0, "loot": 2},
+			{"id": 2, "route": "main", "delay": 0.6, "loot": 0},
+		],
+		[
+			{"id": 3, "route": "flank", "delay": 0.2, "loot": 2, "teaching_note": "东廊绕出"},
+		],
+	]
+	l.insert_cells = [Vector2i(6, 16), Vector2i(7, 17), Vector2i(8, 17)]
+	l.stashes = [
+		{"cell": Vector2i(6, 12), "kind": "rifle", "amount": 7},
+		{"cell": Vector2i(26, 12), "kind": "mg", "amount": 12},
+		{"cell": Vector2i(29, 16), "kind": "scout", "amount": 6},
+		{"cell": Vector2i(11, 16), "kind": "grenade", "amount": 2},
+		{"cell": Vector2i(10, 13), "kind": "mine", "amount": 1},
+		{"cell": Vector2i(23, 13), "kind": "ammo", "amount": 6},
+		{"cell": Vector2i(8, 13), "kind": "pistol", "amount": 8},
+		{"cell": Vector2i(17, 12), "kind": "smg", "amount": 20},
+		{"cell": Vector2i(21, 17), "kind": "luger", "amount": 8},
+	]
 	l.ambush_zone = Rect2(320, 280, 400, 160)
 	l.has_ammo_pack = false
 	l.beat_kind = "ambush_zone"
 	l.beat_text = "交叉封锁 · 侧翼从东廊随后到"
 	l.highlight_hook = "交叉封锁第一枪"
-	l.must_bring = "铁砧扫东箱侧翼，灰狼补主路第一枪，夜枭锁南闸。"
+	l.must_bring = "先搜匣：灰狼步枪、铁砧机枪、夜枭狙。第一波锁主路，打扫后再打东廊。"
 	l.role_why = {
 		"rifle": "本关：主路第一枪",
 		"mg": "本关：东箱扫橙线",
@@ -436,7 +483,7 @@ static func make_warehouse() -> LevelDef:
 	l.atmosphere_id = "warehouse"
 	l.title = "第2关 · 仓道：弹药窗口"
 	l.teaching = "这关弹包给铁砧，F 入伏再打才有弹药窗口。仓道里的夜班搬运队会把弹打空。过早开火是陷阱——铁砧最容易空。东廊橙色油桶在敌人靠近时自动炸（伤及友军），别把灰狼塞进爆心。参考：铁砧拿弹包看窗口，夜枭锁闸口。"
-	l.tutorial = "G 把唯一弹包交给已部署队员（空弹自动补一次，本轮不能转交；铁砧优先）。F 切「入伏再打」，黄锥变暗，等敌人进黄色伏击区——打中这个窗口才爽。东廊油桶是预置杀器：敌人踩近才在模拟里炸，执行中不能点爆。红=主路，橙=侧翼。X 中止留情报；时间轴只读。M 静音。"
+	l.tutorial = "两波：先主路再东廊。G 弹包给铁砧。F 入伏再打等黄区。东廊油桶靠近才炸。打扫后第二波侧翼到。红=主路，橙=侧翼。"
 	# Next to 侧廊, not on flank waypoint (32,10). Blast is a deploy don't, not an auto-kill.
 	l.barrel_cell = Vector2i(22, 8)
 	l.escape_cell = Vector2i(31, 19)
@@ -466,12 +513,34 @@ static func make_warehouse() -> LevelDef:
 		{"id": 4, "route": "flank", "delay": 1.6, "loot": 0},
 		{"id": 5, "route": "flank", "delay": 2.4, "loot": 0},
 	]
+	l.waves = [
+		[
+			{"id": 1, "route": "main", "delay": 0.0, "loot": 1},
+			{"id": 3, "route": "main", "delay": 0.8, "loot": 1},
+		],
+		[
+			{"id": 2, "route": "flank", "delay": 0.3, "loot": 0, "teaching_note": "东廊侧翼"},
+			{"id": 4, "route": "flank", "delay": 0.9, "loot": 0},
+			{"id": 5, "route": "flank", "delay": 1.4, "loot": 2},
+		],
+	]
+	l.insert_cells = [Vector2i(10, 16), Vector2i(11, 17), Vector2i(12, 16)]
+	l.stashes = [
+		{"cell": Vector2i(11, 7), "kind": "rifle", "amount": 7},
+		{"cell": Vector2i(16, 13), "kind": "mg", "amount": 12},
+		{"cell": Vector2i(29, 16), "kind": "scout", "amount": 6},
+		{"cell": Vector2i(27, 13), "kind": "grenade", "amount": 2},
+		{"cell": Vector2i(10, 13), "kind": "mine", "amount": 1},
+		{"cell": Vector2i(23, 6), "kind": "ammo", "amount": 8},
+		{"cell": Vector2i(22, 9), "kind": "decoy", "amount": 1},
+		{"cell": Vector2i(14, 16), "kind": "mp40", "amount": 32},
+	]
 	l.ambush_zone = Rect2(360, 300, 360, 200)
 	l.has_ammo_pack = true
 	l.beat_kind = "barrel"
 	l.beat_text = "入伏再打 · 油桶靠近才炸 · 别站爆心"
 	l.highlight_hook = "入伏再打，弹包续上"
-	l.must_bring = "铁砧拿唯一弹包；过早开火会空。夜枭锁闸口。"
+	l.must_bring = "先搜机枪和弹包。第一波主路，打扫后再打东廊。别站爆心。"
 	l.role_why = {
 		"rifle": "本关：别站爆心",
 		"mg": "本关：弹包优先 · 入伏再打",
@@ -498,7 +567,7 @@ static func make_pump() -> LevelDef:
 	l.atmosphere_id = "pump"
 	l.title = "第3关 · 泵站：关门之后"
 	l.teaching = "这关夜枭锁出水口；锁门后铁砧必须把侧背对准紫线。泵站夜班要过东廊阀门。B 锁门不是稳赢——那是陷阱：侧翼奔袭在决策格改走西侧紫色备用接近，从你没罩住的侧背进来。开锁两条线都能解，锁门必须改朝向。"
-	l.tutorial = "B 切换锁门。锁上后东廊关闭，侧翼在决策格改走作者写好的紫色备用接近，不会自由寻路。青弧没罩住=全伤。夜枭锁出水口；铁砧侧背对准紫线才是这关的爽点。G 弹包一人。红=主路，橙=侧翼（开），紫=关门后的陷阱接近。X 中止留情报；时间轴只读。M 静音。"
+	l.tutorial = "两波：主路先到，侧翼第二波。B 锁门会改走紫线，不是把人关没。第一波打扫后把青弧转向紫线。夜枭锁出水口。"
 	l.escape_cell = Vector2i(31, 19)
 	l.cover_defs = [
 		{"cell": Vector2i(10, 8), "name": "泵房西", "face": 0.0, "protect": 180.0},
@@ -532,12 +601,31 @@ static func make_pump() -> LevelDef:
 		{"id": 2, "route": "flank", "delay": 0.6, "loot": 2, "teaching_note": "锁门改线"},
 		{"id": 3, "route": "main", "delay": 1.0, "loot": 0},
 	]
+	l.waves = [
+		[
+			{"id": 1, "route": "main", "delay": 0.0, "loot": 1},
+			{"id": 3, "route": "main", "delay": 0.7, "loot": 0},
+		],
+		[
+			{"id": 2, "route": "flank", "delay": 0.3, "loot": 2, "teaching_note": "锁门改线"},
+		],
+	]
+	l.insert_cells = [Vector2i(10, 16), Vector2i(11, 17), Vector2i(12, 16)]
+	l.stashes = [
+		{"cell": Vector2i(10, 12), "kind": "rifle", "amount": 7},
+		{"cell": Vector2i(22, 13), "kind": "mg", "amount": 12},
+		{"cell": Vector2i(29, 16), "kind": "scout", "amount": 6},
+		{"cell": Vector2i(16, 8), "kind": "grenade", "amount": 2},
+		{"cell": Vector2i(9, 12), "kind": "mine", "amount": 1},
+		{"cell": Vector2i(23, 16), "kind": "ammo", "amount": 6},
+		{"cell": Vector2i(14, 16), "kind": "thompson", "amount": 20},
+	]
 	l.ambush_zone = Rect2(300, 250, 420, 220)
 	l.has_ammo_pack = true
 	l.beat_kind = "decision"
 	l.beat_text = "决策格 · 锁门改线 · 紫线要罩住"
 	l.highlight_hook = "锁门后紫线改道被你罩住"
-	l.must_bring = "夜枭锁出水口；铁砧侧背对准西侧紫线。"
+	l.must_bring = "第一波锁主路。锁门的话，第二波前把铁砧青弧转向紫线。"
 	l.role_why = {
 		"rifle": "本关：阀廊补主路",
 		"mg": "本关：侧背对准紫线",
@@ -564,7 +652,7 @@ static func make_railcut() -> LevelDef:
 	l.atmosphere_id = "railcut"
 	l.title = "第4关 · 信号楼：双走廊延迟"
 	l.teaching = "这关必须带铁砧朝北等 3.8 秒东廊。信号楼要切断两路巡轨：西廊巡卫立刻出发，东廊奔袭晚 3.8 秒才折下来。陷阱是南闸堆人——先到的西廊把弹药打空，延迟东廊再漏。核心墙挡住对射，必须分廊锁线。绊索只能铺一条。"
-	l.tutorial = "西廊立刻走脊，东廊从北过道晚 3.8 秒才到。核心设备挡住东西对射。铁砧朝北等东廊——等住这一枪才爽。灰狼补西廊，夜枭锁南闸。Tab 绊索一条走廊；G 弹包一人。没有门。红=西廊主路，橙=东廊延迟。X 中止留情报；时间轴只读。M 静音。"
+	l.tutorial = "两波：西廊先打，打扫补弹后再等东廊。核心墙挡住对射。第二波前看弹药——南闸打空会漏。铁砧朝北等东廊。地雷匣在西廊。"
 	l.escape_cell = Vector2i(31, 19)
 	# Six slots on open cells: west spine, east corridor, south mouth. No door (pump already teaches B).
 	l.cover_defs = [
@@ -593,12 +681,32 @@ static func make_railcut() -> LevelDef:
 		{"id": 3, "route": "flank", "delay": 3.8, "loot": 2, "ambush_window": 3.8, "teaching_note": "晚到东廊"},
 		{"id": 4, "route": "flank", "delay": 4.6, "loot": 0, "ambush_window": 3.8},
 	]
+	l.waves = [
+		[
+			{"id": 1, "route": "main", "delay": 0.0, "loot": 1},
+			{"id": 2, "route": "main", "delay": 0.6, "loot": 0},
+		],
+		[
+			{"id": 3, "route": "flank", "delay": 0.4, "loot": 2, "teaching_note": "晚到东廊"},
+			{"id": 4, "route": "flank", "delay": 1.0, "loot": 0},
+		],
+	]
+	l.insert_cells = [Vector2i(11, 16), Vector2i(12, 17), Vector2i(14, 16)]
+	l.stashes = [
+		{"cell": Vector2i(11, 10), "kind": "rifle", "amount": 7},
+		{"cell": Vector2i(32, 13), "kind": "mg", "amount": 12},
+		{"cell": Vector2i(29, 16), "kind": "scout", "amount": 6},
+		{"cell": Vector2i(16, 17), "kind": "grenade", "amount": 2},
+		{"cell": Vector2i(10, 11), "kind": "mine", "amount": 1},
+		{"cell": Vector2i(22, 16), "kind": "ammo", "amount": 6},
+		{"cell": Vector2i(18, 16), "kind": "mg42", "amount": 50},
+	]
 	l.ambush_zone = Rect2(280, 240, 500, 280)
 	l.has_ammo_pack = true
 	l.beat_kind = "flank_delay"
 	l.beat_text = "东廊延迟 3.8s · 铁砧等住"
 	l.highlight_hook = "3.8s 东廊迟到，铁砧等住"
-	l.must_bring = "铁砧朝北等 3.8 秒东廊；灰狼补西廊；夜枭锁南闸。"
+	l.must_bring = "第一波西廊，打扫补弹后再让铁砧朝北等东廊。"
 	l.role_why = {
 		"rifle": "本关：西廊立刻到",
 		"mg": "本关：朝北等 3.8s 东廊",
@@ -625,7 +733,7 @@ static func make_depot() -> LevelDef:
 	l.atmosphere_id = "depot"
 	l.title = "第5关 · 油库：三路合围"
 	l.teaching = "油库夜班三路合围：主路巡卫、东廊奔袭、西暗道影探（晚 2.2 秒）。中间油罐挡住对射。陷阱是南闸堆人+忽略西暗道——先到的两路打空弹药，影探再从西夹缝漏。唯一绊索封西暗道（7,11 一带），弹包给铁砧。绊索就是第四人。"
-	l.tutorial = "三路合围。西暗道晚 2.2 秒才从西墙夹缝南下。灰狼锁主路，铁砧朝北等东廊，夜枭看南闸；Tab 把唯一绊索铺在西暗道（7,11 一带）——抽中这一下才爽。G 弹包一人。没有门、没有油桶。红=主路，橙=东廊，绿=西暗道陷阱。X 中止留情报；时间轴只读。M 静音。"
+	l.tutorial = "两波：主路+东廊先到，打扫后再打西暗道。地雷匣就是第四人：把地雷/绊索铺在 7,11（影探 2.2s）。灰狼锁主路，铁砧等东廊，夜枭看南闸。"
 	l.escape_cell = Vector2i(31, 19)
 	l.cover_defs = [
 		{"cell": Vector2i(6, 10), "name": "西暗道", "face": 0.0, "protect": 0.0},
@@ -657,12 +765,33 @@ static func make_depot() -> LevelDef:
 		{"id": 3, "route": "sneak", "delay": 2.2, "loot": 2, "ambush_window": 2.2, "teaching_note": "西夹缝"},
 		{"id": 4, "route": "main", "delay": 0.9, "loot": 0},
 	]
+	l.waves = [
+		[
+			{"id": 1, "route": "main", "delay": 0.0, "loot": 1},
+			{"id": 4, "route": "main", "delay": 0.6, "loot": 0},
+			{"id": 2, "route": "flank", "delay": 0.4, "loot": 0},
+		],
+		[
+			{"id": 3, "route": "sneak", "delay": 0.4, "loot": 2, "teaching_note": "西夹缝"},
+		],
+	]
+	l.insert_cells = [Vector2i(6, 16), Vector2i(7, 17), Vector2i(8, 16)]
+	l.stashes = [
+		{"cell": Vector2i(13, 16), "kind": "rifle", "amount": 7},
+		{"cell": Vector2i(32, 13), "kind": "mg", "amount": 12},
+		{"cell": Vector2i(29, 16), "kind": "scout", "amount": 6},
+		{"cell": Vector2i(15, 15), "kind": "grenade", "amount": 2},
+		{"cell": Vector2i(7, 12), "kind": "mine", "amount": 1},
+		{"cell": Vector2i(22, 16), "kind": "bar", "amount": 20},
+		{"cell": Vector2i(6, 8), "kind": "decoy", "amount": 1},
+		{"cell": Vector2i(16, 16), "kind": "thompson", "amount": 20},
+	]
 	l.ambush_zone = Rect2(260, 230, 520, 280)
 	l.has_ammo_pack = true
 	l.beat_kind = "sneak_delay"
 	l.beat_text = "西暗道 2.2s · 绊索抽中"
 	l.highlight_hook = "2.2s 西暗道绊索抽中"
-	l.must_bring = "绊索就是第四人：铺在西暗道 7,11。铁砧等东廊，灰狼锁主路。"
+	l.must_bring = "第一波主路+东廊。打扫后把地雷铺西暗道，再拉第二波。"
 	l.role_why = {
 		"rifle": "本关：锁主路脊",
 		"mg": "本关：朝北等东廊",
@@ -689,7 +818,7 @@ static func make_radio() -> LevelDef:
 	l.atmosphere_id = "radio"
 	l.title = "第6关 · 电台：灯塔回波"
 	l.teaching = "油库切断后，电台还能把下一班叫回来。主路巡卫走灯塔脊，东廊奔袭先到一班，西暗道影探晚 3.6 秒，灯塔回波再在 5.2 秒走碟台夹缝——不是东廊那一枪。陷阱是不铺绊索：影探先从西夹缝漏。铁砧要在碟台朝南等回波，夜枭锁东廊。"
-	l.tutorial = "终夜。四条作者路：红主路、橙东廊、绿暗道、青回波。西暗道晚 3.6 秒，回波晚 5.2 秒走碟台夹缝（x=24），不是东廊。灰狼锁灯塔脊，铁砧碟台朝南等回波，夜枭朝北锁东廊；Tab 绊索铺西暗道（7,11）。G 弹包一人。没有门、没有油桶。X 中止留情报；时间轴只读。M 静音。"
+	l.tutorial = "三波：主路+东廊，再暗道，再灯塔回波。诱饵能把回波扯开一格。地雷封西暗道，铁砧碟台朝南等回波，夜枭锁东廊。"
 	l.escape_cell = Vector2i(31, 19)
 	# Unique stations vs depot: 灯塔脊 / 碟台 / 东廊. 碟台 looks south down the echo hall.
 	l.cover_defs = [
@@ -729,12 +858,37 @@ static func make_radio() -> LevelDef:
 		{"id": 4, "route": "main", "delay": 0.9, "loot": 0},
 		{"id": 5, "route": "echo", "delay": 5.2, "loot": 0, "ambush_window": 5.2, "teaching_note": "灯塔回波", "kit": "echo"},
 	]
+	l.waves = [
+		[
+			{"id": 1, "route": "main", "delay": 0.0, "loot": 1},
+			{"id": 4, "route": "main", "delay": 0.6, "loot": 0},
+			{"id": 2, "route": "flank", "delay": 0.4, "loot": 0, "teaching_note": "东廊先到"},
+		],
+		[
+			{"id": 3, "route": "sneak", "delay": 0.4, "loot": 2, "teaching_note": "西夹缝"},
+		],
+		[
+			{"id": 5, "route": "echo", "delay": 0.5, "loot": 2, "teaching_note": "灯塔回波", "kit": "echo"},
+		],
+	]
+	l.insert_cells = [Vector2i(6, 16), Vector2i(7, 17), Vector2i(8, 16)]
+	l.stashes = [
+		{"cell": Vector2i(13, 16), "kind": "rifle", "amount": 7},
+		{"cell": Vector2i(24, 16), "kind": "mg", "amount": 12},
+		{"cell": Vector2i(32, 13), "kind": "scout", "amount": 6},
+		{"cell": Vector2i(15, 15), "kind": "grenade", "amount": 2},
+		{"cell": Vector2i(7, 12), "kind": "mine", "amount": 1},
+		{"cell": Vector2i(22, 6), "kind": "decoy", "amount": 1},
+		{"cell": Vector2i(29, 16), "kind": "ammo", "amount": 8},
+		{"cell": Vector2i(18, 16), "kind": "springfield", "amount": 5},
+		{"cell": Vector2i(10, 16), "kind": "luger", "amount": 8},
+	]
 	l.ambush_zone = Rect2(260, 230, 520, 280)
 	l.has_ammo_pack = true
 	l.beat_kind = "radio_echo"
 	l.beat_text = "灯塔回波 5.2s · 绊索封暗道"
 	l.highlight_hook = "5.2s 灯塔回波，绊索抽中"
-	l.must_bring = "绊索封西暗道 7,11；铁砧碟台朝南等 5.2 秒回波。夜枭锁东廊。"
+	l.must_bring = "三波：先廊道，再暗道地雷，再碟台等回波。每波打扫补弹。"
 	l.role_why = {
 		"rifle": "本关：锁灯塔脊",
 		"mg": "本关：碟台朝南等 5.2s 回波",

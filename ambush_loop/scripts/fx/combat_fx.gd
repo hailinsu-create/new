@@ -36,6 +36,50 @@ static func hit_tick(host: Node2D, world_pos: Vector2, amount: float, tint: Colo
 	tw.tween_callback(n.queue_free)
 
 
+static func knife_lunge(host: Node2D, from: Vector2, to: Vector2) -> void:
+	if not _ok(host) or not _budget(host, "CfxLunge", 4):
+		return
+	var n := _spawn(host, "CfxLunge", from, 12)
+	var slash := Line2D.new()
+	slash.width = 2.4
+	slash.default_color = Color(0.78, 0.76, 0.62, 0.95)
+	slash.points = PackedVector2Array([Vector2.ZERO, to - from])
+	n.add_child(slash)
+	var tw := n.create_tween()
+	tw.tween_property(n, "modulate:a", 0.0, 0.16)
+	tw.parallel().tween_property(slash, "width", 0.4, 0.16)
+	tw.tween_callback(n.queue_free)
+
+
+static func steel_spark(host: Node2D, world_pos: Vector2) -> void:
+	impact(host, world_pos, Color(0.92, 0.78, 0.42), false)
+
+
+static func grenade_scorch(host: Node2D, world_pos: Vector2) -> void:
+	if not _ok(host):
+		return
+	var n := _spawn(host, "CfxScorch", world_pos + Vector2(0, 6), 1)
+	var burn := Polygon2D.new()
+	burn.polygon = PackedVector2Array([
+		Vector2(-14, -4), Vector2(6, -7), Vector2(16, 1), Vector2(8, 8),
+		Vector2(-6, 9), Vector2(-16, 3)
+	])
+	burn.color = Color(0.08, 0.06, 0.04, 0.62)
+	n.add_child(burn)
+	var clod := Polygon2D.new()
+	clod.polygon = PackedVector2Array([
+		Vector2(-8, 2), Vector2(4, 0), Vector2(12, 6), Vector2(2, 11), Vector2(-10, 8)
+	])
+	clod.color = Color(0.18, 0.12, 0.06, 0.50)
+	n.add_child(clod)
+	var ash := Polygon2D.new()
+	ash.polygon = PackedVector2Array([
+		Vector2(-6, -2), Vector2(5, -3), Vector2(3, 3), Vector2(-5, 2)
+	])
+	ash.color = Color(0.12, 0.10, 0.08, 0.45)
+	n.add_child(ash)
+
+
 static func impact(host: Node2D, world_pos: Vector2, tint: Color = Color(1.0, 0.82, 0.38), heavy: bool = false) -> void:
 	if not _ok(host) or not _budget(host, "CfxImpact", 6):
 		return
@@ -138,7 +182,7 @@ static func kill_burst(host: Node2D, world_pos: Vector2, tint: Color = Color(0.9
 				Vector2(0, -1.6), Vector2(13, 0), Vector2(0, 1.6)
 			])
 			shard.rotation = a
-			shard.color = Color(1.0, 0.85, 0.45, 0.88)
+			shard.color = Color(0.72, 0.52, 0.28, 0.88)
 			n.add_child(shard)
 		var x1 := Line2D.new()
 		x1.width = 2.2
@@ -175,7 +219,7 @@ static func trip_snap(host: Node2D, world_pos: Vector2) -> void:
 	var ring := Line2D.new()
 	ring.width = 2.0
 	ring.closed = true
-	ring.default_color = Color(0.55, 0.98, 0.52, 0.85)
+	ring.default_color = Color(0.62, 0.52, 0.28, 0.85)
 	var pts := PackedVector2Array()
 	for i in 10:
 		var a := TAU * float(i) / 10.0
@@ -302,6 +346,60 @@ static func escape_streak(host: Node2D, world_pos: Vector2, dir: Vector2 = Vecto
 	tw.tween_callback(n.queue_free)
 
 
+static func mud_print(host: Node2D, world_pos: Vector2, facing_rad: float = 0.0) -> void:
+	if not _ok(host) or _saving() or not _budget(host, "CfxPrint", 6):
+		return
+	var n := _spawn(host, "CfxPrint", world_pos + Vector2(0, 10), 1)
+	var boot := Polygon2D.new()
+	boot.polygon = PackedVector2Array([
+		Vector2(-3.2, -5.0), Vector2(3.2, -5.0), Vector2(2.6, 5.2), Vector2(-2.6, 5.2)
+	])
+	boot.rotation = facing_rad + PI * 0.5
+	boot.color = Color(0.16, 0.12, 0.08, 0.42)
+	n.add_child(boot)
+	var tw := n.create_tween()
+	tw.tween_interval(2.4)
+	tw.tween_property(n, "modulate:a", 0.0, 1.1)
+	tw.tween_callback(n.queue_free)
+
+
+static func brass_eject(host: Node2D, world_pos: Vector2, facing_rad: float, heavy: bool = false, caliber: String = "") -> void:
+	if not _ok(host) or _saving() or not _budget(host, "CfxBrass", 8):
+		return
+	var n := _spawn(host, "CfxBrass", world_pos, 11)
+	var shell := Polygon2D.new()
+	var w := 1.2
+	var h := 3.4
+	match caliber:
+		"mg":
+			w = 1.6
+			h = 4.6
+		"pistol", "smg":
+			w = 0.9
+			h = 2.4
+		"shotgun":
+			w = 1.8
+			h = 3.0
+		"scout":
+			w = 1.3
+			h = 4.2
+		_:
+			w = 1.2
+			h = 3.4
+	shell.polygon = PackedVector2Array([
+		Vector2(-w, -h), Vector2(w, -h), Vector2(w + 0.2, h * 0.88), Vector2(-w - 0.2, h * 0.88)
+	])
+	shell.color = Color(0.78, 0.58, 0.22, 0.95) if caliber != "shotgun" else Color(0.72, 0.62, 0.38, 0.95)
+	n.add_child(shell)
+	var side := Vector2(-sin(facing_rad), cos(facing_rad))
+	var kick := side * (10.0 if heavy else 7.0) + Vector2(0, 6)
+	var tw := n.create_tween()
+	tw.tween_property(n, "position", n.position + kick, 0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(n, "rotation", 1.8 if heavy else 1.1, 0.22)
+	tw.parallel().tween_property(n, "modulate:a", 0.0, 0.28)
+	tw.tween_callback(n.queue_free)
+
+
 static func land_dust(host: Node2D, world_pos: Vector2) -> void:
 	if not _ok(host) or _saving() or not _budget(host, "CfxLand", 4):
 		return
@@ -319,6 +417,34 @@ static func land_dust(host: Node2D, world_pos: Vector2) -> void:
 	tw.tween_property(n, "scale", Vector2(1.85, 0.62), 0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.parallel().tween_property(n, "modulate:a", 0.0, 0.22)
 	tw.tween_callback(n.queue_free)
+
+
+static func drag_smear(host: Node2D, world_pos: Vector2, dir: Vector2 = Vector2(0, 1), tint: Color = Color(0.38, 0.12, 0.08)) -> void:
+	if not _ok(host):
+		return
+	var d := dir.normalized() if dir.length_squared() > 0.04 else Vector2(0, 1)
+	var perp := Vector2(-d.y, d.x)
+	var n := _spawn(host, "CfxDrag", world_pos + Vector2(0, 8), 1)
+	var smear := Polygon2D.new()
+	smear.polygon = PackedVector2Array([
+		perp * -7.0 + d * -4.0,
+		perp * 6.0 + d * -3.0,
+		perp * 4.0 + d * 28.0,
+		perp * 1.2 + d * 38.0,
+		perp * -2.0 + d * 26.0,
+		perp * -5.5 + d * 10.0,
+	])
+	smear.color = Color(0.16, 0.10, 0.06, 0.58)
+	n.add_child(smear)
+	var blood := Polygon2D.new()
+	blood.polygon = PackedVector2Array([
+		perp * -3.4 + d * 2.0,
+		perp * 2.8 + d * 4.0,
+		perp * 1.6 + d * 22.0,
+		perp * -2.2 + d * 18.0,
+	])
+	blood.color = Color(tint.r * 0.42, tint.g * 0.16, tint.b * 0.12, 0.55)
+	n.add_child(blood)
 
 
 static func death_stain(host: Node2D, world_pos: Vector2, tint: Color = Color(0.55, 0.12, 0.10)) -> void:

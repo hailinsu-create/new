@@ -5,10 +5,10 @@ extends Control
 const CampaignJournalScript := preload("res://scripts/ui/campaign_journal.gd")
 
 const HOWTO := """北区补给链第三夜：院子 → 仓道 → 泵站 → 信号楼 → 油库 → 电台。
-布置杀局，警报锁死，只能观看。失败穿梭并带回情报。
+搜刮组火力，埋伏后拉警报。清波打扫，战利品带进下一波。逃逸或全灭失败。
 灰狼补主路第一枪，铁砧宽锥耗弹（弹包优先），夜枭长窄锁出口。卡面会写这关必须带谁。
 
-【手机】点左侧作战卡选人 → 点掩体部署 → 底栏 ↺↻ 或拖队员调射界 → 点「警报」锁死。
+【手机】点队员/点地走 → 开匣搜枪 → 趴掩体 → 底栏 ↺↻ 调射界 → 点「警报」拉波次（需先搜枪）。
 返回键打开菜单，不直接退出。中止 / 跳到终局 / 暂停 / 倍速 / 弹包 / 绊索 / 门锁都在底栏。清空记忆在设置里点两次。
 
 键 / 操作              作用
@@ -17,10 +17,14 @@ const HOWTO := """北区补给链第三夜：院子 → 仓道 → 泵站 → �
 悬停掩体                预览该位保护弧
 A / D 或右键            调整射界（黄锥被墙裁切）
 F                       开火条件：见敌即打 / 入伏再打
-G                       弹包交给已部署队员（仓道、泵站、信号楼、油库、电台）
+G                       搜刮期放雷点（再按撤）；警报中自动丢，不要手动瞄准
+I / 背包                打开选中队员的 6 格背包：点枪装备，递给队友或丢掉
+弹包按钮                弹包交给已部署队员（仓道、泵站、信号楼、油库、电台）
+T                       递给最近队友（枪/雷/饵；背包里点格子更准）
+H                       拖尸体（慢走，躲开路线）
 B                       门锁（泵站；侧翼改走备用接近）
-Tab                     绊索工具（路线附近，限额 1）
-空格                    拉响警报并锁死计划 / 观看时暂停 / 退出复盘
+Tab                     走路 / 地雷 / 手雷 / 诱饵
+空格                    拉警报（需至少一枪，再按可强拉）/ 打扫后下一波或撤离 / 警报中暂停 / 退出复盘
 P                       观看暂停
 + / −                   观看变速 1× / 2×（不改模拟结果）
 X                       中止尝试，保留目前情报（算失败）
@@ -31,7 +35,7 @@ R                       清空记忆并重新布置（手机：设置里确认�
 Esc / 返回键            标题：退出确认；战场：作战设置
 退出                    退出确认（进度留在本地）
 
-硬规则：警报后不能微操；敌人走作者路线；逃逸或全灭都算失败。"""
+硬规则：敌人走作者路线；逃逸或全灭失败；警报中不自由走位（自动开火+自动手雷）；打扫才继承装备。"""
 
 @onready var wordmark: Label = $UI/Wordmark
 @onready var tagline: Label = $UI/Tagline
@@ -773,6 +777,7 @@ func _build_ops_stamp() -> void:
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui.add_child(row)
 	_ops_stamp = row
+	row.add_child(_stamp_chip("StampVersion", "v%s COMMANDOS/WW2" % NightOps.game_version(), NightOps.OLIVE_HI, Vector2(228, 28)))
 	row.add_child(_stamp_chip("StampDate", _ops_stamp_text(), NightOps.MUTED, Vector2(210, 28)))
 	row.add_child(_stamp_chip("NightOpsBadge", "NIGHT OPS / 夜袭", NightOps.OLIVE_HI, Vector2(180, 28)))
 	row.add_child(_stamp_chip("CampaignChip", "第三夜", NightOps.OLIVE_DIM, Vector2(84, 28)))
@@ -800,9 +805,9 @@ func _refresh_campaign_title() -> void:
 	var complete := gs != null and gs.has_method("is_campaign_complete") and bool(gs.is_campaign_complete())
 	if tagline:
 		if complete:
-			tagline.text = "灯塔停转 · 北区补给链已切断 · 档案已归档"
+			tagline.text = "v%s · 灯塔停转 · 北区补给链已切断 · 档案已归档" % NightOps.game_version()
 		else:
-			tagline.text = "朋友包 · 六夜 · 程序多边形 · 合成音 · 横屏"
+			tagline.text = "v%s · COMMANDOS/WW2 · 搜刮埋伏 · 多波打扫 · 横屏" % NightOps.game_version()
 	if _journal_btn:
 		if complete:
 			_journal_btn.text = "战役档案（已切断）"
@@ -915,7 +920,7 @@ func _fill_route_chips(def: LevelDef) -> void:
 				col = Color(0.95, 0.62, 0.22)
 			"sneak":
 				label = "暗道"
-				col = Color(0.42, 0.78, 0.62)
+				col = Color(0.42, 0.48, 0.28)
 			"main":
 				label = "主路"
 				col = Color(0.92, 0.28, 0.22)

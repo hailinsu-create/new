@@ -9,11 +9,14 @@ enum FireMode { ENGAGE_ON_SIGHT, HOLD_FOR_AMBUSH }
 const MAX_HP := 100.0
 const COVER_DAMAGE_MULT := 0.4
 const EXPOSED_DAMAGE_MULT := 1.0
-const LOOT_RANGE := 52.0
+const LOOT_RANGE := 56.0
 const CONE_RAYS := 14
 const MuzzleFlashScript := preload("res://scripts/fx/muzzle_flash.gd")
 const CombatFxScript := preload("res://scripts/fx/combat_fx.gd")
 const Silhouette := preload("res://scripts/fx/operator_silhouette.gd")
+const Weapons := preload("res://scripts/raid/weapon_catalog.gd")
+const WeaponArtScript := preload("res://scripts/art/weapon_art.gd")
+const RaidBackpackScript := preload("res://scripts/raid/backpack.gd")
 
 signal died(op: OperatorUnit)
 signal fired_shot(op: OperatorUnit, target_pos: Vector2)
@@ -47,6 +50,7 @@ var start_ammo: int = 7
 var max_ammo: int = 14
 var body_color: Color = Color(0.35, 0.65, 0.95)
 var role_short: String = "步"
+var kit_range_px: float = 220.0
 
 @onready var body: Polygon2D = $Body
 @onready var cone: Polygon2D = $Cone
@@ -70,6 +74,8 @@ var _present_t: float = 0.0
 var _death_tween: Tween = null
 var _recoil_off: Vector2 = Vector2.ZERO
 var _weapon_snap: float = 0.0
+var _bolt_cycle: float = 0.0
+var _barrel_heat: float = 0.0
 var _hit_punch: float = 0.0
 var hp_bar: Polygon2D = null
 var shield_glyph: Polygon2D = null
@@ -89,6 +95,32 @@ var _bark_tween: Tween = null
 var _selected_visual: bool = false
 var _land_pop: float = 0.0
 var _face_tick: float = 0.0
+var weapon_id: String = "knife"
+var melee: bool = true
+var recoil_mul: float = 1.0
+var spread_deg: float = 0.0
+var reload_s: float = 0.0
+var muzzle_style: String = "rifle"
+var muzzle_intensity: float = 1.0
+var fire_sfx: String = ""
+var grenades: int = 0
+var mines: int = 0
+var decoys: int = 0
+var pack = RaidBackpackScript.new()
+var nade_mark: Vector2 = Vector2.ZERO
+var has_nade_mark: bool = false
+var grenade_cd: float = 0.0
+var auto_grenade: bool = true
+var nade_mark_fx: Node2D = null
+var move_path: PackedVector2Array = PackedVector2Array()
+var move_speed: float = 96.0
+var _path_i: int = 0
+var search_stash: Node2D = null
+var search_t: float = 0.0
+const SEARCH_SECONDS := 0.4
+var ammo_pool: Dictionary = {}
+var hauled_loot: Node2D = null
+var base_move_speed: float = 96.0
 
 
 static func role_for_id(id: int) -> int:
@@ -124,11 +156,11 @@ static func role_codename(role_id: int) -> String:
 static func role_kit_color(role_id: int) -> Color:
 	match role_id:
 		Role.MG:
-			return Color(0.68, 0.78, 0.36)
+			return Color(0.56, 0.50, 0.26)
 		Role.SCOUT:
-			return Color(0.38, 0.82, 0.92)
+			return Color(0.40, 0.44, 0.34)
 		_:
-			return Color(0.52, 0.72, 0.92)
+			return Color(0.52, 0.46, 0.30)
 
 
 func setup(id: int, pname: String, p_grid: AmbushGrid = null) -> void:
@@ -142,6 +174,7 @@ func setup(id: int, pname: String, p_grid: AmbushGrid = null) -> void:
 	_ensure_hp_bar()
 	_ensure_shield()
 	_refresh_role_glyph()
+	wipe_inventory()
 	reset_loadout()
 	set_observation_ring(false)
 
@@ -157,8 +190,11 @@ func _apply_role_kit() -> void:
 			shot_interval = 0.10
 			start_ammo = 12
 			max_ammo = 18
-			body_color = Color(0.46, 0.54, 0.28)
+			body_color = Color(0.38, 0.36, 0.22)
 			role_short = "机"
+			move_speed = 90.0
+			base_move_speed = 90.0
+			kit_range_px = range_px
 		Role.SCOUT:
 			# Long narrow overwatch, scarce rounds — Commandos sniper/lookout.
 			# 20° half-angle keeps the reference exit slot (facing 180) on the south corridor.
@@ -168,8 +204,11 @@ func _apply_role_kit() -> void:
 			shot_interval = 0.28
 			start_ammo = 6
 			max_ammo = 10
-			body_color = Color(0.26, 0.52, 0.62)
+			body_color = Color(0.24, 0.28, 0.22)
 			role_short = "侦"
+			move_speed = 140.0
+			base_move_speed = 140.0
+			kit_range_px = range_px
 		_:
 			# Rifle: stable filler, same baseline as the original identical kits.
 			range_px = 220.0
@@ -178,16 +217,19 @@ func _apply_role_kit() -> void:
 			shot_interval = 0.18
 			start_ammo = 7
 			max_ammo = 14
-			body_color = Color(0.40, 0.55, 0.68)
+			body_color = Color(0.36, 0.34, 0.24)
 			role_short = "步"
+			move_speed = 118.0
+			base_move_speed = 118.0
+			kit_range_px = range_px
 
 
 func reset_loadout() -> void:
 	alive = true
 	hp = MAX_HP
-	ammo = start_ammo
 	shot_cd = 0.0
 	locked = false
+	stop_move()
 	ammo_pack_used = false
 	fire_permitted = fire_mode == FireMode.ENGAGE_ON_SIGHT
 	last_deny.clear()
@@ -203,6 +245,435 @@ func reset_loadout() -> void:
 	_rebuild_cone()
 	_update_hp_bar()
 	_refresh_shield()
+
+
+func wipe_inventory() -> void:
+	if pack == null:
+		pack = RaidBackpackScript.new()
+	pack.clear()
+	grenades = 0
+	mines = 0
+	decoys = 0
+	has_ammo_pack = false
+	ammo_pack_used = false
+	ammo_pool.clear()
+	grenade_cd = 0.0
+	clear_nade_mark()
+	cancel_search()
+	drop_hauled()
+	apply_weapon("knife", true)
+
+
+func _ammo_family() -> String:
+	return Weapons.family_of(weapon_id) if Weapons.is_firearm(weapon_id) else ""
+
+
+func _stash_mag() -> void:
+	if Weapons.is_firearm(weapon_id) and ammo > 0:
+		ammo_pool[_ammo_family()] = ammo
+
+
+func apply_weapon(id: String, reset_ammo: bool = false) -> void:
+	_stash_mag()
+	var d: Dictionary = Weapons.def(id)
+	weapon_id = str(d.get("id", "knife"))
+	melee = bool(d.get("melee", false))
+	recoil_mul = float(d.get("recoil", 1.0))
+	spread_deg = float(d.get("spread_deg", 0.0))
+	reload_s = float(d.get("reload_s", 0.0))
+	muzzle_style = str(d.get("muzzle", "rifle"))
+	muzzle_intensity = float(d.get("muzzle_i", 1.0))
+	fire_sfx = str(d.get("sfx", ""))
+	if d.has("range_px"):
+		range_px = float(d["range_px"])
+		half_angle_deg = float(d.get("half_angle_deg", 28.0))
+		damage_per_shot = float(d.get("damage", 34.0))
+		shot_interval = float(d.get("shot_interval", 0.18))
+		start_ammo = int(d.get("start_ammo", 0))
+		max_ammo = int(d.get("max_ammo", 0))
+	if melee:
+		ammo = 0
+		max_ammo = 0
+	else:
+		var fam := _ammo_family()
+		var stored := int(ammo_pool.get(fam, 0))
+		if reset_ammo:
+			ammo = maxi(start_ammo, stored)
+		elif stored > 0:
+			ammo = stored
+		elif ammo <= 0:
+			ammo = start_ammo
+		ammo = mini(maxi(ammo, 0), maxi(max_ammo, start_ammo))
+		ammo_pool[fam] = ammo
+	if Weapons.is_firearm(weapon_id) and pack != null:
+		pack.ensure_firearm(weapon_id, ammo)
+	_refresh_tag()
+	_rebuild_cone()
+
+
+func pack_can_fit(kind: String, amount: int = 1) -> bool:
+	if pack == null:
+		pack = RaidBackpackScript.new()
+	if kind == "radio_part":
+		kind = "decoy"
+	return pack.can_fit(kind, amount)
+
+
+func consume_grenade() -> bool:
+	if grenades <= 0:
+		return false
+	grenades -= 1
+	if pack != null and pack.count_of("grenade") > 0:
+		pack.take("grenade", 1)
+	_refresh_tag()
+	return true
+
+
+func consume_mine() -> bool:
+	if mines <= 0:
+		return false
+	mines -= 1
+	if pack != null and pack.count_of("mine") > 0:
+		pack.take("mine", 1)
+	_refresh_tag()
+	return true
+
+
+func consume_decoy() -> bool:
+	if decoys <= 0:
+		return false
+	decoys -= 1
+	if pack != null and pack.count_of("decoy") > 0:
+		pack.take("decoy", 1)
+	_refresh_tag()
+	return true
+
+
+func set_nade_mark(world: Vector2) -> void:
+	has_nade_mark = true
+	nade_mark = world
+	_refresh_nade_mark_fx()
+
+
+func clear_nade_mark() -> void:
+	has_nade_mark = false
+	nade_mark = Vector2.ZERO
+	if nade_mark_fx != null and is_instance_valid(nade_mark_fx):
+		nade_mark_fx.queue_free()
+	nade_mark_fx = null
+
+
+func in_throw_cone(world_pos: Vector2, half_deg: float = 52.0) -> bool:
+	var v := world_pos - global_position
+	if v.length_squared() < 4.0:
+		return true
+	var face := Vector2(cos(deg_to_rad(facing_deg)), sin(deg_to_rad(facing_deg)))
+	return absf(rad_to_deg(face.angle_to(v))) <= half_deg
+
+
+func equip_from_pack(kind: String) -> Dictionary:
+	if pack == null or not pack.has_kind(kind):
+		return {"ok": false, "text": "包里没有"}
+	if not Weapons.is_firearm(kind):
+		return {"ok": false, "text": "不能装备"}
+	apply_weapon(kind, false)
+	return {"ok": true, "text": "换上%s" % Weapons.display_name(kind)}
+
+
+func drop_from_pack(kind: String) -> Dictionary:
+	if pack == null or not pack.has_kind(kind):
+		return {"ok": false, "text": "包里没有", "amount": 0}
+	var amt := 1
+	if kind in ["grenade", "mine", "decoy"]:
+		amt = mini(pack.count_of(kind), 1)
+		pack.take(kind, amt)
+		match kind:
+			"grenade":
+				grenades = pack.count_of("grenade")
+			"mine":
+				mines = pack.count_of("mine")
+			"decoy":
+				decoys = pack.count_of("decoy")
+	else:
+		var rec := pack.remove_kind(kind)
+		amt = int(rec.get("amount", 1))
+		if str(weapon_id) == kind:
+			var rest := pack.firearms()
+			if rest.size() > 0:
+				apply_weapon(rest[0], false)
+			else:
+				apply_weapon("knife", true)
+	_refresh_tag()
+	return {"ok": true, "text": "丢掉%s" % Weapons.display_name(kind), "kind": kind, "amount": amt}
+
+
+func receive_item(kind: String, amount: int = 1) -> Dictionary:
+	var n := maxi(amount, 1)
+	if pack == null:
+		pack = RaidBackpackScript.new()
+	match kind:
+		"grenade":
+			if not pack.can_fit("grenade", n):
+				return {"ok": false, "full": true, "text": "背包满"}
+			pack.add_item("grenade", n)
+			grenades = pack.count_of("grenade")
+			_refresh_tag()
+			return {"ok": true, "text": "+%d手雷  包%s" % [n, pack.line()]}
+		"mine":
+			if not pack.can_fit("mine", n):
+				return {"ok": false, "full": true, "text": "背包满"}
+			pack.add_item("mine", n)
+			mines = pack.count_of("mine")
+			_refresh_tag()
+			return {"ok": true, "text": "+%d地雷  包%s" % [n, pack.line()]}
+		"decoy":
+			if not pack.can_fit("decoy", n):
+				return {"ok": false, "full": true, "text": "背包满"}
+			pack.add_item("decoy", n)
+			decoys = pack.count_of("decoy")
+			_refresh_tag()
+			return {"ok": true, "text": "+%d诱饵  包%s" % [n, pack.line()]}
+		"ammo":
+			if melee:
+				if not pack.can_fit("pistol", 1):
+					return {"ok": false, "full": true, "text": "背包满"}
+				apply_weapon("pistol", true)
+			var gained := receive_ammo(n)
+			return {"ok": gained > 0, "text": "+%d%s弹" % [gained, Weapons.display_name(weapon_id)], "gained": gained}
+		"pistol_ammo", "rifle_ammo", "mg_ammo", "scout_ammo", "shotgun_ammo", "smg_ammo":
+			var ak := Weapons.ammo_kind_of(kind)
+			var pooled := receive_ammo(n, ak)
+			if ak != "" and ak != _ammo_family():
+				return {"ok": pooled > 0, "text": "+%d%s（不配%s）" % [pooled, Weapons.display_name(kind), Weapons.display_name(weapon_id)], "gained": pooled, "pooled": true}
+			return {"ok": pooled > 0, "text": "+%d%s" % [pooled, Weapons.display_name(kind)], "gained": pooled}
+		"knife":
+			apply_weapon("knife", true)
+			return {"ok": true, "text": "拔刀"}
+		"radio_part":
+			return receive_item("decoy", 1)
+		_:
+			if Weapons.is_firearm(kind):
+				if pack.has_kind(kind):
+					if melee:
+						apply_weapon(kind, true)
+					if n > 0:
+						receive_ammo(n)
+					return {"ok": true, "text": "补%s弹" % Weapons.display_name(kind)}
+				if not pack.can_fit(kind, n):
+					return {"ok": false, "full": true, "text": "背包满"}
+				var was_melee := melee
+				pack.add_item(kind, n)
+				if was_melee:
+					apply_weapon(kind, true)
+					if n > start_ammo:
+						receive_ammo(n - start_ammo)
+					return {"ok": true, "text": "装备%s  包%s" % [Weapons.display_name(kind), pack.line()]}
+				return {"ok": true, "text": "入包%s  包%s" % [Weapons.display_name(kind), pack.line()]}
+			return {"ok": false, "text": ""}
+
+
+func set_move_path(world_pts: PackedVector2Array) -> void:
+	move_path = world_pts
+	_path_i = 0
+	if move_path.size() > 1:
+		_path_i = 1
+
+
+func stop_move() -> void:
+	move_path = PackedVector2Array()
+	_path_i = 0
+
+
+func begin_search(stash: Node2D) -> void:
+	if stash == null or not is_instance_valid(stash):
+		return
+	if search_stash == stash:
+		return
+	cancel_search()
+	search_stash = stash
+	search_t = 0.0
+	stop_move()
+
+
+func cancel_search() -> void:
+	if search_stash != null and is_instance_valid(search_stash) and search_stash.has_method("set_search_progress"):
+		search_stash.set_search_progress(0.0)
+	search_stash = null
+	search_t = 0.0
+
+
+func is_searching() -> bool:
+	return search_stash != null and is_instance_valid(search_stash)
+
+
+func haul_loot(loot: Node2D) -> void:
+	if loot == null or not is_instance_valid(loot):
+		return
+	hauled_loot = loot
+	move_speed = base_move_speed * 0.62
+	sync_hauled()
+
+
+func drop_hauled() -> void:
+	hauled_loot = null
+	move_speed = base_move_speed
+
+
+func is_hauling() -> bool:
+	return hauled_loot != null and is_instance_valid(hauled_loot)
+
+
+func sync_hauled() -> void:
+	if not is_hauling():
+		if hauled_loot != null:
+			hauled_loot = null
+			move_speed = base_move_speed
+		return
+	hauled_loot.global_position = global_position + Vector2(0, 14)
+
+
+func noise_if_sprinting() -> float:
+	if not is_moving():
+		return 0.0
+	if is_hauling():
+		return 0.85
+	return 0.35 if role == Role.MG else 0.2
+
+
+func tick_search(delta: float) -> bool:
+	if not is_searching():
+		return false
+	search_t += maxf(delta, 0.0)
+	var need := SEARCH_SECONDS
+	if search_stash.get("SEARCH_SECONDS") != null:
+		need = float(search_stash.SEARCH_SECONDS)
+	var p := clampf(search_t / maxf(need, 0.05), 0.0, 1.0)
+	if search_stash.has_method("set_search_progress"):
+		search_stash.set_search_progress(p)
+	return search_t >= need
+
+
+func is_moving() -> bool:
+	return alive and move_path.size() > 0 and _path_i < move_path.size()
+
+
+func tick_move(delta: float) -> bool:
+	if not alive or locked or not is_moving():
+		return false
+	if is_searching():
+		cancel_search()
+	var target: Vector2 = move_path[_path_i]
+	global_position = global_position.move_toward(target, move_speed * delta)
+	var aim := target - global_position
+	if aim.length_squared() > 4.0:
+		set_facing(rad_to_deg(atan2(aim.y, aim.x)))
+	if global_position.distance_to(target) <= 3.0:
+		_path_i += 1
+		if _path_i % 3 == 0:
+			CombatFxScript.mud_print(self, global_position, deg_to_rad(facing_deg))
+		if _path_i >= move_path.size():
+			stop_move()
+			return false
+	return true
+
+
+func grid_cell() -> Vector2i:
+	if grid == null:
+		return Vector2i(int(global_position.x / 32.0), int(global_position.y / 32.0))
+	return grid.world_to_cell(global_position)
+
+
+func unlock_plan() -> void:
+	locked = false
+	_rebuild_cone()
+	_refresh_tag()
+
+
+func inventory_line() -> String:
+	var gun := Weapons.display_name(weapon_id)
+	var pool_bit := ""
+	for k in ammo_pool.keys():
+		if str(k) == weapon_id or str(k) == _ammo_family():
+			continue
+		var n := int(ammo_pool[k])
+		if n > 0:
+			pool_bit += " %s弹%d" % [Weapons.display_name(str(k)), n]
+	var pack_bit := " 包%s" % (pack.line() if pack else "0/6")
+	if melee:
+		return "%s  雷%d 手雷%d 饵%d%s%s" % [gun, mines, grenades, decoys, pool_bit, pack_bit]
+	return "%s 弹%d/%d  雷%d 手雷%d%s%s" % [gun, ammo, max_ammo, mines, grenades, pool_bit, pack_bit]
+
+
+func transfer_to(other: OperatorUnit, kind: String = "auto") -> Dictionary:
+	if other == null or other == self or not other.alive or not alive:
+		return {"ok": false, "text": "无人可递"}
+	var k := kind
+	if k == "auto":
+		if grenades > 0:
+			k = "grenade"
+		elif mines > 0:
+			k = "mine"
+		elif decoys > 0:
+			k = "decoy"
+		else:
+			var extra := ""
+			if pack != null:
+				for gid in pack.firearms():
+					if gid != weapon_id:
+						extra = gid
+						break
+			if extra != "":
+				k = extra
+			elif Weapons.is_firearm(weapon_id):
+				k = weapon_id
+			else:
+				return {"ok": false, "text": "包里没有可递的"}
+	if other.has_method("pack_can_fit") and not other.pack_can_fit(k, 1):
+		return {"ok": false, "text": "%s背包满" % other.display_name}
+	match k:
+		"grenade":
+			if grenades <= 0:
+				return {"ok": false, "text": "没有手雷"}
+			if not consume_grenade():
+				return {"ok": false, "text": "没有手雷"}
+			other.receive_item("grenade", 1)
+			return {"ok": true, "text": "手雷→%s" % other.display_name, "kind": k}
+		"mine":
+			if mines <= 0:
+				return {"ok": false, "text": "没有地雷"}
+			if not consume_mine():
+				return {"ok": false, "text": "没有地雷"}
+			other.receive_item("mine", 1)
+			return {"ok": true, "text": "地雷→%s" % other.display_name, "kind": k}
+		"decoy":
+			if decoys <= 0:
+				return {"ok": false, "text": "没有诱饵"}
+			if not consume_decoy():
+				return {"ok": false, "text": "没有诱饵"}
+			other.receive_item("decoy", 1)
+			return {"ok": true, "text": "诱饵→%s" % other.display_name, "kind": k}
+		_:
+			if Weapons.is_firearm(k):
+				var mag := ammo if weapon_id == k else 1
+				var in_hand := weapon_id == k
+				if pack == null or not pack.has_kind(k):
+					if not in_hand:
+						return {"ok": false, "text": "没拿这把"}
+				if pack != null:
+					pack.remove_kind(k)
+				if in_hand:
+					var fam := _ammo_family()
+					ammo = 0
+					ammo_pool.erase(k)
+					ammo_pool.erase(fam)
+					var rest := pack.firearms() if pack else PackedStringArray()
+					if rest.size() > 0:
+						apply_weapon(rest[0], false)
+					else:
+						apply_weapon("knife", true)
+				other.receive_item(k, maxi(mag, 1))
+				return {"ok": true, "text": "%s→%s" % [Weapons.display_name(k), other.display_name], "kind": k}
+			return {"ok": false, "text": ""}
 
 
 func set_fire_mode(mode: int) -> void:
@@ -239,7 +710,10 @@ func set_facing(deg: float) -> void:
 
 
 func rotate_by(delta_deg: float) -> void:
-	set_facing(facing_deg + delta_deg)
+	var step := delta_deg
+	if role == Role.MG:
+		step = clampf(delta_deg, -8.0, 8.0)
+	set_facing(facing_deg + step)
 
 
 func lock_plan() -> void:
@@ -256,6 +730,8 @@ func lock_plan() -> void:
 func tick_cooldown(delta: float) -> void:
 	if shot_cd > 0.0:
 		shot_cd = maxf(shot_cd - delta, 0.0)
+	if grenade_cd > 0.0:
+		grenade_cd = maxf(grenade_cd - delta, 0.0)
 
 
 func _los_clip_distance(local_dir: Vector2) -> float:
@@ -303,7 +779,7 @@ func _rebuild_cone() -> void:
 		elif ammo <= 0:
 			cone.color = Color(0.45, 0.45, 0.5, 0.18)
 		else:
-			cone.color = Color(0.95, 0.75, 0.25, 0.30)
+			cone.color = Color(0.82, 0.68, 0.32, 0.30)
 		# Snapshot the un-boosted hue so WATCHING freeze doesn't depend on selection.
 		_cone_plan_color = cone.color
 		if _selected_visual:
@@ -349,7 +825,7 @@ func engage_block_reason(target: Vector2, p_grid: AmbushGrid) -> String:
 	## "" | hold | ammo | range | cone | los
 	if not fire_permitted:
 		return "hold"
-	if ammo <= 0:
+	if not melee and ammo <= 0:
 		return "ammo"
 	var to_v := target - global_position
 	var dist := to_v.length()
@@ -376,14 +852,27 @@ func try_fire(target: EnemyRunner, p_grid: AmbushGrid) -> bool:
 	if shot_cd > 0.0:
 		return false
 	shot_cd = shot_interval
-	ammo = maxi(ammo - 1, 0)
+	if not melee:
+		ammo = maxi(ammo - 1, 0)
+		ammo_pool[_ammo_family()] = ammo
 	fired_shot.emit(self, target.global_position)
-	target.apply_fire(damage_per_shot, self)
-	_spawn_muzzle_flash()
-	if ammo == 0:
+	var dmg := damage_per_shot
+	if melee and role == Role.SCOUT:
+		dmg *= 1.25
+	target.apply_fire(dmg, self)
+	if melee:
+		CombatFxScript.knife_lunge(self, global_position, target.global_position)
+	else:
+		_spawn_muzzle_flash()
+	if not melee and ammo == 0:
+		if reload_s > 0.0:
+			shot_cd = maxf(shot_cd, reload_s)
 		var before := ammo
 		_try_ammo_pack()
 		if ammo > before:
+			ammo_repacked.emit(self)
+		elif int(ammo_pool.get("pistol", 0)) > 0 and Weapons.family_of(weapon_id) != "pistol":
+			apply_weapon("pistol", false)
 			ammo_repacked.emit(self)
 		else:
 			ammo_empty.emit(self)
@@ -444,6 +933,7 @@ func cover_idle_planted() -> bool:
 func play_land_pop() -> void:
 	_land_pop = 1.0
 	CombatFxScript.land_dust(self, global_position)
+	CombatFxScript.mud_print(self, global_position, deg_to_rad(facing_deg))
 
 
 func set_selected_visual(on: bool) -> void:
@@ -480,6 +970,10 @@ func _process(delta: float) -> void:
 	if _recoil_off.length_squared() < 0.04:
 		_recoil_off = Vector2.ZERO
 	_weapon_snap = move_toward(_weapon_snap, 0.0, delta * 7.5)
+	if _bolt_cycle > 0.0:
+		_bolt_cycle = maxf(_bolt_cycle - delta * 2.35, 0.0)
+	if _barrel_heat > 0.0:
+		_barrel_heat = maxf(_barrel_heat - delta * 0.28, 0.0)
 	_cover_lean = _cover_lean.lerp(Vector2.ZERO, 1.0 - exp(-delta * 11.0))
 	if _cover_lean.length_squared() < 0.04:
 		_cover_lean = Vector2.ZERO
@@ -541,12 +1035,14 @@ func _role_body_poly() -> PackedVector2Array:
 func _ensure_weapon() -> void:
 	if body == null:
 		return
-	Silhouette.mount(body, role)
+	Silhouette.mount(body, role, weapon_id)
 	if weapon == null or not is_instance_valid(weapon):
 		weapon = body.get_node_or_null("Weapon") as Polygon2D
 	if weapon == null:
 		weapon = get_node_or_null("Weapon") as Polygon2D
 	if weapon:
+		weapon.polygon = WeaponArtScript.silhouette(weapon_id, role)
+		weapon.color = WeaponArtScript.steel_color(weapon_id)
 		weapon.rotation = _weapon_snap
 		weapon.visible = true
 		weapon.modulate = Color(0.55, 0.55, 0.55, 0.75) if not alive else Color.WHITE
@@ -555,7 +1051,7 @@ func _ensure_weapon() -> void:
 func _ensure_kit_bits() -> void:
 	if body == null:
 		return
-	Silhouette.mount(body, role)
+	Silhouette.mount(body, role, weapon_id)
 	if kit_helm == null or not is_instance_valid(kit_helm):
 		kit_helm = body.get_node_or_null("KitHelm") as Polygon2D
 	if kit_gear == null or not is_instance_valid(kit_gear):
@@ -598,45 +1094,57 @@ func _rim_color() -> Color:
 
 func _spawn_muzzle_flash() -> void:
 	var rad := deg_to_rad(facing_deg)
-	var tip_len := absf(Silhouette.barrel_tip_y(role))
-	var intensity := 1.0
-	var style := "rifle"
+	var tip_len := absf(WeaponArtScript.barrel_tip_y(weapon_id, role))
+	if tip_len < 8.0:
+		tip_len = absf(Silhouette.barrel_tip_y(role))
+	var intensity := muzzle_intensity if muzzle_intensity > 0.05 else 1.0
+	var style := muzzle_style if muzzle_style != "" else "rifle"
 	var tint := Color.WHITE
-	match role:
-		Role.MG:
-			intensity = 1.48
-			style = "mg"
-			tint = Color(1.0, 0.88, 0.55)
-		Role.SCOUT:
-			intensity = 0.82
-			style = "scout"
-			tint = Color(0.85, 0.95, 1.0)
+	match style:
+		"mg":
+			tint = Color(1.0, 0.78, 0.42)
+		"scout":
+			tint = Color(0.92, 0.90, 0.72)
+		"smg":
+			tint = Color(1.0, 0.82, 0.48)
+		"shotgun":
+			tint = Color(1.0, 0.72, 0.32)
+		"pistol":
+			tint = Color(1.0, 0.88, 0.62)
 		_:
-			intensity = 1.05
-			style = "rifle"
+			tint = Color(1.0, 0.86, 0.58)
 	var tip := Vector2(cos(rad), sin(rad)) * tip_len
 	MuzzleFlashScript.burst(self, tip, rad, tint, intensity, style)
+	CombatFxScript.brass_eject(self, tip * 0.35, rad, muzzle_style == "mg", Weapons.family_of(weapon_id))
 	apply_recoil_kick()
 
 
 func apply_recoil_kick() -> void:
 	var rad := deg_to_rad(facing_deg)
 	var back := Vector2(cos(rad), sin(rad)) * -1.0
+	var k := maxf(recoil_mul, 0.25)
+	if fire_sfx == "fire_bolt":
+		k *= 1.18
+		_bolt_cycle = 1.0
+	if fire_sfx == "fire_mg42" or weapon_id == "mg42":
+		_barrel_heat = minf(_barrel_heat + 0.22, 1.0)
+	elif muzzle_style == "mg":
+		_barrel_heat = minf(_barrel_heat + 0.10, 0.72)
 	match role:
 		Role.MG:
-			_recoil_off = back * 5.4
-			_weapon_snap = 0.28
+			_recoil_off = back * (5.4 * k)
+			_weapon_snap = 0.28 * k
 		Role.SCOUT:
-			_recoil_off = back * 2.6
-			_weapon_snap = 0.12
+			_recoil_off = back * (2.6 * k)
+			_weapon_snap = 0.12 * k
 		_:
-			_recoil_off = back * 3.8
-			_weapon_snap = 0.18
+			_recoil_off = back * (3.8 * k)
+			_weapon_snap = 0.18 * k
 	_hit_punch = maxf(_hit_punch, 0.35)
-	var lean_px := 4.6 if role == Role.MG else 3.0
+	var lean_px := (4.6 if role == Role.MG else 3.0) * clampf(k, 0.6, 1.6)
 	_cover_lean = Vector2(cos(rad), sin(rad)) * lean_px
 	if slot != null and is_instance_valid(slot) and slot.has_method("kick_fire_lean"):
-		slot.kick_fire_lean(facing_deg, role == Role.MG)
+		slot.kick_fire_lean(facing_deg, role == Role.MG or k >= 1.4)
 
 
 func _apply_idle_bob() -> void:
@@ -682,11 +1190,14 @@ func _apply_idle_bob() -> void:
 		Silhouette.pose_parts(body, role, {
 			"t": _present_t,
 			"recoil": _weapon_snap,
+			"bolt": _bolt_cycle if ammo > 0 or melee else maxf(_bolt_cycle, 0.42),
+			"heat": _barrel_heat,
 			"hit": _hit_punch,
 			"alive": alive and visible,
 			"saving": _is_power_saving(),
 			"id": float(op_id),
 			"planted": cover_idle_planted(),
+			"weapon_id": weapon_id,
 		})
 	if hp_bar:
 		hp_bar.position = Vector2(0.0, bob * 0.2)
@@ -797,6 +1308,8 @@ func _reset_present_fx() -> void:
 		_death_tween = null
 	_recoil_off = Vector2.ZERO
 	_weapon_snap = 0.0
+	_bolt_cycle = 0.0
+	_barrel_heat = 0.0
 	_hit_punch = 0.0
 	_cover_lean = Vector2.ZERO
 	_outline_boost = false
@@ -1024,7 +1537,7 @@ func _apply_body_modulate() -> void:
 func _tint_figure_parts(flash: Color) -> void:
 	if body == null:
 		return
-	for nam in ["Head", "Visor", "LegL", "LegR", "ShoulderL", "ShoulderR", "TorsoShade", "ArmGun", "Cape", "FrontSight", "Sight", "BootL", "BootR", "Hip", "Pack", "Collar", "MoonFill", "KitHelm", "KitGear"]:
+	for nam in ["Head", "Visor", "LegL", "LegR", "ShoulderL", "ShoulderR", "TorsoShade", "ArmGun", "Cape", "FrontSight", "Sight", "BootL", "BootR", "Hip", "Pack", "Collar", "MoonFill", "KitHelm", "KitGear", "Webbing", "Stock", "PouchL", "PouchR", "PutteeL", "PutteeR", "BipodL", "BipodR", "Drum"]:
 		var n := body.get_node_or_null(nam)
 		if n is CanvasItem:
 			(n as CanvasItem).modulate = flash
@@ -1041,15 +1554,32 @@ func can_reach_loot(loot_pos: Vector2, p_grid: AmbushGrid) -> bool:
 	return g.has_los(global_position, loot_pos)
 
 
-func receive_ammo(amount: int) -> int:
+func receive_ammo(amount: int, ammo_kind: String = "") -> int:
 	if not alive or amount <= 0:
 		return 0
-	var room := max_ammo - ammo
+	var k := ammo_kind
+	if k == "":
+		k = _ammo_family()
+	else:
+		k = Weapons.family_of(k)
+	if k == "" or k == "ammo" or k == "knife":
+		return 0
+	var have := _ammo_family()
+	if k != have:
+		ammo_pool[k] = int(ammo_pool.get(k, 0)) + amount
+		_refresh_tag()
+		return amount
+	var room := maxi(max_ammo - ammo, 0)
 	var gained := mini(amount, room)
 	ammo += gained
+	var overflow := amount - gained
+	if overflow > 0:
+		ammo_pool[k] = maxi(int(ammo_pool.get(k, 0)), ammo) + overflow
+	else:
+		ammo_pool[k] = ammo
 	_refresh_tag()
 	_rebuild_cone()
-	return gained
+	return amount if overflow > 0 else gained
 
 
 func fire_mode_label() -> String:
@@ -1090,7 +1620,7 @@ func _ensure_observation_visual() -> void:
 		obs_ring.name = "ObsRing"
 		obs_ring.width = 1.6
 		obs_ring.closed = true
-		obs_ring.default_color = Color(0.42, 0.88, 1.0, 0.38)
+		obs_ring.default_color = Color(0.72, 0.68, 0.42, 0.38)
 		obs_ring.z_index = -1
 		obs_ring.show_behind_parent = true
 		add_child(obs_ring)
@@ -1113,7 +1643,7 @@ func _rebuild_observation_ring() -> void:
 	const RAYS := 36
 	for i in RAYS:
 		var r := deg_to_rad(float(i) * (360.0 / float(RAYS)))
-		pts.append(Vector2(cos(r), sin(r)) * range_px)
+		pts.append(Vector2(cos(r), sin(r)) * kit_range_px)
 	if obs_ring:
 		var loop := pts.duplicate()
 		if loop.size() > 0:
@@ -1140,13 +1670,14 @@ func observation_ring_visible() -> bool:
 
 
 func kit_blurb() -> String:
+	var inv := inventory_line()
 	match role:
 		Role.MG:
-			return "铁砧 · 宽锥短距、耗弹最快；弹包第一优先。适合扫侧翼、等迟到走廊。"
+			return "铁砧 · 慢步重火。开局只有刀，去找机枪/手雷。%s" % inv
 		Role.SCOUT:
-			return "夜枭 · 远距窄扇、弹少打重；锁出口/闸口。准备期淡青观察环=射程，不透视战斗。"
+			return "夜枭 · 快走长窄。开局只有刀，去找狙/诱饵。%s" % inv
 		_:
-			return "灰狼 · 均衡步枪，主路补漏与第一枪。谁漏了就把他补上。"
+			return "灰狼 · 中距补漏。开局只有刀，去找步枪/手枪。%s" % inv
 
 
 func facing_compass() -> String:
@@ -1166,8 +1697,8 @@ func kit_card_text() -> String:
 		dep = slot.label_text
 	var cone := int(round(half_angle_deg * 2.0))
 	if not visible or slot == null:
-		return "%s [%s]  %s\n%s  弹%d/%d  锥%d°  射程%d" % [
-			display_name, role_short, dep, fire_mode_label(), ammo, max_ammo, cone, int(range_px)
+		return "%s [%s]  %s\n%s  %s  锥%d°  射程%d" % [
+			display_name, role_short, dep, fire_mode_label(), inventory_line(), cone, int(range_px)
 		]
 	return "%s [%s]  %s\n%s  弹%d/%d  锥%d°  射界朝%s %d°" % [
 		display_name,
@@ -1208,12 +1739,12 @@ func _update_hp_bar() -> void:
 	var pulse := 1.0 + _hp_pulse * 0.42
 	hp_bar.scale = Vector2(pulse, pulse)
 	if _hp_pulse > 0.05:
-		hp_bar.color = Color(1.0, 0.55, 0.28).lerp(
-			Color(0.22, 0.90, 0.42) if hp > 40.0 else Color(0.95, 0.28, 0.18),
+		hp_bar.color = Color(0.82, 0.48, 0.20).lerp(
+			Color(0.42, 0.52, 0.24) if hp > 40.0 else Color(0.82, 0.28, 0.14),
 			1.0 - _hp_pulse
 		)
 	else:
-		hp_bar.color = Color(0.22, 0.88, 0.40) if hp > 40.0 else Color(0.92, 0.28, 0.18)
+		hp_bar.color = Color(0.42, 0.52, 0.24) if hp > 40.0 else Color(0.82, 0.28, 0.14)
 
 
 func _ensure_shield() -> void:
@@ -1227,7 +1758,7 @@ func _ensure_shield() -> void:
 		shield_glyph.polygon = PackedVector2Array([
 			Vector2(0, -9), Vector2(8, -4), Vector2(6, 6), Vector2(0, 10), Vector2(-6, 6), Vector2(-8, -4)
 		])
-		shield_glyph.color = Color(0.55, 0.88, 0.95, 0.92)
+		shield_glyph.color = Color(0.62, 0.54, 0.32, 0.92)
 		add_child(shield_glyph)
 	shield_glyph.position = Vector2(-20, -8)
 
@@ -1313,7 +1844,7 @@ func _rebuild_cone_edge(pts: PackedVector2Array) -> void:
 	elif not fire_permitted:
 		cone_edge.default_color = Color(0.72, 0.68, 0.22, 0.55 if hot else 0.38)
 	else:
-		cone_edge.default_color = Color(1.0, 0.86, 0.38, 0.82 if hot else 0.48)
+		cone_edge.default_color = Color(0.82, 0.68, 0.32, 0.82 if hot else 0.48)
 
 
 func _ensure_sel_ring() -> void:
@@ -1423,7 +1954,7 @@ func _refresh_compass_rose() -> void:
 		ring.name = "Ring"
 		ring.width = 1.4
 		ring.closed = true
-		ring.default_color = Color(0.92, 0.88, 0.45, 0.70)
+		ring.default_color = Color(0.70, 0.56, 0.28, 0.70)
 		var rpts := PackedVector2Array()
 		for i in 20:
 			var a := TAU * float(i) / 20.0
@@ -1464,6 +1995,44 @@ func _refresh_compass_rose() -> void:
 		needle_n.rotation = deg_to_rad(facing_deg)
 
 
+func _refresh_nade_mark_fx() -> void:
+	if not has_nade_mark:
+		clear_nade_mark()
+		return
+	if nade_mark_fx == null or not is_instance_valid(nade_mark_fx):
+		nade_mark_fx = Node2D.new()
+		nade_mark_fx.name = "NadeMark"
+		nade_mark_fx.z_index = 6
+		var ring := Line2D.new()
+		ring.name = "Ring"
+		ring.width = 2.0
+		ring.closed = true
+		ring.default_color = Color(0.82, 0.42, 0.16, 0.85)
+		var pts := PackedVector2Array()
+		for i in 16:
+			var a := TAU * float(i) / 16.0
+			pts.append(Vector2(cos(a), sin(a)) * 18.0)
+		if pts.size() > 0:
+			pts.append(pts[0])
+		ring.points = pts
+		nade_mark_fx.add_child(ring)
+		var lab := Label.new()
+		lab.name = "Tag"
+		lab.text = "雷点"
+		lab.position = Vector2(-14, -28)
+		lab.add_theme_font_size_override("font_size", 12)
+		lab.add_theme_color_override("font_color", Color(0.95, 0.72, 0.32, 0.95))
+		lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		nade_mark_fx.add_child(lab)
+		var host := get_parent()
+		if host:
+			host.add_child(nade_mark_fx)
+		else:
+			add_child(nade_mark_fx)
+	nade_mark_fx.global_position = nade_mark
+	nade_mark_fx.visible = alive and visible
+
+
 func _refresh_pack_glyph() -> void:
 	if pack_glyph == null or not is_instance_valid(pack_glyph):
 		pack_glyph = get_node_or_null("PackGlyph") as Polygon2D
@@ -1493,25 +2062,23 @@ func _refresh_tag() -> void:
 		tag.add_theme_color_override("font_color", Color(0.62, 0.62, 0.64))
 		_refresh_dry_mark()
 		return
-	var pack := "包" if has_ammo_pack and not ammo_pack_used else ("已用包" if has_ammo_pack else "")
+	var gun := Weapons.display_name(weapon_id)
+	var extras := ""
+	if grenades > 0:
+		extras += " 雷%d" % grenades
+	if mines > 0:
+		extras += " 埋%d" % mines
 	var mode := "伏" if fire_mode == FireMode.HOLD_FOR_AMBUSH else "即"
 	if fire_mode == FireMode.HOLD_FOR_AMBUSH and not fire_permitted:
 		mode = "等"
-	if ammo <= 0:
-		if tag_emphasis:
-			tag.text = "%s  %s 空" % [display_name, mode]
-		else:
-			tag.text = "%s[%s] %s 空" % [display_name, role_short, mode]
-		tag.add_theme_color_override("font_color", Color(1.0, 0.42, 0.22))
-	elif tag_emphasis:
-		tag.text = "%s  %s 弹%d%s" % [
-			display_name, mode, ammo, (" " + pack) if pack != "" else ""
-		]
+	if melee:
+		tag.text = "%s[%s] 刀%s" % [display_name, role_short, extras]
 		tag.add_theme_color_override("font_color", role_kit_color(role))
+	elif ammo <= 0:
+		tag.text = "%s %s %s空%s" % [display_name, gun, mode, extras]
+		tag.add_theme_color_override("font_color", Color(1.0, 0.42, 0.22))
 	else:
-		tag.text = "%s[%s] %s 弹%d%s" % [
-			display_name, role_short, mode, ammo, (" " + pack) if pack != "" else ""
-		]
+		tag.text = "%s %s%d %s%s" % [display_name, gun, ammo, mode, extras]
 		tag.add_theme_color_override("font_color", role_kit_color(role))
 	_refresh_dry_mark()
 
@@ -1565,7 +2132,7 @@ func _refresh_dry_mark() -> void:
 		dry_mark.text = "空"
 		dry_mark.add_theme_font_size_override("font_size", 14)
 		dry_mark.add_theme_font_override("font", NightOps.ui_font_bold())
-		dry_mark.add_theme_color_override("font_color", Color(1.0, 0.38, 0.18))
+		dry_mark.add_theme_color_override("font_color", Color(0.72, 0.48, 0.22))
 		dry_mark.add_theme_color_override("font_shadow_color", Color(0.05, 0.01, 0.01, 0.95))
 		dry_mark.add_theme_constant_override("shadow_offset_x", 1)
 		dry_mark.add_theme_constant_override("shadow_offset_y", 1)

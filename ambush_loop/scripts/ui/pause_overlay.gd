@@ -1,7 +1,7 @@
 class_name PauseOverlay
 extends CanvasLayer
 
-## Shared pause / settings: mute, Music/SFX volumes, return to title, redeploy (SETUP only).
+## Shared pause / settings: mute, Music/SFX volumes, return to title, redeploy (scout/sweep).
 
 signal closed
 signal return_to_title
@@ -31,7 +31,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
 	_dim = ColorRect.new()
-	_dim.color = Color(0.015, 0.025, 0.018, 0.78)
+	_dim.color = Color(0.02, 0.018, 0.012, 0.78)
 	_dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(_dim)
@@ -40,8 +40,8 @@ func _ready() -> void:
 	_panel.set_anchors_preset(Control.PRESET_CENTER)
 	_panel.offset_left = -210.0
 	_panel.offset_right = 210.0
-	_panel.offset_top = -296.0
-	_panel.offset_bottom = 296.0
+	_panel.offset_top = -312.0
+	_panel.offset_bottom = 312.0
 	add_child(_panel)
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 18)
@@ -58,6 +58,13 @@ func _ready() -> void:
 	title.add_theme_font_size_override("font_size", 22)
 	title.add_theme_color_override("font_color", NightOps.OLIVE_HI)
 	box.add_child(title)
+	var ver := Label.new()
+	ver.name = "BuildVersion"
+	ver.text = "v%s · COMMANDOS / WW2" % NightOps.game_version()
+	ver.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ver.add_theme_font_size_override("font_size", 13)
+	ver.add_theme_color_override("font_color", NightOps.OLIVE_HI)
+	box.add_child(ver)
 	var frame := Label.new()
 	frame.name = "CampaignFrame"
 	frame.text = LevelDef.campaign_frame()

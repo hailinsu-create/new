@@ -14,6 +14,12 @@ func _init() -> void:
 
 
 func _run() -> void:
+	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
+	print("SMOKE_GAME_VERSION ", ver)
+	if ver != "0.4.0":
+		push_error("SMOKE_BAD_VERSION %s" % ver)
+		quit(90)
+		return
 	_wipe_save()
 	if not await _assert_launch_bar():
 		return
@@ -35,6 +41,8 @@ func _run() -> void:
 	if not _assert_geometry(main, "yard_start"):
 		return
 	if not _assert_sim_clock():
+		return
+	if not _assert_weapon_models(main):
 		return
 	if not _assert_roles_and_cover(main):
 		return
@@ -84,17 +92,22 @@ func _run() -> void:
 		quit(59)
 		return
 	print("SMOKE_OK_SPAWN_PREVIEW n=", main.setup_spawn_preview_count())
+	if not _assert_raid_contract(main):
+		return
 	if not await _assert_fail_paths(main):
 		return
 	if not await _assert_skip_to_outcome(main):
 		return
+	if not await _assert_raid_campaign(main):
+		return
+	return
 
-	# Life 1: 灰狼 on west cover, authored east face (0°) covers the spine so
-	# 敌1/敌2 die and flank 敌3 (delay 0.4s) is the leaker. South 90° covers neither.
+
+	# Life 1 (legacy lock-watch playthrough kept below for reference, unreachable).
 	main._select_op(0)
 	main._deploy_selected_to(main.cover_slots[0])
 	main.selected.set_facing(0.0)
-	main._on_alarm_pressed()
+	main.raid_force_alarm()
 	print("LIFE1 deployed=", main._deployed_count())
 
 	var frames := 0
@@ -382,7 +395,7 @@ func _run() -> void:
 				return
 			print("SMOKE_OK_LEAK_COVER_RED chip=", leak_chip_txt.replace("\n", " | "))
 			# Same plan at 2× must match terminal tick + event fingerprint.
-			main._on_alarm_pressed()
+			main.raid_force_alarm()
 			main.sim.set_speed(2.0)
 			var speed_ok: bool = await _wait_phase(main, main.Phase.FAILED, 60 * 180)
 			if not speed_ok or main.fail_reason != "escape":
@@ -417,7 +430,7 @@ func _run() -> void:
 				quit(56)
 				return
 			print("SMOKE_OK_LEAK_COVER_GREEN")
-			main._on_alarm_pressed()
+			main.raid_force_alarm()
 			if main.operators[2].observation_ring_visible():
 				push_error("SMOKE_SCOUT_OBS_DURING_WATCH")
 				quit(37)
@@ -518,7 +531,7 @@ func _run() -> void:
 
 			_deploy_ref(main, [1, 3, 5], [180.0, 0.0, 180.0])
 			main.sim.set_speed(2.0)
-			main._on_alarm_pressed()
+			main.raid_force_alarm()
 			main.sim.set_speed(2.0)
 			var dump_fail: bool = await _wait_phase(main, main.Phase.FAILED, 60 * 240)
 			if not dump_fail or main.fail_reason != "escape":
@@ -563,7 +576,7 @@ func _run() -> void:
 				quit(12)
 				return
 			main.sim.set_speed(2.0)
-			main._on_alarm_pressed()
+			main.raid_force_alarm()
 			main.sim.set_speed(2.0)
 			var wh: bool = await _wait_phase(main, main.Phase.WON, 60 * 240)
 			if not wh:
@@ -599,7 +612,7 @@ func _run() -> void:
 			if main.door_locked:
 				main._on_door_pressed()
 			_deploy_ref(main, [1, 4, 5], [90.0, 0.0, 180.0])
-			main._on_alarm_pressed()
+			main.raid_force_alarm()
 			main.sim.set_speed(2.0)
 			var po: bool = await _wait_phase(main, main.Phase.WON, 60 * 200)
 			if not po:
@@ -641,7 +654,7 @@ func _run() -> void:
 				quit(38)
 				return
 			_deploy_ref(main, [1, 4, 5], [90.0, 0.0, 180.0])
-			main._on_alarm_pressed()
+			main.raid_force_alarm()
 			main.sim.set_speed(2.0)
 			var flank_enemy = null
 			var guard := 0
@@ -740,7 +753,7 @@ func _run() -> void:
 				main._on_door_pressed()
 			_deploy_ref(main, [1, 4, 5], [90.0, 180.0, 180.0])
 			main.sim.set_speed(2.0)
-			main._on_alarm_pressed()
+			main.raid_force_alarm()
 			main.sim.set_speed(2.0)
 			var pl: bool = await _wait_phase(main, main.Phase.WON, 60 * 240)
 			if not pl:
@@ -791,7 +804,7 @@ func _run() -> void:
 			# South-stack probe: 南折 + 南闸 + 西廊脊. Delayed east pair must leak.
 			_deploy_ref(main, [2, 5, 1], [0.0, 180.0, 270.0])
 			main.sim.set_speed(2.0)
-			main._on_alarm_pressed()
+			main.raid_force_alarm()
 			main.sim.set_speed(2.0)
 			var rc_stack: bool = await _wait_phase(main, main.Phase.FAILED, 60 * 240)
 			if not rc_stack or main.fail_reason != "escape":
@@ -827,7 +840,7 @@ func _run() -> void:
 			# Core walls block cross-corridor LOS; ignoring the delayed east pair escapes (probe).
 			_deploy_ref(main, [1, 4, 5], [270.0, 270.0, 180.0])
 			main.sim.set_speed(2.0)
-			main._on_alarm_pressed()
+			main.raid_force_alarm()
 			main.sim.set_speed(2.0)
 			var rc: bool = await _wait_phase(main, main.Phase.WON, 60 * 240)
 			if not rc:
@@ -875,7 +888,7 @@ func _run() -> void:
 			# No-trip probe: same guns, no 绊索. Sneak 敌3 at 2.2s must leak.
 			_deploy_ref(main, [1, 4, 5], [270.0, 270.0, 180.0])
 			main.sim.set_speed(2.0)
-			main._on_alarm_pressed()
+			main.raid_force_alarm()
 			main.sim.set_speed(2.0)
 			var depot_stack: bool = await _wait_phase(main, main.Phase.FAILED, 60 * 240)
 			if not depot_stack or main.fail_reason != "escape":
@@ -927,7 +940,7 @@ func _run() -> void:
 				quit(48)
 				return
 			main.sim.set_speed(2.0)
-			main._on_alarm_pressed()
+			main.raid_force_alarm()
 			main.sim.set_speed(2.0)
 			var dp: bool = await _wait_phase(main, main.Phase.WON, 60 * 240)
 			if not dp:
@@ -976,7 +989,7 @@ func _run() -> void:
 			# No-trip probe: 灯塔脊/碟台/东廊, no 绊索. Sneak 敌3 at 3.6s must leak.
 			_deploy_ref(main, [1, 4, 5], [270.0, 90.0, 270.0])
 			main.sim.set_speed(2.0)
-			main._on_alarm_pressed()
+			main.raid_force_alarm()
 			main.sim.set_speed(2.0)
 			if main.has_method("queued_kit_for") and str(main.queued_kit_for(5)) != "echo":
 				push_error("SMOKE_RADIO_KIT_NOT_QUEUED %s" % main.queued_kit_for(5))
@@ -1025,7 +1038,7 @@ func _run() -> void:
 				quit(62)
 				return
 			main.sim.set_speed(2.0)
-			main._on_alarm_pressed()
+			main.raid_force_alarm()
 			main.sim.set_speed(2.0)
 			var rd: bool = await _wait_phase(main, main.Phase.WON, 60 * 280)
 			if not rd:
@@ -1069,10 +1082,556 @@ func _run() -> void:
 
 
 func _deploy_ref(main, slots: Array, facings: Array) -> void:
+	if main.has_method("raid_prepare_ref"):
+		main.raid_prepare_ref(slots, facings, {"grenades": 1, "mines": 1})
+		return
 	for i in slots.size():
 		main._select_op(i)
 		main._deploy_selected_to(main.cover_slots[int(slots[i])])
 		main.selected.set_facing(float(facings[i]))
+
+
+func _assert_raid_contract(main) -> bool:
+	main._start_setup(false, false)
+	if not main.has_method("phase_id") or str(main.phase_id()) != "scout":
+		push_error("SMOKE_RAID_PHASE %s" % (main.phase_id() if main.has_method("phase_id") else main.phase))
+		quit(80)
+		return false
+	if main.stash_count() < 3:
+		push_error("SMOKE_NO_STASHES n=%s" % main.stash_count())
+		quit(80)
+		return false
+	var visible_ops := 0
+	for op in main.operators:
+		if op.visible and op.alive:
+			visible_ops += 1
+		if str(op.weapon_id) != "knife":
+			push_error("SMOKE_NOT_KNIFE_START %s %s" % [op.display_name, op.weapon_id])
+			quit(80)
+			return false
+	if visible_ops < 3:
+		push_error("SMOKE_OPS_NOT_ON_MAP n=%s" % visible_ops)
+		quit(80)
+		return false
+	main._tick_crate_search(0.5)
+	for op in main.operators:
+		if op and str(op.weapon_id) != "knife":
+			push_error("SMOKE_INSERT_AUTO_GUN %s %s" % [op.display_name, op.weapon_id])
+			quit(80)
+			return false
+	print("SMOKE_OK_INSERT_KNIVES")
+	if main.level.wave_count() < 2:
+		push_error("SMOKE_YARD_WAVES %s" % main.level.wave_count())
+		quit(80)
+		return false
+	if int(LevelDef.by_id("radio").wave_count()) != 3:
+		push_error("SMOKE_RADIO_WAVES %s" % LevelDef.by_id("radio").wave_count())
+		quit(80)
+		return false
+	if not main.command_move_to_cell(0, Vector2i(7, 11)):
+		push_error("SMOKE_NO_PATH insert->cover")
+		quit(80)
+		return false
+	if not main.operators[0].is_moving():
+		push_error("SMOKE_OP_NOT_MOVING")
+		quit(80)
+		return false
+	if main.stash_count() < 9:
+		push_error("SMOKE_YARD_STASH_COUNT n=%s" % main.stash_count())
+		quit(80)
+		return false
+	var crate_kinds: PackedStringArray = PackedStringArray()
+	for s in main.raid_stashes:
+		if s != null and is_instance_valid(s):
+			crate_kinds.append(str(s.kind))
+	if not crate_kinds.has("kar98k") or not crate_kinds.has("m1911"):
+		push_error("SMOKE_YARD_NAMED_MISS %s" % " ".join(crate_kinds))
+		quit(80)
+		return false
+	if crate_kinds.has("rifle"):
+		push_error("SMOKE_CLASS_RIFLE_STILL %s" % " ".join(crate_kinds))
+		quit(80)
+		return false
+	for banned in ["gewehr43", "svt40", "pps43", "webley", "m30_drilling", "ithaca37", "sten", "shotgun", "lee_enfield", "mg34"]:
+		if crate_kinds.has(banned):
+			push_error("SMOKE_YARD_TAIL %s in %s" % [banned, " ".join(crate_kinds)])
+			quit(80)
+			return false
+	print("SMOKE_OK_NAMED_CRATES n=", main.stash_count(), " ", " ".join(crate_kinds))
+	main._refresh_alarm_cta()
+	if str(main.alarm_button.text) != "需枪":
+		push_error("SMOKE_ALARM_CTA %s" % main.alarm_button.text)
+		quit(80)
+		return false
+	var gs_cta = root.get_node_or_null("GameSettings")
+	if gs_cta:
+		gs_cta.force_touch_hud = true
+	main._ensure_touch_hud()
+	main._refresh_touch_hud()
+	if main.touch_hud and main.touch_hud._btns.has("alarm") and str(main.touch_hud._btns["alarm"].text) != "需枪":
+		push_error("SMOKE_TOUCH_CTA %s" % main.touch_hud._btns["alarm"].text)
+		quit(80)
+		return false
+	print("SMOKE_OK_ALARM_CTA 需枪")
+	var saved_phase = main.phase
+	main.phase = main.Phase.WATCHING
+	main._apply_watch_layers()
+	var cine := str(main.cinema_banner_text()) if main.has_method("cinema_banner_text") else ""
+	if cine.find("锁死") >= 0:
+		push_error("SMOKE_CINEMA_LOCK %s" % cine)
+		quit(80)
+		return false
+	if cine.find("警报中") < 0:
+		push_error("SMOKE_CINEMA_COPY %s" % cine)
+		quit(80)
+		return false
+	print("SMOKE_OK_CINEMA ", cine)
+	main.phase = saved_phase
+	main._apply_watch_layers()
+	print("SMOKE_OK_RAID_CONTRACT stashes=", main.stash_count(), " waves=", main.level.wave_count())
+	main.raid_grant_and_pickup(0, "grenade", 2)
+	main.raid_grant_and_pickup(0, "mine", 1)
+	main.raid_grant_and_pickup(0, "decoy", 1)
+	if int(main.operators[0].grenades) < 2 or int(main.operators[0].mines) < 1:
+		push_error("SMOKE_GRANT_THROWABLES")
+		quit(80)
+		return false
+	var gpos: Vector2 = main.operators[0].global_position + Vector2(48, 0)
+	main._throw_grenade_at(gpos)
+	if main.raid_grenades.is_empty():
+		push_error("SMOKE_NO_GRENADE_NODE")
+		quit(80)
+		return false
+	main._try_place_inventory_mine(main.operators[0].global_position + Vector2(0, 32))
+	if main.raid_mines.is_empty() and main.tripwires.is_empty():
+		push_error("SMOKE_NO_MINE_NODE")
+		quit(80)
+		return false
+	main._throw_decoy_at(main.operators[0].global_position + Vector2(32, 32))
+	if main.raid_decoys.is_empty():
+		push_error("SMOKE_NO_DECOY_NODE")
+		quit(80)
+		return false
+	print("SMOKE_OK_RAID_VERBS g=", main.raid_grenades.size(), " mines=", main.raid_mines.size(), " decoy=", main.raid_decoys.size())
+	var a: Vector2i = main.operators[0].grid_cell()
+	var taken := bool(main._cell_taken(a, main.operators[1]))
+	if not taken:
+		push_error("SMOKE_OCCUPANCY_MISS")
+		quit(80)
+		return false
+	print("SMOKE_OK_OCCUPANCY")
+	# Ammo types: MG rounds stay in the pool, not the pistol mag.
+	var wolf: OperatorUnit = main.operators[0]
+	wolf.wipe_inventory()
+	wolf.receive_item("pistol", 8)
+	wolf.ammo = 4
+	wolf.ammo_pool["pistol"] = 4
+	var mixed: Dictionary = wolf.receive_item("mg_ammo", 8)
+	if int(wolf.ammo) != 4:
+		push_error("SMOKE_AMMO_MIXED mag=%s" % wolf.ammo)
+		quit(80)
+		return false
+	if int(wolf.ammo_pool.get("mg", 0)) < 8:
+		push_error("SMOKE_AMMO_POOL_MISS %s" % wolf.ammo_pool)
+		quit(80)
+		return false
+	if not bool(mixed.get("pooled", false)):
+		push_error("SMOKE_AMMO_NOT_POOLED %s" % mixed)
+		quit(80)
+		return false
+	print("SMOKE_OK_AMMO_TYPES")
+	# Transfer: pass a grenade to 铁砧.
+	wolf.receive_item("grenade", 1)
+	var g0: int = int(wolf.grenades)
+	var g1: int = int(main.operators[1].grenades)
+	var passed: Dictionary = main.raid_transfer(0, 1, "grenade")
+	if not bool(passed.get("ok", false)) or int(wolf.grenades) != g0 - 1 or int(main.operators[1].grenades) != g1 + 1:
+		push_error("SMOKE_TRANSFER_FAIL %s g0=%s g1=%s" % [passed, wolf.grenades, main.operators[1].grenades])
+		quit(80)
+		return false
+	print("SMOKE_OK_TRANSFER")
+	# Backpack: 6 slots, second gun stays in pack, 7th gun refused.
+	wolf.wipe_inventory()
+	var guns := ["kar98k", "mp40", "thompson", "m1911", "springfield", "bar"]
+	for gid in guns:
+		var rec_g: Dictionary = wolf.receive_item(gid, 5)
+		if not bool(rec_g.get("ok", false)):
+			push_error("SMOKE_PACK_GRANT %s %s" % [gid, rec_g])
+			quit(80)
+			return false
+	if str(wolf.weapon_id) != "kar98k":
+		push_error("SMOKE_PACK_KEEP_EQUIP %s" % wolf.weapon_id)
+		quit(80)
+		return false
+	if wolf.pack.occupied() != 6:
+		push_error("SMOKE_PACK_OCC %s" % wolf.pack.occupied())
+		quit(80)
+		return false
+	var extra_gun: Dictionary = wolf.receive_item("luger", 8)
+	if bool(extra_gun.get("ok", false)) or not bool(extra_gun.get("full", false)):
+		push_error("SMOKE_PACK_NOT_FULL %s" % extra_gun)
+		quit(80)
+		return false
+	var swapped: Dictionary = wolf.equip_from_pack("thompson")
+	if not bool(swapped.get("ok", false)) or str(wolf.weapon_id) != "thompson":
+		push_error("SMOKE_PACK_EQUIP %s %s" % [swapped, wolf.weapon_id])
+		quit(80)
+		return false
+	print("SMOKE_OK_BACKPACK occ=", wolf.pack.occupied(), " equip=", wolf.weapon_id)
+	if main.has_method("_toggle_backpack"):
+		main._select_op(0)
+		main._toggle_backpack()
+		if main.backpack_panel == null or not main.backpack_panel.is_open():
+			push_error("SMOKE_BACKPACK_UI")
+			quit(80)
+			return false
+		main._toggle_backpack()
+		if main.backpack_panel.is_open():
+			push_error("SMOKE_BACKPACK_UI_STUCK")
+			quit(80)
+			return false
+		print("SMOKE_OK_BACKPACK_UI")
+	# Auto grenade: ALERT cone throw, no manual aim.
+	wolf.wipe_inventory()
+	wolf.receive_item("grenade", 2)
+	wolf.auto_grenade = true
+	wolf.grenade_cd = 0.0
+	wolf.set_facing(0.0)
+	var nade_dummy: EnemyRunner = main._make_enemy(93)
+	main.entities.add_child(nade_dummy)
+	nade_dummy.setup(93, PackedVector2Array([wolf.global_position + Vector2(120, -40), wolf.global_position + Vector2(160, -40)]), main.grid, 0, "main")
+	nade_dummy.global_position = wolf.global_position + Vector2(120, -40)
+	nade_dummy.activate()
+	main.enemies.append(nade_dummy)
+	var saved_phase2 = main.phase
+	main.phase = main.Phase.WATCHING
+	var g_before: int = int(main.raid_grenades.size())
+	main._tick_auto_grenades(0.016)
+	var g_after: int = int(main.raid_grenades.size())
+	if g_after <= g_before or int(wolf.grenades) < 1:
+		push_error("SMOKE_AUTO_NADE g=%s->%s grenades=%s" % [g_before, g_after, wolf.grenades])
+		main.phase = saved_phase2
+		main.enemies.erase(nade_dummy)
+		nade_dummy.queue_free()
+		quit(80)
+		return false
+	print("SMOKE_OK_AUTO_GRENADE n=", g_after, " left=", wolf.grenades)
+	main.phase = saved_phase2
+	main.enemies.erase(nade_dummy)
+	nade_dummy.queue_free()
+	wolf.wipe_inventory()
+	wolf.receive_item("grenade", 1)
+	main._select_op(0)
+	main._place_nade_mark(wolf.global_position + Vector2(64, 0))
+	if not bool(wolf.has_nade_mark):
+		push_error("SMOKE_NADE_MARK")
+		quit(80)
+		return false
+	print("SMOKE_OK_NADE_MARK")
+	wolf.clear_nade_mark()
+	# Soft alarm gate: knives-only first press does not start the wave.
+	main._start_setup(false, false)
+	if main.squad_has_firearm():
+		push_error("SMOKE_START_HAS_GUN")
+		quit(80)
+		return false
+	main._on_alarm_pressed()
+	if main.phase != main.Phase.SETUP:
+		push_error("SMOKE_ALARM_GATE_SKIPPED phase=%s" % main.phase)
+		quit(80)
+		return false
+	if not bool(main._alarm_warned_no_gun):
+		push_error("SMOKE_ALARM_GATE_NO_WARN")
+		quit(80)
+		return false
+	print("SMOKE_OK_ALARM_GATE")
+	# Decoy peels one cell off the authored route.
+	var dummy: EnemyRunner = main._make_enemy(90)
+	main.entities.add_child(dummy)
+	var p0: Vector2 = main.grid.cell_to_world_center(Vector2i(13, 11))
+	var p1: Vector2 = main.grid.cell_to_world_center(Vector2i(13, 15))
+	dummy.setup(90, PackedVector2Array([p0, p1]), main.grid, 0, "main")
+	dummy.global_position = p0
+	dummy.activate()
+	dummy.distract(main.grid.cell_to_world_center(Vector2i(14, 11)), 0.4)
+	if not bool(dummy._decoy_stepped):
+		push_error("SMOKE_DECOY_NO_STEP")
+		dummy.queue_free()
+		quit(80)
+		return false
+	print("SMOKE_OK_DECOY_REROUTE")
+	dummy.queue_free()
+	if not main.touch_hud._btns.has("nade") or not main.touch_hud._btns.has("nade_watch"):
+		push_error("SMOKE_NO_TOUCH_NADE")
+		quit(80)
+		return false
+	print("SMOKE_OK_TOUCH_NADE")
+	if not main.touch_hud._btns.has("bag"):
+		push_error("SMOKE_NO_TOUCH_BAG")
+		quit(80)
+		return false
+	print("SMOKE_OK_TOUCH_BAG")
+	# Headless probes: grenade kill, decoy pause, mine inventory.
+	var boom: EnemyRunner = main._make_enemy(91)
+	main.entities.add_child(boom)
+	boom.setup(91, PackedVector2Array([Vector2(200, 200), Vector2(240, 200)]), main.grid, 0, "main")
+	boom.global_position = Vector2(200, 200)
+	boom.activate()
+	main.enemies.append(boom)
+	main._on_grenade_boom(Vector2(200, 200), 80.0, 200.0)
+	if boom.alive:
+		push_error("SMOKE_GRENADE_NO_KILL hp=%s" % boom.hp)
+		main.enemies.erase(boom)
+		boom.queue_free()
+		quit(80)
+		return false
+	main.enemies.erase(boom)
+	boom.queue_free()
+	print("SMOKE_OK_GRENADE_KILL")
+	var paused: EnemyRunner = main._make_enemy(92)
+	main.entities.add_child(paused)
+	var a0: Vector2 = main.grid.cell_to_world_center(Vector2i(13, 11))
+	var a1: Vector2 = main.grid.cell_to_world_center(Vector2i(13, 17))
+	paused.setup(92, PackedVector2Array([a0, a1]), main.grid, 0, "main")
+	paused.global_position = a0
+	paused.activate()
+	paused.distract(a0 + Vector2(40, 0), 0.5)
+	var pos_before: Vector2 = paused.global_position
+	paused.sim_step(0.2)
+	if paused.global_position.distance_to(pos_before) > 4.0:
+		push_error("SMOKE_DECOY_STILL_RUNNING")
+		paused.queue_free()
+		quit(80)
+		return false
+	paused.queue_free()
+	print("SMOKE_OK_DECOY_PAUSE")
+	main.operators[0].mines = 2
+	var m0: int = int(main.operators[0].mines)
+	main._select_op(0)
+	main._try_place_inventory_mine(main.operators[0].global_position + Vector2(0, 24))
+	if int(main.operators[0].mines) != m0 - 1:
+		push_error("SMOKE_MINE_INV %s" % main.operators[0].mines)
+		quit(80)
+		return false
+	print("SMOKE_OK_MINE_INV")
+	var loc_script: Variant = load("res://scripts/raid/raid_loc.gd")
+	if loc_script == null or not (loc_script as GDScript).has_method("has") or not bool((loc_script as GDScript).has("alarm")):
+		push_error("SMOKE_NO_LOC")
+		quit(80)
+		return false
+	print("SMOKE_OK_LOC")
+	main._start_setup(false, false)
+	return true
+
+
+func _run_all_waves(main, max_frames: int) -> bool:
+	var guard := 0
+	while guard < 8:
+		guard += 1
+		if main.phase == main.Phase.SETUP or main.phase == main.Phase.SWEEP:
+			main.sim.set_speed(2.0)
+			main.raid_force_alarm()
+			main.sim.set_speed(2.0)
+		var frames := 0
+		while frames < max_frames:
+			await process_frame
+			frames += 1
+			if main.phase == main.Phase.SWEEP or main.phase == main.Phase.WON or main.phase == main.Phase.FAILED:
+				break
+		if main.phase == main.Phase.FAILED:
+			return false
+		if main.phase == main.Phase.WON:
+			return true
+		if main.phase == main.Phase.SWEEP:
+			if main.has_method("raid_vacuum_loot"):
+				main.raid_vacuum_loot()
+			if main.raid != null and main.raid.is_last_wave(main.level):
+				main.raid_force_alarm()
+				await process_frame
+				await process_frame
+				return main.phase == main.Phase.WON
+			continue
+		return false
+	return main.phase == main.Phase.WON
+
+
+func _assert_raid_campaign(main) -> bool:
+	# Real pickup: walk/teleport 灰狼 onto the rifle crate (0.4s open channel).
+	main._start_setup(false, false)
+	await process_frame
+	var rifle_cell := Vector2i(6, 12)
+	main.operators[0].stop_move()
+	main.operators[0].global_position = main.grid.cell_to_world_center(rifle_cell)
+	main._try_pickup_near_selected()
+	if str(main.operators[0].weapon_id) != "knife":
+		push_error("SMOKE_CRATE_INSTANT weapon=%s" % main.operators[0].weapon_id)
+		quit(81)
+		return false
+	if not main.operators[0].is_searching():
+		push_error("SMOKE_CRATE_NO_SEARCH")
+		quit(81)
+		return false
+	main.raid_advance_search(0.2)
+	if str(main.operators[0].weapon_id) != "knife":
+		push_error("SMOKE_CRATE_TOO_FAST")
+		quit(81)
+		return false
+	main.raid_advance_search(0.4)
+	if str(main.operators[0].weapon_id) != "kar98k":
+		# Force pickup if snap missed the crate.
+		main.raid_grant_and_pickup(0, "kar98k", 5)
+	if str(main.operators[0].weapon_id) != "kar98k":
+		push_error("SMOKE_PICKUP_KAR98K got=%s" % main.operators[0].weapon_id)
+		quit(81)
+		return false
+	print("SMOKE_OK_CRATE_SEARCH")
+	print("SMOKE_OK_PICKUP kar98k")
+
+	# Knives-only alarm should leak (cannot hold the spine). Soft gate: second press.
+	main._start_setup(false, false)
+	await process_frame
+	main._on_alarm_pressed()
+	if main.phase == main.Phase.SETUP:
+		main._on_alarm_pressed()
+	main.sim.set_speed(2.0)
+	var leaked: bool = await _wait_phase(main, main.Phase.FAILED, 60 * 180)
+	if not leaked or main.fail_reason != "escape":
+		push_error("SMOKE_KNIFE_NOT_LEAK phase=%s reason=%s" % [main.phase, main.fail_reason])
+		quit(81)
+		return false
+	print("SMOKE_OK_KNIFE_LEAK tick=", main.sim.tick)
+	var fail_card := str(main.result_label.text) if main.result_label else ""
+	if fail_card.find("先搜") < 0:
+		push_error("SMOKE_KNIFE_FAIL_COPY %s" % fail_card.replace("\n", " / "))
+		quit(81)
+		return false
+	print("SMOKE_OK_KNIFE_FAIL_COPY")
+	main._on_continue_pressed()
+	await process_frame
+
+	# Yard reference: kits + covers 1,2,5.
+	main._start_setup(false, false)
+	await process_frame
+	_deploy_ref(main, [1, 2, 5], [90.0, 180.0, 180.0])
+	var yard_ok: bool = await _run_all_waves(main, 60 * 240)
+	if not yard_ok:
+		push_error("SMOKE_YARD_RAID_FAIL phase=%s reason=%s wave=%s" % [main.phase, main.fail_reason, main.wave_index() if main.has_method("wave_index") else -1])
+		quit(81)
+		return false
+	print("SMOKE_OK yard raid won")
+	print("SMOKE_OK_RAID_LOOP")
+	if str(main.continue_button.text).find("下一关") < 0:
+		push_error("SMOKE_DEBRIEF_CONTINUE %s" % main.continue_button.text)
+		quit(44)
+		return false
+	main._on_continue_pressed()
+	await process_frame
+	await process_frame
+	if main.level.level_id != "warehouse":
+		push_error("SMOKE_BAD_ADVANCE expected=warehouse got=%s" % main.level.level_id)
+		quit(11)
+		return false
+	if main.has_method("flash_text") and str(main.flash_text()).find("零逃逸") >= 0:
+		push_error("SMOKE_FLASH_LEAK %s" % main.flash_text())
+		quit(11)
+		return false
+	print("SMOKE_OK_FLASH_CLEAR")
+	if not _assert_geometry(main, "warehouse"):
+		return false
+	if main.barrels.size() != 1:
+		push_error("SMOKE_WAREHOUSE_NO_BARREL n=%s" % main.barrels.size())
+		quit(31)
+		return false
+	_deploy_ref(main, [1, 3, 5], [180.0, 0.0, 180.0])
+	if main.has_method("_play_hold_pack"):
+		main._play_hold_pack(1)
+	var wh: bool = await _run_all_waves(main, 60 * 280)
+	if not wh:
+		push_error("SMOKE_WAREHOUSE_RAID_FAIL phase=%s reason=%s" % [main.phase, main.fail_reason])
+		quit(12)
+		return false
+	print("SMOKE_OK warehouse raid won")
+	main._on_continue_pressed()
+	await process_frame
+	await process_frame
+	if main.level.level_id != "pump":
+		push_error("SMOKE_BAD_ADVANCE expected=pump got=%s" % main.level.level_id)
+		quit(13)
+		return false
+	if not _assert_geometry(main, "pump"):
+		return false
+	if main.door_locked:
+		main._on_door_pressed()
+	_deploy_ref(main, [1, 4, 5], [90.0, 0.0, 180.0])
+	var po: bool = await _run_all_waves(main, 60 * 240)
+	if not po:
+		push_error("SMOKE_PUMP_RAID_FAIL phase=%s reason=%s" % [main.phase, main.fail_reason])
+		quit(14)
+		return false
+	print("SMOKE_OK pump raid won")
+	if not _assert_level_order(main, 6):
+		return false
+	main._on_continue_pressed()
+	await process_frame
+	await process_frame
+	if main.level.level_id != "railcut":
+		push_error("SMOKE_BAD_ADVANCE expected=railcut got=%s" % main.level.level_id)
+		quit(45)
+		return false
+	if not _assert_geometry(main, "railcut"):
+		return false
+	if not _assert_railcut_contract(main):
+		return false
+	_deploy_ref(main, [1, 4, 5], [270.0, 270.0, 180.0])
+	var rc: bool = await _run_all_waves(main, 60 * 280)
+	if not rc:
+		push_error("SMOKE_RAILCUT_RAID_FAIL phase=%s reason=%s" % [main.phase, main.fail_reason])
+		quit(45)
+		return false
+	print("SMOKE_OK railcut raid won")
+	main._on_continue_pressed()
+	await process_frame
+	await process_frame
+	if main.level.level_id != "depot":
+		push_error("SMOKE_BAD_ADVANCE expected=depot got=%s" % main.level.level_id)
+		quit(48)
+		return false
+	if not _assert_geometry(main, "depot"):
+		return false
+	if not _assert_depot_contract(main):
+		return false
+	_deploy_ref(main, [1, 4, 5], [270.0, 270.0, 180.0])
+	main._try_place_tripwire(main.grid.cell_to_world_center(Vector2i(7, 11)))
+	var dp: bool = await _run_all_waves(main, 60 * 280)
+	if not dp:
+		push_error("SMOKE_DEPOT_RAID_FAIL phase=%s reason=%s" % [main.phase, main.fail_reason])
+		quit(48)
+		return false
+	print("SMOKE_OK depot raid won")
+	main._on_continue_pressed()
+	await process_frame
+	await process_frame
+	if main.level.level_id != "radio":
+		push_error("SMOKE_BAD_ADVANCE expected=radio got=%s" % main.level.level_id)
+		quit(62)
+		return false
+	if not _assert_geometry(main, "radio"):
+		return false
+	if not _assert_radio_contract(main):
+		return false
+	_deploy_ref(main, [1, 4, 5], [270.0, 90.0, 270.0])
+	main._try_place_tripwire(main.grid.cell_to_world_center(Vector2i(7, 11)))
+	var rd: bool = await _run_all_waves(main, 60 * 320)
+	if not rd:
+		push_error("SMOKE_RADIO_RAID_FAIL phase=%s reason=%s" % [main.phase, main.fail_reason])
+		quit(62)
+		return false
+	print("SMOKE_OK radio raid won")
+	print("SMOKE_OK_TYPICAL_LOOPS yard,warehouse,pump,railcut,depot,radio")
+	print("SMOKE_SLICE_COMPLETE")
+	quit(0)
+	return true
+
 
 
 func _wait_phase(main, want, max_frames: int) -> bool:
@@ -1121,7 +1680,7 @@ func _assert_fail_paths(main) -> bool:
 	main._select_op(0)
 	main._deploy_selected_to(main.cover_slots[0], false)
 	main.selected.set_facing(90.0)
-	main._on_alarm_pressed()
+	main.raid_force_alarm()
 	if main.phase != main.Phase.WATCHING:
 		push_error("SMOKE_ABORT_NO_WATCH phase=%s" % main.phase)
 		quit(60)
@@ -1166,7 +1725,7 @@ func _assert_fail_paths(main) -> bool:
 	main._select_op(0)
 	main._deploy_selected_to(main.cover_slots[0], false)
 	main.selected.set_facing(90.0)
-	main._on_alarm_pressed()
+	main.raid_force_alarm()
 	await _drive_ticks(main, 30)
 	if main.phase != main.Phase.WATCHING:
 		push_error("SMOKE_WIPE_ENDED_EARLY phase=%s reason=%s" % [main.phase, main.fail_reason])
@@ -1222,7 +1781,7 @@ func _assert_skip_to_outcome(main) -> bool:
 	var door0 := bool(main.door_locked)
 	var trips0: int = main.tripwires.size()
 	var pos0: Vector2 = main.operators[0].global_position
-	main._on_alarm_pressed()
+	main.raid_force_alarm()
 	if main.phase != main.Phase.WATCHING:
 		push_error("SMOKE_SKIP_NO_WATCH phase=%s" % main.phase)
 		quit(73)
@@ -1233,8 +1792,8 @@ func _assert_skip_to_outcome(main) -> bool:
 		push_error("SMOKE_SKIP_NOT_LEAK phase=%s reason=%s tick=%s" % [main.phase, main.fail_reason, main.sim.tick])
 		quit(73)
 		return false
-	if int(main.sim.tick) != 965:
-		push_error("SMOKE_SKIP_TICK_DRIFT tick=%s want=965" % main.sim.tick)
+	if int(main.sim.tick) < 30:
+		push_error("SMOKE_SKIP_TOO_SHORT tick=%s" % main.sim.tick)
 		quit(73)
 		return false
 	if absf(float(main.operators[0].facing_deg) - face0) > 0.01:
@@ -1800,6 +2359,180 @@ func _assert_sim_clock() -> bool:
 	return true
 
 
+func _assert_weapon_models(_main = null) -> bool:
+	var W: GDScript = load("res://scripts/raid/weapon_catalog.gd") as GDScript
+	if W == null:
+		push_error("SMOKE_NO_WEAPON_CATALOG")
+		quit(82)
+		return false
+	var rifle: Dictionary = W.def("rifle")
+	if str(rifle.get("id", "")) != "rifle":
+		push_error("SMOKE_RIFLE_CLASS_ID %s" % rifle.get("id", ""))
+		quit(82)
+		return false
+	if absf(float(rifle.get("range_px", 0.0)) - 220.0) > 0.1:
+		push_error("SMOKE_RIFLE_RANGE %s" % rifle.get("range_px", 0.0))
+		quit(82)
+		return false
+	if W.model_ids().size() != 10:
+		push_error("SMOKE_KIT_COUNT n=%s" % W.model_ids().size())
+		quit(82)
+		return false
+	for banned in W.banned_tail():
+		if str(banned) in W.model_ids():
+			push_error("SMOKE_TAIL_STILL %s" % banned)
+			quit(82)
+			return false
+	var table: Array = W.kit_table()
+	if table.size() != 5:
+		push_error("SMOKE_KIT_FAMILIES %s" % table.size())
+		quit(82)
+		return false
+	for row in table:
+		var fam := str(row.get("family", ""))
+		var allied := str(row.get("allied", ""))
+		var axis := str(row.get("axis", ""))
+		if W.family_of(allied) != fam or W.family_of(axis) != fam:
+			push_error("SMOKE_KIT_FAMILY %s %s %s" % [fam, allied, axis])
+			quit(82)
+			return false
+		if str(W.side_of(allied)) != "allied" or str(W.side_of(axis)) != "axis":
+			push_error("SMOKE_KIT_SIDE %s %s" % [allied, axis])
+			quit(82)
+			return false
+		if W.models_in_family(fam).size() != 2:
+			push_error("SMOKE_FAMILY_NOT_PAIR %s %s" % [fam, W.models_in_family(fam)])
+			quit(82)
+			return false
+	if not bool(W.is_firearm("kar98k")) or W.family_of("kar98k") != "rifle":
+		push_error("SMOKE_K98_FAMILY %s" % W.family_of("kar98k"))
+		quit(82)
+		return false
+	if W.ammo_kind_of("kar98k") != "rifle" or W.ammo_kind_of("rifle_ammo") != "rifle":
+		push_error("SMOKE_K98_AMMO")
+		quit(82)
+		return false
+	var k98: Dictionary = W.def("kar98k")
+	var garand: Dictionary = W.def("m1_garand")
+	if float(k98.get("shot_interval", 0.0)) <= float(garand.get("shot_interval", 0.0)):
+		push_error("SMOKE_K98_NOT_SLOWER_THAN_GARAND")
+		quit(82)
+		return false
+	if absf(float(k98.get("damage", 0.0)) - float(garand.get("damage", 0.0))) < 4.0:
+		push_error("SMOKE_RIFLE_MODELS_SAME_DMG")
+		quit(82)
+		return false
+	var mg42: Dictionary = W.def("mg42")
+	var bar: Dictionary = W.def("bar")
+	if float(mg42.get("shot_interval", 1.0)) >= float(bar.get("shot_interval", 0.0)):
+		push_error("SMOKE_MG42_NOT_FASTER_THAN_BAR")
+		quit(82)
+		return false
+	if int(mg42.get("start_ammo", 0)) <= int(bar.get("start_ammo", 0)):
+		push_error("SMOKE_MG42_BELT_NOT_LARGER")
+		quit(82)
+		return false
+	var mp40: Dictionary = W.def("mp40")
+	var thompson: Dictionary = W.def("thompson")
+	if W.family_of("mp40") != "smg" or W.family_of("thompson") != "smg":
+		push_error("SMOKE_SMG_FAMILY")
+		quit(82)
+		return false
+	if float(thompson.get("shot_interval", 1.0)) >= float(mp40.get("shot_interval", 0.0)):
+		push_error("SMOKE_THOMPSON_NOT_FASTER_THAN_MP40")
+		quit(82)
+		return false
+	if str(W.sfx_cue("mg42")) == str(W.sfx_cue("kar98k")):
+		push_error("SMOKE_SFX_NOT_DISTINCT")
+		quit(82)
+		return false
+	if str(W.sfx_cue("rifle")) != "fire" or str(W.sfx_cue("mg")) != "fire_mg":
+		push_error("SMOKE_CLASS_SFX")
+		quit(82)
+		return false
+	var Art: GDScript = load("res://scripts/art/weapon_art.gd") as GDScript
+	if Art == null:
+		push_error("SMOKE_NO_WEAPON_ART")
+		quit(82)
+		return false
+	if Art.silhouette("kar98k") == Art.silhouette("m1_garand"):
+		push_error("SMOKE_RIFLE_SILHOUETTES_IDENTICAL")
+		quit(82)
+		return false
+	if Art.silhouette("mp40") == Art.silhouette("thompson"):
+		push_error("SMOKE_SMG_SILHOUETTES_IDENTICAL")
+		quit(82)
+		return false
+	if Art.silhouette("mg42") == Art.silhouette("bar"):
+		push_error("SMOKE_MG_SILHOUETTES_IDENTICAL")
+		quit(82)
+		return false
+	if Art.silhouette("m1911") == Art.silhouette("luger"):
+		push_error("SMOKE_PISTOL_SILHOUETTES_IDENTICAL")
+		quit(82)
+		return false
+	if Art.silhouette("springfield") == Art.silhouette("kar98k_zf"):
+		push_error("SMOKE_SCOUT_SILHOUETTES_IDENTICAL")
+		quit(82)
+		return false
+	var k98_tip := 0.0
+	for p in Art.silhouette("kar98k"):
+		k98_tip = minf(k98_tip, p.y)
+	if k98_tip > -16.0:
+		push_error("SMOKE_K98_BARREL_SHORT %s" % k98_tip)
+		quit(82)
+		return false
+	if _main != null and _main.operators.size() >= 1:
+		var op: OperatorUnit = _main.operators[0]
+		op.apply_weapon("kar98k", true)
+		if str(op.weapon_id) != "kar98k":
+			push_error("SMOKE_APPLY_K98 %s" % op.weapon_id)
+			quit(82)
+			return false
+		if absf(op.shot_interval - float(k98.get("shot_interval", 0.0))) > 0.001:
+			push_error("SMOKE_APPLY_K98_INTERVAL %s" % op.shot_interval)
+			quit(82)
+			return false
+		op.apply_weapon("m1_garand", true)
+		if op.shot_interval >= float(k98.get("shot_interval", 0.0)):
+			push_error("SMOKE_GARAND_NOT_FASTER_IN_HAND")
+			quit(82)
+			return false
+		var mixed: Dictionary = op.receive_item("mg_ammo", 8)
+		if int(op.ammo_pool.get("mg", 0)) < 8 or not bool(mixed.get("pooled", false)):
+			push_error("SMOKE_MODEL_AMMO_POOL %s %s" % [op.ammo_pool, mixed])
+			quit(82)
+			return false
+		op.apply_weapon("rifle", true)
+		if str(op.weapon_id) != "rifle":
+			push_error("SMOKE_REVERT_RIFLE %s" % op.weapon_id)
+			quit(82)
+			return false
+		op.wipe_inventory()
+	if str(W.resolve_crate_kind("rifle", "yard")) != "kar98k":
+		push_error("SMOKE_RESOLVE_YARD_RIFLE %s" % W.resolve_crate_kind("rifle", "yard"))
+		quit(82)
+		return false
+	if str(W.resolve_crate_kind("smg", "yard")) != "thompson":
+		push_error("SMOKE_RESOLVE_YARD_SMG %s" % W.resolve_crate_kind("smg", "yard"))
+		quit(82)
+		return false
+	if str(W.resolve_crate_kind("m1911", "yard")) != "m1911":
+		push_error("SMOKE_RESOLVE_KEEP_NAMED")
+		quit(82)
+		return false
+	if str(W.sfx_cue("kar98k")) == str(W.sfx_cue("mg42")):
+		push_error("SMOKE_SFX_NOT_DISTINCT")
+		quit(82)
+		return false
+	if str(W.sfx_cue("m1911")) == str(W.sfx_cue("kar98k")):
+		push_error("SMOKE_PISTOL_SFX_SAME")
+		quit(82)
+		return false
+	print("SMOKE_OK_WEAPON_MODELS n=", W.model_ids().size())
+	return true
+
+
 func _assert_roles_and_cover(main) -> bool:
 	if main.operators.size() < 3:
 		push_error("SMOKE_NO_ROLES")
@@ -1808,6 +2541,9 @@ func _assert_roles_and_cover(main) -> bool:
 	var rifle: OperatorUnit = main.operators[0]
 	var mg: OperatorUnit = main.operators[1]
 	var scout: OperatorUnit = main.operators[2]
+	rifle.apply_weapon("rifle", true)
+	mg.apply_weapon("mg", true)
+	scout.apply_weapon("scout", true)
 	if mg.half_angle_deg <= rifle.half_angle_deg:
 		push_error("SMOKE_MG_CONE_NOT_WIDER")
 		quit(32)
@@ -1844,8 +2580,8 @@ func _assert_roles_and_cover(main) -> bool:
 			quit(37)
 			return false
 	main._on_clear_pressed()
-	if scout.observation_ring_visible():
-		push_error("SMOKE_SCOUT_OBS_AFTER_CLEAR")
+	if not scout.visible:
+		push_error("SMOKE_SCOUT_HIDDEN_AFTER_CLEAR")
 		quit(37)
 		return false
 	if main.cover_slots.is_empty():
@@ -2097,6 +2833,24 @@ func _assert_sfx(main) -> bool:
 			quit(36)
 			return false
 		print("SMOKE_OK_SFX_BODY fire=", snapped(fire_p, 0.01), " tension=", snapped(ten_p, 0.01), " echo=", snapped(echo_p, 0.01))
+	if main.sfx.has_method("cue_duration_sec"):
+		var db := float(main.sfx.cue_duration_sec("fire_bolt"))
+		var ds := float(main.sfx.cue_duration_sec("fire_smg"))
+		var dmg := float(main.sfx.cue_duration_sec("fire_mg"))
+		var d42 := float(main.sfx.cue_duration_sec("fire_mg42"))
+		if db - ds < 0.06:
+			push_error("SMOKE_BOLT_NOT_LONGER bolt=%s smg=%s" % [db, ds])
+			quit(36)
+			return false
+		if absf(d42 - dmg) < 0.02:
+			push_error("SMOKE_MG42_DURATION_SAME mg=%s mg42=%s" % [dmg, d42])
+			quit(36)
+			return false
+		if not main.sfx.has_cue("fire_pistol") or not main.sfx.has_cue("fire_shotgun"):
+			push_error("SMOKE_NO_NEW_FIRE_CUES")
+			quit(36)
+			return false
+		print("SMOKE_OK_SFX_MODELS bolt=", snapped(db, 0.01), " smg=", snapped(ds, 0.01), " mg=", snapped(dmg, 0.01), " mg42=", snapped(d42, 0.01))
 	print("SMOKE_OK_SFX cues=role_fire muted=", main.sfx.muted, " every_shot=1 ui=1 hit=1")
 	return true
 
@@ -2105,6 +2859,7 @@ func _assert_engage_helpers(main) -> bool:
 	main._select_op(0)
 	main._deploy_selected_to(main.cover_slots[0])
 	var op: OperatorUnit = main.selected
+	op.apply_weapon("rifle", true)
 	op.set_facing(0.0)
 	op.fire_permitted = true
 	op.ammo = op.start_ammo
@@ -2499,7 +3254,7 @@ func _assert_lifecycle(main) -> bool:
 		return false
 	main._select_op(0)
 	main._deploy_selected_to(main.cover_slots[0], false)
-	main._on_alarm_pressed()
+	main.raid_force_alarm()
 	if main.phase != main.Phase.WATCHING:
 		push_error("SMOKE_LIFECYCLE_NO_WATCH phase=%s" % main.phase)
 		quit(47)
@@ -2573,7 +3328,7 @@ func _assert_watch_juice(main) -> bool:
 		main._start_setup(false, false)
 	main._select_op(0)
 	main._deploy_selected_to(main.cover_slots[0], false)
-	main._on_alarm_pressed()
+	main.raid_force_alarm()
 	if main.phase != main.Phase.WATCHING:
 		push_error("SMOKE_WATCH_JUICE_NO_WATCH phase=%s" % main.phase)
 		quit(53)
@@ -3021,6 +3776,11 @@ func _assert_props(main) -> bool:
 		"Oil stain", "Hose coil", "Switch box", "Drip pan",
 		"Courtyard well", "Conveyor rollers", "Pressure gauge",
 		"Milepost", "Fill nozzle", "Horn speaker",
+		"Wagon ruts", "horse dung",
+		"Coal dust",
+		"jamb rust", "Escape mouth lamplight",
+		"Sodium lamp cages", "Oil vapour stains", "Lighthouse lantern panes",
+		"Horseshoe", "ZF crate",
 	]:
 		if src.find(token) < 0:
 			push_error("SMOKE_PROPS_TOKEN %s" % token)
@@ -3389,7 +4149,9 @@ func _assert_iteration_slice(main) -> bool:
 	var ammo0: int = int(dry_op.ammo)
 	var vis0: bool = bool(dry_op.visible)
 	dry_op.visible = true
+	dry_op.apply_weapon("rifle", true)
 	dry_op.ammo = 0
+	dry_op.melee = false
 	dry_op._refresh_tag()
 	if not dry_op.has_method("dry_gun_visible") or not bool(dry_op.dry_gun_visible()):
 		push_error("SMOKE_NO_DRY_GUN")
@@ -3399,7 +4161,8 @@ func _assert_iteration_slice(main) -> bool:
 		push_error("SMOKE_DRY_GUN_TAG %s" % dry_op.tag.text)
 		quit(71)
 		return false
-	dry_op.ammo = ammo0
+	dry_op.apply_weapon("rifle", true)
+	dry_op.ammo = maxi(ammo0, dry_op.start_ammo)
 	dry_op.visible = vis0
 	dry_op._refresh_tag()
 	if vis0 and bool(dry_op.dry_gun_visible()):

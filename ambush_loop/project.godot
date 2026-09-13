@@ -4,7 +4,8 @@ config_version=5
 [application]
 
 config/name="Ambush Loop"
-config/description="Commandos-style ambush prep: station operators on cover, set overwatch cones, lock the plan, watch. One escape rewinds time with intel."
+config/version="0.4.0"
+config/description="Commandos-style night raid: scout and loot, set an ambush, pull the alarm, sweep between waves."
 run/main_scene="res://scenes/title.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus", "Mobile", "GL Compatibility")
 config/icon="res://icon.svg"
@@ -59,5 +60,5 @@ reset_run={
 renderer/rendering_method="forward_plus"
 renderer/rendering_method.mobile="gl_compatibility"
 textures/canvas_textures/default_texture_filter=0
-environment/defaults/default_clear_color=Color(0.08, 0.09, 0.11, 1)
+environment/defaults/default_clear_color=Color(0.07, 0.07, 0.05, 1)
 textures/vram_compression/import_etc2_astc=true

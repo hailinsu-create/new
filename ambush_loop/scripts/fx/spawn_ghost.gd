@@ -34,9 +34,9 @@ func route_color() -> Color:
 		"flank":
 			return Color(0.95, 0.55, 0.16)
 		"sneak":
-			return Color(0.38, 0.78, 0.52)
+			return Color(0.42, 0.48, 0.28)
 		"echo":
-			return Color(0.42, 0.82, 0.96)
+			return Color(0.70, 0.58, 0.32)
 		"alt":
 			return Color(0.72, 0.55, 0.95)
 		_:

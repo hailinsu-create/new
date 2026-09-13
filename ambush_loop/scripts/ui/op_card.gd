@@ -6,6 +6,7 @@ extends PanelContainer
 signal picked(idx: int)
 
 const RoleGlyphScript := preload("res://scripts/ui/role_glyph.gd")
+const GunStampScript := preload("res://scripts/ui/gun_stamp.gd")
 
 var idx: int = 0
 var _name: Label
@@ -16,6 +17,7 @@ var _meta: Label
 var _slot: Label
 var _why: Label
 var _glyph: Control
+var _gun: Control
 var _fill_col: Color = Color(0, 0, 0, 0)
 var _normal: StyleBoxFlat
 var _hot: StyleBoxFlat
@@ -37,11 +39,11 @@ func setup(i: int) -> void:
 	size_flags_vertical = 0
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	_normal = NightOps.flat(Color(0.055, 0.072, 0.062, 0.94), Color(0.28, 0.34, 0.22), 1, 8, 3)
+	_normal = NightOps.flat(Color(0.055, 0.050, 0.038, 0.94), Color(0.36, 0.28, 0.16), 1, 8, 3)
 	_normal.border_width_top = 2
 	_normal.border_width_left = 4
 	_normal.content_margin_left = 12
-	_hot = NightOps.flat(Color(0.09, 0.12, 0.08, 0.98), NightOps.OLIVE_HI, 1, 8, 3)
+	_hot = NightOps.flat(Color(0.10, 0.09, 0.06, 0.98), NightOps.OLIVE_HI, 1, 8, 3)
 	_hot.border_width_left = 6
 	_hot.border_width_top = 3
 	_hot.content_margin_left = 14
@@ -76,6 +78,9 @@ func setup(i: int) -> void:
 	_glyph = RoleGlyphScript.new()
 	_glyph.custom_minimum_size = Vector2(26, 26)
 	name_row.add_child(_glyph)
+	_gun = GunStampScript.new()
+	_gun.custom_minimum_size = Vector2(28, 16)
+	name_row.add_child(_gun)
 	_name = Label.new()
 	_name.add_theme_font_size_override("font_size", 16)
 	_name.add_theme_font_override("font", NightOps.ui_font_bold())
@@ -181,6 +186,9 @@ func bind(op: OperatorUnit, is_sel: bool, can_pick: bool, watching: bool = false
 	if _glyph:
 		_glyph.set("role", op.role)
 		_glyph.visible = true
+	if _gun:
+		_gun.set("weapon_id", op.weapon_id)
+		_gun.visible = op.weapon_id != "" and op.weapon_id != "knife"
 	var kit := OperatorUnit.role_kit_color(op.role)
 	var stripe := kit.lerp(NightOps.OLIVE, 0.42)
 	_name.text = op.display_name
@@ -190,7 +198,10 @@ func bind(op: OperatorUnit, is_sel: bool, can_pick: bool, watching: bool = false
 	if _hot:
 		_hot.border_color = stripe.lerp(NightOps.OLIVE_HI, 0.35)
 		_hot.shadow_color = Color(0.50, 0.58, 0.28, 0.22)
-	_role.text = "%s · %s" % [OperatorUnit.role_display(op.role), _kit_short(op)]
+	var gun := ""
+	if op.weapon_id != "" and op.weapon_id != "knife":
+		gun = WeaponCatalog.display_name(op.weapon_id)
+	_role.text = "%s · %s" % [OperatorUnit.role_display(op.role), gun if gun != "" else _kit_short(op)]
 	_role.add_theme_color_override("font_color", stripe.lerp(NightOps.MUTED, 0.40))
 	var hp := op.hp if op.alive else 0.0
 	_hp_target = hp
@@ -210,9 +221,15 @@ func bind(op: OperatorUnit, is_sel: bool, can_pick: bool, watching: bool = false
 	var slot_txt := "未部署"
 	if op.visible and op.slot != null:
 		slot_txt = op.slot.label_text
-	_meta.text = "%s 弹 %d/%d  %s  ·  %s" % [ammo_mark, op.ammo, op.max_ammo, op.fire_mode_label(), slot_txt]
-	if not op.visible or op.slot == null:
-		_slot.text = "未部署"
+	if op.has_method("inventory_line"):
+		_meta.text = "%s  %s" % [op.inventory_line(), op.fire_mode_label()]
+	else:
+		_meta.text = "%s 弹 %d/%d  %s  ·  %s" % [ammo_mark, op.ammo, op.max_ammo, op.fire_mode_label(), slot_txt]
+	if not op.visible:
+		_slot.text = "未上场"
+		_slot.add_theme_color_override("font_color", Color(0.72, 0.55, 0.32))
+	elif op.slot == null:
+		_slot.text = "机动"
 		_slot.add_theme_color_override("font_color", Color(0.72, 0.55, 0.32))
 	else:
 		_slot.text = op.slot.label_text
@@ -246,31 +263,35 @@ func _refresh_chrome() -> void:
 func _refresh_ammo_pips(op: OperatorUnit) -> void:
 	if _pips == null:
 		return
-	var n := mini(maxi(op.max_ammo, 1), 12)
+	var mag := maxi(op.start_ammo, 1) if op.start_ammo > 0 else maxi(op.max_ammo, 1)
+	var n := mini(mag, 16)
+	if op.weapon_id in ["mg42", "bar"]:
+		n = mini(maxi(op.max_ammo, mag), 16)
 	while _pips.get_child_count() > n:
 		var last := _pips.get_child(_pips.get_child_count() - 1)
 		_pips.remove_child(last)
 		last.free()
 	while _pips.get_child_count() < n:
 		var pip := ColorRect.new()
-		pip.custom_minimum_size = Vector2(8, 7)
+		pip.custom_minimum_size = Vector2(7, 6)
 		pip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_pips.add_child(pip)
-	var filled := int(round(float(maxi(op.ammo, 0)) / float(maxi(op.max_ammo, 1)) * float(n)))
+	var filled := mini(maxi(op.ammo, 0), n)
 	if not op.alive:
 		filled = 0
-	var kit := OperatorUnit.role_kit_color(op.role)
 	for i in n:
 		var pip: ColorRect = _pips.get_child(i) as ColorRect
 		if pip == null:
 			continue
 		if i < filled:
-			pip.color = Color(kit.r, kit.g, kit.b, 0.92).lerp(NightOps.OLIVE_HI, 0.18)
+			pip.color = Color(0.72, 0.56, 0.26, 0.95)
 		else:
-			pip.color = Color(0.16, 0.18, 0.14, 0.85)
+			pip.color = Color(0.16, 0.14, 0.10, 0.85)
 
 
 func _kit_short(op: OperatorUnit) -> String:
+	if op.has_method("inventory_line"):
+		return op.inventory_line()
 	match op.role:
 		OperatorUnit.Role.MG:
 			return "铁砧 · 宽锥短距"

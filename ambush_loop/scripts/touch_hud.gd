@@ -36,21 +36,21 @@ func _build() -> void:
 	_hint.add_theme_font_size_override("font_size", 13)
 	_hint.add_theme_color_override("font_color", NightOps.OLIVE_HI)
 	_hint.position = Vector2(12, 6)
-	_hint.text = "触控：点掩体部署 → ↺↻ 射界 → 警报锁死"
+	_hint.text = "触控：点队员/点地走 → 拾取匣 → 趴掩体 → 拉警报 → 打扫下一波"
 	_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_hint)
 
 	var plate := ColorRect.new()
 	plate.name = "BarPlate"
 	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	plate.color = Color(0.04, 0.055, 0.045, 0.88)
+	plate.color = Color(0.05, 0.045, 0.032, 0.88)
 	plate.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	plate.offset_top = -156.0
 	root.add_child(plate)
 	var plate_rail := ColorRect.new()
 	plate_rail.name = "BarRail"
 	plate_rail.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	plate_rail.color = Color(0.62, 0.72, 0.38, 0.70)
+	plate_rail.color = Color(0.62, 0.50, 0.24, 0.70)
 	plate_rail.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	plate_rail.offset_bottom = 3.0
 	plate.add_child(plate_rail)
@@ -82,11 +82,15 @@ func _build() -> void:
 	_add(_row_setup, "fire", "开火", Color(0.55, 0.48, 0.28))
 	_add(_row_setup, "pack", "弹包", Color(0.40, 0.55, 0.40))
 	_add(_row_setup, "trip", "绊索", Color(0.55, 0.40, 0.28))
+	_add(_row_setup, "nade", "雷点", Color(0.82, 0.42, 0.18))
+	_add(_row_setup, "bag", "背包", Color(0.48, 0.44, 0.28))
+	_add(_row_setup, "decoy", "诱饵", Color(0.82, 0.72, 0.28))
+	_add(_row_setup, "pass", "递装", Color(0.42, 0.62, 0.48))
 	_add(_row_setup, "door", "门锁", Color(0.50, 0.42, 0.28))
 	_add(_row_setup, "rotate_ccw", "↺", Color(0.42, 0.58, 0.36))
 	_add(_row_setup, "rotate_cw", "↻", Color(0.42, 0.58, 0.36))
 	_add(_row_setup, "clear", "收回", Color(0.38, 0.40, 0.36))
-	_add(_row_setup, "alarm", "警报", Color(0.72, 0.22, 0.18))
+	_add(_row_setup, "alarm", "需枪", Color(0.72, 0.22, 0.18))
 
 	_row_watch = HBoxContainer.new()
 	_row_watch.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -94,6 +98,7 @@ func _build() -> void:
 	_row_watch.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(_row_watch)
 	_add(_row_watch, "abort", "中止", Color(0.55, 0.20, 0.20))
+	_add(_row_watch, "nade_watch", "自动雷", Color(0.82, 0.42, 0.18))
 	_add(_row_watch, "skip", "终局", Color(0.42, 0.52, 0.28))
 	_add(_row_watch, "pause", "暂停", Color(0.35, 0.38, 0.42))
 	_add(_row_watch, "speed", "倍速", Color(0.35, 0.38, 0.42))
@@ -228,6 +233,21 @@ func set_hint(text: String) -> void:
 		_hint.text = text
 
 
+func set_alarm_cta(text: String) -> void:
+	if not _btns.has("alarm"):
+		return
+	var b: Button = _btns["alarm"]
+	if b == null:
+		return
+	var lab := text.strip_edges()
+	if lab == "":
+		lab = "警报"
+	b.text = lab
+	b.set_meta("label", lab)
+	var wide := lab.length() >= 4
+	b.custom_minimum_size = Vector2(118 if wide else 88, 56)
+
+
 func refresh_phase(
 	phase_name: String,
 	watching_paused: bool,
@@ -239,16 +259,18 @@ func refresh_phase(
 ) -> void:
 	_apply_safe_area()
 	if _row_setup:
-		_row_setup.visible = phase_name == "SETUP"
+		_row_setup.visible = phase_name == "SETUP" or phase_name == "SWEEP"
 	if _row_watch:
-		_row_watch.visible = phase_name != "SETUP"
+		_row_watch.visible = phase_name != "SETUP" and phase_name != "SWEEP"
 	match phase_name:
 		"SETUP":
-			set_hint("触控：点掩体部署 → ↺↻ 射界 → 警报锁死")
+			set_hint("触控：点队员/点地走 → 开匣搜枪 → 背包取舍 → 雷点 → 趴掩体 → 拉警报")
+		"SWEEP":
+			set_hint("打扫：走近尸体拾取 → 背包换枪 → 下一波警报或撤离封锁")
 		"WATCHING":
-			set_hint("计划已锁死 — 暂停 / 倍速 / 中止 / 跳到终局，不能改部署")
+			set_hint("警报中 — 自动火力 / 自动手雷。暂停 / 倍速 / 中止。走位等打扫")
 		"REPLAY":
-			set_hint("复盘只读 — 拖时间轴；警报钮返回布置")
+			set_hint("复盘只读 — 拖时间轴；警报钮返回搜刮")
 		_:
 			set_hint("点继续。菜单可清空记忆或回标题")
 	if _btns.has("pause"):
@@ -260,25 +282,35 @@ func refresh_phase(
 	if _btns.has("log"):
 		_btns["log"].text = "收日志" if log_open else "日志"
 	if _btns.has("alarm"):
-		_btns["alarm"].disabled = phase_name != "SETUP" and phase_name != "REPLAY"
+		_btns["alarm"].disabled = phase_name != "SETUP" and phase_name != "SWEEP" and phase_name != "REPLAY"
 	if _btns.has("clear"):
-		_btns["clear"].disabled = phase_name != "SETUP"
+		_btns["clear"].disabled = phase_name != "SETUP" and phase_name != "SWEEP"
 	if _btns.has("fire"):
-		_btns["fire"].disabled = phase_name != "SETUP"
+		_btns["fire"].disabled = phase_name != "SETUP" and phase_name != "SWEEP"
 	if _btns.has("pack"):
 		_btns["pack"].visible = has_pack
-		_btns["pack"].disabled = phase_name != "SETUP" or not has_pack
+		_btns["pack"].disabled = (phase_name != "SETUP" and phase_name != "SWEEP") or not has_pack
 	if _btns.has("trip"):
-		_btns["trip"].disabled = phase_name != "SETUP"
+		_btns["trip"].disabled = phase_name != "SETUP" and phase_name != "SWEEP"
+	if _btns.has("nade"):
+		_btns["nade"].disabled = phase_name != "SETUP" and phase_name != "SWEEP"
+	if _btns.has("bag"):
+		_btns["bag"].disabled = false
+	if _btns.has("decoy"):
+		_btns["decoy"].disabled = phase_name != "SETUP" and phase_name != "SWEEP"
+	if _btns.has("pass"):
+		_btns["pass"].disabled = phase_name != "SETUP" and phase_name != "SWEEP"
+	if _btns.has("nade_watch"):
+		_btns["nade_watch"].disabled = phase_name != "WATCHING"
 	if _btns.has("door"):
 		_btns["door"].visible = has_door
-		_btns["door"].disabled = phase_name != "SETUP" or not has_door
+		_btns["door"].disabled = (phase_name != "SETUP" and phase_name != "SWEEP") or not has_door
 	if _btns.has("replay"):
 		_btns["replay"].disabled = phase_name != "FAILED" and phase_name != "WON"
 	if _btns.has("rotate_cw"):
-		_btns["rotate_cw"].disabled = phase_name != "SETUP"
+		_btns["rotate_cw"].disabled = phase_name != "SETUP" and phase_name != "SWEEP"
 	if _btns.has("rotate_ccw"):
-		_btns["rotate_ccw"].disabled = phase_name != "SETUP"
+		_btns["rotate_ccw"].disabled = phase_name != "SETUP" and phase_name != "SWEEP"
 	if _btns.has("abort"):
 		_btns["abort"].disabled = phase_name != "WATCHING"
 	if _btns.has("skip"):
@@ -289,7 +321,7 @@ func refresh_phase(
 
 
 func _paint_lock_states(phase_name: String) -> void:
-	var setup_cmds := ["fire", "pack", "trip", "door", "rotate_cw", "rotate_ccw", "clear", "alarm"]
+	var setup_cmds := ["fire", "pack", "trip", "nade", "decoy", "pass", "door", "rotate_cw", "rotate_ccw", "clear", "alarm"]
 	for cmd in _btns.keys():
 		var b: Button = _btns[cmd]
 		if b == null:
@@ -300,7 +332,7 @@ func _paint_lock_states(phase_name: String) -> void:
 		var lock := b.get_node_or_null("LockMark") as Label
 		if lock:
 			lock.visible = locked
-		if str(cmd) == "alarm" and phase_name == "SETUP" and not b.disabled:
+		if str(cmd) == "alarm" and (phase_name == "SETUP" or phase_name == "SWEEP") and not b.disabled:
 			b.modulate = Color(1.18, 0.92, 0.88)
 		if str(cmd) == "abort" and phase_name == "WATCHING" and not b.disabled:
 			b.modulate = Color(1.12, 0.85, 0.82)

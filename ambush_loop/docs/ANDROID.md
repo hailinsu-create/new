@@ -1,6 +1,6 @@
 # Android 安装说明（Ambush Loop）
 
-本游戏的**目标机是安卓手机**。云端桌面只是开发预览，不能代替真机。
+本游戏的**目标机是安卓手机**。云端桌面只是开发预览，不能代替真机。玩法是搜刮埋伏、多波警报、打扫继承，不是锁死观战。
 
 非 Gradle 导出不能改 `min_sdk` 字段（模板自带 24）。侧载用 **debug 签名 APK** 即可；release 还要单独的 release keystore。
 
@@ -20,9 +20,11 @@ Release 导出需要 release keystore；日常侧载用 debug 签名：
 
 ```bash
 godot --headless --path ambush_loop --export-debug "Android APK" build/android/AmbushLoop-debug.apk
-# 朋友包副本（可进仓）：
-# cp build/android/AmbushLoop-debug.apk dist/AmbushLoop-playtest.apk
+# 按版本命名的朋友包（可进仓）：
+# cp build/android/AmbushLoop-debug.apk dist/AmbushLoop-v0.4.0-commandos2-kit.apk
 ```
+
+当前试玩包：`dist/AmbushLoop-v0.4.0-commandos2-kit.apk`（`versionName` 0.4.0 / `versionCode` 4）。不要装 GitHub `ambush-loop-playtest-0.2.0` 的同名 `AmbushLoop-playtest.apk`。
 
 ## 本机导出 APK
 
@@ -36,8 +38,8 @@ godot --headless --path ambush_loop --export-debug "Android APK" build/android/A
 
 ```bash
 godot --headless --path ambush_loop --export-debug "Android APK" build/android/AmbushLoop-debug.apk
-# 朋友包副本（可进仓）：
-# cp build/android/AmbushLoop-debug.apk dist/AmbushLoop-playtest.apk
+# 按版本命名的朋友包（可进仓）：
+# cp build/android/AmbushLoop-debug.apk dist/AmbushLoop-v0.4.0-commandos2-kit.apk
 ```
 
 非 Gradle 预设不要填 `min_sdk` 覆盖，否则导出会失败。Release 需要 release keystore。
@@ -47,7 +49,7 @@ godot --headless --path ambush_loop --export-debug "Android APK" build/android/A
 1. 手机打开「安装未知来源」/ 允许该文件管理器安装
 2. 把 APK 拷到手机，点安装
 3. **必须横屏**；竖着会按 16:9 留边，不旋转内容
-4. 首次进入看教程：点选位 → 点兵种牌 → 拖或点 ↺↻ 设朝向 → 点 **警报**
+4. 标题应显示 **v0.4.0 COMMANDOS/WW2**。院子里先点选队员、点地走路、站在木匣上搜刮（匣标 **Kar98k**），I 开背包，G 放雷点，再点 **需枪 / 警报**（警报中自动丢雷）。
 
 ## 触控对照
 
@@ -58,7 +60,7 @@ godot --headless --path ambush_loop --export-debug "Android APK" build/android/A
 | 点 ↺↻ 或拖选中格 | 右键 / A D |
 | 底栏 警报 | 空格 |
 | 底栏 中止 | X |
-| 底栏 开火 / 弹包 / 绊索 / 门锁 | F / G / Tab / B |
+| 底栏 开火 / 弹包 / 绊索 / 雷点 / 背包 / 诱饵 / 递装 / 门锁 | F / 弹包钮 / Tab / G / I / V / T / B |
 | 底栏 暂停 / 倍速 / 静音 / 菜单 / 日志 | P / ± / M / Esc / 事件表 |
 
 没有实体键盘也能打完六关（院子 / 仓道 / 泵站 / 信号楼 / 油库 / 电台）。R 重开仍在设置里，且要确认。

@@ -26,14 +26,14 @@ func _ready() -> void:
 			Vector2(40, 360), Vector2(180, 420), Vector2(320, 560), Vector2(520, 620)
 		]),
 	]
-	_dust = _make_particles(28, 7.5, Color(0.72, 0.76, 0.58, 0.28), Vector2(0.15, -1.0), 10.0)
+	_dust = _make_particles(28, 7.5, Color(0.42, 0.36, 0.22, 0.28), Vector2(0.15, -1.0), 10.0)
 	_dust.initial_velocity_min = 3.0
 	_dust.initial_velocity_max = 12.0
 	_dust.gravity = Vector2(4.0, 6.0)
 	_dust.scale_amount_min = 0.5
 	_dust.scale_amount_max = 1.6
 	add_child(_dust)
-	_sparks = _make_particles(14, 3.2, Color(0.92, 0.84, 0.42, 0.55), Vector2(0.35, -1.0), 18.0)
+	_sparks = _make_particles(14, 3.2, Color(0.72, 0.52, 0.22, 0.55), Vector2(0.35, -1.0), 18.0)
 	_sparks.initial_velocity_min = 12.0
 	_sparks.initial_velocity_max = 28.0
 	_sparks.gravity = Vector2(2.0, 14.0)
@@ -114,10 +114,10 @@ func _draw() -> void:
 		)
 	var moon := Vector2(sz.x * 0.84, 74.0)
 	var breathe := 0.0 if _particles_suppressed() else (0.5 + 0.5 * sin(t * 0.55))
-	draw_circle(moon, 92.0 + breathe * 6.0, Color(0.78, 0.86, 0.64, 0.07 + 0.03 * breathe))
-	draw_circle(moon, 48.0, Color(0.86, 0.92, 0.70, 0.14 + 0.04 * breathe))
-	draw_circle(moon, 22.0, Color(0.92, 0.96, 0.80, 0.42 + 0.08 * breathe))
-	draw_circle(moon, 11.0, Color(0.97, 0.98, 0.88, 0.82))
+	draw_circle(moon, 92.0 + breathe * 6.0, Color(0.72, 0.68, 0.48, 0.07 + 0.03 * breathe))
+	draw_circle(moon, 48.0, Color(0.80, 0.76, 0.56, 0.14 + 0.04 * breathe))
+	draw_circle(moon, 22.0, Color(0.88, 0.84, 0.66, 0.42 + 0.08 * breathe))
+	draw_circle(moon, 11.0, Color(0.94, 0.90, 0.74, 0.82))
 	draw_circle(moon + Vector2(-4, 3), 3.2, Color(0.78, 0.82, 0.68, 0.35))
 	draw_circle(moon + Vector2(5, -2), 2.0, Color(0.80, 0.84, 0.70, 0.28))
 	# Cloud bands across the moon.
@@ -126,7 +126,7 @@ func _draw() -> void:
 	_draw_courtyard(sz)
 	var step := 44.0
 	var drift := 0.0 if _particles_suppressed() else fmod(t * 6.0, step)
-	var grid_c := Color(0.22, 0.28, 0.18, 0.10)
+	var grid_c := Color(0.22, 0.18, 0.10, 0.10)
 	var x := -step + drift * 0.25
 	while x < sz.x + step:
 		draw_line(Vector2(x, sz.y * 0.42), Vector2(x, sz.y), grid_c, 1.0)
@@ -137,10 +137,10 @@ func _draw() -> void:
 		y += step
 	var off := Vector2.ZERO if _particles_suppressed() else Vector2(sin(t * 0.32) * 14.0, cos(t * 0.21) * 9.0)
 	var cols := [
-		Color(0.82, 0.90, 0.42, 0.52),
-		Color(0.68, 0.78, 0.38, 0.40),
+		Color(0.72, 0.58, 0.28, 0.52),
+		Color(0.52, 0.44, 0.24, 0.40),
 		Color(0.95, 0.84, 0.42, 0.32),
-		Color(0.42, 0.78, 0.92, 0.38),
+		Color(0.62, 0.52, 0.28, 0.38),
 	]
 	for i in _routes.size():
 		var shifted := PackedVector2Array()
@@ -203,20 +203,20 @@ func _draw_courtyard(sz: Vector2) -> void:
 			Vector2(90, sz.y * 0.40), Vector2(150, sz.y * 0.58),
 			Vector2(90, sz.y * 0.54), Vector2(30, sz.y * 0.58)
 		]),
-		Color(0.10, 0.16, 0.08, 0.55)
+		Color(0.12, 0.12, 0.06, 0.55)
 	)
 	# Radio dish on the east roof — campaign finale silhouette.
 	var dish := Vector2(sz.x - 150.0, sz.y * 0.20)
-	draw_arc(dish, 34.0, -2.5, 0.5, 12, Color(0.42, 0.78, 0.92, 0.45), 3.2, true)
-	draw_line(dish, dish + Vector2(18, -16), Color(0.62, 0.88, 0.98, 0.55), 1.8, true)
-	draw_circle(dish + Vector2(18, -16), 3.4, Color(0.78, 0.94, 1.0, 0.70))
-	draw_rect(Rect2(dish.x - 4.0, dish.y, 8.0, 28.0), Color(0.10, 0.14, 0.16, 0.70))
+	draw_arc(dish, 34.0, -2.5, 0.5, 12, Color(0.58, 0.50, 0.32, 0.45), 3.2, true)
+	draw_line(dish, dish + Vector2(18, -16), Color(0.70, 0.58, 0.32, 0.55), 1.8, true)
+	draw_circle(dish + Vector2(18, -16), 3.4, Color(0.82, 0.70, 0.40, 0.70))
+	draw_rect(Rect2(dish.x - 4.0, dish.y, 8.0, 28.0), Color(0.12, 0.10, 0.08, 0.70))
 
 
 func _draw_ops_stamps(sz: Vector2) -> void:
 	var base_y := sz.y * 0.86
-	_stamp_figure(Vector2(sz.x * 0.18, base_y), Color(0.40, 0.55, 0.48), 0)
-	_stamp_figure(Vector2(sz.x * 0.50, base_y), Color(0.48, 0.56, 0.28), 1)
+	_stamp_figure(Vector2(sz.x * 0.18, base_y), Color(0.42, 0.38, 0.24), 0)
+	_stamp_figure(Vector2(sz.x * 0.50, base_y), Color(0.48, 0.42, 0.22), 1)
 	_stamp_figure(Vector2(sz.x * 0.82, base_y), Color(0.26, 0.44, 0.38), 2)
 
 
