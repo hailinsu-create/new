@@ -18,7 +18,7 @@ static func draw_knife(c: CanvasItem, p: Vector2, col: Color) -> void:
 
 
 static func draw_whistle(c: CanvasItem, p: Vector2, col: Color) -> void:
-	c.draw_circle(p, 4.5, col)
+	c.draw_circle(p, 4.8, col)
 	c.draw_arc(p, 8.0, -0.6, 0.6, 8, col, 1.4, true)
 	c.draw_arc(p, 11.0, -0.5, 0.5, 8, col, 1.1, true)
 
