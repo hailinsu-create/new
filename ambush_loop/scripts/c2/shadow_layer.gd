@@ -34,6 +34,8 @@ func setup(grid, level_id: String) -> void:
 			_add_strip(Vector2i(9, 17), Vector2i(11, 17), true)
 			_add_strip(Vector2i(7, 10), Vector2i(7, 10), false)
 			_add_strip(Vector2i(23, 12), Vector2i(23, 13), false)
+			_add_strip(Vector2i(16, 17), Vector2i(18, 17), true)
+			_add_strip(Vector2i(21, 16), Vector2i(22, 17), true)
 	queue_redraw()
 
 
