@@ -775,10 +775,9 @@ func _apply_phone_chrome(on: bool) -> void:
 		root.offset_left = pad.x
 		root.offset_top = pad.y
 		root.offset_right = -pad.z
-		if on:
-			root.offset_bottom = -pad.w - 150.0
-		else:
-			root.offset_bottom = -pad.w
+		## Portraits live on TouchHud now. Don't compress Root — that used to
+		## shove the C2 strip into the courtyard.
+		root.offset_bottom = -pad.w
 	if plan_readout:
 		plan_readout.visible = not on
 	if route_legend:
@@ -792,6 +791,8 @@ func _apply_phone_chrome(on: bool) -> void:
 	_pin_role_cards(on)
 	_layout_checklist()
 	_sync_desktop_bars(not on)
+	if c2 and c2.has_method("layout_chrome"):
+		c2.layout_chrome(on)
 
 
 func _result_overlay_active() -> bool:
@@ -869,9 +870,10 @@ func _pin_role_cards(touch: bool) -> void:
 
 func _apply_result_rail() -> void:
 	## Fail/win: hide the left rail so the three-line card is not bitten.
+	## Phone simplified rail: portraits are identity; left cards stay off.
 	if role_box == null or not is_instance_valid(role_box):
 		return
-	role_box.visible = not _result_overlay_active()
+	role_box.visible = (not _want_touch()) and not _result_overlay_active()
 
 
 func _safe_area_pad() -> Vector4:
@@ -1019,6 +1021,42 @@ func apply_touch_command(cmd: String) -> void:
 		"bind":
 			if c2:
 				c2.use_skill("bind")
+	_update_hud()
+
+
+func apply_context_action(cmd: String, world: Vector2 = Vector2.ZERO) -> void:
+	## Phone hotspot verbs. Same sim as the keyboard / apply_touch_command path.
+	if _modal_blocks_input() or not _is_command_phase():
+		return
+	match cmd:
+		"crate", "loot":
+			if world != Vector2.ZERO:
+				_command_move_selected(world)
+			else:
+				_try_pickup_near_selected()
+		"haul":
+			if selected and world != Vector2.ZERO and selected.global_position.distance_to(world) > 36.0:
+				_command_move_selected(world)
+			else:
+				_toggle_haul_corpse()
+		"cover":
+			var slot = _nearest_slot(world if world != Vector2.ZERO else (selected.global_position if selected else Vector2.ZERO), 40.0)
+			if slot:
+				_deploy_selected_to(slot, true)
+		"knife":
+			if c2:
+				c2.use_skill("knife")
+		"whistle":
+			if c2:
+				c2.use_skill("whistle")
+		"bind":
+			if c2:
+				c2.use_skill("bind")
+		"aid":
+			if c2:
+				c2.use_skill("aid")
+		_:
+			apply_touch_command(cmd)
 	_update_hud()
 
 
@@ -3713,7 +3751,11 @@ func _handle_touch_gestures(event: InputEvent) -> bool:
 				return true
 			if _modal_blocks_input():
 				return true
-			if phase == Phase.SETUP:
+			var hovered := get_viewport().gui_get_hovered_control()
+			if hovered != null and hovered is BaseButton:
+				_touch_ate_click = true
+				return true
+			if _is_command_phase():
 				var world := _screen_to_world(st.position)
 				_touch_preview_slot = null
 				_pending_setup_touch = true
@@ -3729,8 +3771,10 @@ func _handle_touch_gestures(event: InputEvent) -> bool:
 		if _facing_touch == st.index:
 			_facing_touch = -1
 		_pinch_start_dist = 0.0
-		if phase == Phase.SETUP and _pending_setup_touch:
+		if _is_command_phase() and _pending_setup_touch:
 			if not _touch_dragged and _touch_preview_slot == null:
+				if _want_touch() and Time.get_ticks_msec() - _cover_hold_msec >= COVER_LONGPRESS_MS:
+					_c2_sprint_next = true
 				_handle_setup_click(_pending_touch_world)
 			_pending_setup_touch = false
 			_cover_hold_slot = null
@@ -3753,9 +3797,9 @@ func _handle_touch_gestures(event: InputEvent) -> bool:
 			_cam_pan -= mid_delta / maxf(_cam_zoom, 0.01)
 			_apply_cam()
 			return true
-		if phase == Phase.SETUP:
+		if _is_command_phase():
 			_pending_touch_world = _screen_to_world(sd.position)
-		if phase == Phase.SETUP and sd.index == _facing_touch and selected and selected.visible and not selected.locked:
+		if _is_command_phase() and sd.index == _facing_touch and selected and selected.visible and not selected.locked:
 			var world2 := _screen_to_world(sd.position)
 			var v := world2 - selected.global_position
 			if v.length() > 10.0:

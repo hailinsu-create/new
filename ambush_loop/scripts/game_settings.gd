@@ -33,6 +33,11 @@ func want_touch_controls() -> bool:
 	return DisplayServer.is_touchscreen_available()
 
 
+func simplified_night_raid() -> bool:
+	## Phone default (and desktop "触控底栏"): context hotspots, not 16 keys.
+	return want_touch_controls()
+
+
 func is_handheld() -> bool:
 	return OS.has_feature("android") or OS.has_feature("mobile")
 

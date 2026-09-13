@@ -5,6 +5,21 @@ extends CanvasLayer
 
 signal dismissed
 
+const YARD_STEPS_TOUCH := [
+	{
+		"title": "1 / 3  ·  搜刮",
+		"body": "点底栏三张肖像选人（一次只管这一个）。点地走路，长按目的地奔跑。靠近木匣/岗哨/尸体，地图上会长出大热区：开匣、割喉（背后才出）、口哨（正面）、搜尸/拖尸。底栏只留匍匐、背包、右下拉警报。每人 6 格背包。先搜匣再埋伏。",
+	},
+	{
+		"title": "2 / 3  ·  射界与角色",
+		"body": "点掩体热区趴下。拖已部署队员调朝向。黄锥是墙裁切后的真射界。长按肖像出技能轮（望远镜/埋雷/诱饵/包扎）。这关手感：灰狼主路第一枪、铁砧东箱扫橙线、夜枭长窄锁南闸。",
+	},
+	{
+		"title": "3 / 3  ·  警报与打扫",
+		"body": "右下那颗大键拉警报。警报中只看、暂停、倍速、中止——自动开火、自动手雷，走位等打扫。清波后热区还能搜尸换枪。最后一波打扫后撤离才算封锁。",
+	},
+]
+
 const YARD_STEPS := [
 	{
 		"title": "1 / 3  ·  搜刮",
@@ -174,6 +189,10 @@ static func pages_for(level_id: String) -> Array:
 		"radio":
 			return RADIO_STEPS
 		_:
+			var loop := Engine.get_main_loop()
+			var gs = loop.root.get_node_or_null("GameSettings") if loop != null else null
+			if gs != null and gs.has_method("want_touch_controls") and bool(gs.want_touch_controls()):
+				return YARD_STEPS_TOUCH
 			return YARD_STEPS
 
 

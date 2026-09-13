@@ -4,6 +4,7 @@ extends Control
 ## Commandos 2 bottom portraits. Click / 1-2-3 still select.
 
 signal picked(idx: int)
+signal long_pressed(idx: int)
 
 const RoleGlyphScript := preload("res://scripts/ui/role_glyph.gd")
 const GunStampScript := preload("res://scripts/ui/gun_stamp.gd")
@@ -11,6 +12,10 @@ const GunStampScript := preload("res://scripts/ui/gun_stamp.gd")
 var _cards: Array = []
 var _stance: Array = []
 var _pulse: float = 0.0
+var _hold_idx: int = -1
+var _hold_msec: int = 0
+var _hold_fired: bool = false
+const LONG_MS := 350
 
 
 func _ready() -> void:
@@ -28,19 +33,27 @@ func _ready() -> void:
 		b.theme = NightOps.theme()
 		var idx := i
 		b.gui_input.connect(func(ev: InputEvent) -> void:
-			if ev is InputEventMouseButton and ev.pressed and ev.double_click:
-				picked.emit(idx)
-				if get_parent() != null:
+			if not (ev is InputEventMouseButton) or ev.button_index != MOUSE_BUTTON_LEFT:
+				return
+			if ev.pressed:
+				_hold_idx = idx
+				_hold_msec = Time.get_ticks_msec()
+				_hold_fired = false
+				if ev.double_click:
+					picked.emit(idx)
+					_hold_idx = -1
 					var main = get_tree().current_scene
-					if main and main.has_method("_reset_cam_view") and main.get("operators") != null and idx < main.operators.size():
+					if main and main.get("operators") != null and idx < main.operators.size():
 						var op = main.operators[idx]
 						if op:
 							var center := Vector2(640, 360)
 							main._cam_pan = (op.global_position - center) * 0.42
-							main._apply_cam()
-		)
-		b.pressed.connect(func() -> void:
-			picked.emit(idx)
+							if main.has_method("_apply_cam"):
+								main._apply_cam()
+			else:
+				if _hold_idx == idx and not _hold_fired:
+					picked.emit(idx)
+				_hold_idx = -1
 		)
 		var gly := RoleGlyphScript.new()
 		gly.name = "Glyph"
@@ -85,7 +98,16 @@ func _ready() -> void:
 	set_process(true)
 
 
+func card_global_rect(idx: int) -> Rect2:
+	if idx < 0 or idx >= _cards.size() or _cards[idx] == null:
+		return get_global_rect()
+	return (_cards[idx] as Control).get_global_rect()
+
+
 func _process(delta: float) -> void:
+	if _hold_idx >= 0 and not _hold_fired and Time.get_ticks_msec() - _hold_msec >= LONG_MS:
+		_hold_fired = true
+		long_pressed.emit(_hold_idx)
 	_pulse += delta * 4.2
 	for b in _cards:
 		if b == null:

@@ -1,7 +1,8 @@
 extends SceneTree
 
-## Two HUD stills for docs/TOUCH_UX_OPTIONS.md — current v0.5 chrome stack.
-## Not a campaign dump. SCOUT crowded bar + ALERT watch bar.
+## Forced-touch HUD stills for v0.5.1 simplified night-raid rail.
+## SCOUT: 3 resident keys + portraits in the thumb band + a crate hotspot.
+## ALERT: pause / speed / abort only.
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
@@ -18,6 +19,9 @@ func _run() -> void:
 		DisplayServer.window_set_size(Vector2i(1280, 720))
 	Engine.max_fps = 60
 	_wipe_save()
+	var gs0 := root.get_node_or_null("GameSettings")
+	if gs0:
+		gs0.force_touch_hud = true
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT))
 	print("DUMP_TOUCH_HUD display=", DisplayServer.get_name(), " size=", DisplayServer.window_get_size())
 
@@ -49,11 +53,40 @@ func _run() -> void:
 	var gs := root.get_node_or_null("GameSettings")
 	if gs:
 		gs.force_touch_hud = true
+	if main.c2 and main.c2.has_method("layout_chrome"):
+		main.c2.layout_chrome(true)
 	main._ensure_touch_hud()
 	main._update_hud()
-	await _settle(6)
+	await _settle(8)
 	_count_chrome(main, "scout")
-	await _save("01_scout_touch_crowded")
+	await _save("01_scout_touch_simple")
+
+	# Walk the wolf onto the first crate so the 开匣 hotspot is on-screen.
+	if main.operators.size() > 0 and not main.raid_stashes.is_empty():
+		main._select_op(0)
+		main.operators[0].global_position = main.raid_stashes[0].global_position
+		if main.c2 and main.c2.prompt and main.c2.prompt.has_method("refresh_now"):
+			main.c2.prompt.refresh_now()
+		await _settle(8)
+		_count_chrome(main, "scout_hotspot")
+		await _save("03_scout_hotspots")
+
+	# Knife hotspot: wolf west of a sentry facing east.
+	if main.c2 and not main.c2.sentries.is_empty() and main.operators.size() > 0:
+		var op = main.operators[0]
+		var sent = main.c2.sentries[0]
+		var clear := Vector2(220, 280)
+		if main.has_method("grid") and main.grid:
+			clear = main.grid.cell_to_world_center(Vector2i(6, 8))
+		op.global_position = clear
+		sent.global_position = clear + Vector2(16, 0)
+		sent.facing_deg = 0.0
+		main._select_op(0)
+		if main.c2.prompt and main.c2.prompt.has_method("refresh_now"):
+			main.c2.prompt.refresh_now()
+		await _settle(8)
+		_count_chrome(main, "scout_knife")
+		await _save("04_scout_hotspot_knife")
 
 	if main.has_method("raid_prepare_ref"):
 		main.raid_prepare_ref([0, 1, 2], [0.0, 0.0, 90.0], {"grenades": 2, "mines": 1})
@@ -69,25 +102,39 @@ func _run() -> void:
 
 func _count_chrome(main, tag: String) -> void:
 	var n := 0
-	if main.touch_hud and main.touch_hud._row_setup and main.touch_hud._row_setup.visible:
+	if main.touch_hud and main.touch_hud.has_method("setup_visible_button_count"):
+		n = int(main.touch_hud.setup_visible_button_count())
+	elif main.touch_hud and main.touch_hud._row_setup and main.touch_hud._row_setup.visible:
 		for c in main.touch_hud._row_setup.get_children():
-			if c is Control and c.visible:
+			if c is Button and c.visible:
 				n += 1
 	var w := 0
-	if main.touch_hud and main.touch_hud._row_watch and main.touch_hud._row_watch.visible:
+	if main.touch_hud and main.touch_hud.has_method("watch_visible_button_count"):
+		w = int(main.touch_hud.watch_visible_button_count())
+	elif main.touch_hud and main.touch_hud._row_watch and main.touch_hud._row_watch.visible:
 		for c in main.touch_hud._row_watch.get_children():
-			if c is Control and c.visible:
+			if c is Button and c.visible:
 				w += 1
 	var portraits_on := false
 	var skills_on := false
 	var mmap_on := false
+	var portrait_y := -1.0
+	var portrait_parent := ""
+	var hotspots := 0
+	var caps := ""
 	if main.get("c2") != null:
 		if main.c2.get("portraits") != null:
 			portraits_on = bool(main.c2.portraits.visible)
+			portrait_y = main.c2.portraits.global_position.y
+			if main.c2.portraits.get_parent():
+				portrait_parent = str(main.c2.portraits.get_parent().name)
 		if main.c2.get("skill_bar") != null:
 			skills_on = bool(main.c2.skill_bar.visible)
 		if main.c2.get("minimap") != null:
 			mmap_on = bool(main.c2.minimap.visible)
+		if main.c2.get("prompt") != null and main.c2.prompt.has_method("hotspot_count"):
+			hotspots = int(main.c2.prompt.hotspot_count())
+			caps = " ".join(main.c2.prompt.visible_captions())
 	var cards := "?"
 	if main.get("role_box") != null:
 		cards = str(main.role_box.visible)
@@ -97,9 +144,13 @@ func _count_chrome(main, tag: String) -> void:
 		" setup_btns=", n,
 		" watch_btns=", w,
 		" portraits=", portraits_on,
+		" portrait_y=", snapped(portrait_y, 0.1),
+		" portrait_parent=", portrait_parent,
 		" skillbar=", skills_on,
 		" minimap=", mmap_on,
-		" left_cards=", cards
+		" left_cards=", cards,
+		" hotspots=", hotspots,
+		" caps=", caps
 	)
 
 

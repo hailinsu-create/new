@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.5.0":
+	if ver != "0.5.1":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -54,7 +54,7 @@ func _run() -> void:
 		return
 	if not _assert_tripwire_tooling(main):
 		return
-	if not _assert_touch_parity(main):
+	if not await _assert_touch_parity(main):
 		return
 	if not _assert_lifecycle(main):
 		return
@@ -3147,6 +3147,14 @@ func _assert_tripwire_tooling(main) -> bool:
 
 
 func _assert_touch_parity(main) -> bool:
+	if not ResourceLoader.exists("res://scripts/c2/context_prompt.gd"):
+		push_error("SMOKE_NO_CONTEXT_PROMPT")
+		quit(44)
+		return false
+	if not ResourceLoader.exists("res://scripts/c2/skill_wheel.gd"):
+		push_error("SMOKE_NO_SKILL_WHEEL")
+		quit(44)
+		return false
 	if not ResourceLoader.exists("res://scripts/touch_hud.gd"):
 		push_error("SMOKE_NO_TOUCH_HUD_SCRIPT")
 		quit(44)
@@ -3296,10 +3304,182 @@ func _assert_touch_parity(main) -> bool:
 		quit(44)
 		return false
 	print("SMOKE_OK_TOUCH_NO_DESKTOP_BARS")
+	if not await _assert_simplified_touch(main):
+		return false
 	gs.force_touch_hud = false
 	main._ensure_touch_hud()
 	print("SMOKE_OK_TOUCH_PARITY")
 	return true
+
+
+func _assert_simplified_touch(main) -> bool:
+	## Phone default = 简配夜袭. Portraits in the thumb band, SETUP ≤ 3 keys,
+	## ALERT = 3 keys, left cards / skill bar / minimap off.
+	main._ensure_touch_hud()
+	main._update_hud()
+	await process_frame
+	await process_frame
+	var th = main.touch_hud
+	if th == null:
+		push_error("SMOKE_NO_TOUCH_FOR_SIMPLE")
+		quit(44)
+		return false
+	var setup_n := int(th.setup_visible_button_count()) if th.has_method("setup_visible_button_count") else -1
+	if setup_n > 3 or setup_n < 3:
+		push_error("SMOKE_TOUCH_SETUP_CROWDED n=%s" % setup_n)
+		quit(44)
+		return false
+	var cmds: PackedStringArray = th.setup_visible_cmds() if th.has_method("setup_visible_cmds") else PackedStringArray()
+	if not cmds.has("crouch") or not cmds.has("bag") or not cmds.has("alarm"):
+		push_error("SMOKE_TOUCH_RESIDENT %s" % " ".join(cmds))
+		quit(44)
+		return false
+	print("SMOKE_OK_TOUCH_RESIDENT ", " ".join(cmds))
+	var saved_phase = main.phase
+	main.phase = main.Phase.WATCHING
+	main._refresh_touch_hud()
+	await process_frame
+	var watch_n := int(th.watch_visible_button_count()) if th.has_method("watch_visible_button_count") else -1
+	var watch_cmds: PackedStringArray = th.watch_visible_cmds() if th.has_method("watch_visible_cmds") else PackedStringArray()
+	if watch_n != 3:
+		push_error("SMOKE_TOUCH_WATCH_KEYS n=%s cmds=%s" % [watch_n, " ".join(watch_cmds)])
+		quit(44)
+		return false
+	if not watch_cmds.has("pause") or not watch_cmds.has("speed") or not watch_cmds.has("abort"):
+		push_error("SMOKE_TOUCH_WATCH_SET %s" % " ".join(watch_cmds))
+		quit(44)
+		return false
+	print("SMOKE_OK_TOUCH_WATCH_3 ", " ".join(watch_cmds))
+	main.phase = saved_phase
+	main._refresh_touch_hud()
+	if main.role_box != null and bool(main.role_box.visible):
+		push_error("SMOKE_LEFT_CARDS_ON_PHONE")
+		quit(44)
+		return false
+	print("SMOKE_OK_LEFT_CARDS_OFF")
+	if main.c2 == null:
+		push_error("SMOKE_NO_C2_SIMPLE")
+		quit(44)
+		return false
+	if main.c2.skill_bar != null and bool(main.c2.skill_bar.visible):
+		push_error("SMOKE_SKILLBAR_ON_PHONE")
+		quit(44)
+		return false
+	print("SMOKE_OK_SKILLBAR_OFF")
+	if main.c2.minimap != null and bool(main.c2.minimap.visible):
+		push_error("SMOKE_MINIMAP_ON_PHONE")
+		quit(44)
+		return false
+	print("SMOKE_OK_MINIMAP_OFF")
+	var strip = main.c2.portraits
+	if strip == null:
+		push_error("SMOKE_NO_PORTRAITS_SIMPLE")
+		quit(44)
+		return false
+	var parent = strip.get_parent()
+	if parent == null or str(parent.name) != "PortraitSlot":
+		push_error("SMOKE_PORTRAIT_NOT_SLOT parent=%s" % (parent.name if parent else "null"))
+		quit(44)
+		return false
+	if float(parent.offset_top) > -90.0 or not is_equal_approx(float(parent.anchor_bottom), 1.0):
+		push_error("SMOKE_PORTRAIT_NOT_THUMB off_top=%s anchor_bot=%s y=%s" % [parent.offset_top, parent.anchor_bottom, strip.global_position.y])
+		quit(44)
+		return false
+	print("SMOKE_OK_PORTRAIT_THUMB off_top=", parent.offset_top, " y=", snapped(strip.global_position.y, 0.1))
+	if not await _assert_context_hotspots(main):
+		return false
+	return true
+
+
+func _assert_context_hotspots(main) -> bool:
+	var prompt = main.c2.prompt if main.c2 else null
+	if prompt == null or not prompt.has_method("refresh_now"):
+		push_error("SMOKE_NO_PROMPT_NODE")
+		quit(44)
+		return false
+	if main.raid_stashes.is_empty() or main.operators.is_empty():
+		push_error("SMOKE_NO_STASH_FOR_HOTSPOT")
+		quit(44)
+		return false
+	var op: OperatorUnit = main.operators[0]
+	var home: Vector2 = op.global_position
+	var st = main.raid_stashes[0]
+	op.global_position = st.global_position
+	main._select_op(0)
+	prompt.refresh_now()
+	await process_frame
+	if not bool(prompt.has_caption("开匣")):
+		push_error("SMOKE_HOTSPOT_NO_CRATE caps=%s" % " ".join(prompt.visible_captions()))
+		quit(44)
+		return false
+	if int(prompt.hotspot_count()) > 2:
+		push_error("SMOKE_HOTSPOT_TOO_MANY n=%s" % prompt.hotspot_count())
+		quit(44)
+		return false
+	print("SMOKE_OK_HOTSPOT_CRATE n=", prompt.hotspot_count())
+	if main.c2.sentries.is_empty():
+		op.global_position = home
+		return true
+	var sent = main.c2.sentries[0]
+	var sent_home: Vector2 = sent.global_position
+	var sent_face: float = float(sent.facing_deg)
+	var clear: Vector2 = _empty_probe_world(main)
+	op.global_position = clear
+	# Wolf west of sentry, sentry facing east → backstab → 割喉.
+	sent.global_position = clear + Vector2(16, 0)
+	sent.facing_deg = 0.0
+	prompt.refresh_now()
+	await process_frame
+	if not bool(prompt.has_caption("割喉")):
+		push_error("SMOKE_HOTSPOT_NO_KNIFE caps=%s pos=%s" % [" ".join(prompt.visible_captions()), clear])
+		quit(44)
+		return false
+	if bool(prompt.has_caption("口哨")):
+		push_error("SMOKE_HOTSPOT_KNIFE_AND_WHISTLE caps=%s" % " ".join(prompt.visible_captions()))
+		quit(44)
+		return false
+	print("SMOKE_OK_HOTSPOT_KNIFE")
+	# Wolf east of sentry, same facing → front → 口哨, not 割喉.
+	sent.global_position = clear + Vector2(-16, 0)
+	sent.facing_deg = 0.0
+	prompt.refresh_now()
+	await process_frame
+	if not bool(prompt.has_caption("口哨")):
+		push_error("SMOKE_HOTSPOT_NO_WHISTLE caps=%s" % " ".join(prompt.visible_captions()))
+		quit(44)
+		return false
+	if bool(prompt.has_caption("割喉")):
+		push_error("SMOKE_HOTSPOT_FRONT_KNIFE caps=%s" % " ".join(prompt.visible_captions()))
+		quit(44)
+		return false
+	print("SMOKE_OK_HOTSPOT_WHISTLE")
+	sent.global_position = sent_home
+	sent.facing_deg = sent_face
+	op.global_position = home
+	prompt.refresh_now()
+	return true
+
+
+func _empty_probe_world(main) -> Vector2:
+	if main.grid == null:
+		return Vector2(96, 240)
+	for x in range(2, 14):
+		for y in range(4, 16):
+			var cell := Vector2i(x, y)
+			if main.grid.has_method("is_blocked") and bool(main.grid.is_blocked(cell.x, cell.y)):
+				continue
+			var w: Vector2 = main.grid.cell_to_world_center(cell)
+			var busy := false
+			for st in main.raid_stashes:
+				if st != null and is_instance_valid(st) and w.distance_to(st.global_position) < 48.0:
+					busy = true
+					break
+			if busy:
+				continue
+			if main.has_method("_nearest_slot") and main._nearest_slot(w, 40.0) != null:
+				continue
+			return w
+	return Vector2(96, 240)
 
 
 func _assert_lifecycle(main) -> bool:

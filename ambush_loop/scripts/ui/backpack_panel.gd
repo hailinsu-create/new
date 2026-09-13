@@ -135,9 +135,41 @@ func is_open() -> bool:
 
 
 func present(op: OperatorUnit) -> void:
+	_layout_for_surface()
 	_open = true
 	visible = true
 	refresh(op)
+
+
+func _layout_for_surface() -> void:
+	var gs = get_node_or_null("/root/GameSettings")
+	var touch := gs != null and gs.has_method("want_touch_controls") and bool(gs.want_touch_controls())
+	if touch:
+		_panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+		_panel.anchor_left = 0.5
+		_panel.anchor_right = 0.5
+		_panel.anchor_top = 1.0
+		_panel.anchor_bottom = 1.0
+		_panel.offset_left = -236.0
+		_panel.offset_right = 236.0
+		_panel.offset_top = -468.0
+		_panel.offset_bottom = -148.0
+		for b in _slot_btns:
+			if b:
+				b.custom_minimum_size = Vector2(140, 88)
+	else:
+		_panel.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
+		_panel.anchor_left = 1.0
+		_panel.anchor_right = 1.0
+		_panel.anchor_top = 0.5
+		_panel.anchor_bottom = 0.5
+		_panel.offset_left = -420.0
+		_panel.offset_right = -18.0
+		_panel.offset_top = -210.0
+		_panel.offset_bottom = 210.0
+		for b in _slot_btns:
+			if b:
+				b.custom_minimum_size = Vector2(118, 72)
 
 
 func dismiss() -> void:

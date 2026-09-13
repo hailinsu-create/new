@@ -22,6 +22,7 @@ var _title_btn: Button
 var _touch_btn: Button
 var _quality_btn: Button
 var _wipe_btn: Button
+var _nade_btn: Button
 var _close_btn: Button
 var _wipe_armed: bool = false
 
@@ -40,8 +41,8 @@ func _ready() -> void:
 	_panel.set_anchors_preset(Control.PRESET_CENTER)
 	_panel.offset_left = -210.0
 	_panel.offset_right = 210.0
-	_panel.offset_top = -312.0
-	_panel.offset_bottom = 312.0
+	_panel.offset_top = -340.0
+	_panel.offset_bottom = 340.0
 	add_child(_panel)
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 18)
@@ -74,7 +75,7 @@ func _ready() -> void:
 	box.add_child(frame)
 	var keys := Label.new()
 	keys.name = "C2Keys"
-	keys.text = "C匍匐  Q技能  W口哨  Z包扎  双击跑  F2回中  滚轮缩放"
+	keys.text = "触屏：点肖像 / 点地走 / 靠近热区。键鼠：C匍 Q技 W哨 Z包 双击跑 F2回中"
 	keys.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	keys.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	keys.add_theme_font_size_override("font_size", 12)
@@ -91,6 +92,9 @@ func _ready() -> void:
 	_touch_btn = _fat_btn()
 	_touch_btn.pressed.connect(_on_touch_toggle)
 	box.add_child(_touch_btn)
+	_nade_btn = _fat_btn()
+	_nade_btn.pressed.connect(_on_nade_toggle)
+	box.add_child(_nade_btn)
 	_redeploy_btn = _fat_btn()
 	_redeploy_btn.text = "重新部署"
 	_redeploy_btn.pressed.connect(func() -> void: redeploy_requested.emit())
@@ -204,6 +208,12 @@ func _refresh_audio() -> void:
 		if gs and gs.has_method("want_touch_controls"):
 			touch_on = bool(gs.want_touch_controls())
 		_touch_btn.text = "触控底栏：开" if touch_on else "触控底栏：关"
+	if _nade_btn:
+		var nade_on := true
+		var scene = get_tree().current_scene if get_tree() else null
+		if scene != null and scene.get("selected") != null:
+			nade_on = bool(scene.selected.auto_grenade)
+		_nade_btn.text = "自动手雷：开" if nade_on else "自动手雷：关"
 	if _wipe_btn:
 		_wipe_btn.text = "再点确认：清空记忆" if _wipe_armed else "清空记忆（需确认）"
 	if _music:
@@ -249,6 +259,13 @@ func _on_quality_toggle() -> void:
 	var gs = _gs()
 	if gs and gs.has_method("toggle_quality_tier"):
 		gs.toggle_quality_tier()
+	_refresh_audio()
+
+
+func _on_nade_toggle() -> void:
+	var scene = get_tree().current_scene if get_tree() else null
+	if scene != null and scene.has_method("_toggle_auto_grenade"):
+		scene._toggle_auto_grenade()
 	_refresh_audio()
 
 

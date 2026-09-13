@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.5.1 — Phone simplified night-raid rail
+
+Sideload APK: `dist/AmbushLoop-v0.5.1-touch-rail.apk`  
+Release tag: `v0.5.1-touch-rail`
+
+Same RAID as 0.5.0 (`SCOUT → ALERT → SWEEP`, auto fire + auto nade). The 16-key SETUP translator is gone on touch.
+
+### Play (phone default)
+- SETUP resident keys: **匍匐 · 背包 · 需枪**. Portraits sit in the left thumb band, not the courtyard.
+- World verbs are **context hotspots** (开匣 / 割喉 behind / 口哨 front / 搜尸+拖尸 / 上掩体 / 捆绑 / 包扎).
+- ALERT bar is **暂停 / 倍速 / 中止** (abort asks once). Auto-nade toggle lives in the pause menu.
+- Left operator cards, skill bar, and minimap hide on phone. Long-press a portrait for the overflow skill wheel.
+- Desktop keyboard chrome is unchanged. Settings → 触控底栏 uses the phone rail, not 16 keys.
+
+### Android
+- `versionName` 0.5.1 / `versionCode` 7 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title **v0.5.1 COMMANDOS/WW2**.
+2. Force-touch / phone: bottom bar is three portraits + 匍匐 + 背包 + 需枪. No 14-key row.
+3. Pull alarm: only 暂停 / 1× / 中止. Portraits stay on the thumb plate.
+
 ## 0.5.0 — Commandos 2 portraits, skills, sentry cones
 
 Sideload APK: `dist/AmbushLoop-v0.5.0-commandos2-kit.apk`  

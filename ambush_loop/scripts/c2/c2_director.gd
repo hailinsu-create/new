@@ -13,6 +13,8 @@ const MinimapScript := preload("res://scripts/c2/minimap.gd")
 const CursorScript := preload("res://scripts/c2/context_cursor.gd")
 const ShadowScript := preload("res://scripts/c2/shadow_layer.gd")
 const RingScript := preload("res://scripts/c2/sound_ring.gd")
+const PromptScript := preload("res://scripts/c2/context_prompt.gd")
+const WheelScript := preload("res://scripts/c2/skill_wheel.gd")
 
 var host: Node = null
 var sentries: Array = []
@@ -21,6 +23,8 @@ var portraits: Control = null
 var skill_bar: Control = null
 var minimap: Control = null
 var cursor: CanvasLayer = null
+var prompt: CanvasLayer = null
+var wheel: CanvasLayer = null
 var shadows: Node2D = null
 var help_chip: Label = null
 var last_click_msec: int = 0
@@ -79,7 +83,11 @@ func _ensure_hud() -> void:
 				host._select_op(idx)
 			if host.has_method("_sfx"):
 				host._sfx("select")
+			if wheel and wheel.has_method("dismiss"):
+				wheel.dismiss()
 		)
+		if portraits.has_signal("long_pressed"):
+			portraits.long_pressed.connect(_on_portrait_long)
 	if skill_bar == null or not is_instance_valid(skill_bar):
 		skill_bar = SkillBarScript.new()
 		skill_bar.name = "C2Skills"
@@ -113,6 +121,18 @@ func _ensure_hud() -> void:
 		cursor = CursorScript.new()
 		cursor.name = "C2Cursor"
 		host.add_child(cursor)
+	if prompt == null or not is_instance_valid(prompt):
+		prompt = PromptScript.new()
+		prompt.name = "C2ContextPrompt"
+		host.add_child(prompt)
+		prompt.bind(host)
+	if wheel == null or not is_instance_valid(wheel):
+		wheel = WheelScript.new()
+		wheel.name = "C2SkillWheel"
+		host.add_child(wheel)
+		wheel.chosen.connect(func(id: String) -> void:
+			use_skill(id)
+		)
 	if help_chip == null or not is_instance_valid(help_chip):
 		help_chip = Label.new()
 		help_chip.name = "C2Help"
@@ -127,6 +147,79 @@ func _ensure_hud() -> void:
 		help_chip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		help_chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_hud_root.add_child(help_chip)
+	layout_chrome(_is_phone())
+
+
+func _is_phone() -> bool:
+	return host != null and host.has_method("_want_touch") and bool(host._want_touch())
+
+
+func layout_chrome(phone: bool) -> void:
+	_pin_portraits(phone)
+	if skill_bar:
+		var cmd := host != null and host.has_method("_is_command_phase") and bool(host._is_command_phase())
+		skill_bar.visible = (not phone) and cmd
+	if minimap:
+		minimap.visible = not phone
+	if cursor:
+		cursor.visible = not phone
+	if help_chip:
+		help_chip.visible = not phone
+	if prompt:
+		prompt.visible = phone
+
+
+func _pin_portraits(phone: bool) -> void:
+	if portraits == null or not is_instance_valid(portraits):
+		return
+	if phone:
+		var slot: Control = null
+		if host != null and host.get("touch_hud") != null and host.touch_hud.has_method("portrait_slot"):
+			slot = host.touch_hud.portrait_slot()
+		if slot == null:
+			return
+		if portraits.get_parent() != slot:
+			portraits.reparent(slot, false)
+		portraits.anchor_left = 0.0
+		portraits.anchor_top = 0.0
+		portraits.anchor_right = 1.0
+		portraits.anchor_bottom = 1.0
+		portraits.offset_left = 0.0
+		portraits.offset_top = 0.0
+		portraits.offset_right = 0.0
+		portraits.offset_bottom = 0.0
+		portraits.visible = true
+	else:
+		if _hud_root == null:
+			return
+		if portraits.get_parent() != _hud_root:
+			portraits.reparent(_hud_root, false)
+		portraits.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+		portraits.anchor_left = 0.5
+		portraits.anchor_right = 0.5
+		portraits.offset_left = -168.0
+		portraits.offset_right = 168.0
+		portraits.offset_top = -272.0
+		portraits.offset_bottom = -158.0
+		portraits.visible = true
+
+
+func _on_portrait_long(idx: int) -> void:
+	if not _is_phone():
+		return
+	if host == null or not bool(host._is_command_phase()):
+		return
+	if host.has_method("_select_op"):
+		host._select_op(idx)
+	if wheel == null or host.get("operators") == null or idx >= host.operators.size():
+		return
+	var op = host.operators[idx]
+	var cds: Dictionary = skill_cds.get(int(op.op_id), {}) if op else {}
+	var origin := Vector2(80, 600)
+	if portraits and portraits.has_method("card_global_rect"):
+		var r: Rect2 = portraits.card_global_rect(idx)
+		origin = r.get_center() + Vector2(0, -10)
+	wheel.present(op, cds, origin)
 
 
 func begin_scout() -> void:
@@ -139,7 +232,10 @@ func begin_scout() -> void:
 		shadows.setup(host.grid, str(host.level.level_id))
 	_spawn_sentries()
 	refresh_hud()
-	_hint("点选队员 · 点地走 · C匍匐 · Q技能 · 岗哨有黄锥")
+	if _is_phone():
+		_hint("点肖像选人 · 点地走 · 靠近匣/岗出热区 · 右下拉警报")
+	else:
+		_hint("点选队员 · 点地走 · C匍匐 · Q技能 · 岗哨有黄锥")
 	if host.has_method("_sfx"):
 		host._sfx("stealth_bed")
 
@@ -299,7 +395,7 @@ func _tick_sentries(delta: float) -> void:
 
 
 func _tick_cursor() -> void:
-	if cursor == null or host == null:
+	if cursor == null or host == null or _is_phone():
 		return
 	if not bool(host._is_command_phase()):
 		cursor.set_mode(CursorScript.Mode.NONE)
@@ -345,7 +441,7 @@ func _tick_cursor() -> void:
 
 
 func _tick_edge_pan(delta: float) -> void:
-	if host == null:
+	if host == null or _is_phone():
 		return
 	var mp := host.get_viewport().get_mouse_position()
 	var sz := host.get_viewport().get_visible_rect().size
@@ -466,6 +562,9 @@ func handle_click(world: Vector2) -> Dictionary:
 		sprint = true
 	last_click_msec = now
 	last_click_world = world
+	if _is_phone():
+		## World verbs are hotspots on phone. A tap is walk / select, not Q.
+		return {"handled": false, "sprint": sprint}
 	for s in sentries:
 		if s == null or not is_instance_valid(s):
 			continue
@@ -655,6 +754,11 @@ func _spawn_ring(world: Vector2, r: float, col: Color) -> void:
 
 
 func _hint(text: String) -> void:
+	if _is_phone() and host != null and host.get("touch_hud") != null and host.touch_hud.has_method("set_hint"):
+		host.touch_hud.set_hint(text)
+		if host.get("status_label") != null and text.length() < 28:
+			host.status_label.text = text
+		return
 	if help_chip:
 		help_chip.text = text
 		help_chip.modulate.a = 1.0
@@ -667,18 +771,21 @@ func _hint(text: String) -> void:
 
 func refresh_hud() -> void:
 	refresh_hud_light()
+	var phone := _is_phone()
+	layout_chrome(phone)
 	if skill_bar and host:
 		var cds: Dictionary = {}
 		if host.selected:
 			cds = skill_cds.get(int(host.selected.op_id), {})
 		skill_bar.bind(host.selected, cds, bool(host._is_command_phase()) if host.has_method("_is_command_phase") else true)
+		skill_bar.visible = (not phone) and host.has_method("_is_command_phase") and bool(host._is_command_phase())
 	if minimap:
 		minimap.bind(host)
-		minimap.visible = true
+		minimap.visible = not phone
 	if portraits:
 		portraits.visible = true
-	if skill_bar:
-		skill_bar.visible = host != null and host.has_method("_is_command_phase") and bool(host._is_command_phase())
+	if cursor:
+		cursor.visible = not phone
 
 
 func refresh_hud_light() -> void:

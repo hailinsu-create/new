@@ -21,10 +21,10 @@ Release 导出需要 release keystore；日常侧载用 debug 签名：
 ```bash
 godot --headless --path ambush_loop --export-debug "Android APK" build/android/AmbushLoop-debug.apk
 # 按版本命名的朋友包（可进仓）：
-# cp build/android/AmbushLoop-debug.apk dist/AmbushLoop-v0.5.0-commandos2-kit.apk
+# cp build/android/AmbushLoop-debug.apk dist/AmbushLoop-v0.5.1-touch-rail.apk
 ```
 
-当前试玩包：`dist/AmbushLoop-v0.5.0-commandos2-kit.apk`（`versionName` 0.5.0 / `versionCode` 6）。不要装 GitHub `ambush-loop-playtest-0.2.0` 的同名 `AmbushLoop-playtest.apk`。
+当前试玩包：`dist/AmbushLoop-v0.5.1-touch-rail.apk`（`versionName` 0.5.1 / `versionCode` 7）。不要装 GitHub `ambush-loop-playtest-0.2.0` 的同名 `AmbushLoop-playtest.apk`。
 
 ## 本机导出 APK
 
@@ -39,7 +39,7 @@ godot --headless --path ambush_loop --export-debug "Android APK" build/android/A
 ```bash
 godot --headless --path ambush_loop --export-debug "Android APK" build/android/AmbushLoop-debug.apk
 # 按版本命名的朋友包（可进仓）：
-# cp build/android/AmbushLoop-debug.apk dist/AmbushLoop-v0.5.0-commandos2-kit.apk
+# cp build/android/AmbushLoop-debug.apk dist/AmbushLoop-v0.5.1-touch-rail.apk
 ```
 
 非 Gradle 预设不要填 `min_sdk` 覆盖，否则导出会失败。Release 需要 release keystore。
@@ -49,20 +49,20 @@ godot --headless --path ambush_loop --export-debug "Android APK" build/android/A
 1. 手机打开「安装未知来源」/ 允许该文件管理器安装
 2. 把 APK 拷到手机，点安装
 3. **必须横屏**；竖着会按 16:9 留边，不旋转内容
-4. 标题应显示 **v0.5.0 COMMANDOS/WW2**。院子里先点选底栏肖像、点地走路（双击跑），C 匍匐躲岗哨黄锥，站在木匣上搜刮（匣标 **Kar98k**），I 开背包，G 放雷点，再点 **需枪 / 警报**（警报中自动丢雷）。
+4. 标题应显示 **v0.5.1 COMMANDOS/WW2**。院子里点底栏肖像选人，点地走路（长按奔跑），靠近匣/岗哨出热区，匍匐躲黄锥，点 **需枪** 拉警报（警报中自动丢雷）。
 
 ## 触控对照
 
-小屏塞不下敢死队键位、触屏潜行误触：制作人方案见 `docs/TOUCH_UX_OPTIONS.md`（未改输入，先定手机默认 / 桌面完整两轨）。
+手机默认是 **简配夜袭**（`docs/TOUCH_UX_OPTIONS.md` 已落地）：常驻三肖像 + 匍匐 + 背包 + 警报。世界动词是热区，不是 14 个底栏键。桌面键鼠仍是完整 C/Q/W/Z。
 
 | 手指 | 键盘时代 |
 | --- | --- |
-| 点掩体格 | 左键 |
-| 点兵种牌 | 1 / 2 / 3 |
-| 点 ↺↻ 或拖选中格 | 右键 / A D |
-| 底栏 警报 | 空格 |
-| 底栏 中止 | X |
-| 底栏 开火 / 弹包 / 绊索 / 雷点 / 背包 / 诱饵 / 匍匐 / 割喉 / 口哨 / 捆绑 / 递装 / 门锁 | F / 弹包钮 / Tab / G / I / V / C / Q / W / Z / T / B |
-| 底栏 暂停 / 倍速 / 静音 / 菜单 / 日志 | P / ± / M / Esc / 事件表 |
+| 点底栏肖像 | 1 / 2 / 3 |
+| 点地走；长按目的地跑 | 左键；双击跑 |
+| 靠近匣 / 岗哨 / 尸 / 掩体上的大热区 | E 开匣、Q 割喉、W 口哨、H 拖尸、点掩体 |
+| 长按肖像 → 技能轮 | Q/W/Z 空地技能（望远镜、埋雷、诱饵、包扎） |
+| 底栏 匍匐 / 背包 / 需枪 | C / I / 空格 |
+| 警报：暂停 / 倍速 / 中止（需再点确认） | P / ± / X |
+| 系统返回 | Esc 菜单 |
 
 没有实体键盘也能打完六关（院子 / 仓道 / 泵站 / 信号楼 / 油库 / 电台）。R 重开仍在设置里，且要确认。

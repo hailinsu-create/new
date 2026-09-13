@@ -2,7 +2,8 @@
 
 Delivered build:
 
-- `AmbushLoop-v0.5.0-commandos2-kit.apk` — Godot 4.7.2 debug, arm64, Commandos 2: portraits, skill hotbar, sentry cones, crouch/KO, 10 guns, 6-slot pack, auto nades.
+- `AmbushLoop-v0.5.1-touch-rail.apk` — Godot 4.7.2 debug, arm64, phone simplified rail: portraits in the thumb band, context hotspots, ALERT 3 keys. Same Commandos 2 kit as 0.5.0.
+- `AmbushLoop-v0.5.0-commandos2-kit.apk` — portraits, skill hotbar, sentry cones, crouch/KO, 10 guns, 6-slot pack, auto nades (superseded for phone HUD).
 - `AmbushLoop-v0.4.0-commandos2-kit.apk` — 10 named guns, 6-slot backpack, auto grenades (superseded).
 
 Older: `AmbushLoop-v0.3.1-commandos-ww2-playtest.apk`, `AmbushLoop-v0.3.0-commandos-ww2-playtest.apk` (superseded).

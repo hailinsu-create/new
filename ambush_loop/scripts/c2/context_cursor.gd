@@ -45,6 +45,8 @@ func set_mode(m: int, caption: String = "") -> void:
 
 
 func _process(_delta: float) -> void:
+	if not visible:
+		return
 	var mp := get_viewport().get_mouse_position()
 	if _icon:
 		_icon.position = mp + Vector2(14, 10)
