@@ -1978,6 +1978,9 @@ func _tick_sel_ring() -> void:
 	sel_ring.default_color = Color(0.98, 0.88, 0.38, 0.40 + 0.40 * wave)
 	sel_ring.scale = Vector2.ONE * (1.0 + wave * 0.08)
 	sel_ring.width = 2.4 + wave * 1.2
+	sel_ring.sharp_limit = 2.0
+	# Commandos marching-ants feel: rotate the ring.
+	sel_ring.rotation = _present_t * 0.9
 	if br:
 		br.scale = Vector2.ONE * (1.0 + wave * 0.05)
 		var col := Color(1.0, 0.92, 0.42, 0.70 + 0.28 * wave)
