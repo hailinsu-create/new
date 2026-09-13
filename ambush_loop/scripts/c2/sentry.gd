@@ -271,7 +271,7 @@ func _ensure_visual() -> void:
 	add_child(mark)
 	var tag := Label.new()
 	tag.name = "Tag"
-	tag.text = "岗"
+	tag.text = "岗哨"
 	tag.position = Vector2(-10, 12)
 	tag.add_theme_font_size_override("font_size", 10)
 	tag.add_theme_color_override("font_color", Color(0.82, 0.32, 0.22))
