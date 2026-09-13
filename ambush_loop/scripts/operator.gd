@@ -515,7 +515,7 @@ func apply_stance_speed() -> void:
 	elif stance == Stance.CROUCH:
 		s *= 0.58
 	elif sprinting:
-		s *= 1.42
+		s *= 1.48
 	move_speed = s
 	if body:
 		body.scale = Vector2(1.0, 0.86) if stance == Stance.CROUCH else Vector2.ONE
