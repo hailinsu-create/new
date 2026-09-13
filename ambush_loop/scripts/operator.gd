@@ -121,6 +121,10 @@ const SEARCH_SECONDS := 0.4
 var ammo_pool: Dictionary = {}
 var hauled_loot: Node2D = null
 var base_move_speed: float = 96.0
+enum Stance { STAND, CROUCH }
+var stance: int = Stance.STAND
+var sprinting: bool = false
+var hidden_in_shadow: bool = false
 
 
 static func role_for_id(id: int) -> int:
@@ -261,6 +265,10 @@ func wipe_inventory() -> void:
 	clear_nade_mark()
 	cancel_search()
 	drop_hauled()
+	stance = Stance.STAND
+	sprinting = false
+	hidden_in_shadow = false
+	apply_stance_speed()
 	apply_weapon("knife", true)
 
 
@@ -477,11 +485,39 @@ func set_move_path(world_pts: PackedVector2Array) -> void:
 	_path_i = 0
 	if move_path.size() > 1:
 		_path_i = 1
+	apply_stance_speed()
 
 
 func stop_move() -> void:
 	move_path = PackedVector2Array()
 	_path_i = 0
+	sprinting = false
+	apply_stance_speed()
+
+
+func toggle_crouch() -> void:
+	stance = Stance.STAND if stance == Stance.CROUCH else Stance.CROUCH
+	if stance == Stance.CROUCH:
+		sprinting = false
+	apply_stance_speed()
+
+
+func set_sprint(on: bool) -> void:
+	sprinting = on and stance != Stance.CROUCH and not is_hauling()
+	apply_stance_speed()
+
+
+func apply_stance_speed() -> void:
+	var s := base_move_speed
+	if is_hauling():
+		s *= 0.62
+	elif stance == Stance.CROUCH:
+		s *= 0.58
+	elif sprinting:
+		s *= 1.42
+	move_speed = s
+	if body:
+		body.scale = Vector2(1.0, 0.86) if stance == Stance.CROUCH else Vector2.ONE
 
 
 func begin_search(stash: Node2D) -> void:
@@ -510,13 +546,14 @@ func haul_loot(loot: Node2D) -> void:
 	if loot == null or not is_instance_valid(loot):
 		return
 	hauled_loot = loot
-	move_speed = base_move_speed * 0.62
+	sprinting = false
+	apply_stance_speed()
 	sync_hauled()
 
 
 func drop_hauled() -> void:
 	hauled_loot = null
-	move_speed = base_move_speed
+	apply_stance_speed()
 
 
 func is_hauling() -> bool:
@@ -533,11 +570,19 @@ func sync_hauled() -> void:
 
 
 func noise_if_sprinting() -> float:
+	return noise_level()
+
+
+func noise_level() -> float:
 	if not is_moving():
 		return 0.0
 	if is_hauling():
+		return 0.9
+	if sprinting:
 		return 0.85
-	return 0.35 if role == Role.MG else 0.2
+	if stance == Stance.CROUCH:
+		return 0.10
+	return 0.35 if role == Role.MG else 0.22
 
 
 func tick_search(delta: float) -> bool:
