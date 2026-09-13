@@ -45,6 +45,12 @@ func _draw() -> void:
 	var h := size.y
 	draw_rect(Rect2(Vector2.ZERO, size), Color(0.05, 0.05, 0.04, 0.82))
 	draw_rect(Rect2(Vector2.ZERO, size), Color(0.42, 0.36, 0.22, 0.75), false, 1.2)
+	var f := ThemeDB.fallback_font
+	if f:
+		draw_string(f, Vector2(size.x * 0.5 - 4, 12), "N", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.82, 0.74, 0.38, 0.9))
+		draw_colored_polygon(PackedVector2Array([
+			Vector2(size.x * 0.5, 2), Vector2(size.x * 0.5 - 4, 9), Vector2(size.x * 0.5 + 4, 9)
+		]), Color(0.82, 0.74, 0.38, 0.85))
 	if _grid == null or _host == null:
 		return
 	var sx := w / float(COLS)
