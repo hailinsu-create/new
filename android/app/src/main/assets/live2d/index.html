@@ -58,6 +58,13 @@ window.global = window.global || window;
   var MODEL_URL = BASE + "model/moxi/moxi.model3.json";
   var CHARACTER_URL = BASE + "model/moxi/character.json";
   var MOUTH_DRAWABLE = "mouth_open";
+  var hasMouthForm = null;
+  // Rest-pose mouth_open quad (model units) is narrower than the painted
+  // smile, so the closed lip corners leaked as black marks. Cover the smile
+  // when the overlay is shown. Vertex order from moc3: TR, TL, BR, BL.
+  // Rest pose is ~(-0.040,0.122)-(0.012,0.088). Shift/widen just enough to
+  // cover the painted smile corners without stamping a huge beige oval.
+  var MOUTH_QUAD = [0.054, 0.122, -0.044, 0.122, 0.054, 0.088, -0.044, 0.088];
 
   function notifyAndroid(msg) {
     try {
@@ -139,7 +146,8 @@ window.global = window.global || window;
     hasAngleY = hasParam("ParamAngleY");
     hasBodyX = hasParam("ParamBodyAngleX");
     hasBreath = hasParam("ParamBreath");
-    log("params", "eyeL=" + hasEyeL, "eyeR=" + hasEyeR, "angleY=" + hasAngleY, "bodyX=" + hasBodyX, "breath=" + hasBreath);
+    hasMouthForm = hasParam("ParamMouthForm");
+    log("params", "eyeL=" + hasEyeL, "eyeR=" + hasEyeR, "angleY=" + hasAngleY, "bodyX=" + hasBodyX, "breath=" + hasBreath, "mouthForm=" + hasMouthForm);
   }
 
   function setMouthDrawableOpacity(value) {
@@ -167,10 +175,39 @@ window.global = window.global || window;
     } catch (e) {}
   }
 
+  function drawables() {
+    var core = coreModel();
+    if (!core) return null;
+    try {
+      return (core.getCoreModel && core.getCoreModel() && core.getCoreModel().drawables)
+        || (core._model && core._model.drawables);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function enlargeMouthQuad() {
+    // After core.update() so the WASM vertex buffer is the live draw copy.
+    var d = drawables();
+    var core = coreModel();
+    if (!d || !core) return;
+    var index = -1;
+    try { index = core.getDrawableIndex(MOUTH_DRAWABLE); } catch (e) { return; }
+    if (index < 0 || !d.vertexPositions || !d.vertexPositions[index]) return;
+    var pos = d.vertexPositions[index];
+    if (pos.length < 8) return;
+    for (var i = 0; i < 8; i++) pos[i] = MOUTH_QUAD[i];
+  }
+
   function setMouthOpen(value) {
     var v = Math.max(0, Math.min(1, Number(value) || 0));
     setParam(lipSyncParam, v);
-    setMouthDrawableOpacity(v);
+    // 墨汐 mouth_open is a sprite, not a deforming jaw. Partial opacity
+    // stamps a muddy oval on the painted smile. Snap overlay on/off.
+    setMouthDrawableOpacity(v > 0.22 ? 1 : 0);
+    if (hasMouthForm) {
+      setParam("ParamMouthForm", v > 0.22 ? 0.2 + 0.45 * v : 0);
+    }
   }
 
   function clearExpression() {
@@ -256,9 +293,10 @@ window.global = window.global || window;
       setMouthOpen(mouthOpen);
       setParam("ParamAngleX", Math.sin(Date.now() / 320) * 2.4);
       setParam("ParamAngleY", Math.sin(Date.now() / 470) * 1.4);
+      if (hasBreath) setParam("ParamBreath", 0.5 + 0.5 * Math.sin(Date.now() / 1000 * 1.35));
       return;
     }
-    if (mouthHold > 0) setMouthOpen(mouthHold);
+    setMouthOpen(mouthHold);
     applyMoodParams(false);
     applyIdleMotion();
   }
@@ -299,6 +337,10 @@ window.global = window.global || window;
           internal.coreModel.update();
         }
       } catch (e) {}
+      // core.update rebakes vertices/opacity from params; re-apply mesh cover.
+      enlargeMouthQuad();
+      if (speaking) setMouthDrawableOpacity(mouthOpen > 0.22 ? 1 : 0);
+      else setMouthDrawableOpacity(mouthHold > 0.22 ? 1 : 0);
     };
     patchedUpdate = true;
     log("patched internalModel.update for lip-sync override", lipSyncParam);
@@ -321,10 +363,10 @@ window.global = window.global || window;
     var ih = (model.internalModel && model.internalModel.height) || 1024;
     var overlay = (character && character.overlay) || {};
     var side = Math.min(size.w, size.h);
-    var faceSpan = Number(overlay.faceSpan) || 520;
+    var faceSpan = Number(overlay.faceSpan) || 620;
     var scale = side / faceSpan;
-    var focusX = overlay.focusX != null ? Number(overlay.focusX) : 0.49;
-    var focusY = overlay.focusY != null ? Number(overlay.focusY) : 0.27;
+    var focusX = overlay.focusX != null ? Number(overlay.focusX) : 0.50;
+    var focusY = overlay.focusY != null ? Number(overlay.focusY) : 0.32;
     // Do not use Live2DModel.anchor: if pivot is still 0 the bust sits in a corner.
     if (model.anchor && typeof model.anchor.set === "function") model.anchor.set(0, 0);
     if (model.pivot && typeof model.pivot.set === "function") model.pivot.set(0, 0);
@@ -484,6 +526,7 @@ window.global = window.global || window;
     mouthOpen: function () { return mouthOpen; },
     paramA: function () { return getParam(lipSyncParam); },
     paramMouth: function () { return getParam(lipSyncParam); },
+    paramMouthForm: function () { return getParam("ParamMouthForm"); },
     paramEyeL: function () { return getParam("ParamEyeLOpen"); },
     paramAngleY: function () { return getParam("ParamAngleY"); },
     paramBodyX: function () { return getParam("ParamBodyAngleX"); },
@@ -503,21 +546,43 @@ window.global = window.global || window;
       } catch (e) {}
     },
     setMood: function (mood) { applyMood(String(mood || "IDLE").toUpperCase()); },
+    setOverlayCrop: function (span, fx, fy) {
+      character = character || {};
+      character.overlay = character.overlay || {};
+      if (span != null) character.overlay.faceSpan = Number(span);
+      if (fx != null) character.overlay.focusX = Number(fx);
+      if (fy != null) character.overlay.focusY = Number(fy);
+      layoutModel();
+      return {
+        faceSpan: character.overlay.faceSpan,
+        focusX: character.overlay.focusX,
+        focusY: character.overlay.focusY
+      };
+    },
+    getOverlayCrop: function () {
+      var o = (character && character.overlay) || {};
+      return { faceSpan: o.faceSpan, focusX: o.focusX, focusY: o.focusY };
+    },
     speak: function (durationMs, mood) {
       if (!ready || !model) return;
       var dur = Math.max(700, Math.min(5600, Number(durationMs) || 1800));
       applyMood(String(mood || "TALK").toUpperCase());
       if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
       if (mouthTimer) { clearInterval(mouthTimer); mouthTimer = null; }
-      stopMotions();
-      try { model.motion("Talk"); } catch (e) {}
+      // Do not start Talk: it only keys ParamMouthOpenY and fights JS lip-sync.
+      // Leave Idle running so breath/angle still move hair in the round window.
       speaking = true;
       var start = Date.now();
       mouthTimer = setInterval(function () {
         var t = (Date.now() - start) / 1000;
-        var pulse = Math.abs(Math.sin(t * 9.2));
-        var syllable = Math.abs(Math.sin(t * 3.6));
-        mouthOpen = 0.28 + 0.72 * pulse * (0.5 + 0.5 * syllable);
+        // Articulated open/close, not a timid sine that sits around 0.6.
+        var sylA = Math.pow(Math.max(0, Math.sin(t * 7.6)), 1.7);
+        var sylB = Math.pow(Math.max(0, Math.sin(t * 12.4 + 0.9)), 2.3);
+        var sylC = Math.pow(Math.max(0, Math.sin(t * 4.3 + 0.2)), 1.25);
+        var raw = Math.min(1, sylA * 0.95 + sylB * 0.80 + sylC * 0.16);
+        if (raw > 0.38) mouthOpen = 0.88 + 0.12 * raw;
+        else if (raw < 0.16) mouthOpen = 0;
+        else mouthOpen = (raw - 0.16) / 0.22 * 0.88;
       }, 33);
       holdTimer = setTimeout(function () {
         stopMouth();
@@ -536,10 +601,11 @@ window.global = window.global || window;
     },
     tap: function () {
       if (!ready || !model) return;
-      try { model.motion("Talk"); } catch (e) {}
       applyMood("HAPPY");
+      mouthHold = 0.9;
       setTimeout(function () {
         if (speaking) return;
+        mouthHold = 0;
         try { model.motion("Idle"); } catch (e) {}
         applyMood("IDLE");
       }, 900);

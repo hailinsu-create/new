@@ -79,7 +79,7 @@ License testing：Settings → License testing，把你的 Gmail 加进去，内
 
 1. 打开 **App signing**：第一次上传时选择由 Google 管理应用签名密钥（推荐）
 2. Testing → Internal testing → 创建版本
-3. 上传 `pangchuang-0.13.0.aab`（见本地 `bundleRelease` 输出；不要把 `.jks` / AAB 提交进 Git）。仓库里的 `dist/pangchuang-0.12.0-debug.apk` 与 `dist/pangchuang-0.13.0-debug.apk` 只供侧载，不能用来测 Play 内购。
+3. 上传 `pangchuang-0.13.1.aab`（见本地 `bundleRelease` 输出；不要把 `.jks` / AAB 提交进 Git）。仓库里的 `dist/pangchuang-0.12.0-debug.apk`、`dist/pangchuang-0.13.0-debug.apk` 与 `dist/pangchuang-0.13.1-debug.apk` 只供侧载，不能用来测 Play 内购。
 4. 把你的 Google 账号加为测试员，用测试轨道链接安装（**不要用 GitHub debug APK 测购买**）
 
 ## 7. 按填表包复制粘贴

@@ -9,6 +9,7 @@ import android.os.Looper
 import android.util.AttributeSet
 import android.util.Log
 import android.view.View
+import android.view.ViewOutlineProvider
 import android.webkit.ConsoleMessage
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
@@ -45,6 +46,8 @@ class Live2DAvatarView @JvmOverloads constructor(
         setBackgroundResource(R.drawable.bg_fab)
         clipChildren = true
         clipToPadding = true
+        outlineProvider = ViewOutlineProvider.BACKGROUND
+        clipToOutline = true
 
         fallback = ImageView(context).apply {
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)

@@ -96,7 +96,15 @@ async function main() {
         api.setMood(mood);
       }
     }, shot);
-    await page.waitForTimeout(700);
+    if (shot.talk) {
+      await page.waitForFunction(() => {
+        const api = window.PangchuangLive2D;
+        const v = api && api.paramMouth && api.paramMouth();
+        return v != null && v > 0.7;
+      }, { timeout: 2500 }).catch(() => {});
+    } else {
+      await page.waitForTimeout(500);
+    }
     const raw = path.join(tmp, shot.file);
     await page.screenshot({ path: raw, omitBackground: true });
     console.log("shot", shot.mood, raw);

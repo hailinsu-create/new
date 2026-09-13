@@ -2,6 +2,16 @@
 
 每次上传 AAB 时可改。没有新功能就沿用上一条。
 
+## 0.13.1
+
+中文：
+
+圆窗把头像拉远了一点，发丝和呼吸能看见。嘴边黑印去掉了，说话时嘴型开合更清楚。
+
+English:
+
+The round window is zoomed out so hair and breath stay inside. The black mark beside the mouth is gone, and lip-sync opens and closes more clearly.
+
 ## 0.13.0
 
 中文：

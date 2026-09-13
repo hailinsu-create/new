@@ -14,10 +14,10 @@
     "notes": "半身肖像。不要用过大的固定像素缩放，会把墨汐裁成一块脸。"
   },
   "overlay": {
-    "faceSpan": 440,
-    "focusX": 0.49,
-    "focusY": 0.27,
-    "notes": "首页预览与悬浮窗共用这一组 face crop，不要给 home 另写一套。"
+    "faceSpan": 620,
+    "focusX": 0.50,
+    "focusY": 0.32,
+    "notes": "首页预览与悬浮窗共用这一组 face crop，不要给 home 另写一套。0.13.1 从 440/0.49/0.27 拉远，让发丝与呼吸落在圆窗内。"
   },
   "homePreview": {
     "useOverlayCrop": true

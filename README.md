@@ -6,7 +6,7 @@
 
 **默认视觉模型：`Qwen/Qwen3-VL-8B-Instruct`（稳定推荐）**
 
-**当前版本：0.13.0**（debug APK：`dist/pangchuang-0.13.0-debug.apk`）。上一版 `dist/pangchuang-0.12.0-debug.apk` 仍保留。
+**当前版本：0.13.1**（debug APK：`dist/pangchuang-0.13.1-debug.apk`）。`dist/pangchuang-0.13.0-debug.apk` 与 `dist/pangchuang-0.12.0-debug.apk` 仍保留。
 
 **定价：演示免费；完整真屏陪伴通过 Google Play 一次性解锁（约 $0.99）。Debug 包侧载测试时自动解锁。**
 
