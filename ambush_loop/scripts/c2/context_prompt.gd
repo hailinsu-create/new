@@ -260,18 +260,44 @@ func _flank_guide(op: Node, sentry) -> PackedVector2Array:
 	var from_c: Vector2i = op.grid_cell() if op.has_method("grid_cell") else host.grid.world_to_cell(op.global_position)
 	var to_c: Vector2i = host.grid.world_to_cell(dest)
 	var cells: Array[Vector2i] = []
-	if host.has_method("stealth_path_cells"):
+	if host.has_method("flank_path_cells"):
+		cells = host.flank_path_cells(sentry, op)
+	if cells.is_empty() and host.has_method("stealth_path_cells"):
 		cells = host.stealth_path_cells(from_c, to_c, op)
 	if cells.is_empty():
 		cells = Pathfinder.find_path(host.grid, from_c, to_c)
-	if cells.is_empty():
-		out.append(op.global_position)
-		out.append(dest)
-		return out
 	out.append(op.global_position)
 	for c in cells:
-		out.append(host.grid.cell_to_world_center(c))
+		var w: Vector2 = host.grid.cell_to_world_center(c)
+		if out.size() > 0 and w.distance_to(out[out.size() - 1]) < 6.0:
+			continue
+		out.append(w)
+	if dest.distance_to(out[out.size() - 1]) > 10.0:
+		out.append(dest)
 	return out
+
+
+func guide_points() -> PackedVector2Array:
+	return _guide
+
+
+func guide_complete() -> bool:
+	if _guide.size() < 2:
+		return false
+	if host == null or host.get("grid") == null:
+		return _guide.size() >= 2
+	var cells: Array[Vector2i] = []
+	for w in _guide:
+		var c: Vector2i = host.grid.world_to_cell(w)
+		if cells.is_empty() or cells[cells.size() - 1] != c:
+			cells.append(c)
+	if cells.size() < 2:
+		return false
+	for i in range(1, cells.size()):
+		var d: int = absi(cells[i].x - cells[i - 1].x) + absi(cells[i].y - cells[i - 1].y)
+		if d > 1:
+			return false
+	return true
 
 
 func _act(cmd: String, caption: String, world: Vector2, tint: Color) -> Dictionary:

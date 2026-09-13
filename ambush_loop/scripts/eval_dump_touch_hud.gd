@@ -1,7 +1,7 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.7 phone feel: short 2–3 cell detour,
-## west-alley 3-follow spacing, 西匣开匣 → 绕背 → 三人跟上.
+## Forced-touch HUD stills for v0.5.8 phone feel: lead-walk follow continuity,
+## full 绕背 dashed path, 跟 badge hit, 西匣开匣 → 绕背 → 三人跟上.
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
@@ -151,8 +151,10 @@ func _run() -> void:
 		print("DUMP_WEST_FLANK_FIRE fire=", fired, " hits=", path_hits, " pts=", op.move_path.size())
 		await _save("05d_west_flank_path")
 		op.stop_move()
+		await _walk_flank_guide_complete(main)
 		await _walk_west_combo_follow(main)
 		await _walk_short_detour(main)
+		await _walk_follow_continuity(main)
 
 	await _walk_yard_loop(main)
 
@@ -497,6 +499,160 @@ func _walk_three_follow(main) -> void:
 		main.toggle_follow(2)
 
 
+func _walk_flank_guide_complete(main) -> void:
+	if main.operators.is_empty() or main.c2 == null or main.c2.sentries.is_empty() or main.grid == null:
+		return
+	var op = main.operators[0]
+	var sent = main.c2.sentries[0]
+	var i := 1
+	for s in main.c2.sentries:
+		if s == null or s == sent:
+			continue
+		s.global_position = main.grid.cell_to_world_center(Vector2i(32, 6 + i))
+		s.facing_deg = 0.0
+		i += 1
+	var op_c := Vector2i(11, 14)
+	var sent_c := Vector2i(12, 12)
+	if main.grid.is_blocked(sent_c.x, sent_c.y):
+		sent_c = Vector2i(12, 13)
+	if main.grid.is_blocked(op_c.x, op_c.y) or (main.has_method("_cell_is_operable") and bool(main._cell_is_operable(op_c))) or op_c == sent_c:
+		op_c = Vector2i(10, 14)
+	if main.grid.is_blocked(op_c.x, op_c.y) or (main.has_method("_cell_is_operable") and bool(main._cell_is_operable(op_c))) or op_c == sent_c:
+		op_c = Vector2i(11, 13)
+	op.stop_move()
+	main._select_op(0)
+	op.global_position = main.grid.cell_to_world_center(op_c)
+	sent.global_position = main.grid.cell_to_world_center(sent_c)
+	sent.facing_deg = 0.0
+	sent.route = PackedVector2Array([sent.global_position])
+	sent.route_i = 0
+	sent.frozen = true
+	if sent.has_method("_rebuild_cone"):
+		sent._rebuild_cone()
+	if main.c2.prompt and main.c2.prompt.has_method("refresh_now"):
+		main.c2.prompt.refresh_now()
+	await _settle(4)
+	var dump := {}
+	if main.has_method("flank_guide_dump"):
+		dump = main.flank_guide_dump(sent, op)
+	var dash := 0
+	var dash_ok := false
+	if main.c2.prompt and main.c2.prompt.has_method("guide_points"):
+		dash = int(main.c2.prompt.guide_points().size())
+	if main.c2.prompt and main.c2.prompt.has_method("guide_complete"):
+		dash_ok = bool(main.c2.prompt.guide_complete())
+	print(
+		"DUMP_FLANK_GUIDE pts=", dump.get("pts", -1),
+		" complete=", dump.get("complete", false),
+		" cone=", dump.get("cone", -1),
+		" gaps=", dump.get("gaps", -1),
+		" dest=", dump.get("dest", Vector2i(-1, -1)),
+		" dash=", dash, " dash_ok=", dash_ok,
+		" caps=", " ".join(main.c2.prompt.visible_captions() if main.c2.prompt else PackedStringArray())
+	)
+	await _save("05e_flank_guide_full")
+	op.stop_move()
+	main._pending_flank = null
+
+
+func _walk_follow_continuity(main) -> void:
+	if main.operators.size() < 3 or main.grid == null:
+		return
+	var lead = main.operators[0]
+	var a = main.operators[1]
+	var b = main.operators[2]
+	if main.c2 and not main.c2.sentries.is_empty():
+		var i := 0
+		for s in main.c2.sentries:
+			if s == null:
+				continue
+			s.global_position = main.grid.cell_to_world_center(Vector2i(32, 6 + i))
+			s.facing_deg = 0.0
+			i += 1
+	var lead_c := Vector2i(16, 14)
+	var dest_c := Vector2i(24, 14)
+	var a_c := Vector2i(12, 16)
+	var b_c := Vector2i(12, 18)
+	if main.grid.is_blocked(lead_c.x, lead_c.y):
+		lead_c = Vector2i(15, 14)
+	if main.grid.is_blocked(dest_c.x, dest_c.y):
+		dest_c = Vector2i(23, 14)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	main._select_op(0)
+	lead.facing_deg = 0.0
+	if lead.has_method("_rebuild_cone"):
+		lead._rebuild_cone()
+	lead.global_position = main.grid.cell_to_world_center(lead_c)
+	a.global_position = main.grid.cell_to_world_center(a_c)
+	b.global_position = main.grid.cell_to_world_center(b_c)
+	if main.has_method("simulate_follow_badge"):
+		if not bool(a.follow_lead):
+			main.simulate_follow_badge(1)
+		if not bool(b.follow_lead):
+			main.simulate_follow_badge(2)
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	if main.has_method("_tick_squad_follow"):
+		main._tick_squad_follow()
+	if main.has_method("_command_move_selected"):
+		main._command_move_selected(main.grid.cell_to_world_center(dest_c))
+	var stalls := 0
+	var moving := 0
+	var hop := 0
+	var prev_d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+	var prev_d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+	var frames := 0
+	while frames < 90:
+		if main.has_method("_tick_command_moves"):
+			main._tick_command_moves(0.05)
+		if main.has_method("_tick_squad_follow"):
+			main._tick_squad_follow()
+		await process_frame
+		frames += 1
+		var d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+		var d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+		if d1 != prev_d1:
+			hop += 1
+			prev_d1 = d1
+		if d2 != prev_d2:
+			hop += 1
+			prev_d2 = d2
+		if d1.x >= 0 and a.grid_cell() != d1 and a.is_moving():
+			moving += 1
+		if d2.x >= 0 and b.grid_cell() != d2 and b.is_moving():
+			moving += 1
+		if d1.x >= 0 and a.grid_cell() != d1 and not a.is_moving():
+			stalls += 1
+		if d2.x >= 0 and b.grid_cell() != d2 and not b.is_moving():
+			stalls += 1
+		var busy: bool = lead.is_moving() or a.is_moving() or b.is_moving()
+		if not busy and frames > 12:
+			break
+	main._update_hud()
+	await _settle(6)
+	_dump_feel(main, "walk_follow")
+	print(
+		"DUMP_WALK_FOLLOW flips=", int(main.follow_dest_flips()) if main.has_method("follow_dest_flips") else -1,
+		" hop=", hop, " stalls=", stalls, " move=", moving,
+		" lead=", lead.grid_cell(),
+		" d1=", main._follow_dest.get(int(a.op_id), Vector2i(-1, -1)),
+		" d2=", main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+	)
+	await _save("08c_walk_follow")
+	if bool(a.follow_lead):
+		main.toggle_follow(1)
+	if bool(b.follow_lead):
+		main.toggle_follow(2)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	main._follow_dest.clear()
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+
+
 func _walk_yard_loop(main) -> void:
 	if main.operators.is_empty() or main.grid == null:
 		return
@@ -578,7 +734,8 @@ func _dump_feel(main, tag: String) -> void:
 		" facing_tags=", f.get("facing_tags", -1),
 		" follow_cone_hits=", f.get("follow_cone_hits", -1),
 		" follow_rim_hits=", f.get("follow_rim_hits", -1),
-		" follow_max_detour=", f.get("follow_max_detour", -1)
+		" follow_max_detour=", f.get("follow_max_detour", -1),
+		" follow_flips=", f.get("follow_flips", -1)
 	)
 
 

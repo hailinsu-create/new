@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.5.8 — Phone feel: walk-follow continuity, full 绕背 dashed path, 跟 badge hit
+
+Sideload APK: `dist/AmbushLoop-v0.5.8-touch-follow.apk`  
+Release tag: `v0.5.8-touch-follow`
+
+Same RAID as 0.5.7 (`SCOUT → ALERT → SWEEP`, auto fire + auto nade). Phone default stays 简配夜袭.
+
+### Play (phone)
+- **跟上** while the lead is walking keeps one arrival slot. Dest no longer hops every tile; followers do not stop-start at the moving 射界 rim.
+- **绕背** dashed guide is the full grid path to the backstab cell (4-connected, last cell is dest, no cone cut).
+- **跟** chip is a smaller top-right hit. Tapping the portrait body selects; tapping the chip toggles follow. They do not overlap.
+- Forced-touch path covers lead-walk follow + complete 绕背 guide, then 西匣开匣 → 绕背 → 三人跟上.
+
+### Android
+- `versionName` 0.5.8 / `versionCode` 14 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title **v0.5.8 COMMANDOS/WW2**.
+2. Tap **跟** then walk the lead: followers keep walking, they do not stutter every cell.
+3. 绕背 dashed line reaches the back cell. Portrait name/HP tap selects; only the corner chip toggles 跟.
+
 ## 0.5.7 — Phone feel: short 2–3 cell detour, west-alley spacing, 开匣→绕背→跟上
 
 Sideload APK: `dist/AmbushLoop-v0.5.7-touch-detour.apk`  

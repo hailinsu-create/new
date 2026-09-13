@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.5.7":
+	if ver != "0.5.8":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3400,6 +3400,8 @@ func _assert_simplified_touch(main) -> bool:
 		return false
 	if not await _assert_touch_feel_057(main):
 		return false
+	if not await _assert_touch_feel_058(main):
+		return false
 	return true
 
 
@@ -3984,6 +3986,25 @@ func _assert_touch_feel_057(main) -> bool:
 	return true
 
 
+func _assert_touch_feel_058(main) -> bool:
+	## Lead-walk follow continuity, full 绕背 dashed path, 跟 badge hit,
+	## forced-touch path covers both.
+	main._ensure_touch_hud()
+	main._update_hud()
+	await process_frame
+	await process_frame
+	if not await _assert_follow_walk_continuity(main):
+		return false
+	if not await _assert_flank_guide_complete(main):
+		return false
+	if not await _assert_follow_badge_hit(main):
+		return false
+	if not await _assert_west_combo_touch(main):
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_058")
+	return true
+
+
 func _assert_follow_short_detour(main) -> bool:
 	## Leader east of a west-facing cone; followers in the west alley must take a
 	## 2–3 cell local detour toward the lead instead of stepping out and idling.
@@ -4081,6 +4102,327 @@ func _assert_follow_short_detour(main) -> bool:
 		sent._rebuild_cone()
 	main._follow_dest.clear()
 	main._pending_flank = null
+	return true
+
+
+func _assert_follow_walk_continuity(main) -> bool:
+	## Lead walks 8 cells east; followers keep one dest and do not stop-start.
+	if main.operators.size() < 3 or main.grid == null:
+		push_error("SMOKE_WALK_FOLLOW_NO_OPS")
+		quit(44)
+		return false
+	var lead: OperatorUnit = main.operators[0]
+	var a: OperatorUnit = main.operators[1]
+	var b: OperatorUnit = main.operators[2]
+	var homes: Array[Vector2] = [lead.global_position, a.global_position, b.global_position]
+	var flags: Array[bool] = [bool(a.follow_lead), bool(b.follow_lead)]
+	if main.c2 and not main.c2.sentries.is_empty():
+		_park_sentries(main, null)
+	var lead_c := Vector2i(16, 14)
+	var dest_c := Vector2i(24, 14)
+	var a_c := Vector2i(12, 16)
+	var b_c := Vector2i(12, 18)
+	if main.grid.is_blocked(lead_c.x, lead_c.y) or main._cell_is_operable(lead_c):
+		lead_c = Vector2i(15, 14)
+	if main.grid.is_blocked(dest_c.x, dest_c.y) or main._cell_is_operable(dest_c):
+		dest_c = Vector2i(23, 14)
+	if main.grid.is_blocked(a_c.x, a_c.y):
+		a_c = Vector2i(11, 16)
+	if main.grid.is_blocked(b_c.x, b_c.y):
+		b_c = Vector2i(11, 18)
+	main._select_op(0)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	lead.facing_deg = 0.0
+	if lead.has_method("_rebuild_cone"):
+		lead._rebuild_cone()
+	lead.global_position = main.grid.cell_to_world_center(lead_c)
+	a.global_position = main.grid.cell_to_world_center(a_c)
+	b.global_position = main.grid.cell_to_world_center(b_c)
+	main._stealth_avoid_cache.clear()
+	main._stealth_avoid_msec = 0
+	if not bool(a.follow_lead):
+		main.toggle_follow(1)
+	if not bool(b.follow_lead):
+		main.toggle_follow(2)
+	main._tick_squad_follow()
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	main._command_move_selected(main.grid.cell_to_world_center(dest_c))
+	if not lead.is_moving():
+		push_error("SMOKE_WALK_FOLLOW_LEAD_STILL at=%s dest=%s" % [lead.grid_cell(), dest_c])
+		quit(44)
+		return false
+	var stalls := 0
+	var moving_ticks := 0
+	var prev_d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+	var prev_d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+	var hop := 0
+	var walk_flips := 0
+	var saw_walk := false
+	for _i in 90:
+		if main.has_method("_tick_command_moves"):
+			main._tick_command_moves(0.05)
+		main._tick_squad_follow()
+		await process_frame
+		var d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+		var d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+		if lead.is_moving():
+			saw_walk = true
+			if d1 != prev_d1:
+				hop += 1
+				prev_d1 = d1
+			if d2 != prev_d2:
+				hop += 1
+				prev_d2 = d2
+			if main.has_method("follow_dest_flips"):
+				walk_flips = int(main.follow_dest_flips())
+			var a_need := d1.x >= 0 and a.grid_cell() != d1
+			var b_need := d2.x >= 0 and b.grid_cell() != d2
+			if a_need and a.is_moving():
+				moving_ticks += 1
+			if b_need and b.is_moving():
+				moving_ticks += 1
+			if a_need and not a.is_moving():
+				stalls += 1
+			if b_need and not b.is_moving():
+				stalls += 1
+		else:
+			prev_d1 = d1
+			prev_d2 = d2
+		if not lead.is_moving() and not a.is_moving() and not b.is_moving() and _i > 12:
+			break
+	var flips := walk_flips if saw_walk else (int(main.follow_dest_flips()) if main.has_method("follow_dest_flips") else hop)
+	var d1f: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+	var d2f: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+	if d1f.x < 0 or d2f.x < 0 or d1f == d2f:
+		push_error("SMOKE_WALK_FOLLOW_DEST d1=%s d2=%s" % [d1f, d2f])
+		quit(44)
+		return false
+	if hops_too_many(flips, hop):
+		push_error("SMOKE_WALK_FOLLOW_HOP flips=%s hop=%s d1=%s d2=%s" % [flips, hop, d1f, d2f])
+		quit(44)
+		return false
+	if stalls > 8:
+		push_error("SMOKE_WALK_FOLLOW_STALL n=%s move=%s a=%s/%s b=%s/%s" % [
+			stalls, moving_ticks, a.grid_cell(), d1f, b.grid_cell(), d2f
+		])
+		quit(44)
+		return false
+	if moving_ticks < 8:
+		push_error("SMOKE_WALK_FOLLOW_NO_MOVE n=%s stalls=%s" % [moving_ticks, stalls])
+		quit(44)
+		return false
+	print(
+		"SMOKE_OK_FOLLOW_WALK_CONT flips=", flips, " hop=", hop,
+		" stalls=", stalls, " move=", moving_ticks,
+		" d1=", d1f, " d2=", d2f, " lead=", lead.grid_cell()
+	)
+	if bool(a.follow_lead) != flags[0]:
+		main.toggle_follow(1)
+	if bool(b.follow_lead) != flags[1]:
+		main.toggle_follow(2)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	lead.global_position = homes[0]
+	a.global_position = homes[1]
+	b.global_position = homes[2]
+	main._follow_dest.clear()
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	return true
+
+
+func hops_too_many(flips: int, hop: int) -> bool:
+	return flips > 4 or hop > 6
+
+
+func _assert_flank_guide_complete(main) -> bool:
+	var prompt = main.c2.prompt if main.c2 else null
+	if prompt == null or main.c2.sentries.is_empty() or main.operators.is_empty():
+		push_error("SMOKE_NO_FLANK_GUIDE")
+		quit(44)
+		return false
+	var op: OperatorUnit = main.operators[0]
+	var sent = main.c2.sentries[0]
+	var op_home: Vector2 = op.global_position
+	var sent_home: Vector2 = sent.global_position
+	var sent_face: float = float(sent.facing_deg)
+	_park_sentries(main, sent)
+	var op_c := Vector2i(11, 14)
+	var sent_c := Vector2i(12, 12)
+	if main.grid.is_blocked(sent_c.x, sent_c.y):
+		sent_c = Vector2i(12, 13)
+	if main.grid.is_blocked(op_c.x, op_c.y) or main._cell_is_operable(op_c) or op_c == sent_c:
+		op_c = Vector2i(10, 14)
+	if main.grid.is_blocked(op_c.x, op_c.y) or main._cell_is_operable(op_c) or op_c == sent_c:
+		op_c = Vector2i(11, 13)
+	op.stop_move()
+	main._select_op(0)
+	op.global_position = main.grid.cell_to_world_center(op_c)
+	sent.global_position = main.grid.cell_to_world_center(sent_c)
+	sent.facing_deg = 0.0
+	_freeze_sentry(sent)
+	main._stealth_avoid_cache.clear()
+	main._stealth_avoid_msec = 0
+	prompt.refresh_now()
+	await process_frame
+	if not bool(prompt.has_caption("绕背")):
+		push_error("SMOKE_FLANK_GUIDE_NO_HOT caps=%s op=%s sent=%s" % [
+			" ".join(prompt.visible_captions()), op_c, sent_c
+		])
+		quit(44)
+		return false
+	var dump: Dictionary = {}
+	if main.has_method("flank_guide_dump"):
+		dump = main.flank_guide_dump(sent, op)
+	var pts := int(dump.get("pts", 0))
+	var complete := bool(dump.get("complete", false))
+	var cone := int(dump.get("cone", 99))
+	var gaps := int(dump.get("gaps", 99))
+	var dest: Vector2i = dump.get("dest", Vector2i(-1, -1))
+	if pts < 2 or not complete or cone > 0 or gaps > 0:
+		push_error("SMOKE_FLANK_GUIDE_INCOMPLETE pts=%s complete=%s cone=%s gaps=%s dest=%s from=%s" % [
+			pts, complete, cone, gaps, dest, op.grid_cell()
+		])
+		quit(44)
+		return false
+	var guide_ok := true
+	if prompt.has_method("guide_complete"):
+		guide_ok = bool(prompt.guide_complete())
+	var gpts := 0
+	if prompt.has_method("guide_points"):
+		gpts = int(prompt.guide_points().size())
+	if not guide_ok or gpts < 2:
+		push_error("SMOKE_FLANK_GUIDE_DASH pts=%s complete=%s" % [gpts, guide_ok])
+		quit(44)
+		return false
+	if not bool(main.simulate_hotspot("绕背")):
+		push_error("SMOKE_FLANK_GUIDE_FIRE")
+		quit(44)
+		return false
+	await process_frame
+	var walk_pts := int(op.move_path.size())
+	var walk_cone := 0
+	for pt in op.move_path:
+		if main._sentry_blocks_stealth(pt, op):
+			walk_cone += 1
+	if walk_pts < 2 and not (sent.has_method("in_backstab") and bool(sent.in_backstab(op.global_position))):
+		push_error("SMOKE_FLANK_GUIDE_NO_WALK dest=%s at=%s" % [dest, op.grid_cell()])
+		quit(44)
+		return false
+	if walk_cone > 0:
+		push_error("SMOKE_FLANK_GUIDE_WALK_CONE n=%s pts=%s" % [walk_cone, walk_pts])
+		quit(44)
+		return false
+	print(
+		"SMOKE_OK_FLANK_GUIDE_COMPLETE pts=", pts, " dash=", gpts,
+		" dest=", dest, " walk=", walk_pts
+	)
+	op.stop_move()
+	sent.global_position = sent_home
+	sent.facing_deg = sent_face
+	sent.frozen = false
+	if sent.has_method("_rebuild_cone"):
+		sent._rebuild_cone()
+	op.global_position = op_home
+	main._pending_flank = null
+	prompt.refresh_now()
+	return true
+
+
+func _assert_follow_badge_hit(main) -> bool:
+	if main.operators.size() < 2 or main.c2 == null or main.c2.portraits == null:
+		push_error("SMOKE_BADGE_NO_STRIP")
+		quit(44)
+		return false
+	var strip = main.c2.portraits
+	var lead: OperatorUnit = main.operators[0]
+	var other: OperatorUnit = main.operators[1]
+	var was_follow := bool(other.follow_lead)
+	main._select_op(0)
+	if bool(other.follow_lead):
+		main.toggle_follow(1)
+	main._update_hud()
+	await process_frame
+	await process_frame
+	if not strip.has_method("follow_hit_rect") or not strip.has_method("portrait_body_rect"):
+		push_error("SMOKE_BADGE_NO_HIT_API")
+		quit(44)
+		return false
+	var hit: Rect2 = strip.follow_hit_rect(1)
+	var body: Rect2 = strip.portrait_body_rect(1)
+	var card: Rect2 = strip.card_global_rect(1)
+	if hit.size.x < 8.0 or hit.size.y < 8.0:
+		push_error("SMOKE_BADGE_NO_CHIP r=%s vis=%s" % [hit, strip.visible])
+		quit(44)
+		return false
+	if body.size.x < 8.0:
+		push_error("SMOKE_BADGE_NO_BODY r=%s" % body)
+		quit(44)
+		return false
+	if hit.intersects(body):
+		push_error("SMOKE_BADGE_OVERLAP hit=%s body=%s" % [hit, body])
+		quit(44)
+		return false
+	if hit.size.x > 52.0 or hit.size.y > 36.0:
+		push_error("SMOKE_BADGE_TOO_FAT r=%s" % hit)
+		quit(44)
+		return false
+	if not card.encloses(hit) and not card.intersects(hit):
+		push_error("SMOKE_BADGE_OFF_CARD hit=%s card=%s" % [hit, card])
+		quit(44)
+		return false
+	var ht: Dictionary = strip.hit_test_at(hit.get_center()) if strip.has_method("hit_test_at") else {}
+	if str(ht.get("kind", "")) != "follow" or int(ht.get("idx", -1)) != 1:
+		push_error("SMOKE_BADGE_HIT_KIND %s" % ht)
+		quit(44)
+		return false
+	var bt: Dictionary = strip.hit_test_at(body.get_center()) if strip.has_method("hit_test_at") else {}
+	if str(bt.get("kind", "")) != "pick" or int(bt.get("idx", -1)) != 1:
+		push_error("SMOKE_BADGE_BODY_KIND %s" % bt)
+		quit(44)
+		return false
+	main._select_op(0)
+	if not main.has_method("simulate_portrait_body_tap"):
+		push_error("SMOKE_BADGE_NO_BODY_TAP")
+		quit(44)
+		return false
+	main.simulate_portrait_body_tap(1)
+	await process_frame
+	if main.selected != other:
+		push_error("SMOKE_BADGE_BODY_NO_PICK got=%s" % (main.selected.display_name if main.selected else "null"))
+		quit(44)
+		return false
+	if bool(other.follow_lead):
+		push_error("SMOKE_BADGE_BODY_TOGGLED_FOLLOW")
+		quit(44)
+		return false
+	main._select_op(0)
+	main._update_hud()
+	await process_frame
+	if not main.has_method("simulate_follow_badge_tap"):
+		push_error("SMOKE_BADGE_NO_CHIP_TAP")
+		quit(44)
+		return false
+	var on := bool(main.simulate_follow_badge_tap(1))
+	await process_frame
+	if not on or not bool(other.follow_lead):
+		push_error("SMOKE_BADGE_CHIP_MISS follow=%s sel=%s" % [
+			other.follow_lead, main.selected.display_name if main.selected else "null"
+		])
+		quit(44)
+		return false
+	if main.selected != lead:
+		push_error("SMOKE_BADGE_CHIP_STOLE_SEL got=%s" % (main.selected.display_name if main.selected else "null"))
+		quit(44)
+		return false
+	print("SMOKE_OK_FOLLOW_BADGE_HIT hit=", hit, " body=", body)
+	if bool(other.follow_lead) != was_follow:
+		main.toggle_follow(1)
+	main._select_op(0)
 	return true
 
 

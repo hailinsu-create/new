@@ -17,7 +17,10 @@ var _hold_idx: int = -1
 var _hold_msec: int = 0
 var _hold_fired: bool = false
 var _ignore_pick: bool = false
+var _press_follow: bool = false
 const LONG_MS := 350
+const FOLLOW_CHIP := Vector2(38, 20)
+const FOLLOW_PAD := 4.0
 
 
 func _ready() -> void:
@@ -37,11 +40,13 @@ func _ready() -> void:
 		b.gui_input.connect(func(ev: InputEvent) -> void:
 			if not (ev is InputEventMouseButton) or ev.button_index != MOUSE_BUTTON_LEFT:
 				return
+			var screen: Vector2 = ev.global_position
 			if ev.pressed:
 				_hold_idx = idx
 				_hold_msec = Time.get_ticks_msec()
 				_hold_fired = false
-				if ev.double_click:
+				_press_follow = _in_follow_hit(idx, screen)
+				if ev.double_click and not _press_follow:
 					picked.emit(idx)
 					_hold_idx = -1
 					var main = get_tree().current_scene
@@ -56,10 +61,18 @@ func _ready() -> void:
 				if _ignore_pick:
 					_ignore_pick = false
 					_hold_idx = -1
+					_press_follow = false
 					return
-				if _hold_idx == idx and not _hold_fired:
+				if _press_follow and _in_follow_hit(idx, screen):
+					_hold_idx = -1
+					_hold_fired = true
+					_press_follow = false
+					follow_toggled.emit(idx)
+					return
+				if _hold_idx == idx and not _hold_fired and not _press_follow:
 					picked.emit(idx)
 				_hold_idx = -1
+				_press_follow = false
 		)
 		var gly := RoleGlyphScript.new()
 		gly.name = "Glyph"
@@ -68,8 +81,9 @@ func _ready() -> void:
 		b.add_child(gly)
 		var gun := GunStampScript.new()
 		gun.name = "Gun"
-		gun.position = Vector2(50, 14)
+		gun.position = Vector2(48, 34)
 		gun.custom_minimum_size = Vector2(40, 18)
+		gun.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		b.add_child(gun)
 		var num := Label.new()
 		num.name = "Num"
@@ -98,24 +112,24 @@ func _ready() -> void:
 		st.add_theme_color_override("font_color", NightOps.MUTED)
 		st.text = ""
 		b.add_child(st)
-		var fol := Button.new()
+		var fol := Panel.new()
 		fol.name = "Follow"
-		fol.text = "跟"
-		fol.focus_mode = Control.FOCUS_NONE
-		fol.theme = NightOps.theme()
-		fol.add_theme_font_size_override("font_size", 11)
-		fol.add_theme_font_override("font", NightOps.ui_font_bold())
-		fol.position = Vector2(50, 4)
-		fol.size = Vector2(50, 28)
-		fol.custom_minimum_size = Vector2(50, 28)
-		fol.mouse_filter = Control.MOUSE_FILTER_STOP
+		fol.position = Vector2(64, 2)
+		fol.size = FOLLOW_CHIP
+		fol.custom_minimum_size = FOLLOW_CHIP
+		fol.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		fol.visible = false
-		fol.pressed.connect(func() -> void:
-			_ignore_pick = true
-			_hold_idx = -1
-			_hold_fired = true
-			follow_toggled.emit(idx)
-		)
+		var cap := Label.new()
+		cap.name = "Cap"
+		cap.text = "跟"
+		cap.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		cap.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		cap.add_theme_font_size_override("font_size", 11)
+		cap.add_theme_font_override("font", NightOps.ui_font_bold())
+		cap.add_theme_color_override("font_color", Color(0.82, 0.78, 0.58))
+		cap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		fol.add_child(cap)
 		b.add_child(fol)
 		row.add_child(b)
 		_cards.append(b)
@@ -129,8 +143,67 @@ func card_global_rect(idx: int) -> Rect2:
 	return (_cards[idx] as Control).get_global_rect()
 
 
+func follow_badge_rect(idx: int) -> Rect2:
+	if idx < 0 or idx >= _cards.size() or _cards[idx] == null:
+		return Rect2()
+	var fol: Control = (_cards[idx] as Control).get_node_or_null("Follow")
+	if fol == null or not fol.visible:
+		return Rect2()
+	return fol.get_global_rect()
+
+
+func follow_hit_rect(idx: int) -> Rect2:
+	var badge: Rect2 = follow_badge_rect(idx)
+	if badge.size.x < 1.0:
+		return Rect2()
+	var grown: Rect2 = badge.grow(FOLLOW_PAD)
+	var card: Rect2 = card_global_rect(idx)
+	## Keep the chip in the top-right. Name / glyph / HP stay pick, not 跟.
+	var zone := Rect2(
+		Vector2(card.position.x + card.size.x * 0.54, card.position.y),
+		Vector2(card.size.x * 0.46, 28.0)
+	)
+	return grown.intersection(zone)
+
+
+func portrait_body_rect(idx: int) -> Rect2:
+	var card: Rect2 = card_global_rect(idx)
+	if card.size.x < 1.0:
+		return Rect2()
+	## Lower-left identity: glyph + name. Explicitly off the 跟 chip.
+	return Rect2(card.position + Vector2(6, 40), Vector2(50, 58))
+
+
+func hit_test_at(screen: Vector2) -> Dictionary:
+	for i in _cards.size():
+		if _cards[i] == null or not (_cards[i] as Control).visible:
+			continue
+		var fh: Rect2 = follow_hit_rect(i)
+		if fh.size.x > 1.0 and fh.has_point(screen):
+			return {"kind": "follow", "idx": i}
+		if card_global_rect(i).has_point(screen):
+			return {"kind": "pick", "idx": i}
+	return {"kind": "", "idx": -1}
+
+
+func dispatch_tap(screen: Vector2) -> String:
+	var hit: Dictionary = hit_test_at(screen)
+	var kind := str(hit.get("kind", ""))
+	var idx := int(hit.get("idx", -1))
+	if kind == "follow" and idx >= 0:
+		follow_toggled.emit(idx)
+	elif kind == "pick" and idx >= 0:
+		picked.emit(idx)
+	return kind
+
+
+func _in_follow_hit(idx: int, screen: Vector2) -> bool:
+	var r: Rect2 = follow_hit_rect(idx)
+	return r.size.x > 1.0 and r.has_point(screen)
+
+
 func _process(delta: float) -> void:
-	if _hold_idx >= 0 and not _hold_fired and Time.get_ticks_msec() - _hold_msec >= LONG_MS:
+	if _hold_idx >= 0 and not _hold_fired and not _press_follow and Time.get_ticks_msec() - _hold_msec >= LONG_MS:
 		_hold_fired = true
 		long_pressed.emit(_hold_idx)
 	_pulse += delta * 4.2
@@ -193,18 +266,19 @@ func bind_ops(ops: Array, selected: Node, command_phase: bool) -> void:
 			if op.get("follow_lead") != null and bool(op.follow_lead) and not sel:
 				bits.append("跟")
 			st.text = " ".join(bits)
-		var fol: Button = b.get_node_or_null("Follow") as Button
+		var fol: Panel = b.get_node_or_null("Follow") as Panel
 		if fol:
 			var phone := _phone_strip()
 			fol.visible = phone and command_phase and op.alive and not sel
 			var on_follow: bool = op.get("follow_lead") != null and bool(op.follow_lead)
-			fol.text = "跟上" if on_follow else "跟"
 			fol.modulate = Color(1.18, 1.10, 0.72) if on_follow else Color.WHITE
 			var fbg := Color(0.18, 0.16, 0.08, 0.95) if on_follow else Color(0.08, 0.08, 0.06, 0.92)
 			var fbd := Color(0.86, 0.72, 0.38, 0.95) if on_follow else Color(0.50, 0.46, 0.32, 0.8)
-			fol.add_theme_stylebox_override("normal", NightOps.flat(fbg, fbd, 1, 6, 4))
-			fol.add_theme_stylebox_override("hover", NightOps.flat(fbg.lightened(0.12), fbd.lightened(0.15), 1, 6, 4))
-			fol.add_theme_color_override("font_color", Color(0.96, 0.90, 0.62) if on_follow else Color(0.82, 0.78, 0.58))
+			fol.add_theme_stylebox_override("panel", NightOps.flat(fbg, fbd, 1, 6, 3))
+			var cap: Label = fol.get_node_or_null("Cap") as Label
+			if cap:
+				cap.text = "跟上" if on_follow else "跟"
+				cap.add_theme_color_override("font_color", Color(0.96, 0.90, 0.62) if on_follow else Color(0.82, 0.78, 0.58))
 		b.disabled = not command_phase and not sel
 
 
