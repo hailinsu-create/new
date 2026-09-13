@@ -37,6 +37,18 @@ func _on_gui(ev: InputEvent) -> void:
 			(local.y / maxf(size.y, 1.0)) * float(ROWS * TILE)
 		)
 		pan_requested.emit(world)
+		if _host != null and _host.get("operators") is Array:
+			var best = null
+			var best_d := 80.0
+			for op in _host.operators:
+				if op == null or not op.visible:
+					continue
+				var d: float = op.global_position.distance_to(world)
+				if d < best_d:
+					best_d = d
+					best = op
+			if best != null and _host.has_method("_select_op"):
+				_host._select_op(int(best.op_id) - 1)
 		accept_event()
 
 
