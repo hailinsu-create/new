@@ -25,6 +25,11 @@ const KEYS := {
 	"quiet_yard": "无声院子",
 	"sprint": "双击奔跑",
 	"portraits": "点肖像选人",
+	"binoculars": "望远镜（Q）",
+	"sprint_hint": "双击奔跑",
+	"shift_walk": "Shift 慢走",
+	"examine": "悬停匣看型号",
+	"shadow_hide": "阴影里蹲下",
 }
 
 
