@@ -17,6 +17,14 @@ const KEYS := {
 	"wave_leak": "第%d波漏网",
 	"no_hp_star": "无人受伤",
 	"loot_then_hold": "先搜匣再埋伏",
+	"crouch": "匍匐（C）",
+	"knife": "割喉（Q）",
+	"whistle": "口哨（W）",
+	"bind": "捆绑（Z）",
+	"spotted": "岗哨看见了",
+	"quiet_yard": "无声院子",
+	"sprint": "双击奔跑",
+	"portraits": "点肖像选人",
 }
 
 
