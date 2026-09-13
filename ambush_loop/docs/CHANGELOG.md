@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.4.0 — Commandos 2 kit (weapons / backpack / auto nade)
+
+Sideload APK: `dist/AmbushLoop-v0.4.0-commandos2-kit.apk`  
+Release tag: `v0.4.0-commandos2-kit`
+
+Mechanism squeeze, not a new campaign. RAID is still SCOUT → ALERT → SWEEP.
+
+### Play
+- Firearm kit is **10 named WWII guns**: 5 families × (Allied 1 + Axis 1). No G43 / SVT / PPS / Webley / drilling / 28-model atlas.
+- Per-operator **6-slot backpack**. Pickup goes in the pack; first gun auto-equips; later guns wait in the pack. I / 背包 to swap, pass, or drop. Full pack refuses loot.
+- Grenades **auto-throw in ALERT** (cone or a SCOUT 雷点). Cooldown 3.6s, skips friendly-fire circle. G during scout places/clears the mark.
+- Cinema still **警报中 · 第N/M波**. No 锁死观战.
+
+### Android
+- `versionName` 0.4.0 / `versionCode` 4 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title stamp **v0.4.0 COMMANDOS/WW2**.
+2. Yard crates: **Kar98k / MG42 / 汤姆逊 / M1911 / 卢格** — not G43, not 钻枪.
+3. I opens a 6-slot pack. Pull alarm: nades fly on their own if an enemy enters the cone/雷点.
+
 ## 0.3.1 — Commandos / WW2 deepen (playtest)
 
 Sideload APK: `dist/AmbushLoop-v0.3.1-commandos-ww2-playtest.apk`  

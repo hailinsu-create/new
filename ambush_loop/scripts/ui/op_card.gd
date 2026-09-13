@@ -265,7 +265,7 @@ func _refresh_ammo_pips(op: OperatorUnit) -> void:
 		return
 	var mag := maxi(op.start_ammo, 1) if op.start_ammo > 0 else maxi(op.max_ammo, 1)
 	var n := mini(mag, 16)
-	if op.weapon_id in ["mg42", "mg34", "dp28"]:
+	if op.weapon_id in ["mg42", "bar"]:
 		n = mini(maxi(op.max_ammo, mag), 16)
 	while _pips.get_child_count() > n:
 		var last := _pips.get_child(_pips.get_child_count() - 1)

@@ -7,8 +7,8 @@ not a Commandos clone. Full contract: `docs/COMMANDOS_RAID.md`.
 
 - **Scout then alarm:** SETUP (walk/loot/plant) → Space starts a combat wave. Not a frozen watch-only plan.
 - **Sweep between waves:** clear a wave → walk/vacuum loot → next alarm or extract.
-- **Kits from the map:** knife start; rifle/MG/scout/pistol/shotgun/ammo/mine/grenade/decoy crates.
-- **Commandos verbs kept small:** click-to-move, cover pads, mines, grenades, decoys. No RTS box-select.
+- **Kits from the map:** knife start; 10 named WWII guns (Allied/Axis pairs) plus ammo/mine/grenade/decoy crates; 6-slot backpack.
+- **Commandos verbs kept small:** click-to-move, cover pads, mines, auto grenades, decoys, backpack swap. No RTS box-select.
 - **Plan then lock (legacy, replaced):** old SETUP lock-watch is gone as the core loop.
 - **Specialist kits:** rifle (filler), MG (wide/fast/short), scout (long/narrow/scarce).
 - **Cover protect arcs:** cyan fan; only attacks from that facing get 60% mitigation.

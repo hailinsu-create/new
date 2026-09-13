@@ -82,7 +82,8 @@ func _build() -> void:
 	_add(_row_setup, "fire", "开火", Color(0.55, 0.48, 0.28))
 	_add(_row_setup, "pack", "弹包", Color(0.40, 0.55, 0.40))
 	_add(_row_setup, "trip", "绊索", Color(0.55, 0.40, 0.28))
-	_add(_row_setup, "nade", "手雷", Color(0.82, 0.42, 0.18))
+	_add(_row_setup, "nade", "雷点", Color(0.82, 0.42, 0.18))
+	_add(_row_setup, "bag", "背包", Color(0.48, 0.44, 0.28))
 	_add(_row_setup, "decoy", "诱饵", Color(0.82, 0.72, 0.28))
 	_add(_row_setup, "pass", "递装", Color(0.42, 0.62, 0.48))
 	_add(_row_setup, "door", "门锁", Color(0.50, 0.42, 0.28))
@@ -97,7 +98,7 @@ func _build() -> void:
 	_row_watch.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(_row_watch)
 	_add(_row_watch, "abort", "中止", Color(0.55, 0.20, 0.20))
-	_add(_row_watch, "nade_watch", "手雷", Color(0.82, 0.42, 0.18))
+	_add(_row_watch, "nade_watch", "自动雷", Color(0.82, 0.42, 0.18))
 	_add(_row_watch, "skip", "终局", Color(0.42, 0.52, 0.28))
 	_add(_row_watch, "pause", "暂停", Color(0.35, 0.38, 0.42))
 	_add(_row_watch, "speed", "倍速", Color(0.35, 0.38, 0.42))
@@ -263,11 +264,11 @@ func refresh_phase(
 		_row_watch.visible = phase_name != "SETUP" and phase_name != "SWEEP"
 	match phase_name:
 		"SETUP":
-			set_hint("触控：点队员/点地走 → 开匣搜枪 → 趴掩体 → 拉警报")
+			set_hint("触控：点队员/点地走 → 开匣搜枪 → 背包取舍 → 雷点 → 趴掩体 → 拉警报")
 		"SWEEP":
-			set_hint("打扫：走近尸体拾取 → 下一波警报或撤离封锁")
+			set_hint("打扫：走近尸体拾取 → 背包换枪 → 下一波警报或撤离封锁")
 		"WATCHING":
-			set_hint("警报中 — 暂停 / 倍速 / 中止 / 手雷。走位等打扫")
+			set_hint("警报中 — 自动火力 / 自动手雷。暂停 / 倍速 / 中止。走位等打扫")
 		"REPLAY":
 			set_hint("复盘只读 — 拖时间轴；警报钮返回搜刮")
 		_:
@@ -293,6 +294,8 @@ func refresh_phase(
 		_btns["trip"].disabled = phase_name != "SETUP" and phase_name != "SWEEP"
 	if _btns.has("nade"):
 		_btns["nade"].disabled = phase_name != "SETUP" and phase_name != "SWEEP"
+	if _btns.has("bag"):
+		_btns["bag"].disabled = false
 	if _btns.has("decoy"):
 		_btns["decoy"].disabled = phase_name != "SETUP" and phase_name != "SWEEP"
 	if _btns.has("pass"):

@@ -124,19 +124,34 @@ Smoke: `SMOKE_SLICE_COMPLETE` + `SMOKE_OK_RAID_LOOP`.
 111. Version 0.3.1 / versionCode 3
 112. Independent reeval dump `eval_dump_v031.gd`
 
+## Landed 113–124 (v0.4.0 Commandos 2 kit)
+
+113. Weapon catalog squeezed to 10 named guns (5 families × Allied/Axis). `SMOKE_OK_WEAPON_MODELS n=10`
+114. Banned tail (G43, SVT, PPS, Webley, drilling, …) gone from loot/HUD/crates
+115. Per-operator 6-slot backpack; pickup / equip / pass / drop. `SMOKE_OK_BACKPACK`
+116. Backpack UI (I / 背包). `SMOKE_OK_BACKPACK_UI`
+117. SCOUT G places 雷点. `SMOKE_OK_NADE_MARK`
+118. ALERT auto-grenade (cone or mark, 3.6s CD, FF skip). `SMOKE_OK_AUTO_GRENADE`
+119. Touch 雷点 / 背包 / 自动雷
+120. Yard crates: Kar98k, MG42, 汤姆逊, M1911, 卢格
+121. Tutorial / howto / RAID contract copy: auto nade, no 锁死观战
+122. Version 0.4.0 / versionCode 4
+123. Kit contract `docs/COMMANDOS2_KIT.md`
+124. Dump `eval_dump_v040.gd` + named APK / release
+
 ## How to play now (delta vs 41)
 
 - Knives at insert. Walk onto a crate and **stand 0.4s**.
 - **Do not mix ammo.** T to pass a gun or nade.
 - Alarm wants a firearm; second press still lets you knife-leak.
-- Phone: 手雷 / 诱饵 / 递装. Alert bar has 手雷.
+- Phone: 雷点 / 背包 / 诱饵 / 递装. Alert bar has 自动雷.
 - H drags bodies off the road. Sweep heals 10.
 - Fail card: 第N波漏网. Win: extra star if nobody was hit.
 
 ## Remaining gaps (not a second game)
 
 - No climb / multi-floor / vehicles (contract cut).
-- Alarm still freezes walking (throw only).
+- Alarm still freezes walking (auto fire + auto nade).
 - Body drag is presentation + slow; no “spotted corpse” AI.
 - Hold-to-move and few-crates are flags, not title toggles.
 - Photo mode / mid-night inventory checkpoint / gamepad map not shipped.

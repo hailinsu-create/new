@@ -4,9 +4,9 @@ Godot 4.7.2 vertical slice — Commandos-style night raid: scout, loot, ambush, 
 
 **朋友包 / 程序多边形 / 合成音 / 必须横屏。** 不是正式版，不要写成 9.5。  
 像素门槛加权 **9.0**（`docs/Ambush_Loop_试玩复评_71ca4af.md`，窗口 31 张）。旧自称 9.2 作废。  
-侧载试玩 **v0.3.1 Commandos / WW2**：`ambush_loop/dist/AmbushLoop-v0.3.1-commandos-ww2-playtest.apk`（包名 `com.ambushloop.game`，`versionName` 0.3.1）。  
-直链：https://github.com/hailinsu-create/new/releases/download/v0.3.1-commandos-ww2/AmbushLoop-v0.3.1-commandos-ww2-playtest.apk  
-不要用 GitHub release `ambush-loop-playtest-0.2.0` 或 `main` 上的 `AmbushLoop-playtest.apk`（那是锁死观战包，没有搜刮/多波打扫/28 枪）。
+侧载试玩 **v0.4.0 Commandos 2 kit**：`ambush_loop/dist/AmbushLoop-v0.4.0-commandos2-kit.apk`（包名 `com.ambushloop.game`，`versionName` 0.4.0）。  
+直链：https://github.com/hailinsu-create/new/releases/download/v0.4.0-commandos2-kit/AmbushLoop-v0.4.0-commandos2-kit.apk  
+不要用 GitHub release `ambush-loop-playtest-0.2.0` 或 `main` 上的 `AmbushLoop-playtest.apk`（那是锁死观战包）。0.3.x 的 28 型号表已收成 10 枪。
 
 Blueprint: `docs/Ambush_Loop_开发蓝图.md`  
 Launch criteria: `docs/LAUNCH_BAR.md`  
@@ -31,7 +31,7 @@ godot --headless --path ambush_loop -s res://scripts/smoke_test.gd
 
 The editor **Main Scene** is `scenes/title.tscn`. Smoke bypasses the title and loads `scenes/main.tscn` directly; it must print `SMOKE_SLICE_COMPLETE` and `SMOKE_OK_RAID_LOOP` and exit 0.
 
-Raid contract: `docs/COMMANDOS_RAID.md`. Operators spawn at insertion cells with a knife, loot crates, take cover, pull the alarm per wave, sweep loot, extract after the last wave.
+Raid contract: `docs/COMMANDOS_RAID.md`. Kit: `docs/COMMANDOS2_KIT.md`. Operators spawn at insertion cells with a knife, loot crates into a 6-slot pack, take cover, pull the alarm per wave (auto fire + auto grenades), sweep loot, extract after the last wave.
 
 Reference raids (after looting role guns): yard slots 1,2,5 facings 90/180/180; warehouse 1,3,5; pump 1,4,5; railcut 1,4,5 facings 270/270/180; depot 1,4,5 facings 270/270/180 + tripwire at `(7,11)`; radio 1,4,5 facings 270/90/270 + tripwire at `(7,11)`.
 
@@ -61,7 +61,8 @@ Desktop presets: `ambush_loop/export_presets.cfg` (Linux / Windows / **Android A
 | Hover cover | Preview that slot's protect arc |
 | A/D or RMB / phone ↺↻ or drag | Facing (fire cone is LOS-clipped by walls) |
 | F | Fire mode (见敌即打 / 入伏再打) |
-| G | Throw grenade (also during alarm) |
+| G | Place/clear a grenade mark (ALERT auto-throws) |
+| I | Toggle the selected operator's 6-slot backpack |
 | T | Pass gun/nade/mine/decoy to the nearest teammate |
 | H | Drag a corpse (slower walk) |
 | B | Toggle door lock (level 3; switches flank to authored alternate route) |

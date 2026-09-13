@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Fast WWII weapon-model + silhouette probe. Exit 0 prints SMOKE_OK_WEAPON_MODELS.
+## Fast WWII kit + silhouette probe. Exit 0 prints SMOKE_OK_WEAPON_MODELS.
 
 
 func _init() -> void:
@@ -17,6 +17,10 @@ func _run() -> void:
 	if str(W.def("rifle").get("id", "")) != "rifle":
 		push_error("PROBE_RIFLE_ID")
 		quit(2)
+		return
+	if W.model_ids().size() != 10:
+		push_error("PROBE_KIT_COUNT %s" % W.model_ids().size())
+		quit(3)
 		return
 	if W.family_of("kar98k") != "rifle" or W.family_of("mp40") != "smg":
 		push_error("PROBE_FAMILY")
@@ -38,11 +42,7 @@ func _run() -> void:
 		push_error("PROBE_BOLT")
 		quit(8)
 		return
-	if Art.bolt_knob_poly("kar98k") == Art.bolt_knob_poly("mosin"):
-		push_error("PROBE_BOLT_KNOB")
-		quit(8)
-		return
-	if Art.icon_poly("mg42") == Art.icon_poly("bar") or Art.icon_poly("sten") == Art.icon_poly("luger"):
+	if Art.icon_poly("mg42") == Art.icon_poly("bar") or Art.icon_poly("thompson") == Art.icon_poly("luger"):
 		push_error("PROBE_ICON")
 		quit(9)
 		return
@@ -50,21 +50,13 @@ func _run() -> void:
 		push_error("PROBE_GROUND")
 		quit(9)
 		return
-	if Art.silhouette("mg42") == Art.silhouette("mg34"):
-		push_error("PROBE_MG_SHROUD")
+	if Art.silhouette("mp40") == Art.silhouette("thompson"):
+		push_error("PROBE_SMG")
 		quit(10)
 		return
-	if Art.silhouette("gewehr43") == Art.silhouette("svt40"):
-		push_error("PROBE_SEMI")
+	if Art.silhouette("springfield") == Art.silhouette("kar98k_zf"):
+		push_error("PROBE_SCOUT")
 		quit(10)
-		return
-	if Art.silhouette("ithaca37") == Art.silhouette("winchester_m12"):
-		push_error("PROBE_SHOT")
-		quit(11)
-		return
-	if Art.silhouette("sten") == Art.silhouette("pps43"):
-		push_error("PROBE_STEN")
-		quit(11)
 		return
 	if str(W.sfx_cue("mg42")) == str(W.sfx_cue("kar98k")):
 		push_error("PROBE_SFX")

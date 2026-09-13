@@ -403,7 +403,7 @@ static func make_yard() -> LevelDef:
 	l.atmosphere_id = "yard"
 	l.title = "第1关 · 院子：交叉封锁"
 	l.teaching = "这关必须带铁砧扫东箱侧翼，灰狼补主路第一枪，夜枭长窄锁南闸。夜巡小队从北门进院子，要在南闸汇合前切断。陷阱：只盯主路，侧翼奔袭会从东廊绕出。青弧朝向才有掩体减免，侧背全伤。失败三种：逃逸、全灭、中止（X 留情报）。"
-	l.tutorial = "三人从西插入点出发，开局只有刀。点地走路，走近匣拾步枪/机枪/手雷/地雷，点掩体趴下。空格拉第一波警报；清完打扫，空格拉第二波（橙线侧翼）。逃逸或全灭失败。红线=主路，橙线=侧翼。"
+	l.tutorial = "三人从西插入点出发，开局只有刀。点地走路，走近匣拾步枪/机枪/手雷/地雷，点掩体趴下。I 开背包。G 放雷点，警报中自动丢。空格拉第一波；清完打扫再拉第二波（橙线侧翼）。逃逸或全灭失败。红线=主路，橙线=侧翼。"
 	l.escape_cell = Vector2i(31, 19)
 	# All covers on open cells (yard crates leave spine / lanes free).
 	l.cover_defs = [
@@ -448,8 +448,8 @@ static func make_yard() -> LevelDef:
 		{"cell": Vector2i(10, 13), "kind": "mine", "amount": 1},
 		{"cell": Vector2i(23, 13), "kind": "ammo", "amount": 6},
 		{"cell": Vector2i(8, 13), "kind": "pistol", "amount": 8},
-		{"cell": Vector2i(17, 12), "kind": "shotgun", "amount": 4},
-		{"cell": Vector2i(21, 17), "kind": "m1911", "amount": 7},
+		{"cell": Vector2i(17, 12), "kind": "smg", "amount": 20},
+		{"cell": Vector2i(21, 17), "kind": "luger", "amount": 8},
 	]
 	l.ambush_zone = Rect2(320, 280, 400, 160)
 	l.has_ammo_pack = false
@@ -618,7 +618,7 @@ static func make_pump() -> LevelDef:
 		{"cell": Vector2i(16, 8), "kind": "grenade", "amount": 2},
 		{"cell": Vector2i(9, 12), "kind": "mine", "amount": 1},
 		{"cell": Vector2i(23, 16), "kind": "ammo", "amount": 6},
-		{"cell": Vector2i(14, 16), "kind": "sten", "amount": 32},
+		{"cell": Vector2i(14, 16), "kind": "thompson", "amount": 20},
 	]
 	l.ambush_zone = Rect2(300, 250, 420, 220)
 	l.has_ammo_pack = true
@@ -782,7 +782,7 @@ static func make_depot() -> LevelDef:
 		{"cell": Vector2i(29, 16), "kind": "scout", "amount": 6},
 		{"cell": Vector2i(15, 15), "kind": "grenade", "amount": 2},
 		{"cell": Vector2i(7, 12), "kind": "mine", "amount": 1},
-		{"cell": Vector2i(22, 16), "kind": "shotgun", "amount": 4},
+		{"cell": Vector2i(22, 16), "kind": "bar", "amount": 20},
 		{"cell": Vector2i(6, 8), "kind": "decoy", "amount": 1},
 		{"cell": Vector2i(16, 16), "kind": "thompson", "amount": 20},
 	]

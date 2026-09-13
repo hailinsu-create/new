@@ -13,6 +13,8 @@ REQUIRED_ASSETS = (
     "assets/scripts/raid/raid_director.gdc",
     "assets/scripts/raid/weapon_catalog.gdc",
     "assets/scripts/raid/stash.gdc",
+    "assets/scripts/raid/backpack.gdc",
+    "assets/scripts/ui/backpack_panel.gdc",
     "assets/scripts/art/weapon_art.gdc",
     "assets/scripts/art/ww2_palette.gdc",
 )
@@ -30,8 +32,8 @@ def _badging(apk: str) -> str:
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("apk")
-    p.add_argument("--version", default="0.3.1")
-    p.add_argument("--version-code", type=int, default=3)
+    p.add_argument("--version", default="0.4.0")
+    p.add_argument("--version-code", type=int, default=4)
     args = p.parse_args()
     if not os.path.isfile(args.apk):
         print("ASSERT_APK_MISSING", args.apk, file=sys.stderr)

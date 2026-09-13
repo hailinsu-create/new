@@ -4,7 +4,7 @@ config_version=5
 [application]
 
 config/name="Ambush Loop"
-config/version="0.3.1"
+config/version="0.4.0"
 config/description="Commandos-style night raid: scout and loot, set an ambush, pull the alarm, sweep between waves."
 run/main_scene="res://scenes/title.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus", "Mobile", "GL Compatibility")

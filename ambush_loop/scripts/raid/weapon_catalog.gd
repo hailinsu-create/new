@@ -1,8 +1,8 @@
 class_name WeaponCatalog
 extends RefCounted
 
-## Firearm defs. Class ids (rifle/mg/scout/...) keep raid smoke.
-## WWII models add cadence, recoil, mag, muzzle, sfx, loot weight.
+## Commandos 2 kit: five firearm families × (Allied 1 + Axis 1) = 10 named guns.
+## Class ids (rifle/mg/scout/...) still resolve crates and keep raid smoke.
 
 const KNIFE := "knife"
 const PISTOL := "pistol"
@@ -16,34 +16,16 @@ const GRENADE := "grenade"
 const MINE := "mine"
 const DECOY := "decoy"
 
-const KAR98K := "kar98k"
-const LEE_ENFIELD := "lee_enfield"
-const M1_GARAND := "m1_garand"
-const MOSIN := "mosin"
-const GEWEHR43 := "gewehr43"
-const SVT40 := "svt40"
-const MP40 := "mp40"
-const STEN := "sten"
-const THOMPSON := "thompson"
-const PPS43 := "pps43"
-const MP38 := "mp38"
-const MG42 := "mg42"
-const MG34 := "mg34"
-const BAR := "bar"
-const BREN := "bren"
-const DP28 := "dp28"
 const M1911 := "m1911"
 const LUGER := "luger"
-const P38 := "p38"
-const WEBLEY := "webley"
-const TT33 := "tt33"
-const KAR98K_ZF := "kar98k_zf"
+const M1_GARAND := "m1_garand"
+const KAR98K := "kar98k"
+const THOMPSON := "thompson"
+const MP40 := "mp40"
+const BAR := "bar"
+const MG42 := "mg42"
 const SPRINGFIELD := "springfield"
-const ENFIELD_T := "enfield_t"
-const MOSIN_PU := "mosin_pu"
-const WINCHESTER_M12 := "winchester_m12"
-const ITHACA37 := "ithaca37"
-const M30_DRILLING := "m30_drilling"
+const KAR98K_ZF := "kar98k_zf"
 
 
 static func all_ids() -> PackedStringArray:
@@ -54,37 +36,43 @@ static func all_ids() -> PackedStringArray:
 
 static func model_ids() -> PackedStringArray:
 	return PackedStringArray([
-		KAR98K, LEE_ENFIELD, M1_GARAND, MOSIN, GEWEHR43, SVT40,
-		MP40, STEN, THOMPSON, PPS43, MP38,
-		MG42, MG34, BAR, BREN, DP28,
-		M1911, LUGER, P38, WEBLEY, TT33,
-		KAR98K_ZF, SPRINGFIELD, ENFIELD_T, MOSIN_PU,
-		WINCHESTER_M12, ITHACA37, M30_DRILLING,
+		M1911, LUGER,
+		M1_GARAND, KAR98K,
+		THOMPSON, MP40,
+		BAR, MG42,
+		SPRINGFIELD, KAR98K_ZF,
+	])
+
+
+static func kit_table() -> Array:
+	return [
+		{"family": PISTOL, "zh": "手枪", "allied": M1911, "axis": LUGER},
+		{"family": RIFLE, "zh": "步枪", "allied": M1_GARAND, "axis": KAR98K},
+		{"family": SMG, "zh": "冲锋枪", "allied": THOMPSON, "axis": MP40},
+		{"family": MG, "zh": "轻机枪", "allied": BAR, "axis": MG42},
+		{"family": SCOUT, "zh": "狙击", "allied": SPRINGFIELD, "axis": KAR98K_ZF},
+	]
+
+
+static func banned_tail() -> PackedStringArray:
+	return PackedStringArray([
+		"gewehr43", "svt40", "mosin", "lee_enfield",
+		"pps43", "mp38", "sten",
+		"mg34", "bren", "dp28",
+		"webley", "p38", "tt33",
+		"enfield_t", "mosin_pu",
+		"winchester_m12", "ithaca37", "m30_drilling",
 	])
 
 
 static func class_firearm_ids() -> PackedStringArray:
-	return PackedStringArray([PISTOL, RIFLE, MG, SCOUT, SHOTGUN, SMG])
+	return PackedStringArray([PISTOL, RIFLE, MG, SCOUT, SMG])
 
 
 static func is_firearm(id: String) -> bool:
-	match id:
-		PISTOL, RIFLE, MG, SCOUT, SHOTGUN, SMG:
-			return true
-		KAR98K, LEE_ENFIELD, M1_GARAND, MOSIN, GEWEHR43, SVT40:
-			return true
-		MP40, STEN, THOMPSON, PPS43, MP38:
-			return true
-		MG42, MG34, BAR, BREN, DP28:
-			return true
-		M1911, LUGER, P38, WEBLEY, TT33:
-			return true
-		KAR98K_ZF, SPRINGFIELD, ENFIELD_T, MOSIN_PU:
-			return true
-		WINCHESTER_M12, ITHACA37, M30_DRILLING:
-			return true
-		_:
-			return false
+	if id in [PISTOL, RIFLE, MG, SCOUT, SHOTGUN, SMG]:
+		return true
+	return id in model_ids()
 
 
 static func is_throwable(id: String) -> bool:
@@ -105,20 +93,28 @@ static func family_of(id: String) -> String:
 			return SHOTGUN
 		"smg_ammo":
 			return SMG
-		KAR98K, LEE_ENFIELD, M1_GARAND, MOSIN, GEWEHR43, SVT40:
+		M1_GARAND, KAR98K:
 			return RIFLE
-		MP40, STEN, THOMPSON, PPS43, MP38, SMG:
+		THOMPSON, MP40, SMG:
 			return SMG
-		MG42, MG34, BAR, BREN, DP28:
+		MG42, BAR:
 			return MG
-		M1911, LUGER, P38, WEBLEY, TT33:
+		M1911, LUGER:
 			return PISTOL
-		KAR98K_ZF, SPRINGFIELD, ENFIELD_T, MOSIN_PU:
+		KAR98K_ZF, SPRINGFIELD:
 			return SCOUT
-		WINCHESTER_M12, ITHACA37, M30_DRILLING:
-			return SHOTGUN
 		_:
 			return id
+
+
+static func side_of(id: String) -> String:
+	match id:
+		M1911, M1_GARAND, THOMPSON, BAR, SPRINGFIELD:
+			return "allied"
+		LUGER, KAR98K, MP40, MG42, KAR98K_ZF:
+			return "axis"
+		_:
+			return ""
 
 
 static func ammo_kind_of(id: String) -> String:
@@ -193,60 +189,24 @@ static func display_name(id: String) -> String:
 			return "诱饵"
 		KAR98K:
 			return "Kar98k"
-		LEE_ENFIELD:
-			return "恩菲尔德"
 		M1_GARAND:
 			return "M1加兰德"
-		MOSIN:
-			return "莫辛"
-		GEWEHR43:
-			return "G43"
-		SVT40:
-			return "SVT-40"
 		MP40:
 			return "MP40"
-		STEN:
-			return "斯登"
 		THOMPSON:
 			return "汤姆逊"
-		PPS43:
-			return "PPS-43"
-		MP38:
-			return "MP38"
 		MG42:
 			return "MG42"
-		MG34:
-			return "MG34"
 		BAR:
 			return "BAR"
-		BREN:
-			return "布伦"
-		DP28:
-			return "DP-28"
 		M1911:
 			return "M1911"
 		LUGER:
 			return "卢格"
-		P38:
-			return "P38"
-		WEBLEY:
-			return "韦伯利"
-		TT33:
-			return "TT-33"
 		KAR98K_ZF:
 			return "98K瞄准镜"
 		SPRINGFIELD:
 			return "春田"
-		ENFIELD_T:
-			return "恩菲尔德T"
-		MOSIN_PU:
-			return "莫辛PU"
-		WINCHESTER_M12:
-			return "M12温彻斯特"
-		ITHACA37:
-			return "伊萨卡37"
-		M30_DRILLING:
-			return "M30钻枪"
 		_:
 			return id
 
@@ -277,7 +237,11 @@ static func def(id: String) -> Dictionary:
 		SMG:
 			return _class_gun(SMG, SMG, 138.0, 38.0, 18.0, 0.08, 24, 32, 0.70, 5.5, 0.90, "smg", 0.92, "fire_smg")
 		GRENADE:
-			return {"id": GRENADE, "fuse": 0.55, "radius": 78.0, "damage": 78.0, "throw_range": 160.0}
+			return {
+				"id": GRENADE, "fuse": 0.55, "radius": 78.0, "damage": 78.0,
+				"throw_range": 160.0, "auto_cd": 3.6, "cone_half_deg": 52.0,
+				"ff_radius_mul": 0.55,
+			}
 		MINE:
 			return {"id": MINE, "radius": 22.0, "damage": 120.0}
 		DECOY:
@@ -286,60 +250,24 @@ static func def(id: String) -> Dictionary:
 			return {"id": AMMO, "amount": 6}
 		KAR98K:
 			return _model(KAR98K, RIFLE, 248.0, 18.0, 48.0, 0.52, 5, 10, 1.35, 0.6, 1.15, "rifle", 0.95, "fire_bolt", 2, 6)
-		LEE_ENFIELD:
-			return _model(LEE_ENFIELD, RIFLE, 236.0, 22.0, 40.0, 0.34, 10, 20, 1.05, 1.1, 0.85, "rifle", 1.00, "fire_bolt", 2, 7)
 		M1_GARAND:
 			return _model(M1_GARAND, RIFLE, 228.0, 24.0, 36.0, 0.20, 8, 16, 1.10, 1.4, 0.48, "rifle", 1.12, "fire_garand", 3, 5)
-		MOSIN:
-			return _model(MOSIN, RIFLE, 252.0, 19.0, 46.0, 0.50, 5, 10, 1.40, 0.7, 1.20, "rifle", 0.98, "fire_bolt", 2, 6)
-		GEWEHR43:
-			return _model(GEWEHR43, RIFLE, 224.0, 26.0, 35.0, 0.22, 10, 20, 1.05, 1.8, 0.62, "rifle", 1.08, "fire", 3, 4)
-		SVT40:
-			return _model(SVT40, RIFLE, 226.0, 25.0, 34.0, 0.21, 10, 20, 1.00, 1.7, 0.64, "rifle", 1.06, "fire", 3, 4)
 		MP40:
 			return _model(MP40, SMG, 142.0, 34.0, 18.0, 0.078, 32, 32, 0.62, 4.8, 0.95, "smg", 0.88, "fire_smg", 2, 8)
-		STEN:
-			return _model(STEN, SMG, 128.0, 44.0, 15.0, 0.090, 32, 32, 0.55, 7.2, 0.80, "smg", 0.78, "fire_smg", 1, 10)
 		THOMPSON:
 			return _model(THOMPSON, SMG, 136.0, 40.0, 21.0, 0.068, 20, 30, 0.82, 5.4, 1.05, "smg", 1.10, "fire_smg", 3, 5)
-		PPS43:
-			return _model(PPS43, SMG, 132.0, 38.0, 17.0, 0.074, 35, 35, 0.58, 5.0, 0.88, "smg", 0.84, "fire_smg", 2, 7)
-		MP38:
-			return _model(MP38, SMG, 144.0, 32.0, 18.0, 0.084, 32, 32, 0.60, 4.2, 0.98, "smg", 0.86, "fire_smg", 2, 6)
 		MG42:
 			return _model(MG42, MG, 198.0, 54.0, 18.0, 0.055, 50, 50, 1.85, 6.5, 1.40, "mg", 1.72, "fire_mg42", 3, 3)
-		MG34:
-			return _model(MG34, MG, 210.0, 42.0, 21.0, 0.088, 50, 50, 1.35, 3.6, 1.20, "mg", 1.40, "fire_mg", 3, 4)
 		BAR:
 			return _model(BAR, MG, 216.0, 34.0, 28.0, 0.115, 20, 20, 1.15, 2.8, 0.95, "mg", 1.22, "fire_mg", 3, 5)
-		BREN:
-			return _model(BREN, MG, 218.0, 32.0, 26.0, 0.125, 30, 30, 1.08, 2.4, 1.05, "mg", 1.18, "fire_mg", 2, 5)
-		DP28:
-			return _model(DP28, MG, 206.0, 40.0, 24.0, 0.102, 47, 47, 1.22, 3.8, 1.15, "mg", 1.28, "fire_mg", 2, 5)
 		M1911:
 			return _model(M1911, PISTOL, 146.0, 20.0, 26.0, 0.18, 7, 21, 0.90, 2.2, 0.50, "pistol", 0.80, "fire_pistol", 2, 8)
 		LUGER:
 			return _model(LUGER, PISTOL, 158.0, 16.0, 22.0, 0.15, 8, 24, 0.70, 1.6, 0.55, "pistol", 0.72, "fire_pistol", 3, 5)
-		P38:
-			return _model(P38, PISTOL, 152.0, 19.0, 24.0, 0.16, 8, 24, 0.78, 1.9, 0.52, "pistol", 0.76, "fire_pistol", 2, 7)
-		WEBLEY:
-			return _model(WEBLEY, PISTOL, 138.0, 26.0, 32.0, 0.24, 6, 18, 1.20, 3.4, 0.70, "pistol", 0.90, "fire_pistol", 2, 5)
-		TT33:
-			return _model(TT33, PISTOL, 148.0, 21.0, 25.0, 0.17, 8, 24, 0.82, 2.0, 0.54, "pistol", 0.74, "fire_pistol", 2, 6)
 		KAR98K_ZF:
 			return _model(KAR98K_ZF, SCOUT, 322.0, 11.0, 58.0, 0.62, 5, 10, 1.55, 0.4, 1.35, "scout", 0.70, "fire_scout", 4, 2)
 		SPRINGFIELD:
 			return _model(SPRINGFIELD, SCOUT, 312.0, 13.0, 52.0, 0.48, 5, 10, 1.25, 0.5, 1.10, "scout", 0.76, "fire_scout", 4, 2)
-		ENFIELD_T:
-			return _model(ENFIELD_T, SCOUT, 300.0, 15.0, 48.0, 0.40, 10, 20, 1.05, 0.7, 0.95, "scout", 0.80, "fire_scout", 3, 3)
-		MOSIN_PU:
-			return _model(MOSIN_PU, SCOUT, 316.0, 12.0, 55.0, 0.56, 5, 10, 1.45, 0.45, 1.28, "scout", 0.72, "fire_scout", 3, 2)
-		WINCHESTER_M12:
-			return _model(WINCHESTER_M12, SHOTGUN, 108.0, 50.0, 52.0, 0.40, 5, 10, 1.40, 5.5, 0.62, "shotgun", 1.38, "fire_shotgun", 2, 5)
-		ITHACA37:
-			return _model(ITHACA37, SHOTGUN, 104.0, 48.0, 50.0, 0.34, 5, 10, 1.28, 5.0, 0.58, "shotgun", 1.30, "fire_shotgun", 2, 5)
-		M30_DRILLING:
-			return _model(M30_DRILLING, SHOTGUN, 118.0, 44.0, 58.0, 0.48, 2, 6, 1.60, 4.2, 0.85, "shotgun", 1.50, "fire_shotgun", 3, 3)
 		_:
 			return def(KNIFE)
 
@@ -421,55 +349,64 @@ static func is_class_firearm(id: String) -> bool:
 	return id in [PISTOL, RIFLE, MG, SCOUT, SHOTGUN, SMG]
 
 
+static func grenade_variant_for(weapon_id: String, night_id: String = "") -> String:
+	var side := side_of(weapon_id)
+	if side == "allied":
+		return "mk2" if night_id in ["depot", "radio"] else "mills"
+	if side == "axis":
+		return "stiel"
+	match str(night_id):
+		"pump":
+			return "mills"
+		"depot", "radio":
+			return "mk2"
+		_:
+			return "stiel"
+
+
 static func signature_model(night_id: String, family: String) -> String:
-	## Stable per-night named gun so a scout walk always reads a WWII model, not a class id.
+	## Stable per-night named gun from the 10-gun kit.
 	match str(night_id):
 		"warehouse":
 			match family:
 				RIFLE:
-					return MOSIN
+					return KAR98K
 				MG:
 					return BAR
 				SCOUT:
-					return ENFIELD_T
+					return SPRINGFIELD
 				SMG:
 					return MP40
 				PISTOL:
-					return WEBLEY
-				SHOTGUN:
-					return ITHACA37
+					return LUGER
 				_:
 					return ""
 		"pump":
 			match family:
 				RIFLE:
-					return LEE_ENFIELD
+					return M1_GARAND
 				MG:
-					return BREN
+					return BAR
 				SCOUT:
-					return ENFIELD_T
+					return SPRINGFIELD
 				SMG:
-					return STEN
+					return THOMPSON
 				PISTOL:
-					return TT33
-				SHOTGUN:
-					return ITHACA37
+					return M1911
 				_:
 					return ""
 		"railcut":
 			match family:
 				RIFLE:
-					return GEWEHR43
+					return KAR98K
 				MG:
-					return DP28
+					return MG42
 				SCOUT:
 					return KAR98K_ZF
 				SMG:
-					return MP38
+					return MP40
 				PISTOL:
-					return P38
-				SHOTGUN:
-					return M30_DRILLING
+					return LUGER
 				_:
 					return ""
 		"depot":
@@ -484,24 +421,20 @@ static func signature_model(night_id: String, family: String) -> String:
 					return THOMPSON
 				PISTOL:
 					return M1911
-				SHOTGUN:
-					return WINCHESTER_M12
 				_:
 					return ""
 		"radio":
 			match family:
 				RIFLE:
-					return SVT40
+					return KAR98K
 				MG:
-					return DP28
+					return MG42
 				SCOUT:
-					return MOSIN_PU
+					return SPRINGFIELD
 				SMG:
-					return PPS43
+					return MP40
 				PISTOL:
 					return LUGER
-				SHOTGUN:
-					return M30_DRILLING
 				_:
 					return ""
 		_:
@@ -509,23 +442,27 @@ static func signature_model(night_id: String, family: String) -> String:
 				RIFLE:
 					return KAR98K
 				MG:
-					return MG34
+					return MG42
 				SCOUT:
 					return KAR98K_ZF
 				SMG:
-					return MP40
+					return THOMPSON
 				PISTOL:
-					return P38
-				SHOTGUN:
-					return M30_DRILLING
+					return M1911
 				_:
 					return ""
 
 
 static func resolve_crate_kind(kind: String, night_id: String, index: int = 0) -> String:
 	var k := str(kind)
+	if k in banned_tail():
+		var fam := family_of(k)
+		var sig := signature_model(night_id, fam if fam != k else RIFLE)
+		return sig if sig != "" else k
 	if not is_firearm(k) or not is_class_firearm(k):
 		return k
+	if k == SHOTGUN:
+		return signature_model(night_id, SMG)
 	var sig := signature_model(night_id, k)
 	if sig != "":
 		return sig
@@ -592,8 +529,8 @@ static func drop_table_for_night(night_id: String) -> Array:
 				{"kind": AMMO, "amount": 4},
 				{"kind": MINE, "amount": 1},
 				{"kind": GRENADE, "amount": 1},
-				{"kind": LEE_ENFIELD, "amount": 10},
-				{"kind": STEN, "amount": 32},
+				{"kind": M1_GARAND, "amount": 8},
+				{"kind": THOMPSON, "amount": 20},
 			]
 		"railcut":
 			return [
@@ -601,15 +538,15 @@ static func drop_table_for_night(night_id: String) -> Array:
 				{"kind": AMMO, "amount": 4},
 				{"kind": GRENADE, "amount": 1},
 				{"kind": MG42, "amount": 50},
-				{"kind": BREN, "amount": 30},
+				{"kind": BAR, "amount": 20},
 			]
 		"depot":
 			return [
 				{"kind": MINE, "amount": 1},
-				{"kind": "shotgun_ammo", "amount": 3},
+				{"kind": "smg_ammo", "amount": 12},
 				{"kind": AMMO, "amount": 5},
 				{"kind": THOMPSON, "amount": 20},
-				{"kind": WINCHESTER_M12, "amount": 5},
+				{"kind": M1_GARAND, "amount": 8},
 			]
 		"radio":
 			return [
@@ -623,7 +560,6 @@ static func drop_table_for_night(night_id: String) -> Array:
 			return [
 				{"kind": GRENADE, "amount": 1},
 				{"kind": MINE, "amount": 1},
-				{"kind": PISTOL, "amount": 6},
 				{"kind": AMMO, "amount": 4},
 				{"kind": AMMO, "amount": 3},
 				{"kind": M1911, "amount": 7},

@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.3.1":
+	if ver != "0.4.0":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -1152,6 +1152,11 @@ func _assert_raid_contract(main) -> bool:
 		push_error("SMOKE_CLASS_RIFLE_STILL %s" % " ".join(crate_kinds))
 		quit(80)
 		return false
+	for banned in ["gewehr43", "svt40", "pps43", "webley", "m30_drilling", "ithaca37", "sten", "shotgun", "lee_enfield", "mg34"]:
+		if crate_kinds.has(banned):
+			push_error("SMOKE_YARD_TAIL %s in %s" % [banned, " ".join(crate_kinds)])
+			quit(80)
+			return false
 	print("SMOKE_OK_NAMED_CRATES n=", main.stash_count(), " ", " ".join(crate_kinds))
 	main._refresh_alarm_cta()
 	if str(main.alarm_button.text) != "需枪":
@@ -1245,6 +1250,85 @@ func _assert_raid_contract(main) -> bool:
 		quit(80)
 		return false
 	print("SMOKE_OK_TRANSFER")
+	# Backpack: 6 slots, second gun stays in pack, 7th gun refused.
+	wolf.wipe_inventory()
+	var guns := ["kar98k", "mp40", "thompson", "m1911", "springfield", "bar"]
+	for gid in guns:
+		var rec_g: Dictionary = wolf.receive_item(gid, 5)
+		if not bool(rec_g.get("ok", false)):
+			push_error("SMOKE_PACK_GRANT %s %s" % [gid, rec_g])
+			quit(80)
+			return false
+	if str(wolf.weapon_id) != "kar98k":
+		push_error("SMOKE_PACK_KEEP_EQUIP %s" % wolf.weapon_id)
+		quit(80)
+		return false
+	if wolf.pack.occupied() != 6:
+		push_error("SMOKE_PACK_OCC %s" % wolf.pack.occupied())
+		quit(80)
+		return false
+	var extra_gun: Dictionary = wolf.receive_item("luger", 8)
+	if bool(extra_gun.get("ok", false)) or not bool(extra_gun.get("full", false)):
+		push_error("SMOKE_PACK_NOT_FULL %s" % extra_gun)
+		quit(80)
+		return false
+	var swapped: Dictionary = wolf.equip_from_pack("thompson")
+	if not bool(swapped.get("ok", false)) or str(wolf.weapon_id) != "thompson":
+		push_error("SMOKE_PACK_EQUIP %s %s" % [swapped, wolf.weapon_id])
+		quit(80)
+		return false
+	print("SMOKE_OK_BACKPACK occ=", wolf.pack.occupied(), " equip=", wolf.weapon_id)
+	if main.has_method("_toggle_backpack"):
+		main._select_op(0)
+		main._toggle_backpack()
+		if main.backpack_panel == null or not main.backpack_panel.is_open():
+			push_error("SMOKE_BACKPACK_UI")
+			quit(80)
+			return false
+		main._toggle_backpack()
+		if main.backpack_panel.is_open():
+			push_error("SMOKE_BACKPACK_UI_STUCK")
+			quit(80)
+			return false
+		print("SMOKE_OK_BACKPACK_UI")
+	# Auto grenade: ALERT cone throw, no manual aim.
+	wolf.wipe_inventory()
+	wolf.receive_item("grenade", 2)
+	wolf.auto_grenade = true
+	wolf.grenade_cd = 0.0
+	wolf.set_facing(0.0)
+	var nade_dummy: EnemyRunner = main._make_enemy(93)
+	main.entities.add_child(nade_dummy)
+	nade_dummy.setup(93, PackedVector2Array([wolf.global_position + Vector2(120, -40), wolf.global_position + Vector2(160, -40)]), main.grid, 0, "main")
+	nade_dummy.global_position = wolf.global_position + Vector2(120, -40)
+	nade_dummy.activate()
+	main.enemies.append(nade_dummy)
+	var saved_phase2 = main.phase
+	main.phase = main.Phase.WATCHING
+	var g_before: int = int(main.raid_grenades.size())
+	main._tick_auto_grenades(0.016)
+	var g_after: int = int(main.raid_grenades.size())
+	if g_after <= g_before or int(wolf.grenades) < 1:
+		push_error("SMOKE_AUTO_NADE g=%s->%s grenades=%s" % [g_before, g_after, wolf.grenades])
+		main.phase = saved_phase2
+		main.enemies.erase(nade_dummy)
+		nade_dummy.queue_free()
+		quit(80)
+		return false
+	print("SMOKE_OK_AUTO_GRENADE n=", g_after, " left=", wolf.grenades)
+	main.phase = saved_phase2
+	main.enemies.erase(nade_dummy)
+	nade_dummy.queue_free()
+	wolf.wipe_inventory()
+	wolf.receive_item("grenade", 1)
+	main._select_op(0)
+	main._place_nade_mark(wolf.global_position + Vector2(64, 0))
+	if not bool(wolf.has_nade_mark):
+		push_error("SMOKE_NADE_MARK")
+		quit(80)
+		return false
+	print("SMOKE_OK_NADE_MARK")
+	wolf.clear_nade_mark()
 	# Soft alarm gate: knives-only first press does not start the wave.
 	main._start_setup(false, false)
 	if main.squad_has_firearm():
@@ -1282,6 +1366,11 @@ func _assert_raid_contract(main) -> bool:
 		quit(80)
 		return false
 	print("SMOKE_OK_TOUCH_NADE")
+	if not main.touch_hud._btns.has("bag"):
+		push_error("SMOKE_NO_TOUCH_BAG")
+		quit(80)
+		return false
+	print("SMOKE_OK_TOUCH_BAG")
 	# Headless probes: grenade kill, decoy pause, mine inventory.
 	var boom: EnemyRunner = main._make_enemy(91)
 	main.entities.add_child(boom)
@@ -2285,6 +2374,36 @@ func _assert_weapon_models(_main = null) -> bool:
 		push_error("SMOKE_RIFLE_RANGE %s" % rifle.get("range_px", 0.0))
 		quit(82)
 		return false
+	if W.model_ids().size() != 10:
+		push_error("SMOKE_KIT_COUNT n=%s" % W.model_ids().size())
+		quit(82)
+		return false
+	for banned in W.banned_tail():
+		if str(banned) in W.model_ids():
+			push_error("SMOKE_TAIL_STILL %s" % banned)
+			quit(82)
+			return false
+	var table: Array = W.kit_table()
+	if table.size() != 5:
+		push_error("SMOKE_KIT_FAMILIES %s" % table.size())
+		quit(82)
+		return false
+	for row in table:
+		var fam := str(row.get("family", ""))
+		var allied := str(row.get("allied", ""))
+		var axis := str(row.get("axis", ""))
+		if W.family_of(allied) != fam or W.family_of(axis) != fam:
+			push_error("SMOKE_KIT_FAMILY %s %s %s" % [fam, allied, axis])
+			quit(82)
+			return false
+		if str(W.side_of(allied)) != "allied" or str(W.side_of(axis)) != "axis":
+			push_error("SMOKE_KIT_SIDE %s %s" % [allied, axis])
+			quit(82)
+			return false
+		if W.models_in_family(fam).size() != 2:
+			push_error("SMOKE_FAMILY_NOT_PAIR %s %s" % [fam, W.models_in_family(fam)])
+			quit(82)
+			return false
 	if not bool(W.is_firearm("kar98k")) or W.family_of("kar98k") != "rifle":
 		push_error("SMOKE_K98_FAMILY %s" % W.family_of("kar98k"))
 		quit(82)
@@ -2295,13 +2414,8 @@ func _assert_weapon_models(_main = null) -> bool:
 		return false
 	var k98: Dictionary = W.def("kar98k")
 	var garand: Dictionary = W.def("m1_garand")
-	var enfield: Dictionary = W.def("lee_enfield")
 	if float(k98.get("shot_interval", 0.0)) <= float(garand.get("shot_interval", 0.0)):
 		push_error("SMOKE_K98_NOT_SLOWER_THAN_GARAND")
-		quit(82)
-		return false
-	if int(k98.get("start_ammo", 0)) >= int(enfield.get("start_ammo", 0)):
-		push_error("SMOKE_ENFIELD_MAG_NOT_LARGER")
 		quit(82)
 		return false
 	if absf(float(k98.get("damage", 0.0)) - float(garand.get("damage", 0.0))) < 4.0:
@@ -2319,18 +2433,13 @@ func _assert_weapon_models(_main = null) -> bool:
 		quit(82)
 		return false
 	var mp40: Dictionary = W.def("mp40")
-	var sten: Dictionary = W.def("sten")
 	var thompson: Dictionary = W.def("thompson")
-	if W.family_of("mp40") != "smg" or W.family_of("sten") != "smg":
+	if W.family_of("mp40") != "smg" or W.family_of("thompson") != "smg":
 		push_error("SMOKE_SMG_FAMILY")
 		quit(82)
 		return false
-	if float(thompson.get("shot_interval", 1.0)) >= float(sten.get("shot_interval", 0.0)):
-		push_error("SMOKE_THOMPSON_NOT_FASTER_THAN_STEN")
-		quit(82)
-		return false
-	if float(mp40.get("spread_deg", 0.0)) >= float(sten.get("spread_deg", 0.0)):
-		push_error("SMOKE_STEN_NOT_LOOSER")
+	if float(thompson.get("shot_interval", 1.0)) >= float(mp40.get("shot_interval", 0.0)):
+		push_error("SMOKE_THOMPSON_NOT_FASTER_THAN_MP40")
 		quit(82)
 		return false
 	if str(W.sfx_cue("mg42")) == str(W.sfx_cue("kar98k")):
@@ -2350,7 +2459,7 @@ func _assert_weapon_models(_main = null) -> bool:
 		push_error("SMOKE_RIFLE_SILHOUETTES_IDENTICAL")
 		quit(82)
 		return false
-	if Art.silhouette("mp40") == Art.silhouette("sten"):
+	if Art.silhouette("mp40") == Art.silhouette("thompson"):
 		push_error("SMOKE_SMG_SILHOUETTES_IDENTICAL")
 		quit(82)
 		return false
@@ -2358,15 +2467,19 @@ func _assert_weapon_models(_main = null) -> bool:
 		push_error("SMOKE_MG_SILHOUETTES_IDENTICAL")
 		quit(82)
 		return false
+	if Art.silhouette("m1911") == Art.silhouette("luger"):
+		push_error("SMOKE_PISTOL_SILHOUETTES_IDENTICAL")
+		quit(82)
+		return false
+	if Art.silhouette("springfield") == Art.silhouette("kar98k_zf"):
+		push_error("SMOKE_SCOUT_SILHOUETTES_IDENTICAL")
+		quit(82)
+		return false
 	var k98_tip := 0.0
 	for p in Art.silhouette("kar98k"):
 		k98_tip = minf(k98_tip, p.y)
 	if k98_tip > -16.0:
 		push_error("SMOKE_K98_BARREL_SHORT %s" % k98_tip)
-		quit(82)
-		return false
-	if W.model_ids().size() < 20:
-		push_error("SMOKE_TOO_FEW_MODELS n=%s" % W.model_ids().size())
 		quit(82)
 		return false
 	if _main != null and _main.operators.size() >= 1:
@@ -2398,6 +2511,10 @@ func _assert_weapon_models(_main = null) -> bool:
 		op.wipe_inventory()
 	if str(W.resolve_crate_kind("rifle", "yard")) != "kar98k":
 		push_error("SMOKE_RESOLVE_YARD_RIFLE %s" % W.resolve_crate_kind("rifle", "yard"))
+		quit(82)
+		return false
+	if str(W.resolve_crate_kind("smg", "yard")) != "thompson":
+		push_error("SMOKE_RESOLVE_YARD_SMG %s" % W.resolve_crate_kind("smg", "yard"))
 		quit(82)
 		return false
 	if str(W.resolve_crate_kind("m1911", "yard")) != "m1911":

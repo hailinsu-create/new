@@ -33,6 +33,7 @@ const RaidStashScript := preload("res://scripts/raid/stash.gd")
 const RaidGrenadeScript := preload("res://scripts/raid/grenade.gd")
 const RaidMineScript := preload("res://scripts/raid/landmine.gd")
 const RaidDecoyScript := preload("res://scripts/raid/decoy.gd")
+const BackpackPanelScript := preload("res://scripts/ui/backpack_panel.gd")
 
 var grid: AmbushGrid = AmbushGrid.new()
 var phase: Phase = Phase.SETUP
@@ -190,6 +191,8 @@ var plan_restore_hint: String = ""
 var sfx_muted: bool = false
 var pause_overlay: PauseOverlay = null
 var tutorial_overlay: TutorialOverlay = null
+var backpack_panel = null
+var bag_button: Button = null
 var credits_overlay: CreditsOverlay = null
 var night_handoff = null
 var _menu_paused_sim: bool = false
@@ -324,9 +327,11 @@ func _resolve_optional_hud() -> void:
 	if mode_button == null:
 		mode_button = _make_hud_btn("ModeButton", "开火: 见敌即打 (F)", extra)
 	if pack_button == null:
-		pack_button = _make_hud_btn("PackButton", "弹包 (G)", extra)
+		pack_button = _make_hud_btn("PackButton", "弹包", extra)
 	if door_button == null:
 		door_button = _make_hud_btn("DoorButton", "门: 畅通 (B)", extra)
+	bag_button = _make_hud_btn("BagButton", "背包 (I)", extra)
+	bag_button.pressed.connect(_toggle_backpack)
 
 	extra_bar = extra
 	mute_button = _make_hud_btn("MuteButton", "音效 M", extra)
@@ -575,6 +580,15 @@ func _build_modals() -> void:
 	night_handoff = NightHandoffScript.new()
 	add_child(night_handoff)
 	night_handoff.finished.connect(_on_night_handoff_finished)
+	backpack_panel = BackpackPanelScript.new()
+	backpack_panel.name = "BackpackPanel"
+	add_child(backpack_panel)
+	backpack_panel.equip_requested.connect(_on_pack_equip)
+	backpack_panel.pass_requested.connect(_on_pack_pass)
+	backpack_panel.drop_requested.connect(_on_pack_drop)
+	backpack_panel.closed.connect(func() -> void:
+		_update_hud()
+	)
 
 
 func _gs():
@@ -605,6 +619,8 @@ func _modal_blocks_input() -> bool:
 		return true
 	if night_handoff and night_handoff.is_open():
 		return true
+	if backpack_panel and backpack_panel.has_method("is_open") and backpack_panel.is_open():
+		return false
 	return false
 
 
@@ -963,8 +979,12 @@ func apply_touch_command(cmd: String) -> void:
 				_sfx("ui")
 				_announce_plan_edit()
 				_refresh_killzone_preview()
-		"nade", "nade_watch":
-			_throw_grenade_at(_throw_ahead(160.0))
+		"nade":
+			_place_nade_mark()
+		"nade_watch":
+			_toggle_auto_grenade()
+		"bag":
+			_toggle_backpack()
 		"decoy":
 			_throw_decoy_at(_throw_ahead(90.0))
 		"pass":
@@ -3465,8 +3485,8 @@ func _toggle_tool() -> void:
 			tool_button.text = "工具: 地雷"
 			status_label.text = "点地埋雷（消耗背包地雷；无雷时仍可铺一条绊索）"
 		Tool.GRENADE:
-			tool_button.text = "工具: 手雷"
-			status_label.text = "点地丢手雷（消耗背包）"
+			tool_button.text = "工具: 雷点"
+			status_label.text = "点地设雷点，警报中敌人走进圈才自动丢"
 		Tool.DECOY:
 			tool_button.text = "工具: 诱饵"
 			status_label.text = "点地丢诱饵，短暂停住附近敌人"
@@ -3487,6 +3507,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		_toggle_mute()
 		if pause_overlay and pause_overlay.is_open():
 			pause_overlay._refresh_audio()
+		get_viewport().set_input_as_handled()
+		return
+	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_I:
+		_toggle_backpack()
 		get_viewport().set_input_as_handled()
 		return
 	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_ESCAPE:
@@ -3539,7 +3563,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				KEY_J:
 					_on_skip_to_outcome_pressed()
 				KEY_G:
-					_throw_grenade_at_cursor()
+					pass
 				KEY_EQUAL, KEY_KP_ADD:
 					sim.set_speed(2.0)
 					if speed_button:
@@ -3581,7 +3605,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_F:
 				_on_mode_pressed()
 			KEY_G:
-				_throw_grenade_at_cursor()
+				_place_nade_mark()
 			KEY_B:
 				_on_door_pressed()
 			KEY_V:
@@ -3722,6 +3746,7 @@ func _select_op(idx: int) -> void:
 	status_label.text = "已选择 %s — %s" % [selected.display_name, selected.kit_blurb()]
 	_update_cover_previews()
 	_refresh_killzone_preview()
+	_refresh_backpack_if_open()
 	_update_hud()
 
 
@@ -3740,9 +3765,9 @@ func _refresh_mode_pack_buttons() -> void:
 	if pack_button:
 		pack_button.visible = level != null and level.has_ammo_pack
 		if selected and selected.has_ammo_pack:
-			pack_button.text = "弹包: %s (G)" % selected.display_name
+			pack_button.text = "弹包: %s" % selected.display_name
 		else:
-			pack_button.text = "弹包分配 (G)"
+			pack_button.text = "弹包分配"
 
 
 func _handle_setup_click(world_pos: Vector2) -> void:
@@ -3750,7 +3775,7 @@ func _handle_setup_click(world_pos: Vector2) -> void:
 		_try_place_inventory_mine(world_pos)
 		return
 	if tool == Tool.GRENADE:
-		_throw_grenade_at(world_pos)
+		_place_nade_mark(world_pos)
 		return
 	if tool == Tool.DECOY:
 		_throw_decoy_at(world_pos)
@@ -5020,6 +5045,7 @@ func _sim_tick() -> void:
 
 	# 8) Loot stays on the ground during ALERT. Sweep/scout walk-collect.
 	if phase == Phase.WATCHING:
+		_tick_auto_grenades(SimClock.TICK_DT)
 		_tick_raid_mines()
 		_tick_raid_grenades(SimClock.TICK_DT)
 		_tick_raid_decoys(SimClock.TICK_DT)
@@ -5192,11 +5218,16 @@ func _try_assign_loot(loot: LootPickup) -> void:
 	)
 	for op in candidates:
 		var item: Dictionary = {"kind": loot.kind, "amount": loot.ammo_amount}
+		if op.has_method("pack_can_fit") and not op.pack_can_fit(str(item.get("kind", "ammo")), int(item.get("amount", 1))):
+			continue
 		var loot_pos := loot.global_position
 		var taken := loot.collect_item()
 		if taken.is_empty():
 			continue
 		var rec: Dictionary = op.receive_item(str(item.get("kind", "ammo")), int(item.get("amount", 1)))
+		if not bool(rec.get("ok", false)) and bool(rec.get("full", false)):
+			_spawn_loot_at(loot_pos, int(item.get("amount", 1)), str(item.get("kind", "ammo")))
+			continue
 		CombatFxScript.loot_spark(entities, loot_pos)
 		CombatFxScript.loot_streak(entities, loot_pos, op.global_position)
 		battle_log.add_event(sim.tick, "loot", op.op_id, -1, loot_pos, item)
@@ -6810,10 +6841,10 @@ func _update_hud() -> void:
 	_refresh_alarm_cta()
 	var dep := _deployed_count()
 	if phase == Phase.SETUP:
-		help_label.text = "点地走 开匣搜枪 上掩体%d/3 · 空格%s" % [dep, alarm_button.text if alarm_button else "警报"]
+		help_label.text = "点地走 开匣 I背包 G雷点 上掩体%d/3 · 空格%s" % [dep, alarm_button.text if alarm_button else "警报"]
 	elif phase == Phase.WATCHING:
 		var spd := "暂停" if sim.paused else ("2×" if sim.speed >= 1.5 else "1×")
-		help_label.text = "警报 t=%.1fs %s  G手雷" % [sim.time_sec(), spd]
+		help_label.text = "警报 t=%.1fs %s  自动火力/自动手雷" % [sim.time_sec(), spd]
 	elif phase == Phase.SWEEP:
 		help_label.text = "打扫：走近尸体拾取 · 空格%s" % ("撤离" if raid and raid.is_last_wave(level) else "下一波")
 	elif phase == Phase.FAILED:
@@ -6827,6 +6858,7 @@ func _update_hud() -> void:
 	_refresh_stash_board()
 	_refresh_door_visual()
 	_refresh_mode_pack_buttons()
+	_refresh_backpack_if_open()
 	_update_role_cards()
 	_update_observation_rings()
 	if phase != Phase.SETUP:
@@ -7416,10 +7448,23 @@ func _complete_stash_search(op: OperatorUnit) -> bool:
 	op.cancel_search()
 	if st == null or not is_instance_valid(st) or bool(st.collected):
 		return false
+	var kind := str(st.kind)
+	var amount := int(st.amount)
+	if op.has_method("pack_can_fit") and not op.pack_can_fit(kind, amount):
+		status_label.text = "%s 背包满" % op.display_name
+		_flash("背包满 · 丢掉或递给队友", Color(0.95, 0.62, 0.32))
+		return false
 	var item: Dictionary = st.take()
 	if item.is_empty():
 		return false
 	var rec: Dictionary = op.receive_item(str(item.get("kind", "ammo")), int(item.get("amount", 1)))
+	if not bool(rec.get("ok", false)) and bool(rec.get("full", false)):
+		_spawn_loot_at(op.global_position + Vector2(18, 10), int(item.get("amount", 1)), str(item.get("kind", "ammo")))
+		status_label.text = "%s 背包满，掉在脚下" % op.display_name
+		_flash("背包满", Color(0.95, 0.62, 0.32))
+		_update_role_cards()
+		_update_hud()
+		return true
 	status_label.text = "%s %s" % [op.display_name, str(rec.get("text", "拾取"))]
 	_sfx(_pickup_cue(str(item.get("kind", "ammo"))))
 	_operator_bark(op, "crate")
@@ -7484,7 +7529,12 @@ func _try_place_inventory_mine(world_pos: Vector2) -> void:
 	if selected.global_position.distance_to(world_pos) > 64.0:
 		status_label.text = "走近再埋"
 		return
-	selected.mines -= 1
+	if selected.has_method("consume_mine"):
+		if not selected.consume_mine():
+			_try_place_tripwire(world_pos)
+			return
+	else:
+		selected.mines -= 1
 	var mine = RaidMineScript.new()
 	entities.add_child(mine)
 	mine.global_position = world_pos
@@ -7500,32 +7550,207 @@ func _throw_grenade_at_cursor() -> void:
 
 
 func _throw_grenade_at(world_pos: Vector2) -> void:
+	_throw_grenade_from(selected, world_pos)
+
+
+func _throw_grenade_from(op: OperatorUnit, world_pos: Vector2) -> bool:
+	if op == null or not op.alive or not op.visible:
+		return false
+	if op.grenades <= 0:
+		if op == selected:
+			status_label.text = "没有手雷"
+		return false
+	var d: Dictionary = WeaponCatalogScript.def("grenade")
+	var max_r := float(d.get("throw_range", 160.0))
+	var dest := world_pos
+	if op.global_position.distance_to(dest) > max_r:
+		dest = op.global_position + (dest - op.global_position).limit_length(max_r)
+	if op.has_method("consume_grenade"):
+		if not op.consume_grenade():
+			return false
+	else:
+		op.grenades -= 1
+	op.grenade_cd = float(d.get("auto_cd", 3.6))
+	var g = RaidGrenadeScript.new()
+	entities.add_child(g)
+	var night := str(level.level_id) if level else ""
+	var gvar := WeaponCatalogScript.grenade_variant_for(str(op.weapon_id), night)
+	g.setup(op.global_position, dest, float(d.get("fuse", 0.55)), float(d.get("radius", 78.0)), float(d.get("damage", 78.0)), gvar)
+	g.detonated.connect(_on_grenade_boom)
+	raid_grenades.append(g)
+	if op == selected:
+		status_label.text = "%s 丢手雷 剩余%d" % [op.display_name, op.grenades]
+	_sfx("ui")
+	_update_hud()
+	return true
+
+
+func _place_nade_mark(world_pos: Vector2 = Vector2(INF, INF)) -> void:
 	if selected == null or not selected.alive or not selected.visible:
 		return
 	if selected.grenades <= 0:
 		status_label.text = "没有手雷"
 		return
+	if selected.has_nade_mark and not world_pos.is_finite():
+		selected.clear_nade_mark()
+		status_label.text = "雷点已撤"
+		_flash("雷点已撤", Color(0.72, 0.70, 0.52))
+		_update_hud()
+		return
+	var dest := world_pos if world_pos.is_finite() else _throw_ahead(110.0)
 	var d: Dictionary = WeaponCatalogScript.def("grenade")
 	var max_r := float(d.get("throw_range", 160.0))
-	var dest := world_pos
 	if selected.global_position.distance_to(dest) > max_r:
 		dest = selected.global_position + (dest - selected.global_position).limit_length(max_r)
-	selected.grenades -= 1
-	var g = RaidGrenadeScript.new()
-	entities.add_child(g)
-	var gvar := "stiel"
-	match str(level.level_id) if level else "":
-		"pump", "railcut":
-			gvar = "mills"
-		"depot", "radio":
-			gvar = "mk2"
-		_:
-			gvar = "stiel"
-	g.setup(selected.global_position, dest, float(d.get("fuse", 0.55)), float(d.get("radius", 78.0)), float(d.get("damage", 78.0)), gvar)
-	g.detonated.connect(_on_grenade_boom)
-	raid_grenades.append(g)
-	status_label.text = "%s 丢手雷 剩余%d" % [selected.display_name, selected.grenades]
+	selected.set_nade_mark(dest)
+	status_label.text = "%s 雷点 · 警报自动丢" % selected.display_name
+	_flash("雷点已设 · 警报自动丢", Color(0.95, 0.72, 0.32))
 	_sfx("ui")
+	_update_hud()
+
+
+func _toggle_auto_grenade() -> void:
+	if selected == null:
+		return
+	selected.auto_grenade = not selected.auto_grenade
+	var on := selected.auto_grenade
+	status_label.text = "%s 自动手雷 %s" % [selected.display_name, "开" if on else "关"]
+	_flash(status_label.text, Color(0.95, 0.72, 0.32) if on else Color(0.62, 0.58, 0.48))
+	_update_hud()
+
+
+func _grenade_ff_hit(op: OperatorUnit, dest: Vector2, radius: float) -> bool:
+	var mul := 0.55
+	var d: Dictionary = WeaponCatalogScript.def("grenade")
+	mul = float(d.get("ff_radius_mul", 0.55))
+	for other in operators:
+		if other == null or other == op or not other.alive or not other.visible:
+			continue
+		if other.global_position.distance_to(dest) <= radius * mul:
+			return true
+	return false
+
+
+func _auto_grenade_dest(op: OperatorUnit) -> Vector2:
+	var d: Dictionary = WeaponCatalogScript.def("grenade")
+	var max_r := float(d.get("throw_range", 160.0))
+	var radius := float(d.get("radius", 78.0))
+	var half := float(d.get("cone_half_deg", 52.0))
+	if op.has_nade_mark:
+		var n := 0
+		for e in enemies:
+			if e != null and e.alive and e.active and e.global_position.distance_to(op.nade_mark) <= radius:
+				n += 1
+		if n > 0 and not _grenade_ff_hit(op, op.nade_mark, radius):
+			return op.nade_mark
+		return Vector2(INF, INF)
+	var best: EnemyRunner = null
+	var best_n := 0
+	for e in enemies:
+		if e == null or not e.alive or not e.active:
+			continue
+		var dist := op.global_position.distance_to(e.global_position)
+		if dist > max_r:
+			continue
+		if op.has_method("in_throw_cone") and not op.in_throw_cone(e.global_position, half):
+			continue
+		var cluster := 0
+		for o in enemies:
+			if o != null and o.alive and o.global_position.distance_to(e.global_position) <= radius * 0.7:
+				cluster += 1
+		if cluster > best_n:
+			best_n = cluster
+			best = e
+	if best == null:
+		return Vector2(INF, INF)
+	if _grenade_ff_hit(op, best.global_position, radius):
+		return Vector2(INF, INF)
+	return best.global_position
+
+
+func _tick_auto_grenades(_dt: float) -> void:
+	if phase != Phase.WATCHING:
+		return
+	for op in operators:
+		if op == null or not op.alive or not op.visible:
+			continue
+		if not bool(op.auto_grenade):
+			continue
+		if op.grenades <= 0 or op.grenade_cd > 0.0:
+			continue
+		var dest := _auto_grenade_dest(op)
+		if not dest.is_finite():
+			continue
+		if _throw_grenade_from(op, dest):
+			_operator_bark(op, "mine_ready")
+
+
+func _toggle_backpack() -> void:
+	if backpack_panel == null:
+		return
+	if backpack_panel.is_open():
+		backpack_panel.dismiss()
+		return
+	if selected == null:
+		return
+	backpack_panel.present(selected)
+
+
+func _refresh_backpack_if_open() -> void:
+	if backpack_panel != null and backpack_panel.is_open() and selected != null:
+		backpack_panel.refresh(selected)
+
+
+func _on_pack_equip(kind: String) -> void:
+	if selected == null:
+		return
+	var rec: Dictionary = selected.equip_from_pack(kind)
+	status_label.text = str(rec.get("text", ""))
+	if bool(rec.get("ok", false)):
+		_sfx("loot")
+		_flash(str(rec.get("text", "")), Color(0.82, 0.92, 0.45))
+	_refresh_backpack_if_open()
+	_update_role_cards()
+	_update_hud()
+
+
+func _on_pack_pass(kind: String) -> void:
+	if selected == null:
+		return
+	var best: OperatorUnit = null
+	var best_d := 56.0
+	for op in operators:
+		if op == null or op == selected or not op.visible or not op.alive:
+			continue
+		var d := selected.global_position.distance_to(op.global_position)
+		if d <= best_d:
+			best_d = d
+			best = op
+	if best == null:
+		status_label.text = "走近队友再递装"
+		return
+	var rec: Dictionary = selected.transfer_to(best, kind)
+	status_label.text = str(rec.get("text", "递装"))
+	if bool(rec.get("ok", false)):
+		_sfx("loot")
+		_flash(str(rec.get("text", "")), Color(0.82, 0.92, 0.45))
+	_refresh_backpack_if_open()
+	_update_role_cards()
+	_update_hud()
+
+
+func _on_pack_drop(kind: String) -> void:
+	if selected == null:
+		return
+	var rec: Dictionary = selected.drop_from_pack(kind)
+	if not bool(rec.get("ok", false)):
+		status_label.text = str(rec.get("text", "丢不掉"))
+		return
+	_spawn_loot_at(selected.global_position + Vector2(16, 12), int(rec.get("amount", 1)), str(rec.get("kind", kind)))
+	status_label.text = str(rec.get("text", "丢掉"))
+	_sfx("ui")
+	_refresh_backpack_if_open()
+	_update_role_cards()
 	_update_hud()
 
 
@@ -7556,7 +7781,11 @@ func _throw_decoy_at(world_pos: Vector2) -> void:
 	if selected.decoys <= 0:
 		status_label.text = "没有诱饵"
 		return
-	selected.decoys -= 1
+	if selected.has_method("consume_decoy"):
+		if not selected.consume_decoy():
+			return
+	else:
+		selected.decoys -= 1
 	var d = RaidDecoyScript.new()
 	entities.add_child(d)
 	d.global_position = world_pos
