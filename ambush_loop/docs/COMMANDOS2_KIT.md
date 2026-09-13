@@ -1,8 +1,10 @@
-# Ambush Loop — Commandos 2 kit (v0.4.0)
+# Ambush Loop — Commandos 2 kit (v0.5.0)
 
-One line: **每种枪两把（同盟 / 轴心），6 格背包取舍，警报里自动开火 + 自动手雷。**
+One line: **点选单兵（底栏肖像）+ 6 格背包 + 岗哨黄锥/匍匐/割喉，警报里仍然自动开火 + 自动手雷。**
 
-范本是《盟军敢死队 2》：点选单人、点地走、搜刮、埋伏、拉警报、打扫带装。不是全即时 RTS，也不是 28 型号图鉴。
+范本是《盟军敢死队 2》：点选单人、点地走、搜刮、沉默布置、再开打。道具有个性。不是全即时 RTS，也不是纯潜行沙盒。RAID 仍是 SCOUT → ALERT → SWEEP。
+
+迭代清单与研究差距：`docs/COMMANDOS2_ITERS.md`。
 
 ## 武器对照（种类 × 同盟 × 轴心）
 
@@ -40,7 +42,7 @@ One line: **每种枪两把（同盟 / 轴心），6 格背包取舍，警报里
 3. 满了就捡不起来：丢掉一格，或走近队友 **T / 递给队友**。
 4. 失败重开本夜搜刮，背包清空。跨波次（打扫→下一波）继承。
 
-触控：底栏 **背包**。桌面：`I`。
+触控：底栏 **背包**。桌面：`I`。底栏还有三张 **肖像**（点选），技能条 C/Q/W/Z。
 
 ## 自动手雷
 
@@ -63,9 +65,20 @@ One line: **每种枪两把（同盟 / 轴心），6 格背包取舍，警报里
 
 警报中不自由走位。火力是自动开火 + 自动手雷，不是即时 RTS。
 
+## 搜刮期敢死队动词（v0.5）
+
+- **肖像**：底栏三张，点选；双击把镜头拉过去。1/2/3 仍可选。
+- **点地走**：双击奔跑；Shift 慢走；到达点插 X。
+- **C 匍匐**：慢、静、矮。阴影/灌木里岗哨黄锥看不见。
+- **Q 技能**：灰狼割喉、铁砧埋雷、夜枭望远镜。背后或贴身才能割；正面会惊动。
+- **W**：口哨或诱饵。口哨把岗哨拽偏一格。
+- **Z**：包扎 / 捆倒地岗哨。
+- **岗哨**：搜刮期沿主路巡逻，黄锥=视野，? = 听见，! = 看见。看见 **不会** 自动拉警报（仍由你空格拉）。割光岗哨再拉警报：★ 无声院子 + 一枚手雷。
+- **警报中**：走位仍锁。自动开火 + 自动手雷。敌人有红锥。
+
 ## RAID 不变
 
-`SCOUT → ALERT → SWEEP`。点选单人、点地走、搜刮、埋伏、多波警报、打扫带装。顶栏是 **警报中 · 第N/M波**，没有「锁死观战」。
+`SCOUT → ALERT → SWEEP`。点选单人、点地走、搜刮、埋伏、多波警报、打扫带装。顶栏是 **警报中 · 第N/M波**，没有「锁死观战」。阶段芯片搜刮期读 **搜刮潜行**。
 
 ## 冒烟
 
@@ -73,10 +86,13 @@ One line: **每种枪两把（同盟 / 轴心），6 格背包取舍，警报里
 
 必须看到：
 
-- `SMOKE_GAME_VERSION 0.4.0`
+- `SMOKE_GAME_VERSION 0.5.0`
 - `SMOKE_OK_WEAPON_MODELS n=10`
 - `SMOKE_OK_NAMED_CRATES`（院子 Kar98k / M1911，没有 G43/钻枪/散弹匣）
 - `SMOKE_OK_BACKPACK` / `SMOKE_OK_BACKPACK_UI`
 - `SMOKE_OK_AUTO_GRENADE` / `SMOKE_OK_NADE_MARK`
 - `SMOKE_OK_CINEMA`（无「锁死」）
+- `SMOKE_OK_SENTRY` / `SMOKE_OK_PORTRAITS` / `SMOKE_OK_SKILLBAR` / `SMOKE_OK_MINIMAP`
+- `SMOKE_OK_CROUCH` / `SMOKE_OK_KO` / `SMOKE_OK_ENEMY_CONE`
+- `SMOKE_OK_C2_SFX` / `SMOKE_OK_TOUCH_CROUCH` / `SMOKE_OK_SPRINT`
 - `SMOKE_SLICE_COMPLETE` + `SMOKE_OK_RAID_LOOP`
