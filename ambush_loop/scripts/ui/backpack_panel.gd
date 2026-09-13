@@ -92,7 +92,7 @@ func _ready() -> void:
 	_hint.add_theme_font_size_override("font_size", 12)
 	_hint.add_theme_color_override("font_color", NightOps.MUTED)
 	_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_hint.text = "点枪装备。容量 6 格，枪/雷/饵占格。"
+	_hint.text = "点枪装备。容量 6 格，枪/雷/饵占格。双击枪直接换手。"
 	box.add_child(_hint)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
@@ -157,7 +157,7 @@ func refresh(op: OperatorUnit) -> void:
 	var used := 0
 	if pack != null:
 		used = int(pack.occupied())
-	_title.text = "%s  背包 %d/%d" % [op.display_name, used, 6]
+	_title.text = "%s  背包 %d/%d%s" % [op.display_name, used, 6, "  · 匍匐" if op.get("stance") != null and int(op.stance) == 1 else ""]
 	var items: Array = pack.items() if pack != null else []
 	if _picked != "":
 		var still := false
