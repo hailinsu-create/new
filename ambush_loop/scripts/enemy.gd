@@ -1309,7 +1309,7 @@ func _rebuild_vision_cone() -> void:
 	if alerted or returning_fire:
 		vis_cone.color = Color(0.92, 0.22, 0.14, 0.22)
 	else:
-		vis_cone.color = Color(0.78, 0.82, 0.28, 0.16)
+		vis_cone.color = Color(0.82, 0.86, 0.28, 0.18)
 	var edge := get_node_or_null("VisConeEdge") as Line2D
 	if edge == null:
 		edge = Line2D.new()
