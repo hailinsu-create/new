@@ -66,7 +66,7 @@ static func label_zh(id: String) -> String:
 static func hint_zh(id: String) -> String:
 	match id:
 		"crouch":
-			return "蹲下慢走，声音小，影子矮。阴影里岗哨看不见。"
+			return "蹲下慢走，声音小，影子矮。阴影/灌木里岗哨看不见。"
 		"knife":
 			return "贴近岗哨背后割喉。正面会惊动。"
 		"whistle":
