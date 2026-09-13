@@ -34,6 +34,7 @@ const RaidGrenadeScript := preload("res://scripts/raid/grenade.gd")
 const RaidMineScript := preload("res://scripts/raid/landmine.gd")
 const RaidDecoyScript := preload("res://scripts/raid/decoy.gd")
 const BackpackPanelScript := preload("res://scripts/ui/backpack_panel.gd")
+const C2DirectorScript := preload("res://scripts/c2/c2_director.gd")
 
 var grid: AmbushGrid = AmbushGrid.new()
 var phase: Phase = Phase.SETUP
@@ -240,6 +241,8 @@ var _pending_setup_touch: bool = false
 var _pending_touch_world: Vector2 = Vector2.ZERO
 var _touch_dragged: bool = false
 var _move_ghost: Line2D = null
+var c2 = null
+var _c2_sprint_next: bool = false
 
 
 func _ready() -> void:
@@ -264,7 +267,17 @@ func _ready() -> void:
 	_bind_settings()
 	_ensure_presentation_fx()
 	_ensure_touch_hud()
+	_ensure_c2()
 	_load_level(_resolve_start_level(), false, false)
+
+
+func _ensure_c2() -> void:
+	if c2 != null and is_instance_valid(c2):
+		return
+	c2 = C2DirectorScript.new()
+	c2.name = "C2"
+	add_child(c2)
+	c2.bind(self)
 
 
 func _resolve_optional_hud() -> void:
@@ -991,6 +1004,21 @@ func apply_touch_command(cmd: String) -> void:
 			_transfer_selected_to_nearest()
 		"haul":
 			_toggle_haul_corpse()
+		"crouch":
+			if c2:
+				c2.use_skill("crouch")
+		"knife":
+			if c2:
+				c2.use_skill("knife")
+		"whistle":
+			if c2:
+				c2.use_skill("whistle")
+		"binoc":
+			if c2:
+				c2.use_skill("binoculars")
+		"bind":
+			if c2:
+				c2.use_skill("bind")
 	_update_hud()
 
 
@@ -3231,6 +3259,9 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 	_update_event_log()
 	_build_spawn_ghosts()
 	_build_plan_ghosts()
+	_ensure_c2()
+	if c2:
+		c2.begin_scout()
 	_update_hud()
 
 
@@ -3509,6 +3540,17 @@ func _unhandled_input(event: InputEvent) -> void:
 			pause_overlay._refresh_audio()
 		get_viewport().set_input_as_handled()
 		return
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			_cam_zoom *= 1.08
+			_apply_cam()
+			get_viewport().set_input_as_handled()
+			return
+		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_cam_zoom *= 0.92
+			_apply_cam()
+			get_viewport().set_input_as_handled()
+			return
 	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_I:
 		_toggle_backpack()
 		get_viewport().set_input_as_handled()
@@ -3590,11 +3632,14 @@ func _unhandled_input(event: InputEvent) -> void:
 				_select_op(1)
 			KEY_3:
 				_select_op(2)
-			KEY_A, KEY_Q:
+			KEY_A:
 				if selected and selected.visible:
 					selected.rotate_by(-15.0)
 					_announce_plan_edit()
 					_refresh_killzone_preview()
+			KEY_C, KEY_Q, KEY_W, KEY_Z, KEY_K, KEY_F1:
+				if c2 and c2.handle_key(event.physical_keycode):
+					pass
 			KEY_D:
 				if selected and selected.visible:
 					selected.rotate_by(15.0)
@@ -3780,8 +3825,13 @@ func _handle_setup_click(world_pos: Vector2) -> void:
 	if tool == Tool.DECOY:
 		_throw_decoy_at(world_pos)
 		return
+	if c2:
+		var c2hit: Dictionary = c2.handle_click(world_pos)
+		if bool(c2hit.get("handled", false)):
+			return
+		_c2_sprint_next = bool(c2hit.get("sprint", false))
 	for op in operators:
-		if op.visible and op.alive and op.global_position.distance_to(world_pos) <= 22.0:
+		if op.visible and op.alive and op.global_position.distance_to(world_pos) <= 32.0:
 			selected = op
 			_refresh_selection_visual()
 			_refresh_mode_pack_buttons()
@@ -4655,6 +4705,8 @@ func _on_alarm_pressed() -> void:
 	run_id += 1
 	var this_run := run_id
 	phase = Phase.WATCHING
+	if c2:
+		c2.begin_alert()
 	leak_advice_shown = ""
 	_clear_intel_path_ghost()
 	sim.reset()
@@ -4901,6 +4953,8 @@ func _process(delta: float) -> void:
 		_tick_raid_grenades(delta)
 		_tick_raid_decoys(delta)
 		_tick_footsteps(delta)
+		if c2:
+			c2.tick(delta)
 		hud_tick += delta
 		if hud_tick >= 0.20:
 			hud_tick = 0.0
@@ -5851,6 +5905,8 @@ func _show_win_result() -> void:
 			star = "\n★ 完美封锁：零逃逸"
 		if not _night_hp_lost:
 			star += "\n★ 无人受伤"
+		if c2 != null and bool(c2.quiet_yard):
+			star += "\n★ 无声院子：岗哨已割"
 		var hook := str(PayoffCopy.highlight_result_line(level, battle_log, true))
 		var hook_block := ("\n%s" % hook) if hook != "" else ""
 		var beat := ""
@@ -6860,6 +6916,8 @@ func _update_hud() -> void:
 	_refresh_mode_pack_buttons()
 	_refresh_backpack_if_open()
 	_update_role_cards()
+	if c2:
+		c2.refresh_hud()
 	_update_observation_rings()
 	if phase != Phase.SETUP:
 		_update_cover_previews()
@@ -7323,9 +7381,14 @@ func _command_move_selected(world_pos: Vector2) -> void:
 	for c in cells:
 		pts.append(grid.cell_to_world_center(c))
 	selected.set_move_path(pts)
+	if _c2_sprint_next and selected.has_method("set_sprint"):
+		selected.set_sprint(true)
+		_c2_sprint_next = false
 	_draw_move_ghost(pts)
 	_fade_move_ghost()
-	status_label.text = "%s 移动" % selected.display_name
+	if c2:
+		c2.plant_dest(pts[pts.size() - 1], selected)
+	status_label.text = "%s %s" % [selected.display_name, "奔跑" if selected.sprinting else "移动"]
 	_sfx("ui")
 
 
@@ -7401,6 +7464,8 @@ func _facing_toward_wave_route() -> float:
 
 
 func _follow_selected_cam(delta: float) -> void:
+	if c2 != null and c2.get("cam_follow") != null and not bool(c2.cam_follow):
+		return
 	if selected == null or not selected.visible or not selected.is_moving():
 		return
 	var center := Vector2(640, 360)
@@ -7854,6 +7919,8 @@ func _enter_sweep() -> void:
 		_operator_bark(selected, "sweep")
 	_build_spawn_ghosts()
 	_sfx("tension")
+	if c2:
+		c2.begin_sweep()
 	_update_hud()
 
 
@@ -8002,11 +8069,20 @@ func _tick_footsteps(delta: float) -> void:
 			continue
 		if op.is_moving():
 			loud = maxf(loud, op.noise_if_sprinting())
-	if loud >= 0.8:
+	if loud >= 0.18:
 		_foot_acc += delta
-		if _foot_acc >= 0.42:
+		var gap := 0.28 if loud >= 0.7 else (0.48 if loud >= 0.3 else 0.62)
+		if _foot_acc >= gap:
 			_foot_acc = 0.0
-			_sfx("ui")
+			_sfx("foot")
+			if c2:
+				var pos := Vector2.ZERO
+				for op in operators:
+					if op and op.visible and op.is_moving():
+						pos = op.global_position
+						break
+				if pos != Vector2.ZERO:
+					c2._spawn_ring(pos, 28.0 + loud * 40.0, Color(0.72, 0.68, 0.32, 0.28))
 	else:
 		_foot_acc = 0.0
 
