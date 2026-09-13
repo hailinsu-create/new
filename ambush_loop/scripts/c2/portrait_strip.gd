@@ -23,7 +23,7 @@ func _ready() -> void:
 	add_child(row)
 	for i in 3:
 		var b := Button.new()
-		b.custom_minimum_size = Vector2(100, 104)
+		b.custom_minimum_size = Vector2(104, 108)
 		b.focus_mode = Control.FOCUS_NONE
 		b.theme = NightOps.theme()
 		var idx := i
