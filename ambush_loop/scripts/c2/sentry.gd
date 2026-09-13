@@ -5,7 +5,7 @@ extends Node2D
 
 enum State { PATROL, SUSPICIOUS, ALERT, KO, BOUND }
 
-const SEE_R := 128.0
+const SEE_R := 132.0
 const HALF_ANG := 26.0
 const HEAR_R := 78.0
 const SPEED := 38.0
