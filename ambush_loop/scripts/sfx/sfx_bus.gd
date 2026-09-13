@@ -201,11 +201,11 @@ func _gain(cue: String) -> float:
 		"ambient_radio":
 			return -26.0
 		"foot":
-			return -22.0
+			return -24.0
 		"whistle":
-			return -16.0
-		"knife":
 			return -14.0
+		"knife":
+			return -12.0
 		"crate_lid":
 			return -15.0
 		"body_drop":
@@ -838,8 +838,9 @@ func _foot() -> PackedFloat32Array:
 
 func _whistle() -> PackedFloat32Array:
 	return _overlay([
-		_tone(1680.0, 0.18, 0.16, 0.02),
-		_tone(2520.0, 0.14, 0.08, 0.01),
+		_tone(1680.0, 0.28, 0.16, 0.02),
+		_tone(2520.0, 0.22, 0.08, 0.01),
+		_tone(2100.0, 0.10, 0.06, 0.01),
 	])
 
 
