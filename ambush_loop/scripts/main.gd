@@ -3540,6 +3540,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			pause_overlay._refresh_audio()
 		get_viewport().set_input_as_handled()
 		return
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_MIDDLE:
+		get_viewport().set_input_as_handled()
+		return
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
 			_cam_zoom *= 1.08
@@ -3637,7 +3640,7 @@ func _unhandled_input(event: InputEvent) -> void:
 					selected.rotate_by(-15.0)
 					_announce_plan_edit()
 					_refresh_killzone_preview()
-			KEY_C, KEY_Q, KEY_W, KEY_Z, KEY_K, KEY_F1:
+			KEY_C, KEY_Q, KEY_W, KEY_Z, KEY_K, KEY_F1, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8:
 				if c2 and c2.handle_key(event.physical_keycode):
 					pass
 			KEY_D:
@@ -3731,6 +3734,10 @@ func _handle_touch_gestures(event: InputEvent) -> bool:
 				_handle_setup_click(_pending_touch_world)
 			_pending_setup_touch = false
 			_cover_hold_slot = null
+		return true
+	if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_MIDDLE):
+		_cam_pan -= event.relative / maxf(_cam_zoom, 0.01)
+		_apply_cam()
 		return true
 	if event is InputEventScreenDrag:
 		var sd := event as InputEventScreenDrag
@@ -4390,10 +4397,14 @@ func _refresh_intel_chip() -> void:
 			for k in named_crate_ids():
 				named.append(WeaponCatalogScript.display_name(k))
 			var named_bit := ("  " + "·".join(named)) if not named.is_empty() else ""
-			line = _clip_chip_line("匣%d 枪%s%s  %s" % [
+			var sentry_bit := ""
+			if c2:
+				sentry_bit = " 岗%d" % int(c2.sentry_count())
+			line = _clip_chip_line("匣%d 枪%s%s%s  %s" % [
 				stash_count(),
 				"有" if squad_has_firearm() else "无",
 				named_bit,
+				sentry_bit,
 				_raid_clock_text(),
 			], 48)
 	elif phase == Phase.SWEEP:
@@ -6897,7 +6908,7 @@ func _update_hud() -> void:
 	_refresh_alarm_cta()
 	var dep := _deployed_count()
 	if phase == Phase.SETUP:
-		help_label.text = "点地走 开匣 I背包 G雷点 上掩体%d/3 · 空格%s" % [dep, alarm_button.text if alarm_button else "警报"]
+		help_label.text = "点地走 双击跑 C匍 Q技能 W哨 I包 G雷点 上掩体%d/3 · 空格%s" % [dep, alarm_button.text if alarm_button else "警报"]
 	elif phase == Phase.WATCHING:
 		var spd := "暂停" if sim.paused else ("2×" if sim.speed >= 1.5 else "1×")
 		help_label.text = "警报 t=%.1fs %s  自动火力/自动手雷" % [sim.time_sec(), spd]
@@ -7381,7 +7392,12 @@ func _command_move_selected(world_pos: Vector2) -> void:
 	for c in cells:
 		pts.append(grid.cell_to_world_center(c))
 	selected.set_move_path(pts)
-	if _c2_sprint_next and selected.has_method("set_sprint"):
+	if Input.is_key_pressed(KEY_SHIFT):
+		if selected.has_method("set_sprint"):
+			selected.set_sprint(false)
+		if selected.stance != 1:
+			selected.move_speed = selected.base_move_speed * 0.72
+	elif _c2_sprint_next and selected.has_method("set_sprint"):
 		selected.set_sprint(true)
 		_c2_sprint_next = false
 	_draw_move_ghost(pts)
@@ -7403,6 +7419,23 @@ func _draw_move_ghost(pts: PackedVector2Array) -> void:
 	_move_ghost.points = pts
 	_move_ghost.visible = pts.size() > 1
 	_move_ghost.modulate.a = 1.0
+	var dots := $World.get_node_or_null("MoveDots") as Node2D
+	if dots == null:
+		dots = Node2D.new()
+		dots.name = "MoveDots"
+		dots.z_index = 3
+		$World.add_child(dots)
+	for c in dots.get_children():
+		c.queue_free()
+	var step := 2
+	var i := step
+	while i < pts.size():
+		var d := Polygon2D.new()
+		d.polygon = PackedVector2Array([Vector2(-2, -2), Vector2(2, -2), Vector2(2, 2), Vector2(-2, 2)])
+		d.color = Color(0.82, 0.88, 0.42, 0.7)
+		d.position = pts[i]
+		dots.add_child(d)
+		i += step
 
 
 func _fade_move_ghost() -> void:
@@ -7531,6 +7564,7 @@ func _complete_stash_search(op: OperatorUnit) -> bool:
 		_update_hud()
 		return true
 	status_label.text = "%s %s" % [op.display_name, str(rec.get("text", "拾取"))]
+	_sfx("crate_lid")
 	_sfx(_pickup_cue(str(item.get("kind", "ammo"))))
 	_operator_bark(op, "crate")
 	_flash(str(rec.get("text", "拾取")), Color(0.95, 0.82, 0.35))
@@ -8183,7 +8217,7 @@ func _toggle_haul_corpse() -> void:
 		return
 	selected.haul_loot(best)
 	status_label.text = "%s 拖尸" % selected.display_name
-	_sfx("ui")
+	_sfx("body_drop")
 
 
 func _drop_hauled(op: OperatorUnit) -> void:
