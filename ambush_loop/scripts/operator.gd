@@ -118,6 +118,7 @@ var _path_i: int = 0
 var search_stash: Node2D = null
 var search_t: float = 0.0
 const SEARCH_SECONDS := 0.4
+const SEARCH_CROUCH := 0.52
 var ammo_pool: Dictionary = {}
 var hauled_loot: Node2D = null
 var base_move_speed: float = 96.0
@@ -613,6 +614,8 @@ func tick_search(delta: float) -> bool:
 		return false
 	search_t += maxf(delta, 0.0)
 	var need := SEARCH_SECONDS
+	if stance == Stance.CROUCH:
+		need = SEARCH_CROUCH
 	if search_stash.get("SEARCH_SECONDS") != null:
 		need = float(search_stash.SEARCH_SECONDS)
 	var p := clampf(search_t / maxf(need, 0.05), 0.0, 1.0)
