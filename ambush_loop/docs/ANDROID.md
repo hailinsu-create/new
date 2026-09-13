@@ -21,10 +21,10 @@ Release 导出需要 release keystore；日常侧载用 debug 签名：
 ```bash
 godot --headless --path ambush_loop --export-debug "Android APK" build/android/AmbushLoop-debug.apk
 # 按版本命名的朋友包（可进仓）：
-# cp build/android/AmbushLoop-debug.apk dist/AmbushLoop-v0.4.0-commandos2-kit.apk
+# cp build/android/AmbushLoop-debug.apk dist/AmbushLoop-v0.5.0-commandos2-kit.apk
 ```
 
-当前试玩包：`dist/AmbushLoop-v0.4.0-commandos2-kit.apk`（`versionName` 0.4.0 / `versionCode` 4）。不要装 GitHub `ambush-loop-playtest-0.2.0` 的同名 `AmbushLoop-playtest.apk`。
+当前试玩包：`dist/AmbushLoop-v0.5.0-commandos2-kit.apk`（`versionName` 0.5.0 / `versionCode` 6）。不要装 GitHub `ambush-loop-playtest-0.2.0` 的同名 `AmbushLoop-playtest.apk`。
 
 ## 本机导出 APK
 
@@ -39,7 +39,7 @@ godot --headless --path ambush_loop --export-debug "Android APK" build/android/A
 ```bash
 godot --headless --path ambush_loop --export-debug "Android APK" build/android/AmbushLoop-debug.apk
 # 按版本命名的朋友包（可进仓）：
-# cp build/android/AmbushLoop-debug.apk dist/AmbushLoop-v0.4.0-commandos2-kit.apk
+# cp build/android/AmbushLoop-debug.apk dist/AmbushLoop-v0.5.0-commandos2-kit.apk
 ```
 
 非 Gradle 预设不要填 `min_sdk` 覆盖，否则导出会失败。Release 需要 release keystore。
@@ -49,7 +49,7 @@ godot --headless --path ambush_loop --export-debug "Android APK" build/android/A
 1. 手机打开「安装未知来源」/ 允许该文件管理器安装
 2. 把 APK 拷到手机，点安装
 3. **必须横屏**；竖着会按 16:9 留边，不旋转内容
-4. 标题应显示 **v0.4.0 COMMANDOS/WW2**。院子里先点选队员、点地走路、站在木匣上搜刮（匣标 **Kar98k**），I 开背包，G 放雷点，再点 **需枪 / 警报**（警报中自动丢雷）。
+4. 标题应显示 **v0.5.0 COMMANDOS/WW2**。院子里先点选底栏肖像、点地走路（双击跑），C 匍匐躲岗哨黄锥，站在木匣上搜刮（匣标 **Kar98k**），I 开背包，G 放雷点，再点 **需枪 / 警报**（警报中自动丢雷）。
 
 ## 触控对照
 
