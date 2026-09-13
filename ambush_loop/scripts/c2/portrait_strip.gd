@@ -10,6 +10,7 @@ const GunStampScript := preload("res://scripts/ui/gun_stamp.gd")
 
 var _cards: Array = []
 var _stance: Array = []
+var _pulse: float = 0.0
 
 
 func _ready() -> void:
@@ -69,6 +70,17 @@ func _ready() -> void:
 		row.add_child(b)
 		_cards.append(b)
 		_stance.append(st)
+	set_process(true)
+
+
+func _process(delta: float) -> void:
+	_pulse += delta * 4.2
+	for b in _cards:
+		if b == null:
+			continue
+		var hot := str(b.get_meta("sel", "")) == "1"
+		if hot:
+			b.modulate = Color(1.0, 1.0, 1.0).lerp(Color(1.18, 1.12, 0.82), 0.5 + 0.5 * sin(_pulse))
 
 
 func bind_ops(ops: Array, selected: Node, command_phase: bool) -> void:
@@ -88,7 +100,14 @@ func bind_ops(ops: Array, selected: Node, command_phase: bool) -> void:
 			border = NightOps.OLIVE_HI
 		b.add_theme_stylebox_override("normal", NightOps.flat(bg, border, 2 if sel else 1, 6, 6))
 		b.add_theme_stylebox_override("hover", NightOps.flat(bg.lightened(0.12), border.lightened(0.15), 2, 6, 6))
-		b.modulate = Color.WHITE if op.alive else Color(0.45, 0.42, 0.40, 0.7)
+		b.set_meta("sel", "1" if sel else "0")
+		if not op.alive:
+			b.modulate = Color(0.45, 0.42, 0.40, 0.7)
+			var nam_dead: Label = b.get_node_or_null("Nam")
+			if nam_dead:
+				nam_dead.text = "阵亡"
+		elif not sel:
+			b.modulate = Color.WHITE
 		var gly = b.get_node_or_null("Glyph")
 		if gly:
 			gly.set("role", op.role)
