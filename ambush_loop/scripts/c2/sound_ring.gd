@@ -34,7 +34,7 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	var c := _col
 	c.a = _a
-	draw_arc(Vector2.ZERO, _r, 0.0, TAU, 28, c, 1.6, true)
+	draw_arc(Vector2.ZERO, _r, 0.0, TAU, 32, c, 2.0, true)
 	var c2 := c
 	c2.a *= 0.4
 	draw_arc(Vector2.ZERO, _r * 0.72, 0.0, TAU, 22, c2, 1.1, true)
