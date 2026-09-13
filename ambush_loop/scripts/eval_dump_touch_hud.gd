@@ -1,7 +1,7 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.5 phone feel: follow stays outside 射界,
-## 射界 world ink hidden, west-court crate + 绕背 + 3-follow path.
+## Forced-touch HUD stills for v0.5.6 phone feel: follow dest rim margin,
+## west-alley 3-follow queues, 西匣开匣 → 绕背 → 三人跟上.
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
@@ -123,6 +123,7 @@ func _run() -> void:
 		sent.facing_deg = 0.0
 		sent.route = PackedVector2Array([sent.global_position])
 		sent.route_i = 0
+		sent.frozen = true
 		if sent.has_method("_rebuild_cone"):
 			sent._rebuild_cone()
 		if main.c2.prompt and main.c2.prompt.has_method("refresh_now"):
@@ -150,6 +151,7 @@ func _run() -> void:
 		print("DUMP_WEST_FLANK_FIRE fire=", fired, " hits=", path_hits, " pts=", op.move_path.size())
 		await _save("05d_west_flank_path")
 		op.stop_move()
+		await _walk_west_combo_follow(main)
 
 	await _walk_yard_loop(main)
 
@@ -218,6 +220,97 @@ func _walk_west_crate(main) -> void:
 		op.cancel_search()
 
 
+func _walk_west_combo_follow(main) -> void:
+	if main.operators.size() < 3 or main.grid == null:
+		return
+	var lead = main.operators[0]
+	var a = main.operators[1]
+	var b = main.operators[2]
+	if main.c2 == null or main.c2.sentries.is_empty():
+		return
+	var sent = main.c2.sentries[0]
+	var i := 1
+	for s in main.c2.sentries:
+		if s == null or s == sent:
+			continue
+		s.global_position = main.grid.cell_to_world_center(Vector2i(32, 6 + i))
+		s.facing_deg = 0.0
+		i += 1
+	var lead_c := Vector2i(7, 12)
+	var sent_c := Vector2i(9, 12)
+	if main.grid.is_blocked(lead_c.x, lead_c.y) or (main.has_method("_cell_is_operable") and bool(main._cell_is_operable(lead_c))):
+		lead_c = Vector2i(7, 13)
+	if main.grid.is_blocked(sent_c.x, sent_c.y):
+		sent_c = Vector2i(9, 13)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	main._select_op(0)
+	lead.facing_deg = 0.0
+	if lead.has_method("_rebuild_cone"):
+		lead._rebuild_cone()
+	lead.global_position = main.grid.cell_to_world_center(lead_c)
+	sent.global_position = main.grid.cell_to_world_center(sent_c)
+	sent.facing_deg = 0.0
+	sent.route = PackedVector2Array([sent.global_position])
+	sent.route_i = 0
+	sent.frozen = true
+	if sent.has_method("_rebuild_cone"):
+		sent._rebuild_cone()
+	var a_c := Vector2i(6, 14)
+	var b_c := Vector2i(6, 16)
+	if main.grid.is_blocked(a_c.x, a_c.y):
+		a_c = Vector2i(5, 14)
+	if main.grid.is_blocked(b_c.x, b_c.y):
+		b_c = Vector2i(5, 16)
+	a.global_position = main.grid.cell_to_world_center(a_c)
+	b.global_position = main.grid.cell_to_world_center(b_c)
+	if main.has_method("simulate_follow_badge"):
+		if not bool(a.follow_lead):
+			main.simulate_follow_badge(1)
+		if not bool(b.follow_lead):
+			main.simulate_follow_badge(2)
+	if main.has_method("_tick_squad_follow"):
+		main._tick_squad_follow()
+	var frames := 0
+	while frames < 80:
+		if main.has_method("_tick_command_moves"):
+			main._tick_command_moves(0.05)
+		if main.has_method("_tick_squad_follow"):
+			main._tick_squad_follow()
+		await process_frame
+		frames += 1
+		var busy := false
+		for opx in main.operators:
+			if opx and opx.is_moving():
+				busy = true
+				break
+		if not busy and frames > 10:
+			break
+	main._update_hud()
+	await _settle(6)
+	_dump_feel(main, "west_combo_follow")
+	print(
+		"DUMP_WEST_COMBO dest=", snapped(float(main.follow_dest_min_spacing()) if main.has_method("follow_dest_min_spacing") else -1.0, 0.1),
+		" live=", snapped(float(main.follow_min_spacing()) if main.has_method("follow_min_spacing") else -1.0, 0.1),
+		" cone=", int(main.follow_cone_hits()) if main.has_method("follow_cone_hits") else -1,
+		" rim=", int(main.follow_rim_hits()) if main.has_method("follow_rim_hits") else -1,
+		" detour=", int(main.follow_max_detour()) if main.has_method("follow_max_detour") else -1,
+		" d1=", main._follow_dest.get(int(a.op_id), Vector2i(-1, -1)),
+		" d2=", main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+	)
+	await _save("08_west_combo_follow")
+	if bool(a.follow_lead):
+		main.toggle_follow(1)
+	if bool(b.follow_lead):
+		main.toggle_follow(2)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	main._follow_dest.clear()
+	main._pending_flank = null
+
+
 func _walk_three_follow(main) -> void:
 	if main.operators.size() < 3 or main.grid == null:
 		return
@@ -227,16 +320,24 @@ func _walk_three_follow(main) -> void:
 	var b = main.operators[2]
 	if main.c2 and not main.c2.sentries.is_empty():
 		var sent = main.c2.sentries[0]
-		var sent_c := Vector2i(10, 12)
-		var lead_c := Vector2i(16, 12)
+		var sent_c := Vector2i(9, 12)
+		var lead_c := Vector2i(7, 12)
 		if main.grid.is_blocked(sent_c.x, sent_c.y):
-			sent_c = Vector2i(11, 12)
-		if main.grid.is_blocked(lead_c.x, lead_c.y):
-			lead_c = Vector2i(16, 13)
+			sent_c = Vector2i(9, 13)
+		if main.grid.is_blocked(lead_c.x, lead_c.y) or (main.has_method("_cell_is_operable") and bool(main._cell_is_operable(lead_c))):
+			lead_c = Vector2i(7, 13)
+		var i := 1
+		for s in main.c2.sentries:
+			if s == null or s == sent:
+				continue
+			s.global_position = main.grid.cell_to_world_center(Vector2i(32, 6 + i))
+			s.facing_deg = 0.0
+			i += 1
 		sent.global_position = main.grid.cell_to_world_center(sent_c)
 		sent.facing_deg = 0.0
 		sent.route = PackedVector2Array([sent.global_position])
 		sent.route_i = 0
+		sent.frozen = true
 		if sent.has_method("_rebuild_cone"):
 			sent._rebuild_cone()
 		lead.stop_move()
@@ -286,6 +387,8 @@ func _walk_three_follow(main) -> void:
 		"DUMP_FOLLOW_SPREAD dest=", snapped(float(main.follow_dest_min_spacing()) if main.has_method("follow_dest_min_spacing") else -1.0, 0.1),
 		" live=", snapped(float(main.follow_min_spacing()) if main.has_method("follow_min_spacing") else -1.0, 0.1),
 		" cone=", int(main.follow_cone_hits()) if main.has_method("follow_cone_hits") else -1,
+		" rim=", int(main.follow_rim_hits()) if main.has_method("follow_rim_hits") else -1,
+		" detour=", int(main.follow_max_detour()) if main.has_method("follow_max_detour") else -1,
 		" operable=", int(main.follow_operable_hits()) if main.has_method("follow_operable_hits") else -1,
 		" d1=", main._follow_dest.get(int(a.op_id), Vector2i(-1, -1)),
 		" d2=", main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
@@ -376,7 +479,9 @@ func _dump_feel(main, tag: String) -> void:
 		" west_hits=", f.get("west_hits", -1),
 		" follow_dest_spread=", snapped(float(f.get("follow_dest_spread", -1.0)), 0.1),
 		" facing_tags=", f.get("facing_tags", -1),
-		" follow_cone_hits=", f.get("follow_cone_hits", -1)
+		" follow_cone_hits=", f.get("follow_cone_hits", -1),
+		" follow_rim_hits=", f.get("follow_rim_hits", -1),
+		" follow_max_detour=", f.get("follow_max_detour", -1)
 	)
 
 

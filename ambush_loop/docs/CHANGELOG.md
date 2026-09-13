@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.5.6 — Phone feel: follow dest rim, west-alley queue, 开匣→绕背→跟上
+
+Sideload APK: `dist/AmbushLoop-v0.5.6-touch-queue.apk`  
+Release tag: `v0.5.6-touch-queue`
+
+Same RAID as 0.5.5 (`SCOUT → ALERT → SWEEP`, auto fire + auto nade). Phone default stays 简配夜袭.
+
+### Play (phone)
+- **跟上** destinations sit farther off the yellow cone (painted sector + ~2 cell rim). They no longer hug the cone outline.
+- West-court three-person **跟上** queues / staggers in the alley instead of wrapping the courtyard. Destinations stay west of the cone; one waits if the next cell is occupied.
+- Forced-touch path is one story: west **开匣** → **绕背** → three-person **跟上**.
+- Phone taps no longer body-select a stacked teammate (portraits pick people). Cover pads only eat the pad cell.
+
+### Android
+- `versionName` 0.5.6 / `versionCode` 12 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title **v0.5.6 COMMANDOS/WW2**.
+2. 跟上 toward a yellow cone: dashed dest sits off the rim, not on the outline.
+3. West alley, three **跟上**: they line up in the corridor, they do not loop the yard.
+
 ## 0.5.5 — Phone feel: follow stays outside 射界, 射界 ink hidden
 
 Sideload APK: `dist/AmbushLoop-v0.5.5-touch-outside.apk`  

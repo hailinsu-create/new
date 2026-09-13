@@ -25,6 +25,7 @@ var label_id: int = 0
 var last_seen: Vector2 = Vector2.ZERO
 var _look_t: float = 0.0
 var _ko_t: float = 0.0
+var frozen: bool = false
 var cone: Polygon2D
 var body: Polygon2D
 var mark: Node2D
@@ -88,7 +89,7 @@ func bind_gag() -> bool:
 
 
 func hear_at(world: Vector2, loud: float) -> void:
-	if is_down() or loud < 0.08:
+	if frozen or is_down() or loud < 0.08:
 		return
 	var d := global_position.distance_to(world)
 	var r := HEAR_R * (0.55 + loud)
@@ -124,6 +125,9 @@ func _peel_one_cell(pos: Vector2) -> void:
 
 
 func tick(delta: float, ops: Array, hidden_at: Callable) -> Node:
+	if frozen:
+		_rebuild_cone()
+		return null
 	if is_down():
 		_ko_t += delta
 		return null
@@ -209,6 +213,21 @@ func sees_world_padded(world: Vector2, extra_r: float = 22.0, extra_deg: float =
 	if grid != null and grid.has_method("has_los") and not bool(grid.has_los(global_position, world)):
 		return false
 	return true
+
+
+func in_painted_sector(world: Vector2, extra_r: float = 0.0, extra_deg: float = 0.0) -> bool:
+	## Geometric yellow, no LOS holes. Destinations use this so they do not sit
+	## in a painted rim that stealth LOS would punch through.
+	if is_down():
+		return false
+	var v := world - global_position
+	var dist := v.length()
+	if dist < 18.0 and not rear_hemisphere(world):
+		return true
+	if dist > SEE_R + extra_r:
+		return false
+	var ang := rad_to_deg(atan2(v.y, v.x))
+	return absf(_ang_diff(facing_deg, ang)) <= HALF_ANG + extra_deg
 
 
 func blocks_stealth_world(world: Vector2, extra_r: float = 22.0, extra_deg: float = 10.0) -> bool:

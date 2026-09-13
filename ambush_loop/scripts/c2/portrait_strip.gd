@@ -105,9 +105,10 @@ func _ready() -> void:
 		fol.theme = NightOps.theme()
 		fol.add_theme_font_size_override("font_size", 11)
 		fol.add_theme_font_override("font", NightOps.ui_font_bold())
-		fol.position = Vector2(58, 2)
-		fol.size = Vector2(44, 22)
-		fol.custom_minimum_size = Vector2(44, 22)
+		fol.position = Vector2(50, 4)
+		fol.size = Vector2(50, 28)
+		fol.custom_minimum_size = Vector2(50, 28)
+		fol.mouse_filter = Control.MOUSE_FILTER_STOP
 		fol.visible = false
 		fol.pressed.connect(func() -> void:
 			_ignore_pick = true
