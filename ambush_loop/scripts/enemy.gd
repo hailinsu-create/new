@@ -1310,6 +1310,19 @@ func _rebuild_vision_cone() -> void:
 		vis_cone.color = Color(0.92, 0.22, 0.14, 0.22)
 	else:
 		vis_cone.color = Color(0.78, 0.82, 0.28, 0.16)
+	var edge := get_node_or_null("VisConeEdge") as Line2D
+	if edge == null:
+		edge = Line2D.new()
+		edge.name = "VisConeEdge"
+		edge.width = 1.2
+		edge.z_index = 0
+		add_child(edge)
+	var epts := PackedVector2Array()
+	for i in range(1, pts.size()):
+		epts.append(pts[i])
+	edge.points = epts
+	edge.default_color = Color(0.92, 0.28, 0.16, 0.55) if alerted else Color(0.82, 0.88, 0.32, 0.40)
+	edge.visible = vis_cone.visible
 
 
 func _clip_see(dirv: Vector2) -> float:
