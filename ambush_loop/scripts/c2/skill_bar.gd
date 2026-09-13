@@ -55,9 +55,12 @@ func bind(op: Node, cds: Dictionary, command_phase: bool) -> void:
 		b.visible = true
 		var id := _ids[i]
 		var key := Skills.hotkey(id)
-		b.text = "%s\n%s" % [key, Skills.label_zh(id)]
-		b.disabled = not command_phase and id != "crouch"
 		var cd := float(cds.get(id, 0.0))
+		var cd_txt := ""
+		if cd > 0.05:
+			cd_txt = " %.0fs" % cd
+		b.text = "%s\n%s%s" % [key, Skills.label_zh(id), cd_txt]
+		b.disabled = not command_phase and id != "crouch"
 		var hot := id == "crouch" and op.get("stance") != null and int(op.stance) == 1
 		var bg := Color(0.08, 0.07, 0.05, 0.94)
 		var border := Color(0.42, 0.36, 0.22, 0.85)
