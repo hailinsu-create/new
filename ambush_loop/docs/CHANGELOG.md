@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.5.9 — Phone feel: side 绕背 wraps sentry body, lead-stop formation holds, 跟 probes
+
+Sideload APK: `dist/AmbushLoop-v0.5.9-touch-wrap.apk`  
+Release tag: `v0.5.9-touch-wrap`
+
+Same RAID as 0.5.8 (`SCOUT → ALERT → SWEEP`, auto fire + auto nade). Phone default stays 简配夜袭.
+
+### Play (phone)
+- **贴身/侧面绕背** walks around the sentry 3×3 body to the back cell. Dashed guide is ≥4 grid cells, not a 2-cell hip stub.
+- **跟上** keeps the walking dest after the lead stops. Formation does not drop one more cell off the 射界.
+- **跟** chip is a 32×18 top-right hit. Glyph / name / HP / stance / below-chip taps select, they do not toggle 跟.
+- Forced-touch path covers side wrap + three-person 跟上, lead-stop settle, and badge probes.
+
+### Android
+- `versionName` 0.5.9 / `versionCode` 15 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title **v0.5.9 COMMANDOS/WW2**.
+2. Stand on a sentry's hip and tap **绕背**: dashed line arcs around the body to the back, it is not two dots.
+3. Walk the lead with **跟** on, then stop: followers finish the same dest, they do not take one extra step.
+
 ## 0.5.8 — Phone feel: walk-follow continuity, full 绕背 dashed path, 跟 badge hit
 
 Sideload APK: `dist/AmbushLoop-v0.5.8-touch-follow.apk`  

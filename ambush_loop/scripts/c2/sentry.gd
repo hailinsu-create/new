@@ -248,6 +248,15 @@ func rear_hemisphere(world: Vector2) -> bool:
 	return absf(_ang_diff(facing_deg, ang)) > 95.0
 
 
+func flank_hemisphere(world: Vector2) -> bool:
+	## 绕背 includes the hip. 割喉 stays true-rear via rear_hemisphere.
+	var v := world - global_position
+	if v.length() < 4.0:
+		return true
+	var ang := rad_to_deg(atan2(v.y, v.x))
+	return absf(_ang_diff(facing_deg, ang)) > 80.0
+
+
 func backstab_world() -> Vector2:
 	var rad := deg_to_rad(facing_deg)
 	return global_position - Vector2(cos(rad), sin(rad)) * 28.0

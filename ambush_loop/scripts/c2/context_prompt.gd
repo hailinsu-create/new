@@ -191,12 +191,15 @@ func _probe() -> Array:
 					cands.append({"d": d3, "pri": 2, "kind": "bind", "world": s.global_position, "node": s})
 				continue
 			var rear: bool = s.has_method("rear_hemisphere") and bool(s.rear_hemisphere(origin))
+			var flank_arc: bool = s.has_method("flank_hemisphere") and bool(s.flank_hemisphere(origin))
+			if not flank_arc:
+				flank_arc = rear
 			var back: bool = s.has_method("in_backstab") and bool(s.in_backstab(origin))
 			if back and d3 <= PROBE_KNIFE:
 				cands.append({"d": d3, "pri": 0, "kind": "knife", "world": s.global_position, "node": s})
-			elif rear and (not back) and d3 <= PROBE_FLANK:
+			elif flank_arc and (not back) and d3 <= PROBE_FLANK:
 				cands.append({"d": d3, "pri": 3, "kind": "flank", "world": s.global_position, "node": s})
-			elif (not rear) and d3 <= PROBE_WHISTLE and not moving:
+			elif (not flank_arc) and d3 <= PROBE_WHISTLE and not moving:
 				cands.append({"d": d3, "pri": 4, "kind": "whistle", "world": s.global_position, "node": s})
 	if not moving and host.get("operators") != null:
 		for other in host.operators:
@@ -281,16 +284,27 @@ func guide_points() -> PackedVector2Array:
 	return _guide
 
 
+func guide_cells() -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	if host == null or host.get("grid") == null:
+		return cells
+	for w in _guide:
+		var c: Vector2i = host.grid.world_to_cell(w)
+		if cells.is_empty() or cells[cells.size() - 1] != c:
+			cells.append(c)
+	return cells
+
+
+func guide_cell_count() -> int:
+	return guide_cells().size()
+
+
 func guide_complete() -> bool:
 	if _guide.size() < 2:
 		return false
 	if host == null or host.get("grid") == null:
 		return _guide.size() >= 2
-	var cells: Array[Vector2i] = []
-	for w in _guide:
-		var c: Vector2i = host.grid.world_to_cell(w)
-		if cells.is_empty() or cells[cells.size() - 1] != c:
-			cells.append(c)
+	var cells: Array[Vector2i] = guide_cells()
 	if cells.size() < 2:
 		return false
 	for i in range(1, cells.size()):
@@ -298,6 +312,12 @@ func guide_complete() -> bool:
 		if d > 1:
 			return false
 	return true
+
+
+func guide_wraps() -> bool:
+	if not guide_complete():
+		return false
+	return guide_cell_count() >= 4
 
 
 func _act(cmd: String, caption: String, world: Vector2, tint: Color) -> Dictionary:

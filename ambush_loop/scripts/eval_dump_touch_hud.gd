@@ -1,7 +1,7 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.8 phone feel: lead-walk follow continuity,
-## full 绕背 dashed path, 跟 badge hit, 西匣开匣 → 绕背 → 三人跟上.
+## Forced-touch HUD stills for v0.5.9 phone feel: side 绕背 wraps sentry body,
+## lead-stop formation holds, three-follow + side wrap, 跟 badge probes.
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
@@ -152,9 +152,13 @@ func _run() -> void:
 		await _save("05d_west_flank_path")
 		op.stop_move()
 		await _walk_flank_guide_complete(main)
+		await _walk_flank_side_wrap(main)
 		await _walk_west_combo_follow(main)
 		await _walk_short_detour(main)
 		await _walk_follow_continuity(main)
+		await _walk_follow_settle(main)
+		await _walk_three_follow_side_wrap(main)
+		await _walk_badge_probes(main)
 
 	await _walk_yard_loop(main)
 
@@ -546,8 +550,12 @@ func _walk_flank_guide_complete(main) -> void:
 		" complete=", dump.get("complete", false),
 		" cone=", dump.get("cone", -1),
 		" gaps=", dump.get("gaps", -1),
+		" wrap=", dump.get("wrap", false),
+		" side=", dump.get("side", false),
+		" body=", dump.get("body", -1),
 		" dest=", dump.get("dest", Vector2i(-1, -1)),
 		" dash=", dash, " dash_ok=", dash_ok,
+		" dash_cells=", int(main.c2.prompt.guide_cell_count()) if main.c2.prompt and main.c2.prompt.has_method("guide_cell_count") else -1,
 		" caps=", " ".join(main.c2.prompt.visible_captions() if main.c2.prompt else PackedStringArray())
 	)
 	await _save("05e_flank_guide_full")
@@ -653,6 +661,236 @@ func _walk_follow_continuity(main) -> void:
 		main.reset_follow_dest_flips()
 
 
+func _walk_flank_side_wrap(main) -> void:
+	if main.operators.is_empty() or main.c2 == null or main.c2.sentries.is_empty() or main.grid == null:
+		return
+	var op = main.operators[0]
+	var sent = main.c2.sentries[0]
+	var i := 1
+	for s in main.c2.sentries:
+		if s == null or s == sent:
+			continue
+		s.global_position = main.grid.cell_to_world_center(Vector2i(32, 6 + i))
+		s.facing_deg = 0.0
+		i += 1
+	var op_c := Vector2i(12, 14)
+	var sent_c := Vector2i(12, 12)
+	if main.grid.is_blocked(sent_c.x, sent_c.y):
+		sent_c = Vector2i(12, 13)
+	if main.grid.is_blocked(op_c.x, op_c.y) or op_c == sent_c:
+		op_c = Vector2i(11, 14)
+	op.stop_move()
+	main._select_op(0)
+	op.global_position = main.grid.cell_to_world_center(op_c)
+	sent.global_position = main.grid.cell_to_world_center(sent_c)
+	sent.facing_deg = 0.0
+	sent.route = PackedVector2Array([sent.global_position])
+	sent.route_i = 0
+	sent.frozen = true
+	if sent.has_method("_rebuild_cone"):
+		sent._rebuild_cone()
+	if main.c2.prompt and main.c2.prompt.has_method("refresh_now"):
+		main.c2.prompt.refresh_now()
+	await _settle(4)
+	var dump := {}
+	if main.has_method("flank_guide_dump"):
+		dump = main.flank_guide_dump(sent, op)
+	print(
+		"DUMP_FLANK_SIDE_WRAP pts=", dump.get("pts", -1),
+		" wrap=", dump.get("wrap", false),
+		" side=", dump.get("side", false),
+		" body=", dump.get("body", -1),
+		" complete=", dump.get("complete", false),
+		" dest=", dump.get("dest", Vector2i(-1, -1)),
+		" from=", op.grid_cell(),
+		" dash_cells=", int(main.c2.prompt.guide_cell_count()) if main.c2.prompt and main.c2.prompt.has_method("guide_cell_count") else -1,
+		" caps=", " ".join(main.c2.prompt.visible_captions() if main.c2.prompt else PackedStringArray())
+	)
+	await _save("05f_flank_side_wrap")
+	op.stop_move()
+	main._pending_flank = null
+
+
+func _walk_follow_settle(main) -> void:
+	if main.operators.size() < 3 or main.grid == null:
+		return
+	var lead = main.operators[0]
+	var a = main.operators[1]
+	var b = main.operators[2]
+	if main.c2 and not main.c2.sentries.is_empty():
+		var i := 0
+		for s in main.c2.sentries:
+			if s == null:
+				continue
+			s.global_position = main.grid.cell_to_world_center(Vector2i(32, 6 + i))
+			s.facing_deg = 0.0
+			i += 1
+	var lead_c := Vector2i(16, 14)
+	var dest_c := Vector2i(24, 14)
+	var a_c := Vector2i(12, 16)
+	var b_c := Vector2i(12, 18)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	main._select_op(0)
+	lead.facing_deg = 0.0
+	if lead.has_method("_rebuild_cone"):
+		lead._rebuild_cone()
+	lead.global_position = main.grid.cell_to_world_center(lead_c)
+	a.global_position = main.grid.cell_to_world_center(a_c)
+	b.global_position = main.grid.cell_to_world_center(b_c)
+	main._stealth_avoid_cache.clear()
+	main._stealth_avoid_msec = 0
+	if main.has_method("simulate_follow_badge"):
+		if not bool(a.follow_lead):
+			main.simulate_follow_badge(1)
+		if not bool(b.follow_lead):
+			main.simulate_follow_badge(2)
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	if main.has_method("_tick_squad_follow"):
+		main._tick_squad_follow()
+	if main.has_method("_command_move_selected"):
+		main._command_move_selected(main.grid.cell_to_world_center(dest_c))
+	var walk_d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+	var walk_d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+	var frames := 0
+	while frames < 90:
+		if main.has_method("_tick_command_moves"):
+			main._tick_command_moves(0.05)
+		if main.has_method("_tick_squad_follow"):
+			main._tick_squad_follow()
+		await process_frame
+		frames += 1
+		if lead.is_moving():
+			walk_d1 = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+			walk_d2 = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+		else:
+			break
+	var stop_d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+	var stop_d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+	for _j in 16:
+		if main.has_method("_tick_command_moves"):
+			main._tick_command_moves(0.05)
+		if main.has_method("_tick_squad_follow"):
+			main._tick_squad_follow()
+		await process_frame
+	print(
+		"DUMP_FOLLOW_SETTLE walk=", walk_d1, walk_d2,
+		" stop=", stop_d1, stop_d2,
+		" end=", main._follow_dest.get(int(a.op_id), Vector2i(-1, -1)),
+		main._follow_dest.get(int(b.op_id), Vector2i(-1, -1)),
+		" drops=", int(main.follow_settle_drops()) if main.has_method("follow_settle_drops") else -1,
+		" lead=", lead.grid_cell()
+	)
+	await _save("08d_follow_settle")
+	if bool(a.follow_lead):
+		main.toggle_follow(1)
+	if bool(b.follow_lead):
+		main.toggle_follow(2)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	main._follow_dest.clear()
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+
+
+func _walk_three_follow_side_wrap(main) -> void:
+	if main.operators.size() < 3 or main.grid == null or main.c2 == null or main.c2.sentries.is_empty():
+		return
+	var lead = main.operators[0]
+	var a = main.operators[1]
+	var b = main.operators[2]
+	var sent = main.c2.sentries[0]
+	var i := 1
+	for s in main.c2.sentries:
+		if s == null or s == sent:
+			continue
+		s.global_position = main.grid.cell_to_world_center(Vector2i(32, 6 + i))
+		s.facing_deg = 0.0
+		i += 1
+	var lead_c := Vector2i(11, 14)
+	var sent_c := Vector2i(12, 12)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	main._select_op(0)
+	lead.global_position = main.grid.cell_to_world_center(lead_c)
+	a.global_position = main.grid.cell_to_world_center(Vector2i(9, 16))
+	b.global_position = main.grid.cell_to_world_center(Vector2i(8, 17))
+	sent.global_position = main.grid.cell_to_world_center(sent_c)
+	sent.facing_deg = 0.0
+	sent.route = PackedVector2Array([sent.global_position])
+	sent.route_i = 0
+	sent.frozen = true
+	if sent.has_method("_rebuild_cone"):
+		sent._rebuild_cone()
+	if main.c2.prompt and main.c2.prompt.has_method("refresh_now"):
+		main.c2.prompt.refresh_now()
+	await _settle(4)
+	var dump := {}
+	if main.has_method("flank_guide_dump"):
+		dump = main.flank_guide_dump(sent, lead)
+	if main.has_method("simulate_follow_badge"):
+		if not bool(a.follow_lead):
+			main.simulate_follow_badge(1)
+		if not bool(b.follow_lead):
+			main.simulate_follow_badge(2)
+	if main.has_method("_tick_squad_follow"):
+		main._tick_squad_follow()
+	var frames := 0
+	while frames < 50:
+		if main.has_method("_tick_command_moves"):
+			main._tick_command_moves(0.05)
+		if main.has_method("_tick_squad_follow"):
+			main._tick_squad_follow()
+		await process_frame
+		frames += 1
+		if not a.is_moving() and not b.is_moving() and frames > 8:
+			break
+	print(
+		"DUMP_THREE_SIDE_WRAP pts=", dump.get("pts", -1),
+		" wrap=", dump.get("wrap", false),
+		" body=", dump.get("body", -1),
+		" d1=", main._follow_dest.get(int(a.op_id), Vector2i(-1, -1)),
+		" d2=", main._follow_dest.get(int(b.op_id), Vector2i(-1, -1)),
+		" caps=", " ".join(main.c2.prompt.visible_captions() if main.c2.prompt else PackedStringArray())
+	)
+	await _save("08e_three_side_wrap")
+	if bool(a.follow_lead):
+		main.toggle_follow(1)
+	if bool(b.follow_lead):
+		main.toggle_follow(2)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	main._follow_dest.clear()
+	main._pending_flank = null
+
+
+func _walk_badge_probes(main) -> void:
+	if main.operators.size() < 2 or main.c2 == null or main.c2.portraits == null:
+		return
+	var strip = main.c2.portraits
+	main._select_op(0)
+	if bool(main.operators[1].follow_lead):
+		main.toggle_follow(1)
+	main._update_hud()
+	await _settle(4)
+	if not strip.has_method("portrait_probe_points"):
+		print("DUMP_BADGE_PROBES no_api")
+		return
+	var probes: Dictionary = strip.portrait_probe_points(1)
+	var bits: PackedStringArray = PackedStringArray()
+	for key in probes.keys():
+		var pt: Vector2 = probes[key]
+		var ht: Dictionary = strip.hit_test_at(pt) if strip.has_method("hit_test_at") else {}
+		bits.append("%s:%s" % [str(key), str(ht.get("kind", ""))])
+	print("DUMP_BADGE_PROBES ", " ".join(bits), " hit=", strip.follow_hit_rect(1), " body=", strip.portrait_body_rect(1))
+	await _save("09b_badge_probes")
+
+
 func _walk_yard_loop(main) -> void:
 	if main.operators.is_empty() or main.grid == null:
 		return
@@ -735,7 +973,8 @@ func _dump_feel(main, tag: String) -> void:
 		" follow_cone_hits=", f.get("follow_cone_hits", -1),
 		" follow_rim_hits=", f.get("follow_rim_hits", -1),
 		" follow_max_detour=", f.get("follow_max_detour", -1),
-		" follow_flips=", f.get("follow_flips", -1)
+		" follow_flips=", f.get("follow_flips", -1),
+		" follow_settle_drops=", f.get("follow_settle_drops", -1)
 	)
 
 

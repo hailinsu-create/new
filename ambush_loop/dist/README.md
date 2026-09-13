@@ -2,7 +2,8 @@
 
 Delivered build:
 
-- `AmbushLoop-v0.5.8-touch-follow.apk` — Godot 4.7.2 debug, arm64, phone feel: walk-follow continuity, full 绕背 dashed path, 跟 badge hit. Same RAID as 0.5.7.
+- `AmbushLoop-v0.5.9-touch-wrap.apk` — Godot 4.7.2 debug, arm64, phone feel: side 绕背 wraps sentry body, lead-stop formation holds, 跟 badge probes. Same RAID as 0.5.8.
+- `AmbushLoop-v0.5.8-touch-follow.apk` — walk-follow continuity, full 绕背 dashed path, 跟 badge hit (superseded for phone feel).
 - `AmbushLoop-v0.5.7-touch-detour.apk` — short 2–3 cell follow detour, west-alley spacing (superseded for phone feel).
 - `AmbushLoop-v0.5.6-touch-queue.apk` — follow dest rim, west-alley queue (superseded for phone feel).
 - `AmbushLoop-v0.5.5-touch-outside.apk` — follow stays outside 射界, 射界 ink hidden (superseded for phone feel).

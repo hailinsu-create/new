@@ -19,8 +19,8 @@ var _hold_fired: bool = false
 var _ignore_pick: bool = false
 var _press_follow: bool = false
 const LONG_MS := 350
-const FOLLOW_CHIP := Vector2(38, 20)
-const FOLLOW_PAD := 4.0
+const FOLLOW_CHIP := Vector2(32, 18)
+const FOLLOW_PAD := 2.0
 
 
 func _ready() -> void:
@@ -114,7 +114,7 @@ func _ready() -> void:
 		b.add_child(st)
 		var fol := Panel.new()
 		fol.name = "Follow"
-		fol.position = Vector2(64, 2)
+		fol.position = Vector2(70, 2)
 		fol.size = FOLLOW_CHIP
 		fol.custom_minimum_size = FOLLOW_CHIP
 		fol.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -158,10 +158,10 @@ func follow_hit_rect(idx: int) -> Rect2:
 		return Rect2()
 	var grown: Rect2 = badge.grow(FOLLOW_PAD)
 	var card: Rect2 = card_global_rect(idx)
-	## Keep the chip in the top-right. Name / glyph / HP stay pick, not 跟.
+	## Pin the chip to the top-right corner. Glyph / name / HP / stance stay pick.
 	var zone := Rect2(
-		Vector2(card.position.x + card.size.x * 0.54, card.position.y),
-		Vector2(card.size.x * 0.46, 28.0)
+		Vector2(card.position.x + card.size.x * 0.64, card.position.y),
+		Vector2(card.size.x * 0.36, 24.0)
 	)
 	return grown.intersection(zone)
 
@@ -170,8 +170,25 @@ func portrait_body_rect(idx: int) -> Rect2:
 	var card: Rect2 = card_global_rect(idx)
 	if card.size.x < 1.0:
 		return Rect2()
-	## Lower-left identity: glyph + name. Explicitly off the 跟 chip.
-	return Rect2(card.position + Vector2(6, 40), Vector2(50, 58))
+	## Identity block under the chip: glyph, name, HP. Off the 跟 corner.
+	return Rect2(card.position + Vector2(4, 28), Vector2(card.size.x * 0.58, card.size.y - 32.0))
+
+
+func portrait_probe_points(idx: int) -> Dictionary:
+	var card: Rect2 = card_global_rect(idx)
+	var hit: Rect2 = follow_hit_rect(idx)
+	var body: Rect2 = portrait_body_rect(idx)
+	var out := {
+		"chip": hit.get_center() if hit.size.x > 1.0 else Vector2.ZERO,
+		"glyph": card.position + Vector2(26, 28),
+		"name": card.position + Vector2(48, 84),
+		"hp": card.position + Vector2(50, 98),
+		"stance": card.position + Vector2(82, 56),
+		"below_chip": card.position + Vector2(86, 36),
+		"left_of_chip": card.position + Vector2(56, 12),
+		"body": body.get_center() if body.size.x > 1.0 else Vector2.ZERO,
+	}
+	return out
 
 
 func hit_test_at(screen: Vector2) -> Dictionary:
