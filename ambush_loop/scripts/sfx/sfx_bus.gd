@@ -9,7 +9,8 @@ const CUES := [
 	"win_stinger", "door", "trip", "barrel", "kill", "hit", "ui",
 	"spawn", "echo_ping",
 	"handoff", "leak", "night_enter", "tension",
-	"ambient_yard", "ambient_warehouse", "ambient_pump", "ambient_railcut", "ambient_depot", "ambient_radio"
+	"ambient_yard", "ambient_warehouse", "ambient_pump", "ambient_railcut", "ambient_depot", "ambient_radio",
+	"foot", "whistle", "knife", "crate_lid", "body_drop", "select", "stealth_bed"
 ]
 
 var muted: bool = false
@@ -199,6 +200,20 @@ func _gain(cue: String) -> float:
 			return -25.0
 		"ambient_radio":
 			return -26.0
+		"foot":
+			return -22.0
+		"whistle":
+			return -16.0
+		"knife":
+			return -14.0
+		"crate_lid":
+			return -15.0
+		"body_drop":
+			return -16.0
+		"select":
+			return -18.0
+		"stealth_bed":
+			return -20.0
 		_:
 			return -15.0
 
@@ -281,6 +296,20 @@ func _build_stream(cue: String) -> AudioStreamWAV:
 			return _pcm(_ambient_depot())
 		"ambient_radio":
 			return _pcm(_ambient_radio())
+		"foot":
+			return _pcm(_foot())
+		"whistle":
+			return _pcm(_whistle())
+		"knife":
+			return _pcm(_knife())
+		"crate_lid":
+			return _pcm(_crate_lid())
+		"body_drop":
+			return _pcm(_body_drop())
+		"select":
+			return _pcm(_select_click())
+		"stealth_bed":
+			return _pcm(_stealth_bed())
 		_:
 			return _pcm(_crack(800.0, 0.04, 0.1))
 
@@ -797,4 +826,51 @@ func _ambient_radio() -> PackedFloat32Array:
 		_tone(1760.0, 0.72, 0.035, 0.012),
 		morse,
 		_hiss(0.72, 0.045),
+	])
+
+
+func _foot() -> PackedFloat32Array:
+	return _overlay([
+		_noise_burst(0.045, 0.16, 0.35),
+		_body_thump(0.07, 0.10, 90.0),
+	])
+
+
+func _whistle() -> PackedFloat32Array:
+	return _overlay([
+		_tone(1680.0, 0.18, 0.16, 0.02),
+		_tone(2520.0, 0.14, 0.08, 0.01),
+	])
+
+
+func _knife() -> PackedFloat32Array:
+	return _overlay([
+		_noise_burst(0.04, 0.22, 0.15),
+		_tone(420.0, 0.08, 0.10, 0.08),
+	])
+
+
+func _crate_lid() -> PackedFloat32Array:
+	return _overlay([
+		_tone(220.0, 0.12, 0.10, 0.12),
+		_noise_burst(0.08, 0.10, 0.4),
+	])
+
+
+func _body_drop() -> PackedFloat32Array:
+	return _overlay([
+		_body_thump(0.16, 0.18, 70.0),
+		_noise_burst(0.10, 0.12, 0.3),
+	])
+
+
+func _select_click() -> PackedFloat32Array:
+	return _blip(880.0, 1320.0, 0.05, 0.14)
+
+
+func _stealth_bed() -> PackedFloat32Array:
+	return _overlay([
+		_tone(92.0, 0.80, 0.05, 0.02),
+		_tone(138.0, 0.80, 0.03, 0.015),
+		_hiss(0.80, 0.02),
 	])
