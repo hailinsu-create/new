@@ -1420,6 +1420,70 @@ func _assert_raid_contract(main) -> bool:
 		quit(80)
 		return false
 	print("SMOKE_OK_LOC")
+	# Commandos 2 layer: portraits, skills, sentry, crouch, KO.
+	if main.c2 == null or not is_instance_valid(main.c2):
+		push_error("SMOKE_NO_C2")
+		quit(80)
+		return false
+	if int(main.c2.sentry_count()) < 1:
+		push_error("SMOKE_NO_SENTRY n=%s" % main.c2.sentry_count())
+		quit(80)
+		return false
+	print("SMOKE_OK_SENTRY n=", main.c2.sentry_count())
+	if main.c2.portraits == null or main.c2.skill_bar == null or main.c2.minimap == null:
+		push_error("SMOKE_NO_C2_HUD")
+		quit(80)
+		return false
+	print("SMOKE_OK_PORTRAITS")
+	print("SMOKE_OK_SKILLBAR")
+	print("SMOKE_OK_MINIMAP")
+	var c2op: OperatorUnit = main.operators[0]
+	c2op.toggle_crouch()
+	if int(c2op.stance) != 1:
+		push_error("SMOKE_CROUCH %s" % c2op.stance)
+		quit(80)
+		return false
+	if c2op.move_speed >= c2op.base_move_speed:
+		push_error("SMOKE_CROUCH_SPEED %s" % c2op.move_speed)
+		quit(80)
+		return false
+	print("SMOKE_OK_CROUCH speed=", snapped(c2op.move_speed, 0.1))
+	c2op.toggle_crouch()
+	var sent = main.c2.sentries[0]
+	# Sentry east of the wolf, facing further east — wolf is in the backstab arc.
+	sent.global_position = c2op.global_position + Vector2(20, 0)
+	sent.facing_deg = 0.0
+	if sent.body:
+		sent.body.rotation = deg_to_rad(90.0)
+	main._select_op(0)
+	main.c2.use_skill("knife")
+	if not bool(sent.is_down()):
+		push_error("SMOKE_KO_FAIL state=%s" % sent.state)
+		quit(80)
+		return false
+	print("SMOKE_OK_KO")
+	var cone_e: EnemyRunner = main._make_enemy(94)
+	main.entities.add_child(cone_e)
+	cone_e.setup(94, PackedVector2Array([Vector2(200, 200), Vector2(240, 200)]), main.grid, 0, "main")
+	cone_e.activate()
+	cone_e._rebuild_vision_cone()
+	if cone_e.vis_cone == null or cone_e.vis_cone.polygon.size() < 4:
+		push_error("SMOKE_NO_ENEMY_CONE")
+		cone_e.queue_free()
+		quit(80)
+		return false
+	print("SMOKE_OK_ENEMY_CONE n=", cone_e.vis_cone.polygon.size())
+	cone_e.queue_free()
+	if not main.sfx.has_cue("foot") or not main.sfx.has_cue("whistle") or not main.sfx.has_cue("knife"):
+		push_error("SMOKE_NO_C2_SFX")
+		quit(80)
+		return false
+	print("SMOKE_OK_C2_SFX")
+	if not (loc_script as GDScript).has("crouch") or not (loc_script as GDScript).has("knife"):
+		push_error("SMOKE_NO_C2_LOC")
+		quit(80)
+		return false
+	print("SMOKE_OK_C2_LOC")
 	main._start_setup(false, false)
 	return true
 
