@@ -138,10 +138,15 @@ func begin_scout() -> void:
 	_spawn_sentries()
 	refresh_hud()
 	_hint("点选队员 · 点地走 · C匍匐 · Q技能 · 岗哨有黄锥")
+	if host.has_method("_sfx"):
+		host._sfx("stealth_bed")
 
 
 func begin_alert() -> void:
 	quiet_yard = _all_sentries_down()
+	if quiet_yard and host and host.operators.size() > 0:
+		host.operators[0].receive_item("grenade", 1)
+		_hint("无声院子 — 多带一枚手雷")
 	_clear_sentries()
 	if dest_flag:
 		dest_flag.clear()
@@ -312,6 +317,18 @@ func _tick_cursor() -> void:
 				mode = CursorScript.Mode.KNIFE
 				break
 	cursor.set_mode(mode)
+	if host.get("status_label") != null and mode == CursorScript.Mode.CRATE:
+		for st in host.raid_stashes:
+			if st != null and is_instance_valid(st) and not bool(st.collected) and st.global_position.distance_to(world) <= 22.0:
+				var Examine := preload("res://scripts/c2/c2_examine.gd")
+				host.status_label.text = Examine.crate(str(st.kind))
+				break
+	elif host.get("status_label") != null and mode == CursorScript.Mode.KNIFE:
+		for s in sentries:
+			if s != null and is_instance_valid(s) and s.global_position.distance_to(world) <= 26.0:
+				var Examine2 := preload("res://scripts/c2/c2_examine.gd")
+				host.status_label.text = Examine2.sentry_line(int(s.state))
+				break
 
 
 func _tick_edge_pan(delta: float) -> void:
@@ -380,6 +397,21 @@ func handle_key(code: int) -> bool:
 		KEY_Z:
 			_use_role_slot("Z")
 			return true
+		KEY_4:
+			_use_slot_index(0)
+			return true
+		KEY_5:
+			_use_slot_index(1)
+			return true
+		KEY_6:
+			_use_slot_index(2)
+			return true
+		KEY_7:
+			_use_slot_index(3)
+			return true
+		KEY_8:
+			_use_slot_index(4)
+			return true
 		KEY_K:
 			use_skill("knife")
 			return true
@@ -388,6 +420,15 @@ func handle_key(code: int) -> bool:
 			_hint("镜头跟随 %s" % ("开" if cam_follow else "关"))
 			return true
 	return false
+
+
+func _use_slot_index(i: int) -> void:
+	var op = host.selected if host else null
+	if op == null:
+		return
+	var ids: PackedStringArray = Skills.for_role(int(op.role))
+	if i >= 0 and i < ids.size():
+		use_skill(ids[i])
 
 
 func _use_role_slot(hot: String) -> void:
@@ -477,7 +518,7 @@ func _skill_crouch(op: Node) -> bool:
 
 func _skill_knife(op: Node) -> bool:
 	var best = null
-	var best_d := 32.0
+	var best_d := 36.0
 	for s in sentries:
 		if s == null or not is_instance_valid(s) or bool(s.is_down()):
 			continue
@@ -497,6 +538,10 @@ func _skill_knife(op: Node) -> bool:
 	best.knock_out()
 	_spawn_ring(best.global_position, 36.0, Color(0.72, 0.22, 0.18, 0.4))
 	_hint("割喉 — 拖开或捆上")
+	if host.has_method("_spawn_loot_at"):
+		host._spawn_loot_at(best.global_position + Vector2(8, 6), 1, "ammo")
+	if host.has_method("_operator_bark"):
+		host._operator_bark(op, "ko")
 	if host.has_method("_sfx"):
 		host._sfx("knife")
 	return true
@@ -511,11 +556,17 @@ func _skill_whistle(op: Node) -> bool:
 	_hint("口哨 — 岗哨转头")
 	if host.has_method("_sfx"):
 		host._sfx("whistle")
+	if host.get("sfx") != null and host.sfx.has_method("play"):
+		pass
 	return true
 
 
 func _skill_binoculars(op: Node) -> bool:
 	binoculars_t = 5.5
+	if host:
+		host._cam_zoom = clampf(float(host._cam_zoom) * 1.18, 0.72, 1.65)
+		if host.has_method("_apply_cam"):
+			host._apply_cam()
 	for s in sentries:
 		if s != null and is_instance_valid(s) and s.cone:
 			s.cone.visible = true
@@ -530,7 +581,8 @@ func _skill_aid(op: Node) -> bool:
 	if float(op.hp) >= OperatorUnit.MAX_HP - 0.5:
 		_hint("没有外伤")
 		return false
-	op.hp = minf(float(op.hp) + 18.0, OperatorUnit.MAX_HP)
+	var heal := 28.0 if host != null and host.has_method("phase_id") and str(host.phase_id()) == "sweep" else 18.0
+	op.hp = minf(float(op.hp) + heal, OperatorUnit.MAX_HP)
 	if op.has_method("_update_hp_bar"):
 		op._update_hp_bar()
 	_hint("包扎 +18")
@@ -585,6 +637,10 @@ func _spawn_ring(world: Vector2, r: float, col: Color) -> void:
 func _hint(text: String) -> void:
 	if help_chip:
 		help_chip.text = text
+		help_chip.modulate.a = 1.0
+		var tw := help_chip.create_tween()
+		tw.tween_interval(3.2)
+		tw.tween_property(help_chip, "modulate:a", 0.35, 0.8)
 	if host != null and host.get("status_label") != null:
 		host.status_label.text = text
 
