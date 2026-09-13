@@ -88,6 +88,11 @@ func _ensure_hud() -> void:
 		)
 		if portraits.has_signal("long_pressed"):
 			portraits.long_pressed.connect(_on_portrait_long)
+		if portraits.has_signal("follow_toggled"):
+			portraits.follow_toggled.connect(func(idx: int) -> void:
+				if host != null and host.has_method("toggle_follow"):
+					host.toggle_follow(idx)
+			)
 	if skill_bar == null or not is_instance_valid(skill_bar):
 		skill_bar = SkillBarScript.new()
 		skill_bar.name = "C2Skills"
@@ -233,7 +238,7 @@ func begin_scout() -> void:
 	_spawn_sentries()
 	refresh_hud()
 	if _is_phone():
-		_hint("点肖像选人 · 点地走 · 靠近匣/岗出热区 · 右下拉警报")
+		_hint("点肖像选人 · 点地走 · 短拖拖图 · 长按跑 · 近背面出绕背 · 角标跟上")
 	else:
 		_hint("点选队员 · 点地走 · C匍匐 · Q技能 · 岗哨有黄锥")
 	if host.has_method("_sfx"):
@@ -563,7 +568,22 @@ func handle_click(world: Vector2) -> Dictionary:
 	last_click_msec = now
 	last_click_world = world
 	if _is_phone():
-		## World verbs are hotspots on phone. A tap is walk / select, not Q.
+		## Tap the sentry itself: knife if already behind, else walk around back.
+		for s in sentries:
+			if s == null or not is_instance_valid(s):
+				continue
+			if s.global_position.distance_to(world) > 22.0:
+				continue
+			if s.is_down():
+				use_skill("bind")
+				return {"handled": true, "sprint": false}
+			var op = host.selected if host else null
+			if op != null and s.has_method("in_backstab") and bool(s.in_backstab(op.global_position)):
+				use_skill("knife")
+				return {"handled": true, "sprint": false}
+			if host != null and host.has_method("apply_context_action"):
+				host.apply_context_action("flank", s.global_position)
+				return {"handled": true, "sprint": false}
 		return {"handled": false, "sprint": sprint}
 	for s in sentries:
 		if s == null or not is_instance_valid(s):

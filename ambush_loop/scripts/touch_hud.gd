@@ -94,7 +94,7 @@ func _build() -> void:
 	_hint.add_theme_font_size_override("font_size", 13)
 	_hint.add_theme_color_override("font_color", NightOps.OLIVE_HI)
 	_hint.position = Vector2(12, 6)
-	_hint.text = "触控：点肖像选人 → 点地走 / 靠近出热区 → 匍匐 → 背包 → 拉警报"
+	_hint.text = "触控：点地走 · 短拖拖图 · 长按跑 · 近背面绕背 · 肖像角标跟上"
 	_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_hint)
 
@@ -364,7 +364,7 @@ func refresh_phase(
 		_row_watch.visible = phase_name != "SETUP" and phase_name != "SWEEP"
 	match phase_name:
 		"SETUP":
-			set_hint("触控：点肖像选人 → 点地走 / 靠近热区 → 匍匐躲岗 → 开匣 → 背包 → 拉警报")
+			set_hint("点地走 · 短拖拖图 · 长按跑 · 近背面绕背/割喉 · 角标跟上 · 匍匐 · 拉警报")
 		"SWEEP":
 			set_hint("打扫：走近尸体热区搜刮/拖尸 → 背包换枪 → 下一波或撤离")
 		"WATCHING":

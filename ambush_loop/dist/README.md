@@ -2,7 +2,8 @@
 
 Delivered build:
 
-- `AmbushLoop-v0.5.1-touch-rail.apk` — Godot 4.7.2 debug, arm64, phone simplified rail: portraits in the thumb band, context hotspots, ALERT 3 keys. Same Commandos 2 kit as 0.5.0.
+- `AmbushLoop-v0.5.2-touch-feel.apk` — Godot 4.7.2 debug, arm64, phone feel: folded north chrome, 绕背 guide, short-drag pan / long-press sprint, follow badge. Same RAID as 0.5.1.
+- `AmbushLoop-v0.5.1-touch-rail.apk` — portraits in the thumb band, context hotspots, ALERT 3 keys (superseded for phone feel).
 - `AmbushLoop-v0.5.0-commandos2-kit.apk` — portraits, skill hotbar, sentry cones, crouch/KO, 10 guns, 6-slot pack, auto nades (superseded for phone HUD).
 - `AmbushLoop-v0.4.0-commandos2-kit.apk` — 10 named guns, 6-slot backpack, auto grenades (superseded).
 

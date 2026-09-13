@@ -126,6 +126,7 @@ enum Stance { STAND, CROUCH }
 var stance: int = Stance.STAND
 var sprinting: bool = false
 var hidden_in_shadow: bool = false
+var follow_lead: bool = false
 
 
 static func role_for_id(id: int) -> int:

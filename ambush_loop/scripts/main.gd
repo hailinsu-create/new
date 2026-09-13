@@ -10,6 +10,8 @@ const MAX_TRIPWIRES := 1
 const TRIPWIRE_ROUTE_DIST := 24.0
 const SNAPSHOT_EVERY := 6
 const COVER_LONGPRESS_MS := 400
+const TOUCH_PAN_SLOP := 22.0
+const TOUCH_SPRINT_MS := 280
 const PROGRESS_PATH := "user://ambush_loop.cfg"
 const LEVEL_ORDER := ["yard", "warehouse", "pump", "railcut", "depot", "radio"]
 const SfxBusScript := preload("res://scripts/sfx/sfx_bus.gd")
@@ -240,6 +242,12 @@ var _touch_preview_slot: CoverSlot = null
 var _pending_setup_touch: bool = false
 var _pending_touch_world: Vector2 = Vector2.ZERO
 var _touch_dragged: bool = false
+var _touch_panning: bool = false
+var _touch_start_screen: Vector2 = Vector2.ZERO
+var _sprint_hold_armed: bool = false
+var _last_touch_gesture: String = ""
+var _pending_flank = null
+var _follow_dest: Dictionary = {}
 var _move_ghost: Line2D = null
 var c2 = null
 var _c2_sprint_next: bool = false
@@ -793,6 +801,24 @@ func _apply_phone_chrome(on: bool) -> void:
 	_sync_desktop_bars(not on)
 	if c2 and c2.has_method("layout_chrome"):
 		c2.layout_chrome(on)
+	_fold_phone_north_hud(on)
+
+
+func _fold_phone_north_hud(on: bool) -> void:
+	## Phone: keep the north courtyard free. Chrome stays in the title band.
+	var top := get_node_or_null("HUD/Root/TopBar") as Control
+	if top:
+		top.offset_bottom = 48.0 if on else 110.0
+	if title_label:
+		title_label.add_theme_font_size_override("font_size", 18 if on else 26)
+	if status_label:
+		status_label.visible = not on
+	if level_label:
+		level_label.visible = not on
+	if spawn_teach_label and on:
+		spawn_teach_label.visible = false
+	if route_legend and on:
+		route_legend.visible = false
 
 
 func _result_overlay_active() -> bool:
@@ -1046,6 +1072,8 @@ func apply_context_action(cmd: String, world: Vector2 = Vector2.ZERO) -> void:
 		"knife":
 			if c2:
 				c2.use_skill("knife")
+		"flank":
+			_start_flank_approach(world)
 		"whistle":
 			if c2:
 				c2.use_skill("whistle")
@@ -2692,9 +2720,13 @@ func _layout_checklist() -> void:
 	checklist_strip.anchor_bottom = 0.0
 	# Beside the route timeline, under the phase chip — never over the left cards.
 	checklist_strip.offset_left = -520.0
-	checklist_strip.offset_top = 38.0 + maxf(0.0, pad.y - 4.0)
+	if _want_touch():
+		checklist_strip.offset_top = 8.0 + maxf(0.0, pad.y - 4.0)
+		checklist_strip.offset_bottom = 36.0 + maxf(0.0, pad.y - 4.0)
+	else:
+		checklist_strip.offset_top = 38.0 + maxf(0.0, pad.y - 4.0)
+		checklist_strip.offset_bottom = 72.0 + maxf(0.0, pad.y - 4.0)
 	checklist_strip.offset_right = -maxf(8.0, pad.z)
-	checklist_strip.offset_bottom = 72.0 + maxf(0.0, pad.y - 4.0)
 	checklist_strip.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	checklist_strip.grow_vertical = Control.GROW_DIRECTION_END
 
@@ -2953,7 +2985,7 @@ func _paint_check_chip(lab: Label, title: String, ok: bool, started: bool) -> vo
 		return
 	var mark := "✓" if ok else ("·" if started else "○")
 	lab.text = "%s%s" % [mark, title] if _checklist_use_touch_layout() else "%s  %s" % [mark, title]
-	lab.add_theme_font_size_override("font_size", 14 if _checklist_use_touch_layout() else 13)
+	lab.add_theme_font_size_override("font_size", 12 if _checklist_use_touch_layout() else 13)
 	var col := Color(0.42, 0.78, 0.40)
 	if ok:
 		col = Color(0.42, 0.78, 0.40)
@@ -3744,6 +3776,8 @@ func _handle_touch_gestures(event: InputEvent) -> bool:
 				_facing_touch = -1
 				_pending_setup_touch = false
 				_cover_hold_slot = null
+				_sprint_hold_armed = false
+				_touch_panning = false
 				var span: Dictionary = _touch_span()
 				_pinch_start_dist = float(span["dist"])
 				_pinch_start_zoom = _cam_zoom
@@ -3755,15 +3789,20 @@ func _handle_touch_gestures(event: InputEvent) -> bool:
 			if hovered != null and hovered is BaseButton:
 				_touch_ate_click = true
 				return true
-			if _is_command_phase():
+			if _is_command_phase() or phase == Phase.WATCHING:
 				var world := _screen_to_world(st.position)
 				_touch_preview_slot = null
-				_pending_setup_touch = true
+				_pending_setup_touch = _is_command_phase()
 				_pending_touch_world = world
+				_touch_start_screen = st.position
 				_touch_dragged = false
-				_cover_hold_slot = _nearest_slot(world, 32.0)
+				_touch_panning = false
+				_sprint_hold_armed = false
+				_last_touch_gesture = ""
+				var hold_r := 16.0 if _want_touch() else 32.0
+				_cover_hold_slot = _nearest_slot(world, hold_r) if _is_command_phase() else null
 				_cover_hold_msec = Time.get_ticks_msec()
-				if selected and selected.visible and world.distance_to(selected.global_position) <= 44.0:
+				if _is_command_phase() and selected and selected.visible and world.distance_to(selected.global_position) <= 44.0:
 					_facing_touch = st.index
 				_touch_ate_click = true
 			return true
@@ -3771,13 +3810,29 @@ func _handle_touch_gestures(event: InputEvent) -> bool:
 		if _facing_touch == st.index:
 			_facing_touch = -1
 		_pinch_start_dist = 0.0
-		if _is_command_phase() and _pending_setup_touch:
-			if not _touch_dragged and _touch_preview_slot == null:
-				if _want_touch() and Time.get_ticks_msec() - _cover_hold_msec >= COVER_LONGPRESS_MS:
-					_c2_sprint_next = true
+		if _pending_setup_touch and _is_command_phase():
+			if _touch_panning:
+				_last_touch_gesture = "pan"
+			elif _touch_preview_slot != null:
+				_last_touch_gesture = "cover"
+			elif _sprint_hold_armed or (
+				_want_touch()
+				and _cover_hold_slot == null
+				and Time.get_ticks_msec() - _cover_hold_msec >= TOUCH_SPRINT_MS
+			):
+				_c2_sprint_next = true
+				_last_touch_gesture = "sprint"
+				_handle_setup_click(_pending_touch_world)
+			else:
+				_last_touch_gesture = "tap"
 				_handle_setup_click(_pending_touch_world)
 			_pending_setup_touch = false
 			_cover_hold_slot = null
+			_sprint_hold_armed = false
+			_touch_panning = false
+		elif _touch_panning:
+			_last_touch_gesture = "pan"
+			_touch_panning = false
 		return true
 	if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_MIDDLE):
 		_cam_pan -= event.relative / maxf(_cam_zoom, 0.01)
@@ -3808,18 +3863,26 @@ func _handle_touch_gestures(event: InputEvent) -> bool:
 				_refresh_killzone_preview()
 				_touch_dragged = true
 				_cover_hold_slot = null
+				_sprint_hold_armed = false
+				_last_touch_gesture = "face"
 			return true
 		if phase == Phase.SETUP and tool == Tool.TRIPWIRE:
 			_touch_dragged = true
 			_cover_hold_slot = null
+			_sprint_hold_armed = false
 			_update_tripwire_ghost()
 			return true
-		if (phase == Phase.SETUP or phase == Phase.WATCHING) and sd.relative.length() >= 8.0:
+		var total := sd.position.distance_to(_touch_start_screen)
+		if _touch_panning or total >= TOUCH_PAN_SLOP:
+			_touch_panning = true
 			_touch_dragged = true
 			_cover_hold_slot = null
-			_cam_pan -= sd.relative / maxf(_cam_zoom, 0.01)
-			_apply_cam()
-			return true
+			_sprint_hold_armed = false
+			if _is_command_phase() or phase == Phase.WATCHING:
+				_cam_pan -= sd.relative / maxf(_cam_zoom, 0.01)
+				_apply_cam()
+				_last_touch_gesture = "pan"
+				return true
 		return false
 	return false
 
@@ -3880,7 +3943,8 @@ func _handle_setup_click(world_pos: Vector2) -> void:
 		var c2hit: Dictionary = c2.handle_click(world_pos)
 		if bool(c2hit.get("handled", false)):
 			return
-		_c2_sprint_next = bool(c2hit.get("sprint", false))
+		## Long-press sprint is already latched; double-click ORs in.
+		_c2_sprint_next = _c2_sprint_next or bool(c2hit.get("sprint", false))
 	for op in operators:
 		if op.visible and op.alive and op.global_position.distance_to(world_pos) <= 32.0:
 			selected = op
@@ -3891,7 +3955,8 @@ func _handle_setup_click(world_pos: Vector2) -> void:
 			_refresh_killzone_preview()
 			_update_hud()
 			return
-	var slot := _nearest_slot(world_pos, 28.0)
+	var slot_r := 14.0 if _want_touch() else 28.0
+	var slot := _nearest_slot(world_pos, slot_r)
 	if slot:
 		_deploy_selected_to(slot, true)
 		return
@@ -4388,7 +4453,7 @@ func _refresh_spawn_teach() -> void:
 		text = str(level.beat_text).strip_edges()
 		if text == "" and not level.spawn_teaching.is_empty():
 			text = str(level.spawn_teaching[0]).strip_edges()
-	spawn_teach_label.visible = text != ""
+	spawn_teach_label.visible = text != "" and not _want_touch()
 	spawn_teach_label.text = text
 	_refresh_intel_chip()
 
@@ -4444,23 +4509,37 @@ func _refresh_intel_chip() -> void:
 			var sentry_bit := ""
 			if c2:
 				sentry_bit = " 岗%d" % int(c2.sentry_count())
-			line = _clip_chip_line("匣%d 枪%s%s%s  %s" % [
-				stash_count(),
-				"有" if squad_has_firearm() else "无",
-				named_bit,
-				sentry_bit,
-				_raid_clock_text(),
-			], 48)
+			if _want_touch():
+				line = _clip_chip_line("匣%d 枪%s%s" % [
+					stash_count(),
+					"有" if squad_has_firearm() else "无",
+					sentry_bit,
+				], 22)
+			else:
+				line = _clip_chip_line("匣%d 枪%s%s%s  %s" % [
+					stash_count(),
+					"有" if squad_has_firearm() else "无",
+					named_bit,
+					sentry_bit,
+					_raid_clock_text(),
+				], 48)
 	elif phase == Phase.SWEEP:
 		line = _clip_chip_line("掉落%d  空格%s" % [living_loot_count(), "撤离" if raid and raid.is_last_wave(level) else "下一波"], 32)
 	intel_chip.visible = line != "" and (phase == Phase.SETUP or phase == Phase.SWEEP)
 	intel_chip.text = line
 	if _want_touch():
-		intel_chip.offset_top = 142.0
-		intel_chip.offset_bottom = 164.0
+		## Folded into the title band so the north wall stays tappable.
+		intel_chip.offset_left = 12.0
+		intel_chip.offset_top = 32.0
+		intel_chip.offset_right = -280.0
+		intel_chip.offset_bottom = 50.0
+		intel_chip.add_theme_font_size_override("font_size", 12)
 	else:
+		intel_chip.offset_left = 220.0
 		intel_chip.offset_top = 146.0
+		intel_chip.offset_right = -16.0
 		intel_chip.offset_bottom = 168.0
+		intel_chip.add_theme_font_size_override("font_size", 13)
 
 
 func intel_chip_text() -> String:
@@ -4999,11 +5078,14 @@ func _process(delta: float) -> void:
 		_night_timer += delta
 	if _is_command_phase():
 		_tick_cover_long_press()
+		_tick_touch_hold()
 		_tick_cover_hold_ring()
 		_update_cover_previews()
 		_update_tripwire_ghost()
 		_tick_hold_to_move(delta)
 		_tick_command_moves(delta)
+		_tick_squad_follow()
+		_tick_pending_flank()
 		_tick_command_pickups(delta)
 		_tick_raid_grenades(delta)
 		_tick_raid_decoys(delta)
@@ -6372,18 +6454,18 @@ func _refresh_watch_timeline() -> void:
 	_ensure_watch_timeline()
 	if watch_timeline == null:
 		return
-	var show := (phase == Phase.WATCHING or phase == Phase.SETUP) and level != null
 	var touch := _want_touch()
-	watch_timeline.offset_top = 72.0 if touch else 76.0
-	watch_timeline.offset_bottom = 116.0 if touch else 120.0
+	## Phone SCOUT: hide the timeline so it does not cover the north wall.
+	var show := level != null and (phase == Phase.WATCHING or (phase == Phase.SETUP and not touch))
+	if touch:
+		watch_timeline.offset_top = 44.0
+		watch_timeline.offset_bottom = 80.0
+	else:
+		watch_timeline.offset_top = 76.0
+		watch_timeline.offset_bottom = 120.0
 	watch_timeline.visible = show
-	if not show:
-		watch_timeline.set("preview_upcoming", 0)
-		if watch_timeline.has_method("set_live"):
-			watch_timeline.set_live(false)
-		return
 	var marks: Array = []
-	if level.has_method("route_spawn_marks"):
+	if level != null and level.has_method("route_spawn_marks"):
 		marks = level.route_spawn_marks()
 	watch_timeline.set("marks", marks)
 	watch_timeline.set("payoff_marks", PayoffCopy.timeline_marks(battle_log) if phase == Phase.WATCHING else [])
@@ -7100,7 +7182,7 @@ func _refresh_phase_chip() -> void:
 func _refresh_route_legend() -> void:
 	if route_legend == null:
 		return
-	var show := phase == Phase.SETUP and level != null
+	var show := phase == Phase.SETUP and level != null and not _want_touch()
 	route_legend.visible = show
 	if not show:
 		return
@@ -7412,43 +7494,75 @@ func _spawn_level_stashes() -> void:
 
 
 func _command_move_selected(world_pos: Vector2) -> void:
-	if selected == null or not selected.visible or not selected.alive:
+	if selected == null:
 		return
-	if selected.locked:
-		return
-	var from_c := selected.grid_cell()
+	var sprint := _c2_sprint_next
+	_c2_sprint_next = false
+	_command_move_op(selected, world_pos, sprint)
+
+
+func _command_move_op(op: OperatorUnit, world_pos: Vector2, sprint: bool = false) -> bool:
+	if op == null or not op.visible or not op.alive or op.locked:
+		return false
+	var from_c := op.grid_cell()
 	var to_c := grid.world_to_cell(world_pos)
 	var stash_c := _stash_cell_near(to_c, 1)
 	if stash_c.x >= 0:
 		to_c = stash_c
-	elif _cell_taken(to_c, selected):
-		to_c = _open_cell_near(to_c, selected)
+	elif _cell_taken(to_c, op):
+		to_c = _open_cell_near(to_c, op)
 	var cells: Array[Vector2i] = RaidPathfinderScript.find_path(grid, from_c, to_c)
 	if cells.is_empty():
-		status_label.text = "走不过去"
-		return
-	if selected.slot:
-		selected.slot.occupied_by = null
-		selected.slot.set_highlight(false)
-		selected.slot = null
+		if op == selected and status_label:
+			status_label.text = "走不过去"
+		return false
+	if op.slot:
+		op.slot.occupied_by = null
+		op.slot.set_highlight(false)
+		op.slot = null
 	var pts := PackedVector2Array()
-	pts.append(selected.global_position)
+	pts.append(op.global_position)
 	for c in cells:
 		pts.append(grid.cell_to_world_center(c))
-	selected.set_move_path(pts)
-	if Input.is_key_pressed(KEY_SHIFT):
-		if selected.has_method("set_sprint"):
-			selected.set_sprint(false)
-		if selected.stance != 1:
-			selected.move_speed = selected.base_move_speed * 0.72
-	elif _c2_sprint_next and selected.has_method("set_sprint"):
-		selected.set_sprint(true)
-		_c2_sprint_next = false
+	op.set_move_path(pts)
+	if op == selected and Input.is_key_pressed(KEY_SHIFT):
+		if op.has_method("set_sprint"):
+			op.set_sprint(false)
+		if op.stance != 1:
+			op.move_speed = op.base_move_speed * 0.72
+	elif sprint and op.has_method("set_sprint"):
+		op.set_sprint(true)
+	_paint_move_for(op, pts)
+	return true
+
+
+func _apply_move_cells(op: OperatorUnit, cells: Array[Vector2i], sprint: bool = false) -> bool:
+	if op == null or cells.is_empty():
+		return false
+	if op.slot:
+		op.slot.occupied_by = null
+		op.slot.set_highlight(false)
+		op.slot = null
+	var pts := PackedVector2Array()
+	pts.append(op.global_position)
+	for c in cells:
+		pts.append(grid.cell_to_world_center(c))
+	op.set_move_path(pts)
+	if sprint and op.has_method("set_sprint"):
+		op.set_sprint(true)
+	_paint_move_for(op, pts)
+	return true
+
+
+func _paint_move_for(op: OperatorUnit, pts: PackedVector2Array) -> void:
+	if op != selected:
+		return
 	_draw_move_ghost(pts)
 	_fade_move_ghost()
-	if c2:
-		c2.plant_dest(pts[pts.size() - 1], selected)
-	status_label.text = "%s %s" % [selected.display_name, "奔跑" if selected.sprinting else "移动"]
+	if c2 and pts.size() > 0:
+		c2.plant_dest(pts[pts.size() - 1], op)
+	if status_label:
+		status_label.text = "%s %s" % [op.display_name, "奔跑" if op.sprinting else "移动"]
 	_sfx("ui")
 
 
@@ -7488,6 +7602,225 @@ func _fade_move_ghost() -> void:
 	var tw := _move_ghost.create_tween()
 	tw.tween_interval(0.28)
 	tw.tween_property(_move_ghost, "modulate:a", 0.22, 0.90)
+
+
+func _tick_touch_hold() -> void:
+	if not _pending_setup_touch or _touch_panning or not _want_touch():
+		return
+	if _cover_hold_slot != null:
+		return
+	if Time.get_ticks_msec() - _cover_hold_msec < TOUCH_SPRINT_MS:
+		return
+	if _sprint_hold_armed:
+		return
+	_sprint_hold_armed = true
+	_last_touch_gesture = "sprint_arm"
+	if c2 and selected:
+		c2.plant_dest(_pending_touch_world, selected)
+	if touch_hud and touch_hud.has_method("set_hint"):
+		touch_hud.set_hint("松手奔跑")
+
+
+func flank_dest_world(sentry, op: Node = null) -> Vector2:
+	if sentry == null or not is_instance_valid(sentry) or grid == null:
+		return Vector2.ZERO
+	var lead: Node = op if op else selected
+	var rad := deg_to_rad(float(sentry.facing_deg))
+	var back := Vector2(-cos(rad), -sin(rad))
+	var side := Vector2(-back.y, back.x)
+	var cands: Array[Vector2] = [
+		sentry.global_position + back * 28.0,
+		sentry.global_position + back * 28.0 + side * 32.0,
+		sentry.global_position + back * 28.0 - side * 32.0,
+		sentry.global_position + back * 48.0,
+	]
+	var from_c: Vector2i = grid.world_to_cell(sentry.global_position)
+	if lead != null and lead.has_method("grid_cell"):
+		from_c = lead.call("grid_cell") as Vector2i
+	var best: Vector2 = cands[0]
+	var best_len := 9999
+	for w in cands:
+		var except_op: OperatorUnit = lead as OperatorUnit
+		var cell: Vector2i = _open_cell_near(grid.world_to_cell(w), except_op)
+		var path: Array[Vector2i] = _trim_path_before_cone(
+			RaidPathfinderScript.find_path(grid, from_c, cell),
+			lead
+		)
+		if path.is_empty():
+			continue
+		if path[path.size() - 1] == cell and path.size() < best_len:
+			best_len = path.size()
+			best = grid.cell_to_world_center(cell)
+	return best
+
+
+func _start_flank_approach(world: Vector2) -> void:
+	if selected == null or c2 == null:
+		return
+	var sent = _sentry_at(world, 48.0)
+	if sent == null:
+		sent = _nearest_sentry(selected.global_position, 140.0)
+	if sent == null:
+		if status_label:
+			status_label.text = "附近没有岗哨"
+		return
+	var dest: Vector2 = flank_dest_world(sent, selected)
+	_pending_flank = sent
+	var cells: Array[Vector2i] = _trim_path_before_cone(
+		RaidPathfinderScript.find_path(grid, selected.grid_cell(), grid.world_to_cell(dest)),
+		selected
+	)
+	if cells.size() >= 2:
+		_apply_move_cells(selected, cells, false)
+	else:
+		_command_move_selected(dest)
+	if touch_hud and touch_hud.has_method("set_hint"):
+		touch_hud.set_hint("绕到背后")
+	elif status_label:
+		status_label.text = "绕到背后"
+
+
+func _sentry_at(world: Vector2, max_d: float):
+	if c2 == null:
+		return null
+	var best = null
+	var best_d := max_d
+	for s in c2.sentries:
+		if s == null or not is_instance_valid(s) or bool(s.is_down()):
+			continue
+		var d: float = s.global_position.distance_to(world)
+		if d < best_d:
+			best_d = d
+			best = s
+	return best
+
+
+func _nearest_sentry(world: Vector2, max_d: float):
+	return _sentry_at(world, max_d)
+
+
+func _tick_pending_flank() -> void:
+	if _pending_flank == null:
+		return
+	if not is_instance_valid(_pending_flank) or selected == null:
+		_pending_flank = null
+		return
+	if selected.is_moving():
+		return
+	if _pending_flank.has_method("in_backstab") and bool(_pending_flank.in_backstab(selected.global_position)):
+		if c2:
+			c2.use_skill("knife")
+	_pending_flank = null
+
+
+func toggle_follow(idx: int) -> void:
+	if idx < 0 or idx >= operators.size():
+		return
+	var op: OperatorUnit = operators[idx]
+	if op == null or not op.alive:
+		return
+	op.follow_lead = not bool(op.follow_lead)
+	if not op.follow_lead:
+		op.stop_move()
+		_follow_dest.erase(int(op.op_id))
+	if touch_hud and touch_hud.has_method("set_hint"):
+		touch_hud.set_hint("%s %s" % [op.display_name, "跟上" if op.follow_lead else "待命"])
+	_update_hud()
+
+
+func _tick_squad_follow() -> void:
+	if selected == null or not selected.visible or not selected.alive:
+		return
+	for op in operators:
+		if op == null or op == selected or not op.alive or not op.visible:
+			continue
+		if not bool(op.follow_lead):
+			continue
+		var want: Vector2i = _follow_anchor_cell(selected, op)
+		if want.x < 0:
+			continue
+		if op.grid_cell() == want:
+			continue
+		var cells: Array[Vector2i] = _trim_path_before_cone(
+			RaidPathfinderScript.find_path(grid, op.grid_cell(), want),
+			op
+		)
+		if cells.size() < 2:
+			continue
+		var dest_c: Vector2i = cells[cells.size() - 1]
+		if op.is_moving() and _follow_dest.get(int(op.op_id), Vector2i(-99, -99)) == dest_c:
+			continue
+		_apply_move_cells(op, cells, false)
+		_follow_dest[int(op.op_id)] = dest_c
+
+
+func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i:
+	var rad := deg_to_rad(lead.facing_deg)
+	var back := Vector2(-cos(rad), -sin(rad))
+	var n_follow := 0
+	for op in operators:
+		if op == null or op == lead or not bool(op.follow_lead) or not op.alive:
+			continue
+		if op == follower:
+			break
+		n_follow += 1
+	var side := Vector2(-back.y, back.x) * float(n_follow) * 32.0
+	var world: Vector2 = lead.global_position + back * 32.0 + side
+	return _open_cell_near(grid.world_to_cell(world), follower)
+
+
+func _trim_path_before_cone(cells: Array[Vector2i], op: Node) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	for c in cells:
+		var w: Vector2 = grid.cell_to_world_center(c)
+		if _sentry_sees_world(w, op):
+			break
+		out.append(c)
+	return out
+
+
+func _sentry_sees_world(world: Vector2, op: Node) -> bool:
+	if c2 == null:
+		return false
+	if op != null and op.get("hidden_in_shadow") != null and bool(op.hidden_in_shadow):
+		return false
+	for s in c2.sentries:
+		if s == null or not is_instance_valid(s) or bool(s.is_down()):
+			continue
+		if s.has_method("sees_world") and bool(s.sees_world(world)):
+			return true
+	return false
+
+
+func dump_touch_feel() -> Dictionary:
+	var caps := PackedStringArray()
+	var cmds := PackedStringArray()
+	if c2 and c2.prompt and c2.prompt.has_method("visible_captions"):
+		caps = c2.prompt.visible_captions()
+		if c2.prompt.has_method("visible_cmds"):
+			cmds = c2.prompt.visible_cmds()
+	var follows: PackedStringArray = PackedStringArray()
+	for op in operators:
+		if op and bool(op.follow_lead):
+			follows.append(str(op.display_name))
+	return {
+		"intel_y": intel_chip.offset_top if intel_chip else -1.0,
+		"intel_bot": intel_chip.offset_bottom if intel_chip else -1.0,
+		"teach": spawn_teach_label != null and spawn_teach_label.visible,
+		"legend": route_legend != null and route_legend.visible,
+		"timeline": watch_timeline != null and watch_timeline.visible,
+		"timeline_top": watch_timeline.offset_top if watch_timeline else -1.0,
+		"check_top": checklist_strip.offset_top if checklist_strip else -1.0,
+		"check_bot": checklist_strip.offset_bottom if checklist_strip else -1.0,
+		"hotspots": caps,
+		"cmds": cmds,
+		"gesture": _last_touch_gesture,
+		"sprint_armed": _sprint_hold_armed,
+		"panning": _touch_panning,
+		"follow": follows,
+		"pan_slop": TOUCH_PAN_SLOP,
+		"sprint_ms": TOUCH_SPRINT_MS,
+	}
 
 
 func _tick_command_moves(delta: float) -> void:

@@ -1,8 +1,7 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.1 simplified night-raid rail.
-## SCOUT: 3 resident keys + portraits in the thumb band + a crate hotspot.
-## ALERT: pause / speed / abort only.
+## Forced-touch HUD stills for v0.5.2 phone feel: folded north chrome,
+## 绕背 guide, courtyard loop, follow badge.
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
@@ -59,9 +58,9 @@ func _run() -> void:
 	main._update_hud()
 	await _settle(8)
 	_count_chrome(main, "scout")
+	_dump_feel(main, "scout")
 	await _save("01_scout_touch_simple")
 
-	# Walk the wolf onto the first crate so the 开匣 hotspot is on-screen.
 	if main.operators.size() > 0 and not main.raid_stashes.is_empty():
 		main._select_op(0)
 		main.operators[0].global_position = main.raid_stashes[0].global_position
@@ -71,12 +70,11 @@ func _run() -> void:
 		_count_chrome(main, "scout_hotspot")
 		await _save("03_scout_hotspots")
 
-	# Knife hotspot: wolf west of a sentry facing east.
 	if main.c2 and not main.c2.sentries.is_empty() and main.operators.size() > 0:
 		var op = main.operators[0]
 		var sent = main.c2.sentries[0]
 		var clear := Vector2(220, 280)
-		if main.has_method("grid") and main.grid:
+		if main.grid:
 			clear = main.grid.cell_to_world_center(Vector2i(6, 8))
 		op.global_position = clear
 		sent.global_position = clear + Vector2(16, 0)
@@ -87,6 +85,34 @@ func _run() -> void:
 		await _settle(8)
 		_count_chrome(main, "scout_knife")
 		await _save("04_scout_hotspot_knife")
+		sent.global_position = clear + Vector2(80, 0)
+		sent.facing_deg = 0.0
+		op.global_position = clear
+		if main.c2.prompt and main.c2.prompt.has_method("refresh_now"):
+			main.c2.prompt.refresh_now()
+		await _settle(8)
+		_count_chrome(main, "scout_flank")
+		_dump_feel(main, "flank")
+		await _save("05_scout_hotspot_flank")
+		if main.has_method("apply_context_action"):
+			main.apply_context_action("flank", sent.global_position)
+		await _settle(10)
+		_count_chrome(main, "scout_flank_path")
+		await _save("05b_scout_flank_path")
+
+	await _walk_yard_loop(main)
+
+	if main.operators.size() >= 2:
+		main._select_op(0)
+		if main.has_method("toggle_follow"):
+			if not bool(main.operators[1].follow_lead):
+				main.toggle_follow(1)
+		main._update_hud()
+		await _settle(8)
+		_dump_feel(main, "follow")
+		await _save("09_scout_follow")
+		if bool(main.operators[1].follow_lead):
+			main.toggle_follow(1)
 
 	if main.has_method("raid_prepare_ref"):
 		main.raid_prepare_ref([0, 1, 2], [0.0, 0.0, 90.0], {"grenades": 2, "mines": 1})
@@ -94,27 +120,88 @@ func _run() -> void:
 	main._on_alarm_pressed()
 	await _settle(16)
 	_count_chrome(main, "alert")
+	_dump_feel(main, "alert")
 	await _save("02_alert_touch_watch")
 
 	print("DUMP_TOUCH_HUD_OK")
 	quit(0)
 
 
+func _walk_yard_loop(main) -> void:
+	if main.operators.is_empty() or main.grid == null:
+		return
+	main._select_op(0)
+	var op = main.operators[0]
+	var cells: Array = [
+		Vector2i(6, 16),
+		Vector2i(6, 8),
+		Vector2i(18, 6),
+		Vector2i(30, 8),
+		Vector2i(30, 16),
+		Vector2i(18, 17),
+		Vector2i(6, 16),
+	]
+	var names: PackedStringArray = PackedStringArray([
+		"loop_sw", "loop_nw", "loop_n", "loop_ne", "loop_se", "loop_s", "loop_home"
+	])
+	for i in cells.size():
+		var cell: Vector2i = cells[i]
+		if main.grid.has_method("is_blocked") and bool(main.grid.is_blocked(cell.x, cell.y)):
+			cell = _open_near(main, cell)
+		var world: Vector2 = main.grid.cell_to_world_center(cell)
+		if main.has_method("_command_move_selected"):
+			main._command_move_selected(world)
+		var frames := 0
+		while op.is_moving() and frames < 220:
+			await process_frame
+			frames += 1
+		if not op.is_moving():
+			op.global_position = world
+		if main.c2 and main.c2.prompt and main.c2.prompt.has_method("refresh_now"):
+			main.c2.prompt.refresh_now()
+		main._update_hud()
+		await _settle(6)
+		_count_chrome(main, str(names[i]))
+		_dump_feel(main, str(names[i]))
+		if str(names[i]) in ["loop_nw", "loop_n", "loop_ne", "loop_home"]:
+			await _save("06_%s" % names[i])
+
+
+func _open_near(main, cell: Vector2i) -> Vector2i:
+	for r in range(0, 4):
+		for dx in range(-r, r + 1):
+			for dy in range(-r, r + 1):
+				var n := Vector2i(cell.x + dx, cell.y + dy)
+				if main.grid.in_bounds(n.x, n.y) and not bool(main.grid.is_blocked(n.x, n.y)):
+					return n
+	return cell
+
+
+func _dump_feel(main, tag: String) -> void:
+	if not main.has_method("dump_touch_feel"):
+		return
+	var f: Dictionary = main.dump_touch_feel()
+	print(
+		"DUMP_FEEL tag=", tag,
+		" intel_y=", snapped(float(f.get("intel_y", -1)), 0.1),
+		" check_bot=", snapped(float(f.get("check_bot", -1)), 0.1),
+		" teach=", f.get("teach"),
+		" legend=", f.get("legend"),
+		" timeline=", f.get("timeline"),
+		" caps=", " ".join(f.get("hotspots", PackedStringArray())),
+		" cmds=", " ".join(f.get("cmds", PackedStringArray())),
+		" gesture=", f.get("gesture"),
+		" follow=", " ".join(f.get("follow", PackedStringArray()))
+	)
+
+
 func _count_chrome(main, tag: String) -> void:
 	var n := 0
 	if main.touch_hud and main.touch_hud.has_method("setup_visible_button_count"):
 		n = int(main.touch_hud.setup_visible_button_count())
-	elif main.touch_hud and main.touch_hud._row_setup and main.touch_hud._row_setup.visible:
-		for c in main.touch_hud._row_setup.get_children():
-			if c is Button and c.visible:
-				n += 1
 	var w := 0
 	if main.touch_hud and main.touch_hud.has_method("watch_visible_button_count"):
 		w = int(main.touch_hud.watch_visible_button_count())
-	elif main.touch_hud and main.touch_hud._row_watch and main.touch_hud._row_watch.visible:
-		for c in main.touch_hud._row_watch.get_children():
-			if c is Button and c.visible:
-				w += 1
 	var portraits_on := false
 	var skills_on := false
 	var mmap_on := false

@@ -75,7 +75,7 @@ func _ready() -> void:
 	box.add_child(frame)
 	var keys := Label.new()
 	keys.name = "C2Keys"
-	keys.text = "触屏：点肖像 / 点地走 / 靠近热区。键鼠：C匍 Q技 W哨 Z包 双击跑 F2回中"
+	keys.text = "触屏：点地走 · 短拖拖图 · 长按跑 · 绕背热区 · 角标跟上。键鼠：C匍 Q技 W哨 Z包 双击跑 F2回中"
 	keys.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	keys.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	keys.add_theme_font_size_override("font_size", 12)

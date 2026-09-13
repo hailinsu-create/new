@@ -192,12 +192,28 @@ func _sees(world: Vector2) -> bool:
 	return true
 
 
+func sees_world(world: Vector2) -> bool:
+	return _sees(world)
+
+
+func rear_hemisphere(world: Vector2) -> bool:
+	var v := world - global_position
+	if v.length() < 4.0:
+		return true
+	var ang := rad_to_deg(atan2(v.y, v.x))
+	return absf(_ang_diff(facing_deg, ang)) > 95.0
+
+
+func backstab_world() -> Vector2:
+	var rad := deg_to_rad(facing_deg)
+	return global_position - Vector2(cos(rad), sin(rad)) * 28.0
+
+
 func in_backstab(world: Vector2) -> bool:
 	var v := world - global_position
 	if v.length() > 30.0:
 		return false
-	var ang := rad_to_deg(atan2(v.y, v.x))
-	return absf(_ang_diff(facing_deg, ang)) > 95.0
+	return rear_hemisphere(world)
 
 
 func _patrol(delta: float) -> void:

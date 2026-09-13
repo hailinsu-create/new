@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.5.1":
+	if ver != "0.5.2":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3388,6 +3388,8 @@ func _assert_simplified_touch(main) -> bool:
 	print("SMOKE_OK_PORTRAIT_THUMB off_top=", parent.offset_top, " y=", snapped(strip.global_position.y, 0.1))
 	if not await _assert_context_hotspots(main):
 		return false
+	if not await _assert_touch_feel_052(main):
+		return false
 	return true
 
 
@@ -3453,6 +3455,21 @@ func _assert_context_hotspots(main) -> bool:
 		quit(44)
 		return false
 	print("SMOKE_OK_HOTSPOT_WHISTLE")
+	# Rear approach, not yet in knife range → 绕背 guide, not 割喉.
+	sent.global_position = clear + Vector2(80, 0)
+	sent.facing_deg = 0.0
+	op.global_position = clear
+	prompt.refresh_now()
+	await process_frame
+	if not bool(prompt.has_caption("绕背")):
+		push_error("SMOKE_HOTSPOT_NO_FLANK caps=%s" % " ".join(prompt.visible_captions()))
+		quit(44)
+		return false
+	if bool(prompt.has_caption("割喉")):
+		push_error("SMOKE_HOTSPOT_FLANK_IS_KNIFE caps=%s" % " ".join(prompt.visible_captions()))
+		quit(44)
+		return false
+	print("SMOKE_OK_HOTSPOT_FLANK")
 	sent.global_position = sent_home
 	sent.facing_deg = sent_face
 	op.global_position = home
@@ -3480,6 +3497,136 @@ func _empty_probe_world(main) -> Vector2:
 				continue
 			return w
 	return Vector2(96, 240)
+
+
+func _assert_touch_feel_052(main) -> bool:
+	## North-wall fold, gesture split, follow badge.
+	main._ensure_touch_hud()
+	main._update_hud()
+	await process_frame
+	await process_frame
+	if not main.has_method("dump_touch_feel"):
+		push_error("SMOKE_NO_TOUCH_FEEL_API")
+		quit(44)
+		return false
+	var feel: Dictionary = main.dump_touch_feel()
+	if bool(feel.get("teach", true)):
+		push_error("SMOKE_NORTH_TEACH_ON")
+		quit(44)
+		return false
+	if bool(feel.get("legend", true)):
+		push_error("SMOKE_NORTH_LEGEND_ON")
+		quit(44)
+		return false
+	if bool(feel.get("timeline", true)):
+		push_error("SMOKE_NORTH_TIMELINE_ON_SCOUT")
+		quit(44)
+		return false
+	if float(feel.get("intel_y", 200.0)) > 56.0:
+		push_error("SMOKE_NORTH_INTEL_Y %s" % feel.get("intel_y"))
+		quit(44)
+		return false
+	if float(feel.get("check_bot", 200.0)) > 48.0:
+		push_error("SMOKE_NORTH_CHECK_BOT %s" % feel.get("check_bot"))
+		quit(44)
+		return false
+	print(
+		"SMOKE_OK_NORTH_FOLDED intel_y=", snapped(float(feel.get("intel_y", 0.0)), 0.1),
+		" check_bot=", snapped(float(feel.get("check_bot", 0.0)), 0.1)
+	)
+	if not main.has_method("toggle_follow") or main.operators.size() < 2:
+		push_error("SMOKE_NO_FOLLOW_API")
+		quit(44)
+		return false
+	var op1: OperatorUnit = main.operators[1]
+	var was := bool(op1.follow_lead)
+	main.toggle_follow(1)
+	if bool(op1.follow_lead) == was:
+		push_error("SMOKE_FOLLOW_NOOP")
+		quit(44)
+		return false
+	if not bool(op1.follow_lead):
+		main.toggle_follow(1)
+	if not bool(op1.follow_lead):
+		push_error("SMOKE_FOLLOW_OFF")
+		quit(44)
+		return false
+	print("SMOKE_OK_FOLLOW")
+	main.toggle_follow(1)
+	if bool(op1.follow_lead):
+		push_error("SMOKE_FOLLOW_STUCK")
+		quit(44)
+		return false
+	var xf: Transform2D = main.get_viewport().get_canvas_transform()
+	var clear: Vector2 = _empty_probe_world(main)
+	var home: Vector2 = main.operators[0].global_position
+	main._select_op(0)
+	main.operators[0].stop_move()
+	if home.distance_to(clear) < 48.0:
+		clear = home + Vector2(96, 0)
+	var pan0: Vector2 = main._cam_pan
+	var press := InputEventScreenTouch.new()
+	press.index = 0
+	press.pressed = true
+	press.position = xf * clear
+	main._unhandled_input(press)
+	var drag := InputEventScreenDrag.new()
+	drag.index = 0
+	drag.position = press.position + Vector2(48, 0)
+	drag.relative = Vector2(48, 0)
+	main._unhandled_input(drag)
+	var rel := InputEventScreenTouch.new()
+	rel.index = 0
+	rel.pressed = false
+	rel.position = drag.position
+	main._unhandled_input(rel)
+	if str(main._last_touch_gesture) != "pan":
+		push_error("SMOKE_GESTURE_NOT_PAN got=%s" % main._last_touch_gesture)
+		quit(44)
+		return false
+	if main.operators[0].is_moving():
+		push_error("SMOKE_PAN_MOVED_OP")
+		quit(44)
+		return false
+	if main._cam_pan.is_equal_approx(pan0):
+		push_error("SMOKE_PAN_NO_CAM")
+		quit(44)
+		return false
+	print("SMOKE_OK_GESTURE_PAN")
+	main._cam_pan = pan0
+	if main.has_method("_apply_cam"):
+		main._apply_cam()
+	var press2 := InputEventScreenTouch.new()
+	press2.index = 0
+	press2.pressed = true
+	press2.position = xf * clear
+	main._unhandled_input(press2)
+	main._cover_hold_msec = Time.get_ticks_msec() - 320
+	main._cover_hold_slot = null
+	main._tick_touch_hold()
+	if not bool(main._sprint_hold_armed):
+		push_error("SMOKE_SPRINT_NOT_ARMED")
+		quit(44)
+		return false
+	var rel2 := InputEventScreenTouch.new()
+	rel2.index = 0
+	rel2.pressed = false
+	rel2.position = press2.position
+	main._unhandled_input(rel2)
+	if str(main._last_touch_gesture) != "sprint":
+		push_error("SMOKE_GESTURE_NOT_SPRINT got=%s" % main._last_touch_gesture)
+		quit(44)
+		return false
+	if main.selected == null or not bool(main.selected.sprinting):
+		push_error("SMOKE_SPRINT_NOT_SET")
+		quit(44)
+		return false
+	print("SMOKE_OK_GESTURE_SPRINT")
+	main.operators[0].stop_move()
+	main.operators[0].set_sprint(false)
+	main.operators[0].global_position = home
+	print("SMOKE_OK_TOUCH_FEEL")
+	return true
 
 
 func _assert_lifecycle(main) -> bool:

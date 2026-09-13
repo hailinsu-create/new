@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.5.2 — Phone feel: north fold, 绕背, gesture split, follow
+
+Sideload APK: `dist/AmbushLoop-v0.5.2-touch-feel.apk`  
+Release tag: `v0.5.2-touch-feel`
+
+Same RAID as 0.5.1 (`SCOUT → ALERT → SWEEP`, auto fire + auto nade). Phone default stays 简配夜袭.
+
+### Play (phone)
+- North chrome folds into the title band: route chips, spawn teach, and the SCOUT timeline no longer sit on the courtyard wall.
+- Near a sentry's back: **绕背** hotspot + dashed guide (auto-knives on arrival). Already behind: **割喉**. Front: **口哨**.
+- Short drag pans the map; long-press on empty ground sprints. Finger jitter under 22px does not steal the hold.
+- Cover pads only eat a tap on the pad itself; walking a courtyard loop no longer teleports onto every nearby sandbag.
+- Unselected portraits show **跟** / **跟上**. Followers path behind the selected operator and stop at a yellow cone.
+
+### Android
+- `versionName` 0.5.2 / `versionCode` 8 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title **v0.5.2 COMMANDOS/WW2**.
+2. Force-touch: north wall of the yard is free of 主路/侧翼 chips and the timeline. Bottom bar still 匍匐 / 背包 / 需枪.
+3. Stand west of a sentry facing east, ~2 cells back: hotspot reads **绕背**, not 口哨.
+
 ## 0.5.1 — Phone simplified night-raid rail
 
 Sideload APK: `dist/AmbushLoop-v0.5.1-touch-rail.apk`  

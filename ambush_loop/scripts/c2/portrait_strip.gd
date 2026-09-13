@@ -5,6 +5,7 @@ extends Control
 
 signal picked(idx: int)
 signal long_pressed(idx: int)
+signal follow_toggled(idx: int)
 
 const RoleGlyphScript := preload("res://scripts/ui/role_glyph.gd")
 const GunStampScript := preload("res://scripts/ui/gun_stamp.gd")
@@ -15,6 +16,7 @@ var _pulse: float = 0.0
 var _hold_idx: int = -1
 var _hold_msec: int = 0
 var _hold_fired: bool = false
+var _ignore_pick: bool = false
 const LONG_MS := 350
 
 
@@ -51,6 +53,10 @@ func _ready() -> void:
 							if main.has_method("_apply_cam"):
 								main._apply_cam()
 			else:
+				if _ignore_pick:
+					_ignore_pick = false
+					_hold_idx = -1
+					return
 				if _hold_idx == idx and not _hold_fired:
 					picked.emit(idx)
 				_hold_idx = -1
@@ -92,6 +98,24 @@ func _ready() -> void:
 		st.add_theme_color_override("font_color", NightOps.MUTED)
 		st.text = ""
 		b.add_child(st)
+		var fol := Button.new()
+		fol.name = "Follow"
+		fol.text = "跟"
+		fol.focus_mode = Control.FOCUS_NONE
+		fol.theme = NightOps.theme()
+		fol.add_theme_font_size_override("font_size", 11)
+		fol.add_theme_font_override("font", NightOps.ui_font_bold())
+		fol.position = Vector2(58, 2)
+		fol.size = Vector2(44, 22)
+		fol.custom_minimum_size = Vector2(44, 22)
+		fol.visible = false
+		fol.pressed.connect(func() -> void:
+			_ignore_pick = true
+			_hold_idx = -1
+			_hold_fired = true
+			follow_toggled.emit(idx)
+		)
+		b.add_child(fol)
 		row.add_child(b)
 		_cards.append(b)
 		_stance.append(st)
@@ -165,5 +189,26 @@ func bind_ops(ops: Array, selected: Node, command_phase: bool) -> void:
 				bits.append("奔")
 			if op.get("hidden_in_shadow") != null and bool(op.hidden_in_shadow):
 				bits.append("隐")
+			if op.get("follow_lead") != null and bool(op.follow_lead) and not sel:
+				bits.append("跟")
 			st.text = " ".join(bits)
+		var fol: Button = b.get_node_or_null("Follow") as Button
+		if fol:
+			var phone := _phone_strip()
+			fol.visible = phone and command_phase and op.alive and not sel
+			var on_follow: bool = op.get("follow_lead") != null and bool(op.follow_lead)
+			fol.text = "跟上" if on_follow else "跟"
+			fol.modulate = Color(1.18, 1.10, 0.72) if on_follow else Color.WHITE
+			var fbg := Color(0.18, 0.16, 0.08, 0.95) if on_follow else Color(0.08, 0.08, 0.06, 0.92)
+			var fbd := Color(0.86, 0.72, 0.38, 0.95) if on_follow else Color(0.50, 0.46, 0.32, 0.8)
+			fol.add_theme_stylebox_override("normal", NightOps.flat(fbg, fbd, 1, 6, 4))
+			fol.add_theme_stylebox_override("hover", NightOps.flat(fbg.lightened(0.12), fbd.lightened(0.15), 1, 6, 4))
+			fol.add_theme_color_override("font_color", Color(0.96, 0.90, 0.62) if on_follow else Color(0.82, 0.78, 0.58))
 		b.disabled = not command_phase and not sel
+
+
+func _phone_strip() -> bool:
+	var gs = get_node_or_null("/root/GameSettings")
+	if gs and gs.has_method("want_touch_controls"):
+		return bool(gs.want_touch_controls())
+	return false
