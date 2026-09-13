@@ -17,6 +17,11 @@ REQUIRED_ASSETS = (
     "assets/scripts/ui/backpack_panel.gdc",
     "assets/scripts/art/weapon_art.gdc",
     "assets/scripts/art/ww2_palette.gdc",
+    "assets/scripts/c2/c2_director.gdc",
+    "assets/scripts/c2/sentry.gdc",
+    "assets/scripts/c2/portrait_strip.gdc",
+    "assets/scripts/c2/skill_bar.gdc",
+    "assets/scripts/c2/minimap.gdc",
 )
 
 AAPT = "/home/ubuntu/Android/Sdk/build-tools/34.0.0/aapt"
@@ -32,8 +37,8 @@ def _badging(apk: str) -> str:
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("apk")
-    p.add_argument("--version", default="0.4.0")
-    p.add_argument("--version-code", type=int, default=4)
+    p.add_argument("--version", default="0.5.0")
+    p.add_argument("--version-code", type=int, default=6)
     args = p.parse_args()
     if not os.path.isfile(args.apk):
         print("ASSERT_APK_MISSING", args.apk, file=sys.stderr)
