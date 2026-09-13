@@ -139,6 +139,10 @@ Smoke: `SMOKE_SLICE_COMPLETE` + `SMOKE_OK_RAID_LOOP`.
 123. Kit contract `docs/COMMANDOS2_KIT.md`
 124. Dump `eval_dump_v040.gd` + named APK / release
 
+## Landed 125–224 (v0.5.0 Commandos 2 portraits / skills / sentries)
+
+See `docs/COMMANDOS2_ITERS.md` for the 1–100 list of this session (portraits, skill hotbar, sentry cones, crouch, KO, minimap, camera). RAID loop unchanged. Smoke adds `SMOKE_OK_SENTRY` / `SMOKE_OK_PORTRAITS` / `SMOKE_OK_KO`.
+
 ## How to play now (delta vs 41)
 
 - Knives at insert. Walk onto a crate and **stand 0.4s**.
