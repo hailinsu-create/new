@@ -1,0 +1,5 @@
+# Copy to android/local.properties (gitignored) for Play release signing.
+# RELEASE_STORE_FILE=/absolute/path/to/pangchuang-release.jks
+# RELEASE_STORE_PASSWORD=your-store-password
+# RELEASE_KEY_ALIAS=pangchuang
+# RELEASE_KEY_PASSWORD=your-key-password
