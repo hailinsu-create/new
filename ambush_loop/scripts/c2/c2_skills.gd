@@ -94,7 +94,7 @@ static func cooldown(id: String) -> float:
 		"aid":
 			return 8.0
 		"knife":
-			return 1.1
+			return 0.9
 		"bind":
 			return 0.8
 		"decoy":
