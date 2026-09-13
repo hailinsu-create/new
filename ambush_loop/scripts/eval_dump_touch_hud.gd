@@ -1,7 +1,8 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.9 phone feel: side 绕背 wraps sentry body,
-## lead-stop formation holds, three-follow + side wrap, 跟 badge probes.
+## Forced-touch HUD stills for v0.5.10 phone feel: follow dests behind the
+## lead (left/right stagger), stop land freezes, three-follow + side wrap,
+## 跟 badge probes.
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
@@ -646,7 +647,9 @@ func _walk_follow_continuity(main) -> void:
 		" hop=", hop, " stalls=", stalls, " move=", moving,
 		" lead=", lead.grid_cell(),
 		" d1=", main._follow_dest.get(int(a.op_id), Vector2i(-1, -1)),
-		" d2=", main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+		" d2=", main._follow_dest.get(int(b.op_id), Vector2i(-1, -1)),
+		" rear=", int(main.follow_rear_ok_count()) if main.has_method("follow_rear_ok_count") else -1,
+		" side=", int(main.follow_side_rear_hits()) if main.has_method("follow_side_rear_hits") else -1
 	)
 	await _save("08c_walk_follow")
 	if bool(a.follow_lead):
@@ -725,10 +728,18 @@ func _walk_follow_settle(main) -> void:
 			s.global_position = main.grid.cell_to_world_center(Vector2i(32, 6 + i))
 			s.facing_deg = 0.0
 			i += 1
-	var lead_c := Vector2i(16, 14)
+	var lead_c := Vector2i(15, 14)
 	var dest_c := Vector2i(24, 14)
 	var a_c := Vector2i(12, 16)
 	var b_c := Vector2i(12, 18)
+	if main.grid.is_blocked(lead_c.x, lead_c.y) or (main.has_method("_cell_is_operable") and bool(main._cell_is_operable(lead_c))):
+		lead_c = Vector2i(14, 14)
+	if main.grid.is_blocked(dest_c.x, dest_c.y) or (main.has_method("_cell_is_operable") and bool(main._cell_is_operable(dest_c))):
+		dest_c = Vector2i(23, 14)
+	if main.grid.is_blocked(a_c.x, a_c.y):
+		a_c = Vector2i(11, 16)
+	if main.grid.is_blocked(b_c.x, b_c.y):
+		b_c = Vector2i(11, 18)
 	lead.stop_move()
 	a.stop_move()
 	b.stop_move()
@@ -769,7 +780,7 @@ func _walk_follow_settle(main) -> void:
 			break
 	var stop_d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
 	var stop_d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
-	for _j in 16:
+	for _j in 32:
 		if main.has_method("_tick_command_moves"):
 			main._tick_command_moves(0.05)
 		if main.has_method("_tick_squad_follow"):
@@ -781,6 +792,8 @@ func _walk_follow_settle(main) -> void:
 		" end=", main._follow_dest.get(int(a.op_id), Vector2i(-1, -1)),
 		main._follow_dest.get(int(b.op_id), Vector2i(-1, -1)),
 		" drops=", int(main.follow_settle_drops()) if main.has_method("follow_settle_drops") else -1,
+		" rear=", int(main.follow_rear_ok_count()) if main.has_method("follow_rear_ok_count") else -1,
+		" side=", int(main.follow_side_rear_hits()) if main.has_method("follow_side_rear_hits") else -1,
 		" lead=", lead.grid_cell()
 	)
 	await _save("08d_follow_settle")
@@ -832,11 +845,29 @@ func _walk_three_follow_side_wrap(main) -> void:
 	var dump := {}
 	if main.has_method("flank_guide_dump"):
 		dump = main.flank_guide_dump(sent, lead)
+	if main.has_method("simulate_hotspot"):
+		main.simulate_hotspot("绕背")
+	var wait_i := 0
+	while lead.is_moving() and wait_i < 40:
+		if main.has_method("_tick_command_moves"):
+			main._tick_command_moves(0.05)
+		await process_frame
+		wait_i += 1
+	lead.stop_move()
+	if dump.has("dest") and typeof(dump.get("dest")) == TYPE_VECTOR2I:
+		var back_c: Vector2i = dump.get("dest")
+		if back_c.x >= 0:
+			lead.global_position = main.grid.cell_to_world_center(back_c)
+	lead.facing_deg = 0.0
+	if lead.has_method("_rebuild_cone"):
+		lead._rebuild_cone()
 	if main.has_method("simulate_follow_badge"):
 		if not bool(a.follow_lead):
 			main.simulate_follow_badge(1)
 		if not bool(b.follow_lead):
 			main.simulate_follow_badge(2)
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
 	if main.has_method("_tick_squad_follow"):
 		main._tick_squad_follow()
 	var frames := 0
@@ -855,6 +886,9 @@ func _walk_three_follow_side_wrap(main) -> void:
 		" body=", dump.get("body", -1),
 		" d1=", main._follow_dest.get(int(a.op_id), Vector2i(-1, -1)),
 		" d2=", main._follow_dest.get(int(b.op_id), Vector2i(-1, -1)),
+		" rear=", int(main.follow_rear_ok_count()) if main.has_method("follow_rear_ok_count") else -1,
+		" side=", int(main.follow_side_rear_hits()) if main.has_method("follow_side_rear_hits") else -1,
+		" lead=", lead.grid_cell(),
 		" caps=", " ".join(main.c2.prompt.visible_captions() if main.c2.prompt else PackedStringArray())
 	)
 	await _save("08e_three_side_wrap")
@@ -974,7 +1008,9 @@ func _dump_feel(main, tag: String) -> void:
 		" follow_rim_hits=", f.get("follow_rim_hits", -1),
 		" follow_max_detour=", f.get("follow_max_detour", -1),
 		" follow_flips=", f.get("follow_flips", -1),
-		" follow_settle_drops=", f.get("follow_settle_drops", -1)
+		" follow_settle_drops=", f.get("follow_settle_drops", -1),
+		" follow_side_rear=", f.get("follow_side_rear", -1),
+		" follow_rear_ok=", f.get("follow_rear_ok", -1)
 	)
 
 

@@ -261,6 +261,8 @@ var _follow_flip_count: int = 0
 var _follow_settle_drops: int = 0
 var _follow_arrive_world: Vector2 = Vector2.ZERO
 var _follow_arrive_on: bool = false
+var _follow_back_world: Vector2 = Vector2.ZERO
+var _follow_back_on: bool = false
 var _stealth_avoid_cache: Dictionary = {}
 var _stealth_avoid_msec: int = 0
 var _move_ghost: Line2D = null
@@ -8095,6 +8097,7 @@ func toggle_follow(idx: int) -> void:
 			break
 	if not any_follow:
 		_follow_arrive_on = false
+		_follow_back_on = false
 	if touch_hud and touch_hud.has_method("set_hint"):
 		touch_hud.set_hint("%s %s" % [op.display_name, "跟上" if op.follow_lead else "待命"])
 	_update_hud()
@@ -8112,13 +8115,13 @@ func _tick_squad_follow() -> void:
 		followers.append(op)
 	## Front of the file first so later followers can queue behind them.
 	for op in followers:
+		var oid: int = int(op.op_id)
+		var prev: Vector2i = _follow_dest.get(oid, Vector2i(-99, -99))
 		var want: Vector2i = _follow_anchor_cell(selected, op)
 		if want.x < 0 and _stealth_blocks(op.global_position, op):
 			want = _open_cell_outside_cone(op.grid_cell(), op, _follow_reserved(op))
 		if want.x < 0:
 			continue
-		var oid: int = int(op.op_id)
-		var prev: Vector2i = _follow_dest.get(oid, Vector2i(-99, -99))
 		if selected.is_moving():
 			var locked: Vector2i = _follow_lock.get(oid, Vector2i(-99, -99))
 			if locked.x >= 0 and _follow_settle_ok(locked, op):
@@ -8130,13 +8133,18 @@ func _tick_squad_follow() -> void:
 		else:
 			var locked2: Vector2i = _follow_lock.get(oid, Vector2i(-99, -99))
 			var hold: Vector2i = locked2 if locked2.x >= 0 else prev
-			if hold.x >= 0 and _follow_settle_ok(hold, op):
+			if prev.x >= 0 and op.grid_cell() == prev:
+				## Landed: freeze the cell. No second drop after stop.
+				want = prev
+				_follow_lock[oid] = prev
+			elif hold.x >= 0 and _follow_settle_ok(hold, op):
 				want = hold
 			elif prev.x >= 0 and prev != want:
 				_follow_flip_count += 1
 				_follow_settle_drops += 1
 		_follow_dest[oid] = want
 		if op.grid_cell() == want:
+			_follow_lock[oid] = want
 			continue
 		if op.is_moving() and prev == want:
 			continue
@@ -8186,6 +8194,12 @@ func _follow_lead_world(lead: OperatorUnit) -> Vector2:
 			var new_c: Vector2i = grid.world_to_cell(last)
 			if old_c != new_c:
 				_follow_lock.clear()
+				_follow_back_on = false
+		if not _follow_back_on:
+			var march: Vector2 = last - lead.global_position
+			if march.length() >= 12.0:
+				_follow_back_world = -march.normalized()
+				_follow_back_on = true
 		_follow_arrive_world = last
 		_follow_arrive_on = true
 		return last
@@ -8201,10 +8215,15 @@ func _follow_settle_ok(cell: Vector2i, op: OperatorUnit) -> bool:
 		return false
 	if selected != null and cell == selected.grid_cell():
 		return false
+	if selected != null and cell == _follow_lead_cell(selected):
+		return false
 	if _sentry_blocks_dest(grid.cell_to_world_center(cell)):
 		return false
 	if _cell_is_operable(cell):
 		return false
+	if selected != null and not selected.is_moving():
+		if _friendly_cone_blocks(grid.cell_to_world_center(cell), op):
+			return false
 	return true
 
 
@@ -8214,34 +8233,64 @@ func _follow_lead_cell(lead: OperatorUnit) -> Vector2i:
 	return grid.world_to_cell(_follow_lead_world(lead))
 
 
+func _follow_facing_back(lead: OperatorUnit) -> Vector2:
+	## Prefer the march direction so a last-step detour does not rotate
+	## the file onto the lead's hip.
+	if _follow_back_on and _follow_back_world.length_squared() > 0.01:
+		return _follow_back_world.normalized()
+	var rad := deg_to_rad(lead.facing_deg if lead else 0.0)
+	var back := Vector2(-cos(rad), -sin(rad))
+	if back.length_squared() < 0.01:
+		return Vector2(0, -1)
+	return back.normalized()
+
+
+func _follow_axis_cell(v: Vector2) -> Vector2i:
+	if v.length_squared() < 0.0001:
+		return Vector2i(0, -1)
+	if absf(v.x) >= absf(v.y):
+		return Vector2i(1 if v.x > 0.0 else -1, 0)
+	return Vector2i(0, 1 if v.y > 0.0 else -1)
+
+
+func follow_dest_rear_ok(cell: Vector2i, lead: OperatorUnit) -> bool:
+	if grid == null or lead == null or cell.x < 0:
+		return false
+	var back: Vector2 = _follow_facing_back(lead)
+	var side := Vector2(-back.y, back.x)
+	var rel: Vector2 = grid.cell_to_world_center(cell) - _follow_lead_world(lead)
+	var b := rel.dot(back)
+	var s := absf(rel.dot(side))
+	return b >= 20.0 and s <= b + 20.0
+
+
 func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i:
 	var reserved := _follow_reserved(follower)
 	var slot := _follow_slot_index(lead, follower)
 	var from: Vector2i = follower.grid_cell()
 	var in_cone := _stealth_blocks(follower.global_position, follower)
-	var rad := deg_to_rad(lead.facing_deg)
-	var back := Vector2(-cos(rad), -sin(rad))
-	if back.length_squared() < 0.01:
-		back = Vector2(0, -1)
-	else:
-		back = back.normalized()
+	var back: Vector2 = _follow_facing_back(lead)
 	var side := Vector2(-back.y, back.x)
-	var sign := 1.0 if slot % 2 == 0 else -1.0
 	var lead_w: Vector2 = _follow_lead_world(lead)
 	var lead_c: Vector2i = grid.world_to_cell(lead_w)
+	var back_c: Vector2i = _follow_axis_cell(back)
+	var side_c: Vector2i = Vector2i(-back_c.y, back_c.x)
+	var sign_i := 1 if slot % 2 == 0 else -1
 	var seen := {}
 	var cands: Array[Vector2i] = []
-	## 3 tiles back first so west-alley followers do not pile on the lead's heels.
-	var depths: Array[float] = [96.0, 128.0, 160.0, 192.0]
+	## Straight behind first, then 1-cell left/right stagger. Hip / side-rear last.
+	var depths: Array[int] = [2, 3, 4, 5]
 	if slot > 0:
-		depths = [128.0, 160.0, 192.0, 224.0]
+		depths = [3, 4, 5, 2]
+	var staggers: Array[int] = [0, 1, -1]
+	if slot > 0:
+		staggers = [1, -1, 0, 2, -2]
 	for depth in depths:
-		_follow_push_cand(grid.world_to_cell(lead_w + back * depth + side * (32.0 + 32.0 * float(slot)) * sign), follower, reserved, seen, cands)
-		_follow_push_cand(grid.world_to_cell(lead_w + back * depth), follower, reserved, seen, cands)
-		_follow_push_cand(grid.world_to_cell(lead_w + back * depth + side * 32.0 * -sign), follower, reserved, seen, cands)
+		for st in staggers:
+			_follow_push_cand(lead_c + back_c * depth + side_c * (st * sign_i), follower, reserved, seen, cands)
 	if _follow_in_west(from) and _follow_in_west(lead_c):
-		for dx in [-2, -1, 1, 2]:
-			for dy in [3, 4, 5, 2, -3, -4]:
+		for dx in [-3, -2, -1, 1, 2]:
+			for dy in [3, 4, 5, 2, -2, -3, -4]:
 				_follow_push_cand(Vector2i(lead_c.x + dx, lead_c.y + dy), follower, reserved, seen, cands)
 	var step := Vector2i(
 		0 if from.x == lead_c.x else (1 if lead_c.x > from.x else -1),
@@ -8292,10 +8341,23 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 		if maxi(absi(cell.x - lead_c.x), absi(cell.y - lead_c.y)) < 2:
 			continue
 		var rel: Vector2 = grid.cell_to_world_center(cell) - lead_w
-		var behind := rel.dot(back)
-		var score: int = to_lead * 10 + detour * 18 + plen
-		if behind < -8.0:
-			score += 36
+		var back_m := rel.dot(back)
+		var side_m := absf(rel.dot(side))
+		var score: int = to_lead * 6 + detour * 18 + plen
+		if back_m < 16.0:
+			score += 88
+		elif back_m < 48.0:
+			score += 28
+		if back_m < -8.0:
+			score += 70
+		if side_m > back_m + 16.0:
+			score += 52
+		if slot == 0:
+			score += int(round(maxi(0.0, side_m - 20.0) / 32.0)) * 10
+		else:
+			score += absi(int(round(side_m / 32.0)) - 1) * 6
+		if back_m >= 56.0 and back_m <= 160.0:
+			score -= 16
 		if _follow_on_lead_path(cell):
 			score += 48
 		if slot > 0 and to_lead < 2 + slot:
@@ -8310,7 +8372,7 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 		if in_cone and to_lead < from_lead:
 			score -= 24
 		if _follow_in_west(from) and _follow_in_west(lead_c) and cell.x == lead_c.x:
-			score += 12
+			score += 28
 		if score < best_score:
 			best_score = score
 			best = cell
@@ -8484,6 +8546,9 @@ func _best_follow_cell(want: Vector2i, op: OperatorUnit, reserved: Dictionary) -
 
 func _follow_on_lead_path(cell: Vector2i) -> bool:
 	if selected == null or not selected.is_moving() or grid == null:
+		return false
+	## Cells behind the arrival slot are the formation, not a blockage.
+	if follow_dest_rear_ok(cell, selected):
 		return false
 	for p in selected.move_path:
 		if grid.world_to_cell(p) == cell:
@@ -8924,6 +8989,8 @@ func dump_touch_feel() -> Dictionary:
 		"follow_cheb": follow_min_chebyshev() if has_method("follow_min_chebyshev") else -1,
 		"follow_flips": follow_dest_flips() if has_method("follow_dest_flips") else -1,
 		"follow_settle_drops": follow_settle_drops() if has_method("follow_settle_drops") else -1,
+		"follow_side_rear": follow_side_rear_hits() if has_method("follow_side_rear_hits") else -1,
+		"follow_rear_ok": follow_rear_ok_count() if has_method("follow_rear_ok_count") else -1,
 	}
 
 
@@ -9244,10 +9311,40 @@ func reset_follow_dest_flips() -> void:
 	_follow_settle_drops = 0
 	_follow_lock.clear()
 	_follow_arrive_on = false
+	_follow_back_on = false
+	_follow_back_world = Vector2.ZERO
 
 
 func follow_settle_drops() -> int:
 	return _follow_settle_drops
+
+
+func follow_side_rear_hits() -> int:
+	var n := 0
+	if selected == null:
+		return 0
+	for op in operators:
+		if op == null or op == selected or not bool(op.follow_lead) or not op.alive:
+			continue
+		if not _follow_dest.has(int(op.op_id)):
+			continue
+		if not follow_dest_rear_ok(_follow_dest[int(op.op_id)], selected):
+			n += 1
+	return n
+
+
+func follow_rear_ok_count() -> int:
+	var n := 0
+	if selected == null:
+		return 0
+	for op in operators:
+		if op == null or op == selected or not bool(op.follow_lead) or not op.alive:
+			continue
+		if not _follow_dest.has(int(op.op_id)):
+			continue
+		if follow_dest_rear_ok(_follow_dest[int(op.op_id)], selected):
+			n += 1
+	return n
 
 
 func follow_min_chebyshev() -> int:

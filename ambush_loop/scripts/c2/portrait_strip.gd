@@ -19,8 +19,8 @@ var _hold_fired: bool = false
 var _ignore_pick: bool = false
 var _press_follow: bool = false
 const LONG_MS := 350
-const FOLLOW_CHIP := Vector2(32, 18)
-const FOLLOW_PAD := 2.0
+const FOLLOW_CHIP := Vector2(30, 16)
+const FOLLOW_PAD := 0.0
 
 
 func _ready() -> void:
@@ -114,7 +114,7 @@ func _ready() -> void:
 		b.add_child(st)
 		var fol := Panel.new()
 		fol.name = "Follow"
-		fol.position = Vector2(70, 2)
+		fol.position = Vector2(72, 2)
 		fol.size = FOLLOW_CHIP
 		fol.custom_minimum_size = FOLLOW_CHIP
 		fol.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -156,14 +156,16 @@ func follow_hit_rect(idx: int) -> Rect2:
 	var badge: Rect2 = follow_badge_rect(idx)
 	if badge.size.x < 1.0:
 		return Rect2()
-	var grown: Rect2 = badge.grow(FOLLOW_PAD)
 	var card: Rect2 = card_global_rect(idx)
-	## Pin the chip to the top-right corner. Glyph / name / HP / stance stay pick.
+	## Exact chip, top-right only. Glyph / name / HP / gun / stance stay pick.
 	var zone := Rect2(
-		Vector2(card.position.x + card.size.x * 0.64, card.position.y),
-		Vector2(card.size.x * 0.36, 24.0)
+		Vector2(card.position.x + card.size.x * 0.68, card.position.y),
+		Vector2(card.size.x * 0.32, 18.0)
 	)
-	return grown.intersection(zone)
+	var hit: Rect2 = badge.intersection(zone)
+	if FOLLOW_PAD > 0.0 and hit.size.x > 1.0:
+		hit = hit.grow(FOLLOW_PAD).intersection(zone)
+	return hit
 
 
 func portrait_body_rect(idx: int) -> Rect2:
@@ -184,8 +186,13 @@ func portrait_probe_points(idx: int) -> Dictionary:
 		"name": card.position + Vector2(48, 84),
 		"hp": card.position + Vector2(50, 98),
 		"stance": card.position + Vector2(82, 56),
+		"gun": card.position + Vector2(68, 43),
+		"num": card.position + Vector2(16, 86),
+		"top_left": card.position + Vector2(18, 14),
 		"below_chip": card.position + Vector2(86, 36),
+		"just_below_chip": card.position + Vector2(86, 24),
 		"left_of_chip": card.position + Vector2(56, 12),
+		"inner_left": card.position + Vector2(64, 10),
 		"body": body.get_center() if body.size.x > 1.0 else Vector2.ZERO,
 	}
 	return out

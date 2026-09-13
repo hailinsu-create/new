@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.5.10 — Phone feel: follow files behind the lead, stop land freezes, 跟 probes
+
+Sideload APK: `dist/AmbushLoop-v0.5.10-touch-rear.apk`  
+Release tag: `v0.5.10-touch-rear`
+
+Same RAID as 0.5.9 (`SCOUT → ALERT → SWEEP`, auto fire + auto nade). Phone default stays 简配夜袭.
+
+### Play (phone)
+- **跟上** dests sit behind the lead. Two followers stagger left/right but stay rear; they no longer park on the hip or in front after a side-offset walk.
+- After the lead **stops**, that rear dest freezes for another settle round. Arriving on the land cell does not take a second drop.
+- **三人跟上 + 侧面绕背**: wrap dashed line still ≥4 cells around the sentry body; once the lead is on the back cell, followers file behind.
+- **跟** chip is the 30×16 top-right hit. Glyph / name / HP / gun / stance / below-chip / inner-left taps select, they do not toggle 跟.
+- Forced-touch path covers rear file, stop freeze, three-follow + side wrap, and badge probes.
+
+### Android
+- `versionName` 0.5.10 / `versionCode` 16 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title **v0.5.10 COMMANDOS/WW2**.
+2. Tap **跟** and walk the lead east, then stop: followers stand behind, staggered, they do not line up on the hip.
+3. After they land, they stay on that cell. 绕背 dashed line still wraps the sentry body.
+
 ## 0.5.9 — Phone feel: side 绕背 wraps sentry body, lead-stop formation holds, 跟 probes
 
 Sideload APK: `dist/AmbushLoop-v0.5.9-touch-wrap.apk`  

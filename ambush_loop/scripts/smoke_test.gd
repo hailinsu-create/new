@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.5.9":
+	if ver != "0.5.10":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3404,6 +3404,8 @@ func _assert_simplified_touch(main) -> bool:
 		return false
 	if not await _assert_touch_feel_059(main):
 		return false
+	if not await _assert_touch_feel_0510(main):
+		return false
 	return true
 
 
@@ -4026,6 +4028,140 @@ func _assert_touch_feel_059(main) -> bool:
 	return true
 
 
+func _assert_touch_feel_0510(main) -> bool:
+	## Follow dests sit behind the lead (left/right stagger, not hip),
+	## stop land freezes another round, three-follow + side 绕背, 跟 probes.
+	main._ensure_touch_hud()
+	main._update_hud()
+	await process_frame
+	await process_frame
+	if not await _assert_follow_behind_stagger(main):
+		return false
+	if not await _assert_follow_settle_no_drop(main):
+		return false
+	if not await _assert_three_follow_side_wrap(main):
+		return false
+	if not await _assert_follow_badge_hit(main):
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_0510")
+	return true
+
+
+func _dest_is_rear(main, dest: Vector2i, lead) -> bool:
+	if dest.x < 0 or lead == null:
+		return false
+	if main.has_method("follow_dest_rear_ok"):
+		return bool(main.follow_dest_rear_ok(dest, lead))
+	return false
+
+
+func _assert_follow_behind_stagger(main) -> bool:
+	if main.operators.size() < 3 or main.grid == null:
+		push_error("SMOKE_REAR_NO_OPS")
+		quit(44)
+		return false
+	var lead: OperatorUnit = main.operators[0]
+	var a: OperatorUnit = main.operators[1]
+	var b: OperatorUnit = main.operators[2]
+	var homes: Array[Vector2] = [lead.global_position, a.global_position, b.global_position]
+	var flags: Array[bool] = [bool(a.follow_lead), bool(b.follow_lead)]
+	if main.c2 and not main.c2.sentries.is_empty():
+		_park_sentries(main, null)
+	var lead_c := Vector2i(15, 14)
+	var dest_c := Vector2i(24, 14)
+	var a_c := Vector2i(12, 16)
+	var b_c := Vector2i(12, 18)
+	if main.grid.is_blocked(lead_c.x, lead_c.y) or main._cell_is_operable(lead_c):
+		lead_c = Vector2i(14, 14)
+	if main.grid.is_blocked(dest_c.x, dest_c.y) or main._cell_is_operable(dest_c):
+		dest_c = Vector2i(23, 14)
+	if main.grid.is_blocked(a_c.x, a_c.y):
+		a_c = Vector2i(11, 16)
+	if main.grid.is_blocked(b_c.x, b_c.y):
+		b_c = Vector2i(11, 18)
+	main._select_op(0)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	lead.facing_deg = 0.0
+	if lead.has_method("_rebuild_cone"):
+		lead._rebuild_cone()
+	lead.global_position = main.grid.cell_to_world_center(lead_c)
+	a.global_position = main.grid.cell_to_world_center(a_c)
+	b.global_position = main.grid.cell_to_world_center(b_c)
+	main._stealth_avoid_cache.clear()
+	main._stealth_avoid_msec = 0
+	if not bool(a.follow_lead):
+		main.toggle_follow(1)
+	if not bool(b.follow_lead):
+		main.toggle_follow(2)
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	main._tick_squad_follow()
+	main._command_move_selected(main.grid.cell_to_world_center(dest_c))
+	if not lead.is_moving():
+		push_error("SMOKE_REAR_LEAD_STILL at=%s dest=%s" % [lead.grid_cell(), dest_c])
+		quit(44)
+		return false
+	var walk_d1 := Vector2i(-1, -1)
+	var walk_d2 := Vector2i(-1, -1)
+	for _i in 90:
+		if main.has_method("_tick_command_moves"):
+			main._tick_command_moves(0.05)
+		main._tick_squad_follow()
+		await process_frame
+		if lead.is_moving():
+			walk_d1 = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+			walk_d2 = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+		else:
+			break
+	var stop_d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+	var stop_d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+	for _j in 32:
+		if main.has_method("_tick_command_moves"):
+			main._tick_command_moves(0.05)
+		main._tick_squad_follow()
+		await process_frame
+	var end_d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+	var end_d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+	var side_n := int(main.follow_side_rear_hits()) if main.has_method("follow_side_rear_hits") else 99
+	if walk_d1.x < 0 or walk_d2.x < 0 or walk_d1 == walk_d2:
+		push_error("SMOKE_REAR_WALK_DEST d1=%s d2=%s" % [walk_d1, walk_d2])
+		quit(44)
+		return false
+	if not _dest_is_rear(main, walk_d1, lead) or not _dest_is_rear(main, walk_d2, lead):
+		push_error("SMOKE_REAR_WALK_SIDE d1=%s d2=%s lead=%s" % [walk_d1, walk_d2, lead.grid_cell()])
+		quit(44)
+		return false
+	if end_d1 != stop_d1 or end_d2 != stop_d2:
+		push_error("SMOKE_REAR_DEST_HOP stop=%s %s end=%s %s" % [stop_d1, stop_d2, end_d1, end_d2])
+		quit(44)
+		return false
+	if stop_d1 != walk_d1 or stop_d2 != walk_d2:
+		push_error("SMOKE_REAR_DROP_ON_STOP walk=%s %s stop=%s %s" % [walk_d1, walk_d2, stop_d1, stop_d2])
+		quit(44)
+		return false
+	if side_n > 0:
+		push_error("SMOKE_REAR_SIDE_HITS n=%s d1=%s d2=%s" % [side_n, end_d1, end_d2])
+		quit(44)
+		return false
+	print("SMOKE_OK_FOLLOW_BEHIND d1=", end_d1, " d2=", end_d2, " lead=", lead.grid_cell())
+	if bool(a.follow_lead) != flags[0]:
+		main.toggle_follow(1)
+	if bool(b.follow_lead) != flags[1]:
+		main.toggle_follow(2)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	lead.global_position = homes[0]
+	a.global_position = homes[1]
+	b.global_position = homes[2]
+	main._follow_dest.clear()
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	return true
+
+
 func _assert_flank_side_wrap(main) -> bool:
 	var prompt = main.c2.prompt if main.c2 else null
 	if prompt == null or main.c2.sentries.is_empty() or main.operators.is_empty():
@@ -4168,7 +4304,7 @@ func _assert_follow_settle_no_drop(main) -> bool:
 			break
 	var stop_d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
 	var stop_d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
-	for _j in 24:
+	for _j in 40:
 		if main.has_method("_tick_command_moves"):
 			main._tick_command_moves(0.05)
 		main._tick_squad_follow()
@@ -4192,6 +4328,10 @@ func _assert_follow_settle_no_drop(main) -> bool:
 		return false
 	if drops > 0:
 		push_error("SMOKE_SETTLE_DROPS n=%s d1=%s d2=%s" % [drops, end_d1, end_d2])
+		quit(44)
+		return false
+	if not _dest_is_rear(main, end_d1, lead) or not _dest_is_rear(main, end_d2, lead):
+		push_error("SMOKE_SETTLE_NOT_REAR d1=%s d2=%s lead=%s" % [end_d1, end_d2, lead.grid_cell()])
 		quit(44)
 		return false
 	print("SMOKE_OK_FOLLOW_SETTLE d1=", end_d1, " d2=", end_d2, " lead=", lead.grid_cell())
@@ -4274,6 +4414,20 @@ func _assert_three_follow_side_wrap(main) -> bool:
 		quit(44)
 		return false
 	await process_frame
+	for _w in 40:
+		if main.has_method("_tick_command_moves"):
+			main._tick_command_moves(0.05)
+		await process_frame
+		if not lead.is_moving():
+			break
+	lead.stop_move()
+	if dump.has("dest") and typeof(dump.get("dest")) == TYPE_VECTOR2I:
+		var back_c: Vector2i = dump.get("dest")
+		if back_c.x >= 0:
+			lead.global_position = main.grid.cell_to_world_center(back_c)
+	lead.facing_deg = 0.0
+	if lead.has_method("_rebuild_cone"):
+		lead._rebuild_cone()
 	if not bool(a.follow_lead):
 		if main.has_method("simulate_follow_badge"):
 			main.simulate_follow_badge(1)
@@ -4284,6 +4438,8 @@ func _assert_three_follow_side_wrap(main) -> bool:
 			main.simulate_follow_badge(2)
 		else:
 			main.toggle_follow(2)
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
 	main._tick_squad_follow()
 	await _tick_follow_steps(main, 24)
 	var d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
@@ -4295,6 +4451,10 @@ func _assert_three_follow_side_wrap(main) -> bool:
 	var cone := int(main.follow_cone_hits()) if main.has_method("follow_cone_hits") else 99
 	if cone > 0:
 		push_error("SMOKE_THREE_WRAP_FOLLOW_CONE n=%s d1=%s d2=%s" % [cone, d1, d2])
+		quit(44)
+		return false
+	if not _dest_is_rear(main, d1, lead) or not _dest_is_rear(main, d2, lead):
+		push_error("SMOKE_THREE_WRAP_NOT_REAR d1=%s d2=%s lead=%s" % [d1, d2, lead.grid_cell()])
 		quit(44)
 		return false
 	print(
@@ -4715,7 +4875,10 @@ func _assert_follow_badge_hit(main) -> bool:
 		return false
 	if strip.has_method("portrait_probe_points"):
 		var probes: Dictionary = strip.portrait_probe_points(1)
-		for key in ["glyph", "name", "hp", "stance", "below_chip", "left_of_chip"]:
+		for key in [
+			"glyph", "name", "hp", "stance", "below_chip", "left_of_chip",
+			"gun", "num", "top_left", "just_below_chip", "inner_left",
+		]:
 			if not probes.has(key):
 				continue
 			var pt: Vector2 = probes[key]
