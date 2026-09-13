@@ -46,7 +46,8 @@ func _draw() -> void:
 		return
 	var pulse := 0.55 + 0.45 * sin(Time.get_ticks_msec() * 0.008)
 	var col := Color(0.92, 0.82, 0.28, 0.55 + 0.35 * pulse)
-	draw_line(Vector2(-8, -8), Vector2(8, 8), col, 2.2, true)
-	draw_line(Vector2(8, -8), Vector2(-8, 8), col, 2.2, true)
-	draw_arc(Vector2.ZERO, 11.0, 0.0, TAU, 18, Color(col.r, col.g, col.b, 0.35), 1.2, true)
-	draw_circle(Vector2.ZERO, 2.2, col)
+	draw_line(Vector2(-10, -10), Vector2(10, 10), col, 2.4, true)
+	draw_line(Vector2(10, -10), Vector2(-10, 10), col, 2.4, true)
+	draw_arc(Vector2.ZERO, 13.0, 0.0, TAU, 18, Color(col.r, col.g, col.b, 0.35), 1.2, true)
+	draw_circle(Vector2.ZERO, 2.4, col)
+	draw_line(Vector2(0, -18), Vector2(0, -13), col, 1.4, true)
