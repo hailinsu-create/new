@@ -17,6 +17,7 @@ const FOLLOW_DEST_PAD_DEG := 22.0
 const FOLLOW_FRIEND_PAD_R := 28.0
 const FOLLOW_FRIEND_PAD_DEG := 14.0
 const FOLLOW_MAX_DETOUR := 6
+const FOLLOW_LOCAL_DETOUR := 3
 const PROGRESS_PATH := "user://ambush_loop.cfg"
 const LEVEL_ORDER := ["yard", "warehouse", "pump", "railcut", "depot", "radio"]
 const SfxBusScript := preload("res://scripts/sfx/sfx_bus.gd")
@@ -7797,10 +7798,10 @@ func _tick_squad_follow() -> void:
 		if op.is_moving() and prev == want:
 			continue
 		var cells: Array[Vector2i] = stealth_path_cells(op.grid_cell(), want, op)
-		if cells.size() < 2 and _stealth_blocks(op.global_position, op):
-			var exit_c: Vector2i = _open_cell_outside_cone(op.grid_cell(), op, _follow_reserved(op))
-			if exit_c.x >= 0:
-				cells = stealth_path_cells(op.grid_cell(), exit_c, op)
+		if cells.size() < 2 or _follow_next_blocked(cells, op):
+			var bypass: Array[Vector2i] = _follow_local_bypass(op.grid_cell(), want, op)
+			if bypass.size() >= 2:
+				cells = bypass
 		if cells.size() < 2:
 			continue
 		if _follow_next_blocked(cells, op):
@@ -7837,10 +7838,6 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 	var slot := _follow_slot_index(lead, follower)
 	var from: Vector2i = follower.grid_cell()
 	var in_cone := _stealth_blocks(follower.global_position, follower)
-	if in_cone:
-		var exit_c: Vector2i = _open_cell_outside_cone(from, follower, reserved)
-		if exit_c.x >= 0:
-			return exit_c
 	var rad := deg_to_rad(lead.facing_deg)
 	var back := Vector2(-cos(rad), -sin(rad))
 	if back.length_squared() < 0.01:
@@ -7852,13 +7849,18 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 	var lead_c: Vector2i = lead.grid_cell()
 	var seen := {}
 	var cands: Array[Vector2i] = []
-	var depths: Array[float] = [64.0, 96.0, 128.0, 160.0]
+	## 3 tiles back first so west-alley followers do not pile on the lead's heels.
+	var depths: Array[float] = [96.0, 128.0, 160.0, 192.0]
 	if slot > 0:
-		depths = [96.0, 128.0, 160.0, 192.0]
+		depths = [128.0, 160.0, 192.0, 224.0]
 	for depth in depths:
 		_follow_push_cand(grid.world_to_cell(lead.global_position + back * depth + side * (32.0 + 32.0 * float(slot)) * sign), follower, reserved, seen, cands)
 		_follow_push_cand(grid.world_to_cell(lead.global_position + back * depth), follower, reserved, seen, cands)
 		_follow_push_cand(grid.world_to_cell(lead.global_position + back * depth + side * 32.0 * -sign), follower, reserved, seen, cands)
+	if _follow_in_west(from) and _follow_in_west(lead_c):
+		for dx in [-2, -1, 1, 2]:
+			for dy in [3, 4, 5, 2, -3, -4]:
+				_follow_push_cand(Vector2i(lead_c.x + dx, lead_c.y + dy), follower, reserved, seen, cands)
 	var step := Vector2i(
 		0 if from.x == lead_c.x else (1 if lead_c.x > from.x else -1),
 		0 if from.y == lead_c.y else (1 if lead_c.y > from.y else -1)
@@ -7883,8 +7885,13 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 		for dx in range(-r, r + 1):
 			for dy in range(-r, r + 1):
 				_follow_push_cand(Vector2i(from.x + dx, from.y + dy), follower, reserved, seen, cands)
+	if in_cone:
+		var exit_c: Vector2i = _open_cell_outside_cone(from, follower, reserved)
+		if exit_c.x >= 0:
+			_follow_push_cand(exit_c, follower, reserved, seen, cands)
 	var best := Vector2i(-1, -1)
 	var best_score := 999999
+	var from_lead: int = absi(from.x - lead_c.x) + absi(from.y - lead_c.y)
 	for cell in cands:
 		var path: Array[Vector2i] = stealth_path_cells(from, cell, follower)
 		if cell != from and path.size() < 2:
@@ -7892,10 +7899,15 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 		var plen: int = path.size() if path.size() >= 2 else 1
 		var manh: int = absi(from.x - cell.x) + absi(from.y - cell.y)
 		var detour: int = maxi(0, plen - manh - 1)
-		if detour > FOLLOW_MAX_DETOUR and not in_cone:
+		if detour > FOLLOW_MAX_DETOUR:
+			continue
+		if _follow_path_leaves_west(path, from, cell) and lead_c.x <= 12:
 			continue
 		var to_lead: int = absi(cell.x - lead_c.x) + absi(cell.y - lead_c.y)
-		if to_lead < 2:
+		var min_lead := 3 if _follow_in_west(from) and _follow_in_west(lead_c) else 2
+		if to_lead < min_lead:
+			continue
+		if maxi(absi(cell.x - lead_c.x), absi(cell.y - lead_c.y)) < 2:
 			continue
 		var rel: Vector2 = grid.cell_to_world_center(cell) - lead.global_position
 		var behind := rel.dot(back)
@@ -7906,10 +7918,15 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 			score += 20
 		if from.x <= 12 and lead_c.x <= 12 and cell.x > 12:
 			score += 80
-		if from.x <= 8 and cell.x > 10 and detour >= 3:
-			score += 60
-		if _follow_path_leaves_west(path, from, cell):
-			score += 70
+		## Long wraps only. A 2–3 cell local detour toward an east lead is allowed.
+		if from.x <= 8 and lead_c.x <= 10 and cell.x > 10 and detour >= 4:
+			score += 80
+		if lead_c.x >= from.x + 3 and cell.x > from.x:
+			score -= 16
+		if in_cone and to_lead < from_lead:
+			score -= 24
+		if _follow_in_west(from) and _follow_in_west(lead_c) and cell.x == lead_c.x:
+			score += 12
 		if score < best_score:
 			best_score = score
 			best = cell
@@ -7942,6 +7959,20 @@ func _follow_path_leaves_west(path: Array[Vector2i], from: Vector2i, to: Vector2
 	return false
 
 
+func _follow_in_west(cell: Vector2i) -> bool:
+	return cell.x <= 10
+
+
+func _follow_gap_ok(a: Vector2i, b: Vector2i, west: bool) -> bool:
+	var md := absi(a.x - b.x) + absi(a.y - b.y)
+	var cd := maxi(absi(a.x - b.x), absi(a.y - b.y))
+	if md < (3 if west else 2):
+		return false
+	if cd < 2:
+		return false
+	return true
+
+
 func _follow_next_blocked(cells: Array[Vector2i], op: OperatorUnit) -> bool:
 	if cells.size() < 2:
 		return false
@@ -7955,6 +7986,97 @@ func _ally_occupies(cell: Vector2i, except_op: OperatorUnit) -> bool:
 		if op.grid_cell() == cell:
 			return true
 	return false
+
+
+func _follow_local_bypass(from: Vector2i, dest: Vector2i, op: OperatorUnit) -> Array[Vector2i]:
+	## 2–3 cell sidestep around an ally or cone corner. Do not idle-wait.
+	var empty: Array[Vector2i] = []
+	if grid == null or from == dest:
+		return empty
+	var lead_c: Vector2i = selected.grid_cell() if selected else dest
+	var start_in := _stealth_blocks(grid.cell_to_world_center(from), op)
+	var dirs: Array[Vector2i] = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
+	var came := {}
+	var dist := {}
+	dist[from] = 0
+	var open: Array[Vector2i] = [from]
+	var best := Vector2i(-1, -1)
+	var best_score := 999999
+	var qi := 0
+	var from_lead := absi(from.x - lead_c.x) + absi(from.y - lead_c.y)
+	var from_dest := absi(from.x - dest.x) + absi(from.y - dest.y)
+	while qi < open.size():
+		var cur: Vector2i = open[qi]
+		qi += 1
+		var steps: int = int(dist[cur])
+		if steps >= 1 and _follow_bypass_land_ok(cur, op):
+			var to_lead := absi(cur.x - lead_c.x) + absi(cur.y - lead_c.y)
+			var to_dest := absi(cur.x - dest.x) + absi(cur.y - dest.y)
+			var progressed := to_lead < from_lead or to_dest < from_dest
+			var score: int = steps * 10 + to_lead * 8 + to_dest
+			if not progressed:
+				score += 28
+			if _follow_in_west(from) and _follow_in_west(lead_c) and cur.x > 12:
+				score += 80
+			if score < best_score:
+				best_score = score
+				best = cur
+		if steps >= FOLLOW_LOCAL_DETOUR:
+			continue
+		for d in dirs:
+			var n: Vector2i = cur + d
+			if dist.has(n):
+				continue
+			if not _follow_bypass_step_ok(n, op, start_in, dest):
+				continue
+			dist[n] = steps + 1
+			came[n] = cur
+			open.append(n)
+	if best.x < 0:
+		return empty
+	return _follow_rebuild_bypass(came, best, from)
+
+
+func _follow_bypass_land_ok(cell: Vector2i, op: OperatorUnit) -> bool:
+	if not RaidPathfinderScript.walkable(grid, cell):
+		return false
+	if selected != null and cell == selected.grid_cell():
+		return false
+	if _ally_occupies(cell, op):
+		return false
+	if _cell_is_operable(cell):
+		return false
+	if _follow_hugs_cone(cell, op):
+		return false
+	return true
+
+
+func _follow_bypass_step_ok(n: Vector2i, op: OperatorUnit, start_in: bool, dest: Vector2i) -> bool:
+	if not RaidPathfinderScript.walkable(grid, n):
+		return false
+	if selected != null and n == selected.grid_cell():
+		return false
+	if n != dest and _ally_occupies(n, op):
+		return false
+	if _cell_is_operable(n):
+		return false
+	var w: Vector2 = grid.cell_to_world_center(n)
+	if _stealth_blocks(w, op) and not start_in:
+		return false
+	return true
+
+
+func _follow_rebuild_bypass(came: Dictionary, cur: Vector2i, origin: Vector2i) -> Array[Vector2i]:
+	var path: Array[Vector2i] = [cur]
+	var guard := 0
+	while came.has(cur) and guard < 8:
+		guard += 1
+		cur = came[cur]
+		path.append(cur)
+	path.reverse()
+	if path.is_empty() or path[0] != origin:
+		path.insert(0, origin)
+	return path
 
 
 func _best_follow_cell(want: Vector2i, op: OperatorUnit, reserved: Dictionary) -> Vector2i:
@@ -7991,7 +8113,8 @@ func _follow_cell_ok(cell: Vector2i, op: OperatorUnit, reserved: Dictionary) -> 
 func _follow_spread_ok(cell: Vector2i, op: OperatorUnit) -> bool:
 	if selected != null:
 		var lc: Vector2i = selected.grid_cell()
-		if absi(cell.x - lc.x) + absi(cell.y - lc.y) < 2:
+		var west := _follow_in_west(cell) or _follow_in_west(lc)
+		if not _follow_gap_ok(cell, lc, west):
 			return false
 	for other in operators:
 		if other == null or other == op or not other.alive or not bool(other.follow_lead):
@@ -7999,7 +8122,8 @@ func _follow_spread_ok(cell: Vector2i, op: OperatorUnit) -> bool:
 		if not _follow_dest.has(int(other.op_id)):
 			continue
 		var d: Vector2i = _follow_dest[int(other.op_id)]
-		if absi(cell.x - d.x) + absi(cell.y - d.y) < 2:
+		var west2 := _follow_in_west(cell) or _follow_in_west(d)
+		if not _follow_gap_ok(cell, d, west2):
 			return false
 	return true
 
@@ -8365,6 +8489,8 @@ func dump_touch_feel() -> Dictionary:
 		"follow_cone_hits": follow_cone_hits() if has_method("follow_cone_hits") else -1,
 		"follow_rim_hits": follow_rim_hits() if has_method("follow_rim_hits") else -1,
 		"follow_max_detour": follow_max_detour() if has_method("follow_max_detour") else -1,
+		"follow_idle": follow_idle_waits() if has_method("follow_idle_waits") else -1,
+		"follow_cheb": follow_min_chebyshev() if has_method("follow_min_chebyshev") else -1,
 	}
 
 
@@ -8611,6 +8737,42 @@ func follow_max_detour() -> int:
 		if detour > worst:
 			worst = detour
 	return worst
+
+
+func follow_idle_waits() -> int:
+	var n := 0
+	for op in operators:
+		if op == null or not bool(op.follow_lead) or not op.alive:
+			continue
+		if not _follow_dest.has(int(op.op_id)):
+			continue
+		if _follow_dest[int(op.op_id)] == op.grid_cell():
+			continue
+		if op.is_moving():
+			continue
+		n += 1
+	return n
+
+
+func follow_min_chebyshev() -> int:
+	var cells: Array[Vector2i] = []
+	if selected:
+		cells.append(selected.grid_cell())
+	for op in operators:
+		if op == null or op == selected or not bool(op.follow_lead) or not op.alive:
+			continue
+		if _follow_dest.has(int(op.op_id)):
+			cells.append(_follow_dest[int(op.op_id)])
+		else:
+			cells.append(op.grid_cell())
+	if cells.size() < 2:
+		return 99
+	var best := 99
+	for i in cells.size():
+		for j in range(i + 1, cells.size()):
+			var c := maxi(absi(cells[i].x - cells[j].x), absi(cells[i].y - cells[j].y))
+			best = mini(best, c)
+	return best
 
 
 func _tick_command_moves(delta: float) -> void:

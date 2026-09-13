@@ -2,7 +2,8 @@
 
 Delivered build:
 
-- `AmbushLoop-v0.5.6-touch-queue.apk` — Godot 4.7.2 debug, arm64, phone feel: follow dest rim, west-alley queue, 开匣→绕背→跟上. Same RAID as 0.5.5.
+- `AmbushLoop-v0.5.7-touch-detour.apk` — Godot 4.7.2 debug, arm64, phone feel: short 2–3 cell follow detour, west-alley spacing, 开匣→绕背→跟上. Same RAID as 0.5.6.
+- `AmbushLoop-v0.5.6-touch-queue.apk` — follow dest rim, west-alley queue (superseded for phone feel).
 - `AmbushLoop-v0.5.5-touch-outside.apk` — follow stays outside 射界, 射界 ink hidden (superseded for phone feel).
 - `AmbushLoop-v0.5.4-touch-clear.apk` — crate names off, 绕背 clears west court, follow spacing (superseded for phone feel).
 - `AmbushLoop-v0.5.3-touch-smooth.apk` — north world ink, cone-avoid 绕背/跟上, tighter hotspots, yard-loop taps (superseded for phone feel).

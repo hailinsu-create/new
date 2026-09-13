@@ -1,7 +1,7 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.6 phone feel: follow dest rim margin,
-## west-alley 3-follow queues, 西匣开匣 → 绕背 → 三人跟上.
+## Forced-touch HUD stills for v0.5.7 phone feel: short 2–3 cell detour,
+## west-alley 3-follow spacing, 西匣开匣 → 绕背 → 三人跟上.
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
@@ -152,6 +152,7 @@ func _run() -> void:
 		await _save("05d_west_flank_path")
 		op.stop_move()
 		await _walk_west_combo_follow(main)
+		await _walk_short_detour(main)
 
 	await _walk_yard_loop(main)
 
@@ -296,10 +297,104 @@ func _walk_west_combo_follow(main) -> void:
 		" cone=", int(main.follow_cone_hits()) if main.has_method("follow_cone_hits") else -1,
 		" rim=", int(main.follow_rim_hits()) if main.has_method("follow_rim_hits") else -1,
 		" detour=", int(main.follow_max_detour()) if main.has_method("follow_max_detour") else -1,
+		" idle=", int(main.follow_idle_waits()) if main.has_method("follow_idle_waits") else -1,
+		" cheb=", int(main.follow_min_chebyshev()) if main.has_method("follow_min_chebyshev") else -1,
 		" d1=", main._follow_dest.get(int(a.op_id), Vector2i(-1, -1)),
 		" d2=", main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
 	)
 	await _save("08_west_combo_follow")
+	if bool(a.follow_lead):
+		main.toggle_follow(1)
+	if bool(b.follow_lead):
+		main.toggle_follow(2)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	main._follow_dest.clear()
+	main._pending_flank = null
+
+
+func _walk_short_detour(main) -> void:
+	if main.operators.size() < 3 or main.grid == null or main.c2 == null or main.c2.sentries.is_empty():
+		return
+	var lead = main.operators[0]
+	var a = main.operators[1]
+	var b = main.operators[2]
+	var sent = main.c2.sentries[0]
+	var i := 1
+	for s in main.c2.sentries:
+		if s == null or s == sent:
+			continue
+		s.global_position = main.grid.cell_to_world_center(Vector2i(32, 6 + i))
+		s.facing_deg = 0.0
+		i += 1
+	var lead_c := Vector2i(12, 12)
+	var sent_c := Vector2i(9, 12)
+	if main.grid.is_blocked(lead_c.x, lead_c.y) or (main.has_method("_cell_is_operable") and bool(main._cell_is_operable(lead_c))):
+		lead_c = Vector2i(12, 13)
+	if main.grid.is_blocked(sent_c.x, sent_c.y):
+		sent_c = Vector2i(9, 13)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	main._select_op(0)
+	lead.facing_deg = 0.0
+	if lead.has_method("_rebuild_cone"):
+		lead._rebuild_cone()
+	lead.global_position = main.grid.cell_to_world_center(lead_c)
+	sent.global_position = main.grid.cell_to_world_center(sent_c)
+	sent.facing_deg = 180.0
+	sent.route = PackedVector2Array([sent.global_position])
+	sent.route_i = 0
+	sent.frozen = true
+	if sent.has_method("_rebuild_cone"):
+		sent._rebuild_cone()
+	var a_c := Vector2i(6, 14)
+	var b_c := Vector2i(6, 16)
+	if main.grid.is_blocked(a_c.x, a_c.y):
+		a_c = Vector2i(5, 14)
+	if main.grid.is_blocked(b_c.x, b_c.y):
+		b_c = Vector2i(5, 16)
+	a.global_position = main.grid.cell_to_world_center(a_c)
+	b.global_position = main.grid.cell_to_world_center(b_c)
+	if main.has_method("simulate_follow_badge"):
+		if not bool(a.follow_lead):
+			main.simulate_follow_badge(1)
+		if not bool(b.follow_lead):
+			main.simulate_follow_badge(2)
+	if main.has_method("_tick_squad_follow"):
+		main._tick_squad_follow()
+	var frames := 0
+	while frames < 80:
+		if main.has_method("_tick_command_moves"):
+			main._tick_command_moves(0.05)
+		if main.has_method("_tick_squad_follow"):
+			main._tick_squad_follow()
+		await process_frame
+		frames += 1
+		var busy := false
+		for opx in main.operators:
+			if opx and opx.is_moving():
+				busy = true
+				break
+		if not busy and frames > 10:
+			break
+	main._update_hud()
+	await _settle(6)
+	_dump_feel(main, "short_detour")
+	print(
+		"DUMP_SHORT_DETOUR dest=", snapped(float(main.follow_dest_min_spacing()) if main.has_method("follow_dest_min_spacing") else -1.0, 0.1),
+		" live=", snapped(float(main.follow_min_spacing()) if main.has_method("follow_min_spacing") else -1.0, 0.1),
+		" cone=", int(main.follow_cone_hits()) if main.has_method("follow_cone_hits") else -1,
+		" rim=", int(main.follow_rim_hits()) if main.has_method("follow_rim_hits") else -1,
+		" detour=", int(main.follow_max_detour()) if main.has_method("follow_max_detour") else -1,
+		" idle=", int(main.follow_idle_waits()) if main.has_method("follow_idle_waits") else -1,
+		" cheb=", int(main.follow_min_chebyshev()) if main.has_method("follow_min_chebyshev") else -1,
+		" a=", a.grid_cell(), " b=", b.grid_cell(),
+		" d1=", main._follow_dest.get(int(a.op_id), Vector2i(-1, -1)),
+		" d2=", main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+	)
+	await _save("08b_short_detour")
 	if bool(a.follow_lead):
 		main.toggle_follow(1)
 	if bool(b.follow_lead):
@@ -389,6 +484,8 @@ func _walk_three_follow(main) -> void:
 		" cone=", int(main.follow_cone_hits()) if main.has_method("follow_cone_hits") else -1,
 		" rim=", int(main.follow_rim_hits()) if main.has_method("follow_rim_hits") else -1,
 		" detour=", int(main.follow_max_detour()) if main.has_method("follow_max_detour") else -1,
+		" idle=", int(main.follow_idle_waits()) if main.has_method("follow_idle_waits") else -1,
+		" cheb=", int(main.follow_min_chebyshev()) if main.has_method("follow_min_chebyshev") else -1,
 		" operable=", int(main.follow_operable_hits()) if main.has_method("follow_operable_hits") else -1,
 		" d1=", main._follow_dest.get(int(a.op_id), Vector2i(-1, -1)),
 		" d2=", main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))

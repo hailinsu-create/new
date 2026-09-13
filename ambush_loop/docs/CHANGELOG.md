@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.5.7 — Phone feel: short 2–3 cell detour, west-alley spacing, 开匣→绕背→跟上
+
+Sideload APK: `dist/AmbushLoop-v0.5.7-touch-detour.apk`  
+Release tag: `v0.5.7-touch-detour`
+
+Same RAID as 0.5.6 (`SCOUT → ALERT → SWEEP`, auto fire + auto nade). Phone default stays 简配夜袭.
+
+### Play (phone)
+- **跟上** no longer idle-waits at the west alley when the lead is east of a cone. A 2–3 cell local sidestep around the cone / a teammate is allowed; courtyard wraps are still rejected.
+- West-court three-person **跟上** keeps a one-cell gap (chebyshev ≥ 2, ~3 tiles in the alley) instead of stacking on the lead's heels.
+- Forced-touch path is still one story: west **开匣** → **绕背** → three-person **跟上**, now covering the wait and crowd cases.
+- Crowded west-alley taps still do not body-select a stacked teammate or fire **开匣**.
+
+### Android
+- `versionName` 0.5.7 / `versionCode` 13 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title **v0.5.7 COMMANDOS/WW2**.
+2. Lead east of a yellow cone, followers in the west alley: they walk a short detour, they do not freeze.
+3. West alley, three **跟上**: dests stay a cell apart, they do not pile on the same tile.
+
 ## 0.5.6 — Phone feel: follow dest rim, west-alley queue, 开匣→绕背→跟上
 
 Sideload APK: `dist/AmbushLoop-v0.5.6-touch-queue.apk`  

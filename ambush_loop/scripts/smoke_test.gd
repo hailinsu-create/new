@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.5.6":
+	if ver != "0.5.7":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3398,6 +3398,8 @@ func _assert_simplified_touch(main) -> bool:
 		return false
 	if not await _assert_touch_feel_056(main):
 		return false
+	if not await _assert_touch_feel_057(main):
+		return false
 	return true
 
 
@@ -3963,6 +3965,189 @@ func _assert_touch_feel_056(main) -> bool:
 	return true
 
 
+func _assert_touch_feel_057(main) -> bool:
+	## Short 2–3 cell detour instead of idle-wait, tighter west-alley spacing,
+	## 开匣→绕背→三人跟上 still one path, stacked-body mis-tap.
+	main._ensure_touch_hud()
+	main._update_hud()
+	await process_frame
+	await process_frame
+	if not await _assert_follow_short_detour(main):
+		return false
+	if not await _assert_west_follow_queue(main):
+		return false
+	if not await _assert_west_combo_touch(main):
+		return false
+	if not await _assert_west_stack_tap(main):
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_057")
+	return true
+
+
+func _assert_follow_short_detour(main) -> bool:
+	## Leader east of a west-facing cone; followers in the west alley must take a
+	## 2–3 cell local detour toward the lead instead of stepping out and idling.
+	if main.operators.size() < 3 or main.c2 == null or main.c2.sentries.is_empty():
+		push_error("SMOKE_SHORT_DETOUR_NO_OPS")
+		quit(44)
+		return false
+	var lead: OperatorUnit = main.operators[0]
+	var a: OperatorUnit = main.operators[1]
+	var b: OperatorUnit = main.operators[2]
+	var sent = main.c2.sentries[0]
+	var homes: Array[Vector2] = [lead.global_position, a.global_position, b.global_position]
+	var flags: Array[bool] = [bool(a.follow_lead), bool(b.follow_lead)]
+	var sent_home: Vector2 = sent.global_position
+	var sent_face: float = float(sent.facing_deg)
+	_park_sentries(main, sent)
+	var sent_c := Vector2i(9, 12)
+	var lead_c := Vector2i(12, 12)
+	var a_c := Vector2i(6, 14)
+	var b_c := Vector2i(6, 16)
+	if main.grid.is_blocked(sent_c.x, sent_c.y):
+		sent_c = Vector2i(9, 13)
+	if main.grid.is_blocked(lead_c.x, lead_c.y) or main._cell_is_operable(lead_c):
+		lead_c = Vector2i(12, 13)
+	if main.grid.is_blocked(a_c.x, a_c.y):
+		a_c = Vector2i(5, 14)
+	if main.grid.is_blocked(b_c.x, b_c.y):
+		b_c = Vector2i(5, 16)
+	main._select_op(0)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	lead.facing_deg = 0.0
+	if lead.has_method("_rebuild_cone"):
+		lead._rebuild_cone()
+	lead.global_position = main.grid.cell_to_world_center(lead_c)
+	a.global_position = main.grid.cell_to_world_center(a_c)
+	b.global_position = main.grid.cell_to_world_center(b_c)
+	sent.global_position = main.grid.cell_to_world_center(sent_c)
+	sent.facing_deg = 180.0
+	_freeze_sentry(sent)
+	main._stealth_avoid_cache.clear()
+	main._stealth_avoid_msec = 0
+	if not bool(a.follow_lead):
+		main.toggle_follow(1)
+	if not bool(b.follow_lead):
+		main.toggle_follow(2)
+	main._tick_squad_follow()
+	await _tick_follow_steps(main, 24)
+	var d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+	var d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+	if d1.x < 0 or d2.x < 0 or d1 == d2:
+		push_error("SMOKE_SHORT_DETOUR_DEST d1=%s d2=%s" % [d1, d2])
+		quit(44)
+		return false
+	if d1.x < 9 and d2.x < 9:
+		push_error("SMOKE_SHORT_DETOUR_WAIT_WEST d1=%s d2=%s a=%s b=%s" % [d1, d2, a.grid_cell(), b.grid_cell()])
+		quit(44)
+		return false
+	if a.grid_cell() == a_c and b.grid_cell() == b_c and not a.is_moving() and not b.is_moving():
+		push_error("SMOKE_SHORT_DETOUR_IDLE_START a=%s b=%s dest=%s %s" % [a.grid_cell(), b.grid_cell(), d1, d2])
+		quit(44)
+		return false
+	var idle := int(main.follow_idle_waits()) if main.has_method("follow_idle_waits") else 99
+	if idle > 0:
+		push_error("SMOKE_SHORT_DETOUR_IDLE n=%s a=%s/%s b=%s/%s" % [idle, a.grid_cell(), d1, b.grid_cell(), d2])
+		quit(44)
+		return false
+	var detour := int(main.follow_max_detour()) if main.has_method("follow_max_detour") else 99
+	if detour > 3:
+		push_error("SMOKE_SHORT_DETOUR_LONG n=%s d1=%s d2=%s" % [detour, d1, d2])
+		quit(44)
+		return false
+	var cone := int(main.follow_cone_hits()) if main.has_method("follow_cone_hits") else 99
+	var rim := int(main.follow_rim_hits()) if main.has_method("follow_rim_hits") else 99
+	if cone > 0 or rim > 0:
+		push_error("SMOKE_SHORT_DETOUR_CONE cone=%s rim=%s d1=%s d2=%s" % [cone, rim, d1, d2])
+		quit(44)
+		return false
+	print("SMOKE_OK_FOLLOW_SHORT_DETOUR d1=", d1, " d2=", d2, " a=", a.grid_cell(), " b=", b.grid_cell(), " detour=", detour)
+	if bool(a.follow_lead) != flags[0]:
+		main.toggle_follow(1)
+	if bool(b.follow_lead) != flags[1]:
+		main.toggle_follow(2)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	lead.global_position = homes[0]
+	a.global_position = homes[1]
+	b.global_position = homes[2]
+	sent.global_position = sent_home
+	sent.facing_deg = sent_face
+	sent.frozen = false
+	if sent.has_method("_rebuild_cone"):
+		sent._rebuild_cone()
+	main._follow_dest.clear()
+	main._pending_flank = null
+	return true
+
+
+func _assert_west_stack_tap(main) -> bool:
+	## Crowded west alley: tapping a follower's body must not steal selection
+	## or fire 开匣; tapping a clear cell still walks.
+	if main.operators.size() < 3 or main.grid == null:
+		push_error("SMOKE_STACK_TAP_NO_OPS")
+		quit(44)
+		return false
+	var lead: OperatorUnit = main.operators[0]
+	var a: OperatorUnit = main.operators[1]
+	var b: OperatorUnit = main.operators[2]
+	var homes: Array[Vector2] = [lead.global_position, a.global_position, b.global_position]
+	var prompt = main.c2.prompt if main.c2 else null
+	if main.c2 and not main.c2.sentries.is_empty():
+		_park_sentries(main, null)
+	var lead_c := Vector2i(7, 15)
+	var a_c := Vector2i(6, 16)
+	var b_c := Vector2i(8, 16)
+	if main.grid.is_blocked(lead_c.x, lead_c.y) or main._cell_is_operable(lead_c):
+		lead_c = Vector2i(7, 16)
+	main._select_op(0)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	if lead.has_method("cancel_search"):
+		lead.cancel_search()
+	lead.global_position = main.grid.cell_to_world_center(lead_c)
+	a.global_position = main.grid.cell_to_world_center(a_c)
+	b.global_position = main.grid.cell_to_world_center(b_c)
+	if prompt:
+		prompt.refresh_now()
+	await process_frame
+	main.simulate_touch_tap(a.global_position)
+	await process_frame
+	if main.selected != lead:
+		push_error("SMOKE_STACK_TAP_BODY_SELECT got=%s" % (main.selected.display_name if main.selected else "null"))
+		quit(44)
+		return false
+	if prompt and bool(prompt.has_caption("开匣")):
+		push_error("SMOKE_STACK_TAP_CRATE caps=%s" % " ".join(prompt.visible_captions()))
+		quit(44)
+		return false
+	lead.stop_move()
+	var walk_c := Vector2i(8, 14)
+	if main.grid.is_blocked(walk_c.x, walk_c.y) or main._cell_is_operable(walk_c):
+		walk_c = Vector2i(7, 17)
+	main.simulate_touch_tap(main.grid.cell_to_world_center(walk_c))
+	await process_frame
+	var gest := str(main._last_touch_gesture)
+	if gest != "tap" and gest != "sprint":
+		push_error("SMOKE_STACK_TAP_WALK_GESTURE got=%s" % gest)
+		quit(44)
+		return false
+	print("SMOKE_OK_WEST_STACK_TAP gest=", gest, " caps=", " ".join(prompt.visible_captions()) if prompt else "")
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	lead.global_position = homes[0]
+	a.global_position = homes[1]
+	b.global_position = homes[2]
+	if prompt:
+		prompt.refresh_now()
+	return true
+
+
 func _assert_facing_ink_hidden(main) -> bool:
 	main._select_op(0)
 	if main.operators.size() > 0:
@@ -4510,16 +4695,26 @@ func _assert_west_follow_queue(main) -> bool:
 		quit(44)
 		return false
 	var spread := float(main.follow_dest_min_spacing()) if main.has_method("follow_dest_min_spacing") else 0.0
-	if spread < 32.0:
+	if spread < 56.0:
 		push_error("SMOKE_WEST_FOLLOW_CROWD spread=%s d1=%s d2=%s" % [spread, d1, d2])
 		quit(44)
 		return false
 	var live := float(main.follow_min_spacing()) if main.has_method("follow_min_spacing") else 0.0
-	if live < 24.0:
+	if live < 40.0:
 		push_error("SMOKE_WEST_FOLLOW_LIVE_STACK live=%s" % live)
 		quit(44)
 		return false
-	print("SMOKE_OK_WEST_FOLLOW_QUEUE d1=", d1, " d2=", d2, " detour=", detour, " spread=", snapped(spread, 0.1))
+	var cheb := int(main.follow_min_chebyshev()) if main.has_method("follow_min_chebyshev") else 0
+	if cheb < 2:
+		push_error("SMOKE_WEST_FOLLOW_CHEB n=%s d1=%s d2=%s lead=%s" % [cheb, d1, d2, lead.grid_cell()])
+		quit(44)
+		return false
+	var idle := int(main.follow_idle_waits()) if main.has_method("follow_idle_waits") else 99
+	if idle > 0:
+		push_error("SMOKE_WEST_FOLLOW_IDLE n=%s a=%s b=%s" % [idle, a.grid_cell(), b.grid_cell()])
+		quit(44)
+		return false
+	print("SMOKE_OK_WEST_FOLLOW_QUEUE d1=", d1, " d2=", d2, " detour=", detour, " spread=", snapped(spread, 0.1), " cheb=", cheb)
 	if bool(a.follow_lead) != flags[0]:
 		main.toggle_follow(1)
 	if bool(b.follow_lead) != flags[1]:
@@ -4671,10 +4866,19 @@ func _assert_west_combo_touch(main) -> bool:
 		push_error("SMOKE_WEST_COMBO_FOLLOW_PATH detour=%s rim=%s d1=%s d2=%s" % [detour, rim, d1, d2])
 		quit(44)
 		return false
+	var combo_cheb := int(main.follow_min_chebyshev()) if main.has_method("follow_min_chebyshev") else 0
+	var combo_idle := int(main.follow_idle_waits()) if main.has_method("follow_idle_waits") else 99
+	var combo_spread := float(main.follow_dest_min_spacing()) if main.has_method("follow_dest_min_spacing") else 0.0
+	if combo_cheb < 2 or combo_idle > 0 or combo_spread < 56.0:
+		push_error("SMOKE_WEST_COMBO_CROWD cheb=%s idle=%s spread=%s d1=%s d2=%s" % [
+			combo_cheb, combo_idle, combo_spread, d1, d2
+		])
+		quit(44)
+		return false
 	print(
 		"SMOKE_OK_WEST_COMBO_TOUCH crate=", main.grid.world_to_cell(st.global_position),
 		" flank_pts=", flank_pts,
-		" d1=", d1, " d2=", d2, " detour=", detour
+		" d1=", d1, " d2=", d2, " detour=", detour, " cheb=", combo_cheb
 	)
 	if bool(a.follow_lead) != flags[0]:
 		main.toggle_follow(1)
