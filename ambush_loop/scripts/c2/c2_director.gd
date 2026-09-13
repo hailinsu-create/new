@@ -77,6 +77,8 @@ func _ensure_hud() -> void:
 		portraits.picked.connect(func(idx: int) -> void:
 			if host.has_method("_select_op"):
 				host._select_op(idx)
+			if host.has_method("_sfx"):
+				host._sfx("select")
 		)
 	if skill_bar == null or not is_instance_valid(skill_bar):
 		skill_bar = SkillBarScript.new()
@@ -263,6 +265,13 @@ func _tick_hidden() -> void:
 			var crouch := op.get("stance") != null and int(op.stance) == 1
 			if crouch and bool(shadows.hides_at(cell)):
 				hid = true
+				if not bool(op.get_meta("rustled", false)) and bool(shadows.is_bush(cell)):
+					op.set_meta("rustled", true)
+					if host.has_method("_sfx"):
+						host._sfx("foot")
+			else:
+				if op.has_meta("rustled"):
+					op.remove_meta("rustled")
 		if op.get("hidden_in_shadow") != null:
 			op.hidden_in_shadow = hid
 		if op.body:
@@ -337,7 +346,7 @@ func _tick_edge_pan(delta: float) -> void:
 	var mp := host.get_viewport().get_mouse_position()
 	var sz := host.get_viewport().get_visible_rect().size
 	var v := Vector2.ZERO
-	var m := 18.0
+	var m := 22.0
 	if mp.x < m:
 		v.x -= 1.0
 	elif mp.x > sz.x - m:
@@ -348,7 +357,7 @@ func _tick_edge_pan(delta: float) -> void:
 		v.y += 1.0
 	if v == Vector2.ZERO:
 		return
-	host._cam_pan += v * 220.0 * delta / maxf(float(host._cam_zoom), 0.01)
+	host._cam_pan += v * 280.0 * delta / maxf(float(host._cam_zoom), 0.01)
 	if host.has_method("_apply_cam"):
 		host._apply_cam()
 
@@ -418,6 +427,11 @@ func handle_key(code: int) -> bool:
 		KEY_F1:
 			cam_follow = not cam_follow
 			_hint("镜头跟随 %s" % ("开" if cam_follow else "关"))
+			return true
+		KEY_F2:
+			if host.has_method("_reset_cam_view"):
+				host._reset_cam_view()
+				_hint("镜头回中")
 			return true
 	return false
 
@@ -531,7 +545,8 @@ func _skill_knife(op: Node) -> bool:
 		return false
 	var back := bool(best.in_backstab(op.global_position))
 	var crouch := op.get("stance") != null and int(op.stance) == 1
-	if not back and not crouch:
+	var very_close: bool = best_d <= 16.0
+	if not back and not crouch and not very_close:
 		best.hear_at(op.global_position, 0.9)
 		_hint("正面惊动了岗哨")
 		return true
