@@ -32,6 +32,16 @@ static func crate(kind: String) -> String:
 			return "石子/烟头。岗哨会转头。"
 		"ammo":
 			return "弹包。对口才进匣。"
+		"pistol":
+			return "手枪匣。会变成 1911 或卢格。"
+		"rifle":
+			return "步枪匣。院子里是 Kar98k。"
+		"mg":
+			return "机枪匣。院子里是 MG42。"
+		"scout":
+			return "狙击匣。带镜的长枪。"
+		"smg":
+			return "冲锋枪匣。汤姆逊或 MP40。"
 		_:
 			return "木匣。站上去开盖。"
 
