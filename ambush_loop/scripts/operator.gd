@@ -1996,6 +1996,11 @@ func _tick_sel_ring() -> void:
 				(c as Line2D).default_color = col
 
 
+func _phone_chrome() -> bool:
+	var gs = get_node_or_null("/root/GameSettings")
+	return gs != null and gs.has_method("want_touch_controls") and bool(gs.want_touch_controls())
+
+
 func _refresh_face_chip() -> void:
 	if face_chip == null or not is_instance_valid(face_chip):
 		face_chip = get_node_or_null("FaceChip") as Label
@@ -2011,8 +2016,7 @@ func _refresh_face_chip() -> void:
 		face_chip.z_index = 5
 		add_child(face_chip)
 	var on := _selected_visual and alive and visible and not locked
-	var gs = get_node_or_null("/root/GameSettings")
-	if gs and gs.has_method("want_touch_controls") and bool(gs.want_touch_controls()):
+	if _phone_chrome():
 		on = false
 	face_chip.visible = on
 	if not on:
@@ -2072,12 +2076,40 @@ func _refresh_compass_rose() -> void:
 		cap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		compass_rose.add_child(cap)
 	var on := _selected_visual and alive and visible and not locked
+	if _phone_chrome():
+		on = false
 	compass_rose.visible = on
 	if not on:
 		return
 	var needle_n := compass_rose.get_node_or_null("Needle") as Polygon2D
 	if needle_n:
 		needle_n.rotation = deg_to_rad(facing_deg)
+
+
+func facing_world_ink_on() -> bool:
+	if face_chip != null and is_instance_valid(face_chip) and face_chip.is_visible_in_tree():
+		return true
+	if compass_rose != null and is_instance_valid(compass_rose) and compass_rose.is_visible_in_tree():
+		return true
+	return false
+
+
+func in_fire_sector(world: Vector2, extra_deg: float = 0.0, extra_r: float = 0.0) -> bool:
+	## Yellow 射界, plus a small rim so followers do not brush the cone.
+	if not alive or not visible:
+		return false
+	var to_v := world - global_position
+	var dist := to_v.length()
+	if dist < 12.0:
+		return false
+	if dist > range_px + extra_r:
+		return false
+	var ang := rad_to_deg(atan2(to_v.y, to_v.x))
+	if absf(angle_diff_deg(facing_deg, ang)) > half_angle_deg + extra_deg:
+		return false
+	if grid != null and grid.has_method("has_los") and not bool(grid.has_los(global_position, world)):
+		return false
+	return true
 
 
 func _refresh_nade_mark_fx() -> void:

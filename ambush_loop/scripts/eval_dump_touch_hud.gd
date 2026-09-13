@@ -1,7 +1,7 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.4 phone feel: crate names off,
-## 绕背 clears west court, follow spacing, tighter hotspots, courtyard loop.
+## Forced-touch HUD stills for v0.5.5 phone feel: follow stays outside 射界,
+## 射界 world ink hidden, west-court crate + 绕背 + 3-follow path.
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
@@ -70,6 +70,8 @@ func _run() -> void:
 		_count_chrome(main, "scout_hotspot")
 		await _save("03_scout_hotspots")
 
+	await _walk_west_crate(main)
+
 	if main.c2 and not main.c2.sentries.is_empty() and main.operators.size() > 0:
 		var op = main.operators[0]
 		var sent = main.c2.sentries[0]
@@ -119,11 +121,13 @@ func _run() -> void:
 		op.global_position = main.grid.cell_to_world_center(west_op)
 		sent.global_position = main.grid.cell_to_world_center(west_sent)
 		sent.facing_deg = 0.0
+		sent.route = PackedVector2Array([sent.global_position])
+		sent.route_i = 0
 		if sent.has_method("_rebuild_cone"):
 			sent._rebuild_cone()
 		if main.c2.prompt and main.c2.prompt.has_method("refresh_now"):
 			main.c2.prompt.refresh_now()
-		await _settle(8)
+		await _settle(4)
 		var west2 := int(main.c2.prompt.hotspot_hits_west_operable()) if main.c2.prompt and main.c2.prompt.has_method("hotspot_hits_west_operable") else -1
 		print(
 			"DUMP_WEST_FLANK hits=", west2,
@@ -132,57 +136,24 @@ func _run() -> void:
 		)
 		_dump_feel(main, "west_flank")
 		await _save("05c_west_flank")
+		var fired := false
+		if main.has_method("simulate_hotspot"):
+			fired = bool(main.simulate_hotspot("绕背"))
+		if not fired and main.has_method("_start_flank_approach"):
+			main._start_flank_approach(sent.global_position)
+			fired = true
+		await _settle(8)
+		var path_hits := 0
+		for pt in op.move_path:
+			if main.has_method("_sentry_blocks_stealth") and bool(main._sentry_blocks_stealth(pt, op)):
+				path_hits += 1
+		print("DUMP_WEST_FLANK_FIRE fire=", fired, " hits=", path_hits, " pts=", op.move_path.size())
+		await _save("05d_west_flank_path")
 		op.stop_move()
 
 	await _walk_yard_loop(main)
 
-	if main.operators.size() >= 2:
-		main._select_op(0)
-		if main.c2 and not main.c2.sentries.is_empty() and main.grid:
-			var park: Vector2 = main.grid.cell_to_world_center(Vector2i(32, 6))
-			for s in main.c2.sentries:
-				if s and is_instance_valid(s):
-					s.global_position = park
-					s.facing_deg = 0.0
-		var spine := Vector2i(15, 13)
-		if main.grid and main.grid.is_blocked(spine.x, spine.y):
-			spine = Vector2i(14, 15)
-		var sw: Vector2 = main.grid.cell_to_world_center(spine)
-		main.operators[0].stop_move()
-		main.operators[0].facing_deg = 0.0
-		main.operators[0].global_position = sw
-		if main.has_method("toggle_follow"):
-			if not bool(main.operators[1].follow_lead):
-				main.toggle_follow(1)
-			if main.operators.size() >= 3 and not bool(main.operators[2].follow_lead):
-				main.toggle_follow(2)
-		if main.has_method("_tick_squad_follow"):
-			main._tick_squad_follow()
-		var frames := 0
-		while frames < 90:
-			if main.has_method("_tick_command_moves"):
-				main._tick_command_moves(0.05)
-			await process_frame
-			frames += 1
-			var busy := false
-			for opx in main.operators:
-				if opx and opx.is_moving():
-					busy = true
-					break
-			if not busy and frames > 12:
-				break
-		main._update_hud()
-		await _settle(8)
-		_dump_feel(main, "follow")
-		print(
-			"DUMP_FOLLOW_SPREAD dest=", snapped(float(main.follow_dest_min_spacing()) if main.has_method("follow_dest_min_spacing") else -1.0, 0.1),
-			" live=", snapped(float(main.follow_min_spacing()) if main.has_method("follow_min_spacing") else -1.0, 0.1)
-		)
-		await _save("09_scout_follow")
-		if bool(main.operators[1].follow_lead):
-			main.toggle_follow(1)
-		if main.operators.size() >= 3 and bool(main.operators[2].follow_lead):
-			main.toggle_follow(2)
+	await _walk_three_follow(main)
 
 	if main.has_method("raid_prepare_ref"):
 		main.raid_prepare_ref([0, 1, 2], [0.0, 0.0, 90.0], {"grenades": 2, "mines": 1})
@@ -195,6 +166,135 @@ func _run() -> void:
 
 	print("DUMP_TOUCH_HUD_OK")
 	quit(0)
+
+
+func _walk_west_crate(main) -> void:
+	if main.operators.is_empty() or not main.has_method("west_stash"):
+		return
+	var st = main.west_stash()
+	if st == null:
+		print("DUMP_WEST_CRATE none")
+		return
+	if main.c2 and not main.c2.sentries.is_empty() and main.grid:
+		var park: Vector2 = main.grid.cell_to_world_center(Vector2i(32, 6))
+		for s in main.c2.sentries:
+			if s and is_instance_valid(s):
+				s.global_position = park
+				s.facing_deg = 0.0
+	var op = main.operators[0]
+	main._select_op(0)
+	op.stop_move()
+	if op.has_method("cancel_search"):
+		op.cancel_search()
+	var crate_world: Vector2 = st.global_position
+	var crate_cell: Vector2i = main.grid.world_to_cell(crate_world) if main.grid else Vector2i(-1, -1)
+	if main.has_method("simulate_touch_tap"):
+		main.simulate_touch_tap(crate_world)
+	op.stop_move()
+	op.global_position = crate_world
+	if op.has_method("cancel_search"):
+		op.cancel_search()
+	if main.c2 and main.c2.prompt and main.c2.prompt.has_method("refresh_now"):
+		main.c2.prompt.refresh_now()
+	await _settle(4)
+	if op.has_method("cancel_search"):
+		op.cancel_search()
+	_count_chrome(main, "west_crate")
+	_dump_feel(main, "west_crate")
+	var fired := false
+	if main.has_method("simulate_hotspot"):
+		fired = bool(main.simulate_hotspot("开匣"))
+	if op.has_method("cancel_search"):
+		op.cancel_search()
+	print(
+		"DUMP_WEST_CRATE cell=", crate_cell,
+		" gest=", main._last_touch_gesture,
+		" caps=", " ".join(main.c2.prompt.visible_captions() if main.c2 and main.c2.prompt else PackedStringArray()),
+		" fire=", fired
+	)
+	await _save("07_west_crate")
+	op.stop_move()
+	if op.has_method("cancel_search"):
+		op.cancel_search()
+
+
+func _walk_three_follow(main) -> void:
+	if main.operators.size() < 3 or main.grid == null:
+		return
+	main._select_op(0)
+	var lead = main.operators[0]
+	var a = main.operators[1]
+	var b = main.operators[2]
+	if main.c2 and not main.c2.sentries.is_empty():
+		var sent = main.c2.sentries[0]
+		var sent_c := Vector2i(10, 12)
+		var lead_c := Vector2i(16, 12)
+		if main.grid.is_blocked(sent_c.x, sent_c.y):
+			sent_c = Vector2i(11, 12)
+		if main.grid.is_blocked(lead_c.x, lead_c.y):
+			lead_c = Vector2i(16, 13)
+		sent.global_position = main.grid.cell_to_world_center(sent_c)
+		sent.facing_deg = 0.0
+		sent.route = PackedVector2Array([sent.global_position])
+		sent.route_i = 0
+		if sent.has_method("_rebuild_cone"):
+			sent._rebuild_cone()
+		lead.stop_move()
+		a.stop_move()
+		b.stop_move()
+		lead.facing_deg = 0.0
+		if lead.has_method("_rebuild_cone"):
+			lead._rebuild_cone()
+		lead.global_position = main.grid.cell_to_world_center(lead_c)
+		var a_c := Vector2i(6, 14)
+		var b_c := Vector2i(6, 16)
+		if main.grid.is_blocked(a_c.x, a_c.y):
+			a_c = Vector2i(5, 14)
+		if main.grid.is_blocked(b_c.x, b_c.y):
+			b_c = Vector2i(5, 16)
+		a.global_position = main.grid.cell_to_world_center(a_c)
+		b.global_position = main.grid.cell_to_world_center(b_c)
+	if main.has_method("simulate_follow_badge"):
+		if not bool(a.follow_lead):
+			main.simulate_follow_badge(1)
+		if not bool(b.follow_lead):
+			main.simulate_follow_badge(2)
+	elif main.has_method("toggle_follow"):
+		if not bool(a.follow_lead):
+			main.toggle_follow(1)
+		if not bool(b.follow_lead):
+			main.toggle_follow(2)
+	if main.has_method("_tick_squad_follow"):
+		main._tick_squad_follow()
+	var frames := 0
+	while frames < 90:
+		if main.has_method("_tick_command_moves"):
+			main._tick_command_moves(0.05)
+		await process_frame
+		frames += 1
+		var busy := false
+		for opx in main.operators:
+			if opx and opx.is_moving():
+				busy = true
+				break
+		if not busy and frames > 12:
+			break
+	main._update_hud()
+	await _settle(8)
+	_dump_feel(main, "follow")
+	print(
+		"DUMP_FOLLOW_SPREAD dest=", snapped(float(main.follow_dest_min_spacing()) if main.has_method("follow_dest_min_spacing") else -1.0, 0.1),
+		" live=", snapped(float(main.follow_min_spacing()) if main.has_method("follow_min_spacing") else -1.0, 0.1),
+		" cone=", int(main.follow_cone_hits()) if main.has_method("follow_cone_hits") else -1,
+		" operable=", int(main.follow_operable_hits()) if main.has_method("follow_operable_hits") else -1,
+		" d1=", main._follow_dest.get(int(a.op_id), Vector2i(-1, -1)),
+		" d2=", main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+	)
+	await _save("09_scout_follow")
+	if bool(a.follow_lead):
+		main.toggle_follow(1)
+	if bool(b.follow_lead):
+		main.toggle_follow(2)
 
 
 func _walk_yard_loop(main) -> void:
@@ -274,7 +374,9 @@ func _dump_feel(main, tag: String) -> void:
 		" mouse_eat=", f.get("mouse_eat", -1),
 		" crate_tags=", f.get("crate_tags", -1),
 		" west_hits=", f.get("west_hits", -1),
-		" follow_dest_spread=", snapped(float(f.get("follow_dest_spread", -1.0)), 0.1)
+		" follow_dest_spread=", snapped(float(f.get("follow_dest_spread", -1.0)), 0.1),
+		" facing_tags=", f.get("facing_tags", -1),
+		" follow_cone_hits=", f.get("follow_cone_hits", -1)
 	)
 
 

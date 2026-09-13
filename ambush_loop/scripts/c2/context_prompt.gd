@@ -89,6 +89,15 @@ func has_cmd(cmd: String) -> bool:
 	return visible_cmds().has(cmd)
 
 
+func fire_caption(caption: String) -> bool:
+	for i in _btns.size():
+		var b: Button = _btns[i]
+		if b != null and b.visible and str(b.text) == caption:
+			_fire(i)
+			return true
+	return false
+
+
 func refresh_now() -> void:
 	_hold_t = HOLD_SEC
 	_apply(_probe())

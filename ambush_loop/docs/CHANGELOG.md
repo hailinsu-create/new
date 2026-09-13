@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.5.5 — Phone feel: follow stays outside 射界, 射界 ink hidden
+
+Sideload APK: `dist/AmbushLoop-v0.5.5-touch-outside.apk`  
+Release tag: `v0.5.5-touch-outside`
+
+Same RAID as 0.5.4 (`SCOUT → ALERT → SWEEP`, auto fire + auto nade). Phone default stays 简配夜袭.
+
+### Play (phone)
+- **跟上** into an existing yellow cone stops outside or walks around. Already inside: walk out, then hold the rim. Destinations skip the selected operator's 射界, sentry cones, crates, and cover pads.
+- Compass / 「射界」 world ink under the feet hides on phone so it does not eat taps. Desktop still shows the rose.
+- Forced-touch path: west-court **开匣** → **绕背** (path clears the cone and the west crates) → three-person **跟上**.
+- Followers no longer stack on a crate/pad; 绕背 dest is never the cell you already stand on.
+
+### Android
+- `versionName` 0.5.5 / `versionCode` 11 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title **v0.5.5 COMMANDOS/WW2**.
+2. Select someone: no 「射界」 caption under their boots.
+3. 跟上 toward a yellow cone: dashed path wraps or stops on the rim, does not cut the yellow.
+
 ## 0.5.4 — Phone feel: crate names off, 绕背 clears west court, follow spacing
 
 Sideload APK: `dist/AmbushLoop-v0.5.4-touch-clear.apk`  

@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.5.4":
+	if ver != "0.5.5":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3394,6 +3394,8 @@ func _assert_simplified_touch(main) -> bool:
 		return false
 	if not await _assert_touch_feel_054(main):
 		return false
+	if not await _assert_touch_feel_055(main):
+		return false
 	return true
 
 
@@ -3915,6 +3917,373 @@ func _assert_touch_feel_054(main) -> bool:
 	if not await _assert_yard_touch_loop(main):
 		return false
 	print("SMOKE_OK_TOUCH_FEEL_054")
+	return true
+
+
+func _assert_touch_feel_055(main) -> bool:
+	## Follow stops outside / around 射界, 射界 world ink hidden, west crate+绕背+3-follow.
+	main._ensure_touch_hud()
+	main._update_hud()
+	await process_frame
+	await process_frame
+	if not await _assert_facing_ink_hidden(main):
+		return false
+	if not await _assert_west_crate_touch(main):
+		return false
+	if not await _assert_west_flank_touch_path(main):
+		return false
+	if not await _assert_follow_stops_outside_cone(main):
+		return false
+	if not await _assert_follow_avoids_fire_sector(main):
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_055")
+	return true
+
+
+func _assert_facing_ink_hidden(main) -> bool:
+	main._select_op(0)
+	if main.operators.size() > 0:
+		main.operators[0]._refresh_face_chip()
+		main.operators[0]._refresh_compass_rose()
+	if main.has_method("_apply_phone_world_ink"):
+		main._apply_phone_world_ink()
+	await process_frame
+	var ink: Dictionary = main.dump_world_ink()
+	if int(ink.get("facing_visible", 9)) > 0:
+		push_error("SMOKE_FACING_INK_ON n=%s" % ink.get("facing_visible"))
+		quit(44)
+		return false
+	for op in main.operators:
+		if op == null:
+			continue
+		if op.has_method("facing_world_ink_on") and bool(op.facing_world_ink_on()):
+			push_error("SMOKE_FACING_INK_OP %s" % op.display_name)
+			quit(44)
+			return false
+		var cap = op.get_node_or_null("CompassRose")
+		if cap != null and cap.is_visible_in_tree():
+			push_error("SMOKE_COMPASS_ON_PHONE")
+			quit(44)
+			return false
+		var chip = op.get_node_or_null("FaceChip") as Label
+		if chip != null and chip.is_visible_in_tree():
+			push_error("SMOKE_FACECHIP_ON_PHONE")
+			quit(44)
+			return false
+	print("SMOKE_OK_FACING_INK_HIDDEN n=", ink.get("facing_visible"))
+	return true
+
+
+func _assert_west_crate_touch(main) -> bool:
+	var prompt = main.c2.prompt if main.c2 else null
+	if prompt == null or main.operators.is_empty() or not main.has_method("west_stash"):
+		push_error("SMOKE_NO_WEST_CRATE_API")
+		quit(44)
+		return false
+	var st = main.west_stash()
+	if st == null:
+		push_error("SMOKE_NO_WEST_STASH")
+		quit(44)
+		return false
+	var op: OperatorUnit = main.operators[0]
+	var home: Vector2 = op.global_position
+	if main.c2 and not main.c2.sentries.is_empty() and main.grid:
+		for s in main.c2.sentries:
+			if s and is_instance_valid(s):
+				s.global_position = main.grid.cell_to_world_center(Vector2i(32, 6))
+				s.facing_deg = 0.0
+	main._select_op(0)
+	op.stop_move()
+	main.simulate_touch_tap(st.global_position)
+	await process_frame
+	var gest := str(main._last_touch_gesture)
+	if gest != "tap" and gest != "sprint":
+		push_error("SMOKE_WEST_CRATE_GESTURE got=%s" % gest)
+		quit(44)
+		return false
+	op.stop_move()
+	op.global_position = st.global_position
+	prompt.refresh_now()
+	await process_frame
+	if not bool(prompt.has_caption("开匣")):
+		push_error("SMOKE_WEST_NO_CRATE caps=%s cell=%s" % [
+			" ".join(prompt.visible_captions()), main.grid.world_to_cell(st.global_position)
+		])
+		quit(44)
+		return false
+	if not main.has_method("simulate_hotspot") or not bool(main.simulate_hotspot("开匣")):
+		push_error("SMOKE_WEST_CRATE_HOTSPOT_FIRE")
+		quit(44)
+		return false
+	print("SMOKE_OK_WEST_CRATE_TOUCH cell=", main.grid.world_to_cell(st.global_position))
+	if op.has_method("cancel_search"):
+		op.cancel_search()
+	op.stop_move()
+	op.global_position = home
+	prompt.refresh_now()
+	return true
+
+
+func _assert_west_flank_touch_path(main) -> bool:
+	var prompt = main.c2.prompt if main.c2 else null
+	if prompt == null or main.c2.sentries.is_empty() or main.operators.is_empty():
+		push_error("SMOKE_NO_WEST_FLANK_PATH")
+		quit(44)
+		return false
+	var op: OperatorUnit = main.operators[0]
+	var sent = main.c2.sentries[0]
+	var op_home: Vector2 = op.global_position
+	var sent_home: Vector2 = sent.global_position
+	var sent_face: float = float(sent.facing_deg)
+	var op_c := Vector2i(7, 12)
+	var sent_c := Vector2i(9, 12)
+	if main.grid:
+		if main.grid.is_blocked(op_c.x, op_c.y) or main._cell_is_operable(op_c):
+			op_c = Vector2i(6, 13)
+		if main.grid.is_blocked(sent_c.x, sent_c.y):
+			sent_c = Vector2i(9, 13)
+	op.stop_move()
+	main._select_op(0)
+	op.global_position = main.grid.cell_to_world_center(op_c)
+	sent.global_position = main.grid.cell_to_world_center(sent_c)
+	sent.facing_deg = 0.0
+	if sent.has_method("_rebuild_cone"):
+		sent._rebuild_cone()
+	main._stealth_avoid_cache.clear()
+	main._stealth_avoid_msec = 0
+	prompt.refresh_now()
+	await process_frame
+	if not bool(prompt.has_caption("绕背")):
+		push_error("SMOKE_WEST_PATH_NO_FLANK caps=%s" % " ".join(prompt.visible_captions()))
+		quit(44)
+		return false
+	var hits := int(prompt.hotspot_hits_west_operable()) if prompt.has_method("hotspot_hits_west_operable") else 99
+	if hits > 0:
+		push_error("SMOKE_WEST_PATH_FLANK_COVERS n=%s" % hits)
+		quit(44)
+		return false
+	if not bool(main.simulate_hotspot("绕背")):
+		push_error("SMOKE_WEST_FLANK_HOTSPOT_FIRE")
+		quit(44)
+		return false
+	await process_frame
+	var behind: bool = sent.has_method("in_backstab") and bool(sent.in_backstab(op.global_position))
+	if op.move_path.size() < 2 and not behind:
+		if main.has_method("_start_flank_approach"):
+			main._start_flank_approach(sent.global_position)
+			await process_frame
+	var cone_hits := 0
+	for pt in op.move_path:
+		if main._sentry_blocks_stealth(pt, op):
+			cone_hits += 1
+	if cone_hits > 0:
+		push_error("SMOKE_WEST_FLANK_PATH_CONE n=%s" % cone_hits)
+		quit(44)
+		return false
+	if op.move_path.size() < 2 and not behind:
+		push_error("SMOKE_WEST_FLANK_NO_PATH dest=%s at=%s" % [
+			main.grid.world_to_cell(main.flank_dest_world(sent, op)) if main.has_method("flank_dest_world") else "?",
+			op.grid_cell()
+		])
+		quit(44)
+		return false
+	print("SMOKE_OK_WEST_FLANK_PATH pts=", op.move_path.size(), " hits=", hits)
+	op.stop_move()
+	sent.global_position = sent_home
+	sent.facing_deg = sent_face
+	if sent.has_method("_rebuild_cone"):
+		sent._rebuild_cone()
+	op.global_position = op_home
+	main._pending_flank = null
+	prompt.refresh_now()
+	return true
+
+
+func _assert_follow_stops_outside_cone(main) -> bool:
+	if main.operators.size() < 3 or main.c2 == null or main.c2.sentries.is_empty():
+		push_error("SMOKE_FOLLOW_CONE_NO_OPS")
+		quit(44)
+		return false
+	var lead: OperatorUnit = main.operators[0]
+	var a: OperatorUnit = main.operators[1]
+	var b: OperatorUnit = main.operators[2]
+	var sent = main.c2.sentries[0]
+	var homes: Array[Vector2] = [lead.global_position, a.global_position, b.global_position]
+	var flags: Array[bool] = [bool(a.follow_lead), bool(b.follow_lead)]
+	var sent_home: Vector2 = sent.global_position
+	var sent_face: float = float(sent.facing_deg)
+	var sent_c := Vector2i(10, 12)
+	var lead_c := Vector2i(16, 12)
+	var a_c := Vector2i(6, 14)
+	var b_c := Vector2i(6, 16)
+	if main.grid.is_blocked(sent_c.x, sent_c.y):
+		sent_c = Vector2i(11, 12)
+	if main.grid.is_blocked(lead_c.x, lead_c.y):
+		lead_c = Vector2i(16, 13)
+	if main.grid.is_blocked(a_c.x, a_c.y):
+		a_c = Vector2i(5, 14)
+	if main.grid.is_blocked(b_c.x, b_c.y):
+		b_c = Vector2i(5, 16)
+	main._select_op(0)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	lead.facing_deg = 0.0
+	lead.global_position = main.grid.cell_to_world_center(lead_c)
+	a.global_position = main.grid.cell_to_world_center(a_c)
+	b.global_position = main.grid.cell_to_world_center(b_c)
+	sent.global_position = main.grid.cell_to_world_center(sent_c)
+	sent.facing_deg = 0.0
+	if sent.has_method("_rebuild_cone"):
+		sent._rebuild_cone()
+	main._stealth_avoid_cache.clear()
+	main._stealth_avoid_msec = 0
+	if not bool(a.follow_lead):
+		if main.has_method("simulate_follow_badge"):
+			main.simulate_follow_badge(1)
+		else:
+			main.toggle_follow(1)
+	if not bool(b.follow_lead):
+		if main.has_method("simulate_follow_badge"):
+			main.simulate_follow_badge(2)
+		else:
+			main.toggle_follow(2)
+	if not bool(a.follow_lead) or not bool(b.follow_lead):
+		push_error("SMOKE_FOLLOW_CONE_BADGE off a=%s b=%s" % [a.follow_lead, b.follow_lead])
+		quit(44)
+		return false
+	main._tick_squad_follow()
+	await process_frame
+	for _step in 16:
+		if main.has_method("_tick_command_moves"):
+			main._tick_command_moves(0.05)
+		main._tick_squad_follow()
+		await process_frame
+	var hits := int(main.follow_cone_hits()) if main.has_method("follow_cone_hits") else 99
+	if hits > 0:
+		push_error("SMOKE_FOLLOW_ENTERED_CONE n=%s d1=%s d2=%s" % [
+			hits, main._follow_dest.get(int(a.op_id), Vector2i(-1, -1)),
+			main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+		])
+		quit(44)
+		return false
+	var d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+	var d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+	if d1.x < 0 or d2.x < 0:
+		push_error("SMOKE_FOLLOW_CONE_NO_DEST d1=%s d2=%s" % [d1, d2])
+		quit(44)
+		return false
+	if d1 == d2 or d1 == lead.grid_cell() or d2 == lead.grid_cell():
+		push_error("SMOKE_FOLLOW_CONE_STACK d1=%s d2=%s lead=%s" % [d1, d2, lead.grid_cell()])
+		quit(44)
+		return false
+	var op_hits := int(main.follow_operable_hits()) if main.has_method("follow_operable_hits") else 99
+	if op_hits > 0:
+		push_error("SMOKE_FOLLOW_ON_OPERABLE n=%s d1=%s d2=%s" % [op_hits, d1, d2])
+		quit(44)
+		return false
+	print("SMOKE_OK_FOLLOW_OUTSIDE_CONE d1=", d1, " d2=", d2)
+	if bool(a.follow_lead) != flags[0]:
+		main.toggle_follow(1)
+	if bool(b.follow_lead) != flags[1]:
+		main.toggle_follow(2)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	lead.global_position = homes[0]
+	a.global_position = homes[1]
+	b.global_position = homes[2]
+	sent.global_position = sent_home
+	sent.facing_deg = sent_face
+	if sent.has_method("_rebuild_cone"):
+		sent._rebuild_cone()
+	main._follow_dest.clear()
+	main._pending_flank = null
+	return true
+
+
+func _assert_follow_avoids_fire_sector(main) -> bool:
+	if main.operators.size() < 2:
+		push_error("SMOKE_FOLLOW_SECTOR_NO_OPS")
+		quit(44)
+		return false
+	var lead: OperatorUnit = main.operators[0]
+	var fol: OperatorUnit = main.operators[1]
+	var home_l: Vector2 = lead.global_position
+	var home_f: Vector2 = fol.global_position
+	var was := bool(fol.follow_lead)
+	if main.c2 and not main.c2.sentries.is_empty() and main.grid:
+		for s in main.c2.sentries:
+			if s and is_instance_valid(s):
+				s.global_position = main.grid.cell_to_world_center(Vector2i(32, 6))
+				s.facing_deg = 0.0
+				if s.has_method("_rebuild_cone"):
+					s._rebuild_cone()
+	var lead_c := Vector2i(14, 13)
+	var fol_c := Vector2i(20, 13)
+	if main.grid.is_blocked(lead_c.x, lead_c.y):
+		lead_c = Vector2i(14, 14)
+	if main.grid.is_blocked(fol_c.x, fol_c.y):
+		fol_c = Vector2i(21, 14)
+	main._select_op(0)
+	lead.stop_move()
+	fol.stop_move()
+	lead.facing_deg = 0.0
+	if lead.has_method("_rebuild_cone"):
+		lead._rebuild_cone()
+	lead.global_position = main.grid.cell_to_world_center(lead_c)
+	fol.global_position = main.grid.cell_to_world_center(fol_c)
+	main._stealth_avoid_cache.clear()
+	main._stealth_avoid_msec = 0
+	if not bool(fol.follow_lead):
+		main.toggle_follow(1)
+	main._tick_squad_follow()
+	await process_frame
+	if lead.has_method("in_fire_sector") and bool(lead.in_fire_sector(fol.global_position, 0.0, 0.0)):
+		if fol.move_path.size() < 2:
+			push_error("SMOKE_FOLLOW_STUCK_IN_SECTOR at=%s dest=%s" % [
+				fol.grid_cell(), main._follow_dest.get(int(fol.op_id), Vector2i(-1, -1))
+			])
+			quit(44)
+			return false
+		var last: Vector2 = fol.move_path[fol.move_path.size() - 1]
+		if bool(lead.in_fire_sector(last, 0.0, 0.0)):
+			push_error("SMOKE_FOLLOW_EXIT_STILL_SECTOR last=%s dest=%s" % [
+				main.grid.world_to_cell(last), main._follow_dest.get(int(fol.op_id), Vector2i(-1, -1))
+			])
+			quit(44)
+			return false
+	var sector_hits := 0
+	var saw_from := true
+	for i in fol.move_path.size():
+		var pt: Vector2 = fol.move_path[i]
+		if i == 0:
+			continue
+		if lead.has_method("in_fire_sector") and bool(lead.in_fire_sector(pt, 0.0, 0.0)):
+			## In-cone steps are only legal while leaving the cone (prefix). After the
+			## first outside cell, further 射界 cells are a fail.
+			if not saw_from:
+				sector_hits += 1
+		elif lead.has_method("in_fire_sector") and not bool(lead.in_fire_sector(pt, 0.0, 0.0)):
+			saw_from = false
+	if main._follow_dest.has(int(fol.op_id)):
+		var dest_w: Vector2 = main.grid.cell_to_world_center(main._follow_dest[int(fol.op_id)])
+		if lead.has_method("in_fire_sector") and bool(lead.in_fire_sector(dest_w, 0.0, 0.0)):
+			sector_hits += 1
+	if sector_hits > 0:
+		push_error("SMOKE_FOLLOW_STEPS_SECTOR n=%s dest=%s path=%s" % [
+			sector_hits, main._follow_dest.get(int(fol.op_id), Vector2i(-1, -1)), fol.move_path.size()
+		])
+		quit(44)
+		return false
+	print("SMOKE_OK_FOLLOW_AVOID_SECTOR dest=", main._follow_dest.get(int(fol.op_id), Vector2i(-1, -1)), " pts=", fol.move_path.size())
+	if bool(fol.follow_lead) != was:
+		main.toggle_follow(1)
+	lead.stop_move()
+	fol.stop_move()
+	lead.global_position = home_l
+	fol.global_position = home_f
+	main._follow_dest.clear()
 	return true
 
 
