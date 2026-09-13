@@ -181,7 +181,7 @@ export const MOTION = {
     idleFreq: 0.67,
     phase: 2.15,
     turbAmp: 0.12,
-    gravity: 0.3,
+    gravity: 0.38,
   },
   nape: {
     integrator: "sho" as "legacy" | "sho",
@@ -223,7 +223,7 @@ export const MOTION = {
     turbMix: 0.44,
     dirWander: 0.32,
     bangsGust: 0.45,
-    softStiffness: 13.5,
+    softStiffness: 11.6,
     goldenPhase: 1,
   },
   talk: {
@@ -233,8 +233,8 @@ export const MOTION = {
     energyKick: 0.0046,
     kickGain: 12,
     napeOpposite: 1,
-    headNod: 0.012,
-    bob: 1.05,
+    headNod: 0.018,
+    bob: 0.9,
     bounceHz: 11,
   },
   gaze: {
@@ -297,7 +297,7 @@ export const MOTION = {
     thoughtfulScale: 1.38,
     closedVisemeBlink: 0.2,
     lidAsym: 0.05,
-    headNod: 0.03,
+    headNod: 0.04,
   },
   pupil: {
     base: 0.5,
@@ -328,9 +328,9 @@ export const MOTION = {
     gapMax: 13,
   },
   afterglow: {
-    ms: 0.6,
+    ms: 0.78,
     lookDown: 0.1,
-    mouthHold: 0.18,
+    mouthHold: 0.24,
   },
   face: {
     smileAsym: 0.07,
@@ -357,25 +357,143 @@ export const MOTION = {
   },
   atmosphere: {
     lanternSync: 1,
-    firefly: 1.18,
-    petal: 1.14,
-    vignettePulse: 0.07,
-    courtyard: 38,
-    warmth: 0.03,
+    firefly: 1.34,
+    petal: 1.26,
+    vignettePulse: 0.1,
+    courtyard: 46,
+    warmth: 0.042,
+  },
+  action: {
+    enabled: 1,
+    autoIdle: 1,
+    gapMin: 5.1,
+    gapMax: 10.4,
+    nodAmp: 0.068,
+    nodDur: 0.8,
+    nodProb: 0.2,
+    nodHair: 0.052,
+    sideAmp: 0.128,
+    sideDur: 1.22,
+    sideProb: 0.12,
+    sideLook: 0.88,
+    sideSignRandom: 1,
+    bowAmp: 0.125,
+    bowDur: 1.25,
+    bowProb: 0.13,
+    bowHair: 0.06,
+    bowSkirt: 0.05,
+    weightAmp: 0.6,
+    weightDur: 1.35,
+    weightProb: 0.14,
+    weightShawl: 0.88,
+    weightBetween: 1,
+    tiptoeAmp: 0.018,
+    tiptoeDur: 0.98,
+    tiptoeProb: 0.06,
+    tiptoeLeg: 0.86,
+    gestureAmp: 0.125,
+    gestureDur: 1.1,
+    gestureProb: 0.17,
+    gestureTassel: 0.78,
+    stepHz: 1.42,
+    stepAmp: 0.038,
+    stepDur: 1.7,
+    stepProb: 0.13,
+    stepHip: 1.22,
+    stepPlant: 0.62,
+    walkPrepAmp: 0.1,
+    walkPrepDur: 1.15,
+    walkPrepProb: 0.05,
+    walkLookY: 0.145,
+    shyAmp: 0.12,
+    shyDur: 1.4,
+    shyProb: 0.13,
+    shyBlush: 0.42,
+    shyLookY: 0.32,
+    shyExpr: 1,
+    surpriseAmp: 0.095,
+    surpriseDur: 0.85,
+    surpriseProb: 0.04,
+    surpriseHop: 0.42,
+    surpriseExpr: 1,
+    hopAmp: 0.015,
+    hopDur: 0.66,
+    hopProb: 0.05,
+    hopSkirt: 0.17,
+    hopCap: 0.036,
+    hopNape: 0.62,
+    laughHop: 1,
+    sighAmp: 0.078,
+    sighDur: 1.78,
+    sighProb: 0.1,
+    sighBreath: 0.92,
+    sadSigh: 1,
+    afterBowProb: 0.72,
+    afterBowAmp: 0.11,
+    afterBowLook: 0.17,
+    speakShoulder: 0.05,
+    speakWeight: 0.092,
+    visemeShoulder: 0.046,
+    visemeNod: 0.02,
+    clickEnabled: 1,
+    clickCycle: 1,
+    clickInk: 1,
+    dragHead: 0.1,
+    smileTiptoe: 1,
+    noHopSpeak: 1,
+    preferNodSpeak: 1,
+    playlistHop: 1,
+    playlistBow: 1,
+    playlistStep: 1,
+    playlistShy: 1,
+    playlistGesture: 1,
+    easeIn: 0.15,
+    easeOut: 0.27,
+    blend: 0.22,
+    jerkLimit: 2.25,
+    faceLock: 0.9,
+    plantStick: 0.9,
+    mouthFollow: 0,
+    skirtArc: 1.14,
+    shawlPhase: 1,
+    shawlFlipAmp: 0.3,
+    tasselHit: 0.2,
+    clothDrag: 0.2,
+    craneHop: 0.48,
+    hipStep: 1.18,
+    lookLead: 0.64,
+    capBow: 0.195,
+    capSkirt: 0.25,
+    capHop: 0.04,
+    idleGapScale: 0.93,
+    fireflyOnHop: 0,
+    alignGuard: 1,
+  },
+  fx: {
+    extraFirefly: 7,
+    extraLantern: 1,
+    inkRipple: 1,
+    inkScale: 1.32,
+    breathGlow: 0.09,
+    petalExtra: 0.24,
+    lantern2: 1,
+    warmthHop: 0.028,
+    fireflyPath: 1,
+    rippleOnClick: 1,
   },
   body: {
-    weightHz: 0.17,
+    weightHz: 0.145,
     weightAmp: 0.72,
     lean: 0.014,
     hipShift: 16,
     chestBreath: 1.05,
     bellyBreath: 0.72,
     shoulderBreath: 0.9,
-    skirtCoupling: 0.85,
+    skirtCoupling: 0.98,
     shawlCoupling: 1.05,
     hemCoupling: 1.2,
     craneCoupling: 0.55,
-    legAmp: 0.007,
+    legAmp: 0.0105,
     talkKick: 0.048,
     plantY: 0.96,
     hipY: 0.36,
@@ -388,10 +506,10 @@ export const MOTION = {
     freq: 0.36,
     zeta: 0.42,
     lookCoupling: 0.018,
-    windScale: 1.22,
+    windScale: 1.38,
     impulseScale: 0.82,
-    minAngle: -0.2,
-    maxAngle: 0.2,
+    minAngle: -0.25,
+    maxAngle: 0.25,
     lookDelay: 0.12,
     windDelay: 0.22,
     sagFreq: 0.28,
@@ -411,7 +529,7 @@ export const MOTION = {
     freq: 0.42,
     zeta: 0.38,
     lookCoupling: 0.03,
-    windScale: 1.45,
+    windScale: 1.62,
     impulseScale: 0.95,
     minAngle: -0.26,
     maxAngle: 0.26,
@@ -439,7 +557,7 @@ export const MOTION = {
     minAngle: -0.24,
     maxAngle: 0.24,
     lookDelay: 0.16,
-    windDelay: 0.28,
+    windDelay: 0.36,
     sagFreq: 0.34,
     sagZeta: 0.44,
     sagAmount: 0.38,
@@ -448,7 +566,7 @@ export const MOTION = {
     idleFreq: 0.62,
     phase: 2.6,
     turbAmp: 0.14,
-    gravity: 0.32,
+    gravity: 0.4,
   },
   crane: {
     integrator: "sho" as "legacy" | "sho",
@@ -1330,16 +1448,29 @@ export class BodySystem {
       energy: number;
       breath: number;
       field?: WindSample;
+      extraWeight?: number;
+      skirtKick?: number;
+      shawlFlip?: number;
+      clothDrag?: number;
     },
   ): BodyState {
     const cfg = MOTION.body;
+    const extraW = input.extraWeight ?? 0;
     const target =
       Math.sin(seconds * Math.PI * 2 * cfg.weightHz) * cfg.weightAmp * 0.62 +
-      Math.sin(seconds * 0.39 + 1.15) * cfg.weightAmp * 0.38;
+      Math.sin(seconds * 0.39 + 1.15) * cfg.weightAmp * 0.38 +
+      extraW;
     this.weightVel += (target - this.weight) * 5.4 * dt;
     this.weightVel *= Math.exp(-7.2 * dt);
     this.weight += this.weightVel * dt;
     this.weight = clamp(this.weight, -1.15, 1.15);
+    if (input.clothDrag && input.clothDrag > 0) {
+      const drag = Math.exp(-input.clothDrag * 8 * dt);
+      this.skirt.velocity *= drag;
+      this.hem.velocity *= Math.exp(-input.clothDrag * 6 * dt);
+      this.shawlL.velocity *= drag;
+      this.shawlR.velocity *= drag;
+    }
 
     if (input.speaking) {
       const spike = Math.max(0, input.energy - this.lastEnergy);
@@ -1365,10 +1496,31 @@ export class BodySystem {
     };
     const breath = input.breath * 0.01;
     const look = input.lookX;
-    this.drive(this.skirt, MOTION.skirt, dt, seconds, look, field, 0, this.weight * 0.04 + breath);
-    this.drive(this.hem, MOTION.hem, dt, seconds, look, field, 1, this.weight * 0.05 + breath * 0.6);
-    this.drive(this.shawlL, MOTION.shawl, dt, seconds, look, field, 2, -this.weight * 0.03 + breath);
-    this.drive(this.shawlR, MOTION.shawl, dt, seconds, look, field, 3, this.weight * 0.03 + breath);
+    const kick = input.skirtKick ?? 0;
+    const flip = input.shawlFlip ?? 0;
+    const arc = MOTION.action.skirtArc;
+    this.drive(this.skirt, MOTION.skirt, dt, seconds, look, field, 0, this.weight * 0.04 + breath + kick * arc);
+    this.drive(this.hem, MOTION.hem, dt, seconds, look, field, 1, this.weight * 0.05 + breath * 0.6 + kick * 0.7 * arc);
+    this.drive(
+      this.shawlL,
+      MOTION.shawl,
+      dt,
+      seconds,
+      look,
+      field,
+      2,
+      -this.weight * 0.03 + breath - flip * MOTION.action.weightShawl,
+    );
+    this.drive(
+      this.shawlR,
+      MOTION.shawl,
+      dt,
+      seconds,
+      look,
+      field,
+      3,
+      this.weight * 0.03 + breath + flip * MOTION.action.weightShawl,
+    );
     this.drive(this.crane, MOTION.crane, dt, seconds, look, field, 4, breath * 1.4);
     this.drive(this.leg, MOTION.leg, dt, seconds, look, field, 5, this.weight * cfg.legAmp);
     return this.snapshot();

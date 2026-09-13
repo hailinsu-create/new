@@ -9,6 +9,7 @@ import {
   type ViewMode,
 } from "./avatar/rig";
 import { MOTION } from "./avatar/motion";
+import { ACTION_BUTTONS, ACTION_LABELS, type ActionId } from "./avatar/action.ts";
 import {
   VISEME_IDS,
   VISEME_SHAPE,
@@ -52,17 +53,28 @@ const courtyard = el("div", { className: "courtyard" });
 courtyard.setAttribute("aria-hidden", "true");
 const vignette = el("div", { className: "vignette" });
 const lantern = el("div", { className: "lantern-pulse" });
+const lantern2 = el("div", { className: "lantern-pulse lantern-2" });
+const breathGlow = el("div", { className: "breath-glow" });
+breathGlow.setAttribute("aria-hidden", "true");
 
-const fireflies = Array.from({ length: 8 }, (_, i) =>
+const fireflyCount = 8 + Math.max(0, Math.round(MOTION.fx.extraFirefly));
+const fireflies = Array.from({ length: fireflyCount }, (_, i) =>
   el("span", {
-    className: "firefly",
-    style: `--x:${12 + i * 10}%; --y:${18 + (i % 4) * 12}%; --dur:${8 + i}s; --delay:${i * 0.7}s;`,
+    className: MOTION.fx.fireflyPath > 0 ? "firefly firefly-drift" : "firefly",
+    style: `--x:${8 + (i * 11) % 86}%; --y:${12 + (i % 5) * 11}%; --dur:${7.5 + (i % 6)}s; --delay:${i * 0.55}s;`,
   }),
 );
-const petals = Array.from({ length: 10 }, (_, i) =>
+const petalCount = 10 + Math.max(0, Math.round(MOTION.fx.petalExtra * 10));
+const petals = Array.from({ length: petalCount }, (_, i) =>
   el("span", {
     className: "petal",
-    style: `--x:${6 + i * 9}%; --dur:${11 + (i % 5)}s; --delay:${i * 0.8}s;`,
+    style: `--x:${4 + i * 7}%; --dur:${11 + (i % 5)}s; --delay:${i * 0.7}s;`,
+  }),
+);
+const ripples = Array.from({ length: MOTION.fx.inkRipple > 0 ? 3 : 0 }, (_, i) =>
+  el("span", {
+    className: "ink-ripple",
+    style: `--rx:${28 + i * 22}%; --ry:${58 + (i % 3) * 10}%; --rdur:${4.2 + i * 0.8}s; --rdelay:${i * 1.3}s;`,
   }),
 );
 
@@ -103,6 +115,15 @@ for (const name of EXPRESSIONS) {
   faceBox.append(button);
 }
 
+const actionBox = el("div", { className: "actions" });
+const actionButtons = new Map<ActionId, HTMLButtonElement>();
+for (const name of ACTION_BUTTONS) {
+  const button = el("button", { type: "button", className: "act" }, [ACTION_LABELS[name]]);
+  button.addEventListener("click", () => playBodyAction(name));
+  actionButtons.set(name, button);
+  actionBox.append(button);
+}
+
 const textarea = el("textarea", {
   id: "line",
   spellcheck: false,
@@ -131,7 +152,7 @@ for (const id of VISEME_IDS) {
 }
 
 const dock = el("aside", { className: "dock" }, [
-  el("div", { className: "panel" }, [el("h2", {}, ["神情"]), faceBox]),
+  el("div", { className: "panel" }, [el("h2", {}, ["神情"]), faceBox, el("h2", { className: "subhead" }, ["身段"]), actionBox]),
   el("div", { className: "panel script" }, [
     el("h2", {}, ["台词"]),
     textarea,
@@ -150,7 +171,20 @@ const dock = el("aside", { className: "dock" }, [
   ]),
 ]);
 
-scene.append(courtyard, vignette, lantern, ...fireflies, ...petals, topbar, stage, caption, dock);
+scene.append(
+  courtyard,
+  vignette,
+  lantern,
+  ...(MOTION.fx.extraLantern > 0 ? [lantern2] : []),
+  breathGlow,
+  ...fireflies,
+  ...petals,
+  ...ripples,
+  topbar,
+  stage,
+  caption,
+  dock,
+);
 root.append(scene);
 
 const speech = new SpeechDriver();
@@ -225,9 +259,12 @@ function applyAtmosphere(name: Expression): void {
   rootStyle.setProperty("--petal-scale", String(a.petal));
   rootStyle.setProperty("--vignette-pulse", String(a.vignettePulse));
   rootStyle.setProperty("--vignette-dur", "7s");
+  rootStyle.setProperty("--breath-glow", String(MOTION.fx.breathGlow));
+  rootStyle.setProperty("--ink-scale", String(MOTION.fx.inkScale));
   let warmth = a.warmth;
   if (name === "smile" || name === "laugh") warmth += 0.03;
   if (name === "sad" || name === "sleepy") warmth -= 0.02;
+  if (name === "laugh") warmth += MOTION.fx.warmthHop;
   warmth = Math.max(0, Math.min(0.12, warmth));
   rootStyle.setProperty(
     "--courtyard-filter",
@@ -241,6 +278,18 @@ function setExpression(name: Expression): void {
   for (const [key, button] of faceButtons) {
     button.classList.toggle("is-on", key === name);
   }
+}
+
+function playBodyAction(name: ActionId): void {
+  rig.playAction(name, true);
+  for (const [key, button] of actionButtons) {
+    button.classList.toggle("is-on", key === name);
+  }
+  setStatus(`身段：${ACTION_LABELS[name]}`);
+  window.setTimeout(() => {
+    const still = actionButtons.get(name);
+    if (still && rig.getAction() !== name) still.classList.remove("is-on");
+  }, 1600);
 }
 
 function holdViseme(id: VisemeId | null): void {
@@ -324,12 +373,25 @@ function watchViseme(): void {
 }
 
 document.addEventListener("moxi-speech-end", () => rig.notifySpeechEnd());
+canvas.addEventListener("moxi-ink", () => {
+  const pulse = el("span", { className: "ink-ripple is-click" });
+  const x = 42 + Math.random() * 18;
+  const y = 62 + Math.random() * 16;
+  pulse.style.setProperty("--rx", `${x}%`);
+  pulse.style.setProperty("--ry", `${y}%`);
+  pulse.style.setProperty("--rdur", "1.6s");
+  pulse.style.setProperty("--rdelay", "0s");
+  scene.append(pulse);
+  window.setTimeout(() => pulse.remove(), 1800);
+});
 
 const api = {
   ready: false,
   speak: (text: string) => speech.speak(text, mode.value as VoiceMode),
   setExpression,
   holdViseme,
+  playAction: playBodyAction,
+  getAction: () => rig.getAction(),
   setView: applyView,
   getView: () => rig.getView(),
   getState: () => ({
@@ -337,6 +399,7 @@ const api = {
     expression: rig.getExpression(),
     speaking: speech.speaking,
     view: rig.getView(),
+    action: rig.getAction(),
     duration: timelineDuration(speech.timeline),
     events: speech.timeline.length,
   }),
@@ -358,6 +421,10 @@ void rig
     if (autoText) {
       textarea.value = autoText;
       void speakNow();
+    }
+    const actParam = query.get("act");
+    if (actParam && (ACTION_BUTTONS as readonly string[]).includes(actParam)) {
+      playBodyAction(actParam as ActionId);
     }
   })
   .catch((error: unknown) => {

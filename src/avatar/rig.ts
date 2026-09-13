@@ -18,6 +18,13 @@ import {
   type Lids,
 } from "./motion";
 import {
+  ActionDirector,
+  collideTasselHem,
+  emptyPerformance,
+  type ActionId,
+  type PerformanceState,
+} from "./action.ts";
+import {
   BUST_ASSETS,
   BUST_H,
   BUST_W,
@@ -292,6 +299,9 @@ export class AvatarRig {
   private readonly breathSys = new BreathSystem();
   private readonly idle = new IdleDirector();
   private readonly afterglow = new AfterglowController();
+  private readonly actionDir = new ActionDirector();
+  private perf: PerformanceState = emptyPerformance();
+  private pointerDown: { x: number; y: number } | null = null;
   private lastLids: Lids = emptyLids();
   private bounce = 0;
   private saccadeX = 0;
@@ -384,6 +394,8 @@ export class AvatarRig {
     this.resize();
     this.canvas.addEventListener("pointermove", this.onPointer);
     this.canvas.addEventListener("pointerleave", this.onPointerLeave);
+    this.canvas.addEventListener("pointerdown", this.onPointerDown);
+    this.canvas.addEventListener("pointerup", this.onPointerUp);
     window.addEventListener("resize", this.onResize);
     this.running = true;
     this.startedAt = performance.now();
@@ -395,6 +407,8 @@ export class AvatarRig {
     this.bodySys.reset();
     this.idle.reset(Math.floor(this.startedAt) + 29);
     this.afterglow.reset();
+    this.actionDir.reset(Math.floor(this.startedAt) + 37);
+    this.perf = emptyPerformance();
     this.frameId = requestAnimationFrame(this.tick);
   }
 
@@ -424,6 +438,8 @@ export class AvatarRig {
     cancelAnimationFrame(this.frameId);
     this.canvas.removeEventListener("pointermove", this.onPointer);
     this.canvas.removeEventListener("pointerleave", this.onPointerLeave);
+    this.canvas.removeEventListener("pointerdown", this.onPointerDown);
+    this.canvas.removeEventListener("pointerup", this.onPointerUp);
     window.removeEventListener("resize", this.onResize);
   }
 
@@ -443,6 +459,15 @@ export class AvatarRig {
     if (this.running && name !== "wink" && name !== "sleepy" && name !== "laugh") {
       this.blinkCtrl.trigger((performance.now() - this.startedAt) / 1000, name);
     }
+    this.actionDir.onExpression(name);
+  }
+
+  playAction(id: ActionId, force = true): void {
+    this.actionDir.play(id, force);
+  }
+
+  getAction(): ActionId {
+    return this.actionDir.current;
   }
 
   getExpression(): Expression {
@@ -456,6 +481,7 @@ export class AvatarRig {
 
   notifySpeechEnd(): void {
     this.afterglow.trigger();
+    this.actionDir.onSpeechEnd();
   }
 
   debugMotion(): {
@@ -464,6 +490,7 @@ export class AvatarRig {
     activeShots: number;
     hair: ReturnType<HairSystem["debug"]>;
     body: ReturnType<BodySystem["debug"]>;
+    action: ReturnType<ActionDirector["debug"]>;
     view: ViewMode;
   } {
     const blink = this.blinkCtrl.debug();
@@ -473,6 +500,7 @@ export class AvatarRig {
       activeShots: blink.activeShots,
       hair: this.hairSys.debug(),
       body: this.bodySys.debug(),
+      action: this.actionDir.debug(),
       view: this.view,
     };
   }
@@ -506,6 +534,23 @@ export class AvatarRig {
     this.targetLookX = 0;
     this.targetLookY = 0;
     this.gaze.setPointer(0, 0);
+    this.pointerDown = null;
+  };
+
+  private readonly onPointerDown = (event: PointerEvent) => {
+    this.pointerDown = { x: event.clientX, y: event.clientY };
+  };
+
+  private readonly onPointerUp = (event: PointerEvent) => {
+    if (!this.pointerDown) return;
+    const dx = event.clientX - this.pointerDown.x;
+    const dy = event.clientY - this.pointerDown.y;
+    this.pointerDown = null;
+    if (dx * dx + dy * dy > 81) return;
+    const played = this.actionDir.onClick();
+    if (played && MOTION.fx.rippleOnClick > 0) {
+      this.canvas.dispatchEvent(new CustomEvent("moxi-ink", { bubbles: true, detail: { action: played } }));
+    }
   };
 
   private readonly tick = (now: number) => {
@@ -526,6 +571,15 @@ export class AvatarRig {
 
     const idleState = this.idle.step(seconds, mouth.speaking, this.expression);
     const glow = this.afterglow.step(Math.min(0.05, Math.max(1 / 240, dt * 0.01667)));
+    this.actionDir.onViseme(mouth.id, mouth.energy, mouth.speaking);
+    const dtSecEarly = Math.min(0.05, Math.max(1 / 240, dt * 0.01667));
+    this.perf = this.actionDir.step(dtSecEarly, seconds, {
+      speaking: mouth.speaking,
+      energy: mouth.energy,
+      expression: this.expression,
+      lookX: this.lookX,
+      lookY: this.lookY,
+    });
 
     const target = { ...POSES[this.expression] };
     if (this.expression === "neutral") {
@@ -551,6 +605,9 @@ export class AvatarRig {
     if (mouth.speaking && MOTION.viseme.mouthCurveTalk > 0) {
       target.mouthCurve += mouth.shape.curve * MOTION.viseme.mouthCurveTalk * 0.25;
     }
+    target.blush = clamp(target.blush + this.perf.blushAdd, 0, 1.25);
+    target.mouthCurve += this.perf.mouthAdd;
+    target.browRaise += this.perf.browAdd;
     if (seconds >= this.freezeUntil) {
       integrate(this.pose, this.poseVel, target, dt);
     }
@@ -560,8 +617,8 @@ export class AvatarRig {
     this.bounce *= Math.pow(0.9, dt);
 
     const dtSec = Math.min(0.05, Math.max(1 / 240, dt * 0.01667));
-    const lookBiasX = this.pose.lookBiasX + idleState.lookBiasX;
-    const lookBiasY = this.pose.lookBiasY + idleState.lookBiasY + glow.lookY;
+    const lookBiasX = this.pose.lookBiasX + idleState.lookBiasX + this.perf.lookX;
+    const lookBiasY = this.pose.lookBiasY + idleState.lookBiasY + glow.lookY + this.perf.lookY;
     if (MOTION.gaze.autoSaccade > 0) {
       const g = this.gaze.step(dtSec, seconds, {
         speaking: mouth.speaking,
@@ -594,7 +651,16 @@ export class AvatarRig {
       this.lookY = g.y;
     }
 
-    const breath = this.breathSys.step(dtSec, seconds, mouth.speaking, mouth.energy, idleState.breathBoost);
+    const breath = this.breathSys.step(
+      dtSec,
+      seconds,
+      mouth.speaking,
+      mouth.energy,
+      idleState.breathBoost + this.perf.breathBoost,
+    );
+    if (this.perf.hairKick) this.hairSys.impulse(this.perf.hairKick);
+    if (this.perf.napeKick) this.hairSys.nape.velocity += this.perf.napeKick * 8;
+    if (this.perf.tasselKick) this.hairSys.tassel.velocity += this.perf.tasselKick * 10;
     this.hairSys.setBreath(breath.chest);
     this.hairSys.step(dtSec, seconds, {
       lookX: this.lookX,
@@ -609,7 +675,12 @@ export class AvatarRig {
       energy: mouth.energy,
       breath: breath.chest,
       field: this.hairSys.wind.last,
+      extraWeight: this.perf.extraWeight,
+      skirtKick: this.perf.skirtKick,
+      shawlFlip: this.perf.shawlFlip,
+      clothDrag: this.perf.clothDrag,
     });
+    collideTasselHem(this.hairSys.tassel, this.bodySys.hem, dtSec);
     const lids = this.blinkCtrl.sample(seconds, this.expression, mouth.speaking, mouth.energy);
     this.lastLids = lids;
     this.pose.browRaise -= lids.browDip * 0.35;
@@ -1169,6 +1240,7 @@ export class AvatarRig {
     const laughBounce = Math.sin(seconds * MOTION.talk.bounceHz) * this.bounce * 2.6;
     const talkBob = this.speaking ? Math.sin(seconds * 8.2) * MOTION.talk.bob : 0;
     const nod = this.speaking ? Math.sin(seconds * 5.4) * MOTION.talk.headNod * 8 : this.blinkCtrl.lastNod * 6;
+    const perf = this.perf;
     const scale = Math.min(canvasWidth / W, canvasHeight / H) * 1.08;
     const drawWidth = W * scale;
     const drawHeight = H * scale;
@@ -1176,12 +1248,15 @@ export class AvatarRig {
     const originY =
       (canvasHeight - drawHeight) / 2 +
       canvasHeight * 0.06 +
-      (chest * 1.15 + laughBounce + talkBob + nod) * scale;
+      (chest * 1.15 + laughBounce + talkBob + nod + perf.headPitch * 10 - perf.hopY * 28 - perf.plantLift * 18) *
+        scale;
     const sliceHeight = H / SLICES;
 
     context.save();
     context.translate(canvasWidth / 2, canvasHeight / 2);
-    context.rotate(this.lookX * 0.004 + idleSway * 0.002 + this.pose.headTilt * 0.35);
+    context.rotate(
+      this.lookX * 0.004 + idleSway * 0.002 + this.pose.headTilt * 0.35 + perf.headYaw * 0.35 + perf.torsoLean * 0.4,
+    );
     context.translate(-canvasWidth / 2, -canvasHeight / 2);
 
     for (let index = 0; index < SLICES; index += 1) {
@@ -1197,13 +1272,16 @@ export class AvatarRig {
           idleSway * 1.1 +
           crane * craneInfluence * 0.35 +
           shawl * shawlInfluence * 0.25 +
-          shoulder * shoulderInfluence * 0.4) *
+          shoulder * shoulderInfluence * 0.4 +
+          perf.headYaw * 22 * headInfluence +
+          (perf.shoulderL + perf.shoulderR) * 8 * shoulderInfluence) *
         scale;
       const yShift =
         (this.lookY * 4.2 * headInfluence -
           chest * chestInfluence +
           laughBounce * 0.45 * headInfluence +
-          nod * 0.2 * headInfluence) *
+          nod * 0.2 * headInfluence +
+          perf.headPitch * 26 * headInfluence) *
         scale;
       const horizontalScale = 1 - Math.abs(this.lookX) * 0.005 * headInfluence;
       const sliceWidth = drawWidth * horizontalScale;
@@ -1229,7 +1307,8 @@ export class AvatarRig {
     const laughBounce = Math.sin(seconds * MOTION.talk.bounceHz) * this.bounce * 2.2;
     const talkBob = this.speaking ? Math.sin(seconds * 7.4) * MOTION.talk.bob * 0.7 : 0;
     const nod = this.speaking ? Math.sin(seconds * 5.4) * MOTION.talk.headNod * 6 : this.blinkCtrl.lastNod * 5;
-    const weight = body?.weight ?? Math.sin(seconds * Math.PI * 2 * cfg.weightHz) * 0.4;
+    const perf = this.perf;
+    const weight = (body?.weight ?? Math.sin(seconds * Math.PI * 2 * cfg.weightHz) * 0.4) + perf.extraWeight * 0.15;
     const skirtA = body?.skirt.angle ?? 0;
     const hemA = body?.hem.angle ?? 0;
     const shawlLA = body?.shawlL.angle ?? 0;
@@ -1241,9 +1320,13 @@ export class AvatarRig {
     const scale = Math.min((canvasWidth - padX * 2) / w, (canvasHeight - padY * 2) / h) * 0.98;
     const drawWidth = w * scale;
     const drawHeight = h * scale;
+    const hopPx = (perf.hopY + perf.plantLift) * h;
     const originX = (canvasWidth - drawWidth) / 2 + canvasWidth * 0.012;
     const originY =
-      canvasHeight - drawHeight - canvasHeight * 0.018 + (chest * 0.35 + laughBounce + talkBob + nod) * scale;
+      canvasHeight -
+      drawHeight -
+      canvasHeight * 0.018 +
+      (chest * 0.35 + laughBounce + talkBob + nod - hopPx) * scale;
     const sliceHeight = h / slices;
     const plant = this.layout.plant ?? { x: w * 0.52, y: h * 0.96 };
     const plantX = originX + plant.x * scale;
@@ -1251,7 +1334,7 @@ export class AvatarRig {
 
     context.save();
     context.translate(plantX, plantY);
-    context.rotate(weight * cfg.lean + this.lookX * 0.003 + this.pose.headTilt * 0.22);
+    context.rotate(weight * cfg.lean + this.lookX * 0.003 + this.pose.headTilt * 0.22 + perf.torsoLean);
     context.translate(-plantX, -plantY);
 
     for (let index = 0; index < slices; index += 1) {
@@ -1272,11 +1355,16 @@ export class AvatarRig {
       const legInfluence = Math.exp(-(((normalizedY - 0.84) / 0.12) ** 2));
       const footInfluence = Math.exp(-(((normalizedY - cfg.plantY) / 0.05) ** 2));
       const fromFeet = clamp((cfg.plantY - normalizedY) / Math.max(0.08, cfg.plantY), 0, 1);
+      const hopAmt = clamp((perf.hopY + perf.plantLift) / Math.max(0.004, MOTION.action.capHop), 0, 1);
+      const faceLock = MOTION.action.faceLock * hopAmt;
+      const plantStick = MOTION.action.plantStick * hopAmt;
+      const lookHead = this.lookX * (1 - faceLock);
+      const footScale = 1 - plantStick;
       const xShift =
-        (this.lookX * MOTION.face.sliceLook * 0.55 * headInfluence +
+        (lookHead * MOTION.face.sliceLook * 0.55 * headInfluence +
           idleSway * 0.7 * (1 - footInfluence) +
           weight * cfg.hipShift * hipInfluence +
-          weight * cfg.hipShift * 0.45 * fromFeet * (1 - footInfluence) +
+          weight * cfg.hipShift * 0.45 * fromFeet * (1 - footInfluence) * footScale +
           skirtA * 42 * skirtInfluence * cfg.skirtCoupling +
           hemA * 52 * hemInfluence * cfg.hemCoupling +
           shawlLA * 28 * shawlInfluence * cfg.shawlCoupling * 0.5 +
@@ -1284,14 +1372,21 @@ export class AvatarRig {
           crane * craneInfluence * 0.28 +
           shawl * shawlInfluence * 0.2 +
           shoulder * shoulderInfluence * 0.35 +
+          (perf.shoulderL + perf.shoulderR) * 16 * shoulderInfluence +
+          perf.headYaw * 48 * headInfluence +
+          (perf.stepL - perf.stepR) * 22 * hipInfluence * MOTION.action.hipStep +
+          (perf.stepL * 10 + perf.stepR * -8) * legInfluence +
           legA * 18 * legInfluence) *
-        scale;
+        scale *
+        (footInfluence > 0.4 ? footScale * 0.35 + (1 - footInfluence) : 1);
       const yShift =
         (this.lookY * 2.4 * headInfluence -
           chest * chestInfluence * cfg.chestBreath -
           chest * bellyInfluence * cfg.bellyBreath * 0.45 +
           laughBounce * 0.35 * headInfluence +
-          nod * 0.18 * headInfluence) *
+          nod * 0.18 * headInfluence +
+          perf.headPitch * 90 * headInfluence * (MOTION.action.mouthFollow > 0 ? 1 : 1) +
+          perf.torsoLean * 36 * chestInfluence) *
         scale;
       const horizontalScale =
         1 -
@@ -1358,7 +1453,7 @@ export class AvatarRig {
     paint(this.assets.skirt, this.layout.skirt, skirtA * 0.55, 22, 0.42);
     paint(this.assets.hem, this.layout.hem, hemA, 48, 0.7);
     if (this.assets.crane && this.layout.crane) {
-      const bob = chest * 0.12 * MOTION.body.craneCoupling;
+      const bob = chest * 0.12 * MOTION.body.craneCoupling - this.perf.hopY * 28 * MOTION.action.craneHop;
       context.save();
       context.translate(originX, originY);
       context.scale(scale, scale);

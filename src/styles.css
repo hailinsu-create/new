@@ -80,6 +80,46 @@ body {
   z-index: 1;
 }
 
+.lantern-2 {
+  left: 16%;
+  top: 18%;
+  width: 16vmin;
+  height: 16vmin;
+  opacity: 0.72;
+  animation-delay: 1.1s;
+}
+
+.breath-glow {
+  position: absolute;
+  inset: 22% 28% 18% 28%;
+  pointer-events: none;
+  z-index: 2;
+  background: radial-gradient(circle, rgba(232, 210, 150, var(--breath-glow, 0.08)), transparent 72%);
+  animation: lantern var(--lantern-dur, 4.8s) ease-in-out infinite;
+  filter: blur(10px);
+}
+
+.ink-ripple {
+  position: absolute;
+  left: var(--rx, 40%);
+  top: var(--ry, 62%);
+  width: 12vmin;
+  height: 12vmin;
+  margin: -6vmin;
+  border-radius: 50%;
+  border: 1px solid rgba(201, 163, 106, 0.28);
+  box-shadow: 0 0 18px rgba(155, 183, 176, 0.12) inset;
+  pointer-events: none;
+  z-index: 2;
+  animation: ink-ripple calc(var(--rdur, 4.6s) * var(--ink-scale, 1)) ease-out infinite;
+  animation-delay: var(--rdelay, 0s);
+}
+
+.ink-ripple.is-click {
+  animation-iteration-count: 1;
+  border-color: rgba(196, 69, 54, 0.45);
+}
+
 .firefly {
   position: absolute;
   width: 5px;
@@ -300,6 +340,33 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 6px;
+}
+
+.panel h2.subhead {
+  margin-top: 12px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.actions .act {
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid rgba(201, 163, 106, 0.28);
+  background: rgba(20, 28, 24, 0.7);
+  color: var(--paper);
+  padding: 4px 7px;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+}
+
+.actions .act.is-on {
+  background: rgba(196, 69, 54, 0.18);
+  border-color: var(--cinnabar);
+  color: #f3d2c6;
 }
 
 .faces button,
@@ -531,4 +598,39 @@ input[type="range"] {
   50% {
     opacity: calc(1 - var(--vignette-pulse, 0));
   }
+}
+
+@keyframes ink-ripple {
+  0% {
+    transform: scale(0.28);
+    opacity: 0.55;
+  }
+  70% {
+    opacity: 0.22;
+  }
+  100% {
+    transform: scale(2.35);
+    opacity: 0;
+  }
+}
+
+@keyframes firefly-drift {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+  }
+  18% {
+    opacity: 0.85;
+  }
+  55% {
+    transform: translate3d(18px, -46px, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(52px, -96px, 0);
+  }
+}
+
+.firefly-drift {
+  animation-name: firefly-drift;
 }
