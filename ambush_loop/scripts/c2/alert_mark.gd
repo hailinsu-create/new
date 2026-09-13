@@ -32,6 +32,7 @@ func _draw() -> void:
 			_balloon("?", Color(0.96, 0.86, 0.22))
 		Kind.BANG:
 			_balloon("!", Color(0.92, 0.22, 0.14))
+			draw_circle(Vector2(0, -22), 3.0 + absf(sin(_t * 8.0)) * 2.0, Color(0.92, 0.22, 0.14, 0.25))
 		Kind.SLEEP:
 			_sleep_z()
 
