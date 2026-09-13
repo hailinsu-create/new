@@ -3640,7 +3640,7 @@ func _unhandled_input(event: InputEvent) -> void:
 					selected.rotate_by(-15.0)
 					_announce_plan_edit()
 					_refresh_killzone_preview()
-			KEY_C, KEY_Q, KEY_W, KEY_Z, KEY_K, KEY_F1, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8:
+			KEY_C, KEY_Q, KEY_W, KEY_Z, KEY_K, KEY_F1, KEY_F2, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8:
 				if c2 and c2.handle_key(event.physical_keycode):
 					pass
 			KEY_D:
@@ -7028,7 +7028,7 @@ func _refresh_phase_chip() -> void:
 	var w: int = raid.wave_index if raid else 0
 	match phase:
 		Phase.SETUP:
-			phase_chip.text = "阶段 · 搜刮埋伏  波次 %d/%d" % [w + 1, total]
+			phase_chip.text = "阶段 · 搜刮潜行  波次 %d/%d" % [w + 1, total]
 			phase_chip.add_theme_color_override("font_color", Color(0.82, 0.90, 0.52))
 		Phase.WATCHING:
 			var spd := "暂停" if sim.paused else ("2×" if sim.speed >= 1.5 else "1×")
@@ -8170,7 +8170,7 @@ func _transfer_selected_to_nearest() -> void:
 	if selected == null or not selected.alive:
 		return
 	var best: OperatorUnit = null
-	var best_d := 56.0
+	var best_d := 64.0
 	for op in operators:
 		if op == null or op == selected or not op.visible or not op.alive:
 			continue
@@ -8180,6 +8180,8 @@ func _transfer_selected_to_nearest() -> void:
 			best = op
 	if best == null:
 		status_label.text = "走近队友再递装（T）"
+		if c2:
+			c2._spawn_ring(selected.global_position, 64.0, Color(0.42, 0.72, 0.48, 0.4))
 		return
 	var rec: Dictionary = selected.transfer_to(best, "auto")
 	status_label.text = str(rec.get("text", "递装"))
