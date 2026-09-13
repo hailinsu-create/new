@@ -813,7 +813,7 @@ func _refresh_campaign_title() -> void:
 		if complete:
 			tagline.text = "v%s · 灯塔停转 · 北区补给链已切断 · 档案已归档" % NightOps.game_version()
 		else:
-			tagline.text = "v%s · COMMANDOS/WW2 · 搜刮埋伏 · 多波打扫 · 横屏" % NightOps.game_version()
+			tagline.text = "v%s · COMMANDOS/WW2 · 点选单兵 · 搜刮潜行 · 多波打扫" % NightOps.game_version()
 	if _journal_btn:
 		if complete:
 			_journal_btn.text = "战役档案（已切断）"
