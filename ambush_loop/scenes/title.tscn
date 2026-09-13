@@ -48,7 +48,7 @@ offset_right = -40.0
 offset_bottom = 228.0
 theme_override_colors/font_color = Color(0.55, 0.6, 0.42, 1)
 theme_override_font_sizes/font_size = 18
-text = "v0.4.5 · COMMANDOS/WW2 · 点选单兵 · 搜刮潜行 · 多波打扫"
+text = "v0.5.0 · COMMANDOS/WW2 · 点选单兵 · 搜刮潜行 · 多波打扫"
 horizontal_alignment = 1
 
 [node name="Rule" type="ColorRect" parent="UI"]
