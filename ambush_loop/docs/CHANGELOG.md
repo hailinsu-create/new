@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.5.4 — Phone feel: crate names off, 绕背 clears west court, follow spacing
+
+Sideload APK: `dist/AmbushLoop-v0.5.4-touch-clear.apk`  
+Release tag: `v0.5.4-touch-clear`
+
+Same RAID as 0.5.3 (`SCOUT → ALERT → SWEEP`, auto fire + auto nade). Phone default stays 简配夜袭.
+
+### Play (phone)
+- Crate gun names (Kar98k / MG42 / …) hide on phone. Gun stamp stays; 开匣 % only while standing on the box.
+- **绕背** is a smaller chip pinned to the operator, not the dest cell. It only appears in the rear, and it is nudged off west-court crates and pads.
+- **跟上** fans back-left / back-right (~2 cells) and reserves cells so two followers do not stack on the lead.
+- Hotspots: crate/cover must be the same cell; 绕背 range tightened; courtyard loop taps still walk.
+
+### Android
+- `versionName` 0.5.4 / `versionCode` 10 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title **v0.5.4 COMMANDOS/WW2**.
+2. Force-touch: courtyard crates have no Kar98k/M1911 captions. Bottom bar still 匍匐 / 背包 / 需枪.
+3. Stand west of an east-facing sentry: **绕背** sits beside you, not on the west rifle crate.
+
 ## 0.5.3 — Phone feel: north ink, cone-avoid 绕背/跟上, tighter hotspots, yard loop
 
 Sideload APK: `dist/AmbushLoop-v0.5.3-touch-smooth.apk`  

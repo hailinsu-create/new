@@ -2,7 +2,8 @@
 
 Delivered build:
 
-- `AmbushLoop-v0.5.3-touch-smooth.apk` — Godot 4.7.2 debug, arm64, phone feel: north world ink, cone-avoid 绕背/跟上, tighter hotspots, yard-loop taps. Same RAID as 0.5.2.
+- `AmbushLoop-v0.5.4-touch-clear.apk` — Godot 4.7.2 debug, arm64, phone feel: crate names off, 绕背 clears west court, follow spacing, tighter hotspots. Same RAID as 0.5.3.
+- `AmbushLoop-v0.5.3-touch-smooth.apk` — north world ink, cone-avoid 绕背/跟上, tighter hotspots, yard-loop taps (superseded for phone feel).
 - `AmbushLoop-v0.5.2-touch-feel.apk` — folded north chrome, 绕背 guide, short-drag pan / long-press sprint, follow badge (superseded for phone feel).
 - `AmbushLoop-v0.5.1-touch-rail.apk` — portraits in the thumb band, context hotspots, ALERT 3 keys (superseded for phone feel).
 - `AmbushLoop-v0.5.0-commandos2-kit.apk` — portraits, skill hotbar, sentry cones, crouch/KO, 10 guns, 6-slot pack, auto nades (superseded for phone HUD).

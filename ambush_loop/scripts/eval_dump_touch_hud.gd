@@ -1,7 +1,7 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.3 phone feel: north world ink,
-## cone-avoiding 绕背/跟上, tighter hotspots, courtyard loop taps.
+## Forced-touch HUD stills for v0.5.4 phone feel: crate names off,
+## 绕背 clears west court, follow spacing, tighter hotspots, courtyard loop.
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
@@ -85,7 +85,7 @@ func _run() -> void:
 		await _settle(8)
 		_count_chrome(main, "scout_knife")
 		await _save("04_scout_hotspot_knife")
-		sent.global_position = clear + Vector2(80, 0)
+		sent.global_position = clear + Vector2(64, 0)
 		sent.facing_deg = 0.0
 		op.global_position = clear
 		if main.c2.prompt and main.c2.prompt.has_method("refresh_now"):
@@ -93,6 +93,10 @@ func _run() -> void:
 		await _settle(8)
 		_count_chrome(main, "scout_flank")
 		_dump_feel(main, "flank")
+		var west_hits := -1
+		if main.c2.prompt and main.c2.prompt.has_method("hotspot_hits_west_operable"):
+			west_hits = int(main.c2.prompt.hotspot_hits_west_operable())
+		print("DUMP_FLANK_WEST_HITS ", west_hits, " rects=", main.c2.prompt.visible_hotspot_rects() if main.c2.prompt else [])
 		await _save("05_scout_hotspot_flank")
 		if main.has_method("apply_context_action"):
 			main.apply_context_action("flank", sent.global_position)
@@ -105,20 +109,80 @@ func _run() -> void:
 					cone_hits += 1
 		print("DUMP_FLANK_PATH hits=", cone_hits, " pts=", main.operators[0].move_path.size() if main.operators.size() > 0 else 0)
 		await _save("05b_scout_flank_path")
+		op.stop_move()
+		var west_op := Vector2i(7, 12)
+		var west_sent := Vector2i(9, 12)
+		if main.grid.is_blocked(west_op.x, west_op.y):
+			west_op = Vector2i(6, 13)
+		if main.grid.is_blocked(west_sent.x, west_sent.y):
+			west_sent = Vector2i(9, 13)
+		op.global_position = main.grid.cell_to_world_center(west_op)
+		sent.global_position = main.grid.cell_to_world_center(west_sent)
+		sent.facing_deg = 0.0
+		if sent.has_method("_rebuild_cone"):
+			sent._rebuild_cone()
+		if main.c2.prompt and main.c2.prompt.has_method("refresh_now"):
+			main.c2.prompt.refresh_now()
+		await _settle(8)
+		var west2 := int(main.c2.prompt.hotspot_hits_west_operable()) if main.c2.prompt and main.c2.prompt.has_method("hotspot_hits_west_operable") else -1
+		print(
+			"DUMP_WEST_FLANK hits=", west2,
+			" caps=", " ".join(main.c2.prompt.visible_captions() if main.c2.prompt else PackedStringArray()),
+			" rects=", main.c2.prompt.visible_hotspot_rects() if main.c2.prompt else []
+		)
+		_dump_feel(main, "west_flank")
+		await _save("05c_west_flank")
+		op.stop_move()
 
 	await _walk_yard_loop(main)
 
 	if main.operators.size() >= 2:
 		main._select_op(0)
+		if main.c2 and not main.c2.sentries.is_empty() and main.grid:
+			var park: Vector2 = main.grid.cell_to_world_center(Vector2i(32, 6))
+			for s in main.c2.sentries:
+				if s and is_instance_valid(s):
+					s.global_position = park
+					s.facing_deg = 0.0
+		var spine := Vector2i(15, 13)
+		if main.grid and main.grid.is_blocked(spine.x, spine.y):
+			spine = Vector2i(14, 15)
+		var sw: Vector2 = main.grid.cell_to_world_center(spine)
+		main.operators[0].stop_move()
+		main.operators[0].facing_deg = 0.0
+		main.operators[0].global_position = sw
 		if main.has_method("toggle_follow"):
 			if not bool(main.operators[1].follow_lead):
 				main.toggle_follow(1)
+			if main.operators.size() >= 3 and not bool(main.operators[2].follow_lead):
+				main.toggle_follow(2)
+		if main.has_method("_tick_squad_follow"):
+			main._tick_squad_follow()
+		var frames := 0
+		while frames < 90:
+			if main.has_method("_tick_command_moves"):
+				main._tick_command_moves(0.05)
+			await process_frame
+			frames += 1
+			var busy := false
+			for opx in main.operators:
+				if opx and opx.is_moving():
+					busy = true
+					break
+			if not busy and frames > 12:
+				break
 		main._update_hud()
 		await _settle(8)
 		_dump_feel(main, "follow")
+		print(
+			"DUMP_FOLLOW_SPREAD dest=", snapped(float(main.follow_dest_min_spacing()) if main.has_method("follow_dest_min_spacing") else -1.0, 0.1),
+			" live=", snapped(float(main.follow_min_spacing()) if main.has_method("follow_min_spacing") else -1.0, 0.1)
+		)
 		await _save("09_scout_follow")
 		if bool(main.operators[1].follow_lead):
 			main.toggle_follow(1)
+		if main.operators.size() >= 3 and bool(main.operators[2].follow_lead):
+			main.toggle_follow(2)
 
 	if main.has_method("raid_prepare_ref"):
 		main.raid_prepare_ref([0, 1, 2], [0.0, 0.0, 90.0], {"grenades": 2, "mines": 1})
@@ -207,7 +271,10 @@ func _dump_feel(main, tag: String) -> void:
 		" north_labels=", f.get("north_labels", -1),
 		" spawn_tags=", f.get("spawn_tags", -1),
 		" route_tags=", f.get("route_tags", -1),
-		" mouse_eat=", f.get("mouse_eat", -1)
+		" mouse_eat=", f.get("mouse_eat", -1),
+		" crate_tags=", f.get("crate_tags", -1),
+		" west_hits=", f.get("west_hits", -1),
+		" follow_dest_spread=", snapped(float(f.get("follow_dest_spread", -1.0)), 0.1)
 	)
 
 

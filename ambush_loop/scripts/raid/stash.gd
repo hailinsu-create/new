@@ -63,6 +63,7 @@ func _ensure_look() -> void:
 		tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(tag)
 	tag.add_theme_color_override("font_color", col.lightened(0.25))
+	_paint_tag()
 	var lid := get_node_or_null("Lid") as Polygon2D
 	if lid == null:
 		lid = Polygon2D.new()
@@ -97,6 +98,33 @@ func set_search_progress(p: float) -> void:
 		tag.text = "开匣 %d%%" % int(round(search_progress * 100.0))
 	elif tag:
 		tag.text = Weapons.tag_zh(kind)
+	_paint_tag()
+
+
+func _phone() -> bool:
+	var tree := get_tree()
+	if tree == null:
+		return false
+	var gs = tree.root.get_node_or_null("GameSettings")
+	if gs != null and gs.has_method("want_touch_controls"):
+		return bool(gs.want_touch_controls())
+	return OS.has_feature("android") or OS.has_feature("mobile")
+
+
+func _paint_tag() -> void:
+	if tag == null:
+		return
+	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var phone := _phone()
+	if phone:
+		## Names sit on the crate and steal taps. Keep the gun stamp; show % only while opening.
+		tag.visible = search_progress > 0.02
+		tag.add_theme_font_size_override("font_size", 10)
+		tag.position.x = -12.0
+	else:
+		tag.visible = true
+		tag.add_theme_font_size_override("font_size", 13)
+		tag.position.x = -18.0
 
 
 func _process(delta: float) -> void:
@@ -108,8 +136,9 @@ func _process(delta: float) -> void:
 		bob *= 0.25
 	if visual:
 		visual.position.y = bob
+	_paint_tag()
 	if tag:
-		tag.position.y = -22.0 + bob * 0.4
+		tag.position.y = (-16.0 if _phone() else -22.0) + bob * 0.4
 
 
 func _kind_poly(id: String) -> PackedVector2Array:

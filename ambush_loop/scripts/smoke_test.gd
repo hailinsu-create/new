@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.5.3":
+	if ver != "0.5.4":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3392,6 +3392,8 @@ func _assert_simplified_touch(main) -> bool:
 		return false
 	if not await _assert_touch_feel_053(main):
 		return false
+	if not await _assert_touch_feel_054(main):
+		return false
 	return true
 
 
@@ -3458,7 +3460,7 @@ func _assert_context_hotspots(main) -> bool:
 		return false
 	print("SMOKE_OK_HOTSPOT_WHISTLE")
 	# Rear approach, not yet in knife range → 绕背 guide, not 割喉.
-	sent.global_position = clear + Vector2(80, 0)
+	sent.global_position = clear + Vector2(64, 0)
 	sent.facing_deg = 0.0
 	op.global_position = clear
 	prompt.refresh_now()
@@ -3472,6 +3474,16 @@ func _assert_context_hotspots(main) -> bool:
 		quit(44)
 		return false
 	print("SMOKE_OK_HOTSPOT_FLANK")
+	# Too far behind: no 绕背.
+	sent.global_position = clear + Vector2(120, 0)
+	sent.facing_deg = 0.0
+	prompt.refresh_now()
+	await process_frame
+	if bool(prompt.has_caption("绕背")):
+		push_error("SMOKE_FLANK_TOO_FAR caps=%s" % " ".join(prompt.visible_captions()))
+		quit(44)
+		return false
+	print("SMOKE_OK_FLANK_RANGE")
 	sent.global_position = sent_home
 	sent.facing_deg = sent_face
 	op.global_position = home
@@ -3877,6 +3889,150 @@ func _assert_yard_touch_loop(main) -> bool:
 	op.global_position = home
 	if prompt:
 		prompt.refresh_now()
+	return true
+
+
+func _assert_touch_feel_054(main) -> bool:
+	## Crate names off on phone, 绕背 clears west court, follow spacing, yard loop kept in 053.
+	main._ensure_touch_hud()
+	main._update_hud()
+	await process_frame
+	await process_frame
+	if not main.has_method("dump_world_ink"):
+		push_error("SMOKE_NO_WORLD_INK_054")
+		quit(44)
+		return false
+	var ink: Dictionary = main.dump_world_ink()
+	if int(ink.get("crate_visible", 9)) > 0:
+		push_error("SMOKE_CRATE_TAGS_ON n=%s" % ink.get("crate_visible"))
+		quit(44)
+		return false
+	print("SMOKE_OK_CRATE_TAGS_HIDDEN n=", ink.get("crate_visible"))
+	if not await _assert_flank_clears_west(main):
+		return false
+	if not await _assert_follow_spacing(main):
+		return false
+	if not await _assert_yard_touch_loop(main):
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_054")
+	return true
+
+
+func _assert_flank_clears_west(main) -> bool:
+	var prompt = main.c2.prompt if main.c2 else null
+	if prompt == null or main.c2.sentries.is_empty() or main.operators.is_empty():
+		push_error("SMOKE_NO_WEST_FLANK")
+		quit(44)
+		return false
+	var op: OperatorUnit = main.operators[0]
+	var sent = main.c2.sentries[0]
+	var op_home: Vector2 = op.global_position
+	var sent_home: Vector2 = sent.global_position
+	var sent_face: float = float(sent.facing_deg)
+	var op_c := Vector2i(7, 12)
+	var sent_c := Vector2i(9, 12)
+	if main.grid:
+		if main.grid.is_blocked(op_c.x, op_c.y):
+			op_c = Vector2i(6, 13)
+		if main.grid.is_blocked(sent_c.x, sent_c.y):
+			sent_c = Vector2i(9, 13)
+	op.stop_move()
+	main._select_op(0)
+	op.global_position = main.grid.cell_to_world_center(op_c)
+	sent.global_position = main.grid.cell_to_world_center(sent_c)
+	sent.facing_deg = 0.0
+	if sent.has_method("_rebuild_cone"):
+		sent._rebuild_cone()
+	prompt.refresh_now()
+	await process_frame
+	if not bool(prompt.has_caption("绕背")):
+		push_error("SMOKE_WEST_NO_FLANK caps=%s op=%s sent=%s" % [
+			" ".join(prompt.visible_captions()), op_c, sent_c
+		])
+		quit(44)
+		return false
+	if bool(prompt.has_caption("割喉")):
+		push_error("SMOKE_WEST_FLANK_IS_KNIFE")
+		quit(44)
+		return false
+	var hits := int(prompt.hotspot_hits_west_operable()) if prompt.has_method("hotspot_hits_west_operable") else 99
+	if hits > 0:
+		push_error("SMOKE_FLANK_COVERS_WEST n=%s rects=%s" % [hits, prompt.visible_hotspot_rects()])
+		quit(44)
+		return false
+	print("SMOKE_OK_FLANK_CLEARS_WEST hits=", hits, " caps=", " ".join(prompt.visible_captions()))
+	sent.global_position = sent_home
+	sent.facing_deg = sent_face
+	if sent.has_method("_rebuild_cone"):
+		sent._rebuild_cone()
+	op.global_position = op_home
+	prompt.refresh_now()
+	return true
+
+
+func _assert_follow_spacing(main) -> bool:
+	if main.operators.size() < 3 or not main.has_method("toggle_follow"):
+		push_error("SMOKE_FOLLOW_SPREAD_NO_OPS")
+		quit(44)
+		return false
+	var lead: OperatorUnit = main.operators[0]
+	var a: OperatorUnit = main.operators[1]
+	var b: OperatorUnit = main.operators[2]
+	var homes: Array[Vector2] = [lead.global_position, a.global_position, b.global_position]
+	var flags: Array[bool] = [bool(a.follow_lead), bool(b.follow_lead)]
+	var spine := Vector2i(13, 13)
+	if main.grid and main.grid.is_blocked(spine.x, spine.y):
+		spine = Vector2i(14, 13)
+	var world: Vector2 = main.grid.cell_to_world_center(spine)
+	main._select_op(0)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	lead.facing_deg = 0.0
+	lead.global_position = world
+	a.global_position = world + Vector2(0, 16)
+	b.global_position = world + Vector2(0, -16)
+	if not bool(a.follow_lead):
+		main.toggle_follow(1)
+	if not bool(b.follow_lead):
+		main.toggle_follow(2)
+	if not bool(a.follow_lead) or not bool(b.follow_lead):
+		push_error("SMOKE_FOLLOW_SPREAD_OFF")
+		quit(44)
+		return false
+	main._tick_squad_follow()
+	await process_frame
+	var d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+	var d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+	if d1.x < 0 or d2.x < 0:
+		push_error("SMOKE_FOLLOW_NO_DEST d1=%s d2=%s" % [d1, d2])
+		quit(44)
+		return false
+	if d1 == d2:
+		push_error("SMOKE_FOLLOW_SAME_DEST %s" % str(d1))
+		quit(44)
+		return false
+	if d1 == lead.grid_cell() or d2 == lead.grid_cell():
+		push_error("SMOKE_FOLLOW_ON_LEAD d1=%s d2=%s lead=%s" % [d1, d2, lead.grid_cell()])
+		quit(44)
+		return false
+	var spread := float(main.follow_dest_min_spacing()) if main.has_method("follow_dest_min_spacing") else 0.0
+	if spread < 40.0:
+		push_error("SMOKE_FOLLOW_DEST_TIGHT spread=%s d1=%s d2=%s" % [spread, d1, d2])
+		quit(44)
+		return false
+	print("SMOKE_OK_FOLLOW_SPACING spread=", snapped(spread, 0.1), " d1=", d1, " d2=", d2)
+	if bool(a.follow_lead) != flags[0]:
+		main.toggle_follow(1)
+	if bool(b.follow_lead) != flags[1]:
+		main.toggle_follow(2)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	lead.global_position = homes[0]
+	a.global_position = homes[1]
+	b.global_position = homes[2]
+	main._follow_dest.clear()
 	return true
 
 

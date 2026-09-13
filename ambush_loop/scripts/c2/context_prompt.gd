@@ -6,13 +6,14 @@ extends CanvasLayer
 
 const Pathfinder := preload("res://scripts/raid/pathfinder.gd")
 
-const PROBE_CRATE := 22.0
-const PROBE_COVER := 16.0
-const PROBE_KNIFE := 36.0
-const PROBE_FLANK := 92.0
-const PROBE_WHISTLE := 40.0
+const PROBE_CRATE := 14.0
+const PROBE_COVER := 12.0
+const PROBE_KNIFE := 32.0
+const PROBE_FLANK := 76.0
+const PROBE_WHISTLE := 32.0
 const HOLD_SEC := 0.55
-const BTN_SIZE := Vector2(108, 44)
+const BTN_SIZE := Vector2(88, 36)
+const FLANK_BTN := Vector2(76, 32)
 var host: Node = null
 var _root: Control = null
 var _draw: Control = null
@@ -45,7 +46,7 @@ func _ready() -> void:
 		b.focus_mode = Control.FOCUS_NONE
 		b.custom_minimum_size = BTN_SIZE
 		b.theme = NightOps.theme()
-		b.add_theme_font_size_override("font_size", 16)
+		b.add_theme_font_size_override("font_size", 15)
 		b.add_theme_font_override("font", NightOps.ui_font_bold())
 		var slot := i
 		b.pressed.connect(func() -> void:
@@ -133,6 +134,16 @@ func _moving(op: Node) -> bool:
 	return op != null and op.has_method("is_moving") and bool(op.is_moving())
 
 
+func _cell_of(world: Vector2) -> Vector2i:
+	if host != null and host.get("grid") != null:
+		return host.grid.world_to_cell(world)
+	return Vector2i(int(world.x / 32.0), int(world.y / 32.0))
+
+
+func _on_cell(a: Vector2, b: Vector2) -> bool:
+	return _cell_of(a) == _cell_of(b)
+
+
 func _probe() -> Array:
 	_guide = PackedVector2Array()
 	_rings.clear()
@@ -147,18 +158,18 @@ func _probe() -> Array:
 			if st == null or not is_instance_valid(st) or bool(st.collected):
 				continue
 			var d: float = origin.distance_to(st.global_position)
-			if d <= PROBE_CRATE:
+			if _on_cell(origin, st.global_position) or d <= PROBE_CRATE:
 				cands.append({"d": d, "pri": 1, "kind": "crate", "world": st.global_position, "node": st})
 	if not moving and host.get("loot_piles") != null:
 		for loot in host.loot_piles:
 			if loot == null or not is_instance_valid(loot) or bool(loot.collected):
 				continue
 			var d2: float = origin.distance_to(loot.global_position)
-			if d2 <= PROBE_CRATE:
+			if _on_cell(origin, loot.global_position) or d2 <= PROBE_CRATE:
 				cands.append({"d": d2, "pri": 1, "kind": "corpse", "world": loot.global_position, "node": loot})
 	if not moving and host.has_method("_nearest_slot"):
 		var slot = host._nearest_slot(origin, PROBE_COVER)
-		if slot != null:
+		if slot != null and _on_cell(origin, slot.global_position):
 			cands.append({"d": origin.distance_to(slot.global_position), "pri": 6, "kind": "cover", "world": slot.global_position, "node": slot})
 	var c2 = host.get("c2")
 	if c2 != null and c2.get("sentries") != null:
@@ -174,7 +185,7 @@ func _probe() -> Array:
 			var back: bool = s.has_method("in_backstab") and bool(s.in_backstab(origin))
 			if back and d3 <= PROBE_KNIFE:
 				cands.append({"d": d3, "pri": 0, "kind": "knife", "world": s.global_position, "node": s})
-			elif rear and d3 <= PROBE_FLANK:
+			elif rear and (not back) and d3 <= PROBE_FLANK:
 				cands.append({"d": d3, "pri": 3, "kind": "flank", "world": s.global_position, "node": s})
 			elif (not rear) and d3 <= PROBE_WHISTLE and not moving:
 				cands.append({"d": d3, "pri": 4, "kind": "whistle", "world": s.global_position, "node": s})
@@ -207,13 +218,18 @@ func _probe() -> Array:
 	if kind == "cover":
 		return [_act("cover", "上掩体", top["world"], Color(0.38, 0.48, 0.32))]
 	if kind == "knife":
-		return [_act("knife", "割喉", top["world"], Color(0.72, 0.28, 0.20))]
+		var kact := _act("knife", "割喉", top["world"], Color(0.72, 0.28, 0.20))
+		kact["anchor"] = origin
+		return [kact]
 	if kind == "flank":
 		_guide = _flank_guide(op, top.get("node"))
 		var dest: Vector2 = top["world"]
 		if host != null and host.has_method("flank_dest_world") and top.get("node") != null:
 			dest = host.flank_dest_world(top["node"], op)
-		return [_act("flank", "绕背", dest, Color(0.78, 0.36, 0.22))]
+		var fact := _act("flank", "绕背", dest, Color(0.78, 0.36, 0.22))
+		## Pin the fat verb to the operator, not the dest cell (west-court crates).
+		fact["anchor"] = origin
+		return [fact]
 	if kind == "whistle":
 		return [_act("whistle", "口哨", top["world"], Color(0.82, 0.72, 0.28))]
 	if kind == "bind":
@@ -258,6 +274,167 @@ func _map_safe(vis: Vector2) -> Rect2:
 	return Rect2(8.0, 64.0, vis.x - 16.0, vis.y - 64.0 - 148.0)
 
 
+func _btn_sz(cmd: String) -> Vector2:
+	if cmd == "flank":
+		return FLANK_BTN
+	if cmd == "crate" or cmd == "cover":
+		return Vector2(84, 34)
+	return BTN_SIZE
+
+
+func visible_hotspot_rects() -> Array:
+	var out: Array = []
+	for b in _btns:
+		if b == null or not b.visible:
+			continue
+		out.append({
+			"cmd": str(b.get_meta("cmd", "")),
+			"caption": str(b.text),
+			"rect": Rect2(b.position, b.size),
+		})
+	return out
+
+
+func hotspot_hits_west_operable() -> int:
+	var n := 0
+	if host == null:
+		return 0
+	var xf: Transform2D = host.get_viewport().get_canvas_transform()
+	for rec in visible_hotspot_rects():
+		var hr: Rect2 = rec["rect"]
+		for world in _west_operable_worlds():
+			if hr.intersects(_world_screen_rect(xf, world, 14.0)):
+				n += 1
+	return n
+
+
+func _west_operable_worlds() -> Array[Vector2]:
+	var out: Array[Vector2] = []
+	if host == null:
+		return out
+	if host.get("raid_stashes") != null:
+		for st in host.raid_stashes:
+			if st == null or not is_instance_valid(st) or bool(st.collected):
+				continue
+			if _cell_of(st.global_position).x <= 12:
+				out.append(st.global_position)
+	if host.get("cover_slots") != null:
+		for slot in host.cover_slots:
+			if slot == null or not is_instance_valid(slot):
+				continue
+			if _cell_of(slot.global_position).x <= 12:
+				out.append(slot.global_position)
+	if host.get("loot_piles") != null:
+		for loot in host.loot_piles:
+			if loot == null or not is_instance_valid(loot) or bool(loot.collected):
+				continue
+			if _cell_of(loot.global_position).x <= 12:
+				out.append(loot.global_position)
+	return out
+
+
+func _world_screen_rect(xf: Transform2D, world: Vector2, half: float) -> Rect2:
+	var p: Vector2 = xf * world
+	var hx := absf(xf.x.x) * half
+	var hy := absf(xf.y.y) * half
+	if hx < 8.0:
+		hx = half
+	if hy < 8.0:
+		hy = half
+	return Rect2(p - Vector2(hx, hy), Vector2(hx * 2.0, hy * 2.0))
+
+
+func _operable_rects(xf: Transform2D, cmd: String, target: Vector2) -> Array:
+	var rects: Array = []
+	if host == null:
+		return rects
+	var pad := 12.0
+	if cmd == "flank":
+		pad = 16.0
+	var skip_d := 18.0 if cmd != "flank" else 4.0
+	if host.get("raid_stashes") != null:
+		for st in host.raid_stashes:
+			if st == null or not is_instance_valid(st) or bool(st.collected):
+				continue
+			if st.global_position.distance_to(target) <= skip_d:
+				continue
+			var extra := pad
+			if _cell_of(st.global_position).x <= 12:
+				extra = pad + 6.0
+			rects.append(_world_screen_rect(xf, st.global_position, extra))
+	if host.get("cover_slots") != null:
+		for slot in host.cover_slots:
+			if slot == null or not is_instance_valid(slot):
+				continue
+			if slot.global_position.distance_to(target) <= skip_d:
+				continue
+			var extra2 := pad
+			if _cell_of(slot.global_position).x <= 12:
+				extra2 = pad + 6.0
+			rects.append(_world_screen_rect(xf, slot.global_position, extra2))
+	return rects
+
+
+func _rect_hits_any(hr: Rect2, rects: Array) -> bool:
+	for r in rects:
+		if hr.intersects(r):
+			return true
+	return false
+
+
+func _count_hits(hr: Rect2, rects: Array) -> int:
+	var n := 0
+	for r in rects:
+		if hr.intersects(r):
+			n += 1
+	return n
+
+
+func _place_hotspot(
+	cmd: String,
+	screen: Vector2,
+	op_screen: Vector2,
+	safe: Rect2,
+	blocked: Array,
+	i: int,
+	n: int
+) -> Vector2:
+	var sz := _btn_sz(cmd)
+	var x_off := (float(i) - (float(n) - 1.0) * 0.5) * (sz.x + 8.0)
+	var cands: Array[Vector2] = []
+	if cmd == "flank" or cmd == "knife":
+		if op_screen != Vector2.INF:
+			cands.append(op_screen + Vector2(22.0, -sz.y - 6.0))
+			cands.append(op_screen + Vector2(22.0, 8.0))
+			cands.append(op_screen + Vector2(-sz.x - 22.0, -sz.y - 6.0))
+			cands.append(op_screen + Vector2(-sz.x - 22.0, 8.0))
+			cands.append(op_screen + Vector2(-sz.x * 0.5, -sz.y - 28.0))
+			cands.append(op_screen + Vector2(-sz.x * 0.5, 16.0))
+		cands.append(screen + Vector2(-sz.x * 0.5 + x_off, -sz.y - 16.0))
+	else:
+		cands.append(screen + Vector2(-sz.x * 0.5 + x_off, -sz.y - 12.0))
+		cands.append(screen + Vector2(14.0 + x_off, -sz.y - 6.0))
+		cands.append(screen + Vector2(-sz.x - 14.0 + x_off, -sz.y - 6.0))
+		cands.append(screen + Vector2(-sz.x * 0.5 + x_off, 8.0))
+	var best := cands[0]
+	var best_hits := 999
+	for raw in cands:
+		var pos := raw
+		pos.x = clampf(pos.x, safe.position.x, safe.end.x - sz.x)
+		pos.y = clampf(pos.y, safe.position.y, maxf(safe.position.y, safe.end.y - sz.y))
+		var hr := Rect2(pos, sz)
+		if op_screen != Vector2.INF and cmd != "flank" and cmd != "knife":
+			if hr.grow(8.0).has_point(op_screen):
+				continue
+		var hits := _count_hits(hr, blocked)
+		if hits < best_hits:
+			best_hits = hits
+			best = pos
+		if hits == 0:
+			return pos
+	return best
+
+
 func _apply(actions: Array) -> void:
 	_shown = actions
 	var vis: Vector2 = get_viewport().get_visible_rect().size
@@ -267,33 +444,27 @@ func _apply(actions: Array) -> void:
 	var op := _op()
 	if op:
 		op_screen = xf * op.global_position
+	var n: int = mini(actions.size(), 2)
 	for i in _btns.size():
 		var b: Button = _btns[i]
 		if i >= actions.size():
 			b.visible = false
 			continue
 		var a: Dictionary = actions[i]
+		var cmd := str(a["cmd"])
+		var sz := _btn_sz(cmd)
 		b.visible = true
 		b.text = str(a["caption"])
-		b.set_meta("cmd", str(a["cmd"]))
+		b.set_meta("cmd", cmd)
 		b.set_meta("world", a["world"])
 		_style(b, a["tint"])
-		var screen: Vector2 = xf * a["world"]
-		var n: int = mini(actions.size(), 2)
-		var x_off := (float(i) - (float(n) - 1.0) * 0.5) * (BTN_SIZE.x + 8.0)
-		var pos := screen + Vector2(-BTN_SIZE.x * 0.5 + x_off, -BTN_SIZE.y - 18.0)
-		if pos.y < safe.position.y:
-			pos = screen + Vector2(20.0 + x_off, 8.0)
-		if op_screen != Vector2.INF:
-			var hr := Rect2(pos, BTN_SIZE)
-			if hr.has_point(op_screen) or hr.grow(10.0).has_point(op_screen):
-				pos.x = op_screen.x + 26.0
-				if pos.x + BTN_SIZE.x > safe.end.x:
-					pos.x = op_screen.x - BTN_SIZE.x - 26.0
-		pos.x = clampf(pos.x, safe.position.x, safe.end.x - BTN_SIZE.x)
-		pos.y = clampf(pos.y, safe.position.y, maxf(safe.position.y, safe.end.y - BTN_SIZE.y))
+		var place_world: Vector2 = a.get("anchor", a["world"])
+		var screen: Vector2 = xf * place_world
+		var blocked: Array = _operable_rects(xf, cmd, a["world"])
+		var pos := _place_hotspot(cmd, screen, op_screen, safe, blocked, i, n)
 		b.position = pos
-		b.size = BTN_SIZE
+		b.size = sz
+		b.custom_minimum_size = sz
 
 
 func _style(b: Button, tint: Color) -> void:

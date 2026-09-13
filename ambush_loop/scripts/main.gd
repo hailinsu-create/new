@@ -7755,42 +7755,122 @@ func toggle_follow(idx: int) -> void:
 func _tick_squad_follow() -> void:
 	if selected == null or not selected.visible or not selected.alive:
 		return
+	var followers: Array = []
 	for op in operators:
 		if op == null or op == selected or not op.alive or not op.visible:
 			continue
 		if not bool(op.follow_lead):
 			continue
+		followers.append(op)
+	for op in followers:
 		var want: Vector2i = _follow_anchor_cell(selected, op)
 		if want.x < 0:
 			continue
+		var prev: Vector2i = _follow_dest.get(int(op.op_id), Vector2i(-99, -99))
+		_follow_dest[int(op.op_id)] = want
 		if op.grid_cell() == want:
+			continue
+		if op.is_moving() and prev == want:
 			continue
 		var cells: Array[Vector2i] = stealth_path_cells(op.grid_cell(), want, op)
 		if cells.size() < 2:
 			continue
-		var dest_c: Vector2i = cells[cells.size() - 1]
-		if op.is_moving() and _follow_dest.get(int(op.op_id), Vector2i(-99, -99)) == dest_c:
-			continue
 		_apply_move_cells(op, cells, false)
-		_follow_dest[int(op.op_id)] = dest_c
+
+
+func _follow_slot_index(lead: OperatorUnit, follower: OperatorUnit) -> int:
+	var i := 0
+	for op in operators:
+		if op == null or op == lead or not bool(op.follow_lead) or not op.alive:
+			continue
+		if op == follower:
+			return i
+		i += 1
+	return i
+
+
+func _follow_reserved(except_op: OperatorUnit) -> Dictionary:
+	var d := {}
+	if selected:
+		d[selected.grid_cell()] = true
+	for op in operators:
+		if op == null or op == except_op or not op.alive or not op.visible:
+			continue
+		d[op.grid_cell()] = true
+		if bool(op.follow_lead) and _follow_dest.has(int(op.op_id)):
+			d[_follow_dest[int(op.op_id)]] = true
+	return d
 
 
 func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i:
 	var rad := deg_to_rad(lead.facing_deg)
 	var back := Vector2(-cos(rad), -sin(rad))
-	var n_follow := 0
-	for op in operators:
-		if op == null or op == lead or not bool(op.follow_lead) or not op.alive:
+	if back.length_squared() < 0.01:
+		back = Vector2(0, -1)
+	else:
+		back = back.normalized()
+	var side := Vector2(-back.y, back.x)
+	var slot := _follow_slot_index(lead, follower)
+	var reserved := _follow_reserved(follower)
+	var sign := 1.0 if slot % 2 == 0 else -1.0
+	var pattern: Array[Vector2] = [
+		back * 64.0 + side * 48.0 * sign,
+		back * 64.0 + side * 80.0 * sign,
+		back * 96.0 + side * 48.0 * sign,
+		back * 48.0 + side * 64.0 * sign,
+		side * 64.0 * sign,
+		back * 96.0,
+		back * 64.0 + side * 48.0 * -sign,
+		back * 32.0 + side * 96.0 * sign,
+	]
+	for off in pattern:
+		var world: Vector2 = lead.global_position + off
+		var cell: Vector2i = _open_cell_near(grid.world_to_cell(world), follower, reserved, 7)
+		if cell.x < 0 or reserved.has(cell) or cell == lead.grid_cell():
 			continue
-		if op == follower:
-			break
-		n_follow += 1
-	var side := Vector2(-back.y, back.x) * float(n_follow) * 32.0
-	var world: Vector2 = lead.global_position + back * 36.0 + side
-	var cell: Vector2i = _open_cell_near(grid.world_to_cell(world), follower)
-	if not _sentry_blocks_stealth(grid.cell_to_world_center(cell), follower):
+		if _sentry_blocks_stealth(grid.cell_to_world_center(cell), follower):
+			cell = _open_cell_outside_cone(cell, follower, reserved)
+			if cell.x < 0 or reserved.has(cell) or cell == lead.grid_cell():
+				continue
 		return cell
-	return _open_cell_outside_cone(cell, follower)
+	return Vector2i(-1, -1)
+
+
+func follow_min_spacing() -> float:
+	var worlds: Array[Vector2] = []
+	for op in operators:
+		if op == null or not op.alive or not op.visible:
+			continue
+		worlds.append(op.global_position)
+	if worlds.size() < 2:
+		return 999.0
+	var best := 9999.0
+	for i in worlds.size():
+		for j in range(i + 1, worlds.size()):
+			best = minf(best, worlds[i].distance_to(worlds[j]))
+	return best
+
+
+func follow_dest_min_spacing() -> float:
+	var cells: Array[Vector2i] = []
+	if selected:
+		cells.append(selected.grid_cell())
+	for op in operators:
+		if op == null or op == selected or not bool(op.follow_lead) or not op.alive:
+			continue
+		if _follow_dest.has(int(op.op_id)):
+			cells.append(_follow_dest[int(op.op_id)])
+		else:
+			cells.append(op.grid_cell())
+	if cells.size() < 2:
+		return 999.0
+	var best := 9999.0
+	for i in cells.size():
+		for j in range(i + 1, cells.size()):
+			var a: Vector2 = grid.cell_to_world_center(cells[i])
+			var b: Vector2 = grid.cell_to_world_center(cells[j])
+			best = minf(best, a.distance_to(b))
+	return best
 
 
 func stealth_path_cells(from: Vector2i, to: Vector2i, op: Node) -> Array[Vector2i]:
@@ -7834,8 +7914,13 @@ func _stealth_blocked_cells(op: Node) -> Dictionary:
 	return avoid
 
 
-func _open_cell_outside_cone(cell: Vector2i, op: Node) -> Vector2i:
-	if not _sentry_blocks_stealth(grid.cell_to_world_center(cell), op) and RaidPathfinderScript.walkable(grid, cell):
+func _open_cell_outside_cone(cell: Vector2i, op: Node, reserved = null) -> Vector2i:
+	var block: Dictionary = reserved if reserved is Dictionary else {}
+	if (
+		not _sentry_blocks_stealth(grid.cell_to_world_center(cell), op)
+		and RaidPathfinderScript.walkable(grid, cell)
+		and not _cell_taken(cell, op as OperatorUnit, block)
+	):
 		return cell
 	for r in range(1, 8):
 		for dx in range(-r, r + 1):
@@ -7845,7 +7930,7 @@ func _open_cell_outside_cone(cell: Vector2i, op: Node) -> Vector2i:
 					continue
 				if _sentry_blocks_stealth(grid.cell_to_world_center(n), op):
 					continue
-				if _cell_taken(n, op as OperatorUnit):
+				if _cell_taken(n, op as OperatorUnit, block):
 					continue
 				return n
 	return Vector2i(-1, -1)
@@ -7923,6 +8008,10 @@ func dump_touch_feel() -> Dictionary:
 		"route_tags": int(ink.get("route_visible", 0)),
 		"mouse_eat": int(ink.get("mouse_eat", 0)),
 		"cover_tags": int(ink.get("cover_visible", 0)),
+		"crate_tags": int(ink.get("crate_visible", 0)),
+		"west_hits": int(c2.prompt.hotspot_hits_west_operable()) if c2 and c2.prompt and c2.prompt.has_method("hotspot_hits_west_operable") else -1,
+		"follow_dest_spread": follow_dest_min_spacing() if has_method("follow_dest_min_spacing") else -1.0,
+		"follow_spread": follow_min_spacing() if has_method("follow_min_spacing") else -1.0,
 	}
 
 
@@ -7931,10 +8020,11 @@ func dump_world_ink() -> Dictionary:
 	var spawn_vis := 0
 	var route_vis := 0
 	var cover_vis := 0
+	var crate_vis := 0
 	var mouse_eat := 0
 	var world := get_node_or_null("World") as Node
 	if world == null:
-		return {"north_visible": 0, "spawn_visible": 0, "route_visible": 0, "mouse_eat": 0, "cover_visible": 0}
+		return {"north_visible": 0, "spawn_visible": 0, "route_visible": 0, "mouse_eat": 0, "cover_visible": 0, "crate_visible": 0}
 	var xf: Transform2D = get_viewport().get_canvas_transform()
 	var stack: Array = [world]
 	while not stack.is_empty():
@@ -7946,9 +8036,12 @@ func dump_world_ink() -> Dictionary:
 		var lab := n as Label
 		if lab.mouse_filter != Control.MOUSE_FILTER_IGNORE:
 			mouse_eat += 1
+		var parent_n := lab.get_parent()
+		var is_crate := lab.name == "Tag" and parent_n != null and parent_n.has_method("set_search_progress")
 		if not lab.visible or lab.modulate.a < 0.08:
 			continue
-		var parent_n := lab.get_parent()
+		if is_crate:
+			crate_vis += 1
 		var wp: Vector2 = parent_n.global_position if parent_n is Node2D else lab.global_position
 		var screen: Vector2 = xf * wp if parent_n is Node2D else lab.global_position
 		var cell_y := grid.world_to_cell(wp).y if grid else 99
@@ -7967,6 +8060,7 @@ func dump_world_ink() -> Dictionary:
 		"route_visible": route_vis,
 		"mouse_eat": mouse_eat,
 		"cover_visible": cover_vis,
+		"crate_visible": crate_vis,
 	}
 
 
@@ -8022,6 +8116,9 @@ func _ink_world_label(lab: Label, phone: bool, xf: Transform2D) -> void:
 		hide = true
 	if lab.name == "FaceChip":
 		hide = true
+	if lab.name == "Tag" and p != null and p.has_method("set_search_progress"):
+		if float(p.get("search_progress")) <= 0.02:
+			hide = true
 	if screen.y < 148.0 or cell_y <= 6:
 		hide = true
 	lab.visible = (not hide) and bool(lab.get_meta("ink_vis", true))
@@ -8912,24 +9009,29 @@ func living_loot_count() -> int:
 	return n
 
 
-func _cell_taken(cell: Vector2i, except_op: OperatorUnit = null) -> bool:
+func _cell_taken(cell: Vector2i, except_op: OperatorUnit = null, reserved = null) -> bool:
+	if reserved is Dictionary and reserved.has(cell):
+		return true
 	for op in operators:
 		if op == null or op == except_op or not op.visible or not op.alive:
 			continue
 		if op.grid_cell() == cell:
 			return true
+		if bool(op.follow_lead) and _follow_dest.get(int(op.op_id), Vector2i(-99, -99)) == cell:
+			return true
 	return false
 
 
-func _open_cell_near(cell: Vector2i, except_op: OperatorUnit = null) -> Vector2i:
+func _open_cell_near(cell: Vector2i, except_op: OperatorUnit = null, reserved = null, max_r: int = 5) -> Vector2i:
+	var block: Dictionary = reserved if reserved is Dictionary else {}
 	var open: Vector2i = RaidPathfinderScript.nearest_open(grid, cell)
-	if not _cell_taken(open, except_op):
+	if not _cell_taken(open, except_op, block):
 		return open
-	for r in range(1, 5):
+	for r in range(1, maxi(1, max_r) + 1):
 		for dx in range(-r, r + 1):
 			for dy in range(-r, r + 1):
 				var n := Vector2i(cell.x + dx, cell.y + dy)
-				if RaidPathfinderScript.walkable(grid, n) and not _cell_taken(n, except_op):
+				if RaidPathfinderScript.walkable(grid, n) and not _cell_taken(n, except_op, block):
 					return n
 	return open
 
