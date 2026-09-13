@@ -236,6 +236,10 @@ func _on_sentry_spotted(_s: Node, op: Node) -> void:
 func tick(delta: float) -> void:
 	_tick_cds(delta)
 	binoculars_t = maxf(binoculars_t - delta, 0.0)
+	if binoculars_t > 0.0 and host:
+		for op in host.operators:
+			if op and op.has_method("set_observation_ring"):
+				op.set_observation_ring(true)
 	if host != null and host.has_method("_is_command_phase") and bool(host._is_command_phase()):
 		_tick_hidden()
 		_tick_sentries(delta)
