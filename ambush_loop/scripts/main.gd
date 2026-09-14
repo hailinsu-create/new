@@ -24,7 +24,7 @@ const FOLLOW_SLOT_DEPTH := 2
 const FOLLOW_WEST_SLOT_DEPTH := 1
 const FOLLOW_WEST_SECOND_DEPTH := 2
 const FOLLOW_WEST_FIRST_SIDE := 5
-const FOLLOW_WEST_SECOND_SIDE := 3
+const FOLLOW_WEST_SECOND_SIDE := 4
 const FOLLOW_WEST_SPAN_MAX := 5
 const FOLLOW_ARC_FAR_CAP := 20.0
 ## South-corridor y=13 cell south rim. 16px past y=13 center is cell y=14.
@@ -42,7 +42,7 @@ const FOLLOW_WEST_SLOT_EXTRA := 52.0
 ## shoved #2 through the west wall. Dest-cell extra stays; ring extra is smaller.
 const FOLLOW_WEST_RING_EXTRA := 44.0
 const FOLLOW_WEST_RING_BACK := 8.0
-const FOLLOW_CAM_WEST_ZOOM := 0.30
+const FOLLOW_CAM_WEST_ZOOM := 0.32
 const FOLLOW_CAM_WEST_CONE := 108.0
 const FOLLOW_CAM_WEST_PAN := 0.28
 const FOLLOW_CAM_FILE_ZOOM := 0.82
@@ -1689,7 +1689,7 @@ func _ensure_game_camera() -> void:
 func _apply_cam() -> void:
 	_ensure_game_camera()
 	_cam_zoom = clampf(_cam_zoom, 0.72, 1.65)
-	_cam_squad_zoom = clampf(_cam_squad_zoom, 0.30, 1.0)
+	_cam_squad_zoom = clampf(_cam_squad_zoom, 0.32, 1.0)
 	var max_pan := 220.0 * _cam_zoom
 	_cam_pan.x = clampf(_cam_pan.x, -max_pan, max_pan)
 	_cam_pan.y = clampf(_cam_pan.y, -max_pan, max_pan)
@@ -8388,6 +8388,25 @@ func _follow_world_ok(world: Vector2) -> bool:
 	return true
 
 
+func _follow_clamp_walkable(world: Vector2, fallback: Vector2) -> Vector2:
+	## Pull an unwalkable dest/ring sample back toward a walkable fallback
+	## (usually the dest cell center). Polar snag around the lead wraps the
+	## courtyard when #2's extra punches the south wall.
+	if _follow_world_ok(world):
+		return world
+	if not _follow_world_ok(fallback):
+		return world
+	var lo: Vector2 = fallback
+	var hi: Vector2 = world
+	for _i in 14:
+		var mid: Vector2 = lo.lerp(hi, 0.5)
+		if _follow_world_ok(mid):
+			lo = mid
+		else:
+			hi = mid
+	return lo
+
+
 func _follow_polar(pivot: Vector2, ang: float, r: float) -> Vector2:
 	return pivot + Vector2(cos(ang), sin(ang)) * r
 
@@ -9583,11 +9602,10 @@ func _apply_west_obs_scale() -> void:
 func _apply_west_obs_offset(west: bool) -> void:
 	## Visual observation-ring stagger. Dest cells stay; rings slide off the
 	## cluster centroid so the west trio + yellow cone read as three bodies.
-	## v0.5.34: dest cells stay (6,7)/(5,15) span 5. On-ring extra is
-	## smaller so #2's ring no longer punches the west wall. Camera ~0.30
-	## so the lead→#2 world gap reads larger on screen. Bodies/rings stay
-	## on the visual floor (~0.16). Rings keep the courtyard / along-file
-	## offset. #2 dest is not pushed further south this round (path detour).
+	## v0.5.35: dest cells (6,7)/(5,16) span 5. #2 stands one cell further
+	## south. Dest world clamps onto walkable floor so the south wall does
+	## not wrap a courtyard detour. Camera ~0.32. Bodies/rings stay on the
+	## visual floor (~0.16). Rings keep the courtyard / along-file offset.
 	var centroid := Vector2.ZERO
 	var n := 0
 	if west and selected != null:
@@ -9655,9 +9673,9 @@ func _follow_west_along_alley(lead: OperatorUnit) -> bool:
 
 func _follow_slot_side_cells(lead: OperatorUnit, follower: OperatorUnit) -> int:
 	## First west follower stands 5 cells along-file so the trio dests
-	## leave the span-4 mash without hugging the west wall. Second stays
-	## 3 the other way. On-ring extra is smaller so the ring no longer
-	## punches the west wall; dest cells stay (a 4-south dest still wraps).
+	## leave the span-4 mash without hugging the west wall. Second stands
+	## 4 the other way at (5,16). Dest world clamps onto walkable floor
+	## so a 4-south stand does not wrap a courtyard detour.
 	if lead == null or follower == null or grid == null:
 		return 1
 	if not (_follow_in_west(follower.grid_cell()) and _follow_in_west(_follow_lead_cell(lead))):
@@ -9829,6 +9847,9 @@ func _follow_ring_world(lead: OperatorUnit, follower: OperatorUnit) -> Vector2:
 		w += side * st * FOLLOW_WEST_RING_EXTRA
 		var slot_i := _follow_slot_index(lead, follower)
 		w += back * (FOLLOW_WEST_RING_BACK + float(maxi(slot_i, 0)) * 4.0)
+		if grid != null:
+			var cell_w: Vector2 = grid.cell_to_world_center(grid.world_to_cell(w))
+			w = _follow_clamp_walkable(w, cell_w)
 	return w
 
 
@@ -9864,6 +9885,9 @@ func _follow_slot_world(lead: OperatorUnit, follower: OperatorUnit, cell: Vector
 	var off: Vector2 = mixed - center
 	if off.length() > lim:
 		mixed = center + off.normalized() * lim
+	## Pull back onto walkable floor (south wall at y=18, west wall at x=4)
+	## instead of polar-snagging around the courtyard (22-cell wrap).
+	mixed = _follow_clamp_walkable(mixed, center)
 	return _follow_snag_walkable(mixed, _follow_lead_world(lead))
 
 
@@ -9955,7 +9979,7 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 		elif slot == 0:
 			stagger_src = [1, -1, 0]
 		else:
-			stagger_src = [3, 2, 1, -1, 0, -2]
+			stagger_src = [4, 3, 2, 1, -1, 0, -2]
 	elif slot > 0:
 		stagger_src = [1, -1, 0, 2, -2]
 	for st0 in stagger_src:
@@ -10055,11 +10079,11 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 		if _follow_count(lead) >= 2:
 			## Pair files left/right of the back cell instead of one on
 			## the spine and the other stretched down the alley.
-			## West first follower wants 5 along-file cells; second stays 3
-			## the other way. Ring extra no longer punches the west wall.
+			## West first follower wants 5 along-file cells; second stands 4
+			## the other way at (5,16). Dest world clamps onto walkable floor.
 			## Only when facing along the alley (east/west).
 			var alley := west_file and _follow_west_along_alley(lead)
-			var want_side := 5 if alley and slot == 0 else (3 if alley else 1)
+			var want_side := 5 if alley and slot == 0 else (4 if alley else 1)
 			score += absi(int(round(side_m / 32.0)) - want_side) * 8
 		elif slot == 0:
 			score += int(round(maxi(0.0, side_m - 20.0) / 32.0)) * 10
@@ -10106,19 +10130,22 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 				if cheb_lead >= 6:
 					score += 22
 			elif alley2:
-				## Second follower: opposite stagger, 2 back + 3 along-file.
-				## Do not sit in the first follower's pocket or hug the wall.
-				if side_m > 112.0:
-					score += int(round((side_m - 112.0) / 16.0)) * 12
-				if back_m >= 48.0 and back_m <= 80.0 and side_m >= 80.0 and side_m <= 112.0:
+				## Second follower: opposite stagger, 2 back + 4 along-file
+				## → (5,16). Dest world clamps onto walkable floor so the
+				## south wall does not wrap a 22-cell courtyard detour.
+				if side_m > 144.0:
+					score += int(round((side_m - 144.0) / 16.0)) * 12
+				if back_m >= 48.0 and back_m <= 80.0 and side_m >= 112.0 and side_m <= 144.0:
 					score -= 56
 				elif back_m >= 48.0 and back_m <= 80.0:
 					score -= 24
-				if cheb_lead == 3:
+				if cheb_lead == 4:
 					score -= 36
+				if cheb_lead == 4 and absi(cell.x - lead_c.x) == 2:
+					score -= 40
 				if cheb_lead <= 1:
 					score += 40
-				if cheb_lead >= 5:
+				if cheb_lead >= 6:
 					score += 22
 				if back_m < 40.0:
 					score += 28
@@ -10154,6 +10181,46 @@ func _follow_path_leaves_west(path: Array[Vector2i], from: Vector2i, to: Vector2
 		if c.x > 12:
 			return true
 	return false
+
+
+func _follow_west_stay_path(from: Vector2i, to: Vector2i, op: Node) -> Array[Vector2i]:
+	## West-alley A* that never steps x>12. Cone avoid stays; courtyard
+	## wraps around the crate cluster do not.
+	var empty: Array[Vector2i] = []
+	if grid == null:
+		return empty
+	var avoid: Dictionary = _stealth_blocked_cells(op).duplicate()
+	for y in range(AmbushGrid.ROWS):
+		for x in range(13, AmbushGrid.COLS):
+			avoid[Vector2i(x, y)] = true
+	var path: Array[Vector2i] = RaidPathfinderScript.find_path_avoiding(grid, from, to, avoid, {})
+	if path.size() >= 2 and not _path_hits_cone(path, op):
+		return path
+	return empty
+
+
+func _follow_prefer_west_path(
+	from: Vector2i, to: Vector2i, op: Node, path: Array[Vector2i]
+) -> Array[Vector2i]:
+	if op == null or not bool(op.get("follow_lead")):
+		return path
+	if not _follow_in_west(from) or not _follow_in_west(to):
+		return path
+	if selected != null and not _follow_in_west(_follow_lead_cell(selected)):
+		return path
+	var plen: int = path.size() if path.size() >= 2 else 1
+	var manh: int = absi(from.x - to.x) + absi(from.y - to.y)
+	var detour: int = maxi(0, plen - manh - 1)
+	var wrap := _follow_path_leaves_west(path, from, to)
+	if path.size() >= 2 and not wrap and detour <= FOLLOW_MAX_DETOUR:
+		return path
+	var stay: Array[Vector2i] = _follow_west_stay_path(from, to, op)
+	if stay.size() < 2:
+		return path
+	var stay_detour: int = maxi(0, stay.size() - manh - 1)
+	if stay_detour <= FOLLOW_MAX_DETOUR and not _follow_path_leaves_west(stay, from, to):
+		return stay
+	return path
 
 
 func _follow_in_west(cell: Vector2i) -> bool:
@@ -10503,11 +10570,11 @@ func stealth_path_cells(from: Vector2i, to: Vector2i, op: Node) -> Array[Vector2
 	if path.size() >= 2 and not _path_hits_cone(path, op):
 		if following:
 			path = _trim_follow_dest_margin(path, op)
-		return path
+		return _follow_prefer_west_path(from, to, op, path)
 	var trimmed: Array[Vector2i] = _trim_path_before_cone(RaidPathfinderScript.find_path(grid, from, to), op)
 	if following:
 		trimmed = _trim_follow_dest_margin(trimmed, op)
-	return trimmed
+	return _follow_prefer_west_path(from, to, op, trimmed)
 
 
 func _stealth_blocked_cells(op: Node) -> Dictionary:
@@ -11194,8 +11261,8 @@ func follow_west_queue_hits() -> int:
 
 
 func follow_west_lead_span() -> int:
-	## Max Chebyshev from the lead to a follow dest. v0.5.34 west file is ≤5:
-	## first follower is 5 along-file, second 2 back / 3 the other way.
+	## Max Chebyshev from the lead to a follow dest. v0.5.35 west file is ≤5:
+	## first follower is 5 along-file, second 2 back / 4 the other way.
 	if selected == null or grid == null:
 		return 99
 	var lead_c: Vector2i = _follow_lead_cell(selected)
