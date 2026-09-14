@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.5.14 — Phone feel: west 1-cell diagonal + camera holds pullback, dests lerp toward slot
+
+Sideload APK: `dist/AmbushLoop-v0.5.14-touch-slide.apk`  
+Release tag: `v0.5.14-touch-slide`
+
+Same RAID as 0.5.13 (`SCOUT → ALERT → SWEEP`, auto fire + auto nade). Phone default stays 简配夜袭.
+
+### Play (phone)
+- **西巷跟上** dests sit on a 1-cell diagonal behind the lead (around the west crate), not two cells due west against the wall. Yellow cone + three bodies overlap less.
+- Camera pulls farther (~0.62) and **holds** that pullback while the west trio is clustered, including after they stop, and frames a bit of the cone.
+- **拧射界换格**: dest world lerps toward the interpolated slot point inside the new cell (~0.24s hop, then a snappy ease). Followers slide to that point instead of teleporting to the cell center.
+- Forced-touch path covers dest-hop interpolation, 拧射界换格, and 西巷三人跟上.
+
+### Android
+- `versionName` 0.5.14 / `versionCode` 20 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title **v0.5.14 COMMANDOS/WW2**.
+2. West alley **跟**: dests sit north and south of the west crate, one cell behind the lead. Camera stays pulled back while they stand there.
+3. Stand still and tap ↻ once: dests slide toward the new slot, they do not hop a whole tile to the cell center.
+
 ## 0.5.13 — Phone feel: west-alley 1-cell stagger + camera pullback, dest hops slide
 
 Sideload APK: `dist/AmbushLoop-v0.5.13-touch-slide.apk`  

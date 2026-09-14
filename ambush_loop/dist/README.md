@@ -2,7 +2,8 @@
 
 Delivered build:
 
-- `AmbushLoop-v0.5.13-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west-alley 1-cell stagger + camera pullback, dest hops slide (~0.2s). Same RAID as 0.5.12.
+- `AmbushLoop-v0.5.14-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west 1-cell diagonal dests + camera holds pullback on the trio + cone, dests lerp toward interpolated slot points. Same RAID as 0.5.13.
+- `AmbushLoop-v0.5.13-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west-alley 1-cell stagger + camera pullback, dest hops slide (~0.2s) (superseded for phone feel).
 - `AmbushLoop-v0.5.12-touch-aim.apk` — Godot 4.7.2 debug, arm64, phone feel: 射界 dests interpolate with facing (20° already moves), west-alley rear file, 跟 chip off gun (superseded for phone feel).
 - `AmbushLoop-v0.5.11-touch-form.apk` — Godot 4.7.2 debug, arm64, phone feel: west-alley rear file, 射界 twist turns follow dests, 跟 chip raised off gun/number (superseded for phone feel).
 - `AmbushLoop-v0.5.10-touch-rear.apk` — follow files behind the lead, stop land freezes, three-follow + side wrap, 跟 badge probes (superseded for phone feel).

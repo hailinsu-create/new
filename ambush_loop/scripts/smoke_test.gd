@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.5.13":
+	if ver != "0.5.14":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3412,6 +3412,8 @@ func _assert_simplified_touch(main) -> bool:
 		return false
 	if not await _assert_touch_feel_0513(main):
 		return false
+	if not await _assert_touch_feel_0514(main):
+		return false
 	return true
 
 
@@ -4116,6 +4118,28 @@ func _assert_touch_feel_0513(main) -> bool:
 	return true
 
 
+func _assert_touch_feel_0514(main) -> bool:
+	## West dests stay 1-cell diagonal (not 2-cell wall stack). Camera holds
+	## pullback on the west trio + yellow cone after they stop. Dest hops
+	## lerp toward interpolated slot points. 拧射界换格 + 西巷三人跟上.
+	main._ensure_touch_hud()
+	main._update_hud()
+	await process_frame
+	await process_frame
+	if not await _assert_follow_facing_turn(main):
+		return false
+	if not await _assert_follow_dest_blend(main):
+		return false
+	if not await _assert_west_follow_rear(main):
+		return false
+	if not await _assert_west_follow_queue(main):
+		return false
+	if not await _assert_west_combo_touch(main):
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_0514")
+	return true
+
+
 func _dest_is_rear(main, dest: Vector2i, lead) -> bool:
 	if dest.x < 0 or lead == null:
 		return false
@@ -4312,8 +4336,12 @@ func _assert_west_follow_rear(main) -> bool:
 		quit(44)
 		return false
 	var span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
-	if span > 2:
+	if span > 1:
 		push_error("SMOKE_WEST_REAR_SPAN n=%s d1=%s d2=%s lead=%s" % [span, d1, d2, lead.grid_cell()])
+		quit(44)
+		return false
+	if absi(d1.x - lead.grid_cell().x) > 1 or absi(d2.x - lead.grid_cell().x) > 1:
+		push_error("SMOKE_WEST_REAR_DEPTH d1=%s d2=%s lead=%s" % [d1, d2, lead.grid_cell()])
 		quit(44)
 		return false
 	var cheb := int(main.follow_min_chebyshev()) if main.has_method("follow_min_chebyshev") else 0
@@ -4321,7 +4349,15 @@ func _assert_west_follow_rear(main) -> bool:
 		push_error("SMOKE_WEST_REAR_STACK cheb=%s d1=%s d2=%s" % [cheb, d1, d2])
 		quit(44)
 		return false
+	for _hold in 10:
+		if main.has_method("_follow_selected_cam"):
+			main._follow_selected_cam(0.05)
+		await process_frame
 	var z := float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0
+	if z > 0.80:
+		push_error("SMOKE_WEST_CAM_HOLD z=%s walk=%s d1=%s d2=%s" % [z, z_walk, d1, d2])
+		quit(44)
+		return false
 	print(
 		"SMOKE_OK_WEST_FOLLOW_REAR d1=", d1, " d2=", d2, " lead=", lead.grid_cell(),
 		" span=", span, " cheb=", cheb, " zoom=", snapped(z_walk, 0.01), snapped(z, 0.01)
@@ -4604,6 +4640,12 @@ func _assert_follow_dest_blend(main) -> bool:
 		push_error("SMOKE_DEST_BLEND_OFF along=%s span=%s now=%s" % [along, span, now_w])
 		quit(44)
 		return false
+	if main.has_method("follow_slot_world_of"):
+		var slot_w: Vector2 = main.follow_slot_world_of(int(a.op_id))
+		if slot_w.distance_to(new_w) >= 4.0 and now_w.distance_to(new_w) < 2.0:
+			push_error("SMOKE_DEST_BLEND_CELL_SNAP now=%s slot=%s new=%s" % [now_w, slot_w, new_w])
+			quit(44)
+			return false
 	print(
 		"SMOKE_OK_FOLLOW_DEST_BLEND east=", east_d1, east_d2,
 		" hop=", hop_d1, hop_d2,
@@ -6054,7 +6096,7 @@ func _assert_west_follow_queue(main) -> bool:
 		quit(44)
 		return false
 	var span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
-	if span > 2:
+	if span > 1:
 		push_error("SMOKE_WEST_FOLLOW_SPAN n=%s d1=%s d2=%s lead=%s" % [span, d1, d2, lead.grid_cell()])
 		quit(44)
 		return false
@@ -6230,7 +6272,7 @@ func _assert_west_combo_touch(main) -> bool:
 	var combo_idle := int(main.follow_idle_waits()) if main.has_method("follow_idle_waits") else 99
 	var combo_spread := float(main.follow_dest_min_spacing()) if main.has_method("follow_dest_min_spacing") else 0.0
 	var combo_span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
-	if combo_cheb < 1 or combo_idle > 0 or combo_spread < 28.0 or combo_span > 2:
+	if combo_cheb < 1 or combo_idle > 0 or combo_spread < 28.0 or combo_span > 1:
 		push_error("SMOKE_WEST_COMBO_CROWD cheb=%s idle=%s spread=%s span=%s d1=%s d2=%s" % [
 			combo_cheb, combo_idle, combo_spread, combo_span, d1, d2
 		])

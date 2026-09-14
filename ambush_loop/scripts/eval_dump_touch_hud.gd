@@ -1,8 +1,8 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.13 phone feel: west-alley 1-cell stagger
-## + camera pullback, dest hops short-lerp (no whole-cell jump), 拧射界换格
-## and 西巷三人跟上 on the forced-touch path.
+## Forced-touch HUD stills for v0.5.14 phone feel: west-alley 1-cell diagonal
+## dests + camera holds pullback on the trio + yellow cone, dest hops lerp
+## toward interpolated slot points (拧射界换格, 西巷三人跟上).
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
@@ -297,6 +297,10 @@ func _walk_west_combo_follow(main) -> void:
 				break
 		if not busy and frames > 10:
 			break
+	for _hold in 8:
+		if main.has_method("_follow_selected_cam"):
+			main._follow_selected_cam(0.05)
+		await process_frame
 	main._update_hud()
 	await _settle(6)
 	_dump_feel(main, "west_combo_follow")
@@ -966,6 +970,10 @@ func _walk_west_rear(main) -> void:
 		frames += 1
 		if not a.is_moving() and not b.is_moving() and frames > 8:
 			break
+	for _hold in 8:
+		if main.has_method("_follow_selected_cam"):
+			main._follow_selected_cam(0.05)
+		await process_frame
 	print(
 		"DUMP_WEST_REAR d1=", main._follow_dest.get(int(a.op_id), Vector2i(-1, -1)),
 		" d2=", main._follow_dest.get(int(b.op_id), Vector2i(-1, -1)),
@@ -1073,6 +1081,7 @@ func _walk_facing_turn(main) -> void:
 		" blend_on=", int(main.follow_dest_blend_active()) if main.has_method("follow_dest_blend_active") else -1,
 		" frac=", snapped(float(main.follow_dest_blend_frac(int(a.op_id))) if main.has_method("follow_dest_blend_frac") else -1.0, 0.01),
 		" w1=", main.follow_dest_world_of(int(a.op_id)) if main.has_method("follow_dest_world_of") else Vector2.ZERO,
+		" slot=", main.follow_slot_world_of(int(a.op_id)) if main.has_method("follow_slot_world_of") else Vector2.ZERO,
 		" path_end=", a.move_path[a.move_path.size() - 1] if a.is_moving() and a.move_path.size() > 1 else Vector2.ZERO
 	)
 	_dump_feel(main, "face_blend")
