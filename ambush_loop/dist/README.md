@@ -2,7 +2,8 @@
 
 Delivered build:
 
-- `AmbushLoop-v0.5.21-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest span 2 (second follower one cell back), crate-face axis_run 0, compact 5-key. Same RAID as 0.5.20.
+- `AmbushLoop-v0.5.22-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: first west follower out of the 1-cell pocket (along-file), south-corridor crate arc stays off the east exit, compact 5-key. Same RAID as 0.5.21.
+- `AmbushLoop-v0.5.21-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest span 2 (second follower one cell back), crate-face axis_run 0, compact 5-key (superseded for phone feel). Same RAID as 0.5.20.
 - `AmbushLoop-v0.5.20-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio shrink + faded yellow cone, bowed crate-wall arcs, compact 5-key (superseded for phone feel).
 - `AmbushLoop-v0.5.19-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west clearer scale/cam/stagger, compact 5-key narrow pack, rounder crate-cluster arcs (superseded for phone feel).
 - `AmbushLoop-v0.5.18-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: settle on ring after ↻, compact ↺/swipe, west tighter stagger/scale, rounder crate-cluster arcs (superseded for phone feel).

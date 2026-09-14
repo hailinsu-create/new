@@ -1,8 +1,9 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.21 phone feel: west trio dest span 2,
+## Forced-touch HUD stills for v0.5.22 phone feel: first west follower out of
+## the 1-cell pocket, south-corridor crate arc stays off the east exit,
 ## settle-on-ring after ↻, bidirectional ↺/↻ swipe, faded yellow cone, compact
-## 5-key narrow pack, crate-cluster wall arcs bowed to axis_run 0 (拧射界换格, 西巷三人跟上).
+## 5-key narrow pack, crate-cluster wall arcs bowed to axis_run 0.
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
@@ -1453,12 +1454,16 @@ func _dump_cluster_arc(main) -> void:
 	var snag_bow := float(main.follow_arc_chord_bow(pts, from_w, to_w)) if main.has_method("follow_arc_chord_bow") else 0.0
 	var raw_bow := float(main.follow_arc_chord_bow(raw, from_w, to_w)) if raw.size() >= 3 and main.has_method("follow_arc_chord_bow") else 0.0
 	var axis := int(main.follow_arc_axis_run(pts)) if main.has_method("follow_arc_axis_run") else -1
+	var east := float(main.follow_arc_east_overshoot(pts, from_w, to_w)) if main.has_method("follow_arc_east_overshoot") else -1.0
+	var far := float(main.follow_arc_far_overshoot(pts, from_w, to_w, pivot)) if main.has_method("follow_arc_far_overshoot") else -1.0
 	print(
 		"DUMP_ARC_CLUSTER n=", pts.size(),
 		" bow=", snapped(snag_bow, 0.1),
 		" raw_bow=", snapped(raw_bow, 0.1),
 		" blocked=", blocked,
-		" axis_run=", axis
+		" axis_run=", axis,
+		" east=", snapped(east, 0.1),
+		" far=", snapped(far, 0.1)
 	)
 
 

@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.5.21":
+	if ver != "0.5.22":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3428,6 +3428,8 @@ func _assert_simplified_touch(main) -> bool:
 		return false
 	if not await _assert_touch_feel_0521(main):
 		return false
+	if not await _assert_touch_feel_0522(main):
+		return false
 	return true
 
 
@@ -4334,6 +4336,42 @@ func _assert_touch_feel_0521(main) -> bool:
 	if not await _assert_face_arc_cluster_bow(main):
 		return false
 	print("SMOKE_OK_TOUCH_FEEL_0521")
+	return true
+
+
+func _assert_touch_feel_0522(main) -> bool:
+	## First west follower out of the 1-cell pocket (along-file, no west-wall
+	## hug), south-corridor crate arc stays off the east exit, settle-on-ring,
+	## bidirectional ↺/↻, yellow cone still faded.
+	main._ensure_touch_hud()
+	main._update_hud()
+	await process_frame
+	await process_frame
+	if not await _assert_compact_rotate(main):
+		return false
+	if not await _assert_compact_narrow(main):
+		return false
+	if not await _assert_follow_settle_ring(main):
+		return false
+	if not await _assert_west_tighter(main):
+		return false
+	if not await _assert_west_clearer(main):
+		return false
+	if not await _assert_west_cone_fade(main):
+		return false
+	if not await _assert_west_file_spread(main):
+		return false
+	if not await _assert_west_first_pocket(main):
+		return false
+	if not await _assert_face_arc_cluster(main):
+		return false
+	if not await _assert_face_arc_cluster_round(main):
+		return false
+	if not await _assert_face_arc_cluster_bow(main):
+		return false
+	if not await _assert_face_arc_south_corridor(main):
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_0522")
 	return true
 
 
@@ -6530,8 +6568,8 @@ func _assert_west_cone_fade(main) -> bool:
 
 
 func _assert_west_file_spread(main) -> bool:
-	## v0.5.21: second west follower stands one cell further back (span 2)
-	## so the trio is not three bodies in a 1-cell pocket under the cone.
+	## v0.5.22: first west follower is also out of the 1-cell pocket (span 2,
+	## along-file). Second stays staggered further back. No west-wall hug.
 	if main.operators.size() < 3 or main.grid == null:
 		push_error("SMOKE_WEST_FILE_NO_OPS")
 		quit(44)
@@ -6594,12 +6632,27 @@ func _assert_west_file_spread(main) -> bool:
 		return false
 	var dx1 := absi(d1.x - lc.x)
 	var dx2 := absi(d2.x - lc.x)
+	var cd1 := maxi(dx1, absi(d1.y - lc.y))
+	var cd2 := maxi(dx2, absi(d2.y - lc.y))
 	if maxi(dx1, dx2) < 2:
 		push_error("SMOKE_WEST_FILE_DEPTH dx=%s/%s d1=%s d2=%s lead=%s" % [dx1, dx2, d1, d2, lc])
 		quit(44)
 		return false
 	if maxi(dx1, dx2) > 2:
 		push_error("SMOKE_WEST_FILE_WALL dx=%s/%s d1=%s d2=%s lead=%s" % [dx1, dx2, d1, d2, lc])
+		quit(44)
+		return false
+	if cd1 < 2:
+		push_error("SMOKE_WEST_FILE_POCKET d1=%s d2=%s lead=%s cd=%s/%s" % [d1, d2, lc, cd1, cd2])
+		quit(44)
+		return false
+	if dx1 >= 2:
+		push_error("SMOKE_WEST_FILE_FIRST_WALL dx=%s d1=%s d2=%s lead=%s" % [dx1, d1, d2, lc])
+		quit(44)
+		return false
+	var cheb := int(main.follow_min_chebyshev()) if main.has_method("follow_min_chebyshev") else 0
+	if cheb < 2:
+		push_error("SMOKE_WEST_FILE_STACK cheb=%s d1=%s d2=%s lead=%s" % [cheb, d1, d2, lc])
 		quit(44)
 		return false
 	if d1.x == lc.x or d2.x == lc.x:
@@ -6624,8 +6677,111 @@ func _assert_west_file_spread(main) -> bool:
 	print(
 		"SMOKE_OK_WEST_FILE_SPREAD d1=", d1, " d2=", d2, " lead=", lc,
 		" span=", span, " dx=", dx1, "/", dx2,
+		" cd=", cd1, "/", cd2, " cheb=", cheb,
 		" fade=", snapped(fade, 0.01)
 	)
+	if bool(a.follow_lead) != flags[0]:
+		main.toggle_follow(1)
+	if bool(b.follow_lead) != flags[1]:
+		main.toggle_follow(2)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	lead.global_position = homes[0]
+	a.global_position = homes[1]
+	b.global_position = homes[2]
+	main._follow_dest.clear()
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	return true
+
+
+func _assert_west_first_pocket(main) -> bool:
+	## v0.5.22: first follower dest is a 2-cell along-file stand, not the
+	## 1-cell diagonal pocket next to the lead / west cover / rifle crate.
+	if main.operators.size() < 3 or main.grid == null:
+		push_error("SMOKE_WEST_POCKET_NO_OPS")
+		quit(44)
+		return false
+	var lead: OperatorUnit = main.operators[0]
+	var a: OperatorUnit = main.operators[1]
+	var b: OperatorUnit = main.operators[2]
+	var homes: Array[Vector2] = [lead.global_position, a.global_position, b.global_position]
+	var flags: Array[bool] = [bool(a.follow_lead), bool(b.follow_lead)]
+	if main.c2 and not main.c2.sentries.is_empty():
+		_park_sentries(main, null)
+	var lead_c := Vector2i(7, 12)
+	var a_c := Vector2i(6, 14)
+	var b_c := Vector2i(6, 16)
+	if main.grid.is_blocked(lead_c.x, lead_c.y) or main._cell_is_operable(lead_c):
+		lead_c = Vector2i(7, 13)
+	main._select_op(0)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	if lead.has_method("set_facing"):
+		lead.set_facing(0.0)
+	else:
+		lead.facing_deg = 0.0
+		if lead.has_method("_rebuild_cone"):
+			lead._rebuild_cone()
+	lead.global_position = main.grid.cell_to_world_center(lead_c)
+	a.global_position = main.grid.cell_to_world_center(a_c)
+	b.global_position = main.grid.cell_to_world_center(b_c)
+	main._stealth_avoid_cache.clear()
+	main._stealth_avoid_msec = 0
+	if not bool(a.follow_lead):
+		main.toggle_follow(1)
+	if not bool(b.follow_lead):
+		main.toggle_follow(2)
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	main._tick_squad_follow(0.05)
+	await _tick_follow_steps(main, 20)
+	for _hold in 12:
+		main._tick_squad_follow(0.05)
+		if main.has_method("_tick_command_moves"):
+			main._tick_command_moves(0.05)
+		await process_frame
+	var d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+	var d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+	var lc: Vector2i = lead.grid_cell()
+	if d1.x < 0 or d2.x < 0 or d1 == d2:
+		push_error("SMOKE_WEST_POCKET_DEST d1=%s d2=%s" % [d1, d2])
+		quit(44)
+		return false
+	var cd1 := maxi(absi(d1.x - lc.x), absi(d1.y - lc.y))
+	if cd1 < 2:
+		push_error("SMOKE_WEST_POCKET_CLOSE d1=%s lead=%s cd=%s" % [d1, lc, cd1])
+		quit(44)
+		return false
+	if absi(d1.x - lc.x) >= 2:
+		push_error("SMOKE_WEST_POCKET_WALL d1=%s lead=%s" % [d1, lc])
+		quit(44)
+		return false
+	if absi(d1.y - lc.y) < 2:
+		push_error("SMOKE_WEST_POCKET_SIDE d1=%s lead=%s" % [d1, lc])
+		quit(44)
+		return false
+	if d1.x <= 4:
+		push_error("SMOKE_WEST_POCKET_HUG d1=%s lead=%s" % [d1, lc])
+		quit(44)
+		return false
+	var pair := maxi(absi(d1.x - d2.x), absi(d1.y - d2.y))
+	if pair < 2:
+		push_error("SMOKE_WEST_POCKET_MASH d1=%s d2=%s" % [d1, d2])
+		quit(44)
+		return false
+	if not _dest_is_rear(main, d1, lead) or not _dest_is_rear(main, d2, lead):
+		push_error("SMOKE_WEST_POCKET_REAR d1=%s d2=%s lead=%s" % [d1, d2, lc])
+		quit(44)
+		return false
+	var cone := int(main.follow_cone_hits()) if main.has_method("follow_cone_hits") else 99
+	if cone > 0:
+		push_error("SMOKE_WEST_POCKET_CONE n=%s d1=%s d2=%s" % [cone, d1, d2])
+		quit(44)
+		return false
+	print("SMOKE_OK_WEST_FIRST_POCKET d1=", d1, " d2=", d2, " lead=", lc, " cd1=", cd1, " pair=", pair)
 	if bool(a.follow_lead) != flags[0]:
 		main.toggle_follow(1)
 	if bool(b.follow_lead) != flags[1]:
@@ -6692,10 +6848,102 @@ func _assert_face_arc_cluster_bow(main) -> bool:
 		push_error("SMOKE_ARC_CLUSTER_BOW_WALL run=%s n=%s bow=%s" % [max_axis, pts.size(), snag_bow])
 		quit(44)
 		return false
+	var east := float(main.follow_arc_east_overshoot(pts, from_w, to_w)) if main.has_method("follow_arc_east_overshoot") else 0.0
+	var far := float(main.follow_arc_far_overshoot(pts, from_w, to_w, pivot)) if main.has_method("follow_arc_far_overshoot") else 0.0
+	if east > 22.0:
+		push_error("SMOKE_ARC_CLUSTER_BOW_EAST east=%s n=%s bow=%s" % [east, pts.size(), snag_bow])
+		quit(44)
+		return false
+	if far > 40.0:
+		push_error("SMOKE_ARC_CLUSTER_BOW_FAR far=%s n=%s bow=%s" % [far, pts.size(), snag_bow])
+		quit(44)
+		return false
 	print(
 		"SMOKE_OK_FACE_ARC_CLUSTER_BOW n=", pts.size(),
 		" bow=", snapped(snag_bow, 0.1),
 		" raw_bow=", snapped(raw_bow, 0.1),
+		" axis_run=", max_axis,
+		" east=", snapped(east, 0.1),
+		" far=", snapped(far, 0.1)
+	)
+	return true
+
+
+func _assert_face_arc_south_corridor(main) -> bool:
+	## South corridor between north crates (18-22,9-12) and south crates
+	## (16-20,14-16): stay on the y=13 gap, do not wrap east around the
+	## south block.
+	if main.operators.size() < 1 or main.grid == null:
+		push_error("SMOKE_ARC_SOUTH_NO_OPS")
+		quit(44)
+		return false
+	if not main.has_method("follow_arc_sample_points"):
+		push_error("SMOKE_ARC_SOUTH_NO_API")
+		quit(44)
+		return false
+	var pivot: Vector2 = main.grid.cell_to_world_center(Vector2i(20, 8))
+	var from_w: Vector2 = main.grid.cell_to_world_center(Vector2i(16, 13))
+	var to_w: Vector2 = main.grid.cell_to_world_center(Vector2i(24, 13))
+	if main.has_method("_follow_snag_walkable"):
+		from_w = main._follow_snag_walkable(from_w, pivot)
+		to_w = main._follow_snag_walkable(to_w, pivot)
+	var pts: PackedVector2Array = main.follow_arc_sample_points(from_w, to_w, pivot, 15)
+	if pts.size() < 6:
+		push_error("SMOKE_ARC_SOUTH_SHORT n=%s" % pts.size())
+		quit(44)
+		return false
+	var blocked := 0
+	var south_wrap := 0
+	var east_cell := 0
+	for p in pts:
+		var c: Vector2i = main.grid.world_to_cell(p)
+		if main.grid.is_blocked(c.x, c.y) or main._cell_is_operable(c):
+			blocked += 1
+		## Around the south crate block (16-20,14-16): east then south of
+		## the gap. A 1-cell bow into y=14 on the open east half is the
+		## corridor dip, not the wrap.
+		if c.x >= 21 and c.y >= 15:
+			south_wrap += 1
+		if c.x > 24:
+			east_cell += 1
+	if blocked > 0:
+		push_error("SMOKE_ARC_SOUTH_CLIP n=%s blocked=%s" % [pts.size(), blocked])
+		quit(44)
+		return false
+	if south_wrap > 2:
+		push_error("SMOKE_ARC_SOUTH_EAST_WRAP n=%s wrap=%s" % [pts.size(), south_wrap])
+		quit(44)
+		return false
+	if east_cell > 0:
+		push_error("SMOKE_ARC_SOUTH_EAST_CELL n=%s east=%s" % [pts.size(), east_cell])
+		quit(44)
+		return false
+	var snag_bow := float(main.follow_arc_chord_bow(pts, from_w, to_w)) if main.has_method("follow_arc_chord_bow") else 0.0
+	if snag_bow < 12.0:
+		push_error("SMOKE_ARC_SOUTH_FLAT bow=%s" % snag_bow)
+		quit(44)
+		return false
+	var east := float(main.follow_arc_east_overshoot(pts, from_w, to_w)) if main.has_method("follow_arc_east_overshoot") else 0.0
+	var far := float(main.follow_arc_far_overshoot(pts, from_w, to_w, pivot)) if main.has_method("follow_arc_far_overshoot") else 0.0
+	if east > 18.0:
+		push_error("SMOKE_ARC_SOUTH_EAST east=%s bow=%s" % [east, snag_bow])
+		quit(44)
+		return false
+	if far > 36.0:
+		push_error("SMOKE_ARC_SOUTH_FAR far=%s bow=%s" % [far, snag_bow])
+		quit(44)
+		return false
+	var max_axis := int(main.follow_arc_axis_run(pts)) if main.has_method("follow_arc_axis_run") else 99
+	if max_axis >= 1:
+		push_error("SMOKE_ARC_SOUTH_WALL run=%s bow=%s" % [max_axis, snag_bow])
+		quit(44)
+		return false
+	print(
+		"SMOKE_OK_FACE_ARC_SOUTH_CORRIDOR n=", pts.size(),
+		" bow=", snapped(snag_bow, 0.1),
+		" wrap=", south_wrap,
+		" east=", snapped(east, 0.1),
+		" far=", snapped(far, 0.1),
 		" axis_run=", max_axis
 	)
 	return true
@@ -8269,6 +8517,14 @@ func _assert_west_combo_touch(main) -> bool:
 		return false
 	var flank_pts := int(lead.move_path.size())
 	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	if lead.has_method("set_facing"):
+		lead.set_facing(0.0)
+	else:
+		lead.facing_deg = 0.0
+		if lead.has_method("_rebuild_cone"):
+			lead._rebuild_cone()
 	var a_c := Vector2i(6, 14)
 	var b_c := Vector2i(6, 16)
 	if main.grid.is_blocked(a_c.x, a_c.y):
@@ -8277,6 +8533,11 @@ func _assert_west_combo_touch(main) -> bool:
 		b_c = Vector2i(5, 16)
 	a.global_position = main.grid.cell_to_world_center(a_c)
 	b.global_position = main.grid.cell_to_world_center(b_c)
+	main._follow_dest.clear()
+	main._stealth_avoid_cache.clear()
+	main._stealth_avoid_msec = 0
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
 	if not bool(a.follow_lead):
 		if main.has_method("simulate_follow_badge"):
 			main.simulate_follow_badge(1)

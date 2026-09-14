@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.5.22 — Phone feel: first follower out of pocket, south-corridor east-exit
+
+Sideload APK: `dist/AmbushLoop-v0.5.22-touch-slide.apk`  
+Release tag: `v0.5.22-touch-slide`
+
+Same RAID as 0.5.21 (`SCOUT → ALERT → SWEEP`, auto fire + auto nade). Phone default stays 简配夜袭.
+
+### Play (phone)
+- **西巷落点**: first follower leaves the 1-cell pocket along-file (still dx=1, not hugging the west wall). Second stays staggered further back. Dest span ≤2. Gameplay cone / ambush / RAID rules unchanged.
+- **绕箱南走廊**: polar samples that punched through the far crate no longer wrap east around the south block. The string stays in the y=13 gap, still bowed off-axis and walkable.
+- Forced-touch path covers settle-on-ring, bidirectional ↺/↻, west trio + faded cone + first-follower pocket, compact narrow pack, crate-face axis_run 0, and south-corridor east-exit.
+
+### Android
+- `versionName` 0.5.22 / `versionCode` 28 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title **v0.5.22 COMMANDOS/WW2**.
+2. Compact bar still stacks **匍匐** over **背包**; **↺ / ↻** sit next to **需枪**. Hold or swipe either way.
+3. West alley **跟**: first follower stands a cell further along the file, not on the lead's diagonal. Yellow cone still faded.
+
 ## 0.5.21 — Phone feel: west dest span 2, remaining crate-face bow
 
 Sideload APK: `dist/AmbushLoop-v0.5.21-touch-slide.apk`  

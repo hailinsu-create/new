@@ -23,7 +23,10 @@ const FOLLOW_TWIST_DEG := 5.0
 const FOLLOW_SLOT_DEPTH := 2
 const FOLLOW_WEST_SLOT_DEPTH := 1
 const FOLLOW_WEST_SECOND_DEPTH := 2
+const FOLLOW_WEST_FIRST_SIDE := 2
 const FOLLOW_WEST_SPAN_MAX := 2
+const FOLLOW_ARC_FAR_CAP := 28.0
+const FOLLOW_ARC_END_PAD := 12.0
 const FOLLOW_DEST_BLEND := 0.24
 const FOLLOW_ARC_BLEND := 0.30
 const FOLLOW_ARC_DEG := 12.0
@@ -8383,13 +8386,21 @@ func _follow_snag_score(cand: Vector2, pivot: Vector2, want_ang: float, want_r: 
 	var d_ang := absf(wrapf(ca - want_ang, -PI, PI))
 	var d_r := absf(cr - want_r)
 	var inward := maxf(0.0, want_r - cr)
+	var dist := cand.distance_to(world)
 	## Stay on the polar circle; go around a cluster instead of popping
 	## onto the near face (flat wall-slide) or punching through to the far face.
 	## Same-axis with the blocked sample is a crate-face slide — pay extra.
+	## Nearby same-axis is the corridor gap (1 cell), not a wrap: keep cheap.
 	var wall := 0.0
 	if absf(cand.x - world.x) < 3.2 or absf(cand.y - world.y) < 3.2:
 		wall = 18.0 + inward * 0.35
-	return d_r * 1.10 + inward * 2.45 + d_ang * minf(want_r, maxf(cr, 12.0)) * 0.12 + cand.distance_to(world) * 0.08 + wall
+		if dist < 48.0:
+			wall *= 0.22
+	## Same-radius wraps around a crate block exit east of the south corridor.
+	var wrap := 0.0
+	if dist > 40.0:
+		wrap = (dist - 40.0) * 1.15 + d_ang * 70.0
+	return d_r * 0.95 + inward * 1.35 + d_ang * minf(want_r, maxf(cr, 12.0)) * 0.18 + dist * 0.28 + wall + wrap
 
 
 func _follow_snag_walkable(world: Vector2, pivot: Vector2 = Vector2.INF) -> Vector2:
@@ -8432,6 +8443,25 @@ func _follow_snag_walkable(world: Vector2, pivot: Vector2 = Vector2.INF) -> Vect
 				best_s = s3
 				best = inn
 				have = true
+		## 1–2 cell neighbors: the south corridor gap beats a same-radius
+		## wrap that exits east around the far crate block.
+		var home: Vector2i = grid.world_to_cell(world)
+		for r_n in range(1, 3):
+			for dx in range(-r_n, r_n + 1):
+				for dy in range(-r_n, r_n + 1):
+					if maxi(absi(dx), absi(dy)) != r_n:
+						continue
+					var nc := Vector2i(home.x + dx, home.y + dy)
+					if not RaidPathfinderScript.walkable(grid, nc):
+						continue
+					if _cell_is_operable(nc):
+						continue
+					var nw: Vector2 = grid.cell_to_world_center(nc)
+					var s_n := _follow_snag_score(nw, pivot, want_ang, want_r, world)
+					if s_n < best_s:
+						best_s = s_n
+						best = nw
+						have = true
 		if have:
 			return best
 	var cell: Vector2i = grid.world_to_cell(world)
@@ -8559,7 +8589,11 @@ func _follow_restore_arc_bow(pts: PackedVector2Array, raw: PackedVector2Array, p
 		else:
 			axis_run = 0
 	return _follow_bow_axis_pairs(
-		_follow_bow_wall_runs(_follow_break_axis_runs(pts, raw, pivot), raw, pivot), raw, pivot
+		_follow_cap_far_side(
+			_follow_bow_wall_runs(_follow_break_axis_runs(pts, raw, pivot), raw, pivot), raw, pivot
+		),
+		raw,
+		pivot
 	)
 
 
@@ -8729,9 +8763,10 @@ func _follow_nudge_off_axis(p: Vector2, other: Vector2, pivot: Vector2, raw_p: V
 		dirs = [Vector2(0.0, 1.0), Vector2(0.0, -1.0)]
 	else:
 		dirs = [Vector2(1.0, 0.0), Vector2(-1.0, 0.0)]
-	var away: Vector2 = p - pivot
+	var toward: Vector2 = pivot - p
+	var away: Vector2 = -toward
 	dirs.sort_custom(func(a: Vector2, b: Vector2) -> bool:
-		return a.dot(away) > b.dot(away)
+		return a.dot(toward) > b.dot(toward)
 	)
 	var polar: Vector2 = _follow_polar(
 		pivot,
@@ -8740,14 +8775,68 @@ func _follow_nudge_off_axis(p: Vector2, other: Vector2, pivot: Vector2, raw_p: V
 	)
 	if _follow_world_ok(polar) and not _follow_same_axis(polar, other) and polar.distance_to(p) <= 16.0:
 		return polar
-	for mag in [6.0, 8.0, 10.0, 12.0, 14.0]:
+	for mag in [6.0, 8.0, 10.0, 12.0, 14.0, 18.0, 22.0]:
 		for d in dirs:
 			var cand: Vector2 = p + d.normalized() * mag
-			if cand.distance_to(p) > 16.0:
+			if cand.distance_to(p) > 24.0:
 				continue
 			if _follow_world_ok(cand) and not _follow_same_axis(cand, other):
 				return cand
 	return p
+
+
+func _follow_cap_far_side(pts: PackedVector2Array, raw: PackedVector2Array, pivot: Vector2) -> PackedVector2Array:
+	## Polar mid-samples punch through the far crate and snag east around the
+	## south corridor. Pull that overshoot back toward the chord, keep a short
+	## bow, stay walkable.
+	if pts.size() < 3 or raw.size() != pts.size():
+		return pts
+	var from_w: Vector2 = raw[0]
+	var to_w: Vector2 = raw[raw.size() - 1]
+	var chord: Vector2 = to_w - from_w
+	if chord.length_squared() < 256.0:
+		return pts
+	var nrm := Vector2(-chord.y, chord.x).normalized()
+	if (pivot - from_w).dot(nrm) < 0.0:
+		nrm = -nrm
+	var min_x := minf(from_w.x, to_w.x) - FOLLOW_ARC_END_PAD
+	var max_x := maxf(from_w.x, to_w.x) + FOLLOW_ARC_END_PAD
+	for i in range(1, pts.size() - 1):
+		var p: Vector2 = pts[i]
+		var t := clampf((p - from_w).dot(chord) / chord.length_squared(), 0.0, 1.0)
+		var proj: Vector2 = from_w + chord * t
+		var side := (p - proj).dot(nrm)
+		var want: Vector2 = p
+		var changed := false
+		## Only shrink a far-side wrap when the chord itself is a walkable
+		## corridor (south gap at y=13). If the chord is blocked, the polar
+		## around-path is the route — do not squash it back onto crates.
+		var corridor := _follow_world_ok(proj) or _follow_world_ok(proj + nrm * 10.0)
+		if corridor and side < -FOLLOW_ARC_FAR_CAP:
+			want = p + nrm * (-side - FOLLOW_ARC_FAR_CAP)
+			changed = true
+		if want.x > max_x:
+			want.x = max_x
+			changed = true
+		elif want.x < min_x:
+			want.x = min_x
+			changed = true
+		if not changed:
+			continue
+		if _follow_world_ok(want):
+			pts[i] = want
+			continue
+		var snag: Vector2 = _follow_snag_walkable(want, pivot)
+		if not _follow_world_ok(snag):
+			continue
+		var new_side := (snag - proj).dot(nrm)
+		var old_far := maxf(0.0, -side)
+		var new_far := maxf(0.0, -new_side)
+		var old_east := maxf(0.0, p.x - max_x)
+		var new_east := maxf(0.0, snag.x - max_x)
+		if new_far + 3.0 < old_far or new_east + 3.0 < old_east:
+			pts[i] = snag
+	return pts
 
 
 func _follow_same_axis(a: Vector2, b: Vector2) -> bool:
@@ -8971,6 +9060,35 @@ func follow_arc_axis_run(pts: PackedVector2Array) -> int:
 	return max_axis
 
 
+func follow_arc_east_overshoot(pts: PackedVector2Array, from_w: Vector2, to_w: Vector2) -> float:
+	## How far samples run past the east end of a south-corridor chord.
+	if pts.is_empty():
+		return 0.0
+	var cap := maxf(from_w.x, to_w.x)
+	var over := 0.0
+	for p in pts:
+		over = maxf(over, p.x - cap)
+	return over
+
+
+func follow_arc_far_overshoot(pts: PackedVector2Array, from_w: Vector2, to_w: Vector2, pivot: Vector2) -> float:
+	## Far-side distance past the chord, opposite the pivot. South-corridor
+	## east-exit wraps sit on this side of the y=13 gap.
+	var chord: Vector2 = to_w - from_w
+	if chord.length_squared() < 256.0 or pts.size() < 3:
+		return 0.0
+	var nrm := Vector2(-chord.y, chord.x).normalized()
+	if (pivot - from_w).dot(nrm) < 0.0:
+		nrm = -nrm
+	var far := 0.0
+	for i in range(1, pts.size() - 1):
+		var p: Vector2 = pts[i]
+		var t := clampf((p - from_w).dot(chord) / chord.length_squared(), 0.0, 1.0)
+		var proj: Vector2 = from_w + chord * t
+		far = maxf(far, maxf(0.0, -(p - proj).dot(nrm)))
+	return far
+
+
 func follow_arc_chord_bow(pts: PackedVector2Array, from_w: Vector2, to_w: Vector2) -> float:
 	var chord: Vector2 = to_w - from_w
 	if chord.length_squared() < 16.0 or pts.size() < 3:
@@ -9159,6 +9277,18 @@ func _follow_slot_depth_for(lead: OperatorUnit, follower: OperatorUnit) -> int:
 	return FOLLOW_SLOT_DEPTH
 
 
+func _follow_slot_side_cells(lead: OperatorUnit, follower: OperatorUnit) -> int:
+	## First west follower stands 2 cells along-file so they leave the
+	## 1-cell pocket under the cone without hugging the west wall.
+	if lead == null or follower == null or grid == null:
+		return 1
+	if not (_follow_in_west(follower.grid_cell()) and _follow_in_west(_follow_lead_cell(lead))):
+		return 1
+	if _follow_count(lead) >= 2 and _follow_slot_index(lead, follower) == 0:
+		return FOLLOW_WEST_FIRST_SIDE
+	return 1
+
+
 func _follow_slot_index(lead: OperatorUnit, follower: OperatorUnit) -> int:
 	var i := 0
 	for op in operators:
@@ -9294,7 +9424,8 @@ func _follow_ideal_world(lead: OperatorUnit, follower: OperatorUnit, depth: int 
 	var back: Vector2 = _follow_facing_back(lead)
 	var side := Vector2(-back.y, back.x)
 	var st := _follow_slot_sign(lead, follower)
-	return _follow_lead_world(lead) + back * float(depth * 32) + side * float(st * 32)
+	var side_n := _follow_slot_side_cells(lead, follower)
+	return _follow_lead_world(lead) + back * float(depth * 32) + side * float(st * side_n * 32)
 
 
 func _follow_ring_world(lead: OperatorUnit, follower: OperatorUnit) -> Vector2:
@@ -9311,10 +9442,10 @@ func _follow_ring_world(lead: OperatorUnit, follower: OperatorUnit) -> Vector2:
 	var st := float(_follow_slot_sign(lead, follower))
 	if absf(st) > 0.01:
 		w += side * st * FOLLOW_WEST_SLOT_EXTRA
-		## Along-file: both further back. Second follower extra depth so
-		## the three bodies do not share the 1-cell pocket under the cone.
+		## Along-file: first already sits 2 side-cells out of the pocket;
+		## second keeps extra back so the trio does not re-mash.
 		var slot_i := _follow_slot_index(lead, follower)
-		w += back * (14.0 + float(maxi(slot_i, 0)) * 18.0)
+		w += back * (10.0 + float(maxi(slot_i, 0)) * 18.0)
 	return w
 
 
@@ -9392,7 +9523,12 @@ func follow_dest_rear_ok(cell: Vector2i, lead: OperatorUnit) -> bool:
 	var rel: Vector2 = grid.cell_to_world_center(cell) - _follow_lead_world(lead)
 	var b := rel.dot(back)
 	var s := absf(rel.dot(side))
-	return b >= 20.0 and s <= b + 20.0
+	if b < 20.0:
+		return false
+	## West along-file 2-cell stand (1 back + 2 side) still counts as rear.
+	## Tighter wedge elsewhere so the file does not drift onto the hip.
+	var pad := 40.0 if _follow_in_west(cell) or _follow_in_west(_follow_lead_cell(lead)) else 20.0
+	return s <= b + pad
 
 
 func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i:
@@ -9410,7 +9546,7 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 	var slot_st := _follow_slot_sign(lead, follower)
 	var slot_depth := _follow_slot_depth_for(lead, follower)
 	var west_file := _follow_in_west(from) and _follow_in_west(lead_c)
-	var ideal_w: Vector2 = lead_w + back * float(slot_depth * 32) + side * float(slot_st * 32)
+	var ideal_w: Vector2 = _follow_ideal_world(lead, follower, slot_depth)
 	var ideal_c: Vector2i = grid.world_to_cell(ideal_w)
 	var seen := {}
 	var cands: Array[Vector2i] = []
@@ -9431,7 +9567,12 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 	var staggers: Array[int] = []
 	var stagger_src: Array = [0, 1, -1]
 	if _follow_count(lead) >= 2:
-		stagger_src = [1, -1, 0] if slot == 0 else [1, -1, 0, 2, -2]
+		if slot == 0 and west_file:
+			stagger_src = [2, 1, -1, 0, -2]
+		elif slot == 0:
+			stagger_src = [1, -1, 0]
+		else:
+			stagger_src = [1, -1, 0, 2, -2]
 	elif slot > 0:
 		stagger_src = [1, -1, 0, 2, -2]
 	for st0 in stagger_src:
@@ -9531,7 +9672,9 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 		if _follow_count(lead) >= 2:
 			## Pair files left/right of the back cell instead of one on
 			## the spine and the other stretched down the alley.
-			score += absi(int(round(side_m / 32.0)) - 1) * 8
+			## West first follower wants 2 along-file cells, not 1.
+			var want_side := 2 if west_file and slot == 0 else 1
+			score += absi(int(round(side_m / 32.0)) - want_side) * 8
 		elif slot == 0:
 			score += int(round(maxi(0.0, side_m - 20.0) / 32.0)) * 10
 		else:
@@ -9552,25 +9695,32 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 		if in_cone and to_lead < from_lead:
 			score -= 24
 		if west_file:
+			if cheb_lead > FOLLOW_WEST_SPAN_MAX:
+				continue
 			if cell.x == lead_c.x:
 				score += 48
-			if side_m > 40.0:
-				score += int(round((side_m - 40.0) / 16.0)) * 12
 			if slot == 0:
-				## First follower: 1-cell diagonal, keep the cone readable.
-				if back_m >= 20.0 and back_m <= 44.0 and side_m >= 16.0 and side_m <= 44.0:
-					score -= 48
-				elif back_m >= 20.0 and back_m <= 44.0:
-					score -= 20
+				## First follower: ~1 cell out of the pocket along-file
+				## (dx stays 1). Do not hug the west wall.
+				if cheb_lead <= 1:
+					score += 48
+				if absi(cell.x - lead_c.x) >= 2:
+					score += 36
+				if cheb_lead == 2 and absi(cell.x - lead_c.x) == 1:
+					score -= 56
+				if back_m >= 20.0 and back_m <= 48.0 and side_m >= 48.0 and side_m <= 80.0:
+					score -= 52
+				elif side_m >= 48.0 and side_m <= 80.0:
+					score -= 22
 				if back_m > 48.0:
 					score += int(round((back_m - 48.0) / 16.0)) * 16
-				if cheb_lead >= 2:
-					score += 22
 				if cheb_lead >= 3:
-					score += 18
+					score += 22
 			else:
 				## Second follower: one cell further back (span 2), opposite
-				## stagger. Do not sit in the first follower's 1-cell pocket.
+				## stagger. Do not sit in the first follower's pocket.
+				if side_m > 40.0:
+					score += int(round((side_m - 40.0) / 16.0)) * 12
 				if back_m >= 48.0 and back_m <= 80.0 and side_m >= 16.0 and side_m <= 48.0:
 					score -= 56
 				elif back_m >= 48.0 and back_m <= 80.0:
@@ -9635,15 +9785,16 @@ func _follow_open_sides(cell: Vector2i) -> int:
 func _follow_gap_ok(a: Vector2i, b: Vector2i, west: bool) -> bool:
 	var md := absi(a.x - b.x) + absi(a.y - b.y)
 	var cd := maxi(absi(a.x - b.x), absi(a.y - b.y))
-	## Same cell is never legal. West alley allows a 1-cell stagger
-	## (diagonal / adjacent-side) so the file blocks less of the sneak.
+	## Same cell is never legal. Trio dests stay at least 2 Chebyshev
+	## apart so the first follower leaving the pocket does not re-mash
+	## with the lead or the second.
 	if md < 1 or cd < 1:
+		return false
+	if cd < 2:
 		return false
 	if west:
 		return true
 	if md < 2:
-		return false
-	if cd < 2:
 		return false
 	return true
 
@@ -9793,6 +9944,10 @@ func _follow_keep_ok(cell: Vector2i, op: OperatorUnit) -> bool:
 		return false
 	if selected != null and cell == _follow_lead_cell(selected):
 		return false
+	if selected != null and _follow_count(selected) >= 2:
+		var lc2: Vector2i = _follow_lead_cell(selected)
+		if (_follow_in_west(cell) or _follow_in_west(lc2)) and maxi(absi(cell.x - lc2.x), absi(cell.y - lc2.y)) < 2:
+			return false
 	if _follow_hugs_cone(cell, op):
 		return false
 	for other in operators:
@@ -9829,6 +9984,11 @@ func _follow_spread_ok(cell: Vector2i, op: OperatorUnit) -> bool:
 		var west := _follow_in_west(cell) or _follow_in_west(lc)
 		if not _follow_gap_ok(cell, lc, west):
 			return false
+		## West trio: dests leave the 1-cell pocket under the cone.
+		if west and _follow_count(selected) >= 2:
+			var cd := maxi(absi(cell.x - lc.x), absi(cell.y - lc.y))
+			if cd < 2:
+				return false
 	for other in operators:
 		if other == null or other == op or not other.alive or not bool(other.follow_lead):
 			continue
@@ -10641,8 +10801,8 @@ func follow_west_queue_hits() -> int:
 
 
 func follow_west_lead_span() -> int:
-	## Max Chebyshev from the lead to a follow dest. v0.5.21 west file is ≤2
-	## so the second follower can stand one cell further back.
+	## Max Chebyshev from the lead to a follow dest. v0.5.22 west file is ≤2:
+	## first follower is 2 along-file, second one cell further back.
 	if selected == null or grid == null:
 		return 99
 	var lead_c: Vector2i = _follow_lead_cell(selected)
