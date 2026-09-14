@@ -38,16 +38,16 @@ const FOLLOW_SLOT_MIX := 0.42
 const FOLLOW_SLOT_INSET := 11.0
 const FOLLOW_WEST_SLOT_INSET := 24.0
 const FOLLOW_WEST_SLOT_EXTRA := 52.0
-const FOLLOW_CAM_WEST_ZOOM := 0.28
+const FOLLOW_CAM_WEST_ZOOM := 0.26
 const FOLLOW_CAM_WEST_CONE := 108.0
 const FOLLOW_CAM_WEST_PAN := 0.28
 const FOLLOW_CAM_FILE_ZOOM := 0.82
-const FOLLOW_WEST_OBS_SCALE := 0.20
-const FOLLOW_WEST_BODY_SCALE := 0.26
-const FOLLOW_WEST_OBS_OFFSET := 68.0
-const FOLLOW_WEST_OBS_SIDE := 44.0
-const FOLLOW_WEST_OBS_SLOT := 20.0
-const FOLLOW_WEST_OBS_COURTYARD := 38.0
+const FOLLOW_WEST_OBS_SCALE := 0.16
+const FOLLOW_WEST_BODY_SCALE := 0.16
+const FOLLOW_WEST_OBS_OFFSET := 76.0
+const FOLLOW_WEST_OBS_SIDE := 52.0
+const FOLLOW_WEST_OBS_SLOT := 24.0
+const FOLLOW_WEST_OBS_COURTYARD := 46.0
 const FOLLOW_WEST_OBS_LEAD_MUL := 0.78
 const FOLLOW_WEST_CONE_FADE := 0.38
 const FLANK_WRAP_MIN_PTS := 4
@@ -9560,8 +9560,9 @@ func _apply_west_obs_scale() -> void:
 func _apply_west_obs_offset(west: bool) -> void:
 	## Visual observation-ring stagger. Dest cells stay; rings slide off the
 	## cluster centroid so the west trio + yellow cone read as three bodies.
-	## v0.5.30: smaller bodies/rings + one more along-file / courtyard step.
-	## Camera pulls to ~0.28. No extra back (west-wall). Dest cells stay.
+	## v0.5.31: bodies/rings at visual floor (~0.16) + one more along-file /
+	## courtyard step. Camera pulls to the ~0.26 clamp. No extra back
+	## (west-wall). Dest cells stay.
 	var centroid := Vector2.ZERO
 	var n := 0
 	if west and selected != null:

@@ -39,8 +39,8 @@ def _badging(apk: str) -> str:
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("apk")
-    p.add_argument("--version", default="0.5.30")
-    p.add_argument("--version-code", type=int, default=36)
+    p.add_argument("--version", default="0.5.31")
+    p.add_argument("--version-code", type=int, default=37)
     args = p.parse_args()
     if not os.path.isfile(args.apk):
         print("ASSERT_APK_MISSING", args.apk, file=sys.stderr)
