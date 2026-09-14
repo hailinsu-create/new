@@ -1,8 +1,8 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.12 phone feel: 射界 dests interpolate
-## with facing (20° already moves the file), west-alley rear file, 跟 chip
-## raised off gun/number, plus the v0.5.11 rear / twist / wrap path.
+## Forced-touch HUD stills for v0.5.13 phone feel: west-alley 1-cell stagger
+## + camera pullback, dest hops short-lerp (no whole-cell jump), 拧射界换格
+## and 西巷三人跟上 on the forced-touch path.
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
@@ -308,6 +308,8 @@ func _walk_west_combo_follow(main) -> void:
 		" detour=", int(main.follow_max_detour()) if main.has_method("follow_max_detour") else -1,
 		" idle=", int(main.follow_idle_waits()) if main.has_method("follow_idle_waits") else -1,
 		" cheb=", int(main.follow_min_chebyshev()) if main.has_method("follow_min_chebyshev") else -1,
+		" span=", int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else -1,
+		" zoom=", snapped(float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0, 0.01),
 		" d1=", main._follow_dest.get(int(a.op_id), Vector2i(-1, -1)),
 		" d2=", main._follow_dest.get(int(b.op_id), Vector2i(-1, -1)),
 		" rear=", int(main.follow_rear_ok_count()) if main.has_method("follow_rear_ok_count") else -1,
@@ -970,7 +972,10 @@ func _walk_west_rear(main) -> void:
 		" lead=", lead.grid_cell(),
 		" rear=", int(main.follow_rear_ok_count()) if main.has_method("follow_rear_ok_count") else -1,
 		" queue=", int(main.follow_west_queue_hits()) if main.has_method("follow_west_queue_hits") else -1,
-		" side=", int(main.follow_side_rear_hits()) if main.has_method("follow_side_rear_hits") else -1
+		" side=", int(main.follow_side_rear_hits()) if main.has_method("follow_side_rear_hits") else -1,
+		" cheb=", int(main.follow_min_chebyshev()) if main.has_method("follow_min_chebyshev") else -1,
+		" span=", int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else -1,
+		" zoom=", snapped(float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0, 0.01)
 	)
 	_dump_feel(main, "west_rear")
 	await _save("08f_west_rear")
@@ -1051,27 +1056,47 @@ func _walk_facing_turn(main) -> void:
 			lead._rebuild_cone()
 	main._stealth_avoid_cache.clear()
 	main._stealth_avoid_msec = 0
+	main._follow_blend_hits = 0
 	if main.has_method("_tick_squad_follow"):
-		main._tick_squad_follow()
+		main._tick_squad_follow(0.05)
+	if main.has_method("_tick_command_moves"):
+		main._tick_command_moves(0.05)
+	if main.has_method("_tick_squad_follow"):
+		main._tick_squad_follow(0.05)
+	await process_frame
+	var nudge_d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+	var nudge_d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+	print(
+		"DUMP_FACE_BLEND east=", east_d1, east_d2,
+		" hop=", nudge_d1, nudge_d2,
+		" blend=", int(main.follow_dest_blend_hits()) if main.has_method("follow_dest_blend_hits") else -1,
+		" blend_on=", int(main.follow_dest_blend_active()) if main.has_method("follow_dest_blend_active") else -1,
+		" frac=", snapped(float(main.follow_dest_blend_frac(int(a.op_id))) if main.has_method("follow_dest_blend_frac") else -1.0, 0.01),
+		" w1=", main.follow_dest_world_of(int(a.op_id)) if main.has_method("follow_dest_world_of") else Vector2.ZERO,
+		" path_end=", a.move_path[a.move_path.size() - 1] if a.is_moving() and a.move_path.size() > 1 else Vector2.ZERO
+	)
+	_dump_feel(main, "face_blend")
+	await _save("08i_face_blend")
 	frames = 0
 	while frames < 40:
 		if main.has_method("_tick_command_moves"):
 			main._tick_command_moves(0.05)
 		if main.has_method("_tick_squad_follow"):
-			main._tick_squad_follow()
+			main._tick_squad_follow(0.05)
 		await process_frame
 		frames += 1
 		if not a.is_moving() and not b.is_moving() and frames > 8:
 			break
-	var nudge_d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
-	var nudge_d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
 	print(
 		"DUMP_FACE_NUDGE east=", east_d1, east_d2,
 		" nudge=", nudge_d1, nudge_d2,
 		" lead=", lead.grid_cell(),
 		" face=", lead.facing_deg,
 		" rear=", int(main.follow_rear_ok_count()) if main.has_method("follow_rear_ok_count") else -1,
-		" side=", int(main.follow_side_rear_hits()) if main.has_method("follow_side_rear_hits") else -1
+		" side=", int(main.follow_side_rear_hits()) if main.has_method("follow_side_rear_hits") else -1,
+		" blend=", int(main.follow_dest_blend_hits()) if main.has_method("follow_dest_blend_hits") else -1,
+		" blend_on=", int(main.follow_dest_blend_active()) if main.has_method("follow_dest_blend_active") else -1,
+		" w1=", main.follow_dest_world_of(int(a.op_id)) if main.has_method("follow_dest_world_of") else Vector2.ZERO
 	)
 	_dump_feel(main, "face_nudge")
 	await _save("08h_face_nudge")
@@ -1236,7 +1261,11 @@ func _dump_feel(main, tag: String) -> void:
 		" follow_settle_drops=", f.get("follow_settle_drops", -1),
 		" follow_side_rear=", f.get("follow_side_rear", -1),
 		" follow_rear_ok=", f.get("follow_rear_ok", -1),
-		" follow_west_queue=", f.get("follow_west_queue", -1)
+		" follow_west_queue=", f.get("follow_west_queue", -1),
+		" follow_cheb=", f.get("follow_cheb", -1),
+		" follow_blend=", f.get("follow_blend", -1),
+		" follow_blend_on=", f.get("follow_blend_on", -1),
+		" cam_squad_zoom=", snapped(float(f.get("cam_squad_zoom", 1.0)), 0.01)
 	)
 
 

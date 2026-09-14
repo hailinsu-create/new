@@ -21,10 +21,10 @@ Release 导出需要 release keystore；日常侧载用 debug 签名：
 ```bash
 godot --headless --path ambush_loop --export-debug "Android APK" build/android/AmbushLoop-debug.apk
 # 按版本命名的朋友包（可进仓）：
-# cp build/android/AmbushLoop-debug.apk dist/AmbushLoop-v0.5.12-touch-aim.apk
+# cp build/android/AmbushLoop-debug.apk dist/AmbushLoop-v0.5.13-touch-slide.apk
 ```
 
-当前试玩包：`dist/AmbushLoop-v0.5.12-touch-aim.apk`（`versionName` 0.5.12 / `versionCode` 18）。不要装 GitHub `ambush-loop-playtest-0.2.0` 的同名 `AmbushLoop-playtest.apk`。
+当前试玩包：`dist/AmbushLoop-v0.5.13-touch-slide.apk`（`versionName` 0.5.13 / `versionCode` 19）。不要装 GitHub `ambush-loop-playtest-0.2.0` 的同名 `AmbushLoop-playtest.apk`。
 
 ## 本机导出 APK
 
@@ -39,7 +39,7 @@ godot --headless --path ambush_loop --export-debug "Android APK" build/android/A
 ```bash
 godot --headless --path ambush_loop --export-debug "Android APK" build/android/AmbushLoop-debug.apk
 # 按版本命名的朋友包（可进仓）：
-# cp build/android/AmbushLoop-debug.apk dist/AmbushLoop-v0.5.12-touch-aim.apk
+# cp build/android/AmbushLoop-debug.apk dist/AmbushLoop-v0.5.13-touch-slide.apk
 ```
 
 非 Gradle 预设不要填 `min_sdk` 覆盖，否则导出会失败。Release 需要 release keystore。
@@ -49,7 +49,7 @@ godot --headless --path ambush_loop --export-debug "Android APK" build/android/A
 1. 手机打开「安装未知来源」/ 允许该文件管理器安装
 2. 把 APK 拷到手机，点安装
 3. **必须横屏**；竖着会按 16:9 留边，不旋转内容
-4. 标题应显示 **v0.5.12 COMMANDOS/WW2**。院子里点底栏肖像选人，点地走路（短拖拖图、长按奔跑），靠近匣/岗哨出热区（贴身/侧面绕背会绕岗身画完整虚线，至少 4 格到背后，不是 2 格残段）。未选中肖像点右上角 **跟** 跟上（领队边走跟班连续走；跟上格偏侧后会收到领队正后方，多人左右错开仍偏后；西巷跟上停在正后方左右错开，不沿巷内拉成一队；领队只拧射界时跟上格随连续朝向换格，点一次 ↻（15°）就会动，不等到约 45°；停住不拧则落点再稳一轮；停在黄锥外、不贴锥沿；锥东领队时西巷跟班短绕 2–3 格，不傻等）。点肖像身体/名字/血条/枪印/编号选人，点角标才跟上（角标略抬高，不吃枪印和编号）。脚下无「射界」小字。点队友身体不会抢走选中。匍匐躲黄锥，点 **需枪** 拉警报（警报中自动丢雷）。匣上枪名默认隐藏。
+4. 标题应显示 **v0.5.13 COMMANDOS/WW2**。院子里点底栏肖像选人，点地走路（短拖拖图、长按奔跑），靠近匣/岗哨出热区（贴身/侧面绕背会绕岗身画完整虚线，至少 4 格到背后，不是 2 格残段）。未选中肖像点右上角 **跟** 跟上（领队边走跟班连续走；跟上格偏侧后会收到领队正后方，多人左右错开仍偏后；西巷跟上停在正后方左右错开一格更紧，不沿巷内拉成一队，镜头边走边拉远；领队只拧射界时跟上格随连续朝向换格，点一次 ↻（15°）就会动，不等到约 45°，换格点短插值不整格跳；停住不拧则落点再稳一轮；停在黄锥外、不贴锥沿；锥东领队时西巷跟班短绕 2–3 格，不傻等）。点肖像身体/名字/血条/枪印/编号选人，点角标才跟上（角标略抬高，不吃枪印和编号）。脚下无「射界」小字。点队友身体不会抢走选中。匍匐躲黄锥，点 **需枪** 拉警报（警报中自动丢雷）。匣上枪名默认隐藏。
 
 ## 触控对照
 

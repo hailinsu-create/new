@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.5.12":
+	if ver != "0.5.13":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3410,6 +3410,8 @@ func _assert_simplified_touch(main) -> bool:
 		return false
 	if not await _assert_touch_feel_0512(main):
 		return false
+	if not await _assert_touch_feel_0513(main):
+		return false
 	return true
 
 
@@ -4091,6 +4093,29 @@ func _assert_touch_feel_0512(main) -> bool:
 	return true
 
 
+func _assert_touch_feel_0513(main) -> bool:
+	## West alley 1-cell stagger + camera pullback, dest hops interpolate,
+	## 拧射界换格 + 西巷三人跟上 forced-touch.
+	main._ensure_touch_hud()
+	main._update_hud()
+	await process_frame
+	await process_frame
+	if not await _assert_follow_facing_turn(main):
+		return false
+	if not await _assert_follow_dest_blend(main):
+		return false
+	if not await _assert_west_follow_rear(main):
+		return false
+	if not await _assert_west_follow_queue(main):
+		return false
+	if not await _assert_west_combo_touch(main):
+		return false
+	if not await _assert_follow_badge_hit(main):
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_0513")
+	return true
+
+
 func _dest_is_rear(main, dest: Vector2i, lead) -> bool:
 	if dest.x < 0 or lead == null:
 		return false
@@ -4250,8 +4275,20 @@ func _assert_west_follow_rear(main) -> bool:
 		main.toggle_follow(2)
 	if main.has_method("reset_follow_dest_flips"):
 		main.reset_follow_dest_flips()
-	main._tick_squad_follow()
-	await _tick_follow_steps(main, 24)
+	main._tick_squad_follow(0.05)
+	for _cam_i in 8:
+		if main.has_method("_tick_command_moves"):
+			main._tick_command_moves(0.05)
+		main._tick_squad_follow(0.05)
+		if main.has_method("_follow_selected_cam"):
+			main._follow_selected_cam(0.05)
+		await process_frame
+	var z_walk := float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0
+	if (bool(a.is_moving()) or bool(b.is_moving())) and z_walk > 0.90:
+		push_error("SMOKE_WEST_CAM_NO_PULLBACK z=%s a=%s b=%s" % [z_walk, a.grid_cell(), b.grid_cell()])
+		quit(44)
+		return false
+	await _tick_follow_steps(main, 16)
 	var d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
 	var d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
 	if d1.x < 0 or d2.x < 0 or d1 == d2:
@@ -4274,7 +4311,21 @@ func _assert_west_follow_rear(main) -> bool:
 		push_error("SMOKE_WEST_REAR_STRETCH d1=%s d2=%s lead=%s" % [d1, d2, lead.grid_cell()])
 		quit(44)
 		return false
-	print("SMOKE_OK_WEST_FOLLOW_REAR d1=", d1, " d2=", d2, " lead=", lead.grid_cell())
+	var span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
+	if span > 2:
+		push_error("SMOKE_WEST_REAR_SPAN n=%s d1=%s d2=%s lead=%s" % [span, d1, d2, lead.grid_cell()])
+		quit(44)
+		return false
+	var cheb := int(main.follow_min_chebyshev()) if main.has_method("follow_min_chebyshev") else 0
+	if cheb < 1:
+		push_error("SMOKE_WEST_REAR_STACK cheb=%s d1=%s d2=%s" % [cheb, d1, d2])
+		quit(44)
+		return false
+	var z := float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0
+	print(
+		"SMOKE_OK_WEST_FOLLOW_REAR d1=", d1, " d2=", d2, " lead=", lead.grid_cell(),
+		" span=", span, " cheb=", cheb, " zoom=", snapped(z_walk, 0.01), snapped(z, 0.01)
+	)
 	if bool(a.follow_lead) != flags[0]:
 		main.toggle_follow(1)
 	if bool(b.follow_lead) != flags[1]:
@@ -4427,6 +4478,137 @@ func _assert_follow_facing_turn(main) -> bool:
 		"SMOKE_OK_FOLLOW_FACING_TURN east=", east_d1, east_d2,
 		" nudge=", nudge_d1, nudge_d2,
 		" south=", south_d1, south_d2, " lead=", lead.grid_cell()
+	)
+	if bool(a.follow_lead) != flags[0]:
+		main.toggle_follow(1)
+	if bool(b.follow_lead) != flags[1]:
+		main.toggle_follow(2)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	lead.global_position = homes[0]
+	a.global_position = homes[1]
+	b.global_position = homes[2]
+	main._follow_dest.clear()
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	return true
+
+
+func _assert_follow_dest_blend(main) -> bool:
+	## After a 1-cell dest hop (20° 射界), dest world slides — it does not snap.
+	if main.operators.size() < 3 or main.grid == null:
+		push_error("SMOKE_DEST_BLEND_NO_OPS")
+		quit(44)
+		return false
+	var lead: OperatorUnit = main.operators[0]
+	var a: OperatorUnit = main.operators[1]
+	var b: OperatorUnit = main.operators[2]
+	var homes: Array[Vector2] = [lead.global_position, a.global_position, b.global_position]
+	var flags: Array[bool] = [bool(a.follow_lead), bool(b.follow_lead)]
+	if main.c2 and not main.c2.sentries.is_empty():
+		_park_sentries(main, null)
+	var lead_c := Vector2i(13, 13)
+	var a_c := Vector2i(11, 16)
+	var b_c := Vector2i(12, 17)
+	if main.grid.is_blocked(lead_c.x, lead_c.y) or main._cell_is_operable(lead_c):
+		lead_c = Vector2i(14, 13)
+	if main.grid.is_blocked(a_c.x, a_c.y):
+		a_c = Vector2i(10, 16)
+	if main.grid.is_blocked(b_c.x, b_c.y):
+		b_c = Vector2i(11, 17)
+	main._select_op(0)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	if lead.has_method("set_facing"):
+		lead.set_facing(0.0)
+	else:
+		lead.facing_deg = 0.0
+		if lead.has_method("_rebuild_cone"):
+			lead._rebuild_cone()
+	lead.global_position = main.grid.cell_to_world_center(lead_c)
+	a.global_position = main.grid.cell_to_world_center(a_c)
+	b.global_position = main.grid.cell_to_world_center(b_c)
+	main._stealth_avoid_cache.clear()
+	main._stealth_avoid_msec = 0
+	if not bool(a.follow_lead):
+		main.toggle_follow(1)
+	if not bool(b.follow_lead):
+		main.toggle_follow(2)
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	main._tick_squad_follow(0.05)
+	await _tick_follow_steps(main, 20)
+	var east_d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+	var east_d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+	if east_d1.x < 0 or east_d2.x < 0 or east_d1 == east_d2:
+		push_error("SMOKE_DEST_BLEND_EAST d1=%s d2=%s" % [east_d1, east_d2])
+		quit(44)
+		return false
+	a.stop_move()
+	b.stop_move()
+	a.global_position = main.grid.cell_to_world_center(east_d1)
+	b.global_position = main.grid.cell_to_world_center(east_d2)
+	if lead.has_method("set_facing"):
+		lead.set_facing(20.0)
+	else:
+		lead.facing_deg = 20.0
+		if lead.has_method("_rebuild_cone"):
+			lead._rebuild_cone()
+	main._stealth_avoid_cache.clear()
+	main._stealth_avoid_msec = 0
+	main._follow_blend_hits = 0
+	main._tick_squad_follow(0.05)
+	if main.has_method("_tick_command_moves"):
+		main._tick_command_moves(0.05)
+	main._tick_squad_follow(0.05)
+	var hop_d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+	var hop_d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+	if hop_d1 == east_d1 and hop_d2 == east_d2:
+		push_error("SMOKE_DEST_BLEND_NO_HOP east=%s %s hop=%s %s" % [east_d1, east_d2, hop_d1, hop_d2])
+		quit(44)
+		return false
+	var hits := int(main.follow_dest_blend_hits()) if main.has_method("follow_dest_blend_hits") else 0
+	var on := int(main.follow_dest_blend_active()) if main.has_method("follow_dest_blend_active") else 0
+	if hits < 1:
+		push_error("SMOKE_DEST_BLEND_HITS n=%s hop=%s %s east=%s %s" % [hits, hop_d1, hop_d2, east_d1, east_d2])
+		quit(44)
+		return false
+	if on < 1:
+		push_error("SMOKE_DEST_BLEND_DONE_EARLY n=%s frac=%s" % [
+			on, main.follow_dest_blend_frac(int(a.op_id)) if main.has_method("follow_dest_blend_frac") else -1.0
+		])
+		quit(44)
+		return false
+	var old_w: Vector2 = main.grid.cell_to_world_center(east_d1)
+	var new_w: Vector2 = main.grid.cell_to_world_center(hop_d1)
+	var now_w: Vector2 = main.follow_dest_world_of(int(a.op_id)) if main.has_method("follow_dest_world_of") else new_w
+	if a.is_moving() and a.move_path.size() > 1:
+		now_w = a.move_path[a.move_path.size() - 1]
+	var span := old_w.distance_to(new_w)
+	if span < 8.0:
+		push_error("SMOKE_DEST_BLEND_TINY span=%s east=%s hop=%s" % [span, east_d1, hop_d1])
+		quit(44)
+		return false
+	if now_w.distance_to(new_w) < 6.0:
+		push_error("SMOKE_DEST_HOP_SNAP now=%s new=%s old=%s" % [now_w, new_w, old_w])
+		quit(44)
+		return false
+	if now_w.distance_to(old_w) < 4.0:
+		push_error("SMOKE_DEST_BLEND_STUCK now=%s old=%s new=%s" % [now_w, old_w, new_w])
+		quit(44)
+		return false
+	var along := (now_w - old_w).dot((new_w - old_w).normalized())
+	if along < 3.0 or along > span - 3.0:
+		push_error("SMOKE_DEST_BLEND_OFF along=%s span=%s now=%s" % [along, span, now_w])
+		quit(44)
+		return false
+	print(
+		"SMOKE_OK_FOLLOW_DEST_BLEND east=", east_d1, east_d2,
+		" hop=", hop_d1, hop_d2,
+		" hits=", hits, " on=", on,
+		" along=", snapped(along, 0.1), "/", snapped(span, 0.1)
 	)
 	if bool(a.follow_lead) != flags[0]:
 		main.toggle_follow(1)
@@ -5684,7 +5866,10 @@ func _tick_follow_steps(main, n: int = 20) -> void:
 	for _step in n:
 		if main.has_method("_tick_command_moves"):
 			main._tick_command_moves(0.05)
-		main._tick_squad_follow()
+		if main.has_method("_tick_squad_follow"):
+			main._tick_squad_follow(0.05)
+		if main.has_method("_follow_selected_cam"):
+			main._follow_selected_cam(0.05)
 		await process_frame
 
 
@@ -5854,18 +6039,23 @@ func _assert_west_follow_queue(main) -> bool:
 		quit(44)
 		return false
 	var spread := float(main.follow_dest_min_spacing()) if main.has_method("follow_dest_min_spacing") else 0.0
-	if spread < 56.0:
+	if spread < 28.0:
 		push_error("SMOKE_WEST_FOLLOW_CROWD spread=%s d1=%s d2=%s" % [spread, d1, d2])
 		quit(44)
 		return false
 	var live := float(main.follow_min_spacing()) if main.has_method("follow_min_spacing") else 0.0
-	if live < 40.0:
+	if live < 24.0:
 		push_error("SMOKE_WEST_FOLLOW_LIVE_STACK live=%s" % live)
 		quit(44)
 		return false
 	var cheb := int(main.follow_min_chebyshev()) if main.has_method("follow_min_chebyshev") else 0
-	if cheb < 2:
+	if cheb < 1:
 		push_error("SMOKE_WEST_FOLLOW_CHEB n=%s d1=%s d2=%s lead=%s" % [cheb, d1, d2, lead.grid_cell()])
+		quit(44)
+		return false
+	var span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
+	if span > 2:
+		push_error("SMOKE_WEST_FOLLOW_SPAN n=%s d1=%s d2=%s lead=%s" % [span, d1, d2, lead.grid_cell()])
 		quit(44)
 		return false
 	var idle := int(main.follow_idle_waits()) if main.has_method("follow_idle_waits") else 99
@@ -5884,7 +6074,7 @@ func _assert_west_follow_queue(main) -> bool:
 		push_error("SMOKE_WEST_FOLLOW_ALLEY_QUEUE n=%s d1=%s d2=%s lead=%s" % [queue_n, d1, d2, lead.grid_cell()])
 		quit(44)
 		return false
-	print("SMOKE_OK_WEST_FOLLOW_QUEUE d1=", d1, " d2=", d2, " detour=", detour, " spread=", snapped(spread, 0.1), " cheb=", cheb)
+	print("SMOKE_OK_WEST_FOLLOW_QUEUE d1=", d1, " d2=", d2, " detour=", detour, " spread=", snapped(spread, 0.1), " cheb=", cheb, " span=", span)
 	if bool(a.follow_lead) != flags[0]:
 		main.toggle_follow(1)
 	if bool(b.follow_lead) != flags[1]:
@@ -6039,16 +6229,17 @@ func _assert_west_combo_touch(main) -> bool:
 	var combo_cheb := int(main.follow_min_chebyshev()) if main.has_method("follow_min_chebyshev") else 0
 	var combo_idle := int(main.follow_idle_waits()) if main.has_method("follow_idle_waits") else 99
 	var combo_spread := float(main.follow_dest_min_spacing()) if main.has_method("follow_dest_min_spacing") else 0.0
-	if combo_cheb < 2 or combo_idle > 0 or combo_spread < 56.0:
-		push_error("SMOKE_WEST_COMBO_CROWD cheb=%s idle=%s spread=%s d1=%s d2=%s" % [
-			combo_cheb, combo_idle, combo_spread, d1, d2
+	var combo_span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
+	if combo_cheb < 1 or combo_idle > 0 or combo_spread < 28.0 or combo_span > 2:
+		push_error("SMOKE_WEST_COMBO_CROWD cheb=%s idle=%s spread=%s span=%s d1=%s d2=%s" % [
+			combo_cheb, combo_idle, combo_spread, combo_span, d1, d2
 		])
 		quit(44)
 		return false
 	print(
 		"SMOKE_OK_WEST_COMBO_TOUCH crate=", main.grid.world_to_cell(st.global_position),
 		" flank_pts=", flank_pts,
-		" d1=", d1, " d2=", d2, " detour=", detour, " cheb=", combo_cheb
+		" d1=", d1, " d2=", d2, " detour=", detour, " cheb=", combo_cheb, " span=", combo_span
 	)
 	if bool(a.follow_lead) != flags[0]:
 		main.toggle_follow(1)

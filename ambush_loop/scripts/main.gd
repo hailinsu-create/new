@@ -21,6 +21,10 @@ const FOLLOW_LOCAL_DETOUR := 3
 const FOLLOW_KEEP_DEST := 3
 const FOLLOW_TWIST_DEG := 5.0
 const FOLLOW_SLOT_DEPTH := 2
+const FOLLOW_WEST_SLOT_DEPTH := 1
+const FOLLOW_DEST_BLEND := 0.20
+const FOLLOW_CAM_WEST_ZOOM := 0.78
+const FOLLOW_CAM_FILE_ZOOM := 0.86
 const FLANK_WRAP_MIN_PTS := 4
 const PROGRESS_PATH := "user://ambush_loop.cfg"
 const LEVEL_ORDER := ["yard", "warehouse", "pump", "railcut", "depot", "radio"]
@@ -233,6 +237,7 @@ var _cam_pan: Vector2 = Vector2.ZERO
 var _cam_zoom: float = 1.0
 var _cam_punch: Vector2 = Vector2.ZERO
 var _cam_zoom_punch: float = 1.0
+var _cam_squad_zoom: float = 1.0
 var _stinger_tween: Tween = null
 var _win_stinger_tween: Tween = null
 var _sig_wash: ColorRect = null
@@ -267,6 +272,11 @@ var _follow_back_world: Vector2 = Vector2.ZERO
 var _follow_back_on: bool = false
 var _follow_face_deg: float = 0.0
 var _follow_face_on: bool = false
+var _follow_dest_world: Dictionary = {}
+var _follow_blend_from: Dictionary = {}
+var _follow_blend_to: Dictionary = {}
+var _follow_blend_t: Dictionary = {}
+var _follow_blend_hits: int = 0
 var _stealth_avoid_cache: Dictionary = {}
 var _stealth_avoid_msec: int = 0
 var _move_ghost: Line2D = null
@@ -1641,10 +1651,11 @@ func _ensure_game_camera() -> void:
 func _apply_cam() -> void:
 	_ensure_game_camera()
 	_cam_zoom = clampf(_cam_zoom, 0.72, 1.65)
+	_cam_squad_zoom = clampf(_cam_squad_zoom, 0.72, 1.0)
 	var max_pan := 220.0 * _cam_zoom
 	_cam_pan.x = clampf(_cam_pan.x, -max_pan, max_pan)
 	_cam_pan.y = clampf(_cam_pan.y, -max_pan, max_pan)
-	var z := _cam_zoom * _cam_zoom_punch
+	var z := _cam_zoom * _cam_zoom_punch * _cam_squad_zoom
 	_game_cam.zoom = Vector2(z, z)
 	_game_cam.offset = _cam_pan + _cam_punch
 
@@ -1654,6 +1665,7 @@ func _reset_cam_view() -> void:
 	_cam_zoom = 1.0
 	_cam_punch = Vector2.ZERO
 	_cam_zoom_punch = 1.0
+	_cam_squad_zoom = 1.0
 	if _stinger_tween != null:
 		_stinger_tween.kill()
 		_stinger_tween = null
@@ -5128,7 +5140,7 @@ func _process(delta: float) -> void:
 		_update_tripwire_ghost()
 		_tick_hold_to_move(delta)
 		_tick_command_moves(delta)
-		_tick_squad_follow()
+		_tick_squad_follow(delta)
 		_tick_pending_flank()
 		_tick_command_pickups(delta)
 		_tick_raid_grenades(delta)
@@ -7602,9 +7614,10 @@ func _apply_move_cells(op: OperatorUnit, cells: Array[Vector2i], sprint: bool = 
 	return true
 
 
-func _apply_follow_cells(op: OperatorUnit, cells: Array[Vector2i]) -> bool:
+func _apply_follow_cells(op: OperatorUnit, cells: Array[Vector2i], last_world: Vector2 = Vector2.INF) -> bool:
 	## Followers keep walking. Do not snap back to the current cell center
-	## (that is the one-cell hitch when dest hops).
+	## (that is the one-cell hitch when dest hops). last_world is the blended
+	## dest so a 1-cell hop slides instead of jumping a whole tile.
 	if op == null or cells.is_empty() or grid == null:
 		return false
 	if op.slot:
@@ -7623,12 +7636,18 @@ func _apply_follow_cells(op: OperatorUnit, cells: Array[Vector2i]) -> bool:
 			continue
 		pts.append(w)
 		last = w
+	if last_world != Vector2.INF:
+		if pts.size() >= 2:
+			pts[pts.size() - 1] = last_world
+		elif last_world.distance_squared_to(op.global_position) >= 16.0:
+			pts.append(last_world)
 	if pts.size() < 2:
 		return false
 	if op.is_moving() and op.move_path.size() > 1:
 		var old_end: Vector2 = op.move_path[op.move_path.size() - 1]
-		if old_end.distance_to(pts[pts.size() - 1]) < 18.0:
-			return true
+		var new_end: Vector2 = pts[pts.size() - 1]
+		if old_end.distance_to(new_end) < 40.0:
+			return _follow_nudge_path_end(op, new_end)
 	op.set_move_path(pts)
 	return true
 
@@ -8092,8 +8111,13 @@ func toggle_follow(idx: int) -> void:
 	op.follow_lead = not bool(op.follow_lead)
 	if not op.follow_lead:
 		op.stop_move()
-		_follow_dest.erase(int(op.op_id))
-		_follow_lock.erase(int(op.op_id))
+		var drop_id := int(op.op_id)
+		_follow_dest.erase(drop_id)
+		_follow_lock.erase(drop_id)
+		_follow_dest_world.erase(drop_id)
+		_follow_blend_from.erase(drop_id)
+		_follow_blend_to.erase(drop_id)
+		_follow_blend_t.erase(drop_id)
 	var any_follow := false
 	for other in operators:
 		if other != null and bool(other.follow_lead):
@@ -8108,7 +8132,7 @@ func toggle_follow(idx: int) -> void:
 	_update_hud()
 
 
-func _tick_squad_follow() -> void:
+func _tick_squad_follow(delta: float = 0.05) -> void:
 	if selected == null or not selected.visible or not selected.alive:
 		return
 	var twisting := _follow_consume_facing_twist()
@@ -8153,11 +8177,32 @@ func _tick_squad_follow() -> void:
 			elif prev.x >= 0 and prev != want:
 				_follow_flip_count += 1
 				_follow_settle_drops += 1
+		var hop := prev.x >= 0 and prev != want
+		var hop_cd := 0
+		if hop:
+			hop_cd = maxi(absi(prev.x - want.x), absi(prev.y - want.y))
+			_follow_start_dest_blend(oid, prev, want)
 		_follow_dest[oid] = want
-		if op.grid_cell() == want:
+		var dest_w: Vector2 = _follow_advance_dest_blend(oid, want, delta)
+		var blending := float(_follow_blend_t.get(oid, 1.0)) < 0.999
+		if op.grid_cell() == want and not blending:
 			_follow_lock[oid] = want
 			continue
-		if op.is_moving() and prev == want:
+		if op.is_moving() and not hop:
+			if blending:
+				_follow_nudge_path_end(op, dest_w)
+			continue
+		if hop and hop_cd <= 2:
+			if op.is_moving() and _follow_nudge_path_end(op, dest_w):
+				continue
+			if dest_w.distance_to(op.global_position) > 3.0:
+				_follow_set_slide(op, dest_w)
+				continue
+		if op.grid_cell() == want:
+			if blending and dest_w.distance_to(op.global_position) > 3.0:
+				_follow_set_slide(op, dest_w)
+			else:
+				_follow_lock[oid] = want
 			continue
 		var cells: Array[Vector2i] = stealth_path_cells(op.grid_cell(), want, op)
 		if cells.size() < 2 or _follow_next_blocked(cells, op):
@@ -8165,10 +8210,103 @@ func _tick_squad_follow() -> void:
 			if bypass.size() >= 2:
 				cells = bypass
 		if cells.size() < 2:
+			if blending and dest_w.distance_to(op.global_position) > 5.0:
+				_follow_set_slide(op, dest_w)
 			continue
 		if _follow_next_blocked(cells, op):
 			continue
-		_apply_follow_cells(op, cells)
+		_apply_follow_cells(op, cells, dest_w)
+
+
+func _follow_start_dest_blend(oid: int, prev: Vector2i, want: Vector2i) -> void:
+	if grid == null or want.x < 0:
+		return
+	var from_w: Vector2
+	if _follow_dest_world.has(oid):
+		from_w = _follow_dest_world[oid]
+	else:
+		from_w = grid.cell_to_world_center(prev)
+	_follow_blend_from[oid] = from_w
+	_follow_blend_to[oid] = grid.cell_to_world_center(want)
+	_follow_blend_t[oid] = 0.0
+	var cd := maxi(absi(prev.x - want.x), absi(prev.y - want.y))
+	if cd <= 2:
+		_follow_blend_hits += 1
+
+
+func _follow_advance_dest_blend(oid: int, want: Vector2i, delta: float) -> Vector2:
+	var target: Vector2 = grid.cell_to_world_center(want) if grid != null else Vector2.ZERO
+	var t := float(_follow_blend_t.get(oid, 1.0))
+	if t >= 1.0:
+		_follow_dest_world[oid] = target
+		return target
+	t = minf(1.0, t + minf(maxf(delta, 0.0), 0.05) / FOLLOW_DEST_BLEND)
+	_follow_blend_t[oid] = t
+	var from_w: Vector2 = _follow_blend_from.get(oid, target)
+	var to_w: Vector2 = _follow_blend_to.get(oid, target)
+	var u := t * t * (3.0 - 2.0 * t)
+	var w: Vector2 = from_w.lerp(to_w, u)
+	_follow_dest_world[oid] = w
+	return w
+
+
+func _follow_nudge_path_end(op: OperatorUnit, dest_w: Vector2) -> bool:
+	if op == null or not op.is_moving() or op.move_path.size() < 2:
+		return false
+	var p: PackedVector2Array = op.move_path
+	var last: Vector2 = p[p.size() - 1]
+	if last.distance_squared_to(dest_w) < 4.0:
+		return true
+	p[p.size() - 1] = dest_w
+	op.move_path = p
+	return true
+
+
+func _follow_set_slide(op: OperatorUnit, dest_w: Vector2) -> bool:
+	if op == null:
+		return false
+	if op.is_moving():
+		return _follow_nudge_path_end(op, dest_w)
+	if dest_w.distance_squared_to(op.global_position) < 16.0:
+		return false
+	if op.slot:
+		op.slot.occupied_by = null
+		op.slot.set_highlight(false)
+		op.slot = null
+	op.set_move_path(PackedVector2Array([op.global_position, dest_w]))
+	return true
+
+
+func follow_dest_world_of(oid: int) -> Vector2:
+	if _follow_dest_world.has(oid):
+		return _follow_dest_world[oid]
+	if grid != null and _follow_dest.has(oid):
+		return grid.cell_to_world_center(_follow_dest[oid])
+	return Vector2.ZERO
+
+
+func follow_dest_blend_hits() -> int:
+	return _follow_blend_hits
+
+
+func follow_dest_blend_active() -> int:
+	var n := 0
+	for k in _follow_blend_t.keys():
+		if float(_follow_blend_t[k]) < 0.999:
+			n += 1
+	return n
+
+
+func follow_dest_blend_frac(oid: int) -> float:
+	return float(_follow_blend_t.get(oid, 1.0))
+
+
+func _follow_slot_depth_for(lead: OperatorUnit, follower: OperatorUnit) -> int:
+	if lead == null or follower == null or grid == null:
+		return FOLLOW_SLOT_DEPTH
+	if _follow_in_west(follower.grid_cell()) and _follow_in_west(_follow_lead_cell(lead)):
+		return FOLLOW_WEST_SLOT_DEPTH
+	return FOLLOW_SLOT_DEPTH
 
 
 func _follow_slot_index(lead: OperatorUnit, follower: OperatorUnit) -> int:
@@ -8297,7 +8435,9 @@ func _follow_slot_sign(lead: OperatorUnit, follower: OperatorUnit) -> int:
 	return 1 if slot % 2 == 0 else -1
 
 
-func _follow_ideal_world(lead: OperatorUnit, follower: OperatorUnit, depth: int = FOLLOW_SLOT_DEPTH) -> Vector2:
+func _follow_ideal_world(lead: OperatorUnit, follower: OperatorUnit, depth: int = -1) -> Vector2:
+	if depth < 0:
+		depth = _follow_slot_depth_for(lead, follower)
 	var back: Vector2 = _follow_facing_back(lead)
 	var side := Vector2(-back.y, back.x)
 	var st := _follow_slot_sign(lead, follower)
@@ -8334,7 +8474,9 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 	var side_c: Vector2i = Vector2i(-back_c.y, back_c.x)
 	var sign_i := 1 if slot % 2 == 0 else -1
 	var slot_st := _follow_slot_sign(lead, follower)
-	var ideal_w: Vector2 = lead_w + back * float(FOLLOW_SLOT_DEPTH * 32) + side * float(slot_st * 32)
+	var slot_depth := _follow_slot_depth_for(lead, follower)
+	var west_file := _follow_in_west(from) and _follow_in_west(lead_c)
+	var ideal_w: Vector2 = lead_w + back * float(slot_depth * 32) + side * float(slot_st * 32)
 	var ideal_c: Vector2i = grid.world_to_cell(ideal_w)
 	var seen := {}
 	var cands: Array[Vector2i] = []
@@ -8344,7 +8486,14 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 	## Straight behind first, then 1-cell left/right stagger. Hip / side-rear last.
 	## Two followers share a rear pair (left/right of the back cell) so the
 	## west alley does not stretch into a north-south queue.
-	var depths: Array[int] = [2, 3, 4, 5]
+	## West alley uses depth 1 so the file sits a cell tighter and blocks less.
+	var depths: Array[int] = []
+	if west_file:
+		for dw in [1, 2, 3, 4]:
+			depths.append(int(dw))
+	else:
+		for dw2 in [2, 3, 4, 5]:
+			depths.append(int(dw2))
 	var staggers: Array[int] = []
 	var stagger_src: Array = [0, 1, -1]
 	if _follow_count(lead) >= 2:
@@ -8360,8 +8509,8 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 			)
 			_follow_push_cand(world_c, follower, reserved, seen, cands)
 			_follow_push_cand(lead_c + back_c * depth + side_c * (st * sign_i), follower, reserved, seen, cands)
-	if _follow_in_west(from) and _follow_in_west(lead_c):
-		for depth_w in [2, 3, 4]:
+	if west_file:
+		for depth_w in [1, 2, 3]:
 			for st_w in [0, 1, -1, 2, -2]:
 				var ww: Vector2i = grid.world_to_cell(
 					lead_w + back * float(depth_w * 32) + side * float(st_w * 32)
@@ -8417,19 +8566,25 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 		var rel: Vector2 = grid.cell_to_world_center(cell) - lead_w
 		var back_m := rel.dot(back)
 		var side_m := absf(rel.dot(side))
-		var min_lead := 2
-		if _follow_in_west(from) and _follow_in_west(lead_c):
+		var min_lead := 1 if west_file else 2
+		if west_file:
+			if back_m < 12.0 or side_m > back_m + 28.0:
+				min_lead = 2
+		elif _follow_in_west(from) and _follow_in_west(lead_c):
 			if back_m < 16.0 or side_m > back_m + 24.0:
 				min_lead = 3
 		if to_lead < min_lead:
 			continue
-		if maxi(absi(cell.x - lead_c.x), absi(cell.y - lead_c.y)) < 2:
+		var cheb_lead := maxi(absi(cell.x - lead_c.x), absi(cell.y - lead_c.y))
+		if cheb_lead < 1:
+			continue
+		if cheb_lead < 2 and not west_file:
 			continue
 		var dist_i := grid.cell_to_world_center(cell).distance_to(ideal_w)
 		var score: int = to_lead * 3 + detour * 18 + plen + int(round(dist_i / 8.0)) * 6
 		if cell == ideal_c:
 			score -= 36
-		score += int(round(absf(back_m - float(FOLLOW_SLOT_DEPTH * 32)) / 16.0)) * 4
+		score += int(round(absf(back_m - float(slot_depth * 32)) / 16.0)) * 4
 		score += (4 - _follow_open_sides(cell)) * 5
 		if back_m < 16.0:
 			score += 88
@@ -8462,13 +8617,17 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 			score -= 16
 		if in_cone and to_lead < from_lead:
 			score -= 24
-		if _follow_in_west(from) and _follow_in_west(lead_c):
+		if west_file:
 			if cell.x == lead_c.x:
 				score += 48
-			if side_m > 48.0:
-				score += int(round((side_m - 48.0) / 16.0)) * 12
-			if back_m >= 48.0 and side_m <= 40.0:
-				score -= 22
+			if side_m > 40.0:
+				score += int(round((side_m - 40.0) / 16.0)) * 12
+			if back_m >= 24.0 and back_m <= 72.0 and side_m <= 40.0:
+				score -= 28
+			if back_m >= 24.0 and back_m <= 48.0:
+				score -= 12
+			if cheb_lead >= 3:
+				score += 18
 		if score < best_score:
 			best_score = score
 			best = cell
@@ -8519,16 +8678,16 @@ func _follow_open_sides(cell: Vector2i) -> int:
 func _follow_gap_ok(a: Vector2i, b: Vector2i, west: bool) -> bool:
 	var md := absi(a.x - b.x) + absi(a.y - b.y)
 	var cd := maxi(absi(a.x - b.x), absi(a.y - b.y))
-	## West alley keeps the same 2-cell gap so a rear pair can sit
-	## left/right of the back cell instead of stretching into a queue.
+	## Same cell is never legal. West alley allows a 1-cell stagger
+	## (diagonal / adjacent-side) so the file blocks less of the sneak.
+	if md < 1 or cd < 1:
+		return false
+	if west:
+		return true
 	if md < 2:
 		return false
 	if cd < 2:
 		return false
-	if west and a.x == b.x and md >= 3:
-		## Same-column stretch is the alley queue; still legal if nothing
-		## else fits, but the scorer already penalizes it.
-		pass
 	return true
 
 
@@ -9105,6 +9264,9 @@ func dump_touch_feel() -> Dictionary:
 		"follow_side_rear": follow_side_rear_hits() if has_method("follow_side_rear_hits") else -1,
 		"follow_rear_ok": follow_rear_ok_count() if has_method("follow_rear_ok_count") else -1,
 		"follow_west_queue": follow_west_queue_hits() if has_method("follow_west_queue_hits") else -1,
+		"follow_blend": follow_dest_blend_hits() if has_method("follow_dest_blend_hits") else -1,
+		"follow_blend_on": follow_dest_blend_active() if has_method("follow_dest_blend_active") else -1,
+		"cam_squad_zoom": _cam_squad_zoom,
 	}
 
 
@@ -9423,7 +9585,12 @@ func follow_dest_flips() -> int:
 func reset_follow_dest_flips() -> void:
 	_follow_flip_count = 0
 	_follow_settle_drops = 0
+	_follow_blend_hits = 0
 	_follow_lock.clear()
+	_follow_dest_world.clear()
+	_follow_blend_from.clear()
+	_follow_blend_to.clear()
+	_follow_blend_t.clear()
 	_follow_arrive_on = false
 	_follow_back_on = false
 	_follow_back_world = Vector2.ZERO
@@ -9489,6 +9656,24 @@ func follow_west_queue_hits() -> int:
 		if absi(dest.y - lead_c.y) > 2 and absi(dest.x - lead_c.x) <= 1:
 			n += 1
 	return n
+
+
+func follow_west_lead_span() -> int:
+	## Max Chebyshev from the lead to a follow dest. Compact west file is ≤2.
+	if selected == null or grid == null:
+		return 99
+	var lead_c: Vector2i = _follow_lead_cell(selected)
+	var worst := 0
+	for op in operators:
+		if op == null or op == selected or not bool(op.follow_lead) or not op.alive:
+			continue
+		if not _follow_dest.has(int(op.op_id)):
+			continue
+		var dest: Vector2i = _follow_dest[int(op.op_id)]
+		var cd := maxi(absi(dest.x - lead_c.x), absi(dest.y - lead_c.y))
+		if cd > worst:
+			worst = cd
+	return worst
 
 
 func follow_min_chebyshev() -> int:
@@ -9579,12 +9764,21 @@ func _follow_selected_cam(delta: float) -> void:
 		n += 1
 		if op.is_moving():
 			moving = true
-	if not moving:
+	var want_z := 1.0
+	if moving:
+		var west := _follow_in_west(selected.grid_cell())
+		if west and n >= 2:
+			want_z = FOLLOW_CAM_WEST_ZOOM
+		elif n >= 3:
+			want_z = FOLLOW_CAM_FILE_ZOOM
+	_cam_squad_zoom = lerpf(_cam_squad_zoom, want_z, 1.0 - exp(-delta * 3.4))
+	if not moving and absf(_cam_squad_zoom - 1.0) <= 0.008:
 		return
-	focus /= float(n)
-	var center := Vector2(640, 360)
-	var want: Vector2 = (focus - center) * 0.26
-	_cam_pan = _cam_pan.lerp(want, 1.0 - exp(-delta * 4.6))
+	if moving:
+		focus /= float(n)
+		var center := Vector2(640, 360)
+		var want: Vector2 = (focus - center) * 0.26
+		_cam_pan = _cam_pan.lerp(want, 1.0 - exp(-delta * 4.6))
 	_apply_cam()
 
 
