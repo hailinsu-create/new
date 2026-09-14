@@ -1,8 +1,8 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.18 phone feel: settle-on-ring after ↻,
-## compact ↺ + swipe-to-twist, west tighter stagger/scale, rounder multi-crate
-## arcs (拧射界换格, 西巷三人跟上).
+## Forced-touch HUD stills for v0.5.19 phone feel: settle-on-ring after ↻,
+## bidirectional ↺/↻ swipe, west clearer scale/cam/stagger, compact 5-key
+## narrow pack, rounder multi-crate arcs (拧射界换格, 西巷三人跟上).
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
@@ -60,6 +60,8 @@ func _run() -> void:
 	await _settle(8)
 	_count_chrome(main, "scout")
 	_dump_feel(main, "scout")
+	_dump_compact(main, "scout")
+	_dump_twist_swipe(main)
 	await _save("01_scout_touch_simple")
 
 	if main.operators.size() > 0 and not main.raid_stashes.is_empty():
@@ -1189,6 +1191,7 @@ func _walk_facing_turn(main) -> void:
 	)
 	_dump_feel(main, "face_settle")
 	await _save("08l_face_settle")
+	_dump_cluster_arc(main)
 	a.stop_move()
 	b.stop_move()
 	if lead.has_method("set_facing"):
@@ -1386,8 +1389,102 @@ func _dump_feel(main, tag: String) -> void:
 		" body_spread=", snapped(float(f.get("body_spread", -1.0)), 0.1),
 		" body_inset=", snapped(float(f.get("body_inset", -1.0)), 0.1),
 		" ring_hold=", f.get("ring_hold", -1),
-		" setup_cmds=", " ".join(f.get("setup_cmds", PackedStringArray()))
+		" setup_cmds=", " ".join(f.get("setup_cmds", PackedStringArray())),
+		" compact_font=", f.get("compact_font", -1),
+		" compact_need=", snapped(float(f.get("compact_need", -1.0)), 0.1),
+		" compact_stacked=", f.get("compact_stacked", -1)
 	)
+
+
+func _dump_compact(main, tag: String) -> void:
+	var th = main.touch_hud
+	if th == null or not th.has_method("setup_bar_metrics"):
+		print("DUMP_COMPACT_BAR tag=", tag, " none")
+		return
+	var m: Dictionary = th.setup_bar_metrics()
+	print(
+		"DUMP_COMPACT_BAR tag=", tag,
+		" font=", int(m.get("font", -1)),
+		" sep=", int(m.get("sep", -1)),
+		" stacked=", 1 if bool(m.get("stacked", false)) else 0,
+		" need=", snapped(float(m.get("need_w", -1.0)), 0.1),
+		" avail=", snapped(float(m.get("avail_w", -1.0)), 0.1),
+		" fits=", 1 if bool(m.get("fits", false)) else 0,
+		" twist=", snapped(float(m.get("twist_min", -1.0)), 0.1),
+		" cmds=", " ".join(th.setup_visible_cmds() if th.has_method("setup_visible_cmds") else PackedStringArray())
+	)
+	if th.has_method("simulate_narrow_layout"):
+		th.simulate_narrow_layout(320.0)
+		var n: Dictionary = th.setup_bar_metrics()
+		print(
+			"DUMP_COMPACT_NARROW font=", int(n.get("font", -1)),
+			" need=", snapped(float(n.get("need_w", -1.0)), 0.1),
+			" avail=", snapped(float(n.get("avail_w", -1.0)), 0.1),
+			" fits=", 1 if bool(n.get("fits", false)) else 0,
+			" stacked=", 1 if bool(n.get("stacked", false)) else 0
+		)
+		if th.has_method("_apply_safe_area"):
+			th._apply_safe_area()
+
+
+func _dump_cluster_arc(main) -> void:
+	if main.grid == null or not main.has_method("follow_arc_sample_points"):
+		print("DUMP_ARC_CLUSTER none")
+		return
+	var pivot: Vector2 = main.grid.cell_to_world_center(Vector2i(20, 8))
+	var from_w: Vector2 = main.grid.cell_to_world_center(Vector2i(16, 13))
+	var to_w: Vector2 = main.grid.cell_to_world_center(Vector2i(24, 13))
+	if main.has_method("_follow_snag_walkable"):
+		from_w = main._follow_snag_walkable(from_w, pivot)
+		to_w = main._follow_snag_walkable(to_w, pivot)
+	var raw: PackedVector2Array = PackedVector2Array()
+	if main.has_method("follow_arc_sample_raw"):
+		raw = main.follow_arc_sample_raw(from_w, to_w, pivot, 15)
+	var pts: PackedVector2Array = main.follow_arc_sample_points(from_w, to_w, pivot, 15)
+	var blocked := 0
+	for p in pts:
+		var c: Vector2i = main.grid.world_to_cell(p)
+		if main.grid.is_blocked(c.x, c.y) or (main.has_method("_cell_is_operable") and bool(main._cell_is_operable(c))):
+			blocked += 1
+	var snag_bow := float(main.follow_arc_chord_bow(pts, from_w, to_w)) if main.has_method("follow_arc_chord_bow") else 0.0
+	var raw_bow := float(main.follow_arc_chord_bow(raw, from_w, to_w)) if raw.size() >= 3 and main.has_method("follow_arc_chord_bow") else 0.0
+	var axis := int(main.follow_arc_axis_run(pts)) if main.has_method("follow_arc_axis_run") else -1
+	print(
+		"DUMP_ARC_CLUSTER n=", pts.size(),
+		" bow=", snapped(snag_bow, 0.1),
+		" raw_bow=", snapped(raw_bow, 0.1),
+		" blocked=", blocked,
+		" axis_run=", axis
+	)
+
+
+func _dump_twist_swipe(main) -> void:
+	var th = main.touch_hud
+	if th == null or main.operators.is_empty():
+		print("DUMP_TWIST_SWIPE none")
+		return
+	main._select_op(0)
+	var op = main.selected
+	var f0: float = float(op.facing_deg)
+	var n_ccw := 0
+	var n_cw := 0
+	if th.has_method("simulate_swipe_twist"):
+		n_ccw = int(th.simulate_swipe_twist(-56.0))
+	var f1: float = float(op.facing_deg)
+	if th.has_method("simulate_swipe_twist"):
+		n_cw = int(th.simulate_swipe_twist(56.0))
+	var f2: float = float(op.facing_deg)
+	print(
+		"DUMP_TWIST_SWIPE f0=", snapped(f0, 0.1),
+		" ccw=", n_ccw, snapped(f1, 0.1),
+		" cw=", n_cw, snapped(f2, 0.1)
+	)
+	if op.has_method("set_facing"):
+		op.set_facing(f0)
+	else:
+		op.facing_deg = f0
+		if op.has_method("_rebuild_cone"):
+			op._rebuild_cone()
 
 
 func _count_chrome(main, tag: String) -> void:

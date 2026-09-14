@@ -1,6 +1,7 @@
 extends CanvasLayer
-## Phone command bar. Simplified night-raid rail: 3 portraits + crouch + bag +
-## alarm CTA. World verbs live on context hotspots. ALERT is pause/speed/abort.
+## Phone command bar. Simplified night-raid rail: 3 portraits + stacked
+## crouch/bag + ↺/↻ + alarm. World verbs live on context hotspots.
+## ALERT is pause/speed/abort.
 
 const SETUP_RESIDENT := ["crouch", "bag", "rotate_ccw", "rotate_cw", "alarm"]
 const WATCH_RESIDENT := ["abort", "pause", "speed"]
@@ -10,6 +11,8 @@ var _host: Node = null
 var _hint: Label = null
 var _row_setup: HBoxContainer = null
 var _row_watch: HBoxContainer = null
+var _stack_secondary: VBoxContainer = null
+var _twist_pair: HBoxContainer = null
 var _safe: MarginContainer = null
 var _btns: Dictionary = {}
 var _wave_chip: PanelContainer = null
@@ -22,6 +25,13 @@ var _hold_next_msec: int = 0
 var _hold_forced: bool = false
 var _twist_swiping: bool = false
 var _twist_swipe_acc: float = 0.0
+var _compact_font: int = 12
+var _compact_sep: int = 4
+var _compact_stacked: bool = true
+var _compact_need_w: float = 0.0
+var _compact_avail_w: float = 0.0
+var _compact_twist_min: float = 54.0
+var _compact_alarm_w: float = 96.0
 const HOLD_FIRST_MS := 160
 const HOLD_REPEAT_MS := 110
 const TWIST_SWIPE_PX := 28.0
@@ -55,24 +65,50 @@ func watch_visible_cmds() -> PackedStringArray:
 	return _visible_cmds(_row_watch)
 
 
-func _count_visible_buttons(row: HBoxContainer) -> int:
-	if row == null or not row.visible:
+func setup_bar_metrics() -> Dictionary:
+	return {
+		"font": _compact_font,
+		"sep": _compact_sep,
+		"stacked": _compact_stacked,
+		"need_w": _compact_need_w,
+		"avail_w": _compact_avail_w,
+		"fits": _compact_need_w <= _compact_avail_w + 0.5,
+		"twist_min": _compact_twist_min,
+		"alarm_w": _compact_alarm_w,
+		"bar_h": bar_height(),
+	}
+
+
+func simulate_narrow_layout(avail_w: float = 320.0) -> void:
+	## Smoke / dump: pack the 5-key bar as if the remaining strip is narrow.
+	_layout_compact(avail_w)
+
+
+func _count_visible_buttons(row: Node) -> int:
+	if row == null or (row is CanvasItem and not row.visible):
 		return 0
 	var n := 0
+	if row is Button:
+		return 1
 	for c in row.get_children():
-		if c is Button and c.visible:
-			n += 1
+		n += _count_visible_buttons(c)
 	return n
 
 
-func _visible_cmds(row: HBoxContainer) -> PackedStringArray:
+func _visible_cmds(row: Node) -> PackedStringArray:
 	var out := PackedStringArray()
-	if row == null or not row.visible:
-		return out
-	for c in row.get_children():
-		if c is Button and c.visible:
-			out.append(str(c.get_meta("cmd", "")))
+	_collect_visible_cmds(row, out)
 	return out
+
+
+func _collect_visible_cmds(row: Node, out: PackedStringArray) -> void:
+	if row == null or (row is CanvasItem and not row.visible):
+		return
+	if row is Button:
+		out.append(str(row.get_meta("cmd", "")))
+		return
+	for c in row.get_children():
+		_collect_visible_cmds(c, out)
 
 
 func _ready() -> void:
@@ -167,15 +203,29 @@ func _build() -> void:
 
 	_row_setup = HBoxContainer.new()
 	_row_setup.alignment = BoxContainer.ALIGNMENT_CENTER
-	_row_setup.add_theme_constant_override("separation", 8)
+	_row_setup.add_theme_constant_override("separation", 6)
 	_row_setup.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(_row_setup)
-	_add(_row_setup, "crouch", "匍匐", Color(0.36, 0.48, 0.32), Vector2(88, 60))
-	_add(_row_setup, "bag", "背包", Color(0.48, 0.44, 0.28), Vector2(88, 60))
-	_add(_row_setup, "rotate_ccw", "↺", Color(0.42, 0.58, 0.36), Vector2(72, 60))
-	_add(_row_setup, "rotate_cw", "↻", Color(0.42, 0.58, 0.36), Vector2(72, 60))
+	_stack_secondary = VBoxContainer.new()
+	_stack_secondary.name = "SecondaryStack"
+	_stack_secondary.alignment = BoxContainer.ALIGNMENT_CENTER
+	_stack_secondary.add_theme_constant_override("separation", 3)
+	_stack_secondary.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_stack_secondary.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_row_setup.add_child(_stack_secondary)
+	_add(_stack_secondary, "crouch", "匍匐", Color(0.36, 0.48, 0.32), Vector2(60, 26))
+	_add(_stack_secondary, "bag", "背包", Color(0.48, 0.44, 0.28), Vector2(60, 26))
 	_add_spacer(_row_setup)
-	_add(_row_setup, "alarm", "需枪", Color(0.72, 0.22, 0.18), Vector2(124, 64))
+	_twist_pair = HBoxContainer.new()
+	_twist_pair.name = "TwistPair"
+	_twist_pair.alignment = BoxContainer.ALIGNMENT_CENTER
+	_twist_pair.add_theme_constant_override("separation", 4)
+	_twist_pair.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_twist_pair.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_row_setup.add_child(_twist_pair)
+	_add(_twist_pair, "rotate_ccw", "↺", Color(0.42, 0.58, 0.36), Vector2(54, 56))
+	_add(_twist_pair, "rotate_cw", "↻", Color(0.42, 0.58, 0.36), Vector2(54, 56))
+	_add(_row_setup, "alarm", "需枪", Color(0.72, 0.22, 0.18), Vector2(96, 56))
 	# Hidden: still wired so apply_touch_command / smoke keep working.
 	_add(_row_setup, "fire", "开火", Color(0.55, 0.48, 0.28))
 	_add(_row_setup, "pack", "弹包", Color(0.40, 0.55, 0.40))
@@ -204,6 +254,7 @@ func _build() -> void:
 	_add(_row_watch, "mute", "静音", Color(0.35, 0.38, 0.42))
 	_add(_row_watch, "log", "日志", Color(0.32, 0.42, 0.44))
 	_add(_row_watch, "settings", "菜单", Color(0.32, 0.36, 0.40))
+	_layout_compact()
 	_hide_overflow()
 
 
@@ -254,12 +305,12 @@ func set_next_wave(text: String, show: bool) -> void:
 		_wave_lab.text = text
 
 
-func _add(row: HBoxContainer, cmd: String, label: String, tint: Color, minsz: Vector2 = Vector2(78, 56)) -> void:
+func _add(parent: Control, cmd: String, label: String, tint: Color, minsz: Vector2 = Vector2(78, 56)) -> void:
 	var b := Button.new()
 	b.text = label
 	b.custom_minimum_size = minsz
 	b.theme = NightOps.theme()
-	b.add_theme_font_size_override("font_size", 15)
+	b.add_theme_font_size_override("font_size", 13)
 	b.focus_mode = Control.FOCUS_NONE
 	b.set_meta("tint", tint)
 	b.set_meta("cmd", cmd)
@@ -317,7 +368,7 @@ func _add(row: HBoxContainer, cmd: String, label: String, tint: Color, minsz: Ve
 	lock.offset_right = -4.0
 	lock.offset_bottom = 16.0
 	b.add_child(lock)
-	row.add_child(b)
+	parent.add_child(b)
 	_btns[cmd] = b
 
 
@@ -352,6 +403,7 @@ func _apply_safe_area() -> void:
 	var sa := DisplayServer.get_display_safe_area()
 	var wsz := DisplayServer.window_get_size()
 	if wsz.x <= 0 or wsz.y <= 0 or _safe == null:
+		_layout_compact()
 		return
 	var vis := get_viewport().get_visible_rect().size
 	var left := sa.position.x * vis.x / float(wsz.x)
@@ -365,6 +417,55 @@ func _apply_safe_area() -> void:
 		_portrait_slot.offset_right = 8.0 + left + 336.0
 	if _hint:
 		_hint.position = Vector2(12.0 + left, 6.0)
+	_layout_compact()
+
+
+func _layout_compact(avail_override: float = -1.0) -> void:
+	## Stack 匍匐/背包, shrink type, park ↺/↻ + 需枪 in the right thumb cluster.
+	var vis := get_viewport().get_visible_rect().size if get_viewport() else Vector2(1280, 720)
+	var left := 8 + PORTRAIT_INSET
+	var right := 8
+	if _safe:
+		left = _safe.get_theme_constant("margin_left")
+		right = _safe.get_theme_constant("margin_right")
+	var avail := vis.x - float(left) - float(right)
+	if avail_override > 0.0:
+		avail = avail_override
+	_compact_avail_w = avail
+	_compact_stacked = true
+	var tight := avail < 520.0
+	_compact_font = 11 if tight else 12
+	_compact_sep = 3 if tight else 4
+	var stack_w := 52.0 if tight else 60.0
+	var stack_h := 24.0 if tight else 26.0
+	var twist := 48.0 if tight else 54.0
+	var twist_h := 52.0 if tight else 56.0
+	var alarm_w := 88.0 if tight else 96.0
+	var alarm_h := 52.0 if tight else 56.0
+	_compact_twist_min = twist
+	_compact_alarm_w = alarm_w
+	if _stack_secondary:
+		_stack_secondary.add_theme_constant_override("separation", _compact_sep)
+	if _twist_pair:
+		_twist_pair.add_theme_constant_override("separation", _compact_sep)
+	if _row_setup:
+		_row_setup.add_theme_constant_override("separation", _compact_sep + 2)
+	_size_btn("crouch", Vector2(stack_w, stack_h), _compact_font)
+	_size_btn("bag", Vector2(stack_w, stack_h), _compact_font)
+	_size_btn("rotate_ccw", Vector2(twist, twist_h), 16 if not tight else 15)
+	_size_btn("rotate_cw", Vector2(twist, twist_h), 16 if not tight else 15)
+	_size_btn("alarm", Vector2(alarm_w, alarm_h), 13 if not tight else 12)
+	_compact_need_w = stack_w + twist * 2.0 + alarm_w + float(_compact_sep) * 5.0 + 8.0
+
+
+func _size_btn(cmd: String, sz: Vector2, font: int) -> void:
+	if not _btns.has(cmd):
+		return
+	var b: Button = _btns[cmd]
+	if b == null:
+		return
+	b.custom_minimum_size = sz
+	b.add_theme_font_size_override("font_size", font)
 
 
 func simulate_hold_tick(cmd: String) -> void:
@@ -436,7 +537,10 @@ func set_alarm_cta(text: String) -> void:
 		lab = "警报"
 	b.text = lab
 	b.set_meta("label", lab)
-	b.custom_minimum_size = Vector2(132 if lab.length() >= 4 else 118, 64)
+	var w := maxf(_compact_alarm_w, 88.0)
+	if lab.length() >= 4:
+		w = maxf(w, 96.0)
+	b.custom_minimum_size = Vector2(w, maxf(52.0, b.custom_minimum_size.y))
 
 
 func refresh_phase(

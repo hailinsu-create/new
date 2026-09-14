@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.5.19 — Phone feel: west clearer, compact 5-key narrow pack, rounder crate-cluster arc
+
+Sideload APK: `dist/AmbushLoop-v0.5.19-touch-slide.apk`  
+Release tag: `v0.5.19-touch-slide`
+
+Same RAID as 0.5.18 (`SCOUT → ALERT → SWEEP`, auto fire + auto nade). Phone default stays 简配夜袭.
+
+### Play (phone)
+- **西巷再收**: silhouettes shrink (~0.46), observation rings ~0.44, camera pullback ~0.48. Dest worlds sit farther on the side with more along-file stagger. Dest cells still span ≤1.
+- **简配 5 键窄屏**: 匍匐/背包 stack into a 2-row column; ↺/↻ sit with 需枪 in the right thumb cluster. Smaller type. Hold or swipe either twist key still works on a ~320px remaining strip.
+- **复杂箱群弧**: snag scores same-radius around vs outward so the south face of a crate block stays bowed, not a wall-slide. Samples stay walkable.
+- Forced-touch path covers settle-on-ring, bidirectional ↺/↻, west trio, compact narrow pack, and rounder multi-crate arc.
+
+### Android
+- `versionName` 0.5.19 / `versionCode` 25 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title **v0.5.19 COMMANDOS/WW2**.
+2. Compact bar stacks **匍匐** over **背包**; **↺ / ↻** sit next to **需枪**. Hold or swipe either way.
+3. West alley **跟**: bodies look smaller, camera pulls further, they stand farther apart around the crate.
+
 ## 0.5.18 — Phone feel: settle on ring after ↻, compact ↺/swipe, west tighter, rounder crate-cluster arc
 
 Sideload APK: `dist/AmbushLoop-v0.5.18-touch-slide.apk`  
