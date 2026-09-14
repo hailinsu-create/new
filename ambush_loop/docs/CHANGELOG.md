@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.5.15 — Phone feel: west trio rings tighten, 90° dests slide on the slot arc
+
+Sideload APK: `dist/AmbushLoop-v0.5.15-touch-slide.apk`  
+Release tag: `v0.5.15-touch-slide`
+
+Same RAID as 0.5.14 (`SCOUT → ALERT → SWEEP`, auto fire + auto nade). Phone default stays 简配夜袭.
+
+### Play (phone)
+- **西巷三人观察环** shrinks (~0.52 of kit range) while the west file is clustered, so the cyan ring overlaps the yellow cone less.
+- Camera pulls farther (~0.54) and still **holds** that pullback on the trio + cone. West dests sit on the back/side corner of the cell (~15px inset) instead of the cell center.
+- **90° 大拧射界**: dest world and followers interpolate along the facing-slot arc around the lead (~0.30s), not a 3-cell grid walk. Small 15–20° hops still use the short cell lerp.
+- Forced-touch path covers west ring/camera tighten and the 90° arc slide.
+
+### Android
+- `versionName` 0.5.15 / `versionCode` 21 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title **v0.5.15 COMMANDOS/WW2**.
+2. West alley **跟**: observation ring is smaller, camera stays pulled back past 0.62, dests sit toward cell corners around the crate.
+3. Stand still and twist 射界 ~90°: followers slide around the lead, they do not walk three tiles.
+
 ## 0.5.14 — Phone feel: west 1-cell diagonal + camera holds pullback, dests lerp toward slot
 
 Sideload APK: `dist/AmbushLoop-v0.5.14-touch-slide.apk`  

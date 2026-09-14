@@ -1,8 +1,8 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.14 phone feel: west-alley 1-cell diagonal
-## dests + camera holds pullback on the trio + yellow cone, dest hops lerp
-## toward interpolated slot points (拧射界换格, 西巷三人跟上).
+## Forced-touch HUD stills for v0.5.15 phone feel: west trio observation rings
+## shrink + camera pulls past 0.62, 90° 拧射界 dests slide on the facing-slot
+## arc (拧射界换格, 西巷三人跟上).
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
@@ -314,6 +314,8 @@ func _walk_west_combo_follow(main) -> void:
 		" cheb=", int(main.follow_min_chebyshev()) if main.has_method("follow_min_chebyshev") else -1,
 		" span=", int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else -1,
 		" zoom=", snapped(float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0, 0.01),
+		" obs_scale=", snapped(float(main.follow_obs_visual_scale()) if main.has_method("follow_obs_visual_scale") else 1.0, 0.01),
+		" obs_r=", snapped(float(main.follow_obs_visual_radius()) if main.has_method("follow_obs_visual_radius") else 0.0, 0.1),
 		" d1=", main._follow_dest.get(int(a.op_id), Vector2i(-1, -1)),
 		" d2=", main._follow_dest.get(int(b.op_id), Vector2i(-1, -1)),
 		" rear=", int(main.follow_rear_ok_count()) if main.has_method("follow_rear_ok_count") else -1,
@@ -983,7 +985,9 @@ func _walk_west_rear(main) -> void:
 		" side=", int(main.follow_side_rear_hits()) if main.has_method("follow_side_rear_hits") else -1,
 		" cheb=", int(main.follow_min_chebyshev()) if main.has_method("follow_min_chebyshev") else -1,
 		" span=", int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else -1,
-		" zoom=", snapped(float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0, 0.01)
+		" zoom=", snapped(float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0, 0.01),
+		" obs_scale=", snapped(float(main.follow_obs_visual_scale()) if main.has_method("follow_obs_visual_scale") else 1.0, 0.01),
+		" obs_r=", snapped(float(main.follow_obs_visual_radius()) if main.has_method("follow_obs_visual_radius") else 0.0, 0.1)
 	)
 	_dump_feel(main, "west_rear")
 	await _save("08f_west_rear")
@@ -1119,8 +1123,27 @@ func _walk_facing_turn(main) -> void:
 			lead._rebuild_cone()
 	main._stealth_avoid_cache.clear()
 	main._stealth_avoid_msec = 0
+	main._follow_arc_hits = 0
 	if main.has_method("_tick_squad_follow"):
-		main._tick_squad_follow()
+		main._tick_squad_follow(0.05)
+	if main.has_method("_tick_command_moves"):
+		main._tick_command_moves(0.05)
+	if main.has_method("_tick_squad_follow"):
+		main._tick_squad_follow(0.05)
+	await process_frame
+	print(
+		"DUMP_FACE_ARC east=", east_d1, east_d2,
+		" hop=", main._follow_dest.get(int(a.op_id), Vector2i(-1, -1)),
+		main._follow_dest.get(int(b.op_id), Vector2i(-1, -1)),
+		" arc=", int(main.follow_dest_arc_hits()) if main.has_method("follow_dest_arc_hits") else -1,
+		" arc_on=", int(main.follow_dest_arc_active()) if main.has_method("follow_dest_arc_active") else -1,
+		" bow=", snapped(float(main.follow_dest_arc_bow(int(a.op_id))) if main.has_method("follow_dest_arc_bow") else -1.0, 0.1),
+		" frac=", snapped(float(main.follow_dest_blend_frac(int(a.op_id))) if main.has_method("follow_dest_blend_frac") else -1.0, 0.01),
+		" w1=", main.follow_dest_world_of(int(a.op_id)) if main.has_method("follow_dest_world_of") else Vector2.ZERO,
+		" path_n=", a.move_path.size() if a.is_moving() else 0
+	)
+	_dump_feel(main, "face_arc")
+	await _save("08j_face_arc")
 	frames = 0
 	while frames < 50:
 		if main.has_method("_tick_command_moves"):
@@ -1139,7 +1162,8 @@ func _walk_facing_turn(main) -> void:
 		" lead=", lead.grid_cell(),
 		" face=", lead.facing_deg,
 		" rear=", int(main.follow_rear_ok_count()) if main.has_method("follow_rear_ok_count") else -1,
-		" side=", int(main.follow_side_rear_hits()) if main.has_method("follow_side_rear_hits") else -1
+		" side=", int(main.follow_side_rear_hits()) if main.has_method("follow_side_rear_hits") else -1,
+		" arc=", int(main.follow_dest_arc_hits()) if main.has_method("follow_dest_arc_hits") else -1
 	)
 	_dump_feel(main, "face_turn")
 	await _save("08g_face_turn")
@@ -1274,6 +1298,10 @@ func _dump_feel(main, tag: String) -> void:
 		" follow_cheb=", f.get("follow_cheb", -1),
 		" follow_blend=", f.get("follow_blend", -1),
 		" follow_blend_on=", f.get("follow_blend_on", -1),
+		" follow_arc=", f.get("follow_arc", -1),
+		" follow_arc_on=", f.get("follow_arc_on", -1),
+		" obs_scale=", snapped(float(f.get("obs_scale", 1.0)), 0.01),
+		" obs_r=", snapped(float(f.get("obs_r", 0.0)), 0.1),
 		" cam_squad_zoom=", snapped(float(f.get("cam_squad_zoom", 1.0)), 0.01)
 	)
 

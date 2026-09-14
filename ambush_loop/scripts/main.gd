@@ -23,11 +23,14 @@ const FOLLOW_TWIST_DEG := 5.0
 const FOLLOW_SLOT_DEPTH := 2
 const FOLLOW_WEST_SLOT_DEPTH := 1
 const FOLLOW_DEST_BLEND := 0.24
+const FOLLOW_ARC_BLEND := 0.30
+const FOLLOW_ARC_DEG := 40.0
 const FOLLOW_SLOT_MIX := 0.42
 const FOLLOW_SLOT_INSET := 11.0
-const FOLLOW_WEST_SLOT_INSET := 13.0
-const FOLLOW_CAM_WEST_ZOOM := 0.62
+const FOLLOW_WEST_SLOT_INSET := 15.0
+const FOLLOW_CAM_WEST_ZOOM := 0.54
 const FOLLOW_CAM_FILE_ZOOM := 0.82
+const FOLLOW_WEST_OBS_SCALE := 0.52
 const FLANK_WRAP_MIN_PTS := 4
 const PROGRESS_PATH := "user://ambush_loop.cfg"
 const LEVEL_ORDER := ["yard", "warehouse", "pump", "railcut", "depot", "radio"]
@@ -275,11 +278,16 @@ var _follow_back_world: Vector2 = Vector2.ZERO
 var _follow_back_on: bool = false
 var _follow_face_deg: float = 0.0
 var _follow_face_on: bool = false
+var _follow_twist_span: float = 0.0
 var _follow_dest_world: Dictionary = {}
 var _follow_blend_from: Dictionary = {}
 var _follow_blend_to: Dictionary = {}
 var _follow_blend_t: Dictionary = {}
+var _follow_blend_dur: Dictionary = {}
+var _follow_blend_arc: Dictionary = {}
+var _follow_blend_pivot: Dictionary = {}
 var _follow_blend_hits: int = 0
+var _follow_arc_hits: int = 0
 var _stealth_avoid_cache: Dictionary = {}
 var _stealth_avoid_msec: int = 0
 var _move_ghost: Line2D = null
@@ -1237,6 +1245,7 @@ func _refresh_mute_button() -> void:
 
 func _update_observation_rings() -> void:
 	var show := phase == Phase.SETUP
+	_apply_west_obs_scale()
 	for op in operators:
 		if is_instance_valid(op):
 			op.set_observation_ring(show)
@@ -1654,7 +1663,7 @@ func _ensure_game_camera() -> void:
 func _apply_cam() -> void:
 	_ensure_game_camera()
 	_cam_zoom = clampf(_cam_zoom, 0.72, 1.65)
-	_cam_squad_zoom = clampf(_cam_squad_zoom, 0.56, 1.0)
+	_cam_squad_zoom = clampf(_cam_squad_zoom, 0.50, 1.0)
 	var max_pan := 220.0 * _cam_zoom
 	_cam_pan.x = clampf(_cam_pan.x, -max_pan, max_pan)
 	_cam_pan.y = clampf(_cam_pan.y, -max_pan, max_pan)
@@ -8121,6 +8130,9 @@ func toggle_follow(idx: int) -> void:
 		_follow_blend_from.erase(drop_id)
 		_follow_blend_to.erase(drop_id)
 		_follow_blend_t.erase(drop_id)
+		_follow_blend_dur.erase(drop_id)
+		_follow_blend_arc.erase(drop_id)
+		_follow_blend_pivot.erase(drop_id)
 	var any_follow := false
 	for other in operators:
 		if other != null and bool(other.follow_lead):
@@ -8183,9 +8195,11 @@ func _tick_squad_follow(delta: float = 0.05) -> void:
 		var hop := prev.x >= 0 and prev != want
 		var hop_cd := 0
 		var mixed_w: Vector2 = _follow_slot_world(selected, op, want)
+		var use_arc := bool(_follow_blend_arc.get(oid, false))
 		if hop:
 			hop_cd = maxi(absi(prev.x - want.x), absi(prev.y - want.y))
-			_follow_start_dest_blend(oid, prev, want, mixed_w)
+			use_arc = twisting and (_follow_twist_span >= FOLLOW_ARC_DEG or hop_cd >= 3)
+			_follow_start_dest_blend(oid, prev, want, mixed_w, use_arc)
 		_follow_dest[oid] = want
 		var dest_w: Vector2 = _follow_advance_dest_blend(oid, want, delta, mixed_w)
 		var blending := float(_follow_blend_t.get(oid, 1.0)) < 0.999
@@ -8197,10 +8211,16 @@ func _tick_squad_follow(delta: float = 0.05) -> void:
 				_follow_lock[oid] = want
 			continue
 		if op.is_moving() and not hop:
+			if bool(_follow_blend_arc.get(oid, false)):
+				_follow_nudge_path_end(op, mixed_w)
+				continue
 			if blending or slide_need:
 				_follow_nudge_path_end(op, dest_w)
 			continue
-		if hop and hop_cd <= 2:
+		if hop and (use_arc or hop_cd <= 2):
+			if use_arc:
+				if _follow_set_arc_slide(op, mixed_w):
+					continue
 			if op.is_moving() and _follow_nudge_path_end(op, dest_w):
 				continue
 			if slide_need:
@@ -8226,7 +8246,9 @@ func _tick_squad_follow(delta: float = 0.05) -> void:
 		_apply_follow_cells(op, cells, dest_w)
 
 
-func _follow_start_dest_blend(oid: int, prev: Vector2i, want: Vector2i, to_w: Vector2 = Vector2.INF) -> void:
+func _follow_start_dest_blend(
+	oid: int, prev: Vector2i, want: Vector2i, to_w: Vector2 = Vector2.INF, use_arc: bool = false
+) -> void:
 	if grid == null or want.x < 0:
 		return
 	var from_w: Vector2
@@ -8239,9 +8261,15 @@ func _follow_start_dest_blend(oid: int, prev: Vector2i, want: Vector2i, to_w: Ve
 		to_w = grid.cell_to_world_center(want)
 	_follow_blend_to[oid] = to_w
 	_follow_blend_t[oid] = 0.0
+	_follow_blend_arc[oid] = use_arc
+	_follow_blend_dur[oid] = FOLLOW_ARC_BLEND if use_arc else FOLLOW_DEST_BLEND
+	var pivot: Vector2 = _follow_lead_world(selected) if selected else from_w
+	_follow_blend_pivot[oid] = pivot
 	var cd := maxi(absi(prev.x - want.x), absi(prev.y - want.y))
 	if cd <= 3:
 		_follow_blend_hits += 1
+	if use_arc:
+		_follow_arc_hits += 1
 
 
 func _follow_advance_dest_blend(oid: int, want: Vector2i, delta: float, mixed_w: Vector2 = Vector2.INF) -> Vector2:
@@ -8256,14 +8284,76 @@ func _follow_advance_dest_blend(oid: int, want: Vector2i, delta: float, mixed_w:
 			w_idle = target
 		_follow_dest_world[oid] = w_idle
 		return w_idle
-	t = minf(1.0, t + dt / FOLLOW_DEST_BLEND)
+	var dur := float(_follow_blend_dur.get(oid, FOLLOW_DEST_BLEND))
+	t = minf(1.0, t + dt / maxf(dur, 0.08))
 	_follow_blend_t[oid] = t
 	_follow_blend_to[oid] = target
 	var from_w: Vector2 = _follow_blend_from.get(oid, target)
 	var u := t * t * (3.0 - 2.0 * t)
-	var w: Vector2 = from_w.lerp(target, u)
+	var w: Vector2
+	if bool(_follow_blend_arc.get(oid, false)):
+		var pivot: Vector2 = _follow_lead_world(selected) if selected else _follow_blend_pivot.get(oid, from_w)
+		_follow_blend_pivot[oid] = pivot
+		w = _follow_arc_lerp(from_w, target, pivot, u)
+	else:
+		w = from_w.lerp(target, u)
 	_follow_dest_world[oid] = w
 	return w
+
+
+func _follow_arc_lerp(from_w: Vector2, to_w: Vector2, pivot: Vector2, t: float) -> Vector2:
+	## Polar lerp around the lead so a 90° 拧射界 slides on the slot ring.
+	var a: Vector2 = from_w - pivot
+	var b: Vector2 = to_w - pivot
+	var ra := a.length()
+	var rb := b.length()
+	if ra < 10.0 or rb < 10.0:
+		return from_w.lerp(to_w, t)
+	var ang := lerp_angle(a.angle(), b.angle(), t)
+	var r := lerpf(ra, rb, t)
+	return pivot + Vector2(cos(ang), sin(ang)) * r
+
+
+func _follow_arc_points(from_w: Vector2, to_w: Vector2, pivot: Vector2, steps: int = 6) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	var n := maxi(steps, 3)
+	for i in n + 1:
+		var tt := float(i) / float(n)
+		var u := tt * tt * (3.0 - 2.0 * tt)
+		pts.append(_follow_arc_lerp(from_w, to_w, pivot, u))
+	return pts
+
+
+func _follow_set_arc_slide(op: OperatorUnit, dest_w: Vector2) -> bool:
+	if op == null or selected == null:
+		return false
+	var pivot: Vector2 = _follow_lead_world(selected)
+	var from_w: Vector2 = op.global_position
+	if op.is_moving() and op.move_path.size() > 3:
+		var old_end: Vector2 = op.move_path[op.move_path.size() - 1]
+		if old_end.distance_to(dest_w) < 56.0:
+			return _follow_nudge_path_end(op, dest_w)
+	var arc: PackedVector2Array = _follow_arc_points(from_w, dest_w, pivot, 6)
+	var pts := PackedVector2Array()
+	pts.append(from_w)
+	for p in arc:
+		if pts.is_empty() or p.distance_squared_to(pts[pts.size() - 1]) >= 36.0:
+			pts.append(p)
+	if pts.size() < 2:
+		return _follow_set_slide(op, dest_w)
+	if dest_w.distance_squared_to(pts[pts.size() - 1]) > 4.0:
+		pts[pts.size() - 1] = dest_w
+	if op.slot:
+		op.slot.occupied_by = null
+		op.slot.set_highlight(false)
+		op.slot = null
+	op.set_move_path(pts)
+	var length := 0.0
+	for i in range(1, pts.size()):
+		length += pts[i - 1].distance_to(pts[i])
+	var want_spd := length / maxf(FOLLOW_ARC_BLEND, 0.08)
+	op.move_speed = clampf(want_spd, op.base_move_speed, op.base_move_speed * 3.2)
+	return true
 
 
 func _follow_nudge_path_end(op: OperatorUnit, dest_w: Vector2) -> bool:
@@ -8317,6 +8407,74 @@ func follow_dest_blend_frac(oid: int) -> float:
 	return float(_follow_blend_t.get(oid, 1.0))
 
 
+func follow_dest_arc_hits() -> int:
+	return _follow_arc_hits
+
+
+func follow_dest_arc_active() -> int:
+	var n := 0
+	for k in _follow_blend_arc.keys():
+		if bool(_follow_blend_arc[k]) and float(_follow_blend_t.get(k, 1.0)) < 0.999:
+			n += 1
+	return n
+
+
+func follow_dest_arc_bow(oid: int) -> float:
+	if not bool(_follow_blend_arc.get(oid, false)):
+		return 0.0
+	var from_w: Vector2 = _follow_blend_from.get(oid, Vector2.ZERO)
+	var to_w: Vector2 = _follow_blend_to.get(oid, Vector2.ZERO)
+	var now_w: Vector2 = _follow_dest_world.get(oid, to_w)
+	var ab: Vector2 = to_w - from_w
+	if ab.length_squared() < 16.0:
+		return 0.0
+	var t_line := (now_w - from_w).dot(ab) / ab.length_squared()
+	var proj: Vector2 = from_w + ab * t_line
+	return now_w.distance_to(proj)
+
+
+func follow_obs_visual_scale() -> float:
+	var s := 1.0
+	var any := false
+	for op in operators:
+		if op == null or not op.has_method("observation_visual_scale"):
+			continue
+		any = true
+		s = minf(s, float(op.observation_visual_scale()))
+	return s if any else 1.0
+
+
+func follow_obs_visual_radius() -> float:
+	for op in operators:
+		if op == null or not op.has_method("observation_visual_radius"):
+			continue
+		if op.has_method("observation_ring_visible") and not bool(op.observation_ring_visible()):
+			continue
+		return float(op.observation_visual_radius())
+	return 0.0
+
+
+func _follow_west_cluster() -> bool:
+	if selected == null or not selected.alive or not selected.visible:
+		return false
+	if not _follow_in_west(selected.grid_cell()):
+		return false
+	var n := 1
+	for op in operators:
+		if op == null or op == selected or not op.alive or not op.visible:
+			continue
+		if bool(op.follow_lead):
+			n += 1
+	return n >= 3
+
+
+func _apply_west_obs_scale() -> void:
+	var s := FOLLOW_WEST_OBS_SCALE if _follow_west_cluster() else 1.0
+	for op in operators:
+		if op != null and op.has_method("set_obs_visual_scale"):
+			op.set_obs_visual_scale(s)
+
+
 func _follow_slot_depth_for(lead: OperatorUnit, follower: OperatorUnit) -> int:
 	if lead == null or follower == null or grid == null:
 		return FOLLOW_SLOT_DEPTH
@@ -8350,10 +8508,13 @@ func _follow_consume_facing_twist() -> bool:
 		return false
 	var now := float(selected.facing_deg)
 	var twist := false
+	_follow_twist_span = 0.0
 	if not selected.is_moving() and _follow_face_on:
 		## One ↻ tap is 15° (MG 8°). Dest cells follow the cone, not the 45° cardinal.
-		if absf(OperatorUnit.angle_diff_deg(_follow_face_deg, now)) >= FOLLOW_TWIST_DEG:
+		var span := absf(OperatorUnit.angle_diff_deg(_follow_face_deg, now))
+		if span >= FOLLOW_TWIST_DEG:
 			twist = true
+			_follow_twist_span = span
 			_follow_lock.clear()
 			_follow_back_on = false
 	_follow_face_deg = now
@@ -8463,14 +8624,27 @@ func _follow_ideal_world(lead: OperatorUnit, follower: OperatorUnit, depth: int 
 func _follow_slot_world(lead: OperatorUnit, follower: OperatorUnit, cell: Vector2i) -> Vector2:
 	## Dest sits toward the continuous facing slot, clamped inside the dest
 	## cell. A 15–20° twist slides inside the cell instead of teleporting.
+	## West trio: push toward the back/side corner so bodies stack less on the crate.
 	if grid == null or cell.x < 0:
 		return Vector2.ZERO
 	var center: Vector2 = grid.cell_to_world_center(cell)
 	if lead == null or follower == null:
 		return center
-	var ideal: Vector2 = _follow_ideal_world(lead, follower)
-	var mixed: Vector2 = center.lerp(ideal, FOLLOW_SLOT_MIX)
-	var inset := FOLLOW_WEST_SLOT_INSET if _follow_in_west(cell) else FOLLOW_SLOT_INSET
+	var west := _follow_in_west(cell)
+	var inset := FOLLOW_WEST_SLOT_INSET if west else FOLLOW_SLOT_INSET
+	var mixed: Vector2
+	if west:
+		var back: Vector2 = _follow_facing_back(lead)
+		var side := Vector2(-back.y, back.x)
+		var st := float(_follow_slot_sign(lead, follower))
+		var away: Vector2 = back * 0.85 + side * st * 1.05
+		if away.length_squared() < 0.01:
+			mixed = center
+		else:
+			mixed = center + away.normalized() * inset
+	else:
+		var ideal: Vector2 = _follow_ideal_world(lead, follower)
+		mixed = center.lerp(ideal, FOLLOW_SLOT_MIX)
 	mixed.x = clampf(mixed.x, center.x - inset, center.x + inset)
 	mixed.y = clampf(mixed.y, center.y - inset, center.y + inset)
 	return mixed
@@ -9315,6 +9489,10 @@ func dump_touch_feel() -> Dictionary:
 		"follow_west_queue": follow_west_queue_hits() if has_method("follow_west_queue_hits") else -1,
 		"follow_blend": follow_dest_blend_hits() if has_method("follow_dest_blend_hits") else -1,
 		"follow_blend_on": follow_dest_blend_active() if has_method("follow_dest_blend_active") else -1,
+		"follow_arc": follow_dest_arc_hits() if has_method("follow_dest_arc_hits") else -1,
+		"follow_arc_on": follow_dest_arc_active() if has_method("follow_dest_arc_active") else -1,
+		"obs_scale": follow_obs_visual_scale() if has_method("follow_obs_visual_scale") else 1.0,
+		"obs_r": follow_obs_visual_radius() if has_method("follow_obs_visual_radius") else 0.0,
 		"cam_squad_zoom": _cam_squad_zoom,
 	}
 
@@ -9635,16 +9813,22 @@ func reset_follow_dest_flips() -> void:
 	_follow_flip_count = 0
 	_follow_settle_drops = 0
 	_follow_blend_hits = 0
+	_follow_arc_hits = 0
 	_follow_lock.clear()
 	_follow_dest_world.clear()
 	_follow_blend_from.clear()
 	_follow_blend_to.clear()
 	_follow_blend_t.clear()
+	_follow_blend_dur.clear()
+	_follow_blend_arc.clear()
+	_follow_blend_pivot.clear()
 	_follow_arrive_on = false
 	_follow_back_on = false
 	_follow_back_world = Vector2.ZERO
 	_follow_face_on = false
 	_follow_face_deg = 0.0
+	_follow_twist_span = 0.0
+	_apply_west_obs_scale()
 
 
 func follow_settle_drops() -> int:
@@ -9815,6 +9999,7 @@ func _follow_selected_cam(delta: float) -> void:
 			moving = true
 	var west := _follow_in_west(selected.grid_cell())
 	var cluster := west and n >= 3
+	_apply_west_obs_scale()
 	var want_z := 1.0
 	if cluster:
 		## Keep the west trio + yellow cone on screen even after they stop.

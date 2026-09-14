@@ -59,6 +59,7 @@ var kit_range_px: float = 220.0
 var obs_ring: Line2D = null
 var obs_fill: Polygon2D = null
 var obs_tag: Label = null
+var obs_visual_scale: float = 1.0
 var role_glyph: Polygon2D = null
 var body_outline: Polygon2D = null
 var role_rim: Line2D = null
@@ -1713,22 +1714,41 @@ func _ensure_observation_visual() -> void:
 	_rebuild_observation_ring()
 
 
+func observation_visual_radius() -> float:
+	return kit_range_px * clampf(obs_visual_scale, 0.35, 1.0)
+
+
+func observation_visual_scale() -> float:
+	return obs_visual_scale
+
+
+func set_obs_visual_scale(s: float) -> void:
+	var ns := clampf(s, 0.35, 1.0)
+	if absf(ns - obs_visual_scale) < 0.008:
+		return
+	obs_visual_scale = ns
+	_rebuild_observation_ring()
+
+
 func _rebuild_observation_ring() -> void:
 	if obs_ring == null and obs_fill == null:
 		return
+	var rad := observation_visual_radius()
 	var pts := PackedVector2Array()
 	const RAYS := 36
 	for i in RAYS:
 		var r := deg_to_rad(float(i) * (360.0 / float(RAYS)))
-		pts.append(Vector2(cos(r), sin(r)) * kit_range_px)
+		pts.append(Vector2(cos(r), sin(r)) * rad)
 	if obs_ring:
 		var loop := pts.duplicate()
 		if loop.size() > 0:
 			loop.append(loop[0])
 		obs_ring.points = loop
+		obs_ring.width = 1.2 + 0.4 * obs_visual_scale
+		obs_ring.default_color = Color(0.72, 0.68, 0.42, 0.22 + 0.16 * obs_visual_scale)
 	if obs_fill:
 		obs_fill.polygon = pts
-		obs_fill.color = Color(0.35, 0.8, 0.95, 0.045)
+		obs_fill.color = Color(0.35, 0.8, 0.95, 0.022 + 0.023 * obs_visual_scale)
 
 
 func set_observation_ring(show: bool) -> void:
