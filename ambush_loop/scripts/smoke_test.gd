@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.5.11":
+	if ver != "0.5.12":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3408,6 +3408,8 @@ func _assert_simplified_touch(main) -> bool:
 		return false
 	if not await _assert_touch_feel_0511(main):
 		return false
+	if not await _assert_touch_feel_0512(main):
+		return false
 	return true
 
 
@@ -4070,6 +4072,25 @@ func _assert_touch_feel_0511(main) -> bool:
 	return true
 
 
+func _assert_touch_feel_0512(main) -> bool:
+	## Fine 射界: follow dests interpolate with facing (20° already moves),
+	## west file stays compact, 跟 chip raised off gun, forced-touch path.
+	main._ensure_touch_hud()
+	main._update_hud()
+	await process_frame
+	await process_frame
+	if not await _assert_follow_facing_turn(main):
+		return false
+	if not await _assert_west_follow_rear(main):
+		return false
+	if not await _assert_follow_badge_hit(main):
+		return false
+	if not await _assert_west_combo_touch(main):
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_0512")
+	return true
+
+
 func _dest_is_rear(main, dest: Vector2i, lead) -> bool:
 	if dest.x < 0 or lead == null:
 		return false
@@ -4331,6 +4352,41 @@ func _assert_follow_facing_turn(main) -> bool:
 		return false
 	a.stop_move()
 	b.stop_move()
+	## 20° is well under the old 45° cardinal snap. Dest cells must already move.
+	if lead.has_method("set_facing"):
+		lead.set_facing(20.0)
+	else:
+		lead.facing_deg = 20.0
+		if lead.has_method("_rebuild_cone"):
+			lead._rebuild_cone()
+	main._stealth_avoid_cache.clear()
+	main._stealth_avoid_msec = 0
+	main._tick_squad_follow()
+	await _tick_follow_steps(main, 20)
+	var nudge_d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+	var nudge_d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+	if nudge_d1.x < 0 or nudge_d2.x < 0 or nudge_d1 == nudge_d2:
+		push_error("SMOKE_FACE_NUDGE_DEST d1=%s d2=%s" % [nudge_d1, nudge_d2])
+		quit(44)
+		return false
+	if nudge_d1 == east_d1 and nudge_d2 == east_d2:
+		push_error("SMOKE_FACE_NUDGE_STUCK east=%s %s nudge=%s %s face=%s" % [
+			east_d1, east_d2, nudge_d1, nudge_d2, lead.facing_deg
+		])
+		quit(44)
+		return false
+	if not _dest_is_rear(main, nudge_d1, lead) or not _dest_is_rear(main, nudge_d2, lead):
+		push_error("SMOKE_FACE_NUDGE_SIDE d1=%s d2=%s lead=%s face=%s" % [
+			nudge_d1, nudge_d2, lead.grid_cell(), lead.facing_deg
+		])
+		quit(44)
+		return false
+	print(
+		"SMOKE_OK_FOLLOW_FACING_NUDGE east=", east_d1, east_d2,
+		" nudge=", nudge_d1, nudge_d2, " lead=", lead.grid_cell(), " face=", lead.facing_deg
+	)
+	a.stop_move()
+	b.stop_move()
 	if lead.has_method("set_facing"):
 		lead.set_facing(90.0)
 	else:
@@ -4351,6 +4407,12 @@ func _assert_follow_facing_turn(main) -> bool:
 		push_error("SMOKE_FACE_TURN_STUCK east=%s %s south=%s %s" % [east_d1, east_d2, south_d1, south_d2])
 		quit(44)
 		return false
+	if south_d1 == nudge_d1 and south_d2 == nudge_d2:
+		push_error("SMOKE_FACE_TURN_NUDGE_STUCK nudge=%s %s south=%s %s" % [
+			nudge_d1, nudge_d2, south_d1, south_d2
+		])
+		quit(44)
+		return false
 	if not _dest_is_rear(main, south_d1, lead) or not _dest_is_rear(main, south_d2, lead):
 		push_error("SMOKE_FACE_TURN_SOUTH_SIDE d1=%s d2=%s lead=%s face=%s" % [
 			south_d1, south_d2, lead.grid_cell(), lead.facing_deg
@@ -4363,6 +4425,7 @@ func _assert_follow_facing_turn(main) -> bool:
 		return false
 	print(
 		"SMOKE_OK_FOLLOW_FACING_TURN east=", east_d1, east_d2,
+		" nudge=", nudge_d1, nudge_d2,
 		" south=", south_d1, south_d2, " lead=", lead.grid_cell()
 	)
 	if bool(a.follow_lead) != flags[0]:

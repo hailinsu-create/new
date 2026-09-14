@@ -2,7 +2,8 @@
 
 Delivered build:
 
-- `AmbushLoop-v0.5.11-touch-form.apk` — Godot 4.7.2 debug, arm64, phone feel: west-alley rear file, 射界 twist turns follow dests, 跟 chip raised off gun/number. Same RAID as 0.5.10.
+- `AmbushLoop-v0.5.12-touch-aim.apk` — Godot 4.7.2 debug, arm64, phone feel: 射界 dests interpolate with facing (20° already moves), west-alley rear file, 跟 chip off gun. Same RAID as 0.5.11.
+- `AmbushLoop-v0.5.11-touch-form.apk` — Godot 4.7.2 debug, arm64, phone feel: west-alley rear file, 射界 twist turns follow dests, 跟 chip raised off gun/number (superseded for phone feel).
 - `AmbushLoop-v0.5.10-touch-rear.apk` — follow files behind the lead, stop land freezes, three-follow + side wrap, 跟 badge probes (superseded for phone feel).
 - `AmbushLoop-v0.5.9-touch-wrap.apk` — side 绕背 wraps sentry body, lead-stop formation holds, 跟 badge probes (superseded for phone feel).
 - `AmbushLoop-v0.5.8-touch-follow.apk` — walk-follow continuity, full 绕背 dashed path, 跟 badge hit (superseded for phone feel).

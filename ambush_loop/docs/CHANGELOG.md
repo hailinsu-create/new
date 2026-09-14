@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.5.12 — Phone feel: 射界 dests interpolate with facing, 跟 chip off gun
+
+Sideload APK: `dist/AmbushLoop-v0.5.12-touch-aim.apk`  
+Release tag: `v0.5.12-touch-aim`
+
+Same RAID as 0.5.11 (`SCOUT → ALERT → SWEEP`, auto fire + auto nade). Phone default stays 简配夜袭.
+
+### Play (phone)
+- Lead **拧射界** (A/D / ↺↻, 15° a tap): follow dests interpolate with the cone. A 20° twist already moves the file — dests no longer wait for the ~45° cardinal snap.
+- West-alley rear file stays 2-cell behind with 1-cell left/right stagger. Camera eases toward the file while they walk. Dest cells prefer the interpolated slot over a wall hug.
+- **跟** chip is a 36×18 top-right tab, raised off the gun stamp (6px gap). Gun / number / glyph still pick.
+- Forced-touch path covers 20° 射界 nudge, 90° file turn, west rear file, badge partitions, and 西匣开匣 → 绕背 → 三人跟上.
+
+### Android
+- `versionName` 0.5.12 / `versionCode` 18 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title **v0.5.12 COMMANDOS/WW2**.
+2. Stand still and tap ↻ once (15°): followers step. They do not wait until the cone faces south.
+3. Portrait **跟** sits on the top-right corner; gun/number taps still select.
+
 ## 0.5.11 — Phone feel: west-alley rear file, 射界 twist turns the file, 跟 chip up
 
 Sideload APK: `dist/AmbushLoop-v0.5.11-touch-form.apk`  

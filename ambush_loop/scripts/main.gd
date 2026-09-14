@@ -19,6 +19,8 @@ const FOLLOW_FRIEND_PAD_DEG := 14.0
 const FOLLOW_MAX_DETOUR := 6
 const FOLLOW_LOCAL_DETOUR := 3
 const FOLLOW_KEEP_DEST := 3
+const FOLLOW_TWIST_DEG := 5.0
+const FOLLOW_SLOT_DEPTH := 2
 const FLANK_WRAP_MIN_PTS := 4
 const PROGRESS_PATH := "user://ambush_loop.cfg"
 const LEVEL_ORDER := ["yard", "warehouse", "pump", "railcut", "depot", "radio"]
@@ -8195,7 +8197,8 @@ func _follow_consume_facing_twist() -> bool:
 	var now := float(selected.facing_deg)
 	var twist := false
 	if not selected.is_moving() and _follow_face_on:
-		if absf(OperatorUnit.angle_diff_deg(_follow_face_deg, now)) >= 12.0:
+		## One ↻ tap is 15° (MG 8°). Dest cells follow the cone, not the 45° cardinal.
+		if absf(OperatorUnit.angle_diff_deg(_follow_face_deg, now)) >= FOLLOW_TWIST_DEG:
 			twist = true
 			_follow_lock.clear()
 			_follow_back_on = false
@@ -8279,11 +8282,32 @@ func _follow_facing_back(lead: OperatorUnit) -> Vector2:
 
 
 func _follow_axis_cell(v: Vector2) -> Vector2i:
+	## Fallback 4-way. Live dests come from `_follow_ideal_world` interpolation.
 	if v.length_squared() < 0.0001:
 		return Vector2i(0, -1)
 	if absf(v.x) >= absf(v.y):
 		return Vector2i(1 if v.x > 0.0 else -1, 0)
 	return Vector2i(0, 1 if v.y > 0.0 else -1)
+
+
+func _follow_slot_sign(lead: OperatorUnit, follower: OperatorUnit) -> int:
+	var slot := _follow_slot_index(lead, follower)
+	if _follow_count(lead) < 2 and slot == 0:
+		return 0
+	return 1 if slot % 2 == 0 else -1
+
+
+func _follow_ideal_world(lead: OperatorUnit, follower: OperatorUnit, depth: int = FOLLOW_SLOT_DEPTH) -> Vector2:
+	var back: Vector2 = _follow_facing_back(lead)
+	var side := Vector2(-back.y, back.x)
+	var st := _follow_slot_sign(lead, follower)
+	return _follow_lead_world(lead) + back * float(depth * 32) + side * float(st * 32)
+
+
+func follow_ideal_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i:
+	if grid == null or lead == null or follower == null:
+		return Vector2i(-1, -1)
+	return grid.world_to_cell(_follow_ideal_world(lead, follower))
 
 
 func follow_dest_rear_ok(cell: Vector2i, lead: OperatorUnit) -> bool:
@@ -8309,8 +8333,14 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 	var back_c: Vector2i = _follow_axis_cell(back)
 	var side_c: Vector2i = Vector2i(-back_c.y, back_c.x)
 	var sign_i := 1 if slot % 2 == 0 else -1
+	var slot_st := _follow_slot_sign(lead, follower)
+	var ideal_w: Vector2 = lead_w + back * float(FOLLOW_SLOT_DEPTH * 32) + side * float(slot_st * 32)
+	var ideal_c: Vector2i = grid.world_to_cell(ideal_w)
 	var seen := {}
 	var cands: Array[Vector2i] = []
+	## Continuous facing interpolation first. Axis-snapped cells are fallback
+	## so a 15–20° twist already moves dests — do not wait for the 45° cardinal.
+	_follow_push_cand(ideal_c, follower, reserved, seen, cands)
 	## Straight behind first, then 1-cell left/right stagger. Hip / side-rear last.
 	## Two followers share a rear pair (left/right of the back cell) so the
 	## west alley does not stretch into a north-south queue.
@@ -8325,14 +8355,19 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 		staggers.append(int(st0))
 	for depth in depths:
 		for st in staggers:
-			_follow_push_cand(lead_c + back_c * depth + side_c * (st * sign_i), follower, reserved, seen, cands)
 			var world_c: Vector2i = grid.world_to_cell(
 				lead_w + back * float(depth * 32) + side * float(st * sign_i * 32)
 			)
 			_follow_push_cand(world_c, follower, reserved, seen, cands)
+			_follow_push_cand(lead_c + back_c * depth + side_c * (st * sign_i), follower, reserved, seen, cands)
 	if _follow_in_west(from) and _follow_in_west(lead_c):
 		for depth_w in [2, 3, 4]:
 			for st_w in [0, 1, -1, 2, -2]:
+				var ww: Vector2i = grid.world_to_cell(
+					lead_w + back * float(depth_w * 32) + side * float(st_w * 32)
+				)
+				if ww.x <= 10:
+					_follow_push_cand(ww, follower, reserved, seen, cands)
 				var wc: Vector2i = lead_c + back_c * depth_w + side_c * st_w
 				if wc.x <= 10:
 					_follow_push_cand(wc, follower, reserved, seen, cands)
@@ -8390,7 +8425,12 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 			continue
 		if maxi(absi(cell.x - lead_c.x), absi(cell.y - lead_c.y)) < 2:
 			continue
-		var score: int = to_lead * 6 + detour * 18 + plen
+		var dist_i := grid.cell_to_world_center(cell).distance_to(ideal_w)
+		var score: int = to_lead * 3 + detour * 18 + plen + int(round(dist_i / 8.0)) * 6
+		if cell == ideal_c:
+			score -= 36
+		score += int(round(absf(back_m - float(FOLLOW_SLOT_DEPTH * 32)) / 16.0)) * 4
+		score += (4 - _follow_open_sides(cell)) * 5
 		if back_m < 16.0:
 			score += 88
 		elif back_m < 48.0:
@@ -8463,6 +8503,17 @@ func _follow_path_leaves_west(path: Array[Vector2i], from: Vector2i, to: Vector2
 
 func _follow_in_west(cell: Vector2i) -> bool:
 	return cell.x <= 10
+
+
+func _follow_open_sides(cell: Vector2i) -> int:
+	if grid == null:
+		return 4
+	var n := 0
+	for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		var c: Vector2i = cell + d
+		if RaidPathfinderScript.walkable(grid, c):
+			n += 1
+	return n
 
 
 func _follow_gap_ok(a: Vector2i, b: Vector2i, west: bool) -> bool:
@@ -9514,10 +9565,25 @@ func _facing_toward_wave_route() -> float:
 func _follow_selected_cam(delta: float) -> void:
 	if c2 != null and c2.get("cam_follow") != null and not bool(c2.cam_follow):
 		return
-	if selected == null or not selected.visible or not selected.is_moving():
+	if selected == null or not selected.visible:
 		return
+	var focus: Vector2 = selected.global_position
+	var n := 1
+	var moving := selected.is_moving()
+	for op in operators:
+		if op == null or op == selected or not op.alive or not op.visible:
+			continue
+		if not bool(op.follow_lead):
+			continue
+		focus += op.global_position
+		n += 1
+		if op.is_moving():
+			moving = true
+	if not moving:
+		return
+	focus /= float(n)
 	var center := Vector2(640, 360)
-	var want: Vector2 = (selected.global_position - center) * 0.28
+	var want: Vector2 = (focus - center) * 0.26
 	_cam_pan = _cam_pan.lerp(want, 1.0 - exp(-delta * 4.6))
 	_apply_cam()
 

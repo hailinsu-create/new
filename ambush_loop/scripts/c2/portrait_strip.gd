@@ -19,10 +19,11 @@ var _hold_fired: bool = false
 var _ignore_pick: bool = false
 var _press_follow: bool = false
 const LONG_MS := 350
-const FOLLOW_CHIP := Vector2(34, 18)
+const FOLLOW_CHIP := Vector2(36, 18)
 const FOLLOW_PAD := 0.0
-const FOLLOW_POS := Vector2(68, -3)
+const FOLLOW_POS := Vector2(66, -6)
 const FOLLOW_HIT_MAX_Y := 20.0
+const FOLLOW_GUN_GAP := 6.0
 
 
 func _ready() -> void:
@@ -175,8 +176,10 @@ func follow_hit_rect(idx: int) -> Rect2:
 	if hit.size.y > 0.0 and hit.position.y + hit.size.y > max_y:
 		hit.size.y = maxf(0.0, max_y - hit.position.y)
 	var gun: Rect2 = portrait_gun_rect(idx)
-	if gun.size.x > 1.0 and hit.intersects(gun):
-		hit.size.y = maxf(0.0, gun.position.y - hit.position.y)
+	if gun.size.x > 1.0:
+		var gun_top: float = gun.position.y - FOLLOW_GUN_GAP
+		if hit.position.y + hit.size.y > gun_top:
+			hit.size.y = maxf(0.0, gun_top - hit.position.y)
 	var num: Rect2 = portrait_num_rect(idx)
 	if num.size.x > 1.0 and hit.intersects(num):
 		hit.size.y = maxf(0.0, num.position.y - hit.position.y)

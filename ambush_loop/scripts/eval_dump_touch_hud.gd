@@ -1,8 +1,8 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.11 phone feel: west-alley rear file,
-## 射界 twist turns the follow dests, 跟 chip raised off gun/number,
-## plus the v0.5.10 rear / settle / wrap path.
+## Forced-touch HUD stills for v0.5.12 phone feel: 射界 dests interpolate
+## with facing (20° already moves the file), west-alley rear file, 跟 chip
+## raised off gun/number, plus the v0.5.11 rear / twist / wrap path.
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
@@ -1044,6 +1044,40 @@ func _walk_facing_turn(main) -> void:
 	a.stop_move()
 	b.stop_move()
 	if lead.has_method("set_facing"):
+		lead.set_facing(20.0)
+	else:
+		lead.facing_deg = 20.0
+		if lead.has_method("_rebuild_cone"):
+			lead._rebuild_cone()
+	main._stealth_avoid_cache.clear()
+	main._stealth_avoid_msec = 0
+	if main.has_method("_tick_squad_follow"):
+		main._tick_squad_follow()
+	frames = 0
+	while frames < 40:
+		if main.has_method("_tick_command_moves"):
+			main._tick_command_moves(0.05)
+		if main.has_method("_tick_squad_follow"):
+			main._tick_squad_follow()
+		await process_frame
+		frames += 1
+		if not a.is_moving() and not b.is_moving() and frames > 8:
+			break
+	var nudge_d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+	var nudge_d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+	print(
+		"DUMP_FACE_NUDGE east=", east_d1, east_d2,
+		" nudge=", nudge_d1, nudge_d2,
+		" lead=", lead.grid_cell(),
+		" face=", lead.facing_deg,
+		" rear=", int(main.follow_rear_ok_count()) if main.has_method("follow_rear_ok_count") else -1,
+		" side=", int(main.follow_side_rear_hits()) if main.has_method("follow_side_rear_hits") else -1
+	)
+	_dump_feel(main, "face_nudge")
+	await _save("08h_face_nudge")
+	a.stop_move()
+	b.stop_move()
+	if lead.has_method("set_facing"):
 		lead.set_facing(90.0)
 	else:
 		lead.facing_deg = 90.0
@@ -1065,6 +1099,7 @@ func _walk_facing_turn(main) -> void:
 			break
 	print(
 		"DUMP_FACE_TURN east=", east_d1, east_d2,
+		" nudge=", nudge_d1, nudge_d2,
 		" south=", main._follow_dest.get(int(a.op_id), Vector2i(-1, -1)),
 		main._follow_dest.get(int(b.op_id), Vector2i(-1, -1)),
 		" lead=", lead.grid_cell(),
