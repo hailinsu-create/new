@@ -28,12 +28,12 @@ const FOLLOW_ARC_DEG := 12.0
 const FOLLOW_ARC_SLIDE_DEG := 40.0
 const FOLLOW_SLOT_MIX := 0.42
 const FOLLOW_SLOT_INSET := 11.0
-const FOLLOW_WEST_SLOT_INSET := 16.0
-const FOLLOW_WEST_SLOT_EXTRA := 20.0
+const FOLLOW_WEST_SLOT_INSET := 18.0
+const FOLLOW_WEST_SLOT_EXTRA := 28.0
 const FOLLOW_CAM_WEST_ZOOM := 0.54
 const FOLLOW_CAM_FILE_ZOOM := 0.82
 const FOLLOW_WEST_OBS_SCALE := 0.52
-const FOLLOW_WEST_BODY_SCALE := 0.66
+const FOLLOW_WEST_BODY_SCALE := 0.54
 const FLANK_WRAP_MIN_PTS := 4
 const PROGRESS_PATH := "user://ambush_loop.cfg"
 const LEVEL_ORDER := ["yard", "warehouse", "pump", "railcut", "depot", "radio"]
@@ -292,6 +292,7 @@ var _follow_blend_pivot: Dictionary = {}
 var _follow_blend_hits: int = 0
 var _follow_arc_hits: int = 0
 var _follow_body_arc_hits: int = 0
+var _follow_ring_hold: bool = false
 var _follow_dest_marks: Dictionary = {}
 var _stealth_avoid_cache: Dictionary = {}
 var _stealth_avoid_msec: int = 0
@@ -3963,6 +3964,7 @@ func _select_op(idx: int) -> void:
 		return
 	selected = operators[idx]
 	_follow_arrive_on = false
+	_follow_ring_hold = false
 	_follow_lock.clear()
 	_refresh_selection_visual()
 	_update_role_cards()
@@ -8153,6 +8155,7 @@ func toggle_follow(idx: int) -> void:
 		_follow_arrive_on = false
 		_follow_back_on = false
 		_follow_face_on = false
+		_follow_ring_hold = false
 	if touch_hud and touch_hud.has_method("set_hint"):
 		touch_hud.set_hint("%s %s" % [op.display_name, "跟上" if op.follow_lead else "待命"])
 	_update_hud()
@@ -8164,6 +8167,10 @@ func _tick_squad_follow(delta: float = 0.05) -> void:
 		return
 	_apply_west_obs_scale()
 	var twisting := _follow_consume_facing_twist()
+	if twisting:
+		_follow_ring_hold = true
+	if selected.is_moving():
+		_follow_ring_hold = false
 	var followers: Array = []
 	for op in operators:
 		if op == null or op == selected or not op.alive or not op.visible:
@@ -8193,6 +8200,11 @@ func _tick_squad_follow(delta: float = 0.05) -> void:
 			if prev.x >= 0 and prev != want:
 				_follow_flip_count += 1
 			_follow_lock[oid] = want
+		elif _follow_ring_hold:
+			## After ↻ release: dest cell stays discrete; bodies stay on the ring.
+			if prev.x >= 0:
+				want = prev
+				_follow_lock[oid] = prev
 		else:
 			var locked2: Vector2i = _follow_lock.get(oid, Vector2i(-99, -99))
 			var hold: Vector2i = locked2 if locked2.x >= 0 else prev
@@ -8210,6 +8222,7 @@ func _tick_squad_follow(delta: float = 0.05) -> void:
 		var lead_w: Vector2 = _follow_lead_world(selected)
 		var ring_w: Vector2 = _follow_snag_walkable(_follow_ring_world(selected, op), lead_w)
 		var mixed_w: Vector2 = _follow_snag_walkable(_follow_slot_world(selected, op, want), lead_w)
+		var ring_hold := _follow_ring_hold and not selected.is_moving()
 		var arc_live := twisting or (
 			bool(_follow_blend_arc.get(oid, false)) and float(_follow_blend_t.get(oid, 1.0)) < 0.999
 		)
@@ -8223,7 +8236,7 @@ func _tick_squad_follow(delta: float = 0.05) -> void:
 			arc_live = true
 			_follow_start_dest_blend(oid, want, want, ring_w, true)
 		_follow_dest[oid] = want
-		var dest_target: Vector2 = ring_w if arc_live else mixed_w
+		var dest_target: Vector2 = ring_w if (arc_live or ring_hold) else mixed_w
 		var dest_w: Vector2 = _follow_advance_dest_blend(oid, want, delta, dest_target)
 		var blending := float(_follow_blend_t.get(oid, 1.0)) < 0.999
 		var slide_need := dest_w.distance_to(op.global_position) > 6.0
@@ -8233,6 +8246,16 @@ func _tick_squad_follow(delta: float = 0.05) -> void:
 				continue
 			if slide_need and _follow_set_slide(op, dest_w):
 				continue
+		## Stopped twist: stay on the ring half-cell. Do not snap to dest centers.
+		if ring_hold:
+			if dest_w.distance_to(op.global_position) > 8.0:
+				if op.is_moving():
+					_follow_nudge_path_end(op, dest_w)
+				elif not _follow_set_arc_slide(op, dest_w):
+					_follow_set_slide(op, dest_w)
+			elif op.is_moving():
+				op.stop_move()
+			continue
 		if op.grid_cell() == want and not blending:
 			if slide_need:
 				_follow_set_slide(op, dest_w)
@@ -8345,9 +8368,14 @@ func _follow_world_ok(world: Vector2) -> bool:
 	return true
 
 
+func _follow_polar(pivot: Vector2, ang: float, r: float) -> Vector2:
+	return pivot + Vector2(cos(ang), sin(ang)) * r
+
+
 func _follow_snag_walkable(world: Vector2, pivot: Vector2 = Vector2.INF) -> Vector2:
-	## Keep dest/arc samples on walkable floor. Prefer polar (same angle,
-	## then small angle steps) so crate clamps stay round, not a wall slide.
+	## Keep dest/arc samples on walkable floor. Prefer same-radius angle
+	## walk and outward polar so multi-crate clamps stay round, not a
+	## flat wall-slide along the near face.
 	if grid == null:
 		return world
 	if _follow_world_ok(world):
@@ -8356,23 +8384,33 @@ func _follow_snag_walkable(world: Vector2, pivot: Vector2 = Vector2.INF) -> Vect
 		var rel: Vector2 = world - pivot
 		var ang := rel.angle()
 		var r := rel.length()
-		for dr in [8.0, 16.0, 24.0, 32.0, 40.0, 48.0, -8.0, -16.0, -24.0, -32.0]:
-			var cand: Vector2 = pivot + Vector2(cos(ang), sin(ang)) * maxf(r + dr, 12.0)
+		## Outward first — far side of a crate cluster stays circular.
+		for dr in [8.0, 16.0, 24.0, 32.0, 40.0, 48.0, 64.0, 80.0, 96.0, 112.0]:
+			var cand: Vector2 = _follow_polar(pivot, ang, r + dr)
 			if _follow_world_ok(cand):
 				return cand
-		for step in [6, 12, 18, 24, 30, 36]:
+		## Same-r angle walk: go around the cluster, keep the bow.
+		for step in range(5, 95, 5):
 			for sgn in [1, -1]:
 				var a2 := ang + deg_to_rad(float(step * sgn))
-				var around: Vector2 = pivot + Vector2(cos(a2), sin(a2)) * maxf(r, 12.0)
+				var around: Vector2 = _follow_polar(pivot, a2, maxf(r, 12.0))
 				if _follow_world_ok(around):
 					return around
-				var around_out: Vector2 = pivot + Vector2(cos(a2), sin(a2)) * (r + 16.0)
+				var around_out: Vector2 = _follow_polar(pivot, a2, r + 24.0)
 				if _follow_world_ok(around_out):
 					return around_out
+				var around_far: Vector2 = _follow_polar(pivot, a2, r + 48.0)
+				if _follow_world_ok(around_far):
+					return around_far
+		## Inward last — near-face wall slide is the fallback, not the default.
+		for dr2 in [8.0, 16.0, 24.0, 32.0]:
+			var inn: Vector2 = _follow_polar(pivot, ang, maxf(r - dr2, 12.0))
+			if _follow_world_ok(inn):
+				return inn
 	var cell: Vector2i = grid.world_to_cell(world)
 	var best := Vector2i(-1, -1)
 	var best_d := 999999
-	for r2 in range(1, 6):
+	for r2 in range(1, 7):
 		for dx in range(-r2, r2 + 1):
 			for dy in range(-r2, r2 + 1):
 				if maxi(absi(dx), absi(dy)) != r2:
@@ -8392,13 +8430,20 @@ func _follow_snag_walkable(world: Vector2, pivot: Vector2 = Vector2.INF) -> Vect
 		return world
 	var c: Vector2 = grid.cell_to_world_center(best)
 	if pivot != Vector2.INF and pivot.distance_squared_to(c) >= 16.0:
-		var polar: Vector2 = pivot + (c - pivot).normalized() * maxf((world - pivot).length(), 12.0)
+		var want_r := maxf((world - pivot).length(), 12.0)
+		var polar: Vector2 = pivot + (c - pivot).normalized() * want_r
+		if _follow_world_ok(polar):
+			return polar
 		var off: Vector2 = polar - c
-		if off.length() > 14.0:
-			off = off.normalized() * 14.0
+		if off.length() > 16.0:
+			off = off.normalized() * 16.0
 		var placed: Vector2 = c + off
 		if _follow_world_ok(placed):
 			return placed
+		var ang2 := (world - pivot).angle()
+		var rim: Vector2 = _follow_polar(pivot, ang2, (c - pivot).length())
+		if _follow_world_ok(rim):
+			return rim
 	var rel2: Vector2 = world - c
 	if rel2.length() > 12.0:
 		rel2 = rel2.normalized() * 12.0
@@ -8424,12 +8469,45 @@ func _follow_arc_lerp(from_w: Vector2, to_w: Vector2, pivot: Vector2, t: float) 
 
 
 func _follow_arc_points(from_w: Vector2, to_w: Vector2, pivot: Vector2, steps: int = 11) -> PackedVector2Array:
+	var raw: PackedVector2Array = _follow_arc_points_raw(from_w, to_w, pivot, steps)
 	var pts := PackedVector2Array()
-	var n := maxi(steps, 3)
-	for i in n + 1:
-		var tt := float(i) / float(n)
-		var u := tt * tt * (3.0 - 2.0 * tt)
-		pts.append(_follow_arc_lerp(from_w, to_w, pivot, u))
+	for p in raw:
+		pts.append(_follow_snag_walkable(p, pivot))
+	return _follow_restore_arc_bow(pts, raw, pivot)
+
+
+func _follow_restore_arc_bow(pts: PackedVector2Array, raw: PackedVector2Array, pivot: Vector2) -> PackedVector2Array:
+	## Pull flattened (inward / axis-run) samples back toward the raw polar
+	## so crate-cluster snags stay bowed instead of sliding the near wall.
+	if pts.size() < 3 or raw.size() != pts.size():
+		return pts
+	for i in range(1, pts.size() - 1):
+		var raw_p: Vector2 = raw[i]
+		var snag_p: Vector2 = pts[i]
+		var raw_r := raw_p.distance_to(pivot)
+		var snag_r := snag_p.distance_to(pivot)
+		if raw_r > 12.0 and snag_r + 6.0 < raw_r:
+			var ang := (snag_p - pivot).angle() if snag_p.distance_squared_to(pivot) >= 16.0 else (raw_p - pivot).angle()
+			var lifted: Vector2 = _follow_snag_walkable(_follow_polar(pivot, ang, raw_r), pivot)
+			if lifted.distance_to(pivot) > snag_r + 4.0 and _follow_world_ok(lifted):
+				pts[i] = lifted
+				continue
+			var mid: Vector2 = snag_p.lerp(raw_p, 0.55)
+			if _follow_world_ok(mid):
+				pts[i] = mid
+	## Break 3+ axis-aligned runs by lifting the middle sample.
+	var axis_run := 0
+	for i in range(1, pts.size()):
+		var d: Vector2 = pts[i] - pts[i - 1]
+		if absf(d.x) < 2.6 or absf(d.y) < 2.6:
+			axis_run += 1
+			if axis_run >= 2 and i > 1 and i < pts.size() - 1:
+				var lift2: Vector2 = _follow_snag_walkable(raw[i], pivot)
+				if _follow_world_ok(lift2):
+					pts[i] = lift2
+					axis_run = 0
+		else:
+			axis_run = 0
 	return pts
 
 
@@ -8635,6 +8713,19 @@ func follow_body_min_cell_inset() -> float:
 		best = minf(best, d)
 		any = true
 	return best if any else 0.0
+
+
+func follow_arc_axis_run(pts: PackedVector2Array) -> int:
+	var axis_run := 0
+	var max_axis := 0
+	for i in range(1, pts.size()):
+		var d: Vector2 = pts[i] - pts[i - 1]
+		if absf(d.x) < 2.6 or absf(d.y) < 2.6:
+			axis_run += 1
+			max_axis = maxi(max_axis, axis_run)
+		else:
+			axis_run = 0
+	return max_axis
 
 
 func follow_arc_chord_bow(pts: PackedVector2Array, from_w: Vector2, to_w: Vector2) -> float:
@@ -8961,6 +9052,8 @@ func _follow_ring_world(lead: OperatorUnit, follower: OperatorUnit) -> Vector2:
 	var st := float(_follow_slot_sign(lead, follower))
 	if absf(st) > 0.01:
 		w += side * st * FOLLOW_WEST_SLOT_EXTRA
+		## Along-file stagger so the two side bodies do not share one radius.
+		w += back * (8.0 if st > 0.0 else -6.0)
 	return w
 
 
@@ -9008,6 +9101,20 @@ func follow_slot_world_of(oid: int) -> Vector2:
 		var cell: Vector2i = _follow_dest.get(oid, op.grid_cell())
 		return _follow_slot_world(selected, op, cell)
 	return follow_dest_world_of(oid)
+
+
+func follow_ring_world_of(oid: int) -> Vector2:
+	if selected == null:
+		return follow_dest_world_of(oid)
+	for op in operators:
+		if op == null or int(op.op_id) != oid:
+			continue
+		return _follow_snag_walkable(_follow_ring_world(selected, op), _follow_lead_world(selected))
+	return follow_dest_world_of(oid)
+
+
+func follow_ring_hold_active() -> bool:
+	return _follow_ring_hold
 
 
 func follow_ideal_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i:
@@ -9849,6 +9956,7 @@ func dump_touch_feel() -> Dictionary:
 		"body_arc": follow_body_arc_hits() if has_method("follow_body_arc_hits") else -1,
 		"body_spread": follow_body_world_min_spacing() if has_method("follow_body_world_min_spacing") else -1.0,
 		"body_inset": follow_body_min_cell_inset() if has_method("follow_body_min_cell_inset") else -1.0,
+		"ring_hold": 1 if _follow_ring_hold else 0,
 		"setup_cmds": touch_hud.setup_visible_cmds() if touch_hud and touch_hud.has_method("setup_visible_cmds") else PackedStringArray(),
 	}
 
@@ -10171,6 +10279,7 @@ func reset_follow_dest_flips() -> void:
 	_follow_blend_hits = 0
 	_follow_arc_hits = 0
 	_follow_body_arc_hits = 0
+	_follow_ring_hold = false
 	_follow_lock.clear()
 	_follow_dest_world.clear()
 	_follow_blend_from.clear()

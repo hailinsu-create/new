@@ -521,7 +521,9 @@ func apply_stance_speed() -> void:
 		s *= 1.48
 	move_speed = s
 	if body:
-		body.scale = Vector2(1.0, 0.86) if stance == Stance.CROUCH else Vector2.ONE
+		var clus := clampf(_cluster_visual_scale, 0.42, 1.0)
+		var stance_s := Vector2(1.0, 0.86) if stance == Stance.CROUCH else Vector2.ONE
+		body.scale = stance_s * clus
 	_refresh_stance_glyph()
 
 
@@ -1241,7 +1243,7 @@ func _apply_idle_bob() -> void:
 			var breath := 0.004 if _is_power_saving() else 0.016
 			var punch := 1.0 + _hit_punch * 0.16
 			var land := Vector2(1.0 + _land_pop * 0.22, 1.0 - _land_pop * 0.20)
-			var clus := clampf(_cluster_visual_scale, 0.55, 1.0)
+			var clus := clampf(_cluster_visual_scale, 0.42, 1.0)
 			body.scale = Vector2(punch, punch * (1.0 + sin(_present_t * 2.15 + float(op_id)) * breath)) * land * clus
 	if body_outline:
 		body_outline.position = Vector2(0.0, bob) + _recoil_off + _cover_lean
@@ -1737,7 +1739,7 @@ func cluster_visual_scale() -> float:
 
 
 func set_cluster_visual_scale(s: float) -> void:
-	_cluster_visual_scale = clampf(s, 0.55, 1.0)
+	_cluster_visual_scale = clampf(s, 0.42, 1.0)
 
 
 func _rebuild_observation_ring() -> void:

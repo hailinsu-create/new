@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.5.17":
+	if ver != "0.5.18":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3330,7 +3330,7 @@ func _assert_simplified_touch(main) -> bool:
 		quit(44)
 		return false
 	var cmds: PackedStringArray = th.setup_visible_cmds() if th.has_method("setup_visible_cmds") else PackedStringArray()
-	if not cmds.has("crouch") or not cmds.has("bag") or not cmds.has("alarm") or not cmds.has("rotate_cw"):
+	if not cmds.has("crouch") or not cmds.has("bag") or not cmds.has("alarm") or not cmds.has("rotate_cw") or not cmds.has("rotate_ccw"):
 		push_error("SMOKE_TOUCH_RESIDENT %s" % " ".join(cmds))
 		quit(44)
 		return false
@@ -3419,6 +3419,8 @@ func _assert_simplified_touch(main) -> bool:
 	if not await _assert_touch_feel_0516(main):
 		return false
 	if not await _assert_touch_feel_0517(main):
+		return false
+	if not await _assert_touch_feel_0518(main):
 		return false
 	return true
 
@@ -4222,6 +4224,25 @@ func _assert_touch_feel_0517(main) -> bool:
 	if not await _assert_west_follow_rear(main):
 		return false
 	print("SMOKE_OK_TOUCH_FEEL_0517")
+	return true
+
+
+func _assert_touch_feel_0518(main) -> bool:
+	## Settle-on-ring after ↻ release, compact ↺ + swipe, west tighter,
+	## rounder multi-crate arc.
+	main._ensure_touch_hud()
+	main._update_hud()
+	await process_frame
+	await process_frame
+	if not await _assert_compact_rotate(main):
+		return false
+	if not await _assert_follow_settle_ring(main):
+		return false
+	if not await _assert_west_tighter(main):
+		return false
+	if not await _assert_face_arc_cluster(main):
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_0518")
 	return true
 
 
@@ -5341,7 +5362,7 @@ func _assert_face_arc_walkable(main) -> bool:
 
 
 func _assert_compact_rotate(main) -> bool:
-	## Compact night-raid bar exposes ↻ and hold-repeat keeps twisting.
+	## Compact night-raid bar exposes ↺ and ↻; hold-repeat and swipe both ways.
 	main._ensure_touch_hud()
 	main._update_hud()
 	await process_frame
@@ -5351,18 +5372,19 @@ func _assert_compact_rotate(main) -> bool:
 		quit(44)
 		return false
 	var cmds: PackedStringArray = th.setup_visible_cmds() if th.has_method("setup_visible_cmds") else PackedStringArray()
-	if not cmds.has("rotate_cw"):
+	if not cmds.has("rotate_cw") or not cmds.has("rotate_ccw"):
 		push_error("SMOKE_COMPACT_NO_ROTATE cmds=%s" % " ".join(cmds))
 		quit(44)
 		return false
-	if not th._btns.has("rotate_cw") or not bool(th._btns["rotate_cw"].visible):
-		push_error("SMOKE_COMPACT_ROTATE_HIDDEN")
-		quit(44)
-		return false
-	if bool(th._btns["rotate_cw"].disabled):
-		push_error("SMOKE_COMPACT_ROTATE_DISABLED")
-		quit(44)
-		return false
+	for cmd in ["rotate_cw", "rotate_ccw"]:
+		if not th._btns.has(cmd) or not bool(th._btns[cmd].visible):
+			push_error("SMOKE_COMPACT_ROTATE_HIDDEN cmd=%s" % cmd)
+			quit(44)
+			return false
+		if bool(th._btns[cmd].disabled):
+			push_error("SMOKE_COMPACT_ROTATE_DISABLED cmd=%s" % cmd)
+			quit(44)
+			return false
 	if main.operators.is_empty():
 		push_error("SMOKE_COMPACT_ROTATE_NO_OP")
 		quit(44)
@@ -5384,7 +5406,49 @@ func _assert_compact_rotate(main) -> bool:
 		push_error("SMOKE_COMPACT_ROTATE_HOLD f1=%s f2=%s" % [f1, f2])
 		quit(44)
 		return false
-	print("SMOKE_OK_COMPACT_ROTATE cmds=", " ".join(cmds), " f=", snapped(f0, 0.1), snapped(f1, 0.1), snapped(f2, 0.1))
+	main.apply_touch_command("rotate_ccw")
+	var f3: float = float(main.selected.facing_deg)
+	if is_equal_approx(f3, f2):
+		push_error("SMOKE_COMPACT_CCW_NOOP f=%s" % f3)
+		quit(44)
+		return false
+	if th.has_method("simulate_hold_tick"):
+		th.simulate_hold_tick("rotate_ccw")
+	else:
+		main.apply_touch_command("rotate_ccw")
+	var f4: float = float(main.selected.facing_deg)
+	if is_equal_approx(f4, f3):
+		push_error("SMOKE_COMPACT_CCW_HOLD f3=%s f4=%s" % [f3, f4])
+		quit(44)
+		return false
+	var swipe_n := 0
+	if th.has_method("simulate_swipe_twist"):
+		swipe_n = int(th.simulate_swipe_twist(-56.0))
+	else:
+		main.apply_touch_command("rotate_ccw")
+		swipe_n = 1
+	var f5: float = float(main.selected.facing_deg)
+	if is_equal_approx(f5, f4):
+		push_error("SMOKE_COMPACT_SWIPE_CCW f=%s n=%s" % [f5, swipe_n])
+		quit(44)
+		return false
+	var swipe_n2 := 0
+	if th.has_method("simulate_swipe_twist"):
+		swipe_n2 = int(th.simulate_swipe_twist(56.0))
+	else:
+		main.apply_touch_command("rotate_cw")
+		swipe_n2 = 1
+	var f6: float = float(main.selected.facing_deg)
+	if is_equal_approx(f6, f5):
+		push_error("SMOKE_COMPACT_SWIPE_CW f=%s n=%s" % [f6, swipe_n2])
+		quit(44)
+		return false
+	print(
+		"SMOKE_OK_COMPACT_ROTATE cmds=", " ".join(cmds),
+		" f=", snapped(f0, 0.1), snapped(f1, 0.1), snapped(f2, 0.1),
+		snapped(f3, 0.1), snapped(f4, 0.1), snapped(f5, 0.1), snapped(f6, 0.1),
+		" swipe=", swipe_n, swipe_n2
+	)
 	return true
 
 
@@ -5690,6 +5754,302 @@ func _assert_face_arc_round(main) -> bool:
 		" bow=", snapped(snag_bow, 0.1),
 		" raw_bow=", snapped(raw_bow, 0.1),
 		" raw_block=", raw_blocked,
+		" axis_run=", max_axis
+	)
+	return true
+
+
+func _assert_follow_settle_ring(main) -> bool:
+	## After ↻ release, follower bodies stay on the ring, not dest-cell centers.
+	if main.operators.size() < 3 or main.grid == null:
+		push_error("SMOKE_SETTLE_RING_NO_OPS")
+		quit(44)
+		return false
+	var lead: OperatorUnit = main.operators[0]
+	var a: OperatorUnit = main.operators[1]
+	var b: OperatorUnit = main.operators[2]
+	var homes: Array[Vector2] = [lead.global_position, a.global_position, b.global_position]
+	var flags: Array[bool] = [bool(a.follow_lead), bool(b.follow_lead)]
+	if main.c2 and not main.c2.sentries.is_empty():
+		_park_sentries(main, null)
+	var lead_c := Vector2i(7, 12)
+	var a_c := Vector2i(6, 14)
+	var b_c := Vector2i(6, 16)
+	if main.grid.is_blocked(lead_c.x, lead_c.y) or main._cell_is_operable(lead_c):
+		lead_c = Vector2i(7, 13)
+	main._select_op(0)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	if lead.has_method("set_facing"):
+		lead.set_facing(0.0)
+	else:
+		lead.facing_deg = 0.0
+		if lead.has_method("_rebuild_cone"):
+			lead._rebuild_cone()
+	lead.global_position = main.grid.cell_to_world_center(lead_c)
+	a.global_position = main.grid.cell_to_world_center(a_c)
+	b.global_position = main.grid.cell_to_world_center(b_c)
+	main._stealth_avoid_cache.clear()
+	main._stealth_avoid_msec = 0
+	if not bool(a.follow_lead):
+		main.toggle_follow(1)
+	if not bool(b.follow_lead):
+		main.toggle_follow(2)
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	main._tick_squad_follow(0.05)
+	await _tick_follow_steps(main, 20)
+	if main.has_method("follow_slot_world_of"):
+		a.stop_move()
+		b.stop_move()
+		a.global_position = main.follow_slot_world_of(int(a.op_id))
+		b.global_position = main.follow_slot_world_of(int(b.op_id))
+	for step_i in 6:
+		var face := float(step_i + 1) * 15.0
+		if lead.has_method("set_facing"):
+			lead.set_facing(face)
+		else:
+			lead.facing_deg = face
+			if lead.has_method("_rebuild_cone"):
+				lead._rebuild_cone()
+		main._stealth_avoid_cache.clear()
+		main._tick_squad_follow(0.05)
+		if main.has_method("_tick_command_moves"):
+			main._tick_command_moves(0.05)
+		main._tick_squad_follow(0.05)
+	await _tick_follow_steps(main, 8)
+	var ring_a: Vector2 = main.follow_ring_world_of(int(a.op_id)) if main.has_method("follow_ring_world_of") else a.global_position
+	var dest_a: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+	var center_a: Vector2 = main.grid.cell_to_world_center(dest_a) if dest_a.x >= 0 else a.global_position
+	## Release ↻: facing frozen, bodies must stay on the ring.
+	for _hold in 16:
+		if main.has_method("_tick_command_moves"):
+			main._tick_command_moves(0.05)
+		main._tick_squad_follow(0.05)
+		await process_frame
+	var hold_on := bool(main.follow_ring_hold_active()) if main.has_method("follow_ring_hold_active") else false
+	if not hold_on:
+		push_error("SMOKE_SETTLE_RING_NO_HOLD face=%s" % lead.facing_deg)
+		quit(44)
+		return false
+	var body_a: Vector2 = a.global_position
+	var ring_now: Vector2 = main.follow_ring_world_of(int(a.op_id)) if main.has_method("follow_ring_world_of") else ring_a
+	if body_a.distance_to(ring_now) > 24.0:
+		push_error(
+			"SMOKE_SETTLE_RING_SNAP body=%s ring=%s center=%s d=%s" % [
+				body_a, ring_now, center_a, snapped(body_a.distance_to(ring_now), 0.1)
+			]
+		)
+		quit(44)
+		return false
+	if ring_now.distance_to(center_a) < 10.0:
+		push_error("SMOKE_SETTLE_RING_NO_INSET ring=%s center=%s" % [ring_now, center_a])
+		quit(44)
+		return false
+	if body_a.distance_to(center_a) < 8.0:
+		push_error(
+			"SMOKE_SETTLE_RING_CENTER body=%s ring=%s center=%s" % [body_a, ring_now, center_a]
+		)
+		quit(44)
+		return false
+	print(
+		"SMOKE_OK_FOLLOW_SETTLE_RING hold=", 1 if hold_on else 0,
+		" body_ring=", snapped(body_a.distance_to(ring_now), 0.1),
+		" body_center=", snapped(body_a.distance_to(center_a), 0.1),
+		" ring_center=", snapped(ring_now.distance_to(center_a), 0.1)
+	)
+	if bool(a.follow_lead) != flags[0]:
+		main.toggle_follow(1)
+	if bool(b.follow_lead) != flags[1]:
+		main.toggle_follow(2)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	lead.global_position = homes[0]
+	a.global_position = homes[1]
+	b.global_position = homes[2]
+	main._follow_dest.clear()
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	return true
+
+
+func _assert_west_tighter(main) -> bool:
+	## West trio: smaller silhouettes + more world stagger, span still ≤1.
+	if main.operators.size() < 3 or main.grid == null:
+		push_error("SMOKE_WEST_TIGHT_NO_OPS")
+		quit(44)
+		return false
+	var lead: OperatorUnit = main.operators[0]
+	var a: OperatorUnit = main.operators[1]
+	var b: OperatorUnit = main.operators[2]
+	var homes: Array[Vector2] = [lead.global_position, a.global_position, b.global_position]
+	var flags: Array[bool] = [bool(a.follow_lead), bool(b.follow_lead)]
+	if main.c2 and not main.c2.sentries.is_empty():
+		_park_sentries(main, null)
+	var lead_c := Vector2i(7, 12)
+	var a_c := Vector2i(6, 14)
+	var b_c := Vector2i(6, 16)
+	if main.grid.is_blocked(lead_c.x, lead_c.y) or main._cell_is_operable(lead_c):
+		lead_c = Vector2i(7, 13)
+	main._select_op(0)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	if lead.has_method("set_facing"):
+		lead.set_facing(0.0)
+	else:
+		lead.facing_deg = 0.0
+		if lead.has_method("_rebuild_cone"):
+			lead._rebuild_cone()
+	lead.global_position = main.grid.cell_to_world_center(lead_c)
+	a.global_position = main.grid.cell_to_world_center(a_c)
+	b.global_position = main.grid.cell_to_world_center(b_c)
+	main._stealth_avoid_cache.clear()
+	main._stealth_avoid_msec = 0
+	if not bool(a.follow_lead):
+		main.toggle_follow(1)
+	if not bool(b.follow_lead):
+		main.toggle_follow(2)
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	main._tick_squad_follow(0.05)
+	await _tick_follow_steps(main, 20)
+	for _hold in 8:
+		if main.has_method("_update_observation_rings"):
+			main._update_observation_rings()
+		main._tick_squad_follow(0.05)
+		if main.has_method("_tick_command_moves"):
+			main._tick_command_moves(0.05)
+		await process_frame
+	var d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+	var d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+	if d1.x < 0 or d2.x < 0 or d1 == d2:
+		push_error("SMOKE_WEST_TIGHT_DEST d1=%s d2=%s" % [d1, d2])
+		quit(44)
+		return false
+	var span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
+	if span > 1:
+		push_error("SMOKE_WEST_TIGHT_SPAN n=%s d1=%s d2=%s" % [span, d1, d2])
+		quit(44)
+		return false
+	var scale := float(main.follow_cluster_body_scale()) if main.has_method("follow_cluster_body_scale") else 1.0
+	if scale > 0.58:
+		push_error("SMOKE_WEST_TIGHT_SCALE s=%s" % scale)
+		quit(44)
+		return false
+	var dest_spread := float(main.follow_dest_world_min_spacing()) if main.has_method("follow_dest_world_min_spacing") else 0.0
+	if dest_spread < 56.0:
+		push_error("SMOKE_WEST_TIGHT_SPREAD dest=%s" % dest_spread)
+		quit(44)
+		return false
+	if lead.has_method("set_facing"):
+		lead.set_facing(30.0)
+	else:
+		lead.facing_deg = 30.0
+		if lead.has_method("_rebuild_cone"):
+			lead._rebuild_cone()
+	main._tick_squad_follow(0.05)
+	if main.has_method("_tick_command_moves"):
+		main._tick_command_moves(0.05)
+	await _tick_follow_steps(main, 10)
+	for _stop in 12:
+		if main.has_method("_tick_command_moves"):
+			main._tick_command_moves(0.05)
+		main._tick_squad_follow(0.05)
+		await process_frame
+	var ring_w: Vector2 = main.follow_ring_world_of(int(a.op_id)) if main.has_method("follow_ring_world_of") else a.global_position
+	var dest_c: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+	var cell_w: Vector2 = main.grid.cell_to_world_center(dest_c) if dest_c.x >= 0 else a.global_position
+	if a.global_position.distance_to(ring_w) > 26.0:
+		push_error("SMOKE_WEST_TIGHT_SNAP body=%s ring=%s" % [a.global_position, ring_w])
+		quit(44)
+		return false
+	if ring_w.distance_to(cell_w) < 10.0:
+		push_error("SMOKE_WEST_TIGHT_NO_INSET ring=%s cell=%s" % [ring_w, cell_w])
+		quit(44)
+		return false
+	if a.global_position.distance_to(cell_w) < 8.0:
+		push_error("SMOKE_WEST_TIGHT_CENTER body=%s ring=%s cell=%s" % [a.global_position, ring_w, cell_w])
+		quit(44)
+		return false
+	print(
+		"SMOKE_OK_WEST_TIGHTER d1=", d1, " d2=", d2,
+		" span=", span, " scale=", snapped(scale, 0.01),
+		" dest_spread=", snapped(dest_spread, 0.1),
+		" body_ring=", snapped(a.global_position.distance_to(ring_w), 0.1)
+	)
+	if bool(a.follow_lead) != flags[0]:
+		main.toggle_follow(1)
+	if bool(b.follow_lead) != flags[1]:
+		main.toggle_follow(2)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	lead.global_position = homes[0]
+	a.global_position = homes[1]
+	b.global_position = homes[2]
+	main._follow_dest.clear()
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	return true
+
+
+func _assert_face_arc_cluster(main) -> bool:
+	## Multi-crate cluster: snagged polar samples stay walkable and round.
+	if main.operators.size() < 1 or main.grid == null:
+		push_error("SMOKE_ARC_CLUSTER_NO_OPS")
+		quit(44)
+		return false
+	if not main.has_method("follow_arc_sample_points"):
+		push_error("SMOKE_ARC_CLUSTER_NO_API")
+		quit(44)
+		return false
+	var pivot: Vector2 = main.grid.cell_to_world_center(Vector2i(20, 14))
+	var from_w: Vector2 = main.grid.cell_to_world_center(Vector2i(16, 12))
+	var to_w: Vector2 = main.grid.cell_to_world_center(Vector2i(24, 12))
+	if main.has_method("_follow_snag_walkable"):
+		from_w = main._follow_snag_walkable(from_w, pivot)
+		to_w = main._follow_snag_walkable(to_w, pivot)
+	var raw: PackedVector2Array = PackedVector2Array()
+	if main.has_method("follow_arc_sample_raw"):
+		raw = main.follow_arc_sample_raw(from_w, to_w, pivot, 13)
+	var pts: PackedVector2Array = main.follow_arc_sample_points(from_w, to_w, pivot, 13)
+	if pts.size() < 6:
+		push_error("SMOKE_ARC_CLUSTER_SHORT n=%s" % pts.size())
+		quit(44)
+		return false
+	var blocked := 0
+	for p in pts:
+		var c: Vector2i = main.grid.world_to_cell(p)
+		if main.grid.is_blocked(c.x, c.y) or main._cell_is_operable(c):
+			blocked += 1
+	if blocked > 0:
+		push_error("SMOKE_ARC_CLUSTER_CLIP n=%s blocked=%s" % [pts.size(), blocked])
+		quit(44)
+		return false
+	var snag_bow := float(main.follow_arc_chord_bow(pts, from_w, to_w)) if main.has_method("follow_arc_chord_bow") else 0.0
+	var raw_bow := 0.0
+	if raw.size() >= 3 and main.has_method("follow_arc_chord_bow"):
+		raw_bow = float(main.follow_arc_chord_bow(raw, from_w, to_w))
+	if snag_bow < 14.0:
+		push_error("SMOKE_ARC_CLUSTER_FLAT bow=%s raw=%s" % [snag_bow, raw_bow])
+		quit(44)
+		return false
+	if raw_bow > 16.0 and snag_bow < raw_bow * 0.38:
+		push_error("SMOKE_ARC_CLUSTER_SQUASH snag=%s raw=%s" % [snag_bow, raw_bow])
+		quit(44)
+		return false
+	var max_axis := int(main.follow_arc_axis_run(pts)) if main.has_method("follow_arc_axis_run") else 99
+	if max_axis >= 4:
+		push_error("SMOKE_ARC_CLUSTER_WALL run=%s n=%s bow=%s" % [max_axis, pts.size(), snag_bow])
+		quit(44)
+		return false
+	print(
+		"SMOKE_OK_FACE_ARC_CLUSTER n=", pts.size(),
+		" bow=", snapped(snag_bow, 0.1),
+		" raw_bow=", snapped(raw_bow, 0.1),
 		" axis_run=", max_axis
 	)
 	return true

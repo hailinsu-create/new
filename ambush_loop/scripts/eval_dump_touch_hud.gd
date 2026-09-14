@@ -1,8 +1,8 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.17 phone feel: follower bodies ride the
-## slot ring, west trio shrinks / half-cell stand, compact ↻ hold, rounder
-## crate-clamped arcs (拧射界换格, 西巷三人跟上).
+## Forced-touch HUD stills for v0.5.18 phone feel: settle-on-ring after ↻,
+## compact ↺ + swipe-to-twist, west tighter stagger/scale, rounder multi-crate
+## arcs (拧射界换格, 西巷三人跟上).
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
@@ -1168,6 +1168,27 @@ func _walk_facing_turn(main) -> void:
 	)
 	_dump_feel(main, "face_ring")
 	await _save("08k_face_ring")
+	frames = 0
+	while frames < 24:
+		if main.has_method("_tick_command_moves"):
+			main._tick_command_moves(0.05)
+		if main.has_method("_tick_squad_follow"):
+			main._tick_squad_follow(0.05)
+		await process_frame
+		frames += 1
+	var settle_ring: Vector2 = main.follow_ring_world_of(int(a.op_id)) if main.has_method("follow_ring_world_of") else Vector2.ZERO
+	var settle_dest: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+	var settle_center: Vector2 = main.grid.cell_to_world_center(settle_dest) if settle_dest.x >= 0 else Vector2.ZERO
+	print(
+		"DUMP_FACE_SETTLE body=", a.global_position,
+		" ring=", settle_ring,
+		" center=", settle_center,
+		" hold=", int(main.follow_ring_hold_active()) if main.has_method("follow_ring_hold_active") else -1,
+		" d_ring=", snapped(a.global_position.distance_to(settle_ring), 0.1),
+		" d_center=", snapped(a.global_position.distance_to(settle_center), 0.1)
+	)
+	_dump_feel(main, "face_settle")
+	await _save("08l_face_settle")
 	a.stop_move()
 	b.stop_move()
 	if lead.has_method("set_facing"):
@@ -1364,6 +1385,7 @@ func _dump_feel(main, tag: String) -> void:
 		" body_arc=", f.get("body_arc", -1),
 		" body_spread=", snapped(float(f.get("body_spread", -1.0)), 0.1),
 		" body_inset=", snapped(float(f.get("body_inset", -1.0)), 0.1),
+		" ring_hold=", f.get("ring_hold", -1),
 		" setup_cmds=", " ".join(f.get("setup_cmds", PackedStringArray()))
 	)
 
