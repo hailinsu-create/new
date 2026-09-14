@@ -44,7 +44,10 @@ const FOLLOW_CAM_WEST_PAN := 0.28
 const FOLLOW_CAM_FILE_ZOOM := 0.82
 const FOLLOW_WEST_OBS_SCALE := 0.28
 const FOLLOW_WEST_BODY_SCALE := 0.34
-const FOLLOW_WEST_OBS_OFFSET := 36.0
+const FOLLOW_WEST_OBS_OFFSET := 44.0
+const FOLLOW_WEST_OBS_SIDE := 20.0
+const FOLLOW_WEST_OBS_SLOT := 8.0
+const FOLLOW_WEST_OBS_COURTYARD := 14.0
 const FOLLOW_WEST_CONE_FADE := 0.38
 const FLANK_WRAP_MIN_PTS := 4
 const PROGRESS_PATH := "user://ambush_loop.cfg"
@@ -9490,6 +9493,40 @@ func follow_obs_world_offset() -> float:
 	return m if any else 0.0
 
 
+func follow_obs_ring_min_spacing() -> float:
+	## World distance between observation-ring centers (body + visual offset).
+	var worlds: Array[Vector2] = []
+	for op in operators:
+		if op == null or not op.alive or not op.visible:
+			continue
+		if not bool(op.follow_lead) and op != selected:
+			continue
+		var w: Vector2 = op.global_position
+		if op.has_method("obs_world_offset"):
+			w += op.obs_world_offset()
+		worlds.append(w)
+	if worlds.size() < 2:
+		return 0.0
+	var best := 9999.0
+	for i in worlds.size():
+		for j in range(i + 1, worlds.size()):
+			best = minf(best, worlds[i].distance_to(worlds[j]))
+	return 0.0 if best > 9000.0 else best
+
+
+func follow_obs_west_hug() -> int:
+	## Rings whose visual offset still slides toward the west wall (–X).
+	var n := 0
+	for op in operators:
+		if op == null or not op.has_method("obs_world_offset"):
+			continue
+		if not bool(op.follow_lead) and op != selected:
+			continue
+		if float(op.obs_world_offset().x) < -8.0:
+			n += 1
+	return n
+
+
 func _follow_west_cluster() -> bool:
 	if selected == null or not selected.alive or not selected.visible:
 		return false
@@ -9522,6 +9559,7 @@ func _apply_west_obs_scale() -> void:
 func _apply_west_obs_offset(west: bool) -> void:
 	## Visual observation-ring stagger. Dest cells stay; rings slide off the
 	## cluster centroid so the west trio + yellow cone read as three bodies.
+	## v0.5.27: more along-file / courtyard offset. No extra back (west-wall).
 	var centroid := Vector2.ZERO
 	var n := 0
 	if west and selected != null:
@@ -9542,21 +9580,28 @@ func _apply_west_obs_offset(west: bool) -> void:
 			op.set_obs_world_offset(Vector2.ZERO)
 			continue
 		var away: Vector2 = op.global_position - centroid
-		if away.length_squared() < 16.0:
-			var back0: Vector2 = _follow_facing_back(selected)
-			var side0 := Vector2(-back0.y, back0.x)
-			var st0 := float(_follow_slot_sign(selected, op))
-			away = back0 * 0.70 + side0 * st0
-		if away.length_squared() < 0.01:
-			op.set_obs_world_offset(Vector2.ZERO)
-			continue
-		var off: Vector2 = away.normalized() * FOLLOW_WEST_OBS_OFFSET
 		var back1: Vector2 = _follow_facing_back(selected)
 		var side1 := Vector2(-back1.y, back1.x)
 		var st1 := float(_follow_slot_sign(selected, op))
-		var slot_i := _follow_slot_index(selected, op)
-		off += side1 * st1 * 12.0
-		off += back1 * float(maxi(slot_i, 0)) * 8.0
+		if away.length_squared() < 16.0:
+			if op == selected:
+				away = Vector2(1.0, 0.0)
+			else:
+				away = back1 * 0.35 + side1 * st1
+		if away.length_squared() < 0.01:
+			op.set_obs_world_offset(Vector2.ZERO)
+			continue
+		var off: Vector2
+		if op == selected:
+			## Lead ring slides into the courtyard, not onto the west wall.
+			off = away.normalized() * (FOLLOW_WEST_OBS_OFFSET * 0.55)
+			off.x += FOLLOW_WEST_OBS_COURTYARD
+		else:
+			var slot_i := _follow_slot_index(selected, op)
+			off = away.normalized() * FOLLOW_WEST_OBS_OFFSET
+			off += side1 * st1 * FOLLOW_WEST_OBS_SIDE
+			off += side1 * st1 * float(maxi(slot_i, 0)) * FOLLOW_WEST_OBS_SLOT
+			off.x += FOLLOW_WEST_OBS_COURTYARD
 		op.set_obs_world_offset(off)
 
 
@@ -10686,6 +10731,7 @@ func dump_touch_feel() -> Dictionary:
 		"obs_scale": follow_obs_visual_scale() if has_method("follow_obs_visual_scale") else 1.0,
 		"obs_r": follow_obs_visual_radius() if has_method("follow_obs_visual_radius") else 0.0,
 		"obs_off": follow_obs_world_offset() if has_method("follow_obs_world_offset") else 0.0,
+		"obs_ring_spread": follow_obs_ring_min_spacing() if has_method("follow_obs_ring_min_spacing") else 0.0,
 		"cam_squad_zoom": _cam_squad_zoom,
 		"cluster_scale": follow_cluster_body_scale() if has_method("follow_cluster_body_scale") else 1.0,
 		"cone_fade": follow_cone_visual_fade() if has_method("follow_cone_visual_fade") else 1.0,

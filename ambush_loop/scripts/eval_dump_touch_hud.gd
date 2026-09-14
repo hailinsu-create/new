@@ -1,9 +1,10 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.26 phone feel: west trio dest restagger
-## (span 3, no west-wall hug), south-corridor full path y=14 pulled into y≤13
-## (mid x≈21 included), settle-on-ring after ↻, bidirectional ↺/↻ swipe,
-## faded yellow cone, compact 5-key, crate-cluster axis_run 0.
+## Forced-touch HUD stills for v0.5.27 phone feel: west trio dest kept
+## (span 3, no west-wall hug), observation-ring world offset along-file /
+## courtyard, south-corridor full path y=14 pulled into y≤13 (mid x≈21
+## included), settle-on-ring after ↻, bidirectional ↺/↻ swipe, faded
+## yellow cone, compact 5-key, crate-cluster axis_run 0.
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
@@ -326,7 +327,8 @@ func _walk_west_combo_follow(main) -> void:
 		" dest_w_spread=", snapped(float(main.follow_dest_world_min_spacing()) if main.has_method("follow_dest_world_min_spacing") else -1.0, 0.1),
 		" cluster_scale=", snapped(float(main.follow_cluster_body_scale()) if main.has_method("follow_cluster_body_scale") else 1.0, 0.01),
 		" cone_fade=", snapped(float(main.follow_cone_visual_fade()) if main.has_method("follow_cone_visual_fade") else 1.0, 0.01),
-		" obs_off=", snapped(float(main.follow_obs_world_offset()) if main.has_method("follow_obs_world_offset") else 0.0, 0.1)
+		" obs_off=", snapped(float(main.follow_obs_world_offset()) if main.has_method("follow_obs_world_offset") else 0.0, 0.1),
+		" obs_ring_spread=", snapped(float(main.follow_obs_ring_min_spacing()) if main.has_method("follow_obs_ring_min_spacing") else 0.0, 0.1)
 	)
 	await _save("08_west_combo_follow")
 	if bool(a.follow_lead):
@@ -997,7 +999,8 @@ func _walk_west_rear(main) -> void:
 		" obs_r=", snapped(float(main.follow_obs_visual_radius()) if main.has_method("follow_obs_visual_radius") else 0.0, 0.1),
 		" cluster_scale=", snapped(float(main.follow_cluster_body_scale()) if main.has_method("follow_cluster_body_scale") else 1.0, 0.01),
 		" cone_fade=", snapped(float(main.follow_cone_visual_fade()) if main.has_method("follow_cone_visual_fade") else 1.0, 0.01),
-		" obs_off=", snapped(float(main.follow_obs_world_offset()) if main.has_method("follow_obs_world_offset") else 0.0, 0.1)
+		" obs_off=", snapped(float(main.follow_obs_world_offset()) if main.has_method("follow_obs_world_offset") else 0.0, 0.1),
+		" obs_ring_spread=", snapped(float(main.follow_obs_ring_min_spacing()) if main.has_method("follow_obs_ring_min_spacing") else 0.0, 0.1)
 	)
 	_dump_feel(main, "west_rear")
 	await _save("08f_west_rear")
@@ -1388,6 +1391,7 @@ func _dump_feel(main, tag: String) -> void:
 		" obs_scale=", snapped(float(f.get("obs_scale", 1.0)), 0.01),
 		" obs_r=", snapped(float(f.get("obs_r", 0.0)), 0.1),
 		" obs_off=", snapped(float(f.get("obs_off", 0.0)), 0.1),
+		" obs_ring_spread=", snapped(float(f.get("obs_ring_spread", 0.0)), 0.1),
 		" cam_squad_zoom=", snapped(float(f.get("cam_squad_zoom", 1.0)), 0.01),
 		" cluster_scale=", snapped(float(f.get("cluster_scale", 1.0)), 0.01),
 		" cone_fade=", snapped(float(f.get("cone_fade", 1.0)), 0.01),
