@@ -38,7 +38,11 @@ const FOLLOW_SLOT_MIX := 0.42
 const FOLLOW_SLOT_INSET := 11.0
 const FOLLOW_WEST_SLOT_INSET := 24.0
 const FOLLOW_WEST_SLOT_EXTRA := 52.0
-const FOLLOW_CAM_WEST_ZOOM := 0.26
+## On-ring extra used to be SLOT_EXTRA+8 (~60) plus 12–28px extra back, which
+## shoved #2 through the west wall. Dest-cell extra stays; ring extra is smaller.
+const FOLLOW_WEST_RING_EXTRA := 44.0
+const FOLLOW_WEST_RING_BACK := 8.0
+const FOLLOW_CAM_WEST_ZOOM := 0.30
 const FOLLOW_CAM_WEST_CONE := 108.0
 const FOLLOW_CAM_WEST_PAN := 0.28
 const FOLLOW_CAM_FILE_ZOOM := 0.82
@@ -1685,7 +1689,7 @@ func _ensure_game_camera() -> void:
 func _apply_cam() -> void:
 	_ensure_game_camera()
 	_cam_zoom = clampf(_cam_zoom, 0.72, 1.65)
-	_cam_squad_zoom = clampf(_cam_squad_zoom, 0.26, 1.0)
+	_cam_squad_zoom = clampf(_cam_squad_zoom, 0.30, 1.0)
 	var max_pan := 220.0 * _cam_zoom
 	_cam_pan.x = clampf(_cam_pan.x, -max_pan, max_pan)
 	_cam_pan.y = clampf(_cam_pan.y, -max_pan, max_pan)
@@ -9528,6 +9532,25 @@ func follow_obs_west_hug() -> int:
 	return n
 
 
+func follow_west_ring_extra() -> float:
+	return FOLLOW_WEST_RING_EXTRA
+
+
+func follow_ring_west_min_x() -> float:
+	## Smallest on-ring world x among the west file. Cell 5 west edge is 160.
+	if selected == null:
+		return 9999.0
+	var best := 9999.0
+	var any := false
+	for op in operators:
+		if op == null or op == selected or not bool(op.follow_lead) or not op.alive:
+			continue
+		var w: Vector2 = _follow_snag_walkable(_follow_ring_world(selected, op), _follow_lead_world(selected))
+		best = minf(best, w.x)
+		any = true
+	return best if any else 9999.0
+
+
 func _follow_west_cluster() -> bool:
 	if selected == null or not selected.alive or not selected.visible:
 		return false
@@ -9560,10 +9583,11 @@ func _apply_west_obs_scale() -> void:
 func _apply_west_obs_offset(west: bool) -> void:
 	## Visual observation-ring stagger. Dest cells stay; rings slide off the
 	## cluster centroid so the west trio + yellow cone read as three bodies.
-	## v0.5.33: dest cells spread to span 5 (first 5 along-file, second 3
-	## the other way). Bodies/rings stay on the visual floor (~0.16).
-	## Rings keep the courtyard / along-file offset. Camera stays at the
-	## ~0.26 clamp so the larger file still fits. No extra back (west-wall).
+	## v0.5.34: dest cells stay (6,7)/(5,15) span 5. On-ring extra is
+	## smaller so #2's ring no longer punches the west wall. Camera ~0.30
+	## so the lead→#2 world gap reads larger on screen. Bodies/rings stay
+	## on the visual floor (~0.16). Rings keep the courtyard / along-file
+	## offset. #2 dest is not pushed further south this round (path detour).
 	var centroid := Vector2.ZERO
 	var n := 0
 	if west and selected != null:
@@ -9632,7 +9656,8 @@ func _follow_west_along_alley(lead: OperatorUnit) -> bool:
 func _follow_slot_side_cells(lead: OperatorUnit, follower: OperatorUnit) -> int:
 	## First west follower stands 5 cells along-file so the trio dests
 	## leave the span-4 mash without hugging the west wall. Second stays
-	## 3 the other way — 4 south would shove the ring through the west wall.
+	## 3 the other way. On-ring extra is smaller so the ring no longer
+	## punches the west wall; dest cells stay (a 4-south dest still wraps).
 	if lead == null or follower == null or grid == null:
 		return 1
 	if not (_follow_in_west(follower.grid_cell()) and _follow_in_west(_follow_lead_cell(lead))):
@@ -9799,10 +9824,11 @@ func _follow_ring_world(lead: OperatorUnit, follower: OperatorUnit) -> Vector2:
 	var side := Vector2(-back.y, back.x)
 	var st := float(_follow_slot_sign(lead, follower))
 	if absf(st) > 0.01:
-		## Side stagger only — extra back hugs the west wall. Dest cells stay.
-		w += side * st * (FOLLOW_WEST_SLOT_EXTRA + 8.0)
+		## Side stagger only. Extra back used to hug the west wall; keep it
+		## small so the ring stays inside cell x=5. Dest cells stay.
+		w += side * st * FOLLOW_WEST_RING_EXTRA
 		var slot_i := _follow_slot_index(lead, follower)
-		w += back * (12.0 + float(maxi(slot_i, 0)) * 16.0)
+		w += back * (FOLLOW_WEST_RING_BACK + float(maxi(slot_i, 0)) * 4.0)
 	return w
 
 
@@ -10030,7 +10056,7 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 			## Pair files left/right of the back cell instead of one on
 			## the spine and the other stretched down the alley.
 			## West first follower wants 5 along-file cells; second stays 3
-			## so the ring extra does not punch through the west wall.
+			## the other way. Ring extra no longer punches the west wall.
 			## Only when facing along the alley (east/west).
 			var alley := west_file and _follow_west_along_alley(lead)
 			var want_side := 5 if alley and slot == 0 else (3 if alley else 1)
@@ -10752,6 +10778,8 @@ func dump_touch_feel() -> Dictionary:
 		"obs_r": follow_obs_visual_radius() if has_method("follow_obs_visual_radius") else 0.0,
 		"obs_off": follow_obs_world_offset() if has_method("follow_obs_world_offset") else 0.0,
 		"obs_ring_spread": follow_obs_ring_min_spacing() if has_method("follow_obs_ring_min_spacing") else 0.0,
+		"ring_extra": follow_west_ring_extra() if has_method("follow_west_ring_extra") else 0.0,
+		"ring_west_x": follow_ring_west_min_x() if has_method("follow_ring_west_min_x") else 9999.0,
 		"cam_squad_zoom": _cam_squad_zoom,
 		"cluster_scale": follow_cluster_body_scale() if has_method("follow_cluster_body_scale") else 1.0,
 		"cone_fade": follow_cone_visual_fade() if has_method("follow_cone_visual_fade") else 1.0,
@@ -11166,7 +11194,7 @@ func follow_west_queue_hits() -> int:
 
 
 func follow_west_lead_span() -> int:
-	## Max Chebyshev from the lead to a follow dest. v0.5.33 west file is ≤5:
+	## Max Chebyshev from the lead to a follow dest. v0.5.34 west file is ≤5:
 	## first follower is 5 along-file, second 2 back / 3 the other way.
 	if selected == null or grid == null:
 		return 99

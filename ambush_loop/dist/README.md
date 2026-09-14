@@ -2,7 +2,8 @@
 
 Delivered build:
 
-- `AmbushLoop-v0.5.33-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest (6,7)/(5,15) span 5, bodies/rings at visual floor (~0.16) + camera at ~0.26 clamp, south-corridor full path y≤13 (mid x≈21 included), compact 5-key. Same RAID as 0.5.32.
+- `AmbushLoop-v0.5.34-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest (6,7)/(5,15) span 5, on-ring extra cut + camera ~0.30, bodies/rings at visual floor (~0.16), south-corridor full path y≤13 (mid x≈21 included), compact 5-key. Same RAID as 0.5.33.
+- `AmbushLoop-v0.5.33-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest (6,7)/(5,15) span 5, bodies/rings at visual floor (~0.16) + camera at ~0.26 clamp, south-corridor full path y≤13 (mid x≈21 included), compact 5-key (superseded for phone feel). Same RAID as 0.5.32.
 - `AmbushLoop-v0.5.32-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest (6,8)/(5,15) span 4, bodies/rings at visual floor (~0.16) + camera at ~0.26 clamp, south-corridor full path y≤13 (mid x≈21 included), compact 5-key (superseded for phone feel). Same RAID as 0.5.31.
 - `AmbushLoop-v0.5.31-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest (6,9)/(5,14) span 3 kept, bodies/rings at visual floor (~0.16) + camera at ~0.26 clamp, south-corridor full path y≤13 (mid x≈21 included), compact 5-key (superseded for phone feel). Same RAID as 0.5.30.
 - `AmbushLoop-v0.5.30-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest (6,9)/(5,14) span 3 kept, bodies/rings one step smaller + camera one more courtyard/along-file step, south-corridor full path y≤13 (mid x≈21 included), compact 5-key (superseded for phone feel). Same RAID as 0.5.29.
