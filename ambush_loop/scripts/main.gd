@@ -28,12 +28,13 @@ const FOLLOW_ARC_DEG := 12.0
 const FOLLOW_ARC_SLIDE_DEG := 40.0
 const FOLLOW_SLOT_MIX := 0.42
 const FOLLOW_SLOT_INSET := 11.0
-const FOLLOW_WEST_SLOT_INSET := 22.0
-const FOLLOW_WEST_SLOT_EXTRA := 36.0
-const FOLLOW_CAM_WEST_ZOOM := 0.48
+const FOLLOW_WEST_SLOT_INSET := 24.0
+const FOLLOW_WEST_SLOT_EXTRA := 40.0
+const FOLLOW_CAM_WEST_ZOOM := 0.44
 const FOLLOW_CAM_FILE_ZOOM := 0.82
-const FOLLOW_WEST_OBS_SCALE := 0.44
-const FOLLOW_WEST_BODY_SCALE := 0.46
+const FOLLOW_WEST_OBS_SCALE := 0.36
+const FOLLOW_WEST_BODY_SCALE := 0.40
+const FOLLOW_WEST_CONE_FADE := 0.38
 const FLANK_WRAP_MIN_PTS := 4
 const PROGRESS_PATH := "user://ambush_loop.cfg"
 const LEVEL_ORDER := ["yard", "warehouse", "pump", "railcut", "depot", "radio"]
@@ -1669,7 +1670,7 @@ func _ensure_game_camera() -> void:
 func _apply_cam() -> void:
 	_ensure_game_camera()
 	_cam_zoom = clampf(_cam_zoom, 0.72, 1.65)
-	_cam_squad_zoom = clampf(_cam_squad_zoom, 0.46, 1.0)
+	_cam_squad_zoom = clampf(_cam_squad_zoom, 0.42, 1.0)
 	var max_pan := 220.0 * _cam_zoom
 	_cam_pan.x = clampf(_cam_pan.x, -max_pan, max_pan)
 	_cam_pan.y = clampf(_cam_pan.y, -max_pan, max_pan)
@@ -8382,7 +8383,11 @@ func _follow_snag_score(cand: Vector2, pivot: Vector2, want_ang: float, want_r: 
 	var inward := maxf(0.0, want_r - cr)
 	## Stay on the polar circle; go around a cluster instead of popping
 	## onto the near face (flat wall-slide) or punching through to the far face.
-	return d_r * 1.25 + inward * 1.85 + d_ang * minf(want_r, maxf(cr, 12.0)) * 0.20 + cand.distance_to(world) * 0.10
+	## Same-axis with the blocked sample is a crate-face slide — pay extra.
+	var wall := 0.0
+	if absf(cand.x - world.x) < 3.2 or absf(cand.y - world.y) < 3.2:
+		wall = 18.0 + inward * 0.35
+	return d_r * 1.10 + inward * 2.45 + d_ang * minf(want_r, maxf(cr, 12.0)) * 0.12 + cand.distance_to(world) * 0.08 + wall
 
 
 func _follow_snag_walkable(world: Vector2, pivot: Vector2 = Vector2.INF) -> Vector2:
@@ -8534,30 +8539,56 @@ func _follow_restore_arc_bow(pts: PackedVector2Array, raw: PackedVector2Array, p
 			var mid: Vector2 = snag_p.lerp(raw_p, 0.72)
 			if _follow_world_ok(mid):
 				pts[i] = mid
-	## Break axis-aligned runs by putting the middle sample back on the polar.
+	## Break axis-aligned runs by putting the sample back on the polar bow.
 	var axis_run := 0
 	for i in range(1, pts.size()):
 		var d: Vector2 = pts[i] - pts[i - 1]
 		if absf(d.x) < 2.6 or absf(d.y) < 2.6:
 			axis_run += 1
-			if axis_run >= 2 and i > 1 and i < pts.size() - 1:
+			if axis_run >= 1 and i > 0 and i < pts.size() - 1:
 				var t2 := float(i) / float(pts.size() - 1)
 				var polar2: Vector2 = _follow_polar(pivot, lerp_angle(ang_a, ang_b, t2), maxf(lerpf(ra, rb, t2), 12.0))
-				var lift2: Vector2 = _follow_snag_walkable(polar2, pivot)
+				var lift2: Vector2 = _follow_lift_off_axis(pts[i], pts[i - 1], pts[i + 1], polar2, pivot)
 				if _follow_world_ok(lift2):
-					var same_axis := absf(lift2.x - pts[i - 1].x) < 2.6 or absf(lift2.y - pts[i - 1].y) < 2.6
+					var same_axis := _follow_same_axis(lift2, pts[i - 1]) and _follow_same_axis(lift2, pts[i + 1])
 					if not same_axis or lift2.distance_to(pts[i]) > 6.0:
 						pts[i] = lift2
 						axis_run = 0
 		else:
 			axis_run = 0
-	return _follow_break_axis_runs(pts, raw, pivot)
+	return _follow_bow_wall_runs(_follow_break_axis_runs(pts, raw, pivot), raw, pivot)
+
+
+func _follow_lift_off_axis(p: Vector2, prev: Vector2, nxt: Vector2, polar: Vector2, pivot: Vector2) -> Vector2:
+	## Push a wall-slide sample toward the polar so the string bows, not flats.
+	if _follow_world_ok(polar) and (not _follow_same_axis(prev, polar) or not _follow_same_axis(polar, nxt)):
+		return polar
+	var snag_p: Vector2 = _follow_snag_walkable(polar, pivot)
+	if _follow_world_ok(snag_p) and not _follow_same_axis(prev, snag_p):
+		return snag_p
+	var axis_h := absf(p.y - prev.y) < 2.6 or absf(p.y - nxt.y) < 2.6
+	var toward: Vector2 = polar - p
+	if toward.length() < 4.0:
+		toward = (p - pivot)
+	if toward.length() < 4.0:
+		toward = Vector2(0, 1) if axis_h else Vector2(1, 0)
+	toward = toward.normalized()
+	var perp := Vector2(-toward.y, toward.x)
+	for mag in [10.0, 18.0, 28.0, 40.0, 56.0, 72.0]:
+		for dir in [toward, perp, -perp]:
+			var cand: Vector2 = p + dir * mag
+			if not _follow_world_ok(cand):
+				continue
+			if _follow_same_axis(prev, cand) and _follow_same_axis(cand, nxt):
+				continue
+			return _follow_snag_walkable(cand, pivot)
+	return p
 
 
 func _follow_break_axis_runs(pts: PackedVector2Array, raw: PackedVector2Array, pivot: Vector2) -> PackedVector2Array:
-	## Nudge the middle of a 3+ axis-aligned run off the wall so crate
+	## Nudge the middle of a 2+ axis-aligned run off the wall so crate
 	## faces do not flatten a whole polar sample string.
-	if pts.size() < 5:
+	if pts.size() < 4:
 		return pts
 	var run_start := 0
 	for i in range(1, pts.size() + 1):
@@ -8568,39 +8599,82 @@ func _follow_break_axis_runs(pts: PackedVector2Array, raw: PackedVector2Array, p
 		if aligned:
 			continue
 		var run_len := (i - 1) - run_start
-		if run_len >= 3:
+		if run_len >= 2:
 			var mid := run_start + int(run_len / 2)
 			if mid > 0 and mid < pts.size() - 1:
 				var raw_p: Vector2 = raw[mid] if mid < raw.size() else pts[mid]
-				var axis_h := absf(pts[mini(i - 1, pts.size() - 1)].y - pts[run_start].y) < 2.6
-				var bumped: Vector2 = pts[mid].lerp(raw_p, 0.7)
-				if _follow_world_ok(bumped) and not _follow_same_axis(pts[mid], bumped):
-					pts[mid] = bumped
+				var polar_p: Vector2 = _follow_polar(
+					pivot,
+					(raw_p - pivot).angle() if raw_p.distance_squared_to(pivot) >= 16.0 else 0.0,
+					maxf(raw_p.distance_to(pivot), 12.0)
+				)
+				var lifted: Vector2 = _follow_lift_off_axis(pts[mid], pts[mid - 1], pts[mid + 1], polar_p, pivot)
+				if _follow_world_ok(lifted) and not (_follow_same_axis(pts[mid - 1], lifted) and _follow_same_axis(lifted, pts[mid + 1])):
+					pts[mid] = lifted
 				else:
-					var picked := false
-					for mag in [18.0, 28.0, 40.0, 52.0, 64.0]:
-						var n1: Vector2 = pts[mid] + (Vector2(0, mag) if axis_h else Vector2(mag, 0))
-						var n2: Vector2 = pts[mid] + (Vector2(0, -mag) if axis_h else Vector2(-mag, 0))
-						var a_ok := _follow_world_ok(n1)
-						var b_ok := _follow_world_ok(n2)
-						var pick: Vector2 = n1
-						if a_ok and b_ok:
-							pick = n1 if n1.distance_to(raw_p) <= n2.distance_to(raw_p) else n2
-						elif a_ok:
-							pick = n1
-						elif b_ok:
-							pick = n2
-						else:
+					var axis_h := absf(pts[mini(i - 1, pts.size() - 1)].y - pts[run_start].y) < 2.6
+					var bumped: Vector2 = pts[mid].lerp(raw_p, 0.78)
+					if _follow_world_ok(bumped) and not _follow_same_axis(pts[mid], bumped):
+						pts[mid] = bumped
+					else:
+						var picked := false
+						for mag in [14.0, 22.0, 32.0, 44.0, 58.0, 72.0]:
+							var n1: Vector2 = pts[mid] + (Vector2(0, mag) if axis_h else Vector2(mag, 0))
+							var n2: Vector2 = pts[mid] + (Vector2(0, -mag) if axis_h else Vector2(-mag, 0))
+							var a_ok := _follow_world_ok(n1)
+							var b_ok := _follow_world_ok(n2)
+							var pick: Vector2 = n1
+							if a_ok and b_ok:
+								pick = n1 if n1.distance_to(raw_p) <= n2.distance_to(raw_p) else n2
+							elif a_ok:
+								pick = n1
+							elif b_ok:
+								pick = n2
+							else:
+								continue
+							if _follow_world_ok(pick) and not _follow_same_axis(pts[mid - 1], pick):
+								pts[mid] = _follow_snag_walkable(pick, pivot)
+								picked = true
+								break
+						if not picked:
+							var lift: Vector2 = _follow_snag_walkable(raw_p, pivot)
+							if _follow_world_ok(lift):
+								pts[mid] = lift
+				## Also bow the neighbors of a 3+ run so a leftover 2-seg wall dies.
+				if run_len >= 3:
+					for nb in [mid - 1, mid + 1]:
+						if nb <= 0 or nb >= pts.size() - 1:
 							continue
-						if _follow_world_ok(pick):
-							pts[mid] = _follow_snag_walkable(pick, pivot)
-							picked = true
-							break
-					if not picked:
-						var lift: Vector2 = _follow_snag_walkable(raw_p, pivot)
-						if _follow_world_ok(lift):
-							pts[mid] = lift
+						var nb_raw: Vector2 = raw[nb] if nb < raw.size() else pts[nb]
+						var nb_polar: Vector2 = _follow_polar(
+							pivot,
+							(nb_raw - pivot).angle() if nb_raw.distance_squared_to(pivot) >= 16.0 else 0.0,
+							maxf(nb_raw.distance_to(pivot), 12.0)
+						)
+						var nb_lift: Vector2 = _follow_lift_off_axis(pts[nb], pts[nb - 1], pts[nb + 1], nb_polar, pivot)
+						if _follow_world_ok(nb_lift) and not _follow_same_axis(pts[nb - 1], nb_lift):
+							pts[nb] = nb_lift
 		run_start = i
+	return pts
+
+
+func _follow_bow_wall_runs(pts: PackedVector2Array, raw: PackedVector2Array, pivot: Vector2) -> PackedVector2Array:
+	## Last pass: any interior sample still sharing an axis with both
+	## neighbors is a crate-face slide — bow it toward the polar.
+	if pts.size() < 4 or raw.size() != pts.size():
+		return pts
+	for i in range(1, pts.size() - 1):
+		if not (_follow_same_axis(pts[i - 1], pts[i]) and _follow_same_axis(pts[i], pts[i + 1])):
+			continue
+		var raw_p: Vector2 = raw[i]
+		var polar_p: Vector2 = _follow_polar(
+			pivot,
+			(raw_p - pivot).angle() if raw_p.distance_squared_to(pivot) >= 16.0 else 0.0,
+			maxf(raw_p.distance_to(pivot), 12.0)
+		)
+		var lifted: Vector2 = _follow_lift_off_axis(pts[i], pts[i - 1], pts[i + 1], polar_p, pivot)
+		if _follow_world_ok(lifted) and not (_follow_same_axis(pts[i - 1], lifted) and _follow_same_axis(lifted, pts[i + 1])):
+			pts[i] = lifted
 	return pts
 
 
@@ -8943,6 +9017,17 @@ func _clear_follow_dest_marks() -> void:
 		_clear_follow_dest_mark(int(k))
 
 
+func follow_cone_visual_fade() -> float:
+	var s := 1.0
+	var any := false
+	for op in operators:
+		if op == null or not op.has_method("cone_visual_fade"):
+			continue
+		any = true
+		s = minf(s, float(op.cone_visual_fade()))
+	return s if any else 1.0
+
+
 func follow_obs_visual_scale() -> float:
 	var s := 1.0
 	var any := false
@@ -8982,11 +9067,14 @@ func _apply_west_obs_scale() -> void:
 	var west := _follow_west_cluster()
 	var s := FOLLOW_WEST_OBS_SCALE if west else 1.0
 	var body_s := FOLLOW_WEST_BODY_SCALE if west else 1.0
+	var cone_s := FOLLOW_WEST_CONE_FADE if west else 1.0
 	for op in operators:
 		if op != null and op.has_method("set_obs_visual_scale"):
 			op.set_obs_visual_scale(s)
 		if op != null and op.has_method("set_cluster_visual_scale"):
 			op.set_cluster_visual_scale(body_s)
+		if op != null and op.has_method("set_cone_visual_fade"):
+			op.set_cone_visual_fade(cone_s)
 
 
 func _follow_slot_depth_for(lead: OperatorUnit, follower: OperatorUnit) -> int:
@@ -9150,7 +9238,7 @@ func _follow_ring_world(lead: OperatorUnit, follower: OperatorUnit) -> Vector2:
 	if absf(st) > 0.01:
 		w += side * st * FOLLOW_WEST_SLOT_EXTRA
 		## Along-file stagger so the two side bodies do not share one radius.
-		w += back * (12.0 if st > 0.0 else -10.0)
+		w += back * (14.0 if st > 0.0 else -12.0)
 	return w
 
 
@@ -9172,7 +9260,7 @@ func _follow_slot_world(lead: OperatorUnit, follower: OperatorUnit, cell: Vector
 		var back: Vector2 = _follow_facing_back(lead)
 		var side := Vector2(-back.y, back.x)
 		var st := float(_follow_slot_sign(lead, follower))
-		var away: Vector2 = back * 0.90 + side * st * 1.15
+		var away: Vector2 = back * 0.92 + side * st * 1.20
 		if away.length_squared() < 0.01:
 			mixed = center
 		else:
@@ -10048,6 +10136,7 @@ func dump_touch_feel() -> Dictionary:
 		"obs_r": follow_obs_visual_radius() if has_method("follow_obs_visual_radius") else 0.0,
 		"cam_squad_zoom": _cam_squad_zoom,
 		"cluster_scale": follow_cluster_body_scale() if has_method("follow_cluster_body_scale") else 1.0,
+		"cone_fade": follow_cone_visual_fade() if has_method("follow_cone_visual_fade") else 1.0,
 		"dest_world_spread": follow_dest_world_min_spacing() if has_method("follow_dest_world_min_spacing") else -1.0,
 		"arc_blocked": follow_arc_blocked_hits() if has_method("follow_arc_blocked_hits") else -1,
 		"body_arc": follow_body_arc_hits() if has_method("follow_body_arc_hits") else -1,

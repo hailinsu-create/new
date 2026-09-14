@@ -1,8 +1,8 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.19 phone feel: settle-on-ring after ↻,
-## bidirectional ↺/↻ swipe, west clearer scale/cam/stagger, compact 5-key
-## narrow pack, rounder multi-crate arcs (拧射界换格, 西巷三人跟上).
+## Forced-touch HUD stills for v0.5.20 phone feel: settle-on-ring after ↻,
+## bidirectional ↺/↻ swipe, west trio shrink + faded yellow cone, compact 5-key
+## narrow pack, bowed crate-cluster wall arcs (拧射界换格, 西巷三人跟上).
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
@@ -323,7 +323,8 @@ func _walk_west_combo_follow(main) -> void:
 		" rear=", int(main.follow_rear_ok_count()) if main.has_method("follow_rear_ok_count") else -1,
 		" queue=", int(main.follow_west_queue_hits()) if main.has_method("follow_west_queue_hits") else -1,
 		" dest_w_spread=", snapped(float(main.follow_dest_world_min_spacing()) if main.has_method("follow_dest_world_min_spacing") else -1.0, 0.1),
-		" cluster_scale=", snapped(float(main.follow_cluster_body_scale()) if main.has_method("follow_cluster_body_scale") else 1.0, 0.01)
+		" cluster_scale=", snapped(float(main.follow_cluster_body_scale()) if main.has_method("follow_cluster_body_scale") else 1.0, 0.01),
+		" cone_fade=", snapped(float(main.follow_cone_visual_fade()) if main.has_method("follow_cone_visual_fade") else 1.0, 0.01)
 	)
 	await _save("08_west_combo_follow")
 	if bool(a.follow_lead):
@@ -991,7 +992,9 @@ func _walk_west_rear(main) -> void:
 		" span=", int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else -1,
 		" zoom=", snapped(float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0, 0.01),
 		" obs_scale=", snapped(float(main.follow_obs_visual_scale()) if main.has_method("follow_obs_visual_scale") else 1.0, 0.01),
-		" obs_r=", snapped(float(main.follow_obs_visual_radius()) if main.has_method("follow_obs_visual_radius") else 0.0, 0.1)
+		" obs_r=", snapped(float(main.follow_obs_visual_radius()) if main.has_method("follow_obs_visual_radius") else 0.0, 0.1),
+		" cluster_scale=", snapped(float(main.follow_cluster_body_scale()) if main.has_method("follow_cluster_body_scale") else 1.0, 0.01),
+		" cone_fade=", snapped(float(main.follow_cone_visual_fade()) if main.has_method("follow_cone_visual_fade") else 1.0, 0.01)
 	)
 	_dump_feel(main, "west_rear")
 	await _save("08f_west_rear")
@@ -1383,6 +1386,7 @@ func _dump_feel(main, tag: String) -> void:
 		" obs_r=", snapped(float(f.get("obs_r", 0.0)), 0.1),
 		" cam_squad_zoom=", snapped(float(f.get("cam_squad_zoom", 1.0)), 0.01),
 		" cluster_scale=", snapped(float(f.get("cluster_scale", 1.0)), 0.01),
+		" cone_fade=", snapped(float(f.get("cone_fade", 1.0)), 0.01),
 		" dest_world_spread=", snapped(float(f.get("dest_world_spread", -1.0)), 0.1),
 		" arc_blocked=", f.get("arc_blocked", -1),
 		" body_arc=", f.get("body_arc", -1),

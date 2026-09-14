@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.5.20 — Phone feel: west cone fade, smaller trio, bowed crate-wall arc
+
+Sideload APK: `dist/AmbushLoop-v0.5.20-touch-slide.apk`  
+Release tag: `v0.5.20-touch-slide`
+
+Same RAID as 0.5.19 (`SCOUT → ALERT → SWEEP`, auto fire + auto nade). Phone default stays 简配夜袭.
+
+### Play (phone)
+- **西巷再收**: silhouettes shrink (~0.40), observation rings ~0.36, camera pullback ~0.44. Yellow cone *fill* fades (~0.38) in the west trio — gameplay cone / dest cells unchanged (span ≤1).
+- **复杂箱群弧**: wall-aligned snag runs bow off the crate face (axis-run 2 → 1 target). Samples stay walkable.
+- Forced-touch path covers settle-on-ring, bidirectional ↺/↻, west trio + faded cone, compact narrow pack, and bowed multi-crate arc.
+
+### Android
+- `versionName` 0.5.20 / `versionCode` 26 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title **v0.5.20 COMMANDOS/WW2**.
+2. Compact bar still stacks **匍匐** over **背包**; **↺ / ↻** sit next to **需枪**. Hold or swipe either way.
+3. West alley **跟**: bodies look smaller, yellow cone is fainter, they stand farther apart around the crate.
+
 ## 0.5.19 — Phone feel: west clearer, compact 5-key narrow pack, rounder crate-cluster arc
 
 Sideload APK: `dist/AmbushLoop-v0.5.19-touch-slide.apk`  

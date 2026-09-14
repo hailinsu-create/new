@@ -84,6 +84,7 @@ var shield_glyph: Polygon2D = null
 var _hp_pulse: float = 0.0
 var _shield_pulse: float = 0.0
 var _cone_plan_color: Color = Color(0.95, 0.75, 0.25, 0.30)
+var _cone_visual_mul: float = 1.0
 var _cover_lean: Vector2 = Vector2.ZERO
 var _outline_boost: bool = false
 var cone_edge: Line2D = null
@@ -521,7 +522,7 @@ func apply_stance_speed() -> void:
 		s *= 1.48
 	move_speed = s
 	if body:
-		var clus := clampf(_cluster_visual_scale, 0.42, 1.0)
+		var clus := clampf(_cluster_visual_scale, 0.34, 1.0)
 		var stance_s := Vector2(1.0, 0.86) if stance == Stance.CROUCH else Vector2.ONE
 		body.scale = stance_s * clus
 	_refresh_stance_glyph()
@@ -867,6 +868,10 @@ func _rebuild_cone() -> void:
 			hot.a = minf(hot.a + 0.08, 0.42)
 			cone.color = hot
 		cone.visible = true
+	if not locked:
+		var faded := cone.color
+		faded.a *= clampf(_cone_visual_mul, 0.22, 1.0)
+		cone.color = faded
 	_rebuild_cone_edge(pts)
 	if body:
 		body.rotation = deg_to_rad(facing_deg + 90.0)
@@ -1243,7 +1248,7 @@ func _apply_idle_bob() -> void:
 			var breath := 0.004 if _is_power_saving() else 0.016
 			var punch := 1.0 + _hit_punch * 0.16
 			var land := Vector2(1.0 + _land_pop * 0.22, 1.0 - _land_pop * 0.20)
-			var clus := clampf(_cluster_visual_scale, 0.42, 1.0)
+			var clus := clampf(_cluster_visual_scale, 0.34, 1.0)
 			body.scale = Vector2(punch, punch * (1.0 + sin(_present_t * 2.15 + float(op_id)) * breath)) * land * clus
 	if body_outline:
 		body_outline.position = Vector2(0.0, bob) + _recoil_off + _cover_lean
@@ -1719,7 +1724,7 @@ func _ensure_observation_visual() -> void:
 
 
 func observation_visual_radius() -> float:
-	return kit_range_px * clampf(obs_visual_scale, 0.35, 1.0)
+	return kit_range_px * clampf(obs_visual_scale, 0.28, 1.0)
 
 
 func observation_visual_scale() -> float:
@@ -1727,7 +1732,7 @@ func observation_visual_scale() -> float:
 
 
 func set_obs_visual_scale(s: float) -> void:
-	var ns := clampf(s, 0.35, 1.0)
+	var ns := clampf(s, 0.28, 1.0)
 	if absf(ns - obs_visual_scale) < 0.008:
 		return
 	obs_visual_scale = ns
@@ -1739,7 +1744,20 @@ func cluster_visual_scale() -> float:
 
 
 func set_cluster_visual_scale(s: float) -> void:
-	_cluster_visual_scale = clampf(s, 0.42, 1.0)
+	_cluster_visual_scale = clampf(s, 0.34, 1.0)
+
+
+func cone_visual_fade() -> float:
+	return _cone_visual_mul
+
+
+func set_cone_visual_fade(s: float) -> void:
+	var ns := clampf(s, 0.22, 1.0)
+	if absf(ns - _cone_visual_mul) < 0.008:
+		return
+	_cone_visual_mul = ns
+	if not locked:
+		_rebuild_cone()
 
 
 func _rebuild_observation_ring() -> void:
@@ -1956,6 +1974,11 @@ func _rebuild_cone_edge(pts: PackedVector2Array) -> void:
 		cone_edge.default_color = Color(0.72, 0.68, 0.22, 0.55 if hot else 0.38)
 	else:
 		cone_edge.default_color = Color(0.82, 0.68, 0.32, 0.82 if hot else 0.48)
+	if not locked:
+		var edge := cone_edge.default_color
+		## Keep the rim a bit more opaque than the fill so the cone stays readable.
+		edge.a *= maxf(clampf(_cone_visual_mul, 0.22, 1.0), 0.55)
+		cone_edge.default_color = edge
 
 
 func _ensure_sel_ring() -> void:
