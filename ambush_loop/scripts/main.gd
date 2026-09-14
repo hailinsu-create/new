@@ -38,17 +38,17 @@ const FOLLOW_SLOT_MIX := 0.42
 const FOLLOW_SLOT_INSET := 11.0
 const FOLLOW_WEST_SLOT_INSET := 24.0
 const FOLLOW_WEST_SLOT_EXTRA := 52.0
-const FOLLOW_CAM_WEST_ZOOM := 0.34
+const FOLLOW_CAM_WEST_ZOOM := 0.32
 const FOLLOW_CAM_WEST_CONE := 108.0
 const FOLLOW_CAM_WEST_PAN := 0.28
 const FOLLOW_CAM_FILE_ZOOM := 0.82
-const FOLLOW_WEST_OBS_SCALE := 0.28
-const FOLLOW_WEST_BODY_SCALE := 0.34
-const FOLLOW_WEST_OBS_OFFSET := 52.0
-const FOLLOW_WEST_OBS_SIDE := 28.0
-const FOLLOW_WEST_OBS_SLOT := 12.0
-const FOLLOW_WEST_OBS_COURTYARD := 22.0
-const FOLLOW_WEST_OBS_LEAD_MUL := 0.72
+const FOLLOW_WEST_OBS_SCALE := 0.24
+const FOLLOW_WEST_BODY_SCALE := 0.30
+const FOLLOW_WEST_OBS_OFFSET := 60.0
+const FOLLOW_WEST_OBS_SIDE := 36.0
+const FOLLOW_WEST_OBS_SLOT := 16.0
+const FOLLOW_WEST_OBS_COURTYARD := 30.0
+const FOLLOW_WEST_OBS_LEAD_MUL := 0.78
 const FOLLOW_WEST_CONE_FADE := 0.38
 const FLANK_WRAP_MIN_PTS := 4
 const PROGRESS_PATH := "user://ambush_loop.cfg"
@@ -1685,7 +1685,7 @@ func _ensure_game_camera() -> void:
 func _apply_cam() -> void:
 	_ensure_game_camera()
 	_cam_zoom = clampf(_cam_zoom, 0.72, 1.65)
-	_cam_squad_zoom = clampf(_cam_squad_zoom, 0.32, 1.0)
+	_cam_squad_zoom = clampf(_cam_squad_zoom, 0.30, 1.0)
 	var max_pan := 220.0 * _cam_zoom
 	_cam_pan.x = clampf(_cam_pan.x, -max_pan, max_pan)
 	_cam_pan.y = clampf(_cam_pan.y, -max_pan, max_pan)
@@ -9560,7 +9560,8 @@ func _apply_west_obs_scale() -> void:
 func _apply_west_obs_offset(west: bool) -> void:
 	## Visual observation-ring stagger. Dest cells stay; rings slide off the
 	## cluster centroid so the west trio + yellow cone read as three bodies.
-	## v0.5.28: one more along-file / courtyard step. No extra back (west-wall).
+	## v0.5.29: smaller bodies/rings + one more along-file / courtyard step.
+	## Camera pulls to ~0.32. No extra back (west-wall). Dest cells stay.
 	var centroid := Vector2.ZERO
 	var n := 0
 	if west and selected != null:

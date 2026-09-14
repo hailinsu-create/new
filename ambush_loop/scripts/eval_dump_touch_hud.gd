@@ -1,7 +1,7 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.28 phone feel: west trio dest kept
-## (span 3, no west-wall hug), observation-ring + camera one more
+## Forced-touch HUD stills for v0.5.29 phone feel: west trio dest kept
+## (span 3, no west-wall hug), smaller bodies/rings + camera one more
 ## along-file / courtyard step, south-corridor full path y=14 pulled
 ## into y≤13 (mid x≈21 included), settle-on-ring after ↻, bidirectional
 ## ↺/↻ swipe, faded yellow cone, compact 5-key, crate-cluster axis_run 0.

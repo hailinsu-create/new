@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.5.29 — Phone feel: west bodies/rings shrink + camera one more step
+
+Sideload APK: `dist/AmbushLoop-v0.5.29-touch-slide.apk`  
+Release tag: `v0.5.29-touch-slide`
+
+Same RAID as 0.5.28 (`SCOUT → ALERT → SWEEP`, auto fire + auto nade). Phone default stays 简配夜袭.
+
+### Play (phone)
+- **西巷人影 / 观察环 / 镜头**: dest cells kept from 0.5.25–0.5.28 — lead (7,12), first follower (6,9) three along-file (dx=1, not hugging the west wall), second (5,14). Span 3. No dest-cell stretch. Bodies shrink to ~0.30, observation rings ~0.24, rings offset one more along-file / courtyard step (~60px radial + side stagger, +30px east) so the trio + yellow cone read as three bodies even though they still sit on span-3 cells. Camera pulls to ~0.32. Yellow-cone fade kept.
+- **绕箱南走廊**: unchanged from 0.5.26–0.5.28. Full path y14=0 (mid x≈21 included), east overshoot 0, axis_run 0. Far-side bow sits on the y=13 rim (~15px; far-cap constant still 20).
+- Forced-touch path covers settle-on-ring, bidirectional ↺/↻, west trio + faded cone + dest span 3 + smaller bodies/rings + ring courtyard offset + camera 0.32, compact narrow pack, crate-face axis_run 0, and south-corridor **full path** y≤13.
+
+### Android
+- `versionName` 0.5.29 / `versionCode` 35 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title **v0.5.29 COMMANDOS/WW2**.
+2. Compact bar still stacks **匍匐** over **背包**; **↺ / ↻** sit next to **需枪**. Hold or swipe either way.
+3. West alley **跟**: dests still (7,12)/(6,9)/(5,14), span 3. Bodies and observation rings smaller than 0.5.28. Camera a step wider (~0.32). Yellow cone still faded. South-corridor crate arc still y≤13 at x≈21.
+
 ## 0.5.28 — Phone feel: west obs-ring + camera one more step
 
 Sideload APK: `dist/AmbushLoop-v0.5.28-touch-slide.apk`  
