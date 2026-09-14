@@ -2,7 +2,7 @@ extends CanvasLayer
 ## Phone command bar. Simplified night-raid rail: 3 portraits + crouch + bag +
 ## alarm CTA. World verbs live on context hotspots. ALERT is pause/speed/abort.
 
-const SETUP_RESIDENT := ["crouch", "bag", "alarm"]
+const SETUP_RESIDENT := ["crouch", "bag", "rotate_cw", "alarm"]
 const WATCH_RESIDENT := ["abort", "pause", "speed"]
 const PORTRAIT_INSET := 348
 
@@ -19,6 +19,7 @@ var _abort_armed: bool = false
 var _abort_msec: int = 0
 var _hold_cmd: String = ""
 var _hold_next_msec: int = 0
+var _hold_forced: bool = false
 const HOLD_FIRST_MS := 160
 const HOLD_REPEAT_MS := 110
 
@@ -63,7 +64,7 @@ func _count_visible_buttons(row: HBoxContainer) -> int:
 
 func _visible_cmds(row: HBoxContainer) -> PackedStringArray:
 	var out := PackedStringArray()
-	if row == null:
+	if row == null or not row.visible:
 		return out
 	for c in row.get_children():
 		if c is Button and c.visible:
@@ -87,7 +88,7 @@ func _process(_delta: float) -> void:
 			_btns["abort"].text = "中止"
 	if _hold_cmd != "":
 		var b: Button = _btns.get(_hold_cmd)
-		if b == null or b.disabled or not b.is_pressed():
+		if b == null or b.disabled or (not b.is_pressed() and not _hold_forced):
 			_hold_cmd = ""
 		else:
 			var now := Time.get_ticks_msec()
@@ -108,7 +109,7 @@ func _build() -> void:
 	_hint.add_theme_font_size_override("font_size", 13)
 	_hint.add_theme_color_override("font_color", NightOps.OLIVE_HI)
 	_hint.position = Vector2(12, 6)
-	_hint.text = "触控：点地走 · 短拖拖图 · 长按跑 · 近背面绕背 · 肖像角标跟上"
+	_hint.text = "触控：点地走 · 短拖拖图 · 长按跑 · 近背面绕背 · 肖像角标跟上 · 按住↻拧射界"
 	_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_hint)
 
@@ -168,6 +169,7 @@ func _build() -> void:
 	col.add_child(_row_setup)
 	_add(_row_setup, "crouch", "匍匐", Color(0.36, 0.48, 0.32), Vector2(96, 60))
 	_add(_row_setup, "bag", "背包", Color(0.48, 0.44, 0.28), Vector2(96, 60))
+	_add(_row_setup, "rotate_cw", "↻", Color(0.42, 0.58, 0.36), Vector2(80, 60))
 	_add_spacer(_row_setup)
 	_add(_row_setup, "alarm", "需枪", Color(0.72, 0.22, 0.18), Vector2(132, 64))
 	# Hidden: still wired so apply_touch_command / smoke keep working.
@@ -182,7 +184,6 @@ func _build() -> void:
 	_add(_row_setup, "pass", "递装", Color(0.42, 0.62, 0.48))
 	_add(_row_setup, "door", "门锁", Color(0.50, 0.42, 0.28))
 	_add(_row_setup, "rotate_ccw", "↺", Color(0.42, 0.58, 0.36))
-	_add(_row_setup, "rotate_cw", "↻", Color(0.42, 0.58, 0.36))
 	_add(_row_setup, "clear", "收回", Color(0.38, 0.40, 0.36))
 
 	_row_watch = HBoxContainer.new()
@@ -357,6 +358,18 @@ func _apply_safe_area() -> void:
 		_hint.position = Vector2(12.0 + left, 6.0)
 
 
+func simulate_hold_tick(cmd: String) -> void:
+	## Smoke / dump: one hold-repeat without a live pointer.
+	if not _btns.has(cmd):
+		return
+	_hold_cmd = cmd
+	_hold_forced = true
+	_hold_next_msec = Time.get_ticks_msec() - 1
+	_process(0.0)
+	_hold_forced = false
+	_hold_cmd = ""
+
+
 func set_hint(text: String) -> void:
 	if _hint:
 		_hint.text = text
@@ -392,7 +405,7 @@ func refresh_phase(
 		_row_watch.visible = phase_name != "SETUP" and phase_name != "SWEEP"
 	match phase_name:
 		"SETUP":
-			set_hint("点地走 · 短拖拖图 · 长按跑 · 近背面绕背/割喉 · 角标跟上 · 匍匐 · 拉警报")
+			set_hint("点地走 · 短拖拖图 · 长按跑 · 近背面绕背/割喉 · 角标跟上 · 匍匐 · 按住↻拧射界 · 拉警报")
 		"SWEEP":
 			set_hint("打扫：走近尸体热区搜刮/拖尸 → 背包换枪 → 下一波或撤离")
 		"WATCHING":

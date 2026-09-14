@@ -2,7 +2,8 @@
 
 Delivered build:
 
-- `AmbushLoop-v0.5.16-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: 15° ↻ dests ride the slot ring, west trio extra stagger/scale, arc samples snag onto walkable cells. Same RAID as 0.5.15.
+- `AmbushLoop-v0.5.17-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: follower bodies ride the slot ring, west shrink/half-cell stand, compact ↻ hold, rounder crate arcs. Same RAID as 0.5.16.
+- `AmbushLoop-v0.5.16-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: 15° ↻ dests ride the slot ring, west trio extra stagger/scale, arc samples snag onto walkable cells (superseded for phone feel).
 - `AmbushLoop-v0.5.15-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio observation rings shrink + camera ~0.54 hold, 90° dests slide on the facing-slot arc (superseded for phone feel).
 - `AmbushLoop-v0.5.14-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west 1-cell diagonal dests + camera holds pullback on the trio + cone, dests lerp toward interpolated slot points (superseded for phone feel).
 - `AmbushLoop-v0.5.13-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west-alley 1-cell stagger + camera pullback, dest hops slide (~0.2s) (superseded for phone feel).

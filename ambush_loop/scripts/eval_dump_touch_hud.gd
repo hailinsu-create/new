@@ -1,8 +1,8 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.16 phone feel: 15° ↻ dests ride the slot
-## ring, west trio extra stagger/scale, arc samples snag onto walkable cells
-## (拧射界换格, 西巷三人跟上).
+## Forced-touch HUD stills for v0.5.17 phone feel: follower bodies ride the
+## slot ring, west trio shrinks / half-cell stand, compact ↻ hold, rounder
+## crate-clamped arcs (拧射界换格, 西巷三人跟上).
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
@@ -1162,7 +1162,9 @@ func _walk_facing_turn(main) -> void:
 		" arc_on=", int(main.follow_dest_arc_active()) if main.has_method("follow_dest_arc_active") else -1,
 		" bow=", snapped(float(main.follow_dest_arc_bow(int(a.op_id))) if main.has_method("follow_dest_arc_bow") else -1.0, 0.1),
 		" w1=", main.follow_dest_world_of(int(a.op_id)) if main.has_method("follow_dest_world_of") else Vector2.ZERO,
-		" blocked=", int(main.follow_arc_blocked_hits()) if main.has_method("follow_arc_blocked_hits") else -1
+		" blocked=", int(main.follow_arc_blocked_hits()) if main.has_method("follow_arc_blocked_hits") else -1,
+		" body_arc=", int(main.follow_body_arc_hits()) if main.has_method("follow_body_arc_hits") else -1,
+		" path_n=", a.move_path.size() if a.is_moving() else 0
 	)
 	_dump_feel(main, "face_ring")
 	await _save("08k_face_ring")
@@ -1358,7 +1360,11 @@ func _dump_feel(main, tag: String) -> void:
 		" cam_squad_zoom=", snapped(float(f.get("cam_squad_zoom", 1.0)), 0.01),
 		" cluster_scale=", snapped(float(f.get("cluster_scale", 1.0)), 0.01),
 		" dest_world_spread=", snapped(float(f.get("dest_world_spread", -1.0)), 0.1),
-		" arc_blocked=", f.get("arc_blocked", -1)
+		" arc_blocked=", f.get("arc_blocked", -1),
+		" body_arc=", f.get("body_arc", -1),
+		" body_spread=", snapped(float(f.get("body_spread", -1.0)), 0.1),
+		" body_inset=", snapped(float(f.get("body_inset", -1.0)), 0.1),
+		" setup_cmds=", " ".join(f.get("setup_cmds", PackedStringArray()))
 	)
 
 
@@ -1392,10 +1398,14 @@ func _count_chrome(main, tag: String) -> void:
 	var cards := "?"
 	if main.get("role_box") != null:
 		cards = str(main.role_box.visible)
+	var setup_cmds := ""
+	if main.touch_hud and main.touch_hud.has_method("setup_visible_cmds"):
+		setup_cmds = " ".join(main.touch_hud.setup_visible_cmds())
 	print(
 		"DUMP_CHROME tag=", tag,
 		" phase=", (main.phase_id() if main.has_method("phase_id") else main.phase),
 		" setup_btns=", n,
+		" setup_cmds=", setup_cmds,
 		" watch_btns=", w,
 		" portraits=", portraits_on,
 		" portrait_y=", snapped(portrait_y, 0.1),

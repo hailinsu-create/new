@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.5.17 — Phone feel: follower bodies ride the slot ring, west shrink/half-cell, compact ↻, rounder crate arc
+
+Sideload APK: `dist/AmbushLoop-v0.5.17-touch-slide.apk`  
+Release tag: `v0.5.17-touch-slide`
+
+Same RAID as 0.5.16 (`SCOUT → ALERT → SWEEP`, auto fire + auto nade). Phone default stays 简配夜袭.
+
+### Play (phone)
+- **跟班身体沿环**: while tapping or holding ↻, follower *bodies* polar-slide on the facing-slot ring. Dest cells stay discrete (span≤1); the bodies no longer grid-walk the hop.
+- **西巷三人**: silhouettes shrink (~0.66) and dest worlds sit a half-cell further on the side so the three bodies overlap less. Dest cells still span ≤1.
+- **简配底栏 ↻**: compact night-raid SETUP shows 匍匐 / 背包 / ↻ / 需枪. Hold ↻ repeats so the file keeps sliding on the ring (not only the full desktop rail).
+- **绕箱圆弧**: crate clamps search radially / by angle first, so the path stays bowed instead of sliding flat along the crate face.
+- Forced-touch path covers body ring, west scale/half-cell, compact ↻ hold, and rounder walkable arc.
+
+### Android
+- `versionName` 0.5.17 / `versionCode` 23 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title **v0.5.17 COMMANDOS/WW2**.
+2. Compact bar shows **↻** next to 背包. Hold it: followers slide around the lead.
+3. West alley **跟**: bodies look smaller and stand off cell centers around the crate.
+
 ## 0.5.16 — Phone feel: 15° ↻ dests ride the slot ring, west stagger/scale, walkable arc
 
 Sideload APK: `dist/AmbushLoop-v0.5.16-touch-slide.apk`  
