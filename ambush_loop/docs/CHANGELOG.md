@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.5.36 — Phone feel: leftover zoom caps relaxed + west camera 0.36
+
+Sideload APK: `dist/AmbushLoop-v0.5.36-touch-slide.apk`  
+Release tag: `v0.5.36-touch-slide`
+
+Same RAID as 0.5.35 (`SCOUT → ALERT → SWEEP`, auto fire + auto nade). Phone default stays 简配夜袭.
+
+### Play (phone)
+- **西巷落点**: leftover smoke zoom caps that failed above 0.34 are relaxed so the west-squad camera can sit at ~0.36. Dest cells stay lead (7,12), first (6,7) five along-file (dx=1, not hugging the west wall), second (5,16) two back / four the other way. Span 5. West-follow dest world still clamps onto walkable floor (detour ≤6). Bodies and observation rings stay on the visual floor (~0.16). Rings keep the courtyard / along-file offset. Yellow-cone fade kept. Gameplay cone / ambush / RAID rules unchanged.
+- **绕箱南走廊**: unchanged from 0.5.26–0.5.35. Full path y14=0 (mid x≈21 included), east overshoot 0, axis_run 0. Far-side bow sits on the y=13 rim (~15px; far-cap constant still 20).
+- Forced-touch path covers settle-on-ring, bidirectional ↺/↻, west trio + faded cone + dest (6,7)/(5,16) + detour ≤6 + floor bodies/rings + ring extra cut + camera 0.36, compact narrow pack, crate-face axis_run 0, and south-corridor **full path** y≤13. 0536 pack is slim so the suite finishes without a 10-minute cut.
+
+### Android
+- `versionName` 0.5.36 / `versionCode` 42 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title **v0.5.36 COMMANDOS/WW2**.
+2. Compact bar still stacks **匍匐** over **背包**; **↺ / ↻** sit next to **需枪**. Hold or swipe either way.
+3. West alley **跟**: dests (7,12)/(6,7)/(5,16), span 5. On-ring extra ~44 side / ~8–12 back. Bodies and observation rings at the ~0.16 visual floor. Camera at ~0.36. Yellow cone still faded. South-corridor crate arc still y≤13 at x≈21.
+
 ## 0.5.35 — Phone feel: #2 dest (5,16) + west-follow detour ≤6
 
 Sideload APK: `dist/AmbushLoop-v0.5.35-touch-slide.apk`  

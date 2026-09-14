@@ -42,7 +42,7 @@ const FOLLOW_WEST_SLOT_EXTRA := 52.0
 ## shoved #2 through the west wall. Dest-cell extra stays; ring extra is smaller.
 const FOLLOW_WEST_RING_EXTRA := 44.0
 const FOLLOW_WEST_RING_BACK := 8.0
-const FOLLOW_CAM_WEST_ZOOM := 0.32
+const FOLLOW_CAM_WEST_ZOOM := 0.36
 const FOLLOW_CAM_WEST_CONE := 108.0
 const FOLLOW_CAM_WEST_PAN := 0.28
 const FOLLOW_CAM_FILE_ZOOM := 0.82
@@ -1689,7 +1689,7 @@ func _ensure_game_camera() -> void:
 func _apply_cam() -> void:
 	_ensure_game_camera()
 	_cam_zoom = clampf(_cam_zoom, 0.72, 1.65)
-	_cam_squad_zoom = clampf(_cam_squad_zoom, 0.32, 1.0)
+	_cam_squad_zoom = clampf(_cam_squad_zoom, FOLLOW_CAM_WEST_ZOOM, 1.0)
 	var max_pan := 220.0 * _cam_zoom
 	_cam_pan.x = clampf(_cam_pan.x, -max_pan, max_pan)
 	_cam_pan.y = clampf(_cam_pan.y, -max_pan, max_pan)
@@ -9602,10 +9602,11 @@ func _apply_west_obs_scale() -> void:
 func _apply_west_obs_offset(west: bool) -> void:
 	## Visual observation-ring stagger. Dest cells stay; rings slide off the
 	## cluster centroid so the west trio + yellow cone read as three bodies.
-	## v0.5.35: dest cells (6,7)/(5,16) span 5. #2 stands one cell further
-	## south. Dest world clamps onto walkable floor so the south wall does
-	## not wrap a courtyard detour. Camera ~0.32. Bodies/rings stay on the
-	## visual floor (~0.16). Rings keep the courtyard / along-file offset.
+	## v0.5.36: dest cells (6,7)/(5,16) span 5. #2 stays off the south wall.
+	## Dest world clamps onto walkable floor so the south wall does not wrap
+	## a courtyard detour. Camera ~0.36 (leftover z>0.34 caps relaxed).
+	## Bodies/rings stay on the visual floor (~0.16). Rings keep the
+	## courtyard / along-file offset.
 	var centroid := Vector2.ZERO
 	var n := 0
 	if west and selected != null:
@@ -11261,7 +11262,7 @@ func follow_west_queue_hits() -> int:
 
 
 func follow_west_lead_span() -> int:
-	## Max Chebyshev from the lead to a follow dest. v0.5.35 west file is ≤5:
+	## Max Chebyshev from the lead to a follow dest. v0.5.36 west file is ≤5:
 	## first follower is 5 along-file, second 2 back / 4 the other way.
 	if selected == null or grid == null:
 		return 99
