@@ -2,7 +2,8 @@
 
 Delivered build:
 
-- `AmbushLoop-v0.5.27-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest (6,9)/(5,14) span 3 kept, observation-ring courtyard/along-file offset, south-corridor full path y≤13 (mid x≈21 included), compact 5-key. Same RAID as 0.5.26.
+- `AmbushLoop-v0.5.28-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest (6,9)/(5,14) span 3 kept, observation-ring + camera one more courtyard/along-file step, south-corridor full path y≤13 (mid x≈21 included), compact 5-key. Same RAID as 0.5.27.
+- `AmbushLoop-v0.5.27-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest (6,9)/(5,14) span 3 kept, observation-ring courtyard/along-file offset, south-corridor full path y≤13 (mid x≈21 included), compact 5-key (superseded for phone feel). Same RAID as 0.5.26.
 - `AmbushLoop-v0.5.26-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest (6,9)/(5,14) span 3, south-corridor full path y≤13 (mid x≈21 included), compact 5-key (superseded for phone feel). Same RAID as 0.5.25.
 - `AmbushLoop-v0.5.25-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest restagger (6,9)/(5,14) span 3, south-corridor east-end y≤13, compact 5-key (superseded for phone feel). Same RAID as 0.5.24.
 - `AmbushLoop-v0.5.24-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio camera pull + observation-ring world offset (dest cells unchanged), south-corridor far-side bow toward ~20px, compact 5-key (superseded for phone feel). Same RAID as 0.5.23.
