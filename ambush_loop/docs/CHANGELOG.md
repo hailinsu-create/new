@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.5.25 — Phone feel: west dest restagger, south-corridor y=14 gone
+
+Sideload APK: `dist/AmbushLoop-v0.5.25-touch-slide.apk`  
+Release tag: `v0.5.25-touch-slide`
+
+Same RAID as 0.5.24 (`SCOUT → ALERT → SWEEP`, auto fire + auto nade). Phone default stays 简配夜袭.
+
+### Play (phone)
+- **西巷落点**: dest cells restaggered so the trio is less sticky. Lead (7,12), first follower (6,9) three along-file (dx=1, not hugging the west wall), second (5,14) two back / two the other way. Span 3. Gameplay cone / ambush / RAID rules unchanged. Camera 0.36 / obs offset / body 0.34 / obs 0.28 / yellow-cone fade kept.
+- **绕箱南走廊**: remaining east-end y=14 sample pulled into y≤13. Far-side bow still ~20px, walkable, axis_run 0, east overshoot 0. Large crate-cluster bows not flattened.
+- Forced-touch path covers settle-on-ring, bidirectional ↺/↻, west trio + faded cone + dest restagger, compact narrow pack, crate-face axis_run 0, and south-corridor y≤13.
+
+### Android
+- `versionName` 0.5.25 / `versionCode` 31 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title **v0.5.25 COMMANDOS/WW2**.
+2. Compact bar still stacks **匍匐** over **背包**; **↺ / ↻** sit next to **需枪**. Hold or swipe either way.
+3. West alley **跟**: first follower stands a cell further along the file than 0.5.24; dests are (7,12)/(6,9)/(5,14). Yellow cone still faded.
+
 ## 0.5.24 — Phone feel: west camera/ring offset, south-corridor bow ~20px
 
 Sideload APK: `dist/AmbushLoop-v0.5.24-touch-slide.apk`  

@@ -1,8 +1,7 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.24 phone feel: west trio camera pull +
-## observation-ring world offset (dest cells unchanged), south-corridor
-## far-side bow toward ~20px, first west follower out of the 1-cell pocket,
+## Forced-touch HUD stills for v0.5.25 phone feel: west trio dest restagger
+## (span 3, no west-wall hug), south-corridor east-end y=14 pulled into y≤13,
 ## settle-on-ring after ↻, bidirectional ↺/↻ swipe, faded yellow cone,
 ## compact 5-key, crate-cluster axis_run 0.
 
