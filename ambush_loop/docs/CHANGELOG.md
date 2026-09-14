@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.5.11 — Phone feel: west-alley rear file, 射界 twist turns the file, 跟 chip up
+
+Sideload APK: `dist/AmbushLoop-v0.5.11-touch-form.apk`  
+Release tag: `v0.5.11-touch-form`
+
+Same RAID as 0.5.10 (`SCOUT → ALERT → SWEEP`, auto fire + auto nade). Phone default stays 简配夜袭.
+
+### Play (phone)
+- **西巷跟上** dests sit behind the lead with a 1-cell left/right stagger. They no longer stretch into a north-south alley queue on the lead's column.
+- Lead **only twists 射界** (A/D / ↺↻): the follow file turns with the cone. Walking still files behind the march; a stop without a twist still freezes the land cell.
+- **跟** chip sits slightly proud of the portrait top-right (34×18). Gun stamp and number stay pick; they do not toggle 跟.
+- Forced-touch path covers west rear file, 射界 twist, badge hit partitions, and 西匣开匣 → 绕背 → 三人跟上.
+
+### Android
+- `versionName` 0.5.11 / `versionCode` 17 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title **v0.5.11 COMMANDOS/WW2**.
+2. In the west alley, tap **跟** on both: dests sit west of an east-facing lead, staggered, not stacked down the alley.
+3. Stand still and twist 射界 90°: followers walk to the new rear. Portrait **跟** sits on the top-right corner; gun/number taps still select.
+
 ## 0.5.10 — Phone feel: follow files behind the lead, stop land freezes, 跟 probes
 
 Sideload APK: `dist/AmbushLoop-v0.5.10-touch-rear.apk`  

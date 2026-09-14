@@ -19,15 +19,19 @@ var _hold_fired: bool = false
 var _ignore_pick: bool = false
 var _press_follow: bool = false
 const LONG_MS := 350
-const FOLLOW_CHIP := Vector2(30, 16)
+const FOLLOW_CHIP := Vector2(34, 18)
 const FOLLOW_PAD := 0.0
+const FOLLOW_POS := Vector2(68, -3)
+const FOLLOW_HIT_MAX_Y := 20.0
 
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	clip_contents = false
 	custom_minimum_size = Vector2(320, 108)
 	var row := HBoxContainer.new()
 	row.name = "Row"
+	row.clip_contents = false
 	row.add_theme_constant_override("separation", 8)
 	row.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(row)
@@ -35,6 +39,7 @@ func _ready() -> void:
 		var b := Button.new()
 		b.custom_minimum_size = Vector2(104, 108)
 		b.focus_mode = Control.FOCUS_NONE
+		b.clip_contents = false
 		b.theme = NightOps.theme()
 		var idx := i
 		b.gui_input.connect(func(ev: InputEvent) -> void:
@@ -114,7 +119,7 @@ func _ready() -> void:
 		b.add_child(st)
 		var fol := Panel.new()
 		fol.name = "Follow"
-		fol.position = Vector2(72, 2)
+		fol.position = FOLLOW_POS
 		fol.size = FOLLOW_CHIP
 		fol.custom_minimum_size = FOLLOW_CHIP
 		fol.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -125,9 +130,9 @@ func _ready() -> void:
 		cap.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		cap.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		cap.add_theme_font_size_override("font_size", 11)
+		cap.add_theme_font_size_override("font_size", 12)
 		cap.add_theme_font_override("font", NightOps.ui_font_bold())
-		cap.add_theme_color_override("font_color", Color(0.82, 0.78, 0.58))
+		cap.add_theme_color_override("font_color", Color(0.88, 0.84, 0.62))
 		cap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		fol.add_child(cap)
 		b.add_child(fol)
@@ -157,14 +162,24 @@ func follow_hit_rect(idx: int) -> Rect2:
 	if badge.size.x < 1.0:
 		return Rect2()
 	var card: Rect2 = card_global_rect(idx)
-	## Exact chip, top-right only. Glyph / name / HP / gun / stance stay pick.
+	## Top-right tab, slightly proud of the card. Glyph / name / HP / gun /
+	## number / stance stay pick. Hit never reaches the gun stamp (~y+34).
 	var zone := Rect2(
-		Vector2(card.position.x + card.size.x * 0.68, card.position.y),
-		Vector2(card.size.x * 0.32, 18.0)
+		Vector2(card.position.x + card.size.x * 0.64, card.position.y - 8.0),
+		Vector2(card.size.x * 0.38, 28.0)
 	)
 	var hit: Rect2 = badge.intersection(zone)
 	if FOLLOW_PAD > 0.0 and hit.size.x > 1.0:
 		hit = hit.grow(FOLLOW_PAD).intersection(zone)
+	var max_y: float = card.position.y + FOLLOW_HIT_MAX_Y
+	if hit.size.y > 0.0 and hit.position.y + hit.size.y > max_y:
+		hit.size.y = maxf(0.0, max_y - hit.position.y)
+	var gun: Rect2 = portrait_gun_rect(idx)
+	if gun.size.x > 1.0 and hit.intersects(gun):
+		hit.size.y = maxf(0.0, gun.position.y - hit.position.y)
+	var num: Rect2 = portrait_num_rect(idx)
+	if num.size.x > 1.0 and hit.intersects(num):
+		hit.size.y = maxf(0.0, num.position.y - hit.position.y)
 	return hit
 
 
@@ -174,6 +189,24 @@ func portrait_body_rect(idx: int) -> Rect2:
 		return Rect2()
 	## Identity block under the chip: glyph, name, HP. Off the 跟 corner.
 	return Rect2(card.position + Vector2(4, 28), Vector2(card.size.x * 0.58, card.size.y - 32.0))
+
+
+func portrait_gun_rect(idx: int) -> Rect2:
+	if idx < 0 or idx >= _cards.size() or _cards[idx] == null:
+		return Rect2()
+	var gun: Control = (_cards[idx] as Control).get_node_or_null("Gun")
+	if gun == null:
+		return Rect2()
+	return gun.get_global_rect()
+
+
+func portrait_num_rect(idx: int) -> Rect2:
+	if idx < 0 or idx >= _cards.size() or _cards[idx] == null:
+		return Rect2()
+	var num: Control = (_cards[idx] as Control).get_node_or_null("Num")
+	if num == null:
+		return Rect2()
+	return num.get_global_rect()
 
 
 func portrait_probe_points(idx: int) -> Dictionary:
@@ -188,6 +221,8 @@ func portrait_probe_points(idx: int) -> Dictionary:
 		"stance": card.position + Vector2(82, 56),
 		"gun": card.position + Vector2(68, 43),
 		"num": card.position + Vector2(16, 86),
+		"gun_stamp": (portrait_gun_rect(idx).get_center() if portrait_gun_rect(idx).size.x > 1.0 else card.position + Vector2(68, 43)),
+		"number": (portrait_num_rect(idx).get_center() if portrait_num_rect(idx).size.x > 1.0 else card.position + Vector2(16, 86)),
 		"top_left": card.position + Vector2(18, 14),
 		"below_chip": card.position + Vector2(86, 36),
 		"just_below_chip": card.position + Vector2(86, 24),
@@ -295,10 +330,10 @@ func bind_ops(ops: Array, selected: Node, command_phase: bool) -> void:
 			var phone := _phone_strip()
 			fol.visible = phone and command_phase and op.alive and not sel
 			var on_follow: bool = op.get("follow_lead") != null and bool(op.follow_lead)
-			fol.modulate = Color(1.18, 1.10, 0.72) if on_follow else Color.WHITE
-			var fbg := Color(0.18, 0.16, 0.08, 0.95) if on_follow else Color(0.08, 0.08, 0.06, 0.92)
-			var fbd := Color(0.86, 0.72, 0.38, 0.95) if on_follow else Color(0.50, 0.46, 0.32, 0.8)
-			fol.add_theme_stylebox_override("panel", NightOps.flat(fbg, fbd, 1, 6, 3))
+			fol.modulate = Color(1.22, 1.12, 0.74) if on_follow else Color(1.06, 1.04, 0.96)
+			var fbg := Color(0.22, 0.18, 0.08, 0.96) if on_follow else Color(0.10, 0.09, 0.06, 0.94)
+			var fbd := Color(0.92, 0.78, 0.40, 0.98) if on_follow else Color(0.62, 0.56, 0.36, 0.92)
+			fol.add_theme_stylebox_override("panel", NightOps.flat(fbg, fbd, 1, 6, 4))
 			var cap: Label = fol.get_node_or_null("Cap") as Label
 			if cap:
 				cap.text = "跟上" if on_follow else "跟"

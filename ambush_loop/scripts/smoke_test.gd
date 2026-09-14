@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.5.10":
+	if ver != "0.5.11":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3406,6 +3406,8 @@ func _assert_simplified_touch(main) -> bool:
 		return false
 	if not await _assert_touch_feel_0510(main):
 		return false
+	if not await _assert_touch_feel_0511(main):
+		return false
 	return true
 
 
@@ -4047,6 +4049,27 @@ func _assert_touch_feel_0510(main) -> bool:
 	return true
 
 
+func _assert_touch_feel_0511(main) -> bool:
+	## West-alley rear file (not a north-south queue), 射界 twist turns
+	## the file, 跟 chip sits higher without eating gun/number, forced touch.
+	main._ensure_touch_hud()
+	main._update_hud()
+	await process_frame
+	await process_frame
+	if not await _assert_west_follow_queue(main):
+		return false
+	if not await _assert_west_follow_rear(main):
+		return false
+	if not await _assert_follow_facing_turn(main):
+		return false
+	if not await _assert_follow_badge_hit(main):
+		return false
+	if not await _assert_west_combo_touch(main):
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_0511")
+	return true
+
+
 func _dest_is_rear(main, dest: Vector2i, lead) -> bool:
 	if dest.x < 0 or lead == null:
 		return false
@@ -4146,6 +4169,202 @@ func _assert_follow_behind_stagger(main) -> bool:
 		quit(44)
 		return false
 	print("SMOKE_OK_FOLLOW_BEHIND d1=", end_d1, " d2=", end_d2, " lead=", lead.grid_cell())
+	if bool(a.follow_lead) != flags[0]:
+		main.toggle_follow(1)
+	if bool(b.follow_lead) != flags[1]:
+		main.toggle_follow(2)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	lead.global_position = homes[0]
+	a.global_position = homes[1]
+	b.global_position = homes[2]
+	main._follow_dest.clear()
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	return true
+
+
+func _assert_west_follow_rear(main) -> bool:
+	## Same west alley as the queue test, but dests must stay behind the
+	## east-facing lead (left/right stagger), not file down the alley column.
+	if main.operators.size() < 3 or main.grid == null:
+		push_error("SMOKE_WEST_REAR_NO_OPS")
+		quit(44)
+		return false
+	var lead: OperatorUnit = main.operators[0]
+	var a: OperatorUnit = main.operators[1]
+	var b: OperatorUnit = main.operators[2]
+	var homes: Array[Vector2] = [lead.global_position, a.global_position, b.global_position]
+	var flags: Array[bool] = [bool(a.follow_lead), bool(b.follow_lead)]
+	if main.c2 and not main.c2.sentries.is_empty():
+		_park_sentries(main, null)
+	var lead_c := Vector2i(7, 12)
+	var a_c := Vector2i(6, 14)
+	var b_c := Vector2i(6, 16)
+	if main.grid.is_blocked(lead_c.x, lead_c.y) or main._cell_is_operable(lead_c):
+		lead_c = Vector2i(7, 13)
+	if main.grid.is_blocked(a_c.x, a_c.y):
+		a_c = Vector2i(5, 14)
+	if main.grid.is_blocked(b_c.x, b_c.y):
+		b_c = Vector2i(5, 16)
+	main._select_op(0)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	if lead.has_method("set_facing"):
+		lead.set_facing(0.0)
+	else:
+		lead.facing_deg = 0.0
+		if lead.has_method("_rebuild_cone"):
+			lead._rebuild_cone()
+	lead.global_position = main.grid.cell_to_world_center(lead_c)
+	a.global_position = main.grid.cell_to_world_center(a_c)
+	b.global_position = main.grid.cell_to_world_center(b_c)
+	main._stealth_avoid_cache.clear()
+	main._stealth_avoid_msec = 0
+	if not bool(a.follow_lead):
+		main.toggle_follow(1)
+	if not bool(b.follow_lead):
+		main.toggle_follow(2)
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	main._tick_squad_follow()
+	await _tick_follow_steps(main, 24)
+	var d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+	var d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+	if d1.x < 0 or d2.x < 0 or d1 == d2:
+		push_error("SMOKE_WEST_REAR_DEST d1=%s d2=%s" % [d1, d2])
+		quit(44)
+		return false
+	if d1.x > 10 or d2.x > 10:
+		push_error("SMOKE_WEST_REAR_WRAP d1=%s d2=%s" % [d1, d2])
+		quit(44)
+		return false
+	if d1.x == lead.grid_cell().x or d2.x == lead.grid_cell().x:
+		push_error("SMOKE_WEST_REAR_COLUMN d1=%s d2=%s lead=%s" % [d1, d2, lead.grid_cell()])
+		quit(44)
+		return false
+	if not _dest_is_rear(main, d1, lead) or not _dest_is_rear(main, d2, lead):
+		push_error("SMOKE_WEST_REAR_SIDE d1=%s d2=%s lead=%s" % [d1, d2, lead.grid_cell()])
+		quit(44)
+		return false
+	if absi(d1.y - lead.grid_cell().y) > 2 or absi(d2.y - lead.grid_cell().y) > 2:
+		push_error("SMOKE_WEST_REAR_STRETCH d1=%s d2=%s lead=%s" % [d1, d2, lead.grid_cell()])
+		quit(44)
+		return false
+	print("SMOKE_OK_WEST_FOLLOW_REAR d1=", d1, " d2=", d2, " lead=", lead.grid_cell())
+	if bool(a.follow_lead) != flags[0]:
+		main.toggle_follow(1)
+	if bool(b.follow_lead) != flags[1]:
+		main.toggle_follow(2)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	lead.global_position = homes[0]
+	a.global_position = homes[1]
+	b.global_position = homes[2]
+	main._follow_dest.clear()
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	return true
+
+
+func _assert_follow_facing_turn(main) -> bool:
+	## Lead stands still and only twists 射界: followers re-file behind the cone.
+	if main.operators.size() < 3 or main.grid == null:
+		push_error("SMOKE_FACE_TURN_NO_OPS")
+		quit(44)
+		return false
+	var lead: OperatorUnit = main.operators[0]
+	var a: OperatorUnit = main.operators[1]
+	var b: OperatorUnit = main.operators[2]
+	var homes: Array[Vector2] = [lead.global_position, a.global_position, b.global_position]
+	var flags: Array[bool] = [bool(a.follow_lead), bool(b.follow_lead)]
+	if main.c2 and not main.c2.sentries.is_empty():
+		_park_sentries(main, null)
+	var lead_c := Vector2i(13, 13)
+	var a_c := Vector2i(11, 16)
+	var b_c := Vector2i(12, 17)
+	if main.grid.is_blocked(lead_c.x, lead_c.y) or main._cell_is_operable(lead_c):
+		lead_c = Vector2i(14, 13)
+	if main.grid.is_blocked(a_c.x, a_c.y):
+		a_c = Vector2i(10, 16)
+	if main.grid.is_blocked(b_c.x, b_c.y):
+		b_c = Vector2i(11, 17)
+	main._select_op(0)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	if lead.has_method("set_facing"):
+		lead.set_facing(0.0)
+	else:
+		lead.facing_deg = 0.0
+		if lead.has_method("_rebuild_cone"):
+			lead._rebuild_cone()
+	lead.global_position = main.grid.cell_to_world_center(lead_c)
+	a.global_position = main.grid.cell_to_world_center(a_c)
+	b.global_position = main.grid.cell_to_world_center(b_c)
+	main._stealth_avoid_cache.clear()
+	main._stealth_avoid_msec = 0
+	if not bool(a.follow_lead):
+		main.toggle_follow(1)
+	if not bool(b.follow_lead):
+		main.toggle_follow(2)
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	main._tick_squad_follow()
+	await _tick_follow_steps(main, 20)
+	var east_d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+	var east_d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+	if east_d1.x < 0 or east_d2.x < 0 or east_d1 == east_d2:
+		push_error("SMOKE_FACE_TURN_EAST_DEST d1=%s d2=%s" % [east_d1, east_d2])
+		quit(44)
+		return false
+	if not _dest_is_rear(main, east_d1, lead) or not _dest_is_rear(main, east_d2, lead):
+		push_error("SMOKE_FACE_TURN_EAST_SIDE d1=%s d2=%s lead=%s" % [east_d1, east_d2, lead.grid_cell()])
+		quit(44)
+		return false
+	if east_d1.x >= lead.grid_cell().x and east_d2.x >= lead.grid_cell().x:
+		push_error("SMOKE_FACE_TURN_EAST_NOT_WEST d1=%s d2=%s lead=%s" % [east_d1, east_d2, lead.grid_cell()])
+		quit(44)
+		return false
+	a.stop_move()
+	b.stop_move()
+	if lead.has_method("set_facing"):
+		lead.set_facing(90.0)
+	else:
+		lead.facing_deg = 90.0
+		if lead.has_method("_rebuild_cone"):
+			lead._rebuild_cone()
+	main._stealth_avoid_cache.clear()
+	main._stealth_avoid_msec = 0
+	main._tick_squad_follow()
+	await _tick_follow_steps(main, 24)
+	var south_d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+	var south_d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+	if south_d1.x < 0 or south_d2.x < 0 or south_d1 == south_d2:
+		push_error("SMOKE_FACE_TURN_SOUTH_DEST d1=%s d2=%s" % [south_d1, south_d2])
+		quit(44)
+		return false
+	if south_d1 == east_d1 and south_d2 == east_d2:
+		push_error("SMOKE_FACE_TURN_STUCK east=%s %s south=%s %s" % [east_d1, east_d2, south_d1, south_d2])
+		quit(44)
+		return false
+	if not _dest_is_rear(main, south_d1, lead) or not _dest_is_rear(main, south_d2, lead):
+		push_error("SMOKE_FACE_TURN_SOUTH_SIDE d1=%s d2=%s lead=%s face=%s" % [
+			south_d1, south_d2, lead.grid_cell(), lead.facing_deg
+		])
+		quit(44)
+		return false
+	if south_d1.y >= lead.grid_cell().y and south_d2.y >= lead.grid_cell().y:
+		push_error("SMOKE_FACE_TURN_SOUTH_NOT_NORTH d1=%s d2=%s lead=%s" % [south_d1, south_d2, lead.grid_cell()])
+		quit(44)
+		return false
+	print(
+		"SMOKE_OK_FOLLOW_FACING_TURN east=", east_d1, east_d2,
+		" south=", south_d1, south_d2, " lead=", lead.grid_cell()
+	)
 	if bool(a.follow_lead) != flags[0]:
 		main.toggle_follow(1)
 	if bool(b.follow_lead) != flags[1]:
@@ -4863,6 +5082,26 @@ func _assert_follow_badge_hit(main) -> bool:
 		push_error("SMOKE_BADGE_OFF_CARD hit=%s card=%s" % [hit, card])
 		quit(44)
 		return false
+	if hit.position.y > card.position.y + 1.0:
+		push_error("SMOKE_BADGE_NOT_RAISED hit=%s card=%s" % [hit, card])
+		quit(44)
+		return false
+	if hit.position.y + hit.size.y > card.position.y + 24.0:
+		push_error("SMOKE_BADGE_EATS_GUN_BAND hit=%s card=%s" % [hit, card])
+		quit(44)
+		return false
+	if strip.has_method("portrait_gun_rect"):
+		var gun_r: Rect2 = strip.portrait_gun_rect(1)
+		if gun_r.size.x > 1.0 and hit.intersects(gun_r):
+			push_error("SMOKE_BADGE_GUN_HIT hit=%s gun=%s" % [hit, gun_r])
+			quit(44)
+			return false
+	if strip.has_method("portrait_num_rect"):
+		var num_r: Rect2 = strip.portrait_num_rect(1)
+		if num_r.size.x > 1.0 and hit.intersects(num_r):
+			push_error("SMOKE_BADGE_NUM_HIT hit=%s num=%s" % [hit, num_r])
+			quit(44)
+			return false
 	var ht: Dictionary = strip.hit_test_at(hit.get_center()) if strip.has_method("hit_test_at") else {}
 	if str(ht.get("kind", "")) != "follow" or int(ht.get("idx", -1)) != 1:
 		push_error("SMOKE_BADGE_HIT_KIND %s" % ht)
@@ -4878,6 +5117,7 @@ func _assert_follow_badge_hit(main) -> bool:
 		for key in [
 			"glyph", "name", "hp", "stance", "below_chip", "left_of_chip",
 			"gun", "num", "top_left", "just_below_chip", "inner_left",
+			"gun_stamp", "number",
 		]:
 			if not probes.has(key):
 				continue
@@ -5568,6 +5808,17 @@ func _assert_west_follow_queue(main) -> bool:
 	var idle := int(main.follow_idle_waits()) if main.has_method("follow_idle_waits") else 99
 	if idle > 0:
 		push_error("SMOKE_WEST_FOLLOW_IDLE n=%s a=%s b=%s" % [idle, a.grid_cell(), b.grid_cell()])
+		quit(44)
+		return false
+	if not _dest_is_rear(main, d1, lead) or not _dest_is_rear(main, d2, lead):
+		push_error("SMOKE_WEST_FOLLOW_NOT_REAR d1=%s d2=%s lead=%s face=%s" % [
+			d1, d2, lead.grid_cell(), lead.facing_deg
+		])
+		quit(44)
+		return false
+	var queue_n := int(main.follow_west_queue_hits()) if main.has_method("follow_west_queue_hits") else 99
+	if queue_n > 0:
+		push_error("SMOKE_WEST_FOLLOW_ALLEY_QUEUE n=%s d1=%s d2=%s lead=%s" % [queue_n, d1, d2, lead.grid_cell()])
 		quit(44)
 		return false
 	print("SMOKE_OK_WEST_FOLLOW_QUEUE d1=", d1, " d2=", d2, " detour=", detour, " spread=", snapped(spread, 0.1), " cheb=", cheb)

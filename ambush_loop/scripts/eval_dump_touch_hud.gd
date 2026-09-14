@@ -1,8 +1,8 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.10 phone feel: follow dests behind the
-## lead (left/right stagger), stop land freezes, three-follow + side wrap,
-## 跟 badge probes.
+## Forced-touch HUD stills for v0.5.11 phone feel: west-alley rear file,
+## 射界 twist turns the follow dests, 跟 chip raised off gun/number,
+## plus the v0.5.10 rear / settle / wrap path.
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
@@ -159,6 +159,8 @@ func _run() -> void:
 		await _walk_follow_continuity(main)
 		await _walk_follow_settle(main)
 		await _walk_three_follow_side_wrap(main)
+		await _walk_west_rear(main)
+		await _walk_facing_turn(main)
 		await _walk_badge_probes(main)
 
 	await _walk_yard_loop(main)
@@ -307,7 +309,9 @@ func _walk_west_combo_follow(main) -> void:
 		" idle=", int(main.follow_idle_waits()) if main.has_method("follow_idle_waits") else -1,
 		" cheb=", int(main.follow_min_chebyshev()) if main.has_method("follow_min_chebyshev") else -1,
 		" d1=", main._follow_dest.get(int(a.op_id), Vector2i(-1, -1)),
-		" d2=", main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+		" d2=", main._follow_dest.get(int(b.op_id), Vector2i(-1, -1)),
+		" rear=", int(main.follow_rear_ok_count()) if main.has_method("follow_rear_ok_count") else -1,
+		" queue=", int(main.follow_west_queue_hits()) if main.has_method("follow_west_queue_hits") else -1
 	)
 	await _save("08_west_combo_follow")
 	if bool(a.follow_lead):
@@ -903,6 +907,185 @@ func _walk_three_follow_side_wrap(main) -> void:
 	main._pending_flank = null
 
 
+func _walk_west_rear(main) -> void:
+	if main.operators.size() < 3 or main.grid == null:
+		return
+	var lead = main.operators[0]
+	var a = main.operators[1]
+	var b = main.operators[2]
+	if main.c2 and not main.c2.sentries.is_empty():
+		var i := 0
+		for s in main.c2.sentries:
+			if s == null:
+				continue
+			s.global_position = main.grid.cell_to_world_center(Vector2i(32, 6 + i))
+			s.facing_deg = 0.0
+			i += 1
+	var lead_c := Vector2i(7, 12)
+	var a_c := Vector2i(6, 14)
+	var b_c := Vector2i(6, 16)
+	if main.grid.is_blocked(lead_c.x, lead_c.y) or (main.has_method("_cell_is_operable") and bool(main._cell_is_operable(lead_c))):
+		lead_c = Vector2i(7, 13)
+	if main.grid.is_blocked(a_c.x, a_c.y):
+		a_c = Vector2i(5, 14)
+	if main.grid.is_blocked(b_c.x, b_c.y):
+		b_c = Vector2i(5, 16)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	main._select_op(0)
+	if lead.has_method("set_facing"):
+		lead.set_facing(0.0)
+	else:
+		lead.facing_deg = 0.0
+		if lead.has_method("_rebuild_cone"):
+			lead._rebuild_cone()
+	lead.global_position = main.grid.cell_to_world_center(lead_c)
+	a.global_position = main.grid.cell_to_world_center(a_c)
+	b.global_position = main.grid.cell_to_world_center(b_c)
+	main._stealth_avoid_cache.clear()
+	main._stealth_avoid_msec = 0
+	if main.has_method("simulate_follow_badge"):
+		if not bool(a.follow_lead):
+			main.simulate_follow_badge(1)
+		if not bool(b.follow_lead):
+			main.simulate_follow_badge(2)
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	if main.has_method("_tick_squad_follow"):
+		main._tick_squad_follow()
+	var frames := 0
+	while frames < 50:
+		if main.has_method("_tick_command_moves"):
+			main._tick_command_moves(0.05)
+		if main.has_method("_tick_squad_follow"):
+			main._tick_squad_follow()
+		await process_frame
+		frames += 1
+		if not a.is_moving() and not b.is_moving() and frames > 8:
+			break
+	print(
+		"DUMP_WEST_REAR d1=", main._follow_dest.get(int(a.op_id), Vector2i(-1, -1)),
+		" d2=", main._follow_dest.get(int(b.op_id), Vector2i(-1, -1)),
+		" lead=", lead.grid_cell(),
+		" rear=", int(main.follow_rear_ok_count()) if main.has_method("follow_rear_ok_count") else -1,
+		" queue=", int(main.follow_west_queue_hits()) if main.has_method("follow_west_queue_hits") else -1,
+		" side=", int(main.follow_side_rear_hits()) if main.has_method("follow_side_rear_hits") else -1
+	)
+	_dump_feel(main, "west_rear")
+	await _save("08f_west_rear")
+	if bool(a.follow_lead):
+		main.toggle_follow(1)
+	if bool(b.follow_lead):
+		main.toggle_follow(2)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	main._follow_dest.clear()
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+
+
+func _walk_facing_turn(main) -> void:
+	if main.operators.size() < 3 or main.grid == null:
+		return
+	var lead = main.operators[0]
+	var a = main.operators[1]
+	var b = main.operators[2]
+	if main.c2 and not main.c2.sentries.is_empty():
+		var i := 0
+		for s in main.c2.sentries:
+			if s == null:
+				continue
+			s.global_position = main.grid.cell_to_world_center(Vector2i(32, 6 + i))
+			s.facing_deg = 0.0
+			i += 1
+	var lead_c := Vector2i(13, 13)
+	var a_c := Vector2i(11, 16)
+	var b_c := Vector2i(12, 17)
+	if main.grid.is_blocked(lead_c.x, lead_c.y) or (main.has_method("_cell_is_operable") and bool(main._cell_is_operable(lead_c))):
+		lead_c = Vector2i(14, 13)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	main._select_op(0)
+	if lead.has_method("set_facing"):
+		lead.set_facing(0.0)
+	else:
+		lead.facing_deg = 0.0
+		if lead.has_method("_rebuild_cone"):
+			lead._rebuild_cone()
+	lead.global_position = main.grid.cell_to_world_center(lead_c)
+	a.global_position = main.grid.cell_to_world_center(a_c)
+	b.global_position = main.grid.cell_to_world_center(b_c)
+	main._stealth_avoid_cache.clear()
+	main._stealth_avoid_msec = 0
+	if main.has_method("simulate_follow_badge"):
+		if not bool(a.follow_lead):
+			main.simulate_follow_badge(1)
+		if not bool(b.follow_lead):
+			main.simulate_follow_badge(2)
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	if main.has_method("_tick_squad_follow"):
+		main._tick_squad_follow()
+	var frames := 0
+	while frames < 40:
+		if main.has_method("_tick_command_moves"):
+			main._tick_command_moves(0.05)
+		if main.has_method("_tick_squad_follow"):
+			main._tick_squad_follow()
+		await process_frame
+		frames += 1
+		if not a.is_moving() and not b.is_moving() and frames > 8:
+			break
+	var east_d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+	var east_d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+	a.stop_move()
+	b.stop_move()
+	if lead.has_method("set_facing"):
+		lead.set_facing(90.0)
+	else:
+		lead.facing_deg = 90.0
+		if lead.has_method("_rebuild_cone"):
+			lead._rebuild_cone()
+	main._stealth_avoid_cache.clear()
+	main._stealth_avoid_msec = 0
+	if main.has_method("_tick_squad_follow"):
+		main._tick_squad_follow()
+	frames = 0
+	while frames < 50:
+		if main.has_method("_tick_command_moves"):
+			main._tick_command_moves(0.05)
+		if main.has_method("_tick_squad_follow"):
+			main._tick_squad_follow()
+		await process_frame
+		frames += 1
+		if not a.is_moving() and not b.is_moving() and frames > 8:
+			break
+	print(
+		"DUMP_FACE_TURN east=", east_d1, east_d2,
+		" south=", main._follow_dest.get(int(a.op_id), Vector2i(-1, -1)),
+		main._follow_dest.get(int(b.op_id), Vector2i(-1, -1)),
+		" lead=", lead.grid_cell(),
+		" face=", lead.facing_deg,
+		" rear=", int(main.follow_rear_ok_count()) if main.has_method("follow_rear_ok_count") else -1,
+		" side=", int(main.follow_side_rear_hits()) if main.has_method("follow_side_rear_hits") else -1
+	)
+	_dump_feel(main, "face_turn")
+	await _save("08g_face_turn")
+	if bool(a.follow_lead):
+		main.toggle_follow(1)
+	if bool(b.follow_lead):
+		main.toggle_follow(2)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	main._follow_dest.clear()
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+
+
 func _walk_badge_probes(main) -> void:
 	if main.operators.size() < 2 or main.c2 == null or main.c2.portraits == null:
 		return
@@ -921,7 +1104,14 @@ func _walk_badge_probes(main) -> void:
 		var pt: Vector2 = probes[key]
 		var ht: Dictionary = strip.hit_test_at(pt) if strip.has_method("hit_test_at") else {}
 		bits.append("%s:%s" % [str(key), str(ht.get("kind", ""))])
-	print("DUMP_BADGE_PROBES ", " ".join(bits), " hit=", strip.follow_hit_rect(1), " body=", strip.portrait_body_rect(1))
+	print(
+		"DUMP_BADGE_PROBES ", " ".join(bits),
+		" hit=", strip.follow_hit_rect(1),
+		" body=", strip.portrait_body_rect(1),
+		" gun=", strip.portrait_gun_rect(1) if strip.has_method("portrait_gun_rect") else Rect2(),
+		" num=", strip.portrait_num_rect(1) if strip.has_method("portrait_num_rect") else Rect2(),
+		" card=", strip.card_global_rect(1)
+	)
 	await _save("09b_badge_probes")
 
 
@@ -1010,7 +1200,8 @@ func _dump_feel(main, tag: String) -> void:
 		" follow_flips=", f.get("follow_flips", -1),
 		" follow_settle_drops=", f.get("follow_settle_drops", -1),
 		" follow_side_rear=", f.get("follow_side_rear", -1),
-		" follow_rear_ok=", f.get("follow_rear_ok", -1)
+		" follow_rear_ok=", f.get("follow_rear_ok", -1),
+		" follow_west_queue=", f.get("follow_west_queue", -1)
 	)
 
 

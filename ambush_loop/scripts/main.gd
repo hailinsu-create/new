@@ -263,6 +263,8 @@ var _follow_arrive_world: Vector2 = Vector2.ZERO
 var _follow_arrive_on: bool = false
 var _follow_back_world: Vector2 = Vector2.ZERO
 var _follow_back_on: bool = false
+var _follow_face_deg: float = 0.0
+var _follow_face_on: bool = false
 var _stealth_avoid_cache: Dictionary = {}
 var _stealth_avoid_msec: int = 0
 var _move_ghost: Line2D = null
@@ -8098,6 +8100,7 @@ func toggle_follow(idx: int) -> void:
 	if not any_follow:
 		_follow_arrive_on = false
 		_follow_back_on = false
+		_follow_face_on = false
 	if touch_hud and touch_hud.has_method("set_hint"):
 		touch_hud.set_hint("%s %s" % [op.display_name, "跟上" if op.follow_lead else "待命"])
 	_update_hud()
@@ -8106,6 +8109,7 @@ func toggle_follow(idx: int) -> void:
 func _tick_squad_follow() -> void:
 	if selected == null or not selected.visible or not selected.alive:
 		return
+	var twisting := _follow_consume_facing_twist()
 	var followers: Array = []
 	for op in operators:
 		if op == null or op == selected or not op.alive or not op.visible:
@@ -8130,6 +8134,11 @@ func _tick_squad_follow() -> void:
 				if prev.x >= 0 and prev != want:
 					_follow_flip_count += 1
 				_follow_lock[oid] = want
+		elif twisting:
+			## Lead only twisted 射界: file turns with the cone.
+			if prev.x >= 0 and prev != want:
+				_follow_flip_count += 1
+			_follow_lock[oid] = want
 		else:
 			var locked2: Vector2i = _follow_lock.get(oid, Vector2i(-99, -99))
 			var hold: Vector2i = locked2 if locked2.x >= 0 else prev
@@ -8169,6 +8178,30 @@ func _follow_slot_index(lead: OperatorUnit, follower: OperatorUnit) -> int:
 			return i
 		i += 1
 	return i
+
+
+func _follow_count(lead: OperatorUnit) -> int:
+	var n := 0
+	for op in operators:
+		if op == null or op == lead or not bool(op.follow_lead) or not op.alive:
+			continue
+		n += 1
+	return n
+
+
+func _follow_consume_facing_twist() -> bool:
+	if selected == null:
+		return false
+	var now := float(selected.facing_deg)
+	var twist := false
+	if not selected.is_moving() and _follow_face_on:
+		if absf(OperatorUnit.angle_diff_deg(_follow_face_deg, now)) >= 12.0:
+			twist = true
+			_follow_lock.clear()
+			_follow_back_on = false
+	_follow_face_deg = now
+	_follow_face_on = true
+	return twist
 
 
 func _follow_reserved(except_op: OperatorUnit) -> Dictionary:
@@ -8234,8 +8267,8 @@ func _follow_lead_cell(lead: OperatorUnit) -> Vector2i:
 
 
 func _follow_facing_back(lead: OperatorUnit) -> Vector2:
-	## Prefer the march direction so a last-step detour does not rotate
-	## the file onto the lead's hip.
+	## March lock keeps the file behind the walk after a last-step detour.
+	## Twisting 射界 clears that lock so the file turns with the cone.
 	if _follow_back_on and _follow_back_world.length_squared() > 0.01:
 		return _follow_back_world.normalized()
 	var rad := deg_to_rad(lead.facing_deg if lead else 0.0)
@@ -8279,19 +8312,30 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 	var seen := {}
 	var cands: Array[Vector2i] = []
 	## Straight behind first, then 1-cell left/right stagger. Hip / side-rear last.
+	## Two followers share a rear pair (left/right of the back cell) so the
+	## west alley does not stretch into a north-south queue.
 	var depths: Array[int] = [2, 3, 4, 5]
-	if slot > 0:
-		depths = [3, 4, 5, 2]
-	var staggers: Array[int] = [0, 1, -1]
-	if slot > 0:
-		staggers = [1, -1, 0, 2, -2]
+	var staggers: Array[int] = []
+	var stagger_src: Array = [0, 1, -1]
+	if _follow_count(lead) >= 2:
+		stagger_src = [1, -1, 0] if slot == 0 else [1, -1, 0, 2, -2]
+	elif slot > 0:
+		stagger_src = [1, -1, 0, 2, -2]
+	for st0 in stagger_src:
+		staggers.append(int(st0))
 	for depth in depths:
 		for st in staggers:
 			_follow_push_cand(lead_c + back_c * depth + side_c * (st * sign_i), follower, reserved, seen, cands)
+			var world_c: Vector2i = grid.world_to_cell(
+				lead_w + back * float(depth * 32) + side * float(st * sign_i * 32)
+			)
+			_follow_push_cand(world_c, follower, reserved, seen, cands)
 	if _follow_in_west(from) and _follow_in_west(lead_c):
-		for dx in [-3, -2, -1, 1, 2]:
-			for dy in [3, 4, 5, 2, -2, -3, -4]:
-				_follow_push_cand(Vector2i(lead_c.x + dx, lead_c.y + dy), follower, reserved, seen, cands)
+		for depth_w in [2, 3, 4]:
+			for st_w in [0, 1, -1, 2, -2]:
+				var wc: Vector2i = lead_c + back_c * depth_w + side_c * st_w
+				if wc.x <= 10:
+					_follow_push_cand(wc, follower, reserved, seen, cands)
 	var step := Vector2i(
 		0 if from.x == lead_c.x else (1 if lead_c.x > from.x else -1),
 		0 if from.y == lead_c.y else (1 if lead_c.y > from.y else -1)
@@ -8335,14 +8379,17 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 		if _follow_path_leaves_west(path, from, cell) and lead_c.x <= 12:
 			continue
 		var to_lead: int = absi(cell.x - lead_c.x) + absi(cell.y - lead_c.y)
-		var min_lead := 3 if _follow_in_west(from) and _follow_in_west(lead_c) else 2
+		var rel: Vector2 = grid.cell_to_world_center(cell) - lead_w
+		var back_m := rel.dot(back)
+		var side_m := absf(rel.dot(side))
+		var min_lead := 2
+		if _follow_in_west(from) and _follow_in_west(lead_c):
+			if back_m < 16.0 or side_m > back_m + 24.0:
+				min_lead = 3
 		if to_lead < min_lead:
 			continue
 		if maxi(absi(cell.x - lead_c.x), absi(cell.y - lead_c.y)) < 2:
 			continue
-		var rel: Vector2 = grid.cell_to_world_center(cell) - lead_w
-		var back_m := rel.dot(back)
-		var side_m := absf(rel.dot(side))
 		var score: int = to_lead * 6 + detour * 18 + plen
 		if back_m < 16.0:
 			score += 88
@@ -8352,7 +8399,11 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 			score += 70
 		if side_m > back_m + 16.0:
 			score += 52
-		if slot == 0:
+		if _follow_count(lead) >= 2:
+			## Pair files left/right of the back cell instead of one on
+			## the spine and the other stretched down the alley.
+			score += absi(int(round(side_m / 32.0)) - 1) * 8
+		elif slot == 0:
 			score += int(round(maxi(0.0, side_m - 20.0) / 32.0)) * 10
 		else:
 			score += absi(int(round(side_m / 32.0)) - 1) * 6
@@ -8371,8 +8422,13 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 			score -= 16
 		if in_cone and to_lead < from_lead:
 			score -= 24
-		if _follow_in_west(from) and _follow_in_west(lead_c) and cell.x == lead_c.x:
-			score += 28
+		if _follow_in_west(from) and _follow_in_west(lead_c):
+			if cell.x == lead_c.x:
+				score += 48
+			if side_m > 48.0:
+				score += int(round((side_m - 48.0) / 16.0)) * 12
+			if back_m >= 48.0 and side_m <= 40.0:
+				score -= 22
 		if score < best_score:
 			best_score = score
 			best = cell
@@ -8412,10 +8468,16 @@ func _follow_in_west(cell: Vector2i) -> bool:
 func _follow_gap_ok(a: Vector2i, b: Vector2i, west: bool) -> bool:
 	var md := absi(a.x - b.x) + absi(a.y - b.y)
 	var cd := maxi(absi(a.x - b.x), absi(a.y - b.y))
-	if md < (3 if west else 2):
+	## West alley keeps the same 2-cell gap so a rear pair can sit
+	## left/right of the back cell instead of stretching into a queue.
+	if md < 2:
 		return false
 	if cd < 2:
 		return false
+	if west and a.x == b.x and md >= 3:
+		## Same-column stretch is the alley queue; still legal if nothing
+		## else fits, but the scorer already penalizes it.
+		pass
 	return true
 
 
@@ -8991,6 +9053,7 @@ func dump_touch_feel() -> Dictionary:
 		"follow_settle_drops": follow_settle_drops() if has_method("follow_settle_drops") else -1,
 		"follow_side_rear": follow_side_rear_hits() if has_method("follow_side_rear_hits") else -1,
 		"follow_rear_ok": follow_rear_ok_count() if has_method("follow_rear_ok_count") else -1,
+		"follow_west_queue": follow_west_queue_hits() if has_method("follow_west_queue_hits") else -1,
 	}
 
 
@@ -9313,6 +9376,8 @@ func reset_follow_dest_flips() -> void:
 	_follow_arrive_on = false
 	_follow_back_on = false
 	_follow_back_world = Vector2.ZERO
+	_follow_face_on = false
+	_follow_face_deg = 0.0
 
 
 func follow_settle_drops() -> int:
@@ -9343,6 +9408,34 @@ func follow_rear_ok_count() -> int:
 		if not _follow_dest.has(int(op.op_id)):
 			continue
 		if follow_dest_rear_ok(_follow_dest[int(op.op_id)], selected):
+			n += 1
+	return n
+
+
+func follow_west_queue_hits() -> int:
+	## Dest sits in the west alley column (same x as the lead) or is not
+	## behind the 射界 / march. Zero means rear file / 1-cell stagger.
+	var n := 0
+	if selected == null or grid == null:
+		return 0
+	var lead_c: Vector2i = _follow_lead_cell(selected)
+	if not _follow_in_west(lead_c):
+		return 0
+	for op in operators:
+		if op == null or op == selected or not bool(op.follow_lead) or not op.alive:
+			continue
+		if not _follow_dest.has(int(op.op_id)):
+			continue
+		var dest: Vector2i = _follow_dest[int(op.op_id)]
+		if dest.x < 0:
+			continue
+		if dest.x == lead_c.x:
+			n += 1
+			continue
+		if not follow_dest_rear_ok(dest, selected):
+			n += 1
+			continue
+		if absi(dest.y - lead_c.y) > 2 and absi(dest.x - lead_c.x) <= 1:
 			n += 1
 	return n
 
