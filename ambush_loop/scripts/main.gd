@@ -23,9 +23,9 @@ const FOLLOW_TWIST_DEG := 5.0
 const FOLLOW_SLOT_DEPTH := 2
 const FOLLOW_WEST_SLOT_DEPTH := 1
 const FOLLOW_WEST_SECOND_DEPTH := 2
-const FOLLOW_WEST_FIRST_SIDE := 4
+const FOLLOW_WEST_FIRST_SIDE := 5
 const FOLLOW_WEST_SECOND_SIDE := 3
-const FOLLOW_WEST_SPAN_MAX := 4
+const FOLLOW_WEST_SPAN_MAX := 5
 const FOLLOW_ARC_FAR_CAP := 20.0
 ## South-corridor y=13 cell south rim. 16px past y=13 center is cell y=14.
 const FOLLOW_ARC_Y13_CAP := 15.0
@@ -9560,10 +9560,10 @@ func _apply_west_obs_scale() -> void:
 func _apply_west_obs_offset(west: bool) -> void:
 	## Visual observation-ring stagger. Dest cells stay; rings slide off the
 	## cluster centroid so the west trio + yellow cone read as three bodies.
-	## v0.5.32: dest cells spread to span 4 (first 4 along-file, second 3
+	## v0.5.33: dest cells spread to span 5 (first 5 along-file, second 3
 	## the other way). Bodies/rings stay on the visual floor (~0.16).
 	## Rings keep the courtyard / along-file offset. Camera stays at the
-	## ~0.26 clamp. No extra back (west-wall).
+	## ~0.26 clamp so the larger file still fits. No extra back (west-wall).
 	var centroid := Vector2.ZERO
 	var n := 0
 	if west and selected != null:
@@ -9619,13 +9619,25 @@ func _follow_slot_depth_for(lead: OperatorUnit, follower: OperatorUnit) -> int:
 	return FOLLOW_SLOT_DEPTH
 
 
+func _follow_west_along_alley(lead: OperatorUnit) -> bool:
+	## West alley is a north-south file. Span-5 side stagger only when the
+	## lead faces east/west so "along-file" is up the alley, not out the
+	## courtyard into the crate block.
+	if lead == null:
+		return false
+	var back: Vector2 = _follow_facing_back(lead)
+	return absf(back.x) >= absf(back.y)
+
+
 func _follow_slot_side_cells(lead: OperatorUnit, follower: OperatorUnit) -> int:
-	## First west follower stands 4 cells along-file so the trio dests
-	## leave the span-3 mash without hugging the west wall. Second stands
-	## 3 the other way so the file is a staggered pair, not three bodies.
+	## First west follower stands 5 cells along-file so the trio dests
+	## leave the span-4 mash without hugging the west wall. Second stays
+	## 3 the other way — 4 south would shove the ring through the west wall.
 	if lead == null or follower == null or grid == null:
 		return 1
 	if not (_follow_in_west(follower.grid_cell()) and _follow_in_west(_follow_lead_cell(lead))):
+		return 1
+	if not _follow_west_along_alley(lead):
 		return 1
 	var slot := _follow_slot_index(lead, follower)
 	if _follow_count(lead) >= 2 and slot == 0:
@@ -9870,9 +9882,9 @@ func follow_dest_rear_ok(cell: Vector2i, lead: OperatorUnit) -> bool:
 	var s := absf(rel.dot(side))
 	if b < 20.0:
 		return false
-	## West along-file 4-cell stand (1 back + 4 side) still counts as rear.
+	## West along-file 5-cell stand (1 back + 5 side) still counts as rear.
 	## Tighter wedge elsewhere so the file does not drift onto the hip.
-	var pad := 104.0 if _follow_in_west(cell) or _follow_in_west(_follow_lead_cell(lead)) else 20.0
+	var pad := 136.0 if _follow_in_west(cell) or _follow_in_west(_follow_lead_cell(lead)) else 20.0
 	return s <= b + pad
 
 
@@ -9904,7 +9916,7 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 	## West alley uses depth 1 so the file sits a cell tighter and blocks less.
 	var depths: Array[int] = []
 	if west_file:
-		for dw in [1, 2, 3, 4]:
+		for dw in [1, 2, 3, 4, 5]:
 			depths.append(int(dw))
 	else:
 		for dw2 in [2, 3, 4, 5]:
@@ -9912,8 +9924,8 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 	var staggers: Array[int] = []
 	var stagger_src: Array = [0, 1, -1]
 	if _follow_count(lead) >= 2:
-		if slot == 0 and west_file:
-			stagger_src = [4, 3, 2, 1, -1, 0, -2]
+		if slot == 0 and west_file and _follow_west_along_alley(lead):
+			stagger_src = [5, 4, 3, 2, 1, -1, 0, -2]
 		elif slot == 0:
 			stagger_src = [1, -1, 0]
 		else:
@@ -9930,8 +9942,8 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 			_follow_push_cand(world_c, follower, reserved, seen, cands)
 			_follow_push_cand(lead_c + back_c * depth + side_c * (st * sign_i), follower, reserved, seen, cands)
 	if west_file:
-		for depth_w in [1, 2, 3, 4]:
-			for st_w in [0, 1, -1, 2, -2, 3, -3, 4, -4]:
+		for depth_w in [1, 2, 3, 4, 5]:
+			for st_w in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5]:
 				var ww: Vector2i = grid.world_to_cell(
 					lead_w + back * float(depth_w * 32) + side * float(st_w * 32)
 				)
@@ -10017,8 +10029,11 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 		if _follow_count(lead) >= 2:
 			## Pair files left/right of the back cell instead of one on
 			## the spine and the other stretched down the alley.
-			## West first follower wants 4 along-file cells; second wants 3.
-			var want_side := 4 if west_file and slot == 0 else (3 if west_file else 1)
+			## West first follower wants 5 along-file cells; second stays 3
+			## so the ring extra does not punch through the west wall.
+			## Only when facing along the alley (east/west).
+			var alley := west_file and _follow_west_along_alley(lead)
+			var want_side := 5 if alley and slot == 0 else (3 if alley else 1)
 			score += absi(int(round(side_m / 32.0)) - want_side) * 8
 		elif slot == 0:
 			score += int(round(maxi(0.0, side_m - 20.0) / 32.0)) * 10
@@ -10044,26 +10059,27 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 				continue
 			if cell.x == lead_c.x:
 				score += 48
-			if slot == 0:
-				## First follower: 4 along-file (dx stays 1). Do not hug
-				## the west wall or sit in the old span-3 pocket.
+			var alley2 := _follow_west_along_alley(lead)
+			if alley2 and slot == 0:
+				## First follower: 5 along-file (dx stays 1). Do not hug
+				## the west wall or sit in the old span-4 pocket.
 				if cheb_lead <= 1:
 					score += 48
 				if absi(cell.x - lead_c.x) >= 2:
 					score += 36
-				if cheb_lead == 4 and absi(cell.x - lead_c.x) == 1:
+				if cheb_lead == 5 and absi(cell.x - lead_c.x) == 1:
 					score -= 56
-				if cheb_lead == 3 and absi(cell.x - lead_c.x) == 1:
+				if cheb_lead == 4 and absi(cell.x - lead_c.x) == 1:
 					score += 18
-				if back_m >= 20.0 and back_m <= 48.0 and side_m >= 112.0 and side_m <= 144.0:
+				if back_m >= 20.0 and back_m <= 48.0 and side_m >= 144.0 and side_m <= 176.0:
 					score -= 52
-				elif side_m >= 112.0 and side_m <= 144.0:
+				elif side_m >= 144.0 and side_m <= 176.0:
 					score -= 22
 				if back_m > 48.0:
 					score += int(round((back_m - 48.0) / 16.0)) * 16
-				if cheb_lead >= 5:
+				if cheb_lead >= 6:
 					score += 22
-			else:
+			elif alley2:
 				## Second follower: opposite stagger, 2 back + 3 along-file.
 				## Do not sit in the first follower's pocket or hug the wall.
 				if side_m > 112.0:
@@ -11144,14 +11160,14 @@ func follow_west_queue_hits() -> int:
 		if not follow_dest_rear_ok(dest, selected):
 			n += 1
 			continue
-		if absi(dest.y - lead_c.y) > 4 and absi(dest.x - lead_c.x) <= 1:
+		if absi(dest.y - lead_c.y) > 5 and absi(dest.x - lead_c.x) <= 1:
 			n += 1
 	return n
 
 
 func follow_west_lead_span() -> int:
-	## Max Chebyshev from the lead to a follow dest. v0.5.32 west file is ≤4:
-	## first follower is 4 along-file, second 2 back / 3 the other way.
+	## Max Chebyshev from the lead to a follow dest. v0.5.33 west file is ≤5:
+	## first follower is 5 along-file, second 2 back / 3 the other way.
 	if selected == null or grid == null:
 		return 99
 	var lead_c: Vector2i = _follow_lead_cell(selected)
