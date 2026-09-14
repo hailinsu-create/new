@@ -60,6 +60,7 @@ var obs_ring: Line2D = null
 var obs_fill: Polygon2D = null
 var obs_tag: Label = null
 var obs_visual_scale: float = 1.0
+var _obs_world_off: Vector2 = Vector2.ZERO
 var _cluster_visual_scale: float = 1.0
 var role_glyph: Polygon2D = null
 var body_outline: Polygon2D = null
@@ -1739,6 +1740,24 @@ func set_obs_visual_scale(s: float) -> void:
 	_rebuild_observation_ring()
 
 
+func obs_world_offset() -> Vector2:
+	return _obs_world_off
+
+
+func set_obs_world_offset(off: Vector2) -> void:
+	_obs_world_off = off
+	_apply_obs_world_offset()
+
+
+func _apply_obs_world_offset() -> void:
+	if obs_ring:
+		obs_ring.position = _obs_world_off
+	if obs_fill:
+		obs_fill.position = _obs_world_off
+	if obs_tag:
+		obs_tag.position = Vector2(-28, -48) + _obs_world_off
+
+
 func cluster_visual_scale() -> float:
 	return _cluster_visual_scale
 
@@ -1779,6 +1798,7 @@ func _rebuild_observation_ring() -> void:
 	if obs_fill:
 		obs_fill.polygon = pts
 		obs_fill.color = Color(0.35, 0.8, 0.95, 0.022 + 0.023 * obs_visual_scale)
+	_apply_obs_world_offset()
 
 
 func set_observation_ring(show: bool) -> void:

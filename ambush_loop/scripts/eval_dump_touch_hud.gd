@@ -1,9 +1,10 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.23 phone feel: west trio body/ring one
-## step smaller, south-corridor far-side bow capped below ~28px, first west
-## follower out of the 1-cell pocket, settle-on-ring after ↻, bidirectional
-## ↺/↻ swipe, faded yellow cone, compact 5-key, crate-cluster axis_run 0.
+## Forced-touch HUD stills for v0.5.24 phone feel: west trio camera pull +
+## observation-ring world offset (dest cells unchanged), south-corridor
+## far-side bow toward ~20px, first west follower out of the 1-cell pocket,
+## settle-on-ring after ↻, bidirectional ↺/↻ swipe, faded yellow cone,
+## compact 5-key, crate-cluster axis_run 0.
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
@@ -325,7 +326,8 @@ func _walk_west_combo_follow(main) -> void:
 		" queue=", int(main.follow_west_queue_hits()) if main.has_method("follow_west_queue_hits") else -1,
 		" dest_w_spread=", snapped(float(main.follow_dest_world_min_spacing()) if main.has_method("follow_dest_world_min_spacing") else -1.0, 0.1),
 		" cluster_scale=", snapped(float(main.follow_cluster_body_scale()) if main.has_method("follow_cluster_body_scale") else 1.0, 0.01),
-		" cone_fade=", snapped(float(main.follow_cone_visual_fade()) if main.has_method("follow_cone_visual_fade") else 1.0, 0.01)
+		" cone_fade=", snapped(float(main.follow_cone_visual_fade()) if main.has_method("follow_cone_visual_fade") else 1.0, 0.01),
+		" obs_off=", snapped(float(main.follow_obs_world_offset()) if main.has_method("follow_obs_world_offset") else 0.0, 0.1)
 	)
 	await _save("08_west_combo_follow")
 	if bool(a.follow_lead):
@@ -995,7 +997,8 @@ func _walk_west_rear(main) -> void:
 		" obs_scale=", snapped(float(main.follow_obs_visual_scale()) if main.has_method("follow_obs_visual_scale") else 1.0, 0.01),
 		" obs_r=", snapped(float(main.follow_obs_visual_radius()) if main.has_method("follow_obs_visual_radius") else 0.0, 0.1),
 		" cluster_scale=", snapped(float(main.follow_cluster_body_scale()) if main.has_method("follow_cluster_body_scale") else 1.0, 0.01),
-		" cone_fade=", snapped(float(main.follow_cone_visual_fade()) if main.has_method("follow_cone_visual_fade") else 1.0, 0.01)
+		" cone_fade=", snapped(float(main.follow_cone_visual_fade()) if main.has_method("follow_cone_visual_fade") else 1.0, 0.01),
+		" obs_off=", snapped(float(main.follow_obs_world_offset()) if main.has_method("follow_obs_world_offset") else 0.0, 0.1)
 	)
 	_dump_feel(main, "west_rear")
 	await _save("08f_west_rear")
@@ -1385,6 +1388,7 @@ func _dump_feel(main, tag: String) -> void:
 		" follow_arc_on=", f.get("follow_arc_on", -1),
 		" obs_scale=", snapped(float(f.get("obs_scale", 1.0)), 0.01),
 		" obs_r=", snapped(float(f.get("obs_r", 0.0)), 0.1),
+		" obs_off=", snapped(float(f.get("obs_off", 0.0)), 0.1),
 		" cam_squad_zoom=", snapped(float(f.get("cam_squad_zoom", 1.0)), 0.01),
 		" cluster_scale=", snapped(float(f.get("cluster_scale", 1.0)), 0.01),
 		" cone_fade=", snapped(float(f.get("cone_fade", 1.0)), 0.01),
@@ -1456,6 +1460,7 @@ func _dump_cluster_arc(main) -> void:
 	var axis := int(main.follow_arc_axis_run(pts)) if main.has_method("follow_arc_axis_run") else -1
 	var east := float(main.follow_arc_east_overshoot(pts, from_w, to_w)) if main.has_method("follow_arc_east_overshoot") else -1.0
 	var far := float(main.follow_arc_far_overshoot(pts, from_w, to_w, pivot)) if main.has_method("follow_arc_far_overshoot") else -1.0
+	var y14 := int(main.follow_arc_y14_east(pts, from_w, to_w)) if main.has_method("follow_arc_y14_east") else -1
 	print(
 		"DUMP_ARC_CLUSTER n=", pts.size(),
 		" bow=", snapped(snag_bow, 0.1),
@@ -1463,7 +1468,8 @@ func _dump_cluster_arc(main) -> void:
 		" blocked=", blocked,
 		" axis_run=", axis,
 		" east=", snapped(east, 0.1),
-		" far=", snapped(far, 0.1)
+		" far=", snapped(far, 0.1),
+		" y14=", y14
 	)
 
 

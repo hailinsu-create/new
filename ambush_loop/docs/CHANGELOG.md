@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.5.24 — Phone feel: west camera/ring offset, south-corridor bow ~20px
+
+Sideload APK: `dist/AmbushLoop-v0.5.24-touch-slide.apk`  
+Release tag: `v0.5.24-touch-slide`
+
+Same RAID as 0.5.23 (`SCOUT → ALERT → SWEEP`, auto fire + auto nade). Phone default stays 简配夜袭.
+
+### Play (phone)
+- **西巷再松**: camera pulls to ~0.36 on the trio + yellow cone. Observation rings offset in world space (~36px off the cluster). Follow ring-world side stagger extra. Dest cells / span 2 / first-follower pocket / yellow-cone fade / west wall clearance / body scale 0.34 / obs scale 0.28 unchanged from 0.5.23.
+- **绕箱南走廊**: far-side bow cap holds ~20px (was measured ~24px). East-end y=14 dip shallower. Still walkable, axis_run 0, east overshoot 0. Large crate-cluster bows not flattened.
+- Forced-touch path covers settle-on-ring, bidirectional ↺/↻, west trio + faded cone + first-follower pocket, compact narrow pack, crate-face axis_run 0, and south-corridor far-side cap.
+
+### Android
+- `versionName` 0.5.24 / `versionCode` 30 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title **v0.5.24 COMMANDOS/WW2**.
+2. Compact bar still stacks **匍匐** over **背包**; **↺ / ↻** sit next to **需枪**. Hold or swipe either way.
+3. West alley **跟**: camera pulls further than 0.5.23; dest cells still (7,12)/(6,10)/(5,13). Yellow cone still faded.
+
 ## 0.5.23 — Phone feel: smaller west silhouettes, tighter south-corridor bow
 
 Sideload APK: `dist/AmbushLoop-v0.5.23-touch-slide.apk`  

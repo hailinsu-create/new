@@ -34,11 +34,14 @@ const FOLLOW_ARC_SLIDE_DEG := 40.0
 const FOLLOW_SLOT_MIX := 0.42
 const FOLLOW_SLOT_INSET := 11.0
 const FOLLOW_WEST_SLOT_INSET := 24.0
-const FOLLOW_WEST_SLOT_EXTRA := 40.0
-const FOLLOW_CAM_WEST_ZOOM := 0.44
+const FOLLOW_WEST_SLOT_EXTRA := 52.0
+const FOLLOW_CAM_WEST_ZOOM := 0.36
+const FOLLOW_CAM_WEST_CONE := 108.0
+const FOLLOW_CAM_WEST_PAN := 0.28
 const FOLLOW_CAM_FILE_ZOOM := 0.82
 const FOLLOW_WEST_OBS_SCALE := 0.28
 const FOLLOW_WEST_BODY_SCALE := 0.34
+const FOLLOW_WEST_OBS_OFFSET := 36.0
 const FOLLOW_WEST_CONE_FADE := 0.38
 const FLANK_WRAP_MIN_PTS := 4
 const PROGRESS_PATH := "user://ambush_loop.cfg"
@@ -1675,7 +1678,7 @@ func _ensure_game_camera() -> void:
 func _apply_cam() -> void:
 	_ensure_game_camera()
 	_cam_zoom = clampf(_cam_zoom, 0.72, 1.65)
-	_cam_squad_zoom = clampf(_cam_squad_zoom, 0.42, 1.0)
+	_cam_squad_zoom = clampf(_cam_squad_zoom, 0.34, 1.0)
 	var max_pan := 220.0 * _cam_zoom
 	_cam_pan.x = clampf(_cam_pan.x, -max_pan, max_pan)
 	_cam_pan.y = clampf(_cam_pan.y, -max_pan, max_pan)
@@ -8788,9 +8791,9 @@ func _follow_nudge_off_axis(p: Vector2, other: Vector2, pivot: Vector2, raw_p: V
 func _follow_cap_far_side(pts: PackedVector2Array, raw: PackedVector2Array, pivot: Vector2) -> PackedVector2Array:
 	## Polar mid-samples punch through the far crate and snag east around the
 	## south corridor. Pull that overshoot back toward the chord, keep a short
-	## bow, stay walkable. A mostly-walkable chord (south gap) also shrinks
-	## corner samples whose projection clips a crate; a blocked chord keeps
-	## the around-path.
+	## bow (~20px), stay walkable. A mostly-walkable chord (south gap) also
+	## shrinks corner samples whose projection clips a crate; a blocked chord
+	## keeps the around-path (large crate-cluster bows).
 	if pts.size() < 3 or raw.size() != pts.size():
 		return pts
 	var from_w: Vector2 = raw[0]
@@ -8823,9 +8826,17 @@ func _follow_cap_far_side(pts: PackedVector2Array, raw: PackedVector2Array, pivo
 		var side := (p - proj).dot(nrm)
 		var want: Vector2 = p
 		var changed := false
+		var cap := FOLLOW_ARC_FAR_CAP
+		if corridor_arc:
+			## East end of the y=13 gap is open at y=14. Keep the mid-gap
+			## bow at ~20px; taper only the last samples so they kiss y=14
+			## instead of sitting 8px into the cell. Stay ≥18 so crate-face
+			## bows do not go flat.
+			if t > 0.82:
+				cap = minf(cap, 16.0)
 		var may_cap := corridor_at[i] == 1 or corridor_arc
-		if may_cap and side < -FOLLOW_ARC_FAR_CAP:
-			want = p + nrm * (-side - FOLLOW_ARC_FAR_CAP)
+		if may_cap and side < -cap:
+			want = p + nrm * (-side - cap)
 			changed = true
 		if want.x > max_x:
 			want.x = max_x
@@ -8838,6 +8849,11 @@ func _follow_cap_far_side(pts: PackedVector2Array, raw: PackedVector2Array, pivo
 		if _follow_world_ok(want):
 			want = _follow_cap_keep_off_axis(pts, i, want, nrm)
 			if _follow_world_ok(want):
+				var side2 := (want - proj).dot(nrm)
+				if may_cap and side2 < -cap:
+					var pulled: Vector2 = want + nrm * (-side2 - cap)
+					if _follow_world_ok(pulled):
+						want = pulled
 				pts[i] = want
 				continue
 		var snag: Vector2 = _follow_snag_walkable(want, pivot)
@@ -8849,20 +8865,29 @@ func _follow_cap_far_side(pts: PackedVector2Array, raw: PackedVector2Array, pivo
 		var old_east := maxf(0.0, p.x - max_x)
 		var new_east := maxf(0.0, snag.x - max_x)
 		if new_far + 3.0 < old_far or new_east + 3.0 < old_east:
+			if may_cap and new_far > cap:
+				var pulled2: Vector2 = snag + nrm * (new_far - cap)
+				if _follow_world_ok(pulled2):
+					snag = pulled2
 			pts[i] = snag
+	if corridor_arc:
+		pts = _follow_cap_stagger_off_axis(pts, raw, nrm)
 	return pts
 
 
 func _follow_cap_keep_off_axis(pts: PackedVector2Array, i: int, want: Vector2, nrm: Vector2) -> Vector2:
-	## A hard far-cap can park consecutive samples on one y (or x). Jog toward
-	## the pivot so the string stays bowed instead of a wall-slide.
+	## A hard far-cap can park consecutive samples on one y (or x). Jog
+	## toward the pivot so the string stays bowed instead of a wall-slide.
+	## Never jog away from the pivot — that grew the south-corridor far
+	## bow from 20px back to ~24px.
 	if i <= 0 or i >= pts.size() - 1:
 		return want
 	var prev: Vector2 = pts[i - 1]
 	var nxt: Vector2 = pts[i + 1]
 	if not _follow_same_axis(prev, want) and not _follow_same_axis(want, nxt):
-		return want
-	for mag in [6.0, 10.0, 4.0, -4.0]:
+		if i % 2 == 0:
+			return want
+	for mag in [6.0, 10.0, 4.0, 8.0]:
 		var jog: Vector2 = want + nrm * mag
 		if not _follow_world_ok(jog):
 			continue
@@ -8870,6 +8895,62 @@ func _follow_cap_keep_off_axis(pts: PackedVector2Array, i: int, want: Vector2, n
 			continue
 		return jog
 	return want
+
+
+func _follow_cap_stagger_off_axis(
+	pts: PackedVector2Array, raw: PackedVector2Array, nrm: Vector2
+) -> PackedVector2Array:
+	## After the far cap, consecutive samples can share a y (or x). Jog
+	## toward the pivot only so axis_run dies without growing the far bow.
+	if pts.size() < 3 or raw.size() != pts.size():
+		return pts
+	var from_w: Vector2 = raw[0]
+	var to_w: Vector2 = raw[raw.size() - 1]
+	var chord: Vector2 = to_w - from_w
+	if chord.length_squared() < 256.0:
+		return pts
+	for i in range(1, pts.size() - 1):
+		if i % 2 == 0:
+			continue
+		var cur: Vector2 = pts[i]
+		var t0 := clampf((cur - from_w).dot(chord) / chord.length_squared(), 0.0, 1.0)
+		var proj0: Vector2 = from_w + chord * t0
+		var jog0: Vector2 = cur + nrm * 6.0
+		if not _follow_world_ok(jog0):
+			continue
+		var new_far0 := maxf(0.0, -(jog0 - proj0).dot(nrm))
+		var old_far0 := maxf(0.0, -(cur - proj0).dot(nrm))
+		if new_far0 > old_far0 + 0.5 or new_far0 > FOLLOW_ARC_FAR_CAP + 0.5:
+			continue
+		if _follow_same_axis(pts[i - 1], jog0) or _follow_same_axis(jog0, pts[i + 1]):
+			continue
+		pts[i] = jog0
+	for _pass in 3:
+		var changed := false
+		for i in range(1, pts.size() - 1):
+			var prev: Vector2 = pts[i - 1]
+			var cur: Vector2 = pts[i]
+			var nxt: Vector2 = pts[i + 1]
+			if not _follow_same_axis(prev, cur) and not _follow_same_axis(cur, nxt):
+				continue
+			var t := clampf((cur - from_w).dot(chord) / chord.length_squared(), 0.0, 1.0)
+			var proj: Vector2 = from_w + chord * t
+			var old_far := maxf(0.0, -(cur - proj).dot(nrm))
+			for mag in [6.0, 10.0, 4.0, 8.0]:
+				var jog: Vector2 = cur + nrm * mag
+				if not _follow_world_ok(jog):
+					continue
+				if _follow_same_axis(prev, jog) or _follow_same_axis(jog, nxt):
+					continue
+				var new_far := maxf(0.0, -(jog - proj).dot(nrm))
+				if new_far > old_far + 0.5 or new_far > FOLLOW_ARC_FAR_CAP + 0.5:
+					continue
+				pts[i] = jog
+				changed = true
+				break
+		if not changed:
+			break
+	return pts
 
 
 func _follow_same_axis(a: Vector2, b: Vector2) -> bool:
@@ -9122,6 +9203,22 @@ func follow_arc_far_overshoot(pts: PackedVector2Array, from_w: Vector2, to_w: Ve
 	return far
 
 
+func follow_arc_y14_east(pts: PackedVector2Array, from_w: Vector2, to_w: Vector2) -> int:
+	## South-corridor east-end samples that have dipped into y=14. The y=13
+	## gap is the chord; y=14 at x>=21 is the open cell past the south crates.
+	if grid == null or pts.is_empty():
+		return 0
+	var east_x := maxf(from_w.x, to_w.x) - 40.0
+	var n := 0
+	for p in pts:
+		if p.x < east_x:
+			continue
+		var c: Vector2i = grid.world_to_cell(p)
+		if c.y >= 14:
+			n += 1
+	return n
+
+
 func follow_arc_chord_bow(pts: PackedVector2Array, from_w: Vector2, to_w: Vector2) -> float:
 	var chord: Vector2 = to_w - from_w
 	if chord.length_squared() < 16.0 or pts.size() < 3:
@@ -9272,6 +9369,17 @@ func follow_obs_visual_radius() -> float:
 	return 0.0
 
 
+func follow_obs_world_offset() -> float:
+	var m := 0.0
+	var any := false
+	for op in operators:
+		if op == null or not op.has_method("obs_world_offset"):
+			continue
+		any = true
+		m = maxf(m, float(op.obs_world_offset().length()))
+	return m if any else 0.0
+
+
 func _follow_west_cluster() -> bool:
 	if selected == null or not selected.alive or not selected.visible:
 		return false
@@ -9298,6 +9406,48 @@ func _apply_west_obs_scale() -> void:
 			op.set_cluster_visual_scale(body_s)
 		if op != null and op.has_method("set_cone_visual_fade"):
 			op.set_cone_visual_fade(cone_s)
+	_apply_west_obs_offset(west)
+
+
+func _apply_west_obs_offset(west: bool) -> void:
+	## Visual observation-ring stagger. Dest cells stay; rings slide off the
+	## cluster centroid so the west trio + yellow cone read as three bodies.
+	var centroid := Vector2.ZERO
+	var n := 0
+	if west and selected != null:
+		centroid += selected.global_position
+		n += 1
+		for op0 in operators:
+			if op0 == null or op0 == selected or not op0.alive or not op0.visible:
+				continue
+			if bool(op0.follow_lead):
+				centroid += op0.global_position
+				n += 1
+		if n > 0:
+			centroid /= float(n)
+	for op in operators:
+		if op == null or not op.has_method("set_obs_world_offset"):
+			continue
+		if not west or selected == null or n <= 0:
+			op.set_obs_world_offset(Vector2.ZERO)
+			continue
+		var away: Vector2 = op.global_position - centroid
+		if away.length_squared() < 16.0:
+			var back0: Vector2 = _follow_facing_back(selected)
+			var side0 := Vector2(-back0.y, back0.x)
+			var st0 := float(_follow_slot_sign(selected, op))
+			away = back0 * 0.70 + side0 * st0
+		if away.length_squared() < 0.01:
+			op.set_obs_world_offset(Vector2.ZERO)
+			continue
+		var off: Vector2 = away.normalized() * FOLLOW_WEST_OBS_OFFSET
+		var back1: Vector2 = _follow_facing_back(selected)
+		var side1 := Vector2(-back1.y, back1.x)
+		var st1 := float(_follow_slot_sign(selected, op))
+		var slot_i := _follow_slot_index(selected, op)
+		off += side1 * st1 * 12.0
+		off += back1 * float(maxi(slot_i, 0)) * 8.0
+		op.set_obs_world_offset(off)
 
 
 func _follow_slot_depth_for(lead: OperatorUnit, follower: OperatorUnit) -> int:
@@ -9474,11 +9624,10 @@ func _follow_ring_world(lead: OperatorUnit, follower: OperatorUnit) -> Vector2:
 	var side := Vector2(-back.y, back.x)
 	var st := float(_follow_slot_sign(lead, follower))
 	if absf(st) > 0.01:
-		w += side * st * FOLLOW_WEST_SLOT_EXTRA
-		## Along-file: first already sits 2 side-cells out of the pocket;
-		## second keeps extra back so the trio does not re-mash.
+		## Side stagger only — extra back hugs the west wall. Dest cells stay.
+		w += side * st * (FOLLOW_WEST_SLOT_EXTRA + 8.0)
 		var slot_i := _follow_slot_index(lead, follower)
-		w += back * (10.0 + float(maxi(slot_i, 0)) * 18.0)
+		w += back * (12.0 + float(maxi(slot_i, 0)) * 16.0)
 	return w
 
 
@@ -10420,6 +10569,7 @@ func dump_touch_feel() -> Dictionary:
 		"follow_arc_on": follow_dest_arc_active() if has_method("follow_dest_arc_active") else -1,
 		"obs_scale": follow_obs_visual_scale() if has_method("follow_obs_visual_scale") else 1.0,
 		"obs_r": follow_obs_visual_radius() if has_method("follow_obs_visual_radius") else 0.0,
+		"obs_off": follow_obs_world_offset() if has_method("follow_obs_world_offset") else 0.0,
 		"cam_squad_zoom": _cam_squad_zoom,
 		"cluster_scale": follow_cluster_body_scale() if has_method("follow_cluster_body_scale") else 1.0,
 		"cone_fade": follow_cone_visual_fade() if has_method("follow_cone_visual_fade") else 1.0,
@@ -10834,7 +10984,7 @@ func follow_west_queue_hits() -> int:
 
 
 func follow_west_lead_span() -> int:
-	## Max Chebyshev from the lead to a follow dest. v0.5.22/0.5.23 west file is ≤2:
+	## Max Chebyshev from the lead to a follow dest. v0.5.22–0.5.24 west file is ≤2:
 	## first follower is 2 along-file, second one cell further back.
 	if selected == null or grid == null:
 		return 99
@@ -10957,12 +11107,12 @@ func _follow_selected_cam(delta: float) -> void:
 		return
 	if cluster:
 		var rad := deg_to_rad(float(selected.facing_deg))
-		focus += selected.global_position + Vector2(cos(rad), sin(rad)) * 88.0
+		focus += selected.global_position + Vector2(cos(rad), sin(rad)) * FOLLOW_CAM_WEST_CONE
 		n += 1
 	if moving or cluster:
 		focus /= float(n)
 		var center := Vector2(640, 360)
-		var want: Vector2 = (focus - center) * 0.22
+		var want: Vector2 = (focus - center) * FOLLOW_CAM_WEST_PAN
 		_cam_pan = _cam_pan.lerp(want, 1.0 - exp(-delta * 4.2))
 	_apply_cam()
 
