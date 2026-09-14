@@ -27,6 +27,8 @@ const FOLLOW_WEST_FIRST_SIDE := 3
 const FOLLOW_WEST_SECOND_SIDE := 2
 const FOLLOW_WEST_SPAN_MAX := 3
 const FOLLOW_ARC_FAR_CAP := 20.0
+## South-corridor y=13 cell south rim. 16px past y=13 center is cell y=14.
+const FOLLOW_ARC_Y13_CAP := 15.0
 const FOLLOW_ARC_END_PAD := 12.0
 const FOLLOW_DEST_BLEND := 0.24
 const FOLLOW_ARC_BLEND := 0.30
@@ -8820,6 +8822,7 @@ func _follow_cap_far_side(pts: PackedVector2Array, raw: PackedVector2Array, pivo
 		if ok:
 			corridor_n += 1
 	var corridor_arc := interior > 0 and corridor_n * 2 >= interior
+	var south_gap := _follow_south_gap_arc(from_w, to_w)
 	for i in range(1, pts.size() - 1):
 		var p: Vector2 = pts[i]
 		var t := clampf((p - from_w).dot(chord) / chord.length_squared(), 0.0, 1.0)
@@ -8828,11 +8831,15 @@ func _follow_cap_far_side(pts: PackedVector2Array, raw: PackedVector2Array, pivo
 		var want: Vector2 = p
 		var changed := false
 		var cap := FOLLOW_ARC_FAR_CAP
+		if south_gap:
+			## Whole y=13 gap: 20px south of the chord is cell y=14 (open
+			## east of the south crates, including mid-corridor x≈21). Hold
+			## every sample on the y=13 rim (~15px). Taper the east end so
+			## the ammo crate at (23,13) does not shove a leftover into
+			## y=14. Far-cap constant stays 20 so large crate-cluster bows
+			## and settle-on-ring hops are not flattened.
+			cap = minf(cap, FOLLOW_ARC_Y13_CAP)
 		if corridor_arc:
-			## East end of the y=13 gap is open at y=14. Keep the mid-gap
-			## bow at ~20px; taper the last samples so they stay in y=13
-			## instead of kissing y=14. Stay ≥12 so crate-face bows do not
-			## go flat.
 			if t > 0.70:
 				cap = minf(cap, 14.0)
 			if t > 0.84:
@@ -8901,23 +8908,40 @@ func _follow_cap_keep_off_axis(pts: PackedVector2Array, i: int, want: Vector2, n
 	return want
 
 
+func _follow_south_gap_arc(from_w: Vector2, to_w: Vector2) -> bool:
+	## Yard south-corridor chord along y=13 spanning the south crate row.
+	if grid == null:
+		return false
+	var a: Vector2i = grid.world_to_cell(from_w)
+	var b: Vector2i = grid.world_to_cell(to_w)
+	if a.y != 13 or b.y != 13:
+		return false
+	if maxi(a.x, b.x) - mini(a.x, b.x) < 6:
+		return false
+	var mid_x := int((a.x + b.x) / 2)
+	return mid_x >= 16 and mid_x <= 24
+
+
 func _follow_cap_y13_east(
 	pts: PackedVector2Array, raw: PackedVector2Array, nrm: Vector2
 ) -> PackedVector2Array:
-	## South-corridor east-end samples that dipped into y=14 (open cell past
-	## the south crates) pull back into the y=13 gap. Mid-gap bow stays.
+	## South-corridor samples that dipped into y=14 (open cell past the
+	## south crates, including mid-gap x≈21) pull back into the y=13 gap.
 	## (23,13) is the ammo crate, so same-x y=13 is inoperable — slide in x.
+	## Other corridor hops (west dests / settle-on-ring) keep the east-only
+	## gate so y=14 stand cells are not yanked into y=13.
 	if grid == null or pts.size() < 3 or raw.size() != pts.size():
 		return pts
 	var from_w: Vector2 = raw[0]
 	var to_w: Vector2 = raw[raw.size() - 1]
+	var south_gap := _follow_south_gap_arc(from_w, to_w)
 	var east_x := maxf(from_w.x, to_w.x) - 48.0
 	var y_lim := float(14 * 32 - 2)
 	var chord: Vector2 = to_w - from_w
 	var max_x := maxf(from_w.x, to_w.x) + FOLLOW_ARC_END_PAD
 	for i in range(1, pts.size() - 1):
 		var p: Vector2 = pts[i]
-		if p.x < east_x:
+		if not south_gap and p.x < east_x:
 			continue
 		if grid.world_to_cell(p).y < 14:
 			continue
@@ -8941,8 +8965,9 @@ func _follow_cap_y13_east(
 			continue
 		if want.x > max_x:
 			continue
-		if _follow_same_axis(pts[i - 1], want) or _follow_same_axis(want, pts[i + 1]):
-			continue
+		if not south_gap:
+			if _follow_same_axis(pts[i - 1], want) or _follow_same_axis(want, pts[i + 1]):
+				continue
 		pts[i] = want
 	return pts
 
@@ -9279,18 +9304,27 @@ func follow_arc_far_overshoot(pts: PackedVector2Array, from_w: Vector2, to_w: Ve
 	return far
 
 
-func follow_arc_y14_east(pts: PackedVector2Array, from_w: Vector2, to_w: Vector2) -> int:
-	## South-corridor east-end samples that have dipped into y=14. The y=13
-	## gap is the chord; y=14 at x>=21 is the open cell past the south crates.
+func follow_arc_y14_east(pts: PackedVector2Array, _from_w: Vector2, _to_w: Vector2) -> int:
+	## Full south-corridor path samples in y>=14. The y=13 gap is the chord;
+	## y=14 at x>=21 (mid and east) is the open cell past the south crates.
 	if grid == null or pts.is_empty():
 		return 0
-	var east_x := maxf(from_w.x, to_w.x) - 40.0
 	var n := 0
 	for p in pts:
-		if p.x < east_x:
-			continue
 		var c: Vector2i = grid.world_to_cell(p)
 		if c.y >= 14:
+			n += 1
+	return n
+
+
+func follow_arc_y14_mid(pts: PackedVector2Array, _from_w: Vector2, _to_w: Vector2) -> int:
+	## Mid-corridor (x≈21) bow samples that sat in the open y=14 cell.
+	if grid == null or pts.is_empty():
+		return 0
+	var n := 0
+	for p in pts:
+		var c: Vector2i = grid.world_to_cell(p)
+		if c.x >= 20 and c.x <= 22 and c.y >= 14:
 			n += 1
 	return n
 

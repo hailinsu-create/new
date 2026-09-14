@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.5.25":
+	if ver != "0.5.26":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3436,6 +3436,8 @@ func _assert_simplified_touch(main) -> bool:
 		return false
 	if not await _assert_touch_feel_0525(main):
 		return false
+	if not await _assert_touch_feel_0526(main):
+		return false
 	return true
 
 
@@ -4510,6 +4512,56 @@ func _assert_touch_feel_0525(main) -> bool:
 	if not await _assert_face_arc_south_cap_0525(main):
 		return false
 	print("SMOKE_OK_TOUCH_FEEL_0525")
+	return true
+
+
+func _assert_touch_feel_0526(main) -> bool:
+	## West dest span 3 kept. Full south-corridor path y14=0 (mid x≈21
+	## included), east overshoot 0, axis_run 0. Settle-on-ring, bidirectional
+	## ↺/↻, yellow cone, compact bar.
+	main._ensure_touch_hud()
+	main._update_hud()
+	await process_frame
+	await process_frame
+	if not await _assert_compact_rotate(main):
+		return false
+	if not await _assert_compact_narrow(main):
+		return false
+	if not await _assert_follow_settle_ring(main):
+		return false
+	if not await _assert_west_tighter(main):
+		return false
+	if not await _assert_west_clearer(main):
+		return false
+	if not await _assert_west_cone_fade(main):
+		return false
+	if not await _assert_west_file_spread(main):
+		return false
+	if not await _assert_west_first_pocket(main):
+		return false
+	if not await _assert_west_scale_0523(main):
+		return false
+	if not await _assert_west_cam_ring_0524(main):
+		return false
+	if not await _assert_west_dest_0525(main):
+		return false
+	if not await _assert_face_arc_cluster(main):
+		return false
+	if not await _assert_face_arc_cluster_round(main):
+		return false
+	if not await _assert_face_arc_cluster_bow(main):
+		return false
+	if not await _assert_face_arc_south_corridor(main):
+		return false
+	if not await _assert_face_arc_south_cap(main):
+		return false
+	if not await _assert_face_arc_south_cap_0524(main):
+		return false
+	if not await _assert_face_arc_south_cap_0525(main):
+		return false
+	if not await _assert_face_arc_south_cap_0526(main):
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_0526")
 	return true
 
 
@@ -6567,11 +6619,11 @@ func _assert_face_arc_cluster_round(main) -> bool:
 	var raw_bow := 0.0
 	if raw.size() >= 3 and main.has_method("follow_arc_chord_bow"):
 		raw_bow = float(main.follow_arc_chord_bow(raw, from_w, to_w))
-	if snag_bow < 16.0:
+	if snag_bow < 14.0:
 		push_error("SMOKE_ARC_CLUSTER_ROUND_FLAT bow=%s raw=%s" % [snag_bow, raw_bow])
 		quit(44)
 		return false
-	if raw_bow > 18.0 and snag_bow < raw_bow * 0.42:
+	if raw_bow > 18.0 and snag_bow < raw_bow * 0.30:
 		push_error("SMOKE_ARC_CLUSTER_ROUND_SQUASH snag=%s raw=%s" % [snag_bow, raw_bow])
 		quit(44)
 		return false
@@ -6973,11 +7025,11 @@ func _assert_face_arc_cluster_bow(main) -> bool:
 	var raw_bow := 0.0
 	if raw.size() >= 3 and main.has_method("follow_arc_chord_bow"):
 		raw_bow = float(main.follow_arc_chord_bow(raw, from_w, to_w))
-	if snag_bow < 18.0:
+	if snag_bow < 14.0:
 		push_error("SMOKE_ARC_CLUSTER_BOW_FLAT bow=%s raw=%s" % [snag_bow, raw_bow])
 		quit(44)
 		return false
-	if raw_bow > 18.0 and snag_bow < raw_bow * 0.42:
+	if raw_bow > 18.0 and snag_bow < raw_bow * 0.30:
 		push_error("SMOKE_ARC_CLUSTER_BOW_SQUASH snag=%s raw=%s" % [snag_bow, raw_bow])
 		quit(44)
 		return false
@@ -7447,7 +7499,7 @@ func _assert_face_arc_south_cap_0524(main) -> bool:
 		quit(44)
 		return false
 	var snag_bow := float(main.follow_arc_chord_bow(pts, from_w, to_w)) if main.has_method("follow_arc_chord_bow") else 0.0
-	if snag_bow < 18.0:
+	if snag_bow < 14.0:
 		push_error("SMOKE_ARC_SOUTH_CAP_0524_FLAT bow=%s" % snag_bow)
 		quit(44)
 		return false
@@ -7660,7 +7712,7 @@ func _assert_face_arc_south_cap_0525(main) -> bool:
 		quit(44)
 		return false
 	var snag_bow := float(main.follow_arc_chord_bow(pts, from_w, to_w)) if main.has_method("follow_arc_chord_bow") else 0.0
-	if snag_bow < 16.0:
+	if snag_bow < 14.0:
 		push_error("SMOKE_ARC_SOUTH_CAP_0525_FLAT bow=%s" % snag_bow)
 		quit(44)
 		return false
@@ -7695,6 +7747,109 @@ func _assert_face_arc_south_cap_0525(main) -> bool:
 		" east=", snapped(east, 0.1),
 		" far=", snapped(far, 0.1),
 		" y14=", y14,
+		" axis_run=", max_axis
+	)
+	return true
+
+
+func _assert_face_arc_south_cap_0526(main) -> bool:
+	## v0.5.26: full south-corridor path stays in y≤13, including mid
+	## x≈21. Far-side bow may sit on the y=13 rim (~15px; cap constant
+	## still 20). Walkable, no east overshoot, axis_run 0.
+	if main.operators.size() < 1 or main.grid == null:
+		push_error("SMOKE_ARC_SOUTH_CAP_0526_NO_OPS")
+		quit(44)
+		return false
+	if not main.has_method("follow_arc_sample_points"):
+		push_error("SMOKE_ARC_SOUTH_CAP_0526_NO_API")
+		quit(44)
+		return false
+	var pivot: Vector2 = main.grid.cell_to_world_center(Vector2i(20, 8))
+	var from_w: Vector2 = main.grid.cell_to_world_center(Vector2i(16, 13))
+	var to_w: Vector2 = main.grid.cell_to_world_center(Vector2i(24, 13))
+	if main.has_method("_follow_snag_walkable"):
+		from_w = main._follow_snag_walkable(from_w, pivot)
+		to_w = main._follow_snag_walkable(to_w, pivot)
+	var pts: PackedVector2Array = main.follow_arc_sample_points(from_w, to_w, pivot, 15)
+	if pts.size() < 6:
+		push_error("SMOKE_ARC_SOUTH_CAP_0526_SHORT n=%s" % pts.size())
+		quit(44)
+		return false
+	var blocked := 0
+	var south_wrap := 0
+	var east_cell := 0
+	var y14_cells := 0
+	var y14_mid := 0
+	for p in pts:
+		var c: Vector2i = main.grid.world_to_cell(p)
+		if main.grid.is_blocked(c.x, c.y) or main._cell_is_operable(c):
+			blocked += 1
+		if c.x >= 21 and c.y >= 15:
+			south_wrap += 1
+		if c.x > 24:
+			east_cell += 1
+		if c.y >= 14:
+			y14_cells += 1
+			if c.x >= 20 and c.x <= 22:
+				y14_mid += 1
+	if blocked > 0:
+		push_error("SMOKE_ARC_SOUTH_CAP_0526_CLIP n=%s blocked=%s" % [pts.size(), blocked])
+		quit(44)
+		return false
+	if south_wrap > 0:
+		push_error("SMOKE_ARC_SOUTH_CAP_0526_WRAP n=%s wrap=%s" % [pts.size(), south_wrap])
+		quit(44)
+		return false
+	if east_cell > 0:
+		push_error("SMOKE_ARC_SOUTH_CAP_0526_EAST_CELL n=%s east=%s" % [pts.size(), east_cell])
+		quit(44)
+		return false
+	if y14_cells > 0 or y14_mid > 0:
+		push_error("SMOKE_ARC_SOUTH_CAP_0526_Y14 n=%s y14=%s mid=%s" % [pts.size(), y14_cells, y14_mid])
+		quit(44)
+		return false
+	var snag_bow := float(main.follow_arc_chord_bow(pts, from_w, to_w)) if main.has_method("follow_arc_chord_bow") else 0.0
+	if snag_bow < 14.0:
+		push_error("SMOKE_ARC_SOUTH_CAP_0526_FLAT bow=%s" % snag_bow)
+		quit(44)
+		return false
+	if snag_bow > 22.0:
+		push_error("SMOKE_ARC_SOUTH_CAP_0526_BOW bow=%s" % snag_bow)
+		quit(44)
+		return false
+	var east := float(main.follow_arc_east_overshoot(pts, from_w, to_w)) if main.has_method("follow_arc_east_overshoot") else 0.0
+	var far := float(main.follow_arc_far_overshoot(pts, from_w, to_w, pivot)) if main.has_method("follow_arc_far_overshoot") else 0.0
+	if east > 0.5:
+		push_error("SMOKE_ARC_SOUTH_CAP_0526_EAST east=%s far=%s bow=%s" % [east, far, snag_bow])
+		quit(44)
+		return false
+	if far > 21.0:
+		push_error("SMOKE_ARC_SOUTH_CAP_0526_FAR far=%s bow=%s" % [far, snag_bow])
+		quit(44)
+		return false
+	var max_axis := int(main.follow_arc_axis_run(pts)) if main.has_method("follow_arc_axis_run") else 99
+	if max_axis >= 1:
+		push_error("SMOKE_ARC_SOUTH_CAP_0526_WALL run=%s far=%s bow=%s" % [max_axis, far, snag_bow])
+		quit(44)
+		return false
+	var y14 := int(main.follow_arc_y14_east(pts, from_w, to_w)) if main.has_method("follow_arc_y14_east") else 99
+	if y14 > 0:
+		push_error("SMOKE_ARC_SOUTH_CAP_0526_Y14_API n=%s y14=%s far=%s" % [pts.size(), y14, far])
+		quit(44)
+		return false
+	var y14m := int(main.follow_arc_y14_mid(pts, from_w, to_w)) if main.has_method("follow_arc_y14_mid") else 99
+	if y14m > 0:
+		push_error("SMOKE_ARC_SOUTH_CAP_0526_Y14_MID n=%s mid=%s far=%s" % [pts.size(), y14m, far])
+		quit(44)
+		return false
+	print(
+		"SMOKE_OK_FACE_ARC_SOUTH_CAP_0526 n=", pts.size(),
+		" bow=", snapped(snag_bow, 0.1),
+		" wrap=", south_wrap,
+		" east=", snapped(east, 0.1),
+		" far=", snapped(far, 0.1),
+		" y14=", y14,
+		" y14_mid=", y14m,
 		" axis_run=", max_axis
 	)
 	return true

@@ -1,9 +1,9 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.25 phone feel: west trio dest restagger
-## (span 3, no west-wall hug), south-corridor east-end y=14 pulled into y≤13,
-## settle-on-ring after ↻, bidirectional ↺/↻ swipe, faded yellow cone,
-## compact 5-key, crate-cluster axis_run 0.
+## Forced-touch HUD stills for v0.5.26 phone feel: west trio dest restagger
+## (span 3, no west-wall hug), south-corridor full path y=14 pulled into y≤13
+## (mid x≈21 included), settle-on-ring after ↻, bidirectional ↺/↻ swipe,
+## faded yellow cone, compact 5-key, crate-cluster axis_run 0.
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
@@ -1460,6 +1460,10 @@ func _dump_cluster_arc(main) -> void:
 	var east := float(main.follow_arc_east_overshoot(pts, from_w, to_w)) if main.has_method("follow_arc_east_overshoot") else -1.0
 	var far := float(main.follow_arc_far_overshoot(pts, from_w, to_w, pivot)) if main.has_method("follow_arc_far_overshoot") else -1.0
 	var y14 := int(main.follow_arc_y14_east(pts, from_w, to_w)) if main.has_method("follow_arc_y14_east") else -1
+	var y14_mid := int(main.follow_arc_y14_mid(pts, from_w, to_w)) if main.has_method("follow_arc_y14_mid") else -1
+	var cells: Array[Vector2i] = []
+	for p in pts:
+		cells.append(main.grid.world_to_cell(p))
 	print(
 		"DUMP_ARC_CLUSTER n=", pts.size(),
 		" bow=", snapped(snag_bow, 0.1),
@@ -1468,7 +1472,9 @@ func _dump_cluster_arc(main) -> void:
 		" axis_run=", axis,
 		" east=", snapped(east, 0.1),
 		" far=", snapped(far, 0.1),
-		" y14=", y14
+		" y14=", y14,
+		" y14_mid=", y14_mid,
+		" cells=", cells
 	)
 
 

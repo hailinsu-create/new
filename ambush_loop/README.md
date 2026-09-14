@@ -4,8 +4,8 @@ Godot 4.7.2 vertical slice — Commandos-style night raid: scout, loot, ambush, 
 
 **朋友包 / 程序多边形 / 合成音 / 必须横屏。** 不是正式版，不要写成 9.5。  
 像素门槛加权 **9.0**（`docs/Ambush_Loop_试玩复评_71ca4af.md`，窗口 31 张）。旧自称 9.2 作废。  
-侧载试玩 **v0.5.25 触控手感**：`ambush_loop/dist/AmbushLoop-v0.5.25-touch-slide.apk`（包名 `com.ambushloop.game`，`versionName` 0.5.25）。  
-直链：https://github.com/hailinsu-create/new/releases/download/v0.5.25-touch-slide/AmbushLoop-v0.5.25-touch-slide.apk  
+侧载试玩 **v0.5.26 触控手感**：`ambush_loop/dist/AmbushLoop-v0.5.26-touch-slide.apk`（包名 `com.ambushloop.game`，`versionName` 0.5.26）。  
+直链：https://github.com/hailinsu-create/new/releases/download/v0.5.26-touch-slide/AmbushLoop-v0.5.26-touch-slide.apk  
 不要用 GitHub release `ambush-loop-playtest-0.2.0` 或 `main` 上的 `AmbushLoop-playtest.apk`（那是锁死观战包）。0.3.x 的 28 型号表已收成 10 枪。
 
 Blueprint: `docs/Ambush_Loop_开发蓝图.md`  
