@@ -1,8 +1,8 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.15 phone feel: west trio observation rings
-## shrink + camera pulls past 0.62, 90° 拧射界 dests slide on the facing-slot
-## arc (拧射界换格, 西巷三人跟上).
+## Forced-touch HUD stills for v0.5.16 phone feel: 15° ↻ dests ride the slot
+## ring, west trio extra stagger/scale, arc samples snag onto walkable cells
+## (拧射界换格, 西巷三人跟上).
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
@@ -319,7 +319,9 @@ func _walk_west_combo_follow(main) -> void:
 		" d1=", main._follow_dest.get(int(a.op_id), Vector2i(-1, -1)),
 		" d2=", main._follow_dest.get(int(b.op_id), Vector2i(-1, -1)),
 		" rear=", int(main.follow_rear_ok_count()) if main.has_method("follow_rear_ok_count") else -1,
-		" queue=", int(main.follow_west_queue_hits()) if main.has_method("follow_west_queue_hits") else -1
+		" queue=", int(main.follow_west_queue_hits()) if main.has_method("follow_west_queue_hits") else -1,
+		" dest_w_spread=", snapped(float(main.follow_dest_world_min_spacing()) if main.has_method("follow_dest_world_min_spacing") else -1.0, 0.1),
+		" cluster_scale=", snapped(float(main.follow_cluster_body_scale()) if main.has_method("follow_cluster_body_scale") else 1.0, 0.01)
 	)
 	await _save("08_west_combo_follow")
 	if bool(a.follow_lead):
@@ -1116,6 +1118,57 @@ func _walk_facing_turn(main) -> void:
 	a.stop_move()
 	b.stop_move()
 	if lead.has_method("set_facing"):
+		lead.set_facing(0.0)
+	else:
+		lead.facing_deg = 0.0
+		if lead.has_method("_rebuild_cone"):
+			lead._rebuild_cone()
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	if main.has_method("_tick_squad_follow"):
+		main._tick_squad_follow(0.05)
+	frames = 0
+	while frames < 20:
+		if main.has_method("_tick_command_moves"):
+			main._tick_command_moves(0.05)
+		if main.has_method("_tick_squad_follow"):
+			main._tick_squad_follow(0.05)
+		await process_frame
+		frames += 1
+		if not a.is_moving() and not b.is_moving() and frames > 6:
+			break
+	a.stop_move()
+	b.stop_move()
+	main._follow_arc_hits = 0
+	if lead.has_method("set_facing"):
+		lead.set_facing(15.0)
+	else:
+		lead.facing_deg = 15.0
+		if lead.has_method("_rebuild_cone"):
+			lead._rebuild_cone()
+	main._stealth_avoid_cache.clear()
+	if main.has_method("_tick_squad_follow"):
+		main._tick_squad_follow(0.05)
+	if main.has_method("_tick_command_moves"):
+		main._tick_command_moves(0.05)
+	if main.has_method("_tick_squad_follow"):
+		main._tick_squad_follow(0.05)
+	await process_frame
+	print(
+		"DUMP_FACE_RING east=", east_d1, east_d2,
+		" hop=", main._follow_dest.get(int(a.op_id), Vector2i(-1, -1)),
+		main._follow_dest.get(int(b.op_id), Vector2i(-1, -1)),
+		" arc=", int(main.follow_dest_arc_hits()) if main.has_method("follow_dest_arc_hits") else -1,
+		" arc_on=", int(main.follow_dest_arc_active()) if main.has_method("follow_dest_arc_active") else -1,
+		" bow=", snapped(float(main.follow_dest_arc_bow(int(a.op_id))) if main.has_method("follow_dest_arc_bow") else -1.0, 0.1),
+		" w1=", main.follow_dest_world_of(int(a.op_id)) if main.has_method("follow_dest_world_of") else Vector2.ZERO,
+		" blocked=", int(main.follow_arc_blocked_hits()) if main.has_method("follow_arc_blocked_hits") else -1
+	)
+	_dump_feel(main, "face_ring")
+	await _save("08k_face_ring")
+	a.stop_move()
+	b.stop_move()
+	if lead.has_method("set_facing"):
 		lead.set_facing(90.0)
 	else:
 		lead.facing_deg = 90.0
@@ -1302,7 +1355,10 @@ func _dump_feel(main, tag: String) -> void:
 		" follow_arc_on=", f.get("follow_arc_on", -1),
 		" obs_scale=", snapped(float(f.get("obs_scale", 1.0)), 0.01),
 		" obs_r=", snapped(float(f.get("obs_r", 0.0)), 0.1),
-		" cam_squad_zoom=", snapped(float(f.get("cam_squad_zoom", 1.0)), 0.01)
+		" cam_squad_zoom=", snapped(float(f.get("cam_squad_zoom", 1.0)), 0.01),
+		" cluster_scale=", snapped(float(f.get("cluster_scale", 1.0)), 0.01),
+		" dest_world_spread=", snapped(float(f.get("dest_world_spread", -1.0)), 0.1),
+		" arc_blocked=", f.get("arc_blocked", -1)
 	)
 
 

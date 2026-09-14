@@ -17,6 +17,10 @@ var _wave_lab: Label = null
 var _portrait_slot: Control = null
 var _abort_armed: bool = false
 var _abort_msec: int = 0
+var _hold_cmd: String = ""
+var _hold_next_msec: int = 0
+const HOLD_FIRST_MS := 160
+const HOLD_REPEAT_MS := 110
 
 
 func bind_host(host: Node) -> void:
@@ -81,6 +85,16 @@ func _process(_delta: float) -> void:
 		_abort_armed = false
 		if _btns.has("abort") and _btns["abort"]:
 			_btns["abort"].text = "中止"
+	if _hold_cmd != "":
+		var b: Button = _btns.get(_hold_cmd)
+		if b == null or b.disabled or not b.is_pressed():
+			_hold_cmd = ""
+		else:
+			var now := Time.get_ticks_msec()
+			if now >= _hold_next_msec:
+				if _host != null and _host.has_method("apply_touch_command"):
+					_host.call("apply_touch_command", _hold_cmd)
+				_hold_next_msec = now + HOLD_REPEAT_MS
 
 
 func _build() -> void:
@@ -247,20 +261,34 @@ func _add(row: HBoxContainer, cmd: String, label: String, tint: Color, minsz: Ve
 	b.set_meta("cmd", cmd)
 	b.set_meta("label", label)
 	_apply_btn_style(b, tint, false)
-	b.pressed.connect(func() -> void:
-		_kick_btn(b)
-		var c := str(b.get_meta("cmd", cmd))
-		if c == "abort":
-			if not _abort_armed:
-				_abort_armed = true
-				_abort_msec = Time.get_ticks_msec()
-				b.text = "确认中止"
-				return
-			_abort_armed = false
-			b.text = "中止"
-		if _host != null and _host.has_method("apply_touch_command"):
-			_host.call("apply_touch_command", c)
-	)
+	if cmd == "rotate_cw" or cmd == "rotate_ccw":
+		b.button_down.connect(func() -> void:
+			_kick_btn(b)
+			var c := str(b.get_meta("cmd", cmd))
+			_hold_cmd = c
+			_hold_next_msec = Time.get_ticks_msec() + HOLD_FIRST_MS
+			if _host != null and _host.has_method("apply_touch_command"):
+				_host.call("apply_touch_command", c)
+		)
+		b.button_up.connect(func() -> void:
+			if _hold_cmd == str(b.get_meta("cmd", cmd)):
+				_hold_cmd = ""
+		)
+	else:
+		b.pressed.connect(func() -> void:
+			_kick_btn(b)
+			var c := str(b.get_meta("cmd", cmd))
+			if c == "abort":
+				if not _abort_armed:
+					_abort_armed = true
+					_abort_msec = Time.get_ticks_msec()
+					b.text = "确认中止"
+					return
+				_abort_armed = false
+				b.text = "中止"
+			if _host != null and _host.has_method("apply_touch_command"):
+				_host.call("apply_touch_command", c)
+		)
 	var lock := Label.new()
 	lock.name = "LockMark"
 	lock.text = "锁"

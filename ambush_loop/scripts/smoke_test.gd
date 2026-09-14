@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.5.15":
+	if ver != "0.5.16":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3416,6 +3416,8 @@ func _assert_simplified_touch(main) -> bool:
 		return false
 	if not await _assert_touch_feel_0515(main):
 		return false
+	if not await _assert_touch_feel_0516(main):
+		return false
 	return true
 
 
@@ -4162,6 +4164,35 @@ func _assert_touch_feel_0515(main) -> bool:
 	if not await _assert_west_combo_touch(main):
 		return false
 	print("SMOKE_OK_TOUCH_FEEL_0515")
+	return true
+
+
+func _assert_touch_feel_0516(main) -> bool:
+	## 15° ↻ dests ride the slot ring; west trio extra stagger/scale;
+	## arc samples snag onto walkable cells. 拧射界换格 + 西巷三人跟上.
+	main._ensure_touch_hud()
+	main._update_hud()
+	await process_frame
+	await process_frame
+	if not await _assert_follow_nudge_arc(main):
+		return false
+	if not await _assert_west_body_stagger(main):
+		return false
+	if not await _assert_face_arc_walkable(main):
+		return false
+	if not await _assert_west_obs_tight(main):
+		return false
+	if not await _assert_follow_face_arc(main):
+		return false
+	if not await _assert_follow_dest_blend(main):
+		return false
+	if not await _assert_west_follow_rear(main):
+		return false
+	if not await _assert_west_follow_queue(main):
+		return false
+	if not await _assert_west_combo_touch(main):
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_0516")
 	return true
 
 
@@ -4950,6 +4981,320 @@ func _assert_follow_face_arc(main) -> bool:
 		quit(44)
 		return false
 	print("SMOKE_OK_FOLLOW_FACE_ARC_LAND south=", south_d1, south_d2, " lead=", lead.grid_cell())
+	if bool(a.follow_lead) != flags[0]:
+		main.toggle_follow(1)
+	if bool(b.follow_lead) != flags[1]:
+		main.toggle_follow(2)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	lead.global_position = homes[0]
+	a.global_position = homes[1]
+	b.global_position = homes[2]
+	main._follow_dest.clear()
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	return true
+
+
+func _assert_follow_nudge_arc(main) -> bool:
+	## 15° ↻ taps: dest world rides the facing-slot ring, not a cell-center hop.
+	if main.operators.size() < 3 or main.grid == null:
+		push_error("SMOKE_NUDGE_ARC_NO_OPS")
+		quit(44)
+		return false
+	var lead: OperatorUnit = main.operators[0]
+	var a: OperatorUnit = main.operators[1]
+	var b: OperatorUnit = main.operators[2]
+	var homes: Array[Vector2] = [lead.global_position, a.global_position, b.global_position]
+	var flags: Array[bool] = [bool(a.follow_lead), bool(b.follow_lead)]
+	if main.c2 and not main.c2.sentries.is_empty():
+		_park_sentries(main, null)
+	var lead_c := Vector2i(13, 13)
+	var a_c := Vector2i(11, 16)
+	var b_c := Vector2i(12, 17)
+	if main.grid.is_blocked(lead_c.x, lead_c.y) or main._cell_is_operable(lead_c):
+		lead_c = Vector2i(14, 13)
+	if main.grid.is_blocked(a_c.x, a_c.y):
+		a_c = Vector2i(10, 16)
+	if main.grid.is_blocked(b_c.x, b_c.y):
+		b_c = Vector2i(11, 17)
+	main._select_op(0)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	if lead.has_method("set_facing"):
+		lead.set_facing(0.0)
+	else:
+		lead.facing_deg = 0.0
+		if lead.has_method("_rebuild_cone"):
+			lead._rebuild_cone()
+	lead.global_position = main.grid.cell_to_world_center(lead_c)
+	a.global_position = main.grid.cell_to_world_center(a_c)
+	b.global_position = main.grid.cell_to_world_center(b_c)
+	main._stealth_avoid_cache.clear()
+	main._stealth_avoid_msec = 0
+	if not bool(a.follow_lead):
+		main.toggle_follow(1)
+	if not bool(b.follow_lead):
+		main.toggle_follow(2)
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	main._tick_squad_follow(0.05)
+	await _tick_follow_steps(main, 20)
+	var east_d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+	if east_d1.x < 0:
+		push_error("SMOKE_NUDGE_ARC_EAST d1=%s" % east_d1)
+		quit(44)
+		return false
+	a.stop_move()
+	b.stop_move()
+	if main.has_method("follow_slot_world_of"):
+		a.global_position = main.follow_slot_world_of(int(a.op_id))
+		b.global_position = main.follow_slot_world_of(int(b.op_id))
+	var lead_w: Vector2 = lead.global_position
+	var prev_w: Vector2 = main.follow_dest_world_of(int(a.op_id)) if main.has_method("follow_dest_world_of") else a.global_position
+	var prev_ang := atan2(prev_w.y - lead_w.y, prev_w.x - lead_w.x)
+	main._follow_arc_hits = 0
+	var max_step := 0.0
+	var ang_steps := 0
+	for step_i in 6:
+		var face := float(step_i + 1) * 15.0
+		if lead.has_method("set_facing"):
+			lead.set_facing(face)
+		else:
+			lead.facing_deg = face
+			if lead.has_method("_rebuild_cone"):
+				lead._rebuild_cone()
+		main._stealth_avoid_cache.clear()
+		main._tick_squad_follow(0.05)
+		if main.has_method("_tick_command_moves"):
+			main._tick_command_moves(0.05)
+		main._tick_squad_follow(0.05)
+		var now_w: Vector2 = main.follow_dest_world_of(int(a.op_id)) if main.has_method("follow_dest_world_of") else a.global_position
+		var step_d := now_w.distance_to(prev_w)
+		if step_d > max_step:
+			max_step = step_d
+		var ang := atan2(now_w.y - lead_w.y, now_w.x - lead_w.x)
+		var dang := absf(wrapf(ang - prev_ang, -PI, PI))
+		if dang >= 0.04:
+			ang_steps += 1
+		prev_w = now_w
+		prev_ang = ang
+	var arc_hits := int(main.follow_dest_arc_hits()) if main.has_method("follow_dest_arc_hits") else 0
+	if arc_hits < 1:
+		push_error("SMOKE_NUDGE_ARC_HITS n=%s" % arc_hits)
+		quit(44)
+		return false
+	if ang_steps < 3:
+		push_error("SMOKE_NUDGE_ARC_FLAT steps=%s max=%s" % [ang_steps, snapped(max_step, 0.1)])
+		quit(44)
+		return false
+	if max_step > 56.0:
+		push_error("SMOKE_NUDGE_ARC_HOP step=%s" % snapped(max_step, 0.1))
+		quit(44)
+		return false
+	print(
+		"SMOKE_OK_FOLLOW_NUDGE_ARC hits=", arc_hits,
+		" ang_steps=", ang_steps,
+		" max_step=", snapped(max_step, 0.1)
+	)
+	if bool(a.follow_lead) != flags[0]:
+		main.toggle_follow(1)
+	if bool(b.follow_lead) != flags[1]:
+		main.toggle_follow(2)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	lead.global_position = homes[0]
+	a.global_position = homes[1]
+	b.global_position = homes[2]
+	main._follow_dest.clear()
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	return true
+
+
+func _assert_west_body_stagger(main) -> bool:
+	## West trio dest worlds sit a half-cell further apart, bodies shrink.
+	if main.operators.size() < 3 or main.grid == null:
+		push_error("SMOKE_WEST_STAGGER_NO_OPS")
+		quit(44)
+		return false
+	var lead: OperatorUnit = main.operators[0]
+	var a: OperatorUnit = main.operators[1]
+	var b: OperatorUnit = main.operators[2]
+	var homes: Array[Vector2] = [lead.global_position, a.global_position, b.global_position]
+	var flags: Array[bool] = [bool(a.follow_lead), bool(b.follow_lead)]
+	if main.c2 and not main.c2.sentries.is_empty():
+		_park_sentries(main, null)
+	var lead_c := Vector2i(7, 12)
+	var a_c := Vector2i(6, 14)
+	var b_c := Vector2i(6, 16)
+	if main.grid.is_blocked(lead_c.x, lead_c.y) or main._cell_is_operable(lead_c):
+		lead_c = Vector2i(7, 13)
+	if main.grid.is_blocked(a_c.x, a_c.y):
+		a_c = Vector2i(5, 14)
+	if main.grid.is_blocked(b_c.x, b_c.y):
+		b_c = Vector2i(5, 16)
+	main._select_op(0)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	if lead.has_method("set_facing"):
+		lead.set_facing(0.0)
+	else:
+		lead.facing_deg = 0.0
+		if lead.has_method("_rebuild_cone"):
+			lead._rebuild_cone()
+	lead.global_position = main.grid.cell_to_world_center(lead_c)
+	a.global_position = main.grid.cell_to_world_center(a_c)
+	b.global_position = main.grid.cell_to_world_center(b_c)
+	main._stealth_avoid_cache.clear()
+	main._stealth_avoid_msec = 0
+	if not bool(a.follow_lead):
+		main.toggle_follow(1)
+	if not bool(b.follow_lead):
+		main.toggle_follow(2)
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	main._tick_squad_follow(0.05)
+	await _tick_follow_steps(main, 16)
+	for _hold in 8:
+		if main.has_method("_update_observation_rings"):
+			main._update_observation_rings()
+		main._tick_squad_follow(0.05)
+		await process_frame
+	var d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+	var d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+	if d1.x < 0 or d2.x < 0 or d1 == d2:
+		push_error("SMOKE_WEST_STAGGER_DEST d1=%s d2=%s" % [d1, d2])
+		quit(44)
+		return false
+	var spread := float(main.follow_dest_world_min_spacing()) if main.has_method("follow_dest_world_min_spacing") else 0.0
+	if spread < 48.0:
+		push_error("SMOKE_WEST_STAGGER_TIGHT spread=%s d1=%s d2=%s" % [spread, d1, d2])
+		quit(44)
+		return false
+	var scale := float(main.follow_cluster_body_scale()) if main.has_method("follow_cluster_body_scale") else 1.0
+	if scale > 0.88:
+		push_error("SMOKE_WEST_STAGGER_SCALE s=%s spread=%s" % [scale, spread])
+		quit(44)
+		return false
+	print(
+		"SMOKE_OK_WEST_BODY_STAGGER d1=", d1, " d2=", d2,
+		" spread=", snapped(spread, 0.1),
+		" scale=", snapped(scale, 0.01)
+	)
+	if bool(a.follow_lead) != flags[0]:
+		main.toggle_follow(1)
+	if bool(b.follow_lead) != flags[1]:
+		main.toggle_follow(2)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	lead.global_position = homes[0]
+	a.global_position = homes[1]
+	b.global_position = homes[2]
+	main._follow_dest.clear()
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	return true
+
+
+func _assert_face_arc_walkable(main) -> bool:
+	## Arc samples snag onto walkable cells so the path does not clip crates.
+	if main.operators.size() < 3 or main.grid == null:
+		push_error("SMOKE_ARC_WALK_NO_OPS")
+		quit(44)
+		return false
+	var from_w: Vector2 = main.grid.cell_to_world_center(Vector2i(6, 9))
+	var to_w: Vector2 = main.grid.cell_to_world_center(Vector2i(12, 9))
+	var pivot: Vector2 = main.grid.cell_to_world_center(Vector2i(9, 12))
+	if not main.has_method("follow_arc_sample_points"):
+		push_error("SMOKE_ARC_WALK_NO_API")
+		quit(44)
+		return false
+	var pts: PackedVector2Array = main.follow_arc_sample_points(from_w, to_w, pivot, 7)
+	if pts.size() < 4:
+		push_error("SMOKE_ARC_WALK_SHORT n=%s" % pts.size())
+		quit(44)
+		return false
+	var blocked := 0
+	var mid_bow := 0.0
+	var chord: Vector2 = to_w - from_w
+	var chord_n := chord.length()
+	for i in pts.size():
+		var p: Vector2 = pts[i]
+		var c: Vector2i = main.grid.world_to_cell(p)
+		if main.grid.is_blocked(c.x, c.y) or main._cell_is_operable(c):
+			blocked += 1
+		if i > 0 and i < pts.size() - 1 and chord_n > 8.0:
+			var t_line := (p - from_w).dot(chord) / chord.length_squared()
+			var proj: Vector2 = from_w + chord * t_line
+			mid_bow = maxf(mid_bow, p.distance_to(proj))
+	if blocked > 0:
+		push_error("SMOKE_ARC_WALK_CLIP n=%s blocked=%s" % [pts.size(), blocked])
+		quit(44)
+		return false
+	if mid_bow < 4.0:
+		push_error("SMOKE_ARC_WALK_FLAT bow=%s n=%s" % [mid_bow, pts.size()])
+		quit(44)
+		return false
+	var lead: OperatorUnit = main.operators[0]
+	var a: OperatorUnit = main.operators[1]
+	var b: OperatorUnit = main.operators[2]
+	var homes: Array[Vector2] = [lead.global_position, a.global_position, b.global_position]
+	var flags: Array[bool] = [bool(a.follow_lead), bool(b.follow_lead)]
+	if main.c2 and not main.c2.sentries.is_empty():
+		_park_sentries(main, null)
+	var lead_c := Vector2i(13, 13)
+	var a_c := Vector2i(11, 16)
+	var b_c := Vector2i(12, 17)
+	if main.grid.is_blocked(lead_c.x, lead_c.y) or main._cell_is_operable(lead_c):
+		lead_c = Vector2i(14, 13)
+	main._select_op(0)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	if lead.has_method("set_facing"):
+		lead.set_facing(0.0)
+	else:
+		lead.facing_deg = 0.0
+		if lead.has_method("_rebuild_cone"):
+			lead._rebuild_cone()
+	lead.global_position = main.grid.cell_to_world_center(lead_c)
+	a.global_position = main.grid.cell_to_world_center(a_c)
+	b.global_position = main.grid.cell_to_world_center(b_c)
+	main._stealth_avoid_cache.clear()
+	if not bool(a.follow_lead):
+		main.toggle_follow(1)
+	if not bool(b.follow_lead):
+		main.toggle_follow(2)
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	main._tick_squad_follow(0.05)
+	await _tick_follow_steps(main, 16)
+	if lead.has_method("set_facing"):
+		lead.set_facing(90.0)
+	else:
+		lead.facing_deg = 90.0
+		if lead.has_method("_rebuild_cone"):
+			lead._rebuild_cone()
+	main._tick_squad_follow(0.05)
+	if main.has_method("_tick_command_moves"):
+		main._tick_command_moves(0.05)
+	main._tick_squad_follow(0.05)
+	var live_block := int(main.follow_arc_blocked_hits()) if main.has_method("follow_arc_blocked_hits") else 99
+	if live_block > 0:
+		push_error("SMOKE_ARC_WALK_LIVE n=%s" % live_block)
+		quit(44)
+		return false
+	print(
+		"SMOKE_OK_FACE_ARC_WALKABLE n=", pts.size(),
+		" bow=", snapped(mid_bow, 0.1),
+		" live_block=", live_block
+	)
 	if bool(a.follow_lead) != flags[0]:
 		main.toggle_follow(1)
 	if bool(b.follow_lead) != flags[1]:

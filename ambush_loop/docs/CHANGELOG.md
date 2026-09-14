@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.5.16 — Phone feel: 15° ↻ dests ride the slot ring, west stagger/scale, walkable arc
+
+Sideload APK: `dist/AmbushLoop-v0.5.16-touch-slide.apk`  
+Release tag: `v0.5.16-touch-slide`
+
+Same RAID as 0.5.15 (`SCOUT → ALERT → SWEEP`, auto fire + auto nade). Phone default stays 简配夜袭.
+
+### Play (phone)
+- **按住/连拧 ↻**: dest markers polar-slide around the facing-slot ring on every 15° tap (and while holding ↻ / A·D). They no longer wait for a ~90° twist or hop cell-by-cell.
+- **西巷三人**: dest worlds push another half cell apart along the side, and operator silhouettes shrink (~0.80) while the west file is clustered, so the three bodies overlap less.
+- **圆弧穿箱**: arc samples snag onto walkable cells. The slot-ring feel stays, dests do not clip through crates.
+- Forced-touch path covers 15° ring, west stagger/scale, and walkable arc clamp.
+
+### Android
+- `versionName` 0.5.16 / `versionCode` 22 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title **v0.5.16 COMMANDOS/WW2**.
+2. Stand still and tap ↻ once (15°): dests slide around the lead, they do not hop a whole tile.
+3. West alley **跟**: dests sit farther apart around the crate, bodies look a bit smaller.
+
 ## 0.5.15 — Phone feel: west trio rings tighten, 90° dests slide on the slot arc
 
 Sideload APK: `dist/AmbushLoop-v0.5.15-touch-slide.apk`  

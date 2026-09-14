@@ -60,6 +60,7 @@ var obs_ring: Line2D = null
 var obs_fill: Polygon2D = null
 var obs_tag: Label = null
 var obs_visual_scale: float = 1.0
+var _cluster_visual_scale: float = 1.0
 var role_glyph: Polygon2D = null
 var body_outline: Polygon2D = null
 var role_rim: Line2D = null
@@ -1240,7 +1241,8 @@ func _apply_idle_bob() -> void:
 			var breath := 0.004 if _is_power_saving() else 0.016
 			var punch := 1.0 + _hit_punch * 0.16
 			var land := Vector2(1.0 + _land_pop * 0.22, 1.0 - _land_pop * 0.20)
-			body.scale = Vector2(punch, punch * (1.0 + sin(_present_t * 2.15 + float(op_id)) * breath)) * land
+			var clus := clampf(_cluster_visual_scale, 0.55, 1.0)
+			body.scale = Vector2(punch, punch * (1.0 + sin(_present_t * 2.15 + float(op_id)) * breath)) * land * clus
 	if body_outline:
 		body_outline.position = Vector2(0.0, bob) + _recoil_off + _cover_lean
 		body_outline.rotation = body.rotation if body else body_outline.rotation
@@ -1728,6 +1730,14 @@ func set_obs_visual_scale(s: float) -> void:
 		return
 	obs_visual_scale = ns
 	_rebuild_observation_ring()
+
+
+func cluster_visual_scale() -> float:
+	return _cluster_visual_scale
+
+
+func set_cluster_visual_scale(s: float) -> void:
+	_cluster_visual_scale = clampf(s, 0.55, 1.0)
 
 
 func _rebuild_observation_ring() -> void:
