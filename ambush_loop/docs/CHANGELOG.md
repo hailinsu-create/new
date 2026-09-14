@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.5.21 — Phone feel: west dest span 2, remaining crate-face bow
+
+Sideload APK: `dist/AmbushLoop-v0.5.21-touch-slide.apk`  
+Release tag: `v0.5.21-touch-slide`
+
+Same RAID as 0.5.20 (`SCOUT → ALERT → SWEEP`, auto fire + auto nade). Phone default stays 简配夜袭.
+
+### Play (phone)
+- **西巷落点**: dest-cell contract now span ≤2. First follower stays 1-cell diagonal; second stands one cell further back so the trio is not three bodies in a 1-cell pocket under the yellow cone. Gameplay cone / ambush / RAID rules unchanged.
+- **复杂箱群弧**: leftover 1-segment wall-aligned samples on the south face bow off-axis. Samples stay walkable.
+- Forced-touch path covers settle-on-ring, bidirectional ↺/↻, west trio + faded cone + dest span 2, compact narrow pack, and crate-face axis_run 0.
+
+### Android
+- `versionName` 0.5.21 / `versionCode` 27 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title **v0.5.21 COMMANDOS/WW2**.
+2. Compact bar still stacks **匍匐** over **背包**; **↺ / ↻** sit next to **需枪**. Hold or swipe either way.
+3. West alley **跟**: first follower hugs the 1-cell diagonal; the second stands a cell further back. Yellow cone still faded.
+
 ## 0.5.20 — Phone feel: west cone fade, smaller trio, bowed crate-wall arc
 
 Sideload APK: `dist/AmbushLoop-v0.5.20-touch-slide.apk`  

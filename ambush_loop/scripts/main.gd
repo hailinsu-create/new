@@ -22,6 +22,8 @@ const FOLLOW_KEEP_DEST := 3
 const FOLLOW_TWIST_DEG := 5.0
 const FOLLOW_SLOT_DEPTH := 2
 const FOLLOW_WEST_SLOT_DEPTH := 1
+const FOLLOW_WEST_SECOND_DEPTH := 2
+const FOLLOW_WEST_SPAN_MAX := 2
 const FOLLOW_DEST_BLEND := 0.24
 const FOLLOW_ARC_BLEND := 0.30
 const FOLLOW_ARC_DEG := 12.0
@@ -8556,7 +8558,9 @@ func _follow_restore_arc_bow(pts: PackedVector2Array, raw: PackedVector2Array, p
 						axis_run = 0
 		else:
 			axis_run = 0
-	return _follow_bow_wall_runs(_follow_break_axis_runs(pts, raw, pivot), raw, pivot)
+	return _follow_bow_axis_pairs(
+		_follow_bow_wall_runs(_follow_break_axis_runs(pts, raw, pivot), raw, pivot), raw, pivot
+	)
 
 
 func _follow_lift_off_axis(p: Vector2, prev: Vector2, nxt: Vector2, polar: Vector2, pivot: Vector2) -> Vector2:
@@ -8676,6 +8680,74 @@ func _follow_bow_wall_runs(pts: PackedVector2Array, raw: PackedVector2Array, piv
 		if _follow_world_ok(lifted) and not (_follow_same_axis(pts[i - 1], lifted) and _follow_same_axis(lifted, pts[i + 1])):
 			pts[i] = lifted
 	return pts
+
+
+func _follow_bow_axis_pairs(pts: PackedVector2Array, raw: PackedVector2Array, pivot: Vector2) -> PackedVector2Array:
+	## Leftover 1-segment wall: two consecutive samples share an axis.
+	## Nudge the interior point off-axis so the string bows, still walkable.
+	if pts.size() < 3:
+		return pts
+	for _pass in 4:
+		var changed := false
+		for i in range(1, pts.size()):
+			if not _follow_same_axis(pts[i - 1], pts[i]):
+				continue
+			var idx := i
+			if i >= pts.size() - 1:
+				idx = i - 1
+			if idx <= 0 or idx >= pts.size() - 1:
+				continue
+			var other: Vector2 = pts[i - 1] if idx == i else pts[i]
+			var raw_p: Vector2 = raw[idx] if idx < raw.size() else pts[idx]
+			var lifted: Vector2 = _follow_nudge_off_axis(pts[idx], other, pivot, raw_p)
+			if not _follow_world_ok(lifted):
+				continue
+			if _follow_same_axis(lifted, other):
+				continue
+			if pts[idx].distance_squared_to(lifted) < 4.0:
+				continue
+			pts[idx] = lifted
+			changed = true
+		if not changed:
+			break
+	return pts
+
+
+func _follow_nudge_off_axis(p: Vector2, other: Vector2, pivot: Vector2, raw_p: Vector2) -> Vector2:
+	## Local in-cell bow only. Polar / long lifts teleport around a crate
+	## cluster and the chord then clips the boxes. Coincident samples share
+	## both axes — those need a diagonal step.
+	var share_x := absf(p.x - other.x) < 2.6
+	var share_y := absf(p.y - other.y) < 2.6
+	var dirs: Array[Vector2] = []
+	if share_x and share_y:
+		dirs = [
+			Vector2(1.0, 1.0), Vector2(1.0, -1.0),
+			Vector2(-1.0, 1.0), Vector2(-1.0, -1.0)
+		]
+	elif share_y:
+		dirs = [Vector2(0.0, 1.0), Vector2(0.0, -1.0)]
+	else:
+		dirs = [Vector2(1.0, 0.0), Vector2(-1.0, 0.0)]
+	var away: Vector2 = p - pivot
+	dirs.sort_custom(func(a: Vector2, b: Vector2) -> bool:
+		return a.dot(away) > b.dot(away)
+	)
+	var polar: Vector2 = _follow_polar(
+		pivot,
+		(raw_p - pivot).angle() if raw_p.distance_squared_to(pivot) >= 16.0 else away.angle(),
+		maxf(raw_p.distance_to(pivot), p.distance_to(pivot))
+	)
+	if _follow_world_ok(polar) and not _follow_same_axis(polar, other) and polar.distance_to(p) <= 16.0:
+		return polar
+	for mag in [6.0, 8.0, 10.0, 12.0, 14.0]:
+		for d in dirs:
+			var cand: Vector2 = p + d.normalized() * mag
+			if cand.distance_to(p) > 16.0:
+				continue
+			if _follow_world_ok(cand) and not _follow_same_axis(cand, other):
+				return cand
+	return p
 
 
 func _follow_same_axis(a: Vector2, b: Vector2) -> bool:
@@ -9081,6 +9153,8 @@ func _follow_slot_depth_for(lead: OperatorUnit, follower: OperatorUnit) -> int:
 	if lead == null or follower == null or grid == null:
 		return FOLLOW_SLOT_DEPTH
 	if _follow_in_west(follower.grid_cell()) and _follow_in_west(_follow_lead_cell(lead)):
+		if _follow_slot_index(lead, follower) >= 1:
+			return FOLLOW_WEST_SECOND_DEPTH
 		return FOLLOW_WEST_SLOT_DEPTH
 	return FOLLOW_SLOT_DEPTH
 
@@ -9237,8 +9311,10 @@ func _follow_ring_world(lead: OperatorUnit, follower: OperatorUnit) -> Vector2:
 	var st := float(_follow_slot_sign(lead, follower))
 	if absf(st) > 0.01:
 		w += side * st * FOLLOW_WEST_SLOT_EXTRA
-		## Along-file stagger so the two side bodies do not share one radius.
-		w += back * (14.0 if st > 0.0 else -12.0)
+		## Along-file: both further back. Second follower extra depth so
+		## the three bodies do not share the 1-cell pocket under the cone.
+		var slot_i := _follow_slot_index(lead, follower)
+		w += back * (14.0 + float(maxi(slot_i, 0)) * 18.0)
 	return w
 
 
@@ -9480,18 +9556,35 @@ func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i
 				score += 48
 			if side_m > 40.0:
 				score += int(round((side_m - 40.0) / 16.0)) * 12
-			## 1-cell diagonal (depth 1 + left/right) keeps the yellow cone
-			## readable. Depth 2+ stacks into the west wall.
-			if back_m >= 20.0 and back_m <= 44.0 and side_m >= 16.0 and side_m <= 44.0:
-				score -= 48
-			elif back_m >= 20.0 and back_m <= 44.0:
-				score -= 20
-			if back_m > 48.0:
-				score += int(round((back_m - 48.0) / 16.0)) * 16
-			if cheb_lead >= 2:
-				score += 22
-			if cheb_lead >= 3:
-				score += 18
+			if slot == 0:
+				## First follower: 1-cell diagonal, keep the cone readable.
+				if back_m >= 20.0 and back_m <= 44.0 and side_m >= 16.0 and side_m <= 44.0:
+					score -= 48
+				elif back_m >= 20.0 and back_m <= 44.0:
+					score -= 20
+				if back_m > 48.0:
+					score += int(round((back_m - 48.0) / 16.0)) * 16
+				if cheb_lead >= 2:
+					score += 22
+				if cheb_lead >= 3:
+					score += 18
+			else:
+				## Second follower: one cell further back (span 2), opposite
+				## stagger. Do not sit in the first follower's 1-cell pocket.
+				if back_m >= 48.0 and back_m <= 80.0 and side_m >= 16.0 and side_m <= 48.0:
+					score -= 56
+				elif back_m >= 48.0 and back_m <= 80.0:
+					score -= 24
+				if cheb_lead == 2:
+					score -= 36
+				if cheb_lead <= 1:
+					score += 40
+				if cheb_lead >= 3:
+					score += 22
+				if back_m < 40.0:
+					score += 28
+				if back_m > 88.0:
+					score += int(round((back_m - 88.0) / 16.0)) * 16
 		if score < best_score:
 			best_score = score
 			best = cell
@@ -10548,7 +10641,8 @@ func follow_west_queue_hits() -> int:
 
 
 func follow_west_lead_span() -> int:
-	## Max Chebyshev from the lead to a follow dest. Compact west file is ≤1.
+	## Max Chebyshev from the lead to a follow dest. v0.5.21 west file is ≤2
+	## so the second follower can stand one cell further back.
 	if selected == null or grid == null:
 		return 99
 	var lead_c: Vector2i = _follow_lead_cell(selected)

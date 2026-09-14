@@ -1,8 +1,8 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.20 phone feel: settle-on-ring after ↻,
-## bidirectional ↺/↻ swipe, west trio shrink + faded yellow cone, compact 5-key
-## narrow pack, bowed crate-cluster wall arcs (拧射界换格, 西巷三人跟上).
+## Forced-touch HUD stills for v0.5.21 phone feel: west trio dest span 2,
+## settle-on-ring after ↻, bidirectional ↺/↻ swipe, faded yellow cone, compact
+## 5-key narrow pack, crate-cluster wall arcs bowed to axis_run 0 (拧射界换格, 西巷三人跟上).
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
