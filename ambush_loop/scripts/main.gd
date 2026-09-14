@@ -25,7 +25,7 @@ const FOLLOW_WEST_SLOT_DEPTH := 1
 const FOLLOW_WEST_SECOND_DEPTH := 2
 const FOLLOW_WEST_FIRST_SIDE := 2
 const FOLLOW_WEST_SPAN_MAX := 2
-const FOLLOW_ARC_FAR_CAP := 28.0
+const FOLLOW_ARC_FAR_CAP := 20.0
 const FOLLOW_ARC_END_PAD := 12.0
 const FOLLOW_DEST_BLEND := 0.24
 const FOLLOW_ARC_BLEND := 0.30
@@ -37,8 +37,8 @@ const FOLLOW_WEST_SLOT_INSET := 24.0
 const FOLLOW_WEST_SLOT_EXTRA := 40.0
 const FOLLOW_CAM_WEST_ZOOM := 0.44
 const FOLLOW_CAM_FILE_ZOOM := 0.82
-const FOLLOW_WEST_OBS_SCALE := 0.36
-const FOLLOW_WEST_BODY_SCALE := 0.40
+const FOLLOW_WEST_OBS_SCALE := 0.28
+const FOLLOW_WEST_BODY_SCALE := 0.34
 const FOLLOW_WEST_CONE_FADE := 0.38
 const FLANK_WRAP_MIN_PTS := 4
 const PROGRESS_PATH := "user://ambush_loop.cfg"
@@ -8588,8 +8588,8 @@ func _follow_restore_arc_bow(pts: PackedVector2Array, raw: PackedVector2Array, p
 						axis_run = 0
 		else:
 			axis_run = 0
-	return _follow_bow_axis_pairs(
-		_follow_cap_far_side(
+	return _follow_cap_far_side(
+		_follow_bow_axis_pairs(
 			_follow_bow_wall_runs(_follow_break_axis_runs(pts, raw, pivot), raw, pivot), raw, pivot
 		),
 		raw,
@@ -8788,7 +8788,9 @@ func _follow_nudge_off_axis(p: Vector2, other: Vector2, pivot: Vector2, raw_p: V
 func _follow_cap_far_side(pts: PackedVector2Array, raw: PackedVector2Array, pivot: Vector2) -> PackedVector2Array:
 	## Polar mid-samples punch through the far crate and snag east around the
 	## south corridor. Pull that overshoot back toward the chord, keep a short
-	## bow, stay walkable.
+	## bow, stay walkable. A mostly-walkable chord (south gap) also shrinks
+	## corner samples whose projection clips a crate; a blocked chord keeps
+	## the around-path.
 	if pts.size() < 3 or raw.size() != pts.size():
 		return pts
 	var from_w: Vector2 = raw[0]
@@ -8801,6 +8803,19 @@ func _follow_cap_far_side(pts: PackedVector2Array, raw: PackedVector2Array, pivo
 		nrm = -nrm
 	var min_x := minf(from_w.x, to_w.x) - FOLLOW_ARC_END_PAD
 	var max_x := maxf(from_w.x, to_w.x) + FOLLOW_ARC_END_PAD
+	var corridor_n := 0
+	var interior := pts.size() - 2
+	var corridor_at: PackedByteArray = PackedByteArray()
+	corridor_at.resize(pts.size())
+	for i in range(1, pts.size() - 1):
+		var p0: Vector2 = pts[i]
+		var t0 := clampf((p0 - from_w).dot(chord) / chord.length_squared(), 0.0, 1.0)
+		var proj0: Vector2 = from_w + chord * t0
+		var ok := _follow_world_ok(proj0) or _follow_world_ok(proj0 + nrm * 10.0)
+		corridor_at[i] = 1 if ok else 0
+		if ok:
+			corridor_n += 1
+	var corridor_arc := interior > 0 and corridor_n * 2 >= interior
 	for i in range(1, pts.size() - 1):
 		var p: Vector2 = pts[i]
 		var t := clampf((p - from_w).dot(chord) / chord.length_squared(), 0.0, 1.0)
@@ -8808,11 +8823,8 @@ func _follow_cap_far_side(pts: PackedVector2Array, raw: PackedVector2Array, pivo
 		var side := (p - proj).dot(nrm)
 		var want: Vector2 = p
 		var changed := false
-		## Only shrink a far-side wrap when the chord itself is a walkable
-		## corridor (south gap at y=13). If the chord is blocked, the polar
-		## around-path is the route — do not squash it back onto crates.
-		var corridor := _follow_world_ok(proj) or _follow_world_ok(proj + nrm * 10.0)
-		if corridor and side < -FOLLOW_ARC_FAR_CAP:
+		var may_cap := corridor_at[i] == 1 or corridor_arc
+		if may_cap and side < -FOLLOW_ARC_FAR_CAP:
 			want = p + nrm * (-side - FOLLOW_ARC_FAR_CAP)
 			changed = true
 		if want.x > max_x:
@@ -8824,8 +8836,10 @@ func _follow_cap_far_side(pts: PackedVector2Array, raw: PackedVector2Array, pivo
 		if not changed:
 			continue
 		if _follow_world_ok(want):
-			pts[i] = want
-			continue
+			want = _follow_cap_keep_off_axis(pts, i, want, nrm)
+			if _follow_world_ok(want):
+				pts[i] = want
+				continue
 		var snag: Vector2 = _follow_snag_walkable(want, pivot)
 		if not _follow_world_ok(snag):
 			continue
@@ -8837,6 +8851,25 @@ func _follow_cap_far_side(pts: PackedVector2Array, raw: PackedVector2Array, pivo
 		if new_far + 3.0 < old_far or new_east + 3.0 < old_east:
 			pts[i] = snag
 	return pts
+
+
+func _follow_cap_keep_off_axis(pts: PackedVector2Array, i: int, want: Vector2, nrm: Vector2) -> Vector2:
+	## A hard far-cap can park consecutive samples on one y (or x). Jog toward
+	## the pivot so the string stays bowed instead of a wall-slide.
+	if i <= 0 or i >= pts.size() - 1:
+		return want
+	var prev: Vector2 = pts[i - 1]
+	var nxt: Vector2 = pts[i + 1]
+	if not _follow_same_axis(prev, want) and not _follow_same_axis(want, nxt):
+		return want
+	for mag in [6.0, 10.0, 4.0, -4.0]:
+		var jog: Vector2 = want + nrm * mag
+		if not _follow_world_ok(jog):
+			continue
+		if _follow_same_axis(prev, jog) or _follow_same_axis(jog, nxt):
+			continue
+		return jog
+	return want
 
 
 func _follow_same_axis(a: Vector2, b: Vector2) -> bool:
@@ -10801,7 +10834,7 @@ func follow_west_queue_hits() -> int:
 
 
 func follow_west_lead_span() -> int:
-	## Max Chebyshev from the lead to a follow dest. v0.5.22 west file is ≤2:
+	## Max Chebyshev from the lead to a follow dest. v0.5.22/0.5.23 west file is ≤2:
 	## first follower is 2 along-file, second one cell further back.
 	if selected == null or grid == null:
 		return 99

@@ -1,9 +1,9 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.22 phone feel: first west follower out of
-## the 1-cell pocket, south-corridor crate arc stays off the east exit,
-## settle-on-ring after ↻, bidirectional ↺/↻ swipe, faded yellow cone, compact
-## 5-key narrow pack, crate-cluster wall arcs bowed to axis_run 0.
+## Forced-touch HUD stills for v0.5.23 phone feel: west trio body/ring one
+## step smaller, south-corridor far-side bow capped below ~28px, first west
+## follower out of the 1-cell pocket, settle-on-ring after ↻, bidirectional
+## ↺/↻ swipe, faded yellow cone, compact 5-key, crate-cluster axis_run 0.
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
