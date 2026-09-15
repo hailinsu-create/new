@@ -40,12 +40,25 @@ object OverlayGeometry {
         return clamp(snappedX, y, viewW, viewH, screenW, screenH, pad)
     }
 
-    /** Close chip sits on the start (outer) edge so RTL puts it on the right in Arabic. */
-    fun closeGravityStart(): Boolean = true
+    /** Close chip sits on the end (outer) edge, outside the face circle. */
+    fun closeGravityStart(): Boolean = false
+
+    fun closeOutsideCircle(): Boolean = true
 
     fun minTouchTargetDp(): Int = 48
 
+    fun closeVisualDp(): Int = 24
+
+    /** Extra end inset so the 48dp hit target sits beside the 96dp face, not on the forehead. */
+    fun closeEndExtraDp(): Int = 22
+
+    fun closeTopExtraDp(): Int = 8
+
     fun avatarSizeDp(): Int = 96
+
+    fun avatarChromeWidthDp(): Int = avatarSizeDp() + closeEndExtraDp()
+
+    fun avatarChromeHeightDp(): Int = avatarSizeDp() + closeTopExtraDp()
 
     /**
      * After rotation, [screenW]/[screenH] swap. Re-clamp saved x/y so the window

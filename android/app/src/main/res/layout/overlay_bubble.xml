@@ -9,7 +9,7 @@
     android:layoutDirection="locale"
     android:orientation="vertical">
 
-    <!-- Above the avatar so it cannot cover the 48dp close chip. -->
+    <!-- Above the avatar so it cannot cover the close chip. -->
     <ScrollView
         android:id="@+id/bubblePanel"
         android:layout_width="220dp"
@@ -50,15 +50,21 @@
         </LinearLayout>
     </ScrollView>
 
+    <!-- Face is 96dp; close chip sits outside the circle on the end edge. -->
     <FrameLayout
-        android:layout_width="96dp"
-        android:layout_height="96dp"
-        android:layout_gravity="start">
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="start"
+        android:clipChildren="false"
+        android:clipToPadding="false">
 
         <com.pangchuang.app.Live2DAvatarView
             android:id="@+id/fab"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_width="96dp"
+            android:layout_height="96dp"
+            android:layout_gravity="start|bottom"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="22dp"
             android:contentDescription="@string/overlay_avatar_cd"
             android:elevation="10dp" />
 
@@ -66,7 +72,7 @@
             android:id="@+id/overlayClose"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:layout_gravity="top|start"
+            android:layout_gravity="top|end"
             android:background="@drawable/bg_overlay_close"
             android:contentDescription="@string/overlay_close_cd"
             android:padding="12dp"

@@ -56,6 +56,8 @@ class RoastService : Service() {
     private val pausedForLock = AtomicBoolean(false)
     /** True while a sensitive app is foreground — VirtualDisplay is released like lock. */
     private val pausedForSensitive = AtomicBoolean(false)
+    /** When tearing down capture for trial paywall, ignore MediaProjection.onStop. */
+    private val ignoreProjectionStop = AtomicBoolean(false)
     private var screenReceiverRegistered = false
     private var configCallbacksRegistered = false
 
@@ -239,6 +241,7 @@ class RoastService : Service() {
     }
 
     private fun statusText(demo: Boolean = demoMode): String = when {
+        trialPaywall -> getString(R.string.notification_trial_exhausted)
         pausedForLock.get() && demo -> getString(R.string.notification_paused_demo)
         pausedForLock.get() -> getString(R.string.notification_paused_capture)
         pausedForSensitive.get() -> getString(R.string.notification_paused_sensitive)
@@ -337,6 +340,8 @@ class RoastService : Service() {
         demoMode = false
         runningDemo = false
         running = true
+        trialPaywall = false
+        ignoreProjectionStop.set(false)
         unchangedStreak = 0
         refreshLockState("beginCapture")
 
@@ -351,13 +356,19 @@ class RoastService : Service() {
 
         val callback = object : MediaProjection.Callback() {
             override fun onStop() {
+                if (ignoreProjectionStop.get()) return
                 mainHandler.post { stopSelfSafe() }
             }
         }
         projectionCallback = callback
         projection.registerCallback(callback, mainHandler)
 
-        ensureOverlay(getString(R.string.overlay_capture_hello))
+        val hello = if (Entitlement.isUnlocked(this)) {
+            getString(R.string.overlay_capture_hello)
+        } else {
+            getString(R.string.overlay_trial_hello, prefs.trialRemaining())
+        }
+        ensureOverlay(hello)
 
         val snap = batterySnap()
         val lowRam = runCatching {
@@ -395,6 +406,7 @@ class RoastService : Service() {
         demoMode = true
         runningDemo = true
         running = true
+        trialPaywall = false
         refreshLockState("beginDemo")
         ensureOverlay(getString(R.string.overlay_demo_hello))
 
@@ -449,6 +461,11 @@ class RoastService : Service() {
                 if (sensitive) o.showText(getString(R.string.overlay_sensitive_skip))
                 return
             }
+            val unlocked = Entitlement.isUnlocked(this)
+            if (!CapturePolicy.mayCallLiveVision(unlocked, prefs.trialRemaining(), demoMode)) {
+                onTrialQuotaExhausted()
+                return
+            }
             val frame = if (demoMode) {
                 withContext(Dispatchers.Default) { nextDemoFrame() }
             } else {
@@ -499,7 +516,13 @@ class RoastService : Service() {
             val result = if (demoMode) {
                 vision.mockRoast(scene)
             } else {
-                withContext(Dispatchers.IO) { vision.roast(frame, scene, appHint) }
+                val forVision = frame.copy(Bitmap.Config.ARGB_8888, true)
+                o.maskCompanionFromCapture(forVision)
+                val roasted = withContext(Dispatchers.IO) {
+                    vision.roast(forVision, scene, appHint)
+                }
+                if (forVision !== frame && !forVision.isRecycled) forVision.recycle()
+                roasted
             }
             frame.recycle()
             if (pausedForLock.get()) return
@@ -508,6 +531,13 @@ class RoastService : Service() {
                 prefs.recordCompanionError(result.text)
             } else {
                 prefs.clearCompanionError()
+            }
+            if (CapturePolicy.countsTowardTrial(unlocked, demoMode, result.source)) {
+                prefs.recordTrialSuccess()
+                if (CapturePolicy.shouldTearDownCaptureAfterTrial(unlocked, prefs.trialRemaining())) {
+                    onTrialQuotaExhausted()
+                    return
+                }
             }
             if (demoMode) demoIndex++
         } finally {
@@ -541,9 +571,48 @@ class RoastService : Service() {
         return bmp
     }
 
+    /**
+     * Trial quota hit 0: stop MediaProjection like [stopSelfSafe] but keep the
+     * overlay so 小旁 can say the paywall line. FGS drops the projection type.
+     */
+    private fun onTrialQuotaExhausted() {
+        ignoreProjectionStop.set(true)
+        trialPaywall = true
+        loopJob?.cancel()
+        loopJob = null
+        captor?.release()
+        captor = null
+        projectionCallback?.let { cb ->
+            runCatching { mediaProjection?.unregisterCallback(cb) }
+        }
+        projectionCallback = null
+        runCatching { mediaProjection?.stop() }
+        mediaProjection = null
+        dropHeldFrames()
+        unchangedStreak = 0
+        roasting.set(false)
+        demoMode = false
+        runningDemo = false
+        mainHandler.postDelayed({
+            overlay?.showText(getString(R.string.overlay_trial_exhausted), announce = true)
+        }, 1800L)
+        val text = getString(R.string.notification_trial_exhausted)
+        if (Build.VERSION.SDK_INT >= 34) {
+            startForeground(
+                NOTIF_ID,
+                buildNotification(text, demo = false),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            )
+        } else {
+            updateNotification(text)
+        }
+    }
+
     private fun stopSelfSafe() {
+        ignoreProjectionStop.set(true)
         running = false
         runningDemo = false
+        trialPaywall = false
         pausedLock = false
         pausedSensitive = false
         pausedForSensitive.set(false)
@@ -573,6 +642,7 @@ class RoastService : Service() {
     override fun onDestroy() {
         running = false
         runningDemo = false
+        trialPaywall = false
         pausedLock = false
         pausedSensitive = false
         pausedForSensitive.set(false)
@@ -623,8 +693,18 @@ class RoastService : Service() {
         @Volatile
         var pausedSensitive: Boolean = false
 
+        @Volatile
+        var trialPaywall: Boolean = false
+
         fun start(context: Context, resultCode: Int, data: Intent) {
-            if (!Entitlement.isUnlocked(context)) return
+            val prefs = Prefs(context)
+            if (!CapturePolicy.mayStartCapture(
+                    Entitlement.isUnlocked(context),
+                    prefs.trialRemaining()
+                )
+            ) {
+                return
+            }
             val intent = Intent(context, RoastService::class.java).apply {
                 action = ACTION_START
                 putExtra(EXTRA_RESULT_CODE, resultCode)

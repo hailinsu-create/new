@@ -84,9 +84,12 @@ def main() -> None:
         im.save(dest, "PNG")
         used_hashes[name] = dest.read_bytes()
 
-    # Distinctness check: if harvest collapsed to one image, still ship one idle
+    # Distinctness check. Do not claim four moods if harvest collapsed.
+    # CompanionMoodMatcher maps to rest vs speaking when hashes collide.
     unique = {data for data in used_hashes.values()}
     print("unique fallback files", len(unique), "of", len(KEEP))
+    if len(unique) < 4:
+        print("honesty: fewer than 4 distinct stills; mood mapper uses rest/talk poses")
 
     for alias, src_name in ALIASES.items():
         data = used_hashes.get(src_name) or fallback.tobytes()

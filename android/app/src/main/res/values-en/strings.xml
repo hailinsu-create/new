@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Pangchuang</string>
     <string name="companion_name">Xiao Pang</string>
-    <string name="subtitle">A Chinese-style companion at the edge of your screen. Demo is free. Full companion watches the screen and fully stops capture when you lock the phone.</string>
+    <string name="subtitle">A Chinese-style companion at the edge of your screen. Demo overlay stays free. Six real-screen glances with your own key; unlock for unlimited. Locking the phone fully stops capture.</string>
     <string name="language_title">Language</string>
     <string name="language_system">Follow system</string>
     <string name="section_permissions">Permissions</string>
@@ -11,7 +11,7 @@
     <string name="section_advanced">Full companion settings</string>
     <string name="settings_expand">Full companion settings</string>
     <string name="settings_collapse">Hide settings</string>
-    <string name="home_status_idle">Xiao Pang is resting. Try the free demo, or unlock full companion.</string>
+    <string name="home_status_idle">Xiao Pang is resting. Demo overlay is free. Real screen: 6 glances with your own key, then a one-time unlock.</string>
     <string name="home_status_demo">Demo running · not watching the real screen</string>
     <string name="home_status_full">Full companion running · watching the screen</string>
     <string name="home_status_locked_pause">Locked · capture stopped</string>
@@ -23,6 +23,8 @@
     <string name="home_version">Pangchuang %1$s (%2$d)</string>
     <string name="home_status_error">Last error: %1$s</string>
     <string name="home_status_mock_on">“Demo lines” is on: full companion will not capture the real screen.</string>
+    <string name="home_status_trial_remaining">Real-screen trial: %1$d glance(s) left</string>
+    <string name="home_status_trial_exhausted">Real-screen trial used up</string>
     <string name="home_status_purchase_pending">Purchase pending. It will unlock when Play finishes.</string>
     <string name="usage_optional_caption">This is optional. Full companion works without it. You just get a weaker app name hint, and sensitive apps cannot be skipped.</string>
     <string name="btn_revoke_privacy">Revoke privacy consent</string>
@@ -65,7 +67,7 @@
     <string name="privacy_required">Privacy policy: required before starting</string>
     <string name="data_disclosure_summary">Data goes to your vision API. Default model Qwen3-VL-8B. HTTPS; local Ollama can use 127.0.0.1.</string>
     <string name="purchase_title">Unlock full companion</string>
-    <string name="purchase_summary">About $0.99 once, forever. Demo mode stays free. You still pay your own vision API.</string>
+    <string name="purchase_summary">Demo overlay stays free. With your own key you get 6 successful real-screen glances. About $0.99 once unlocks unlimited. You still pay your vision API. The trial counter is on-device and as forgeable as the unlock flag.</string>
     <string name="purchase_status_locked">Full companion is locked</string>
     <string name="purchase_status_unlocked">Full companion unlocked. Thank you.</string>
     <string name="purchase_buy">Unlock full companion</string>
@@ -74,7 +76,7 @@
     <string name="purchase_restore">Restore purchase</string>
     <string name="purchase_price_fallback">about $0.99</string>
     <string name="purchase_required_title">Unlock needed</string>
-    <string name="purchase_required_message">Real-screen companion needs a one-time unlock (about $0.99). Try the demo overlay first.</string>
+    <string name="purchase_required_message">The real-screen trial is used up. A one-time unlock (about $0.99) makes glances unlimited. Demo overlay stays free, but it never watches the real screen.</string>
     <string name="purchase_success">Unlocked. Thanks for supporting Pangchuang.</string>
     <string name="purchase_failed">Purchase did not finish. Try again later.</string>
     <string name="purchase_canceled">Purchase canceled</string>
@@ -115,6 +117,9 @@
     <string name="overlay_welcome_back">Welcome back. I am with you again.</string>
     <string name="overlay_no_projection">No screen-capture grant. Resting for now.</string>
     <string name="overlay_capture_hello">I am here. Locking the phone fully stops capture.</string>
+    <string name="overlay_trial_hello">Trial: %1$d real-screen glance(s) left. Locking fully stops capture.</string>
+    <string name="overlay_trial_exhausted">Trial glances are used up. Unlock full companion (about $0.99) and I can keep watching. Close to rest, or go back to Pangchuang to unlock.</string>
+    <string name="notification_trial_exhausted">Real-screen trial used up · unlock full companion</string>
     <string name="overlay_demo_hello">Demo mode uses fake screens. Tap to toggle the bubble, long-press for another line, use the close chip beside the face to rest.</string>
     <string name="overlay_frame_wait">The frame is not ready yet. One moment…</string>
     <string name="overlay_unchanged">The screen barely changed. Long-press the avatar if you want a line anyway.</string>
@@ -140,7 +145,7 @@
     <string name="hint_interval_preset">Companion interval</string>
     <string name="interval_preset_custom">Custom seconds</string>
     <string name="toast_interval_invalid">Interval must be 5–120 seconds, not 0</string>
-    <string name="empty_key_explain">Full companion sends the current screen to the vision API you configure. Add an API key in Full companion settings first. Or use the free demo (it does not watch the real screen).</string>
+    <string name="empty_key_explain">Real screen (including the 6-glance trial) sends the current frame to the vision API you configure. Add an API key in Full companion settings first. Or use the free demo (it does not watch the real screen).</string>
     <string name="restore_purchases_hint">After a new phone or reinstall, restore the one-time unlock here. Debug builds auto-unlock.</string>
     <string name="overlay_low_battery">Battery is low, so I will glance less often.</string>
     <string name="vision_https_blocked">Release builds allow HTTPS only (or loopback 127.0.0.1 / 10.0.2.2).</string>

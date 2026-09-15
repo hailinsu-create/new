@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">旁窗</string>
     <string name="companion_name">小旁</string>
-    <string name="subtitle">螢幕邊的國風伴侶。示範免費；完整陪伴會看你的螢幕，鎖定會真正停止截圖。</string>
+    <string name="subtitle">螢幕邊的國風伴侶。示範召喚一直免費。自己的 Key 可真螢幕試用 6 次；解鎖後不限次數。鎖定會真正停止截圖。</string>
     <string name="language_title">介面語言</string>
     <string name="language_system">跟隨系統</string>
     <string name="section_permissions">權限</string>
@@ -11,7 +11,7 @@
     <string name="section_advanced">完整陪伴設定</string>
     <string name="settings_expand">完整陪伴設定</string>
     <string name="settings_collapse">收起設定</string>
-    <string name="home_status_idle">小旁在休息。先試免費示範，或解鎖後開始完整陪伴。</string>
+    <string name="home_status_idle">小旁在休息。示範召喚免費；真螢幕可用自己的 Key 試用 6 次，用完後一次性解鎖。</string>
     <string name="home_status_demo">示範進行中 · 不看真螢幕</string>
     <string name="home_status_full">完整陪伴進行中 · 正在看螢幕</string>
     <string name="home_status_locked_pause">鎖定中 · 已停止截圖</string>
@@ -22,7 +22,9 @@
     <string name="home_debug_chip">Debug 包：完整陪伴已自動解鎖，不是 Play 內購</string>
     <string name="home_version">旁窗 %1$s（%2$d）</string>
     <string name="home_status_error">上次出錯：%1$s</string>
-    <string name="home_status_mock_on">“Demo lines” is on: full companion will not capture the real screen.</string>
+    <string name="home_status_mock_on">「示範陪伴語」開著：完整陪伴不會截真螢幕。</string>
+    <string name="home_status_trial_remaining">真螢幕試用還剩 %1$d 次</string>
+    <string name="home_status_trial_exhausted">真螢幕試用已用完</string>
     <string name="home_status_purchase_pending">購買處理中，完成後會自動解鎖</string>
     <string name="usage_optional_caption">這項是選用的。不開也能完整陪伴；只是前景 App 名會不准，敏感應用也沒法跳過。</string>
     <string name="btn_revoke_privacy">撤回隱私同意</string>
@@ -42,7 +44,7 @@
     <string name="btn_privacy">查看隱私權政策</string>
     <string name="btn_licenses">開源與 Live2D 授權</string>
     <string name="notification_title">小旁陪你看螢幕中</string>
-    <string name="notification_text">桌面伴侶執行中。點此回設定。</string>
+    <string name="notification_text">桌面伴侶執行中 · 點此回設定</string>
     <string name="notification_channel">旁窗伴侶</string>
     <string name="notification_paused_demo">示範已暫停 · 鎖定中</string>
     <string name="notification_paused_capture">鎖定中 · 已停止截圖</string>
@@ -72,7 +74,7 @@
     <string name="privacy_required">隱私權政策：啟動陪伴前需同意</string>
     <string name="data_disclosure_summary">資料去向：你填寫的視覺 API。預設模型 Qwen3-VL-8B。HTTPS 傳輸；本機 Ollama 可用 127.0.0.1。</string>
     <string name="purchase_title">解鎖完整陪伴</string>
-    <string name="purchase_summary">一次購買約 $0.99，永久解鎖真螢幕陪伴。示範模式始終免費。視覺 API 費用仍由你自行承擔。</string>
+    <string name="purchase_summary">示範召喚一直免費。用自己的 Key 可真螢幕試用 6 次成功陪伴語。一次購買約 $0.99 後不限次數。視覺 API 費用仍由你承擔。試用計數存在本機，和「已解鎖」一樣可被本地改寫。</string>
     <string name="purchase_status_locked">尚未解鎖完整陪伴</string>
     <string name="purchase_status_unlocked">已解鎖完整陪伴，感謝支持</string>
     <string name="purchase_buy">解鎖完整陪伴</string>
@@ -81,7 +83,7 @@
     <string name="purchase_restore">恢復購買</string>
     <string name="purchase_price_fallback">約 $0.99</string>
     <string name="purchase_required_title">需要解鎖</string>
-    <string name="purchase_required_message">真螢幕陪伴需一次性解鎖（約 $0.99）。可先試用「示範召喚」。</string>
+    <string name="purchase_required_message">真螢幕試用次數已用完。一次性解鎖（約 $0.99）後可不限次數看螢幕。示範召喚始終免費，但不看真螢幕。</string>
     <string name="purchase_success">已解鎖，感謝支持旁窗</string>
     <string name="purchase_failed">購買未完成，請稍後再試</string>
     <string name="purchase_canceled">已取消購買</string>
@@ -102,7 +104,7 @@
     <string name="toast_companion_ready">小旁已就位，去滑手機吧</string>
     <string name="toast_reset_model">已切回建議的 8B 模型</string>
     <string name="toast_stopped">已停止</string>
-    <string name="toast_usage_settings_fail">打不開使用情況設定，可到系統設定搜尋「使用情況」</string>
+    <string name="toast_usage_settings_fail">打不開使用情況設定，可到系統設定搜「使用情況」</string>
     <string name="toast_need_overlay">請先開啟懸浮窗權限</string>
     <string name="toast_need_api_key">請填寫視覺模型 API Key</string>
     <string name="toast_https_only">上架版預設僅 HTTPS。本機 Ollama 請用 http://127.0.0.1:11434/v1</string>
@@ -122,6 +124,9 @@
     <string name="overlay_welcome_back">歡迎回來，我繼續陪著你。</string>
     <string name="overlay_no_projection">系統未給出錄製權限，先休息一下。</string>
     <string name="overlay_capture_hello">我在這兒陪著你。鎖定會真正停止截圖。</string>
+    <string name="overlay_trial_hello">試用還剩 %1$d 次真螢幕陪伴。鎖定會真正停止截圖。</string>
+    <string name="overlay_trial_exhausted">試用次數用完啦。解鎖完整陪伴（約 $0.99）我就能一直陪你看螢幕。點關閉先休息，或回旁窗解鎖。</string>
+    <string name="notification_trial_exhausted">真螢幕試用已用完 · 可解鎖完整陪伴</string>
     <string name="overlay_demo_hello">示範模式：我會用合成畫面陪你練對話。點按頭像開關氣泡，長按換一句，頭像旁的關閉按鈕讓我休息。</string>
     <string name="overlay_frame_wait">畫面還沒準備好，再等我一小下…</string>
     <string name="overlay_unchanged">畫面沒怎麼變，我還在陪著你。長按頭像可以說一句。</string>
@@ -147,7 +152,7 @@
     <string name="hint_interval_preset">陪伴間隔</string>
     <string name="interval_preset_custom">自訂秒數</string>
     <string name="toast_interval_invalid">間隔須在 5–120 秒，不能為 0</string>
-    <string name="empty_key_explain">完整陪伴會把目前螢幕發給你填寫的視覺 API。請先在「完整陪伴設定」裡填入 API Key。也可以先用免費的示範召喚（不看真螢幕）。</string>
+    <string name="empty_key_explain">真螢幕（含 6 次試用）會把目前螢幕發給你填寫的視覺 API。請先在「完整陪伴設定」裡填入 API Key。也可以先用免費的示範召喚（不看真螢幕）。</string>
     <string name="restore_purchases_hint">換機或重裝後點這裡恢復一次性解鎖。Debug 包會自動解鎖。</string>
     <string name="overlay_low_battery">電量偏低，我看螢幕會慢一些。</string>
     <string name="vision_https_blocked">上架版只允許 HTTPS（或本機 127.0.0.1 / 10.0.2.2）。</string>
@@ -165,8 +170,8 @@
     <string name="overlay_sensitive_resume">這一屏安全了，我繼續陪著，但不偷看剛才那一拍。</string>
     <string name="cd_close_overlay">關閉懸浮窗，讓小旁休息</string>
     <string name="cd_preview">墨汐預覽</string>
-    <string name="cd_preview_live">Moxi Live2D preview</string>
-    <string name="cd_preview_static">Still Moxi preview. The overlay is using Live2D, so home shows a still frame.</string>
+    <string name="cd_preview_live">墨汐 Live2D 預覽</string>
+    <string name="cd_preview_static">墨汐靜止預覽。懸浮窗正在用 Live2D，這裡只顯示靜圖。</string>
     <string name="cd_api_key">API Key</string>
     <string name="cd_base_url">視覺介面位址</string>
     <string name="cd_model">視覺模型</string>
@@ -181,12 +186,12 @@
     <string name="demo_frame_label">小旁示範畫面 #%1$d</string>
     <string name="demo_scene_shorts_title">深夜刷短影音</string>
     <string name="demo_scene_shorts_body">又一則同款舞蹈</string>
-    <string name="demo_scene_chat_title">微信置頂群</string>
+    <string name="demo_scene_chat_title">置頂群組</string>
     <string name="demo_scene_chat_body">老闆：在嗎？急！</string>
     <string name="demo_scene_cart_title">購物車結帳</string>
     <string name="demo_scene_cart_body">湊單還差 ¥12.8</string>
     <string name="demo_scene_ranked_title">排位賽配對中</string>
-    <string name="demo_scene_ranked_body">你已經連輸三把</string>
+    <string name="demo_scene_ranked_body">你已經連跪三場</string>
     <string name="demo_scene_notes_title">備忘錄</string>
     <string name="demo_scene_notes_body">明天早上 7:30 開會</string>
     <string name="vision_reply_language">繁體中文</string>

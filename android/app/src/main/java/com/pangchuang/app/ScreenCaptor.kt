@@ -147,6 +147,8 @@ class ScreenCaptor(
             }
         }, handler)
 
+        // AUTO_MIRROR includes TYPE_APPLICATION_OVERLAY. There is no public
+        // flag to exclude 小旁, so RoastService masks that rect on the JPEG.
         virtualDisplay = mediaProjection.createVirtualDisplay(
             "pangchuang-capture",
             width,

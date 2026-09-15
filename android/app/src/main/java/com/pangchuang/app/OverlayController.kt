@@ -4,6 +4,10 @@ import android.annotation.SuppressLint
 import android.content.ComponentCallbacks
 import android.content.Context
 import android.content.res.Configuration
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.Handler
@@ -98,6 +102,9 @@ class OverlayController(
         bubblePanel?.contentDescription = context.getString(R.string.overlay_bubble_cd)
         bubblePanel?.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
         close.contentDescription = context.getString(R.string.overlay_close_cd)
+        close.minimumWidth = dp(OverlayGeometry.minTouchTargetDp())
+        close.minimumHeight = dp(OverlayGeometry.minTouchTargetDp())
+        close.isClickable = true
         close.setOnClickListener { onClose?.invoke() }
         live2d.onError = { err ->
             showText(live2d.humanizeError(err))
@@ -114,6 +121,10 @@ class OverlayController(
             WindowManager.LayoutParams.TYPE_PHONE
         }
 
+        // FLAG_NOT_FOCUSABLE keeps IME and Back on the app underneath.
+        // TYPE_APPLICATION_OVERLAY still receives TalkBack clicks if we
+        // call performClick / performLongClick (tested path). Dropping the
+        // flag would steal keyboard focus from whatever the user is typing.
         val lp = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -128,8 +139,8 @@ class OverlayController(
         val restored = OverlayGeometry.restoreClamped(
             prefs.overlayX,
             prefs.overlayY,
-            dp(OverlayGeometry.avatarSizeDp()),
-            dp(OverlayGeometry.avatarSizeDp() + 48),
+            dp(OverlayGeometry.avatarChromeWidthDp()),
+            dp(OverlayGeometry.avatarChromeHeightDp() + 48),
             sw,
             sh,
             dp(8)
@@ -142,6 +153,18 @@ class OverlayController(
         var startX = 0
         var startY = 0
         var downAt = 0L
+        touchTarget.isClickable = true
+        touchTarget.isLongClickable = true
+        touchTarget.setOnClickListener {
+            live2d.tap()
+            toggleBubble()
+        }
+        touchTarget.setOnLongClickListener {
+            it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            showText(context.getString(R.string.overlay_looking))
+            onForceRoast?.invoke()
+            true
+        }
         touchTarget.setOnTouchListener { v, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
@@ -167,12 +190,9 @@ class OverlayController(
                     persistPosition(lp)
                     if (!moved && event.action == MotionEvent.ACTION_UP) {
                         if (held) {
-                            v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                            showText(context.getString(R.string.overlay_looking))
-                            onForceRoast?.invoke()
+                            v.performLongClick()
                         } else {
-                            live2d.tap()
-                            toggleBubble()
+                            v.performClick()
                         }
                     }
                     true
@@ -194,11 +214,19 @@ class OverlayController(
         showText(initialText ?: context.getString(R.string.overlay_hello))
     }
 
-    fun showText(text: String) {
+    fun showText(text: String, announce: Boolean = true) {
         val panel = bubblePanel ?: return
         val label = bubbleText ?: return
         label.text = text
         label.maxLines = 8
+        val spoken = context.getString(R.string.overlay_bubble_cd) + " " + text
+        panel.contentDescription = spoken
+        label.contentDescription = text
+        ViewCompat.setAccessibilityLiveRegion(
+            panel,
+            if (announce) ViewCompat.ACCESSIBILITY_LIVE_REGION_POLITE
+            else ViewCompat.ACCESSIBILITY_LIVE_REGION_NONE
+        )
         panel.visibility = View.VISIBLE
         panel.alpha = 0f
         panel.translationY = 12f
@@ -217,12 +245,15 @@ class OverlayController(
             .setDuration(280)
             .setInterpolator(DecelerateInterpolator())
             .start()
+        if (announce) {
+            panel.announceForAccessibility(text)
+        }
         val mood = CompanionMoodMatcher.fromText(text)
         avatar?.speak(text, mood)
     }
 
     fun showThinking(text: String? = null) {
-        showText(text ?: context.getString(R.string.overlay_thinking))
+        showText(text ?: context.getString(R.string.overlay_thinking), announce = false)
     }
 
     fun pauseRendering() {
@@ -234,15 +265,39 @@ class OverlayController(
     }
 
     /**
-     * Overlay is a face crop, not the screen content being captured.
-     * Do not blink the whole window out for capture.
+     * Do not blank the character. [maskCompanionFromCapture] covers 小旁 on
+     * the JPEG instead; MediaProjection cannot exclude this overlay window.
      */
     fun hideForCapture() {
-        // Intentionally empty.
+        // Intentionally empty — masking the frame keeps the on-screen face.
     }
 
     fun restoreAfterCapture() {
         // Intentionally empty.
+    }
+
+    fun maskCompanionFromCapture(frame: Bitmap) {
+        if (!frame.isMutable || frame.isRecycled) return
+        val view = root ?: return
+        val lp = params ?: return
+        val vw = view.width
+        val vh = view.height
+        if (vw <= 0 || vh <= 0) return
+        val (sw, sh) = realDisplaySize()
+        val startIsRight = view.layoutDirection == View.LAYOUT_DIRECTION_RTL
+        val rect = OverlayCaptureMask.overlayOnFrame(
+            lp.x, lp.y, vw, vh, sw, sh, frame.width, frame.height, startIsRight
+        )
+        if (rect.isEmpty) return
+        val canvas = Canvas(frame)
+        val paint = Paint().apply { color = Color.parseColor("#161018") }
+        canvas.drawRect(
+            rect.left.toFloat(),
+            rect.top.toFloat(),
+            rect.right.toFloat(),
+            rect.bottom.toFloat(),
+            paint
+        )
     }
 
     private fun toggleBubble() {
@@ -267,6 +322,17 @@ class OverlayController(
     private fun persistPosition(lp: WindowManager.LayoutParams) {
         prefs.overlayX = lp.x
         prefs.overlayY = lp.y
+    }
+
+    private fun realDisplaySize(): Pair<Int, Int> {
+        if (Build.VERSION.SDK_INT >= 30) {
+            val bounds = windowManager.maximumWindowMetrics.bounds
+            return bounds.width().coerceAtLeast(1) to bounds.height().coerceAtLeast(1)
+        }
+        val d = DisplayMetrics()
+        @Suppress("DEPRECATION")
+        windowManager.defaultDisplay.getRealMetrics(d)
+        return d.widthPixels to d.heightPixels
     }
 
     private fun screenSize(): Pair<Int, Int> {

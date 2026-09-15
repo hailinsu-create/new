@@ -10,10 +10,10 @@ The core product is a floating Live2D companion that remains visible while the u
 **Video script (20–40s)**
 1. Open 旁窗.  
 2. Grant overlay permission in system settings.  
-3. Start **demo** mode.  
+3. Tap **演示召唤** (Summon demo).  
 4. Switch to Chrome or Settings; show the character still floating.  
 5. Tap the notification to return to 旁窗.  
-6. Tap stop.
+6. Tap **让小旁先休息**.
 
 ## FOREGROUND_SERVICE / specialUse
 
@@ -23,19 +23,19 @@ A foreground service keeps the overlay alive after the settings activity goes to
 ## FOREGROUND_SERVICE_MEDIA_PROJECTION / screen capture
 
 **Why?**
-Full companion (paid unlock) captures the current screen so a user-configured vision API can write a 1–2 line comment. Captures are JPEG frames in memory, not saved to the gallery, and pause when the device is locked. Demo mode does not capture the screen.
+Full companion captures the current screen so a user-configured vision API can write a 1–2 line comment. Before the one-time unlock, the same path allows 6 successful real-screen glances with the user’s own API key. Captures are JPEG frames in memory, not saved to the gallery, and pause when the device is locked. Demo mode (演示召唤) does not capture the screen.
 
 **Prominent disclosure**
 The app shows an in-app consent dialog on first launch, and a second disclosure immediately before the system MediaProjection prompt.
 
 **Video script (30–60s)**
 1. Open 旁窗, accept privacy policy.  
-2. Unlock (or show already unlocked).  
-3. Tap 召唤小旁.  
+2. Enter a vision API key (trial does not need Play unlock; Debug builds auto-unlock).  
+3. Tap **完整陪伴**.  
 4. Show the in-app disclosure, then the **system** screen-capture dialog, tap allow.  
 5. Switch to another app; show a companion line that matches that screen.  
 6. Lock the phone; mention capture pauses (optional: unlock and show it resumes).  
-7. Stop the companion.
+7. Stop the companion (**让小旁先休息**).
 
 ## PACKAGE_USAGE_STATS（可选）
 
@@ -46,7 +46,7 @@ If Play asks for a video: open 旁窗 → tap the usage-access button → grant 
 
 ## POST_NOTIFICATIONS
 
-Required on Android 13+ to show the ongoing companion notification. No marketing notifications.
+Optional. On Android 13+ the ongoing companion notification is easier to tap (stop from the shade). The in-app UI already marks this as optional; demo and full companion still run if the user skips it. No marketing notifications.
 
 ## Photos and videos policy
 

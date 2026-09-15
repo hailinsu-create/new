@@ -45,10 +45,28 @@ class Prefs(context: Context) {
     val hasPrivacyConsent: Boolean
         get() = privacyConsentAt > 0L
 
-    /** One-time Play purchase unlocks real screen companion; demo stays free. */
+    /**
+     * One-time Play purchase unlocks unlimited real-screen companion.
+     * Local flag; forgeable the same way as [trialSuccessCount].
+     */
     var isPremiumUnlocked: Boolean
         get() = sp.getBoolean(KEY_PREMIUM, false)
         set(value) = sp.edit().putBoolean(KEY_PREMIUM, value).apply()
+
+    /**
+     * Lifelong count of successful true-screen vision bubbles while locked.
+     * Demo / errors / unchanged skips are not stored here.
+     * Same forgeability as [isPremiumUnlocked] (plain SharedPreferences).
+     */
+    var trialSuccessCount: Int
+        get() = sp.getInt(KEY_TRIAL_SUCCESS, 0).coerceAtLeast(0)
+        set(value) = sp.edit().putInt(KEY_TRIAL_SUCCESS, value.coerceAtLeast(0)).apply()
+
+    fun trialRemaining(): Int = TrialPolicy.remaining(trialSuccessCount)
+
+    fun recordTrialSuccess() {
+        trialSuccessCount = (trialSuccessCount + 1).coerceAtMost(TrialPolicy.LIFETIME_SUCCESS_QUOTA)
+    }
 
     fun acceptPrivacy() {
         privacyConsentAt = System.currentTimeMillis()
@@ -131,6 +149,7 @@ class Prefs(context: Context) {
         private const val KEY_THRESHOLD = "threshold"
         private const val KEY_PRIVACY_CONSENT = "privacy_consent_at"
         private const val KEY_PREMIUM = "premium_unlocked"
+        private const val KEY_TRIAL_SUCCESS = "trial_success_count"
         private const val KEY_SCHEMA = "prefs_schema"
         private const val KEY_OVERLAY_X = "overlay_x"
         private const val KEY_OVERLAY_Y = "overlay_y"

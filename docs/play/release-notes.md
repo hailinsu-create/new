@@ -2,6 +2,16 @@
 
 每次上传 AAB 时可改。没有新功能就沿用上一条。
 
+## 0.14.0
+
+中文：
+
+演示召唤一直免费。未解锁时可用自己的 Key 真屏试用 6 次成功陪伴语；用完后一次性解锁。关闭按钮挪到脸外。发给视觉 API 的图会盖住小旁，避免把角色送进模型。
+
+English:
+
+Demo overlay stays free. Before unlock, your own key gets 6 successful real-screen glances; then a one-time purchase. Close chip sits outside the face. The JPEG sent to vision masks Xiao Pang so the model does not see the overlay.
+
 ## 0.13.1
 
 中文：

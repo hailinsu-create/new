@@ -1,6 +1,7 @@
 package com.pangchuang.app
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -106,10 +107,13 @@ class OverlayGeometryTest {
     }
 
     @Test
-    fun closeChipIsStartSideAndAtLeast48dp() {
-        assertTrue(OverlayGeometry.closeGravityStart())
+    fun closeChipIsOutsideCircleWith48dpTouch() {
+        assertTrue(OverlayGeometry.closeOutsideCircle())
+        assertFalse(OverlayGeometry.closeGravityStart())
         assertTrue(OverlayGeometry.minTouchTargetDp() >= 48)
+        assertTrue(OverlayGeometry.closeVisualDp() < OverlayGeometry.minTouchTargetDp())
         assertEquals(96, OverlayGeometry.avatarSizeDp())
+        assertTrue(OverlayGeometry.avatarChromeWidthDp() > OverlayGeometry.avatarSizeDp())
     }
 
     @Test

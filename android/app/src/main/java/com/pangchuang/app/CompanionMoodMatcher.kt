@@ -88,12 +88,15 @@ object CompanionMoodMatcher {
         return if (bestScore == 0) CompanionMood.TALK else best
     }
 
+    /**
+     * PNG fallbacks are two poses: rest ([companion_avatar_idle]) and speaking
+     * ([companion_avatar_talk]). idle==happy and surprise==talk on disk, so
+     * we do not pretend there are four distinct stills. Live2D moods stay richer.
+     */
     fun restingDrawable(mood: CompanionMood): Int = when (mood) {
-        CompanionMood.THINK, CompanionMood.IDLE -> R.drawable.companion_avatar_idle
-        CompanionMood.HAPPY -> R.drawable.companion_avatar_happy
-        CompanionMood.CARE -> R.drawable.companion_avatar_talk
-        CompanionMood.SHY -> R.drawable.companion_avatar_happy
-        CompanionMood.SURPRISE -> R.drawable.companion_avatar_surprise
-        CompanionMood.TALK -> R.drawable.companion_avatar_talk
+        CompanionMood.THINK, CompanionMood.IDLE, CompanionMood.HAPPY, CompanionMood.SHY ->
+            R.drawable.companion_avatar_idle
+        CompanionMood.CARE, CompanionMood.SURPRISE, CompanionMood.TALK ->
+            R.drawable.companion_avatar_talk
     }
 }

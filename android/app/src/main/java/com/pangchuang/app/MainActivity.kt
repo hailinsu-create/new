@@ -306,6 +306,8 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
         val overlayOk = Settings.canDrawOverlays(this)
         val parts = mutableListOf<String>()
         parts += when {
+            RoastService.running && RoastService.trialPaywall ->
+                getString(R.string.home_status_trial_exhausted)
             RoastService.running && RoastService.pausedLock && RoastService.runningDemo ->
                 getString(R.string.home_status_locked_pause_demo)
             RoastService.running && RoastService.pausedLock ->
@@ -328,6 +330,14 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
             getString(R.string.home_status_unlocked)
         } else {
             getString(R.string.home_status_locked)
+        }
+        if (!unlocked) {
+            val left = prefs.trialRemaining()
+            parts += if (left > 0) {
+                getString(R.string.home_status_trial_remaining, left)
+            } else {
+                getString(R.string.home_status_trial_exhausted)
+            }
         }
         if (prefs.purchasePending && !unlocked) {
             parts += getString(R.string.home_status_purchase_pending)
@@ -501,58 +511,58 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
 
     private fun startRoastFlow() {
         if (!ensurePrivacyConsent()) return
-        if (!Entitlement.isUnlocked(this)) {
-            MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.purchase_required_title)
-                .setMessage(R.string.purchase_required_message)
-                .setPositiveButton(R.string.purchase_buy) { _, _ ->
-                    billingManager?.launchPurchase()
-                }
-                .setNeutralButton(R.string.start_demo) { _, _ -> startDemoFlow() }
-                .setNegativeButton(android.R.string.cancel, null)
-                .show()
-            return
-        }
         if (!Settings.canDrawOverlays(this)) {
             Toast.makeText(this, R.string.toast_need_overlay, Toast.LENGTH_SHORT).show()
             openOverlaySettings()
             return
         }
         if (!saveFormOrExplain()) return
-        if (CapturePolicy.fullCompanionBlockedByDemoLines(prefs.mockApi)) {
-            MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.mock_blocks_full_title)
-                .setMessage(R.string.mock_blocks_full_message)
-                .setPositiveButton(R.string.mock_blocks_full_turn_off) { _, _ ->
-                    binding.switchMock.isChecked = false
-                    prefs.mockApi = false
-                    startRoastFlow()
-                }
-                .setNeutralButton(R.string.start_demo) { _, _ -> startDemoFlow() }
-                .setNegativeButton(android.R.string.cancel, null)
-                .show()
-            return
-        }
-        if (prefs.apiKey.isBlank()) {
-            MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.toast_need_api_key)
-                .setMessage(R.string.empty_key_explain)
-                .setPositiveButton(R.string.settings_expand) { _, _ ->
-                    if (!advancedOpen) toggleAdvanced()
-                    binding.advancedPanel.post {
-                        binding.inputApiKey.requestFocus()
-                    }
-                }
-                .setNeutralButton(R.string.start_demo) { _, _ -> startDemoFlow() }
-                .setNegativeButton(android.R.string.cancel, null)
-                .show()
-            return
-        }
-        if (!prefs.baseUrl.startsWith("https://") &&
-            !prefs.baseUrl.contains("127.0.0.1") &&
-            !prefs.baseUrl.contains("localhost") &&
-            !prefs.baseUrl.contains("10.0.2.2")
+        val unlocked = Entitlement.isUnlocked(this)
+        val remaining = prefs.trialRemaining()
+        when (
+            CapturePolicy.fullStartGate(
+                mockLines = prefs.mockApi,
+                apiKeyBlank = prefs.apiKey.isBlank(),
+                unlocked = unlocked,
+                trialRemaining = remaining
+            )
         ) {
+            CapturePolicy.FullStartGate.BLOCK_MOCK_LINES -> {
+                MaterialAlertDialogBuilder(this)
+                    .setTitle(R.string.mock_blocks_full_title)
+                    .setMessage(R.string.mock_blocks_full_message)
+                    .setPositiveButton(R.string.mock_blocks_full_turn_off) { _, _ ->
+                        binding.switchMock.isChecked = false
+                        prefs.mockApi = false
+                        startRoastFlow()
+                    }
+                    .setNeutralButton(R.string.start_demo) { _, _ -> startDemoFlow() }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
+                return
+            }
+            CapturePolicy.FullStartGate.BLOCK_EMPTY_KEY -> {
+                MaterialAlertDialogBuilder(this)
+                    .setTitle(R.string.toast_need_api_key)
+                    .setMessage(R.string.empty_key_explain)
+                    .setPositiveButton(R.string.settings_expand) { _, _ ->
+                        if (!advancedOpen) toggleAdvanced()
+                        binding.advancedPanel.post {
+                            binding.inputApiKey.requestFocus()
+                        }
+                    }
+                    .setNeutralButton(R.string.start_demo) { _, _ -> startDemoFlow() }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
+                return
+            }
+            CapturePolicy.FullStartGate.BLOCK_PAYWALL -> {
+                showPaywallDialog()
+                return
+            }
+            CapturePolicy.FullStartGate.ALLOW -> Unit
+        }
+        if (!EndpointPolicy.isAllowedBaseUrl(prefs.baseUrl)) {
             Toast.makeText(
                 this,
                 R.string.toast_https_only,
@@ -567,6 +577,18 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
                 val mpm = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
                 captureLauncher.launch(mpm.createScreenCaptureIntent())
             }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun showPaywallDialog() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.purchase_required_title)
+            .setMessage(R.string.purchase_required_message)
+            .setPositiveButton(R.string.purchase_buy) { _, _ ->
+                billingManager?.launchPurchase()
+            }
+            .setNeutralButton(R.string.start_demo) { _, _ -> startDemoFlow() }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
     }

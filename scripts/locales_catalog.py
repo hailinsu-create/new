@@ -1606,7 +1606,13 @@ def apply_013() -> None:
     _apply_013(STRINGS)
 
 
+def apply_014() -> None:
+    from locales_014 import apply as _apply_014
+    _apply_014(STRINGS)
+
+
 apply_013()
+apply_014()
 
 
 

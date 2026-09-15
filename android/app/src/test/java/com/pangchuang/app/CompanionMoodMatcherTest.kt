@@ -17,14 +17,13 @@ class CompanionMoodMatcherTest {
     }
 
     @Test
-    fun fallbackDrawablesAreNotAllTheSame() {
-        val think = CompanionMoodMatcher.restingDrawable(CompanionMood.THINK)
-        val care = CompanionMoodMatcher.restingDrawable(CompanionMood.CARE)
-        val surprise = CompanionMoodMatcher.restingDrawable(CompanionMood.SURPRISE)
-        val happy = CompanionMoodMatcher.restingDrawable(CompanionMood.HAPPY)
-        assertNotEquals(think, care)
-        assertNotEquals(think, surprise)
-        assertNotEquals(care, surprise)
-        assertEquals(happy, CompanionMoodMatcher.restingDrawable(CompanionMood.SHY))
+    fun fallbackDrawablesAreTwoPosesNotFour() {
+        val rest = CompanionMoodMatcher.restingDrawable(CompanionMood.IDLE)
+        val talk = CompanionMoodMatcher.restingDrawable(CompanionMood.TALK)
+        assertNotEquals(rest, talk)
+        assertEquals(rest, CompanionMoodMatcher.restingDrawable(CompanionMood.HAPPY))
+        assertEquals(rest, CompanionMoodMatcher.restingDrawable(CompanionMood.SHY))
+        assertEquals(talk, CompanionMoodMatcher.restingDrawable(CompanionMood.SURPRISE))
+        assertEquals(talk, CompanionMoodMatcher.restingDrawable(CompanionMood.CARE))
     }
 }
