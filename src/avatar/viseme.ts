@@ -1,15 +1,23 @@
 export const VISEME_TUNE = {
-  blend: 0.038,
-  lookahead: 0.028,
-  attack: 0.035,
-  release: 0.06,
-  jerkLimit: 16,
+  blend: 0.05,
+  lookahead: 0.046,
+  attack: 0.04,
+  release: 0.072,
+  /** Jaw (open) attacks a bit slower than width/round so the mouth doesn't pop. */
+  attackOpen: 0.048,
+  releaseOpen: 0.082,
+  /** M/F close faster than vowels so bilabials still read. */
+  attackClosed: 0.015,
+  releaseClosed: 0.05,
+  jerkLimit: 7.5,
   restHold: 0.14,
   punctRest: 1.15,
   closedHold: 1.14,
-  jawSplit: 0.2,
+  jawSplit: 0.22,
   mouthCurveTalk: 0.16,
   englishUnit: 1.08,
+  /** How tightly the speech clock follows TTS char-boundary / envelope (0–1). */
+  audioFollow: 0.62,
 };
 
 export const VISEME_IDS = [
@@ -322,6 +330,11 @@ export function timelineDuration(events: readonly VisemeEvent[]): number {
   return last.t + last.dur;
 }
 
+export function easeBlend(t: number): number {
+  const k = t < 0 ? 0 : t > 1 ? 1 : t;
+  return k * k * (3 - 2 * k);
+}
+
 export function lerpShape(a: VisemeShape, b: VisemeShape, t: number): VisemeShape {
   const k = t < 0 ? 0 : t > 1 ? 1 : t;
   return {
@@ -333,6 +346,37 @@ export function lerpShape(a: VisemeShape, b: VisemeShape, t: number): VisemeShap
     closed: a.closed + (b.closed - a.closed) * k,
     curve: a.curve + (b.curve - a.curve) * k,
   };
+}
+
+/** Smooth the viseme clock toward a TTS boundary / envelope target without a hard jump. */
+export function warpSpeechClock(wall: number, offset: number, desired: number, follow = VISEME_TUNE.audioFollow): number {
+  const k = follow < 0 ? 0 : follow > 1 ? 1 : follow;
+  return offset + (desired - (wall + offset)) * k;
+}
+
+export function visemeShapeOf(id: VisemeId): VisemeShape {
+  const base = VISEME_SHAPE[id];
+  if (VISEME_TUNE.jawSplit > 0 && (id === "A" || id === "O")) {
+    return { ...base, open: base.open * (1 + VISEME_TUNE.jawSplit * 0.12) };
+  }
+  return base;
+}
+
+export function measureOpenJerk(events: readonly VisemeEvent[], dt = 1 / 60): number {
+  const end = timelineDuration(events);
+  let prev = sampleTimeline(events, 0).shape.open;
+  let prevD = 0;
+  let maxJ = 0;
+  let armed = false;
+  for (let t = dt; t < end; t += dt) {
+    const open = sampleTimeline(events, t).shape.open;
+    const d = (open - prev) / dt;
+    if (armed) maxJ = Math.max(maxJ, Math.abs((d - prevD) / dt));
+    armed = true;
+    prev = open;
+    prevD = d;
+  }
+  return maxJ;
 }
 
 export type VisemeSample = {
@@ -377,22 +421,18 @@ export function sampleTimeline(
     }
   }
 
-  let shape = VISEME_SHAPE[current.id];
+  let shape = visemeShapeOf(current.id);
   const local = time - current.t;
-  if (local < blend && currentIndex > 0) {
-    const prev = events[currentIndex - 1];
-    shape = lerpShape(VISEME_SHAPE[prev.id], shape, local / blend);
-  }
-  const lookahead = VISEME_TUNE.lookahead;
-  if (lookahead > 0 && currentIndex + 1 < events.length) {
-    const remain = current.t + current.dur - time;
-    if (remain < lookahead) {
-      const next = events[currentIndex + 1];
-      shape = lerpShape(shape, VISEME_SHAPE[next.id], 1 - remain / lookahead);
-    }
-  }
-  if (VISEME_TUNE.jawSplit > 0 && (current.id === "A" || current.id === "O")) {
-    shape = { ...shape, open: shape.open * (1 + VISEME_TUNE.jawSplit * 0.12) };
+  const remain = current.t + current.dur - time;
+  const edgeIn = Math.min(blend, current.dur * 0.38);
+  const edgeOut = Math.min(VISEME_TUNE.lookahead, current.dur * 0.38);
+  if (edgeIn > 0.004 && local < edgeIn) {
+    const prevShape = currentIndex > 0 ? visemeShapeOf(events[currentIndex - 1].id) : VISEME_SHAPE.rest;
+    // Meet lookahead at 50% on the boundary so attack/release don't yank open back.
+    shape = lerpShape(prevShape, shape, 0.5 + 0.5 * easeBlend(local / edgeIn));
+  } else if (edgeOut > 0.004 && currentIndex + 1 < events.length && remain < edgeOut) {
+    const next = events[currentIndex + 1];
+    shape = lerpShape(shape, visemeShapeOf(next.id), 0.5 * easeBlend(1 - remain / edgeOut));
   }
 
   return {
@@ -433,16 +473,23 @@ export class VisemeFilter {
     }
     const attack = cfg.attack > 0 ? cfg.attack : 0.018;
     const release = cfg.release > 0 ? cfg.release : attack;
+    const attackOpen = cfg.attackOpen > 0 ? cfg.attackOpen : attack;
+    const releaseOpen = cfg.releaseOpen > 0 ? cfg.releaseOpen : release;
+    const attackClosed = cfg.attackClosed > 0 ? cfg.attackClosed : Math.min(0.018, attack);
+    const releaseClosed = cfg.releaseClosed > 0 ? cfg.releaseClosed : release;
     const keys: (keyof VisemeShape)[] = ["open", "width", "round", "teeth", "tongue", "closed", "curve"];
     for (const key of keys) {
       const toward = target.shape[key];
       const cur = this.shape[key];
       const rising = toward > cur;
-      const tau = rising ? attack : release;
+      let tau = rising ? attack : release;
+      if (key === "open") tau = rising ? attackOpen : releaseOpen;
+      else if (key === "closed") tau = rising ? attackClosed : releaseClosed;
+      else if (key === "round" || key === "width") tau = rising ? attack * 0.82 : release * 0.9;
       const k = 1 - Math.exp(-dt / Math.max(0.008, tau));
       let next = cur + (toward - cur) * k;
-      if (key === "open" && cfg.jerkLimit > 0) {
-        const maxDelta = cfg.jerkLimit * dt;
+      if ((key === "open" || key === "width") && cfg.jerkLimit > 0) {
+        const maxDelta = cfg.jerkLimit * dt * (key === "width" ? 0.55 : 1);
         next = cur + Math.max(-maxDelta, Math.min(maxDelta, next - cur));
       }
       this.shape[key] = next;

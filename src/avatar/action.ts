@@ -454,10 +454,11 @@ export class ActionDirector {
       case "bow": {
         const b = bowShape(u);
         p.headPitch = a.bowAmp * b;
-        p.torsoLean = a.bowAmp * 0.85 * b;
-        p.lookY = a.bowAmp * 0.7 * b;
+        p.torsoLean = a.bowAmp * 0.95 * b;
+        p.lookY = a.bowAmp * 0.72 * b;
         p.skirtKick = a.bowSkirt * b;
-        p.extraWeight = 0.15 * b;
+        p.extraWeight = 0.22 * b;
+        p.shawlFlip = a.bowAmp * 0.35 * b;
         kickOnce("hair", a.bowHair * 0.04);
         break;
       }
@@ -493,9 +494,10 @@ export class ActionDirector {
         p.stepL = Math.sin(phase) * a.stepAmp;
         p.stepR = Math.sin(phase + Math.PI) * a.stepAmp;
         p.extraWeight = Math.sin(phase) * a.stepAmp * 8 * a.stepHip * a.hipStep;
-        p.plantLift = Math.abs(Math.sin(phase)) * a.stepAmp * a.stepPlant * 0.45;
-        p.skirtKick = Math.sin(phase * 2) * a.stepAmp * 0.8;
-        p.headYaw = Math.sin(phase) * 0.02;
+        p.plantLift = Math.abs(Math.sin(phase)) * a.stepAmp * a.stepPlant * 0.7;
+        p.skirtKick = Math.sin(phase * 2) * a.stepAmp * 1.35;
+        p.headYaw = Math.sin(phase) * 0.03;
+        p.shawlFlip = Math.sin(phase) * a.shawlFlipAmp * 0.45;
         break;
       }
       case "walkPrep": {
@@ -532,13 +534,15 @@ export class ActionDirector {
       }
       case "hop": {
         const h = hopShape(u);
-        p.hopY = Math.min(a.hopCap, a.capHop) * (a.hopAmp / 0.012) * h * 0.55 + a.hopAmp * h;
-        p.plantLift = p.hopY * 0.25;
+        const cap = Math.min(a.hopCap, a.capHop);
+        p.hopY = cap * h;
+        p.plantLift = p.hopY * 0.28;
         p.skirtKick = 0;
         if (u > 0.5) p.skirtKick = -a.hopSkirt * hopShape(Math.min(1, (u - 0.5) * 2));
-        else p.skirtKick = a.hopSkirt * 0.35 * h;
+        else p.skirtKick = a.hopSkirt * (0.45 + 0.55 * h);
         p.clothDrag = a.clothDrag * h;
-        p.extraWeight = Math.sin(u * Math.PI * 2) * 0.18;
+        p.extraWeight = Math.sin(u * Math.PI * 2) * 0.28;
+        p.shawlFlip = Math.sin(u * Math.PI) * 0.12;
         if (!this.kicked && u > 0.4 && u < 0.62) {
           p.napeKick = a.hopNape * 0.05;
           p.hairKick = a.hopNape * 0.03;
@@ -592,7 +596,8 @@ export class ActionDirector {
       clip.headPitch = clamp(clip.headPitch, this.prev.headPitch - maxD, this.prev.headPitch + maxD);
       clip.headYaw = clamp(clip.headYaw, this.prev.headYaw - maxD, this.prev.headYaw + maxD);
       clip.torsoLean = clamp(clip.torsoLean, this.prev.torsoLean - maxD, this.prev.torsoLean + maxD);
-      const hopD = Math.max(0.02, a.jerkLimit * 0.02) * dt;
+      const hopRate = a.hopJerk > 0 ? a.hopJerk : Math.max(0.55, a.jerkLimit * 0.28);
+      const hopD = hopRate * dt;
       clip.hopY = clamp(clip.hopY, this.prev.hopY - hopD, this.prev.hopY + hopD);
     }
     if (a.alignGuard > 0 && a.mouthFollow <= 0) {

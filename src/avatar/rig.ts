@@ -2,6 +2,7 @@ import {
   VISEME_SHAPE,
   type VisemeId,
   type VisemeSample,
+  type VisemeShape,
 } from "./viseme";
 import {
   AfterglowController,
@@ -30,6 +31,8 @@ import {
   BUST_W,
   FULL_ASSETS,
   FULL_LAYOUT,
+  VISEME_ASSETS,
+  VISEME_PATCH,
   layoutOf,
   type Layout,
   type ViewMode,
@@ -214,6 +217,8 @@ type Images = {
   legs?: HTMLImageElement;
 };
 
+type VisemeSprites = Partial<Record<VisemeId, HTMLImageElement>>;
+
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
@@ -221,6 +226,10 @@ function loadImage(src: string): Promise<HTMLImageElement> {
     image.onerror = () => reject(new Error(`无法加载：${src}`));
     image.src = src;
   });
+}
+
+function tryLoadImage(src: string): Promise<HTMLImageElement | null> {
+  return loadImage(src).catch(() => null);
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -309,6 +318,7 @@ export class AvatarRig {
   private nextSaccadeAt = 1.4;
   private freezeUntil = 0;
   private lastVisemeId: VisemeId = "rest";
+  private visemes: VisemeSprites = {};
   private wasSpeaking = false;
   private shyPeekT = 0;
   private hooks: RigHooks;
@@ -344,7 +354,8 @@ export class AvatarRig {
   }
 
   async load(): Promise<void> {
-    const [bust, full] = await Promise.all([
+    const visemeIds = Object.keys(VISEME_ASSETS) as VisemeId[];
+    const [bust, full, visemePack] = await Promise.all([
       Promise.all([
         loadImage(BUST_ASSETS.plate),
         loadImage(BUST_ASSETS.eyeLeft),
@@ -367,7 +378,13 @@ export class AvatarRig {
         loadImage(FULL_ASSETS.crane),
         loadImage(FULL_ASSETS.legs),
       ]),
+      Promise.all(visemeIds.map((id) => tryLoadImage(VISEME_ASSETS[id]))),
     ]);
+    this.visemes = {};
+    visemeIds.forEach((id, i) => {
+      const img = visemePack[i];
+      if (img) this.visemes[id] = img;
+    });
     this.bustAssets = {
       plate: bust[0],
       eyeLeft: bust[1],
@@ -769,7 +786,8 @@ export class AvatarRig {
     if (!cover) return;
 
     const context = this.portraitCtx;
-    const shape = speaking
+    const id: VisemeId = speaking ? sample.id : laugh ? "A" : surprise ? "O" : "rest";
+    const shape: VisemeShape = speaking
       ? sample.shape
       : laugh
         ? { ...VISEME_SHAPE.A, open: 0.88, width: 1.22, curve: 1, teeth: 0.4 }
@@ -784,34 +802,41 @@ export class AvatarRig {
             };
 
     context.save();
-    const mouthScale = this.layout.mouthScale;
+    const mouthScale = this.layout.mouthScale * (this.layout.mouthVisible || 1);
     context.translate(
       this.layout.face.mouth.x + this.lookX * 1.8 * mouthScale,
       this.layout.face.mouth.y + this.lookY * 1.1 * mouthScale,
     );
     context.rotate(this.layout.mouthTilt);
     context.scale(mouthScale, mouthScale);
-    this.paintMouthCover(context, shape);
 
-    if (shape.closed > 0.65 || shape.open < 0.12) {
-      this.strokeClosedMouth(context, shape.curve, shape.width, shape.closed);
+    const sprite = this.visemes[id];
+    const canonical = VISEME_SHAPE[id];
+    const fit =
+      1 -
+      Math.abs(shape.open - canonical.open) * 1.15 -
+      Math.abs(shape.round - canonical.round) * 0.55 -
+      Math.abs(shape.width - canonical.width) * 0.25;
+    this.paintMouthCover(context, shape);
+    if (speaking && sprite && fit > 0.7) {
+      context.drawImage(sprite, -VISEME_PATCH.cx, -VISEME_PATCH.cy, VISEME_PATCH.w, VISEME_PATCH.h);
     } else {
-      this.fillOpenMouth(context, shape);
+      this.paintLipMesh(context, shape, 1);
     }
     context.restore();
   }
 
   /** Hide the painted mouth (and its perioral shade) with plate-matched skin. */
   private paintMouthCover(context: CanvasRenderingContext2D, shape: VisemeSample["shape"]): void {
-    const coverRx = Math.max(56, 32 * shape.width + shape.open * 10);
-    const coverRy = Math.max(28, 18 + shape.open * 16);
+    const coverRx = 24 * shape.width + shape.open * 7 + 6;
+    const coverRy = 11 + shape.open * 9;
     context.save();
     context.translate(0, 1.6);
     context.scale(coverRx, coverRy);
     const fill = context.createRadialGradient(0, 0, 0, 0, 0, 1);
     fill.addColorStop(0, FACE_SKIN(1));
-    fill.addColorStop(0.76, FACE_SKIN(1));
-    fill.addColorStop(0.9, FACE_SKIN(0.55));
+    fill.addColorStop(0.72, FACE_SKIN(1));
+    fill.addColorStop(0.9, FACE_SKIN(0.5));
     fill.addColorStop(1, FACE_SKIN(0));
     context.fillStyle = fill;
     context.beginPath();
@@ -820,107 +845,123 @@ export class AvatarRig {
     context.restore();
   }
 
-  private strokeClosedMouth(
-    context: CanvasRenderingContext2D,
-    curve: number,
-    width: number,
-    pressed: number,
-  ): void {
-    const half = 22 * width;
-    const dip = 9.5 * curve;
-    context.strokeStyle = pressed > 0.7 ? "#4a2c32" : "#5a353c";
-    context.lineWidth = 1.45 + pressed * 0.6;
-    context.lineCap = "round";
-    context.beginPath();
-    context.moveTo(-half, -dip * 0.1);
-    context.quadraticCurveTo(-half * 0.08, dip, half, -dip * 0.22);
-    context.stroke();
-    if (curve > 0.5) {
-      context.globalAlpha *= 0.38;
-      context.lineWidth = 0.95;
-      context.beginPath();
-      context.moveTo(-half + 1, 0.8);
-      context.quadraticCurveTo(-half - 2.5, 3.4, -half - 0.5, 6.2);
-      context.moveTo(half - 1, 0.4);
-      context.quadraticCurveTo(half + 2.5, 2.8, half + 0.6, 5.6);
-      context.stroke();
-    }
-  }
-
-  private fillOpenMouth(
-    context: CanvasRenderingContext2D,
-    shape: VisemeSample["shape"],
-  ): void {
-    context.save();
-    context.translate(0, 2);
+  /** Deform the original thin lip line into a viseme. Not an ellipse sticker. */
+  private paintLipMesh(context: CanvasRenderingContext2D, shape: VisemeShape, gain: number): void {
+    const open = shape.open;
+    const width = shape.width;
     const round = shape.round;
-    if (round > 0.55) {
-      const rx = 6.2 * shape.width + shape.open * 3.4;
-      const ry = 5.2 + shape.open * 8.4;
+    const teeth = shape.teeth;
+    const tongue = shape.tongue;
+    const closed = shape.closed;
+    const curve = shape.curve;
+    const g = gain;
+    const half = (21.5 * width + open * 3.4) * g;
+    const corner = -curve * 5.4 * g;
+    const upper = (-1.4 - curve * 1.6 - open * 3.2 * (1 - round * 0.4)) * g;
+    const lower = (1.6 + open * (13.2 - round * 3.4)) * g;
+
+    context.save();
+    context.lineCap = "round";
+    context.lineJoin = "round";
+
+    if (closed > 0.65 || open < 0.1) {
+      const dip = 6.4 * curve * g;
+      context.strokeStyle = closed > 0.7 ? "#3a2226" : "#4a2c32";
+      context.lineWidth = 1.55 + closed * 0.55;
       context.beginPath();
-      context.ellipse(0, 1.6, rx, ry, 0, 0, Math.PI * 2);
-      context.fillStyle = "#7a454c";
-      context.fill();
-      context.fillStyle = "#3a181e";
-      context.beginPath();
-      context.ellipse(0, 2.6, rx * 0.68, ry * 0.58, 0, 0, Math.PI * 2);
-      context.fill();
-      if (shape.teeth > 0.08) {
-        context.fillStyle = "rgba(247, 236, 230, 0.92)";
-        context.beginPath();
-        context.ellipse(0, -ry * 0.28, rx * 0.62, 2.1, 0, 0, Math.PI * 2);
-        context.fill();
-      }
-      context.strokeStyle = "rgba(92, 51, 56, 0.72)";
-      context.lineWidth = 1.15;
-      context.beginPath();
-      context.ellipse(0, 1.6, rx, ry, 0, 0, Math.PI * 2);
+      context.moveTo(-half, corner * 0.2);
+      context.quadraticCurveTo(0, dip, half, corner * 0.72);
       context.stroke();
-    } else {
-      const half = 17 * shape.width + shape.open * 3;
-      const depth = 7 + shape.open * 10;
-      const curve = shape.curve;
+      if (curve > 0.2) {
+        context.strokeStyle = "rgba(110, 62, 66, 0.45)";
+        context.lineWidth = 0.9;
+        context.beginPath();
+        context.moveTo(-half * 0.72, corner * 0.2 + 1.3);
+        context.quadraticCurveTo(0, dip + 1.6, half * 0.72, corner * 0.72 + 1.1);
+        context.stroke();
+      }
+      context.restore();
+      return;
+    }
+
+    if (round > 0.5) {
+      const rx = (5.6 * width + open * 4.0) * g;
+      const ry = (4.4 + open * 9.6) * g;
+      context.translate(0, 2);
       context.beginPath();
-      context.moveTo(-half, 0);
-      context.quadraticCurveTo(0, -3.5 - curve * 1.5, half, 0);
-      context.quadraticCurveTo(half * 0.35, depth, 0, depth + 1);
-      context.quadraticCurveTo(-half * 0.35, depth, -half, 0);
-      context.closePath();
-      context.fillStyle = "#6e3a43";
+      context.ellipse(0, 0, rx + 2.1, ry + 1.8, 0, 0, Math.PI * 2);
+      context.fillStyle = "rgba(92, 48, 54, 0.92)";
       context.fill();
+      context.beginPath();
+      context.ellipse(0, 0.8, rx * 0.78, ry * 0.7, 0, 0, Math.PI * 2);
       context.fillStyle = "#2a1218";
-      context.beginPath();
-      context.ellipse(0, depth * 0.42, half * 0.55, depth * 0.38, 0, 0, Math.PI * 2);
       context.fill();
-      if (shape.teeth > 0.15) {
-        context.fillStyle = `rgba(247, 236, 230, ${0.7 + shape.teeth * 0.25})`;
-        context.beginPath();
-        context.moveTo(-half * 0.72, 0.4);
-        context.quadraticCurveTo(0, -1.2, half * 0.72, 0.4);
-        context.lineTo(half * 0.62, 3.4);
-        context.quadraticCurveTo(0, 2.2, -half * 0.62, 3.4);
-        context.closePath();
-        context.fill();
-      }
-      if (shape.tongue > 0.4) {
-        context.fillStyle = "rgba(196, 112, 122, 0.88)";
-        context.beginPath();
-        context.ellipse(0, depth * 0.58, half * 0.34, depth * 0.22, 0, 0, Math.PI * 2);
-        context.fill();
-      }
-      context.strokeStyle = "rgba(92, 51, 56, 0.78)";
-      context.lineWidth = 1.35;
       context.beginPath();
-      context.moveTo(-half, 0);
-      context.quadraticCurveTo(0, -3.5 - curve * 1.5, half, 0);
-      context.quadraticCurveTo(half * 0.35, depth, 0, depth + 1);
-      context.quadraticCurveTo(-half * 0.35, depth, -half, 0);
+      context.ellipse(0, 1.4, rx * 0.5, ry * 0.42, 0, 0, Math.PI * 2);
+      context.fillStyle = "#16080c";
+      context.fill();
+      if (teeth > 0.08) {
+        context.fillStyle = "rgba(244, 236, 230, 0.9)";
+        context.beginPath();
+        context.ellipse(0, -ry * 0.38, rx * 0.62, 1.7, 0, 0, Math.PI * 2);
+        context.fill();
+      }
+      context.strokeStyle = "#3a2226";
+      context.lineWidth = 1.65;
+      context.beginPath();
+      context.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
       context.stroke();
-      context.fillStyle = "rgba(236, 204, 196, 0.42)";
+      context.restore();
+      return;
+    }
+
+    context.translate(0, 1.4);
+    context.beginPath();
+    context.moveTo(-half, corner * 0.25);
+    context.quadraticCurveTo(0, upper, half, corner * 0.18);
+    context.quadraticCurveTo(half * 0.42, lower, 0, lower + 0.6);
+    context.quadraticCurveTo(-half * 0.42, lower, -half, corner * 0.25);
+    context.closePath();
+    context.fillStyle = "#32141a";
+    context.fill();
+    context.fillStyle = "#16080c";
+    context.beginPath();
+    context.ellipse(0, (upper + lower) * 0.48, half * 0.5, Math.max(1.6, (lower - upper) * 0.28), 0, 0, Math.PI * 2);
+    context.fill();
+    if (teeth > 0.12) {
+      context.fillStyle = `rgba(244, 236, 230, ${0.72 + teeth * 0.22})`;
       context.beginPath();
-      context.ellipse(0, depth * 0.78, half * 0.42, 1.8, 0, 0, Math.PI * 2);
+      context.moveTo(-half * 0.7, upper + 0.6);
+      context.quadraticCurveTo(0, upper - 0.4, half * 0.7, upper + 0.6);
+      context.lineTo(half * 0.62, upper + 2.4 + teeth * 1.4);
+      context.quadraticCurveTo(0, upper + 1.8, -half * 0.62, upper + 2.4 + teeth * 1.4);
+      context.closePath();
       context.fill();
     }
+    if (tongue > 0.4) {
+      context.fillStyle = "rgba(176, 96, 104, 0.88)";
+      context.beginPath();
+      context.ellipse(0, lower * 0.58, half * 0.3, (lower - upper) * 0.16, 0, 0, Math.PI * 2);
+      context.fill();
+    }
+    context.strokeStyle = "#3a2226";
+    context.lineWidth = 1.7;
+    context.beginPath();
+    context.moveTo(-half, corner * 0.25);
+    context.quadraticCurveTo(0, upper, half, corner * 0.18);
+    context.stroke();
+    context.lineWidth = 1.85;
+    context.beginPath();
+    context.moveTo(-half, corner * 0.25);
+    context.quadraticCurveTo(-half * 0.42, lower, 0, lower + 0.6);
+    context.quadraticCurveTo(half * 0.42, lower, half, corner * 0.18);
+    context.stroke();
+    context.strokeStyle = "rgba(92, 48, 54, 0.7)";
+    context.lineWidth = 1.15;
+    context.beginPath();
+    context.moveTo(-half * 0.86, corner * 0.2 - 1.1);
+    context.quadraticCurveTo(0, upper - 1.3, half * 0.86, corner * 0.14 - 1.1);
+    context.stroke();
     context.restore();
   }
 
@@ -1422,12 +1463,17 @@ export class AvatarRig {
     breath?: BreathState,
   ): void {
     if (!this.assets) return;
+    const slack = MOTION.action.clothSlack || 1;
     const skirtA = body?.skirt.angle ?? 0;
     const hemA = body?.hem.angle ?? 0;
     const shawlLA = body?.shawlL.angle ?? 0;
     const shawlRA = body?.shawlR.angle ?? 0;
     const craneA = body?.crane.angle ?? 0;
+    const legA = body?.leg.angle ?? 0;
     const chest = breath?.chest ?? 0;
+    const kick = this.perf.skirtKick;
+    const flip = this.perf.shawlFlip;
+    const step = this.perf.stepL - this.perf.stepR;
 
     const paint = (
       image: HTMLImageElement | undefined,
@@ -1435,12 +1481,13 @@ export class AvatarRig {
       angle: number,
       sway: number,
       alpha = 0.92,
+      lift = 0,
     ) => {
       if (!image || !pivot) return;
       context.save();
       context.translate(originX, originY);
       context.scale(scale, scale);
-      context.translate(pivot.x, pivot.y);
+      context.translate(pivot.x, pivot.y + lift);
       context.rotate(angle);
       context.translate(-pivot.x + angle * sway, -pivot.y + Math.abs(angle) * 6);
       context.globalAlpha = alpha;
@@ -1448,10 +1495,19 @@ export class AvatarRig {
       context.restore();
     };
 
-    paint(this.assets.shawlLeft, this.layout.shawlL, shawlLA, 36, 0.78);
-    paint(this.assets.shawlRight, this.layout.shawlR, shawlRA, 36, 0.78);
-    paint(this.assets.skirt, this.layout.skirt, skirtA * 0.55, 22, 0.42);
-    paint(this.assets.hem, this.layout.hem, hemA, 48, 0.7);
+    paint(this.assets.shawlLeft, this.layout.shawlL, (shawlLA - flip * 0.35) * slack, 42, 0.9);
+    paint(this.assets.shawlRight, this.layout.shawlR, (shawlRA + flip * 0.35) * slack, 42, 0.9);
+    paint(this.assets.skirt, this.layout.skirt, skirtA * 0.35, 14, 0.22);
+    paint(this.assets.skirt, this.layout.skirt, (skirtA * 0.85 + kick * 0.55) * slack, 34, 0.72, kick * 18);
+    paint(this.assets.hem, this.layout.hem, (hemA + kick * 0.4) * slack, 56, 0.84, kick * 22);
+    paint(
+      this.assets.legs,
+      this.layout.legs ?? this.layout.plant,
+      (legA + step * 0.55) * slack,
+      14,
+      0.95,
+      -this.perf.plantLift * 80,
+    );
     if (this.assets.crane && this.layout.crane) {
       const bob = chest * 0.12 * MOTION.body.craneCoupling - this.perf.hopY * 28 * MOTION.action.craneHop;
       context.save();

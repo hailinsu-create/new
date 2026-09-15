@@ -50,7 +50,7 @@ const weight = peakOf("weightShift", "extraWeight");
 
 assert("nod pitches head", nod > 0.02, `nod=${nod}`);
 assert("bow leans torso", bow > 0.03, `bow=${bow}`);
-assert("hop lifts", hop > 0.004, `hop=${hop}`);
+assert("hop lifts", hop > 0.035, `hop=${hop}`);
 assert("step cycles feet", step > 0.01, `step=${step}`);
 assert("shy tucks head", shy > 0.03, `shy=${shy}`);
 assert("surprise leans back", surprise > 0.02, `surprise=${surprise}`);
@@ -62,7 +62,7 @@ const simA = simulateAction({ seconds: 36, dt, seed: 11 });
 assert("idle theater fires body clips", simA.autoCount >= 1, `count=${simA.autoCount}`);
 assert("more than one body verb", simA.autoKinds >= 1, `kinds=${simA.autoKinds}`);
 assert("nod clip measurable", simA.nodPeak > 0.02, `nod=${simA.nodPeak}`);
-assert("hop clip measurable", simA.hopPeak > 0.003, `hop=${simA.hopPeak}`);
+assert("hop clip measurable", simA.hopPeak > 0.035, `hop=${simA.hopPeak}`);
 assert("speaking shoulders move", simA.speakShoulderRms > 0.001, `sh=${simA.speakShoulderRms}`);
 assert("action jerk tame", simA.jerk < 80, `jerk=${simA.jerk}`);
 assert("hop not tearing", simA.maxHopY < 0.12, `maxHop=${simA.maxHopY}`);

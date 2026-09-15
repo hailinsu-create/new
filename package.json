@@ -16,7 +16,9 @@
     "record:tour": "node scripts/record-all-animations.mjs",
     "record:blink-hair": "node scripts/record-blink-hair.mjs",
     "record:motion-100": "node scripts/record-motion-100.mjs",
-    "record:fullbody": "node scripts/record-fullbody.mjs"
+    "record:fullbody": "node scripts/record-fullbody.mjs",
+    "bake:visemes": "python3 scripts/bake-visemes.py",
+    "record:round": "node scripts/record-round-evidence.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.2",

@@ -3,6 +3,8 @@ import {
   textToVisemes,
   timelineDuration,
   VisemeFilter,
+  VISEME_TUNE,
+  warpSpeechClock,
   type VisemeEvent,
   type VisemeId,
   type VisemeSample,
@@ -22,6 +24,8 @@ type MurmurNodes = {
   noise: AudioBufferSourceNode;
   filter: BiquadFilterNode;
   gain: GainNode;
+  analyser: AnalyserNode;
+  bins: Uint8Array<ArrayBuffer>;
 };
 
 const FORMANT_HZ: Record<VisemeId, number> = {
@@ -48,6 +52,9 @@ export class SpeechDriver {
   private hold: VisemeSample | null = null;
   private listeners: SpeechListeners = {};
   private filter = new VisemeFilter();
+  private clockOffset = 0;
+  private ttsActive = false;
+  private envelope = 0;
   muted = false;
 
   get speaking(): boolean {
@@ -69,6 +76,9 @@ export class SpeechDriver {
   stop(): void {
     this.playing = false;
     this.events = [];
+    this.ttsActive = false;
+    this.clockOffset = 0;
+    this.envelope = 0;
     if (this.utterance && typeof speechSynthesis !== "undefined") {
       speechSynthesis.cancel();
       this.utterance = null;
@@ -85,6 +95,9 @@ export class SpeechDriver {
     this.startedAt = performance.now();
     this.playing = true;
     this.lastCharIndex = -1;
+    this.clockOffset = 0;
+    this.ttsActive = false;
+    this.envelope = 0;
     this.filter.reset();
     this.listeners.onStart?.();
 
@@ -101,12 +114,29 @@ export class SpeechDriver {
     if (!this.playing) {
       return sampleTimeline([], 0);
     }
-    const time = (now - this.startedAt) / 1000;
-    if (time >= timelineDuration(this.events)) {
+    const wall = (now - this.startedAt) / 1000;
+    const env = this.readEnvelope();
+    if (env > 0) this.envelope += (env - this.envelope) * 0.35;
+    else this.envelope *= 0.86;
+    const time = wall + this.clockOffset;
+    const dur = timelineDuration(this.events);
+    if (time >= dur) {
+      if (this.ttsActive) {
+        const tail = this.filter.sample(sampleTimeline(this.events, Math.max(0, dur - 0.04)), now);
+        return { ...tail, energy: tail.energy * 0.35, speaking: true };
+      }
       this.finish();
       return sampleTimeline([], 0);
     }
-    const sample = this.filter.sample(sampleTimeline(this.events, time), now);
+    let sample = this.filter.sample(sampleTimeline(this.events, Math.max(0, time)), now);
+    if (this.envelope > 0.08 && sample.speaking) {
+      const boost = 0.82 + 0.28 * Math.min(1, this.envelope);
+      sample = {
+        ...sample,
+        shape: { ...sample.shape, open: Math.min(1, sample.shape.open * boost) },
+        energy: sample.energy * (0.85 + 0.25 * Math.min(1, this.envelope)),
+      };
+    }
     if (sample.index !== this.lastCharIndex && sample.char) {
       this.lastCharIndex = sample.index;
       this.listeners.onChar?.(sample.char, sample.index);
@@ -118,6 +148,8 @@ export class SpeechDriver {
   private finish(): void {
     if (!this.playing) return;
     this.playing = false;
+    this.ttsActive = false;
+    this.clockOffset = 0;
     this.stopMurmur();
     if (this.utterance && typeof speechSynthesis !== "undefined") {
       speechSynthesis.cancel();
@@ -155,15 +187,28 @@ export class SpeechDriver {
       voices.find((voice) => voice.lang.startsWith("zh")) ??
       voices.find((voice) => voice.lang.startsWith(utterance.lang));
     if (preferred) utterance.voice = preferred;
+    utterance.onstart = () => {
+      this.ttsActive = true;
+    };
     utterance.onboundary = (event) => {
       if (typeof event.charIndex !== "number") return;
-      const match = this.events.find((item) => item.index === event.charIndex);
-      if (match) {
-        const elapsed = (performance.now() - this.startedAt) / 1000;
-        this.startedAt += (elapsed - match.t) * 1000;
-      }
+      const match =
+        this.events.find((item) => item.index === event.charIndex) ??
+        this.events.find((item) => item.index >= event.charIndex && item.id !== "rest");
+      if (!match) return;
+      const wall = (performance.now() - this.startedAt) / 1000;
+      this.clockOffset = warpSpeechClock(wall, this.clockOffset, match.t, VISEME_TUNE.audioFollow);
+    };
+    utterance.onend = () => {
+      this.ttsActive = false;
+      this.utterance = null;
+      this.finish();
+    };
+    utterance.onerror = () => {
+      this.ttsActive = false;
     };
     this.utterance = utterance;
+    this.ttsActive = true;
     speechSynthesis.cancel();
     speechSynthesis.speak(utterance);
   }
@@ -200,10 +245,34 @@ export class SpeechDriver {
     noise.connect(noiseGain);
     noiseGain.connect(filter);
     filter.connect(gain);
+    const analyser = context.createAnalyser();
+    analyser.fftSize = 256;
+    analyser.smoothingTimeConstant = 0.5;
+    gain.connect(analyser);
     gain.connect(context.destination);
     osc.start();
     noise.start();
-    this.murmur = { context, osc, noise, filter, gain };
+    this.murmur = {
+      context,
+      osc,
+      noise,
+      filter,
+      gain,
+      analyser,
+      bins: new Uint8Array(new ArrayBuffer(analyser.fftSize)),
+    };
+  }
+
+  private readEnvelope(): number {
+    if (!this.murmur) return 0;
+    this.murmur.analyser.getByteTimeDomainData(this.murmur.bins);
+    let sum = 0;
+    const bins = this.murmur.bins;
+    for (let i = 0; i < bins.length; i += 1) {
+      const v = (bins[i] - 128) / 128;
+      sum += v * v;
+    }
+    return Math.min(1, Math.sqrt(sum / bins.length) * 6.5);
   }
 
   private updateMurmur(sample: VisemeSample): void {

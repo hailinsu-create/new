@@ -23,6 +23,7 @@ assert("bust scale is identity", BUST_LAYOUT.faceScale === 1 && BUST_LAYOUT.mout
 assert("full face smaller than bust", FULL_LAYOUT.faceScale < 1 && FULL_LAYOUT.faceScale >= 0.7);
 assert("full mouth smaller than head scale", FULL_LAYOUT.mouthScale < FULL_LAYOUT.faceScale);
 assert("full mouthScale not a giant cover", FULL_LAYOUT.mouthScale <= 0.7 && FULL_LAYOUT.mouthScale >= 0.45);
+assert("full viseme still readable", FULL_LAYOUT.mouthVisible >= 1.2 && FULL_LAYOUT.mouthVisible <= 1.8);
 
 assert("bust mouth unchanged", FACE_BUST.mouth.x === 753 && FACE_BUST.mouth.y === 404);
 assert("bust eyes unchanged", FACE_BUST.eyeLeft.x === 657 && FACE_BUST.eyeRight.x === 802);

@@ -28,6 +28,8 @@ export type Layout = {
   faceScale: number;
   /** Viseme + mouth-cover size vs the bust plate. Full-body lips are smaller than the head. */
   mouthScale: number;
+  /** Extra viseme drawing size so A/O stay readable when the full figure is small on screen. */
+  mouthVisible: number;
   face: FaceMarks;
   hair: Pivot;
   bangs: Pivot;
@@ -40,6 +42,7 @@ export type Layout = {
   crane?: Pivot;
   hip?: Pivot;
   plant?: Pivot;
+  legs?: Pivot;
   slices: number;
 };
 
@@ -75,6 +78,7 @@ export const BUST_LAYOUT: Layout = {
   mouthTilt: -0.175,
   faceScale: 1,
   mouthScale: 1,
+  mouthVisible: 1,
   face: FACE_BUST,
   hair: { x: 526, y: 292 },
   bangs: { x: 724, y: 176 },
@@ -90,6 +94,7 @@ export const FULL_LAYOUT: Layout = {
   mouthTilt: 0.1,
   faceScale: 0.8,
   mouthScale: 0.55,
+  mouthVisible: 1.48,
   face: FACE_FULL,
   hair: { x: 560, y: 300 },
   bangs: { x: 750, y: 155 },
@@ -102,6 +107,7 @@ export const FULL_LAYOUT: Layout = {
   crane: { x: 850, y: 545 },
   hip: { x: 770, y: 820 },
   plant: { x: 800, y: 2240 },
+  legs: { x: 800, y: 1860 },
   slices: 168,
 };
 
@@ -128,6 +134,22 @@ export const FULL_ASSETS = {
   crane: "./characters/moxi/fullbody-rig/crane.png",
   legs: "./characters/moxi/fullbody-rig/legs.png",
 } as const;
+
+export const VISEME_ASSETS: Record<string, string> = {
+  rest: "./characters/moxi/visemes/rest.png",
+  A: "./characters/moxi/visemes/A.png",
+  E: "./characters/moxi/visemes/E.png",
+  I: "./characters/moxi/visemes/I.png",
+  O: "./characters/moxi/visemes/O.png",
+  U: "./characters/moxi/visemes/U.png",
+  WQ: "./characters/moxi/visemes/U.png",
+  M: "./characters/moxi/visemes/M.png",
+  F: "./characters/moxi/visemes/F.png",
+  L: "./characters/moxi/visemes/E.png",
+  S: "./characters/moxi/visemes/I.png",
+};
+
+export const VISEME_PATCH = { w: 160, h: 120, cx: 80, cy: 52 } as const;
 
 export function layoutOf(view: ViewMode): Layout {
   return view === "full" ? FULL_LAYOUT : BUST_LAYOUT;
