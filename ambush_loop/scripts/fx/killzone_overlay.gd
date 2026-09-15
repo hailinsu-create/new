@@ -24,9 +24,9 @@ func _is_power_saving() -> bool:
 
 func _draw() -> void:
 	for p in miss_samples:
-		draw_circle(p, 7.0, Color(0.95, 0.22, 0.18, 0.16))
-		draw_circle(p, 3.4, Color(0.98, 0.34, 0.22, 0.92))
-		draw_arc(p, 8.0, 0.0, TAU, 14, Color(0.98, 0.42, 0.22, 0.7), 1.5)
+		draw_circle(p, 7.0, Color(0.72, 0.18, 0.10, 0.16))
+		draw_circle(p, 3.4, Color(0.78, 0.28, 0.14, 0.92))
+		draw_arc(p, 8.0, 0.0, TAU, 14, Color(0.78, 0.34, 0.16, 0.7), 1.5)
 
 
 func _process(delta: float) -> void:

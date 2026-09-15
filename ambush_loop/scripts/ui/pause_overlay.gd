@@ -1,7 +1,7 @@
 class_name PauseOverlay
 extends CanvasLayer
 
-## Shared pause / settings: mute, Music/SFX volumes, return to title, redeploy (SETUP only).
+## Shared pause / settings: mute, Music/SFX volumes, return to title, redeploy (scout/sweep).
 
 signal closed
 signal return_to_title
@@ -22,6 +22,7 @@ var _title_btn: Button
 var _touch_btn: Button
 var _quality_btn: Button
 var _wipe_btn: Button
+var _nade_btn: Button
 var _close_btn: Button
 var _wipe_armed: bool = false
 
@@ -31,7 +32,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
 	_dim = ColorRect.new()
-	_dim.color = Color(0.015, 0.025, 0.018, 0.78)
+	_dim.color = Color(0.02, 0.018, 0.012, 0.78)
 	_dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(_dim)
@@ -40,8 +41,8 @@ func _ready() -> void:
 	_panel.set_anchors_preset(Control.PRESET_CENTER)
 	_panel.offset_left = -210.0
 	_panel.offset_right = 210.0
-	_panel.offset_top = -296.0
-	_panel.offset_bottom = 296.0
+	_panel.offset_top = -340.0
+	_panel.offset_bottom = 340.0
 	add_child(_panel)
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 18)
@@ -58,6 +59,13 @@ func _ready() -> void:
 	title.add_theme_font_size_override("font_size", 22)
 	title.add_theme_color_override("font_color", NightOps.OLIVE_HI)
 	box.add_child(title)
+	var ver := Label.new()
+	ver.name = "BuildVersion"
+	ver.text = "v%s · COMMANDOS / WW2" % NightOps.game_version()
+	ver.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ver.add_theme_font_size_override("font_size", 13)
+	ver.add_theme_color_override("font_color", NightOps.OLIVE_HI)
+	box.add_child(ver)
 	var frame := Label.new()
 	frame.name = "CampaignFrame"
 	frame.text = LevelDef.campaign_frame()
@@ -65,6 +73,14 @@ func _ready() -> void:
 	frame.add_theme_font_size_override("font_size", 13)
 	frame.add_theme_color_override("font_color", NightOps.OLIVE_DIM)
 	box.add_child(frame)
+	var keys := Label.new()
+	keys.name = "C2Keys"
+	keys.text = "触屏：点地走 · 短拖拖图 · 长按跑 · 绕背热区 · 角标跟上。键鼠：C匍 Q技 W哨 Z包 双击跑 F2回中"
+	keys.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	keys.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	keys.add_theme_font_size_override("font_size", 12)
+	keys.add_theme_color_override("font_color", NightOps.MUTED)
+	box.add_child(keys)
 	_mute_btn = _fat_btn()
 	_mute_btn.pressed.connect(_on_mute)
 	box.add_child(_mute_btn)
@@ -76,6 +92,9 @@ func _ready() -> void:
 	_touch_btn = _fat_btn()
 	_touch_btn.pressed.connect(_on_touch_toggle)
 	box.add_child(_touch_btn)
+	_nade_btn = _fat_btn()
+	_nade_btn.pressed.connect(_on_nade_toggle)
+	box.add_child(_nade_btn)
 	_redeploy_btn = _fat_btn()
 	_redeploy_btn.text = "重新部署"
 	_redeploy_btn.pressed.connect(func() -> void: redeploy_requested.emit())
@@ -189,6 +208,12 @@ func _refresh_audio() -> void:
 		if gs and gs.has_method("want_touch_controls"):
 			touch_on = bool(gs.want_touch_controls())
 		_touch_btn.text = "触控底栏：开" if touch_on else "触控底栏：关"
+	if _nade_btn:
+		var nade_on := true
+		var scene = get_tree().current_scene if get_tree() else null
+		if scene != null and scene.get("selected") != null:
+			nade_on = bool(scene.selected.auto_grenade)
+		_nade_btn.text = "自动手雷：开" if nade_on else "自动手雷：关"
 	if _wipe_btn:
 		_wipe_btn.text = "再点确认：清空记忆" if _wipe_armed else "清空记忆（需确认）"
 	if _music:
@@ -234,6 +259,13 @@ func _on_quality_toggle() -> void:
 	var gs = _gs()
 	if gs and gs.has_method("toggle_quality_tier"):
 		gs.toggle_quality_tier()
+	_refresh_audio()
+
+
+func _on_nade_toggle() -> void:
+	var scene = get_tree().current_scene if get_tree() else null
+	if scene != null and scene.has_method("_toggle_auto_grenade"):
+		scene._toggle_auto_grenade()
 	_refresh_audio()
 
 
