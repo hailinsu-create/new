@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Pangchuang</string>
     <string name="companion_name">شياو بانغ</string>
-    <string name="subtitle">مرافق بطراز صيني على حافة الشاشة. التجربة مجانية دائمًا. 6 نظرات للشاشة الحقيقية بمفتاحك؛ بعد الفتح بلا حد. القفل يوقف الالتقاط تمامًا.</string>
+    <string name="subtitle">مرافق بطراز صيني على حافة الشاشة. التجربة مجانية دائمًا. %1$d نظرات للشاشة الحقيقية بمفتاحك؛ بعد الفتح بلا حد. القفل يوقف الالتقاط تمامًا.</string>
     <string name="language_title">اللغة</string>
     <string name="language_system">اتبع النظام</string>
     <string name="section_permissions">الأذونات</string>
@@ -11,7 +11,7 @@
     <string name="section_advanced">إعدادات المرافق الكامل</string>
     <string name="settings_expand">إعدادات المرافق الكامل</string>
     <string name="settings_collapse">إخفاء الإعدادات</string>
-    <string name="home_status_idle">شياو بانغ يستريح. التجربة مجانية. الشاشة الحقيقية: 6 نظرات بمفتاحك ثم فتح لمرة واحدة.</string>
+    <string name="home_status_idle">شياو بانغ يستريح. التجربة مجانية. الشاشة الحقيقية: %1$d نظرات بمفتاحك ثم فتح لمرة واحدة.</string>
     <string name="home_status_demo">التجربة قيد التشغيل · لا يشاهد الشاشة الحقيقية</string>
     <string name="home_status_full">المرافق الكامل قيد التشغيل · يشاهد الشاشة</string>
     <string name="home_status_locked_pause">مقفل · توقف الالتقاط</string>
@@ -74,7 +74,7 @@
     <string name="privacy_required">سياسة الخصوصية: مطلوبة قبل البدء</string>
     <string name="data_disclosure_summary">تذهب البيانات إلى واجهة الرؤية التي تضبطها. النموذج الافتراضي Qwen3-VL-8B. HTTPS؛ يمكن لـ Ollama المحلي استخدام 127.0.0.1.</string>
     <string name="purchase_title">فتح المرافق الكامل</string>
-    <string name="purchase_summary">التجربة مجانية دائمًا. بمفتاحك تحصل على 6 ردود حقيقية ناجحة. حوالي 0.99 دولار مرة واحدة تزيل الحد. تكلفة واجهة الرؤية عليك. عدّاد التجربة على الجهاز ويمكن تغييره مثل علامة الفتح.</string>
+    <string name="purchase_summary">التجربة مجانية دائمًا. بمفتاحك تحصل على %1$d ردود حقيقية ناجحة. حوالي 0.99 دولار مرة واحدة تزيل الحد. تكلفة واجهة الرؤية عليك. عدّاد التجربة على الجهاز ويمكن تغييره مثل علامة الفتح.</string>
     <string name="purchase_status_locked">المرافق الكامل مقفل</string>
     <string name="purchase_status_unlocked">فُتح المرافق الكامل. شكرًا.</string>
     <string name="purchase_buy">فتح المرافق الكامل</string>
@@ -152,7 +152,7 @@
     <string name="hint_interval_preset">فترة المرافق</string>
     <string name="interval_preset_custom">ثوانٍ مخصصة</string>
     <string name="toast_interval_invalid">يجب أن تكون الفترة 5–120 ثانية، لا 0</string>
-    <string name="empty_key_explain">الشاشة الحقيقية (بما فيها تجربة الـ 6) ترسل الإطار إلى واجهة الرؤية التي تضبطها. أدخل مفتاحًا أولًا. أو استخدم التجربة المجانية (لا ترى الشاشة الحقيقية).</string>
+    <string name="empty_key_explain">الشاشة الحقيقية (بما فيها تجربة الـ %1$d) ترسل الإطار إلى واجهة الرؤية التي تضبطها. أدخل مفتاحًا أولًا. أو استخدم التجربة المجانية (لا ترى الشاشة الحقيقية).</string>
     <string name="restore_purchases_hint">بعد هاتف جديد أو إعادة التثبيت، استعد الفتح لمرة واحدة هنا. التنقيح يُفتح وحده.</string>
     <string name="overlay_low_battery">البطارية منخفضة، سأنظر على فترات أطول.</string>
     <string name="vision_https_blocked">إصدارات المتجر تسمح بـ HTTPS فقط (أو 127.0.0.1 / 10.0.2.2).</string>

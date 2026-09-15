@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">傍窓</string>
     <string name="companion_name">小旁</string>
-    <string name="subtitle">画面の端の中国風コンパニオン。デモ召喚は無料。自分のキーで本番画面を 6 回試せます。ロックすると撮影を止めます。</string>
+    <string name="subtitle">画面の端の中国風コンパニオン。デモ召喚は無料。自分のキーで本番画面を %1$d 回試せます。ロックすると撮影を止めます。</string>
     <string name="language_title">表示言語</string>
     <string name="language_system">システムに合わせる</string>
     <string name="section_permissions">権限</string>
@@ -11,7 +11,7 @@
     <string name="section_advanced">本機能の設定</string>
     <string name="settings_expand">本機能の設定</string>
     <string name="settings_collapse">設定を閉じる</string>
-    <string name="home_status_idle">小旁は休んでいます。デモは無料。本番画面は自分のキーで 6 回。使い切ったら買い切りです。</string>
+    <string name="home_status_idle">小旁は休んでいます。デモは無料。本番画面は自分のキーで %1$d 回。使い切ったら買い切りです。</string>
     <string name="home_status_demo">デモ実行中 · 本物の画面は見ません</string>
     <string name="home_status_full">本機能実行中 · 画面を見ています</string>
     <string name="home_status_locked_pause">ロック中 · 撮影を停止</string>
@@ -74,7 +74,7 @@
     <string name="privacy_required">プライバシーポリシー：開始前に同意が必要</string>
     <string name="data_disclosure_summary">データの行き先は、あなたが入れたビジョン API。既定モデル Qwen3-VL-8B。HTTPS。ローカル Ollama は 127.0.0.1。</string>
     <string name="purchase_title">フル機能を解除</string>
-    <string name="purchase_summary">デモ召喚は無料。自分のキーで本番画面の成功返答を 6 回。約 $0.99 の買い切りで無制限。API 料金は別。試用回数はこの端末の設定で、解除フラグと同じく改ざんできます。</string>
+    <string name="purchase_summary">デモ召喚は無料。自分のキーで本番画面の成功返答を %1$d 回。約 $0.99 の買い切りで無制限。API 料金は別。試用回数はこの端末の設定で、解除フラグと同じく改ざんできます。</string>
     <string name="purchase_status_locked">フル機能は未解除</string>
     <string name="purchase_status_unlocked">フル機能が解除されました。ありがとう。</string>
     <string name="purchase_buy">フル機能を解除</string>
@@ -152,7 +152,7 @@
     <string name="hint_interval_preset">応答間隔</string>
     <string name="interval_preset_custom">秒数を指定</string>
     <string name="toast_interval_invalid">間隔は 5–120 秒。0 は不可</string>
-    <string name="empty_key_explain">本番画面（6 回の試用を含む）は、あなたが入れたビジョン API に今の画面を送ります。先に API キーを入力してください。無料デモなら本物の画面は見ません。</string>
+    <string name="empty_key_explain">本番画面（%1$d 回の試用を含む）は、あなたが入れたビジョン API に今の画面を送ります。先に API キーを入力してください。無料デモなら本物の画面は見ません。</string>
     <string name="restore_purchases_hint">機種変更や再インストール後はここで買い切りを復元。デバッグ版は自動解除。</string>
     <string name="overlay_low_battery">電池が少ないので、見る間隔を空けます。</string>
     <string name="vision_https_blocked">製品版は HTTPS のみ（または 127.0.0.1 / 10.0.2.2）。</string>

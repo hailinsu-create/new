@@ -2,6 +2,16 @@
 
 每次上传 AAB 时可改。没有新功能就沿用上一条。
 
+## 0.14.1
+
+中文：
+
+真屏试用从 6 次提到 20 次成功陪伴语。默认 15 秒间隔加画面变化检测时，6 次大约只有一两分钟；20 次够用几分钟体会「它看见了我的屏幕」，又不会变成免费日常陪伴。
+
+English:
+
+Lifetime real-screen trial is now 20 successful glances (was 6). At the default 15s interval with change detection, 6 glances were only a minute or two; 20 is several minutes of “it saw my screen” without becoming a free daily companion.
+
 ## 0.14.0
 
 中文：

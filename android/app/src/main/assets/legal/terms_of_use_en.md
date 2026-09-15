@@ -1,13 +1,13 @@
 # Pangchuang terms of use
 
-Last updated: 2026-09-15 (0.14.0)
+Last updated: 2026-09-15 (0.14.1)
 
 Using Pangchuang means you agree to these terms and the privacy policy.
 
 ## Service
 
 - Demo overlay is free. It does not capture the real screen or call a vision API.
-- Before unlock, your own key gets 6 successful real-screen glances (errors, lock, sensitive apps, and unchanged frames do not count).
+- Before unlock, your own key gets 20 successful real-screen glances (errors, lock, sensitive apps, and unchanged frames do not count).
 - Full companion is a Google Play one-time product (`full_unlock`, about $0.99) for unlimited glances.
 - You configure and pay for your own vision API.
 

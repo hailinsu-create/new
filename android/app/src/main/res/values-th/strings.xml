@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">ข้างหน้าต่าง</string>
     <string name="companion_name">เสี่ยวผาง</string>
-    <string name="subtitle">เพื่อนคู่ใจสไตล์จีนริมจอ เดโมฟรีตลอด ใช้คีย์ของคุณทดลองจอจริง 6 ครั้ง ปลดล็อกแล้วไม่จำกัด ล็อกเครื่องจะหยุดแคปเจอร์จริง</string>
+    <string name="subtitle">เพื่อนคู่ใจสไตล์จีนริมจอ เดโมฟรีตลอด ใช้คีย์ของคุณทดลองจอจริง %1$d ครั้ง ปลดล็อกแล้วไม่จำกัด ล็อกเครื่องจะหยุดแคปเจอร์จริง</string>
     <string name="language_title">ภาษา</string>
     <string name="language_system">ตามระบบ</string>
     <string name="section_permissions">สิทธิ์</string>
@@ -11,7 +11,7 @@
     <string name="section_advanced">ตั้งค่าเพื่อนคู่ใจแบบเต็ม</string>
     <string name="settings_expand">ตั้งค่าเพื่อนคู่ใจแบบเต็ม</string>
     <string name="settings_collapse">ซ่อนการตั้งค่า</string>
-    <string name="home_status_idle">เสี่ยวผางกำลังพัก เดโมฟรี จอจริงใช้คีย์ของคุณได้ 6 ครั้ง หมดแล้วค่อยปลดล็อกครั้งเดียว</string>
+    <string name="home_status_idle">เสี่ยวผางกำลังพัก เดโมฟรี จอจริงใช้คีย์ของคุณได้ %1$d ครั้ง หมดแล้วค่อยปลดล็อกครั้งเดียว</string>
     <string name="home_status_demo">กำลังเดโม · ไม่ดูจอจริง</string>
     <string name="home_status_full">เพื่อนคู่ใจแบบเต็ม · กำลังดูจอ</string>
     <string name="home_status_locked_pause">ล็อกแล้ว · หยุดแคปเจอร์</string>
@@ -74,7 +74,7 @@
     <string name="privacy_required">นโยบายความเป็นส่วนตัว: ต้องยอมรับก่อนเริ่ม</string>
     <string name="data_disclosure_summary">ข้อมูลไปที่ vision API ที่คุณใส่ โมเดลเริ่มต้น Qwen3-VL-8B ใช้ HTTPS Ollama ท้องถิ่นใช้ 127.0.0.1</string>
     <string name="purchase_title">ปลดล็อกเพื่อนคู่ใจแบบเต็ม</string>
-    <string name="purchase_summary">เดโมฟรีตลอด ด้วยคีย์ของคุณได้คำตอบจอจริงสำเร็จ 6 ครั้ง ประมาณ $0.99 ครั้งเดียวแล้วไม่จำกัด ค่า API วิชันเป็นของคุณ ตัวนับทดลองอยู่ในเครื่อง แก้ได้เหมือนสถานะปลดล็อก</string>
+    <string name="purchase_summary">เดโมฟรีตลอด ด้วยคีย์ของคุณได้คำตอบจอจริงสำเร็จ %1$d ครั้ง ประมาณ $0.99 ครั้งเดียวแล้วไม่จำกัด ค่า API วิชันเป็นของคุณ ตัวนับทดลองอยู่ในเครื่อง แก้ได้เหมือนสถานะปลดล็อก</string>
     <string name="purchase_status_locked">เพื่อนคู่ใจแบบเต็มยังล็อกอยู่</string>
     <string name="purchase_status_unlocked">ปลดล็อกแล้ว ขอบคุณ</string>
     <string name="purchase_buy">ปลดล็อกเพื่อนคู่ใจแบบเต็ม</string>
@@ -152,7 +152,7 @@
     <string name="hint_interval_preset">ช่วงเวลาเพื่อนคู่ใจ</string>
     <string name="interval_preset_custom">กำหนดวินาทีเอง</string>
     <string name="toast_interval_invalid">ช่วงเวลาต้อง 5–120 วินาที ห้ามเป็น 0</string>
-    <string name="empty_key_explain">จอจริง (รวมทดลอง 6 ครั้ง) จะส่งเฟรมไป API ที่คุณกรอก ใส่ API Key ก่อน หรือใช้เดโมฟรี (ไม่ดูจอจริง)</string>
+    <string name="empty_key_explain">จอจริง (รวมทดลอง %1$d ครั้ง) จะส่งเฟรมไป API ที่คุณกรอก ใส่ API Key ก่อน หรือใช้เดโมฟรี (ไม่ดูจอจริง)</string>
     <string name="restore_purchases_hint">เปลี่ยนเครื่องหรือติดตั้งใหม่ ให้กู้การซื้อครั้งเดียวที่นี่ บิลด์ดีบักปลดล็อกเอง</string>
     <string name="overlay_low_battery">แบตต่ำ จะแอบดูห่างขึ้น</string>
     <string name="vision_https_blocked">บิลด์วางขายอนุญาตเฉพาะ HTTPS (หรือ 127.0.0.1 / 10.0.2.2)</string>

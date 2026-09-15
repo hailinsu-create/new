@@ -119,7 +119,7 @@ class CapturePolicyTest {
                 mockLines = false,
                 apiKeyBlank = true,
                 unlocked = false,
-                trialRemaining = 6
+                trialRemaining = TrialPolicy.LIFETIME_SUCCESS_QUOTA
             )
         )
         assertEquals(
@@ -153,7 +153,7 @@ class CapturePolicyTest {
 
     @Test
     fun trialDoesNotChargeWhileRemaining() {
-        assertTrue(CapturePolicy.mayStartCapture(unlocked = false, trialRemaining = 6))
+        assertTrue(CapturePolicy.mayStartCapture(unlocked = false, trialRemaining = TrialPolicy.LIFETIME_SUCCESS_QUOTA))
         assertTrue(CapturePolicy.mayStartCapture(unlocked = false, trialRemaining = 1))
         assertFalse(CapturePolicy.mayStartCapture(unlocked = false, trialRemaining = 0))
         assertTrue(CapturePolicy.mayStartCapture(unlocked = true, trialRemaining = 0))
@@ -171,12 +171,13 @@ class CapturePolicyTest {
 
     @Test
     fun trialQuotaMathAndTearDown() {
-        assertEquals(6, TrialPolicy.LIFETIME_SUCCESS_QUOTA)
-        assertEquals(6, TrialPolicy.remaining(0))
-        assertEquals(1, TrialPolicy.remaining(5))
-        assertEquals(0, TrialPolicy.remaining(6))
+        val quota = TrialPolicy.LIFETIME_SUCCESS_QUOTA
+        assertEquals(20, quota)
+        assertEquals(quota, TrialPolicy.remaining(0))
+        assertEquals(1, TrialPolicy.remaining(quota - 1))
+        assertEquals(0, TrialPolicy.remaining(quota))
         assertEquals(0, TrialPolicy.remaining(99))
-        assertEquals(Int.MAX_VALUE, TrialPolicy.remaining(unlocked = true, successCount = 6))
+        assertEquals(Int.MAX_VALUE, TrialPolicy.remaining(unlocked = true, successCount = quota))
         assertTrue(CapturePolicy.mayCallLiveVision(false, 1, demo = false))
         assertFalse(CapturePolicy.mayCallLiveVision(false, 0, demo = false))
         assertTrue(CapturePolicy.mayCallLiveVision(false, 0, demo = true))

@@ -10,7 +10,7 @@
 
 **简短说明**（80 字符内）
 
-悬浮窗伴侣认出你在看什么。演示免费；真屏试用 6 次，完整陪伴 $0.99。
+悬浮窗伴侣认出你在看什么。演示免费；真屏试用 20 次，完整陪伴 $0.99。
 
 **完整说明**
 
@@ -19,7 +19,7 @@
 你可以：
 
 • 免费使用「演示召唤」：体验悬浮窗与 Live2D 口型，不向视觉 API 发送真屏截图。这不是真屏试用。
-• 未解锁时，填入你自己的视觉 API Key，可真屏试用 6 次成功陪伴语（失败、锁屏、敏感应用、画面没变不计数）。
+• 未解锁时，填入你自己的视觉 API Key，可真屏试用 20 次成功陪伴语（失败、锁屏、敏感应用、画面没变不计数）。
 • 一次性解锁完整陪伴（约 $0.99）：之后不限次数。默认推荐稳定的 Qwen3-VL-8B。视觉 API 费用仍由你承担。
 
 隐私：
@@ -61,14 +61,14 @@ Pangchuang
 
 **Short description**
 
-Floating Live2D companion. Demo free; 6 real-screen glances; unlock $0.99.
+Floating Live2D companion. Demo free; 20 real-screen glances; unlock $0.99.
 
 **Full description**
 
 Pangchuang is an Android floating-window companion. A character sits at the edge of your screen, recognizes the app and scene in front of you, and replies in one or two calm lines in the language of your phone.
 
 • Demo overlay is free: try the character and lip-sync without sending real screenshots. That is not the real-screen trial.
-• Before unlock, your own vision API key gets 6 successful real-screen glances (errors, lock, sensitive apps, and unchanged frames do not count).
+• Before unlock, your own vision API key gets 20 successful real-screen glances (errors, lock, sensitive apps, and unchanged frames do not count).
 • A one-time $0.99 unlock makes glances unlimited (Qwen3-VL-8B by default). You still pay your vision API.
 
 Screenshots are sent only to the API you enter. We do not operate an account server. Your API key stays on device. Locking the phone fully stops capture (the mirror is released) and API calls.

@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Pangchuang</string>
     <string name="companion_name">Xiao Pang</string>
-    <string name="subtitle">Companheiro de estilo chinês na borda da tela. A demo é grátis. 6 olhares de tela real com sua chave; depois, ilimitado. Bloquear o celular para a captura de verdade.</string>
+    <string name="subtitle">Companheiro de estilo chinês na borda da tela. A demo é grátis. %1$d olhares de tela real com sua chave; depois, ilimitado. Bloquear o celular para a captura de verdade.</string>
     <string name="language_title">Idioma</string>
     <string name="language_system">Seguir o sistema</string>
     <string name="section_permissions">Permissões</string>
@@ -11,7 +11,7 @@
     <string name="section_advanced">Ajustes da companhia completa</string>
     <string name="settings_expand">Ajustes da companhia completa</string>
     <string name="settings_collapse">Ocultar ajustes</string>
-    <string name="home_status_idle">Xiao Pang está descansando. A demo é grátis. Tela real: 6 olhares com sua chave, depois um desbloqueio único.</string>
+    <string name="home_status_idle">Xiao Pang está descansando. A demo é grátis. Tela real: %1$d olhares com sua chave, depois um desbloqueio único.</string>
     <string name="home_status_demo">Demo em andamento · não vê a tela real</string>
     <string name="home_status_full">Companhia completa em andamento · vendo a tela</string>
     <string name="home_status_locked_pause">Bloqueado · captura parada</string>
@@ -74,7 +74,7 @@ Continuar significa aceitar a política de privacidade.</string>
     <string name="privacy_required">Política de privacidade: necessária antes de começar</string>
     <string name="data_disclosure_summary">Os dados vão para a sua API de visão. Modelo padrão Qwen3-VL-8B. HTTPS; Ollama local pode usar 127.0.0.1.</string>
     <string name="purchase_title">Desbloquear companhia completa</string>
-    <string name="purchase_summary">A demo continua grátis. Com sua chave você tem 6 respostas reais bem-sucedidas. Cerca de US$ 0,99 uma vez tira o limite. A API de visão você paga. O contador do teste fica no aparelho e pode ser alterado como o desbloqueio.</string>
+    <string name="purchase_summary">A demo continua grátis. Com sua chave você tem %1$d respostas reais bem-sucedidas. Cerca de US$ 0,99 uma vez tira o limite. A API de visão você paga. O contador do teste fica no aparelho e pode ser alterado como o desbloqueio.</string>
     <string name="purchase_status_locked">A companhia completa está bloqueada</string>
     <string name="purchase_status_unlocked">Companhia completa desbloqueada. Obrigado.</string>
     <string name="purchase_buy">Desbloquear companhia completa</string>
@@ -152,7 +152,7 @@ Continuar significa aceitar a política de privacidade.</string>
     <string name="hint_interval_preset">Intervalo do companheiro</string>
     <string name="interval_preset_custom">Segundos personalizados</string>
     <string name="toast_interval_invalid">O intervalo deve ser 5–120 segundos, não 0</string>
-    <string name="empty_key_explain">A tela real (incluindo o teste de 6) envia o quadro para a API que você configurar. Coloque a chave em Ajustes. Ou use a demo grátis (ela não vê a tela real).</string>
+    <string name="empty_key_explain">A tela real (incluindo o teste de %1$d) envia o quadro para a API que você configurar. Coloque a chave em Ajustes. Ou use a demo grátis (ela não vê a tela real).</string>
     <string name="restore_purchases_hint">Depois de um celular novo ou reinstalação, restaure aqui o desbloqueio único. Debug desbloqueia sozinho.</string>
     <string name="overlay_low_battery">Bateria baixa, vou olhar com menos frequência.</string>
     <string name="vision_https_blocked">Builds da Play só permitem HTTPS (ou 127.0.0.1 / 10.0.2.2).</string>

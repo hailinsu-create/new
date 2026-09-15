@@ -257,6 +257,12 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
         )
     }
 
+    private fun applyQuotaCopy() {
+        val n = TrialPolicy.LIFETIME_SUCCESS_QUOTA
+        binding.subtitle.text = getString(R.string.subtitle, n)
+        binding.purchaseSummary.text = getString(R.string.purchase_summary, n)
+    }
+
     private fun applySettingsToggleA11y() {
         ViewCompat.setStateDescription(
             binding.btnToggleSettings,
@@ -265,6 +271,7 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
     }
 
     private fun refreshHome() {
+        applyQuotaCopy()
         refreshPermissionLabels()
         updatePrivacyStatus()
         updatePurchaseUi()
@@ -319,7 +326,7 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
             RoastService.running ->
                 getString(R.string.home_status_full)
             else ->
-                getString(R.string.home_status_idle)
+                getString(R.string.home_status_idle, TrialPolicy.LIFETIME_SUCCESS_QUOTA)
         }
         parts += if (overlayOk) {
             getString(R.string.overlay_on)
@@ -544,7 +551,7 @@ class MainActivity : AppCompatActivity(), BillingManager.Listener {
             CapturePolicy.FullStartGate.BLOCK_EMPTY_KEY -> {
                 MaterialAlertDialogBuilder(this)
                     .setTitle(R.string.toast_need_api_key)
-                    .setMessage(R.string.empty_key_explain)
+                    .setMessage(getString(R.string.empty_key_explain, TrialPolicy.LIFETIME_SUCCESS_QUOTA))
                     .setPositiveButton(R.string.settings_expand) { _, _ ->
                         if (!advancedOpen) toggleAdvanced()
                         binding.advancedPanel.post {

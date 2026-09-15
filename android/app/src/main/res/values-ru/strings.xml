@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Pangchuang</string>
     <string name="companion_name">Сяо Пан</string>
-    <string name="subtitle">Китайский компаньон у края экрана. Демо всегда бесплатно. 6 настоящих взглядов со своим ключом; после покупки без лимита. Блокировка полностью останавливает захват.</string>
+    <string name="subtitle">Китайский компаньон у края экрана. Демо всегда бесплатно. %1$d настоящих взглядов со своим ключом; после покупки без лимита. Блокировка полностью останавливает захват.</string>
     <string name="language_title">Язык</string>
     <string name="language_system">Как в системе</string>
     <string name="section_permissions">Разрешения</string>
@@ -11,7 +11,7 @@
     <string name="section_advanced">Настройки полного компаньона</string>
     <string name="settings_expand">Настройки полного компаньона</string>
     <string name="settings_collapse">Скрыть настройки</string>
-    <string name="home_status_idle">Сяо Пан отдыхает. Демо бесплатно. Настоящий экран: 6 взглядов со своим ключом, затем разовая покупка.</string>
+    <string name="home_status_idle">Сяо Пан отдыхает. Демо бесплатно. Настоящий экран: %1$d взглядов со своим ключом, затем разовая покупка.</string>
     <string name="home_status_demo">Демо идёт · настоящий экран не смотрит</string>
     <string name="home_status_full">Полный компаньон идёт · смотрит экран</string>
     <string name="home_status_locked_pause">Блокировка · захват остановлен</string>
@@ -74,7 +74,7 @@
     <string name="privacy_required">Политика конфиденциальности: нужна до запуска</string>
     <string name="data_disclosure_summary">Данные идут в ваш vision API. Модель по умолчанию Qwen3-VL-8B. HTTPS; локальный Ollama может использовать 127.0.0.1.</string>
     <string name="purchase_title">Открыть полного компаньона</string>
-    <string name="purchase_summary">Демо всегда бесплатно. Со своим ключом — 6 успешных настоящих ответов. Разово около $0.99 снимает лимит. API зрения оплачиваете вы. Счётчик проб на устройстве и его можно подделать так же, как флаг покупки.</string>
+    <string name="purchase_summary">Демо всегда бесплатно. Со своим ключом — %1$d успешных настоящих ответов. Разово около $0.99 снимает лимит. API зрения оплачиваете вы. Счётчик проб на устройстве и его можно подделать так же, как флаг покупки.</string>
     <string name="purchase_status_locked">Полный компаньон закрыт</string>
     <string name="purchase_status_unlocked">Полный компаньон открыт. Спасибо.</string>
     <string name="purchase_buy">Открыть полного компаньона</string>
@@ -152,7 +152,7 @@
     <string name="hint_interval_preset">Интервал компаньона</string>
     <string name="interval_preset_custom">Свои секунды</string>
     <string name="toast_interval_invalid">Интервал должен быть 5–120 секунд, не 0</string>
-    <string name="empty_key_explain">Настоящий экран (включая 6 проб) отправляет кадр на ваш vision API. Сначала введите ключ. Или бесплатное демо (настоящий экран не смотрит).</string>
+    <string name="empty_key_explain">Настоящий экран (включая %1$d проб) отправляет кадр на ваш vision API. Сначала введите ключ. Или бесплатное демо (настоящий экран не смотрит).</string>
     <string name="restore_purchases_hint">После нового телефона или переустановки восстановите разовую покупку здесь. Отладка открывается сама.</string>
     <string name="overlay_low_battery">Батарея низкая, буду смотреть реже.</string>
     <string name="vision_https_blocked">Сборки Play разрешают только HTTPS (или 127.0.0.1 / 10.0.2.2).</string>

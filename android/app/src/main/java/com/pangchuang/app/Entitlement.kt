@@ -5,8 +5,9 @@ import android.content.Context
 /**
  * Unlimited real-screen companion requires a one-time Play purchase.
  * Debug builds are auto-unlocked so sideload tests skip the trial counter.
- * Demo overlay stays free. Locked Play builds may still use a 6-glance trial
- * via [CapturePolicy.mayStartCapture].
+ * Demo overlay stays free. Locked Play builds may still use the lifetime
+ * true-screen trial ([TrialPolicy.LIFETIME_SUCCESS_QUOTA] glances) via
+ * [CapturePolicy.mayStartCapture].
  */
 object Entitlement {
     fun isUnlocked(context: Context): Boolean {

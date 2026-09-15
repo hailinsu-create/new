@@ -1,6 +1,6 @@
 # Pangchuang privacy policy
 
-Last updated: 2026-09-15 (0.14.0)
+Last updated: 2026-09-15 (0.14.1)
 
 Pangchuang (`com.pangchuang.app`) is an open-source Android floating companion. Web copy: https://hailinsu-create.github.io/new/privacy-en.html (after GitHub Pages is on).
 
@@ -29,13 +29,13 @@ The GitHub Pages URL is 404 until Pages is enabled in repo Settings.
 ## Permissions
 
 - Overlay: character and bubble.
-- Screen capture (MediaProjection): full companion and the 6-glance trial. Demo overlay does not capture. A second in-app disclosure runs before the system dialog. The JPEG sent to vision masks the overlay character.
+- Screen capture (MediaProjection): full companion and the 20-glance trial. Demo overlay does not capture. A second in-app disclosure runs before the system dialog. The JPEG sent to vision masks the overlay character.
 - Usage access (optional): foreground package name.
 - Notifications (optional): foreground service status, so you can stop from the shade. The app still runs if you skip them.
 
 ## In-app purchase
 
-Demo overlay is free. Before unlock, your own key gets 6 successful real-screen glances. Full companion is a Google Play one-time unlock (about $0.99). Refunds follow Google Play policy. Restore after a device change. The trial counter and unlock flag are on-device and forgeable the same way.
+Demo overlay is free. Before unlock, your own key gets 20 successful real-screen glances. Full companion is a Google Play one-time unlock (about $0.99). Refunds follow Google Play policy. Restore after a device change. The trial counter and unlock flag are on-device and forgeable the same way.
 
 ## Children
 

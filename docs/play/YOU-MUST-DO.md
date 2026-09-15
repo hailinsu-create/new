@@ -69,7 +69,7 @@ Monetize → In-app products → Create product
 |------|--------|
 | Product ID | `full_unlock` |
 | Name | 完整陪伴解锁 |
-| Description | 永久解锁真屏陪伴。演示召唤始终免费。未解锁时可用自己的 Key 试用 6 次成功真屏陪伴语。视觉 API 费用需自行承担。 |
+| Description | 永久解锁真屏陪伴。演示召唤始终免费。未解锁时可用自己的 Key 试用 20 次成功真屏陪伴语。视觉 API 费用需自行承担。 |
 | Default price | **USD 0.99** |
 | Status | Active |
 
@@ -79,7 +79,7 @@ License testing：Settings → License testing，把你的 Gmail 加进去，内
 
 1. 打开 **App signing**：第一次上传时选择由 Google 管理应用签名密钥（推荐）
 2. Testing → Internal testing → 创建版本
-3. 上传 `pangchuang-0.14.0.aab`（见本地 `bundleRelease` 输出；不要把 `.jks` / AAB 提交进 Git）。仓库里的 `dist/pangchuang-0.12.0-debug.apk`、`dist/pangchuang-0.13.0-debug.apk`、`dist/pangchuang-0.13.1-debug.apk` 与 `dist/pangchuang-0.14.0-debug.apk` 只供侧载，不能用来测 Play 内购。Debug 包会自动解锁，看不到 6 次真屏试用。
+3. 上传 `pangchuang-0.14.1.aab`（见本地 `bundleRelease` 输出；不要把 `.jks` / AAB 提交进 Git）。仓库里的 `dist/pangchuang-0.12.0-debug.apk`、`dist/pangchuang-0.13.0-debug.apk`、`dist/pangchuang-0.13.1-debug.apk`、`dist/pangchuang-0.14.0-debug.apk` 与 `dist/pangchuang-0.14.1-debug.apk` 只供侧载，不能用来测 Play 内购。Debug 包会自动解锁，看不到 20 次真屏试用。
 4. 把你的 Google 账号加为测试员，用测试轨道链接安装（**不要用 GitHub debug APK 测购买**）
 
 ## 7. 按填表包复制粘贴

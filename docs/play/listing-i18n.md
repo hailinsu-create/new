@@ -2,7 +2,7 @@
 
 默认语言仍是中文（简体），英文见 `listing.md`。下面每条短说明都按 Play **80 字符**上限写过。完整说明远低于 4000 字符。应用名称：中文「旁窗」、韩语「곁창」、日语「傍窓」、泰语「ข้างหน้าต่าง」，其它语言用 `Pangchuang`。
 
-商店截图 `docs/play/assets/screenshot_*.png` 是 **0.14 合成草稿**（96dp 墨汐头像、关闭角标在圆外），**不是真机照片**。GitHub Pages 隐私政策 URL 仍须你亲自启用。0.14 起商店文案含：演示召唤免费；未解锁可用自己的 Key 真屏试用 6 次。
+商店截图 `docs/play/assets/screenshot_*.png` 是 **0.14 合成草稿**（96dp 墨汐头像、关闭角标在圆外），**不是真机照片**。GitHub Pages 隐私政策 URL 仍须你亲自启用。0.14.1 起商店文案含：演示召唤免费；未解锁可用自己的 Key 真屏试用 20 次。
 
 Console：商店上架 → 添加翻译 → 选语言 → 粘贴 Title / Short / Full。没有译文的语言会回落到默认中文。
 
@@ -25,7 +25,7 @@ Console：商店上架 → 添加翻译 → 选语言 → 粘贴 Title / Short /
 旁窗是 Android 懸浮窗桌面伴侶。角色「小旁」停在螢幕一角，認出你正在用的 App 與畫面，再用平靜、點到為止的口吻說一兩句。
 
 • 示範召喚免費：體驗懸浮窗與 Live2D 口型，不向視覺 API 傳送真螢幕截圖。這不是真螢幕試用。
-• 未解鎖時，用自己的 Key 可真螢幕試用 6 次成功陪伴語。
+• 未解鎖時，用自己的 Key 可真螢幕試用 20 次成功陪伴語。
 • 一次性解鎖完整陪伴（約 $0.99）：之後不限次數。預設建議穩定的 Qwen3-VL-8B。
 
 截圖只送到你填的 API。我們沒有帳號伺服器。API Key 只留在本機。鎖定時自動停止截圖。視覺 API 費用由你自行承擔。角色為原創國風 Live2D「墨汐」。
@@ -47,7 +47,7 @@ Console：商店上架 → 添加翻译 → 选语言 → 粘贴 Title / Short /
 旁窗は Android のフローティング相棒です。キャラクター「小旁」が画面の端にいて、今のアプリと画面を見て、落ち着いた一言か二言を返します。
 
 • デモ召喚は無料。オーバーレイと Live2D の口パクだけ。本物の画面は送りません（これは本番画面の試用ではありません）。
-• 未解除でも自分のキーで本番画面を 6 回成功まで試せます。
+• 未解除でも自分のキーで本番画面を 20 回成功まで試せます。
 • 買い切り約 $0.99 で回数無制限。ビジョン API は自分で設定します（既定は安定版 Qwen3-VL-8B）。
 
 スクリーンショットはあなたが入れた API にだけ送られます。アカウントサーバーはありません。API キーはこの端末だけ。ロック中は撮影を止めます。API 料金は自己負担です。キャラはオリジナルの国風 Live2D「墨汐」です。
@@ -69,7 +69,7 @@ Console：商店上架 → 添加翻译 → 选语言 → 粘贴 Title / Short /
 旁窗는 Android 플로팅 동반자입니다. 캐릭터 「소팡」이 화면 한쪽에 머물며, 지금 쓰는 앱과 장면을 알아보고 짧은 한마디를 합니다.
 
 • 데모 소환은 무료입니다. 오버레이와 Live2D 입모양만 체험하며, 실제 화면은 보내지 않습니다. 이것이 실제 화면 체험은 아닙니다.
-• 잠금 해제 전에도 내 키로 실제 화면 성공 답변 6회를 쓸 수 있습니다.
+• 잠금 해제 전에도 내 키로 실제 화면 성공 답변 20회를 쓸 수 있습니다.
 • 약 $0.99 한 번이면 횟수 제한이 없습니다. 비전 API는 직접 넣습니다(기본은 안정적인 Qwen3-VL-8B).
 
 스크린샷은 당신이 넣은 API로만 갑니다. 계정 서버는 없습니다. API 키는 이 기기에만 남습니다. 잠금 시 캡처를 멈춥니다. API 요금은 사용자가 부담합니다. 캐릭터는 오리지널 국풍 Live2D 墨汐입니다.
@@ -91,7 +91,7 @@ Un compañero flotante que nota lo que miras. Demo gratis; desbloqueo $0.99.
 Pangchuang es un compañero flotante para Android. Un personaje se queda en un rincón de la pantalla, reconoce la app y la escena, y responde con una o dos frases tranquilas.
 
 • La invocación demo es gratis: prueba la capa flotante y el Live2D sin enviar capturas reales. Eso no es la prueba de pantalla real.
-• Antes de desbloquear, tu propia clave da 6 respuestas reales con éxito.
+• Antes de desbloquear, tu propia clave da 20 respuestas reales con éxito.
 • Un pago único de unos $0.99 deja las miradas ilimitadas (Qwen3-VL-8B por defecto).
 
 Las capturas solo van a la API que indiques. No hay servidor de cuentas. La clave se queda en el teléfono. Al bloquear el dispositivo, se detiene la captura. Tú pagas el uso de la API. El personaje es Moxi, un Live2D original de estilo chino.
@@ -113,7 +113,7 @@ Companheiro flutuante que nota o que você vê. Demo grátis; desbloqueio $0.99.
 Pangchuang é um companheiro flutuante para Android. O personagem fica num canto da tela, reconhece o app e a cena, e responde com uma ou duas frases calmas.
 
 • Chamar a demo é grátis: teste a sobreposição e o Live2D sem enviar capturas reais. Isso não é o teste de tela real.
-• Antes de desbloquear, sua chave dá 6 respostas reais com sucesso.
+• Antes de desbloquear, sua chave dá 20 respostas reais com sucesso.
 • Um pagamento único de cerca de $0.99 deixa os olhares ilimitados (Qwen3-VL-8B por padrão).
 
 As capturas vão só para a API que você indicar. Não há servidor de contas. A chave fica no aparelho. Com a tela bloqueada, a captura para. Você paga o uso da API. O personagem é Moxi, um Live2D original de estilo chinês.
@@ -135,7 +135,7 @@ Un compagnon flottant qui voit ce que vous regardez. Démo gratuite, $0.99.
 Pangchuang est un compagnon flottant pour Android. Un personnage reste au bord de l'écran, reconnaît l'application et la scène, et répond en une ou deux phrases calmes.
 
 • L'invocation démo est gratuite : calque et Live2D, sans envoyer de vraies captures. Ce n'est pas l'essai écran réel.
-• Avant achat, votre clé donne 6 réponses réelles réussies.
+• Avant achat, votre clé donne 20 réponses réelles réussies.
 • Un achat unique d'environ 0,99 $ rend les regards illimités (Qwen3-VL-8B par défaut).
 
 Les captures partent uniquement vers l'API que vous indiquez. Pas de serveur de comptes. La clé reste sur l'appareil. Verrouillé, la capture s'arrête. L'usage de l'API est à votre charge. Le personnage est Moxi, un Live2D original de style chinois.
@@ -157,7 +157,7 @@ Schwebender Begleiter, der merkt was du siehst. Demo gratis. Vollversion $0.99.
 Pangchuang ist ein schwebender Android-Begleiter. Die Figur bleibt am Bildschirmrand, erkennt App und Szene und antwortet mit ein oder zwei ruhigen Sätzen.
 
 • Demo rufen ist kostenlos: Overlay und Live2D, ohne echte Screenshots. Das ist nicht der Echtbild-Test.
-• Vor der Freischaltung gibt dein Key 6 erfolgreiche echte Antworten.
+• Vor der Freischaltung gibt dein Key 20 erfolgreiche echte Antworten.
 • Ein einmaliger Kauf von etwa 0,99 $ macht Blicke unbegrenzt (Standard: stabiles Qwen3-VL-8B).
 
 Screenshots gehen nur an die API, die du angibst. Es gibt keinen Konto-Server. Der Schlüssel bleibt auf dem Gerät. Im Sperrbildschirm stoppt die Aufnahme. API-Kosten trägst du. Die Figur ist Moxi, ein originales Live2D im chinesischen Stil.
@@ -179,7 +179,7 @@ Pangchuang
 Pangchuang — плавающий компаньон для Android. Персонаж сидит с краю экрана, узнаёт приложение и сцену и отвечает одной-двумя спокойными фразами.
 
 • Вызов демо бесплатно: оверлей и Live2D, без настоящих скриншотов. Это не пробный настоящий экран.
-• До покупки свой ключ даёт 6 успешных настоящих ответов.
+• До покупки свой ключ даёт 20 успешных настоящих ответов.
 • Разовая покупка около $0,99 снимает лимит. Vision API настраиваете вы (по умолчанию стабильный Qwen3-VL-8B).
 
 Скриншоты уходят только на указанный вами API. Сервера аккаунтов нет. Ключ остаётся на устройстве. При блокировке съёмка останавливается. Оплату API берёте на себя. Персонаж — оригинальный Live2D в китайском стиле Моси (墨汐).
@@ -201,7 +201,7 @@ Teman mengambang yang melihat layarmu. Demo gratis; buka penuh $0.99.
 Pangchuang adalah teman mengambang untuk Android. Karakternya di sudut layar, mengenali aplikasi dan adegan, lalu membalas satu atau dua kalimat yang tenang.
 
 • Panggil demo gratis: coba overlay dan Live2D tanpa mengirim tangkapan layar asli. Itu bukan uji layar asli.
-• Sebelum dibuka, kunci Anda mendapat 6 jawaban layar asli yang berhasil.
+• Sebelum dibuka, kunci Anda mendapat 20 jawaban layar asli yang berhasil.
 • Pembelian sekali sekitar $0,99 menghapus batas. Vision API Anda atur sendiri (bawaan Qwen3-VL-8B yang stabil).
 
 Tangkapan layar hanya ke API yang Anda isi. Tidak ada server akun. Kunci API tetap di perangkat. Saat terkunci, pengambilan gambar berhenti. Biaya API ditanggung Anda. Karakternya Moxi, Live2D original bergaya Tionghoa.
@@ -223,7 +223,7 @@ Bạn đồng hành nổi góc màn hình, nói một câu. Demo miễn phí, m�
 旁窗 là bạn đồng hành nổi trên Android. Nhân vật đứng góc màn hình, nhận ra ứng dụng và cảnh đang xem, rồi nói một hoặc hai câu điềm tĩnh.
 
 • Gọi demo miễn phí: thử cửa sổ nổi và Live2D, không gửi ảnh màn hình thật. Đây không phải dùng thử màn hình thật.
-• Trước khi mở khóa, khóa của bạn được 6 câu trả lời màn hình thật thành công.
+• Trước khi mở khóa, khóa của bạn được 20 câu trả lời màn hình thật thành công.
 • Mua một lần khoảng $0.99 thì không giới hạn. Bạn tự cấu hình API thị giác (mặc định Qwen3-VL-8B ổn định).
 
 Ảnh chụp chỉ gửi tới API bạn điền. Không có máy chủ tài khoản. Khóa API ở lại máy. Khi khóa máy, dừng chụp. Phí API do bạn chịu. Nhân vật là Moxi, Live2D nguyên tác phong cách Trung Hoa.
@@ -245,7 +245,7 @@ Bạn đồng hành nổi góc màn hình, nói một câu. Demo miễn phí, m�
 旁窗 เป็นเพื่อนลอยบน Android ตัวละครอยู่มุมจอ จำแอปและภาพที่คุณดู แล้วพูดสั้น ๆ สองประโยคอย่างสงบ
 
 • เรียกเดโมฟรี ลองหน้าต่างลอยกับ Live2D โดยไม่ส่งภาพจอจริง นี่ไม่ใช่การทดลองจอจริง
-• ก่อนปลดล็อก คีย์ของคุณได้คำตอบจอจริงสำเร็จ 6 ครั้ง
+• ก่อนปลดล็อก คีย์ของคุณได้คำตอบจอจริงสำเร็จ 20 ครั้ง
 • ซื้อครั้งเดียวราว $0.99 แล้วไม่จำกัด คุณใส่ vision API เอง (ค่าเริ่มต้นคือ Qwen3-VL-8B ที่เสถียร)
 
 ภาพหน้าจอไปเฉพาะ API ที่คุณกรอก ไม่มีเซิร์ฟเวอร์บัญชี คีย์อยู่บนเครื่อง เมื่อล็อกเครื่องจะหยุดถ่าย คุณออกค่า API เอง ตัวละครคือโมซี (墨汐) Live2D สไตล์จีนต้นฉบับ
@@ -267,7 +267,7 @@ Pangchuang
 Pangchuang رفيق عائم لأندرويد. تبقى الشخصية على حافة الشاشة، تتعرف على التطبيق والمشهد، وترد بجملة أو جملتين هادئتين.
 
 • استدعاء التجربة مجاني: جرّب الطبقة العائمة وLive2D دون إرسال لقطات حقيقية. هذه ليست تجربة الشاشة الحقيقية.
-• قبل الفتح يعطي مفتاحك 6 ردود حقيقية ناجحة.
+• قبل الفتح يعطي مفتاحك 20 ردود حقيقية ناجحة.
 • شراء لمرة واحدة بحوالي 0.99$ يزيل الحد. واجهة الرؤية تضبطها أنت (الافتراضي Qwen3-VL-8B المستقر).
 
 تُرسل اللقطات فقط إلى الواجهة التي تدخلها. لا خادم حسابات. يبقى المفتاح على الجهاز. عند القفل تتوقف اللقطات. تكلفة الواجهة عليك. الشخصية هي موشي (墨汐)، Live2D أصلية بطراز صيني.
@@ -278,7 +278,7 @@ Pangchuang رفيق عائم لأندرويد. تبقى الشخصية على ح
 
 | 语言 | 名称 | 说明 |
 |------|------|------|
-| 繁中 | 完整陪伴解鎖 | 永久解鎖真螢幕陪伴。示範召喚始終免費。未解鎖可用自己的 Key 試用 6 次。視覺 API 費用需自行承擔。 |
+| 繁中 | 完整陪伴解鎖 | 永久解鎖真螢幕陪伴。示範召喚始終免費。未解鎖可用自己的 Key 試用 20 次。視覺 API 費用需自行承擔。 |
 | Español | Desbloqueo completo | Desbloquea la pantalla real para siempre. La demo sigue gratis. La API de visión la pagas tú. |
 | Português | Desbloqueio completo | Libera a tela real para sempre. A demo continua grátis. Você paga a API de visão. |
 | Français | Déblocage complet | Active l'écran réel pour de bon. La démo reste gratuite. L'API vision est à votre charge. |

@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Pangchuang</string>
     <string name="companion_name">Xiao Pang</string>
-    <string name="subtitle">Compagnon de style chinois au bord de l’écran. La démo est gratuite. 6 regards d’écran réel avec votre clé ; illimité après achat. Le verrouillage arrête vraiment la capture.</string>
+    <string name="subtitle">Compagnon de style chinois au bord de l’écran. La démo est gratuite. %1$d regards d’écran réel avec votre clé ; illimité après achat. Le verrouillage arrête vraiment la capture.</string>
     <string name="language_title">Langue</string>
     <string name="language_system">Suivre le système</string>
     <string name="section_permissions">Autorisations</string>
@@ -11,7 +11,7 @@
     <string name="section_advanced">Réglages du compagnon complet</string>
     <string name="settings_expand">Réglages du compagnon complet</string>
     <string name="settings_collapse">Masquer les réglages</string>
-    <string name="home_status_idle">Xiao Pang se repose. La démo est gratuite. Écran réel : 6 regards avec votre clé, puis un achat unique.</string>
+    <string name="home_status_idle">Xiao Pang se repose. La démo est gratuite. Écran réel : %1$d regards avec votre clé, puis un achat unique.</string>
     <string name="home_status_demo">Démo en cours · n\'observe pas l\'écran réel</string>
     <string name="home_status_full">Compagnon complet en cours · observe l\'écran</string>
     <string name="home_status_locked_pause">Verrouillé · capture arrêtée</string>
@@ -74,7 +74,7 @@ Continuer signifie accepter la politique de confidentialité.</string>
     <string name="privacy_required">Politique de confidentialité : requise avant de commencer</string>
     <string name="data_disclosure_summary">Les données vont à votre API vision. Modèle par défaut Qwen3-VL-8B. HTTPS ; Ollama local peut utiliser 127.0.0.1.</string>
     <string name="purchase_title">Débloquer le compagnon complet</string>
-    <string name="purchase_summary">La démo reste gratuite. Avec votre clé : 6 réponses réelles réussies. Environ 0,99 $ une fois pour l’illimité. L’API vision est à votre charge. Le compteur d’essai est local, falsifiable comme le drapeau d’achat.</string>
+    <string name="purchase_summary">La démo reste gratuite. Avec votre clé : %1$d réponses réelles réussies. Environ 0,99 $ une fois pour l’illimité. L’API vision est à votre charge. Le compteur d’essai est local, falsifiable comme le drapeau d’achat.</string>
     <string name="purchase_status_locked">Le compagnon complet est verrouillé</string>
     <string name="purchase_status_unlocked">Compagnon complet débloqué. Merci.</string>
     <string name="purchase_buy">Débloquer le compagnon complet</string>
@@ -152,7 +152,7 @@ Continuer signifie accepter la politique de confidentialité.</string>
     <string name="hint_interval_preset">Intervalle du compagnon</string>
     <string name="interval_preset_custom">Secondes personnalisées</string>
     <string name="toast_interval_invalid">L\'intervalle doit être 5–120 secondes, pas 0</string>
-    <string name="empty_key_explain">L’écran réel (essai de 6 compris) envoie l’image à l’API que vous indiquez. Ajoutez une clé dans les réglages. Ou utilisez la démo gratuite (pas d’écran réel).</string>
+    <string name="empty_key_explain">L’écran réel (essai de %1$d compris) envoie l’image à l’API que vous indiquez. Ajoutez une clé dans les réglages. Ou utilisez la démo gratuite (pas d’écran réel).</string>
     <string name="restore_purchases_hint">Après un nouveau téléphone ou une réinstallation, restaurez ici l\'achat unique. Debug se débloque seul.</string>
     <string name="overlay_low_battery">Batterie faible, je regarderai moins souvent.</string>
     <string name="vision_https_blocked">Les builds Play n\'autorisent que HTTPS (ou 127.0.0.1 / 10.0.2.2).</string>

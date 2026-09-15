@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Pangchuang</string>
     <string name="companion_name">Tiểu Bàng</string>
-    <string name="subtitle">Bạn đồng hành phong cách Trung Hoa ở mép màn hình. Gọi demo luôn miễn phí. 6 lần nhìn màn hình thật bằng khóa của bạn; mở khóa thì không giới hạn. Khóa máy sẽ dừng hẳn việc chụp.</string>
+    <string name="subtitle">Bạn đồng hành phong cách Trung Hoa ở mép màn hình. Gọi demo luôn miễn phí. %1$d lần nhìn màn hình thật bằng khóa của bạn; mở khóa thì không giới hạn. Khóa máy sẽ dừng hẳn việc chụp.</string>
     <string name="language_title">Ngôn ngữ</string>
     <string name="language_system">Theo hệ thống</string>
     <string name="section_permissions">Quyền</string>
@@ -11,7 +11,7 @@
     <string name="section_advanced">Cài đặt đồng hành đầy đủ</string>
     <string name="settings_expand">Cài đặt đồng hành đầy đủ</string>
     <string name="settings_collapse">Thu gọn cài đặt</string>
-    <string name="home_status_idle">Tiểu Bàng đang nghỉ. Demo miễn phí. Màn hình thật: 6 lần với khóa của bạn, xong thì mua một lần.</string>
+    <string name="home_status_idle">Tiểu Bàng đang nghỉ. Demo miễn phí. Màn hình thật: %1$d lần với khóa của bạn, xong thì mua một lần.</string>
     <string name="home_status_demo">Đang demo · không xem màn hình thật</string>
     <string name="home_status_full">Đồng hành đầy đủ · đang xem màn hình</string>
     <string name="home_status_locked_pause">Đã khóa · dừng chụp</string>
@@ -74,7 +74,7 @@ Tiếp tục nghĩa là bạn đồng ý chính sách quyền riêng tư.</strin
     <string name="privacy_required">Chính sách quyền riêng tư: cần trước khi bắt đầu</string>
     <string name="data_disclosure_summary">Dữ liệu tới API thị giác bạn điền. Mô hình mặc định Qwen3-VL-8B. HTTPS; Ollama máy có thể dùng 127.0.0.1.</string>
     <string name="purchase_title">Mở khóa bạn đồng hành đầy đủ</string>
-    <string name="purchase_summary">Gọi demo luôn miễn phí. Khóa của bạn được 6 câu trả lời màn hình thật thành công. Khoảng $0.99 một lần thì không giới hạn. Phí API thị giác do bạn trả. Bộ đếm dùng thử nằm trên máy, sửa được như cờ đã mở khóa.</string>
+    <string name="purchase_summary">Gọi demo luôn miễn phí. Khóa của bạn được %1$d câu trả lời màn hình thật thành công. Khoảng $0.99 một lần thì không giới hạn. Phí API thị giác do bạn trả. Bộ đếm dùng thử nằm trên máy, sửa được như cờ đã mở khóa.</string>
     <string name="purchase_status_locked">Đồng hành đầy đủ đang khóa</string>
     <string name="purchase_status_unlocked">Đã mở khóa đồng hành đầy đủ. Cảm ơn.</string>
     <string name="purchase_buy">Mở khóa bạn đồng hành đầy đủ</string>
@@ -152,7 +152,7 @@ Tiếp tục nghĩa là bạn đồng ý chính sách quyền riêng tư.</strin
     <string name="hint_interval_preset">Khoảng cách đồng hành</string>
     <string name="interval_preset_custom">Giây tùy chỉnh</string>
     <string name="toast_interval_invalid">Khoảng cách phải 5–120 giây, không được 0</string>
-    <string name="empty_key_explain">Màn hình thật (gồm 6 lần dùng thử) gửi khung hình tới API bạn điền. Hãy nhập API Key trước. Hoặc dùng demo miễn phí (không xem màn hình thật).</string>
+    <string name="empty_key_explain">Màn hình thật (gồm %1$d lần dùng thử) gửi khung hình tới API bạn điền. Hãy nhập API Key trước. Hoặc dùng demo miễn phí (không xem màn hình thật).</string>
     <string name="restore_purchases_hint">Sau máy mới hoặc cài lại, khôi phục mở khóa một lần tại đây. Debug tự mở.</string>
     <string name="overlay_low_battery">Pin yếu, mình sẽ xem thưa hơn.</string>
     <string name="vision_https_blocked">Bản phát hành chỉ cho HTTPS (hoặc 127.0.0.1 / 10.0.2.2).</string>

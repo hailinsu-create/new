@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">旁窗</string>
     <string name="companion_name">小旁</string>
-    <string name="subtitle">螢幕邊的國風伴侶。示範召喚一直免費。自己的 Key 可真螢幕試用 6 次；解鎖後不限次數。鎖定會真正停止截圖。</string>
+    <string name="subtitle">螢幕邊的國風伴侶。示範召喚一直免費。自己的 Key 可真螢幕試用 %1$d 次；解鎖後不限次數。鎖定會真正停止截圖。</string>
     <string name="language_title">介面語言</string>
     <string name="language_system">跟隨系統</string>
     <string name="section_permissions">權限</string>
@@ -11,7 +11,7 @@
     <string name="section_advanced">完整陪伴設定</string>
     <string name="settings_expand">完整陪伴設定</string>
     <string name="settings_collapse">收起設定</string>
-    <string name="home_status_idle">小旁在休息。示範召喚免費；真螢幕可用自己的 Key 試用 6 次，用完後一次性解鎖。</string>
+    <string name="home_status_idle">小旁在休息。示範召喚免費；真螢幕可用自己的 Key 試用 %1$d 次，用完後一次性解鎖。</string>
     <string name="home_status_demo">示範進行中 · 不看真螢幕</string>
     <string name="home_status_full">完整陪伴進行中 · 正在看螢幕</string>
     <string name="home_status_locked_pause">鎖定中 · 已停止截圖</string>
@@ -74,7 +74,7 @@
     <string name="privacy_required">隱私權政策：啟動陪伴前需同意</string>
     <string name="data_disclosure_summary">資料去向：你填寫的視覺 API。預設模型 Qwen3-VL-8B。HTTPS 傳輸；本機 Ollama 可用 127.0.0.1。</string>
     <string name="purchase_title">解鎖完整陪伴</string>
-    <string name="purchase_summary">示範召喚一直免費。用自己的 Key 可真螢幕試用 6 次成功陪伴語。一次購買約 $0.99 後不限次數。視覺 API 費用仍由你承擔。試用計數存在本機，和「已解鎖」一樣可被本地改寫。</string>
+    <string name="purchase_summary">示範召喚一直免費。用自己的 Key 可真螢幕試用 %1$d 次成功陪伴語。一次購買約 $0.99 後不限次數。視覺 API 費用仍由你承擔。試用計數存在本機，和「已解鎖」一樣可被本地改寫。</string>
     <string name="purchase_status_locked">尚未解鎖完整陪伴</string>
     <string name="purchase_status_unlocked">已解鎖完整陪伴，感謝支持</string>
     <string name="purchase_buy">解鎖完整陪伴</string>
@@ -152,7 +152,7 @@
     <string name="hint_interval_preset">陪伴間隔</string>
     <string name="interval_preset_custom">自訂秒數</string>
     <string name="toast_interval_invalid">間隔須在 5–120 秒，不能為 0</string>
-    <string name="empty_key_explain">真螢幕（含 6 次試用）會把目前螢幕發給你填寫的視覺 API。請先在「完整陪伴設定」裡填入 API Key。也可以先用免費的示範召喚（不看真螢幕）。</string>
+    <string name="empty_key_explain">真螢幕（含 %1$d 次試用）會把目前螢幕發給你填寫的視覺 API。請先在「完整陪伴設定」裡填入 API Key。也可以先用免費的示範召喚（不看真螢幕）。</string>
     <string name="restore_purchases_hint">換機或重裝後點這裡恢復一次性解鎖。Debug 包會自動解鎖。</string>
     <string name="overlay_low_battery">電量偏低，我看螢幕會慢一些。</string>
     <string name="vision_https_blocked">上架版只允許 HTTPS（或本機 127.0.0.1 / 10.0.2.2）。</string>

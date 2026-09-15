@@ -23,7 +23,7 @@ A foreground service keeps the overlay alive after the settings activity goes to
 ## FOREGROUND_SERVICE_MEDIA_PROJECTION / screen capture
 
 **Why?**
-Full companion captures the current screen so a user-configured vision API can write a 1–2 line comment. Before the one-time unlock, the same path allows 6 successful real-screen glances with the user’s own API key. Captures are JPEG frames in memory, not saved to the gallery, and pause when the device is locked. Demo mode (演示召唤) does not capture the screen.
+Full companion captures the current screen so a user-configured vision API can write a 1–2 line comment. Before the one-time unlock, the same path allows 20 successful real-screen glances with the user’s own API key. Captures are JPEG frames in memory, not saved to the gallery, and pause when the device is locked. Demo mode (演示召唤) does not capture the screen.
 
 **Prominent disclosure**
 The app shows an in-app consent dialog on first launch, and a second disclosure immediately before the system MediaProjection prompt.

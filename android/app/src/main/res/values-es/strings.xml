@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Pangchuang</string>
     <string name="companion_name">Xiao Pang</string>
-    <string name="subtitle">Compañero de estilo chino al borde de la pantalla. La demo es gratis. 6 miradas de pantalla real con tu clave; al desbloquear, ilimitadas. Al bloquear se detiene la captura.</string>
+    <string name="subtitle">Compañero de estilo chino al borde de la pantalla. La demo es gratis. %1$d miradas de pantalla real con tu clave; al desbloquear, ilimitadas. Al bloquear se detiene la captura.</string>
     <string name="language_title">Idioma</string>
     <string name="language_system">Seguir el sistema</string>
     <string name="section_permissions">Permisos</string>
@@ -11,7 +11,7 @@
     <string name="section_advanced">Ajustes del compañero completo</string>
     <string name="settings_expand">Ajustes del compañero completo</string>
     <string name="settings_collapse">Ocultar ajustes</string>
-    <string name="home_status_idle">Xiao Pang descansa. La demo es gratis. Pantalla real: 6 miradas con tu clave, luego un desbloqueo único.</string>
+    <string name="home_status_idle">Xiao Pang descansa. La demo es gratis. Pantalla real: %1$d miradas con tu clave, luego un desbloqueo único.</string>
     <string name="home_status_demo">Demo en curso · no mira la pantalla real</string>
     <string name="home_status_full">Compañero completo en curso · mira la pantalla</string>
     <string name="home_status_locked_pause">Bloqueado · captura detenida</string>
@@ -74,7 +74,7 @@ Continuar implica aceptar la política de privacidad.</string>
     <string name="privacy_required">Política de privacidad: hace falta antes de empezar</string>
     <string name="data_disclosure_summary">Los datos van a tu API de visión. Modelo por defecto Qwen3-VL-8B. HTTPS; Ollama local puede usar 127.0.0.1.</string>
     <string name="purchase_title">Desbloquear compañero completo</string>
-    <string name="purchase_summary">La demo sigue gratis. Con tu clave hay 6 respuestas reales con éxito. Unos 0,99 $ de una vez quitan el límite. La API de visión la pagas tú. El contador de prueba está en el teléfono y se puede alterar como el desbloqueo.</string>
+    <string name="purchase_summary">La demo sigue gratis. Con tu clave hay %1$d respuestas reales con éxito. Unos 0,99 $ de una vez quitan el límite. La API de visión la pagas tú. El contador de prueba está en el teléfono y se puede alterar como el desbloqueo.</string>
     <string name="purchase_status_locked">El compañero completo está bloqueado</string>
     <string name="purchase_status_unlocked">Compañero completo desbloqueado. Gracias.</string>
     <string name="purchase_buy">Desbloquear compañero completo</string>
@@ -152,7 +152,7 @@ Continuar implica aceptar la política de privacidad.</string>
     <string name="hint_interval_preset">Intervalo del compañero</string>
     <string name="interval_preset_custom">Segundos personalizados</string>
     <string name="toast_interval_invalid">El intervalo debe ser 5–120 segundos, no 0</string>
-    <string name="empty_key_explain">La pantalla real (incluida la prueba de 6) envía el fotograma a la API que configures. Añade una clave en Ajustes. O usa la demo gratis (no mira la pantalla real).</string>
+    <string name="empty_key_explain">La pantalla real (incluida la prueba de %1$d) envía el fotograma a la API que configures. Añade una clave en Ajustes. O usa la demo gratis (no mira la pantalla real).</string>
     <string name="restore_purchases_hint">Tras un teléfono nuevo o reinstalar, restaura aquí el desbloqueo único. Debug se desbloquea solo.</string>
     <string name="overlay_low_battery">Batería baja, miraré con menos frecuencia.</string>
     <string name="vision_https_blocked">Las versiones de Play solo permiten HTTPS (o 127.0.0.1 / 10.0.2.2).</string>

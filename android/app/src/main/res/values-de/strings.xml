@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Pangchuang</string>
     <string name="companion_name">Xiao Pang</string>
-    <string name="subtitle">Begleiter im chinesischen Stil am Bildschirmrand. Demo bleibt frei. 6 echte Blicke mit deinem Key; danach unbegrenzt. Sperren stoppt die Aufnahme wirklich.</string>
+    <string name="subtitle">Begleiter im chinesischen Stil am Bildschirmrand. Demo bleibt frei. %1$d echte Blicke mit deinem Key; danach unbegrenzt. Sperren stoppt die Aufnahme wirklich.</string>
     <string name="language_title">Sprache</string>
     <string name="language_system">System folgen</string>
     <string name="section_permissions">Berechtigungen</string>
@@ -11,7 +11,7 @@
     <string name="section_advanced">Einstellungen für den vollen Begleiter</string>
     <string name="settings_expand">Einstellungen für den vollen Begleiter</string>
     <string name="settings_collapse">Einstellungen ausblenden</string>
-    <string name="home_status_idle">Xiao Pang ruht. Demo ist frei. Echter Bildschirm: 6 Blicke mit deinem Key, dann einmalig freischalten.</string>
+    <string name="home_status_idle">Xiao Pang ruht. Demo ist frei. Echter Bildschirm: %1$d Blicke mit deinem Key, dann einmalig freischalten.</string>
     <string name="home_status_demo">Demo läuft · sieht nicht den echten Bildschirm</string>
     <string name="home_status_full">Voller Begleiter läuft · sieht den Bildschirm</string>
     <string name="home_status_locked_pause">Gesperrt · Aufnahme gestoppt</string>
@@ -74,7 +74,7 @@ Weiter heißt, du stimmst der Datenschutzerklärung zu.</string>
     <string name="privacy_required">Datenschutz: vor dem Start nötig</string>
     <string name="data_disclosure_summary">Daten gehen an deine Vision-API. Standardmodell Qwen3-VL-8B. HTTPS; lokales Ollama kann 127.0.0.1 nutzen.</string>
     <string name="purchase_title">Vollen Begleiter freischalten</string>
-    <string name="purchase_summary">Demo bleibt frei. Mit deinem Key gibt es 6 erfolgreiche echte Antworten. Etwa 0,99 $ einmalig macht unbegrenzt. Die Vision-API zahlst du. Der Testzähler liegt lokal und ist wie die Freischaltung veränderbar.</string>
+    <string name="purchase_summary">Demo bleibt frei. Mit deinem Key gibt es %1$d erfolgreiche echte Antworten. Etwa 0,99 $ einmalig macht unbegrenzt. Die Vision-API zahlst du. Der Testzähler liegt lokal und ist wie die Freischaltung veränderbar.</string>
     <string name="purchase_status_locked">Voller Begleiter ist gesperrt</string>
     <string name="purchase_status_unlocked">Voller Begleiter freigeschaltet. Danke.</string>
     <string name="purchase_buy">Vollen Begleiter freischalten</string>
@@ -152,7 +152,7 @@ Weiter heißt, du stimmst der Datenschutzerklärung zu.</string>
     <string name="hint_interval_preset">Begleiter-Intervall</string>
     <string name="interval_preset_custom">Eigene Sekunden</string>
     <string name="toast_interval_invalid">Intervall muss 5–120 Sekunden sein, nicht 0</string>
-    <string name="empty_key_explain">Der echte Bildschirm (inkl. 6er-Test) sendet den Frame an deine Vision-API. Trage zuerst einen API-Key ein. Oder nutze die freie Demo (kein echter Bildschirm).</string>
+    <string name="empty_key_explain">Der echte Bildschirm (inkl. %1$d-Blick-Test) sendet den Frame an deine Vision-API. Trage zuerst einen API-Key ein. Oder nutze die freie Demo (kein echter Bildschirm).</string>
     <string name="restore_purchases_hint">Nach neuem Handy oder Neuinstallation hier die Einmal-Freischaltung wiederherstellen. Debug schaltet sich selbst frei.</string>
     <string name="overlay_low_battery">Akku niedrig, ich schaue seltener.</string>
     <string name="vision_https_blocked">Play-Builds erlauben nur HTTPS (oder 127.0.0.1 / 10.0.2.2).</string>

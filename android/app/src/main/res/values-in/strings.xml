@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Pangchuang</string>
     <string name="companion_name">Xiao Pang</string>
-    <string name="subtitle">Teman bergaya Tionghoa di tepi layar. Demo tetap gratis. 6 tatapan layar asli dengan kunci Anda; setelah dibuka, tanpa batas. Mengunci HP benar-benar menghentikan tangkapan.</string>
+    <string name="subtitle">Teman bergaya Tionghoa di tepi layar. Demo tetap gratis. %1$d tatapan layar asli dengan kunci Anda; setelah dibuka, tanpa batas. Mengunci HP benar-benar menghentikan tangkapan.</string>
     <string name="language_title">Bahasa</string>
     <string name="language_system">Ikuti sistem</string>
     <string name="section_permissions">Izin</string>
@@ -11,7 +11,7 @@
     <string name="section_advanced">Pengaturan pendamping penuh</string>
     <string name="settings_expand">Pengaturan pendamping penuh</string>
     <string name="settings_collapse">Sembunyikan pengaturan</string>
-    <string name="home_status_idle">Xiao Pang sedang istirahat. Demo gratis. Layar asli: 6 tatapan dengan kunci Anda, lalu pembelian sekali.</string>
+    <string name="home_status_idle">Xiao Pang sedang istirahat. Demo gratis. Layar asli: %1$d tatapan dengan kunci Anda, lalu pembelian sekali.</string>
     <string name="home_status_demo">Demo berjalan · tidak melihat layar asli</string>
     <string name="home_status_full">Pendamping penuh berjalan · melihat layar</string>
     <string name="home_status_locked_pause">Terkunci · tangkapan dihentikan</string>
@@ -74,7 +74,7 @@ Melanjutkan berarti Anda setuju dengan kebijakan privasi.</string>
     <string name="privacy_required">Kebijakan privasi: wajib sebelum mulai</string>
     <string name="data_disclosure_summary">Data pergi ke API visi Anda. Model bawaan Qwen3-VL-8B. HTTPS; Ollama lokal dapat memakai 127.0.0.1.</string>
     <string name="purchase_title">Buka pendamping penuh</string>
-    <string name="purchase_summary">Demo tetap gratis. Dengan kunci Anda ada 6 jawaban layar asli yang berhasil. Sekitar $0,99 sekali menghapus batas. Biaya API visi ditanggung Anda. Penghitung uji ada di perangkat dan bisa diubah seperti status terbuka.</string>
+    <string name="purchase_summary">Demo tetap gratis. Dengan kunci Anda ada %1$d jawaban layar asli yang berhasil. Sekitar $0,99 sekali menghapus batas. Biaya API visi ditanggung Anda. Penghitung uji ada di perangkat dan bisa diubah seperti status terbuka.</string>
     <string name="purchase_status_locked">Pendamping penuh terkunci</string>
     <string name="purchase_status_unlocked">Pendamping penuh terbuka. Terima kasih.</string>
     <string name="purchase_buy">Buka pendamping penuh</string>
@@ -152,7 +152,7 @@ Melanjutkan berarti Anda setuju dengan kebijakan privasi.</string>
     <string name="hint_interval_preset">Interval pendamping</string>
     <string name="interval_preset_custom">Detik kustom</string>
     <string name="toast_interval_invalid">Interval harus 5–120 detik, bukan 0</string>
-    <string name="empty_key_explain">Layar asli (termasuk uji 6 kali) mengirim bingkai ke API visi yang Anda isi. Masukkan API Key dulu. Atau pakai demo gratis (tidak melihat layar asli).</string>
+    <string name="empty_key_explain">Layar asli (termasuk uji %1$d kali) mengirim bingkai ke API visi yang Anda isi. Masukkan API Key dulu. Atau pakai demo gratis (tidak melihat layar asli).</string>
     <string name="restore_purchases_hint">Setelah ganti ponsel atau pasang ulang, pulihkan pembelian sekali di sini. Debug terbuka sendiri.</string>
     <string name="overlay_low_battery">Baterai rendah, aku akan melihat lebih jarang.</string>
     <string name="vision_https_blocked">Build rilis hanya mengizinkan HTTPS (atau 127.0.0.1 / 10.0.2.2).</string>
