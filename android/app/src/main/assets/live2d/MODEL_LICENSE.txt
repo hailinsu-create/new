@@ -1,0 +1,7 @@
+Original Live2D character 墨汐 (Moxi) for 旁窗 / Pangchuang.
+
+Art and Cubism runtime package (moc3, textures, motions, expressions)
+are original to this project. Not a Live2D Inc. sample model.
+
+Cubism Core for Web remains (C) Live2D Inc. See Live2D license agreements.
+pixi.js / pixi-live2d-display: see their licenses next to js/.

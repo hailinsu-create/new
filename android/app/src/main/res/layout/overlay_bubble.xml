@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/overlayRoot"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:accessibilityPaneTitle="@string/overlay_pane_title"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    android:layoutDirection="locale"
+    android:orientation="vertical">
+
+    <!-- Above the avatar so it cannot cover the close chip. -->
+    <ScrollView
+        android:id="@+id/bubblePanel"
+        android:layout_width="220dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/bg_bubble"
+        android:contentDescription="@string/overlay_bubble_cd"
+        android:fillViewport="true"
+        android:maxHeight="140dp"
+        android:padding="10dp"
+        android:scrollbars="vertical"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/bubbleBrand"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/companion_name"
+                android:textColor="@color/blush"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/bubbleText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:lineSpacingExtra="2dp"
+                android:scrollbars="vertical"
+                android:textColor="@color/foam"
+                android:textSize="13sp" />
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Face is 96dp; close chip sits outside the circle on the end edge. -->
+    <FrameLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="start"
+        android:clipChildren="false"
+        android:clipToPadding="false">
+
+        <com.pangchuang.app.Live2DAvatarView
+            android:id="@+id/fab"
+            android:layout_width="96dp"
+            android:layout_height="96dp"
+            android:layout_gravity="start|bottom"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="22dp"
+            android:contentDescription="@string/overlay_avatar_cd"
+            android:elevation="10dp" />
+
+        <ImageButton
+            android:id="@+id/overlayClose"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="top|end"
+            android:background="@drawable/bg_overlay_close"
+            android:contentDescription="@string/overlay_close_cd"
+            android:padding="12dp"
+            android:src="@drawable/ic_overlay_close"
+            android:tooltipText="@string/overlay_close_cd" />
+    </FrameLayout>
+</LinearLayout>
