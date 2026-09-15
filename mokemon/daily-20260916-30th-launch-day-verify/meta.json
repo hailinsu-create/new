@@ -1,0 +1,28 @@
+{
+  "id": "daily-20260916-30th-launch-day-verify",
+  "title": "开卖当天先进店核三样：18元全闪包、左下角字母、券窗并不齐开",
+  "column": "新手避坑",
+  "digest": "今天「30周年庆典」开卖。进店先验官网建议零售价18元/包与6张全闪；拆开看左下角字母——加J不退G；小程序今天只能兑任务奖赏包第十弹，活动特别包第五弹要等到9/21。",
+  "slug": "30th-launch-day-verify",
+  "publish_date": "2026-09-16",
+  "timezone": "Asia/Shanghai",
+  "source_url": "https://www.pokemon.cn/tcg/product/22237.html",
+  "related_titles": [
+    "发售前夜先分三套日历：18元全闪包、加J不退G、特典窗口并不齐开",
+    "简中PTCG城市赛第四赛季开赛前夜：中选不是入场券，核销才是"
+  ],
+  "cover": {
+    "file": "cover-final-900x383.png",
+    "selected": "a",
+    "candidates": {
+      "a": "cover-candidate-a.png",
+      "b": "cover-candidate-b.png",
+      "c": "cover-candidate-c.png"
+    },
+    "notes": "cover-notes.md",
+    "width": 900,
+    "height": 383
+  },
+  "conclusion_card": "conclusion-card-1080x1440.png",
+  "verified_on": "2026-09-16"
+}
