@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.5.36":
+	if ver != "0.5.37":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3457,6 +3457,8 @@ func _assert_simplified_touch(main) -> bool:
 		return false
 	if not await _assert_touch_feel_0536(main):
 		return false
+	if not await _assert_touch_feel_0537(main):
+		return false
 	return true
 
 
@@ -4392,7 +4394,7 @@ func _assert_touch_feel_0525(main) -> bool:
 
 
 func _assert_touch_feel_0526(main) -> bool:
-	## West dest span 5. Full south-corridor path y14=0 (mid x≈21
+	## West dest span 6. Full south-corridor path y14=0 (mid x≈21
 	## included), east overshoot 0, axis_run 0.
 	main._ensure_touch_hud()
 	main._update_hud()
@@ -4405,7 +4407,7 @@ func _assert_touch_feel_0526(main) -> bool:
 
 
 func _assert_touch_feel_0527(main) -> bool:
-	## West dest span 5. Observation-ring world offset fans along-file
+	## West dest span 6. Observation-ring world offset fans along-file
 	## / courtyard (no west-wall hug). 0526 already asserted south y14=0.
 	main._ensure_touch_hud()
 	main._update_hud()
@@ -4418,7 +4420,7 @@ func _assert_touch_feel_0527(main) -> bool:
 
 
 func _assert_touch_feel_0528(main) -> bool:
-	## West dest span 5. Observation-ring + camera one more step
+	## West dest span 6. Observation-ring + camera one more step
 	## along-file / courtyard (no west-wall hug). 0533 re-runs settle /
 	## compact / south path guarantees.
 	main._ensure_touch_hud()
@@ -4432,7 +4434,7 @@ func _assert_touch_feel_0528(main) -> bool:
 
 
 func _assert_touch_feel_0529(main) -> bool:
-	## West dest span 5. Smaller bodies/rings + camera one more
+	## West dest span 6. Smaller bodies/rings + camera one more
 	## along-file / courtyard step (no west-wall hug). 0533 re-runs
 	## settle / compact / south path guarantees.
 	main._ensure_touch_hud()
@@ -4446,8 +4448,8 @@ func _assert_touch_feel_0529(main) -> bool:
 
 
 func _assert_touch_feel_0530(main) -> bool:
-	## West dest leftover. 0536 re-runs settle / compact / south path
-	## plus camera 0.36 after leftover z>0.34 caps were relaxed.
+	## West dest leftover. 0537 re-runs settle / compact / south path
+	## plus #1 (6,6) + camera 0.40.
 	main._ensure_touch_hud()
 	main._update_hud()
 	await process_frame
@@ -4459,8 +4461,8 @@ func _assert_touch_feel_0530(main) -> bool:
 
 
 func _assert_touch_feel_0531(main) -> bool:
-	## West dest leftover. 0536 re-runs settle / compact / south path
-	## plus camera 0.36 after leftover z>0.34 caps were relaxed.
+	## West dest leftover. 0537 re-runs settle / compact / south path
+	## plus #1 (6,6) + camera 0.40.
 	main._ensure_touch_hud()
 	main._update_hud()
 	await process_frame
@@ -4472,8 +4474,8 @@ func _assert_touch_feel_0531(main) -> bool:
 
 
 func _assert_touch_feel_0532(main) -> bool:
-	## West dest leftover. 0536 re-runs settle / compact / south path
-	## plus #2 (5,16) + detour ≤6 + camera 0.36.
+	## West dest leftover. 0537 re-runs settle / compact / south path
+	## plus #1 (6,6) + #2 (5,16) + detour ≤6 + camera 0.40.
 	main._ensure_touch_hud()
 	main._update_hud()
 	await process_frame
@@ -4485,8 +4487,8 @@ func _assert_touch_feel_0532(main) -> bool:
 
 
 func _assert_touch_feel_0533(main) -> bool:
-	## West dest leftover. 0536 re-runs settle / compact / south path
-	## plus #2 (5,16) + detour ≤6 + camera 0.36.
+	## West dest leftover. 0537 re-runs settle / compact / south path
+	## plus #1 (6,6) + #2 (5,16) + detour ≤6 + camera 0.40.
 	main._ensure_touch_hud()
 	main._update_hud()
 	await process_frame
@@ -4498,8 +4500,8 @@ func _assert_touch_feel_0533(main) -> bool:
 
 
 func _assert_touch_feel_0534(main) -> bool:
-	## West dest leftover. 0536 re-runs settle / compact / south path
-	## plus #2 (5,16) + detour ≤6 + camera 0.36.
+	## West dest leftover. 0537 re-runs settle / compact / south path
+	## plus #1 (6,6) + #2 (5,16) + detour ≤6 + camera 0.40.
 	main._ensure_touch_hud()
 	main._update_hud()
 	await process_frame
@@ -4511,8 +4513,8 @@ func _assert_touch_feel_0534(main) -> bool:
 
 
 func _assert_touch_feel_0535(main) -> bool:
-	## West dest leftover. 0536 re-runs settle / compact / south path
-	## plus camera 0.36 after leftover z>0.34 caps were relaxed.
+	## West dest leftover. 0537 re-runs settle / compact / south path
+	## plus #1 (6,6) + camera 0.40.
 	main._ensure_touch_hud()
 	main._update_hud()
 	await process_frame
@@ -4524,16 +4526,29 @@ func _assert_touch_feel_0535(main) -> bool:
 
 
 func _assert_touch_feel_0536(main) -> bool:
-	## Leftover z>0.34 zoom caps relaxed so west-squad camera can sit at
-	## ~0.36. Dest stays (6,7)/(5,16) span 5, west-follow detour ≤6.
-	## Bodies/rings stay at the visual floor (~0.16). Full south-corridor
-	## path y14=0, east 0, axis_run 0. Settle-on-ring, bidirectional ↺/↻,
-	## yellow cone.
+	## West dest leftover. 0537 re-runs settle / compact / south path
+	## plus #1 (6,6) + camera 0.40.
 	main._ensure_touch_hud()
 	main._update_hud()
 	await process_frame
 	await process_frame
 	if not await _assert_west_dest_0536(main):
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_0536")
+	return true
+
+
+func _assert_touch_feel_0537(main) -> bool:
+	## #1 dest pulled along-file to (6,6); #2 stays (5,16). Span 6.
+	## West-follow detour ≤6. Camera ~0.40 (leftover cap already ~0.44)
+	## so the still-sticky lead→#2 world gap (~190.9) reads. Bodies/rings
+	## stay at the visual floor (~0.16). Full south-corridor path y14=0,
+	## east 0, axis_run 0. Settle-on-ring, bidirectional ↺/↻, yellow cone.
+	main._ensure_touch_hud()
+	main._update_hud()
+	await process_frame
+	await process_frame
+	if not await _assert_west_dest_0537(main):
 		return false
 	if not await _assert_face_arc_south_cap_0526(main):
 		return false
@@ -4543,7 +4558,7 @@ func _assert_touch_feel_0536(main) -> bool:
 		return false
 	if not await _assert_follow_settle_ring(main):
 		return false
-	print("SMOKE_OK_TOUCH_FEEL_0536")
+	print("SMOKE_OK_TOUCH_FEEL_0537")
 	return true
 
 
@@ -4738,12 +4753,12 @@ func _assert_west_follow_rear(main) -> bool:
 		push_error("SMOKE_WEST_REAR_SIDE d1=%s d2=%s lead=%s" % [d1, d2, lead.grid_cell()])
 		quit(44)
 		return false
-	if absi(d1.y - lead.grid_cell().y) > 5 or absi(d2.y - lead.grid_cell().y) > 5:
+	if absi(d1.y - lead.grid_cell().y) > 6 or absi(d2.y - lead.grid_cell().y) > 6:
 		push_error("SMOKE_WEST_REAR_STRETCH d1=%s d2=%s lead=%s" % [d1, d2, lead.grid_cell()])
 		quit(44)
 		return false
 	var span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
-	if span > 5:
+	if span > 6:
 		push_error("SMOKE_WEST_REAR_SPAN n=%s d1=%s d2=%s lead=%s" % [span, d1, d2, lead.grid_cell()])
 		quit(44)
 		return false
@@ -6025,7 +6040,7 @@ func _assert_west_half_cell(main) -> bool:
 		quit(44)
 		return false
 	var span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
-	if span > 5:
+	if span > 6:
 		push_error("SMOKE_WEST_HALF_SPAN n=%s d1=%s d2=%s" % [span, d1, d2])
 		quit(44)
 		return false
@@ -6342,7 +6357,7 @@ func _assert_west_tighter(main) -> bool:
 		quit(44)
 		return false
 	var span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
-	if span > 5:
+	if span > 6:
 		push_error("SMOKE_WEST_TIGHT_SPAN n=%s d1=%s d2=%s" % [span, d1, d2])
 		quit(44)
 		return false
@@ -6474,7 +6489,7 @@ func _assert_west_clearer(main) -> bool:
 		quit(44)
 		return false
 	var span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
-	if span > 5:
+	if span > 6:
 		push_error("SMOKE_WEST_CLEAR_SPAN n=%s d1=%s d2=%s" % [span, d1, d2])
 		quit(44)
 		return false
@@ -6708,7 +6723,7 @@ func _assert_west_cone_fade(main) -> bool:
 		quit(44)
 		return false
 	var span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
-	if span > 5:
+	if span > 6:
 		push_error("SMOKE_WEST_FADE_SPAN n=%s d1=%s d2=%s" % [span, d1, d2])
 		quit(44)
 		return false
@@ -6767,7 +6782,7 @@ func _assert_west_cone_fade(main) -> bool:
 
 
 func _assert_west_file_spread(main) -> bool:
-	## v0.5.33: first west follower is 5 along-file (span ≤5). Second stays
+	## v0.5.33: first west follower is 6 along-file (span ≤6). Second stays
 	## staggered further back. No west-wall hug.
 	if main.operators.size() < 3 or main.grid == null:
 		push_error("SMOKE_WEST_FILE_NO_OPS")
@@ -6825,7 +6840,7 @@ func _assert_west_file_spread(main) -> bool:
 		return false
 	var lc: Vector2i = lead.grid_cell()
 	var span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
-	if span < 5 or span > 5:
+	if span != 6:
 		push_error("SMOKE_WEST_FILE_SPAN n=%s d1=%s d2=%s lead=%s" % [span, d1, d2, lc])
 		quit(44)
 		return false
@@ -6896,7 +6911,7 @@ func _assert_west_file_spread(main) -> bool:
 
 
 func _assert_west_first_pocket(main) -> bool:
-	## v0.5.33: first follower dest is a 5-cell along-file stand, not the
+	## v0.5.33: first follower dest is a 6-cell along-file stand, not the
 	## 1-cell diagonal pocket next to the lead / west cover / rifle crate.
 	if main.operators.size() < 3 or main.grid == null:
 		push_error("SMOKE_WEST_POCKET_NO_OPS")
@@ -6950,7 +6965,7 @@ func _assert_west_first_pocket(main) -> bool:
 		quit(44)
 		return false
 	var cd1 := maxi(absi(d1.x - lc.x), absi(d1.y - lc.y))
-	if cd1 < 5:
+	if cd1 < 6:
 		push_error("SMOKE_WEST_POCKET_CLOSE d1=%s lead=%s cd=%s" % [d1, lc, cd1])
 		quit(44)
 		return false
@@ -7206,7 +7221,7 @@ func _assert_west_scale_0523(main) -> bool:
 		quit(44)
 		return false
 	var span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
-	if span > 5:
+	if span > 6:
 		push_error("SMOKE_WEST_SCALE_0523_SPAN n=%s d1=%s d2=%s" % [span, d1, d2])
 		quit(44)
 		return false
@@ -7401,7 +7416,7 @@ func _assert_west_cam_ring_0524(main) -> bool:
 		quit(44)
 		return false
 	var span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
-	if span < 5 or span > 5:
+	if span != 6:
 		push_error("SMOKE_WEST_CAM_RING_0524_SPAN n=%s d1=%s d2=%s" % [span, d1, d2])
 		quit(44)
 		return false
@@ -7549,8 +7564,8 @@ func _assert_face_arc_south_cap_0524(main) -> bool:
 
 
 func _assert_west_dest_0525(main) -> bool:
-	## v0.5.33: dest cells spread. First follower 5 along-file (dx=1),
-	## second 2 back / 3 the other way. Span 5. No west-wall hug, cone still empty.
+	## v0.5.33: dest cells spread. First follower 6 along-file (dx=1),
+	## second 2 back / 3 the other way. Span 6. No west-wall hug, cone still empty.
 	if main.operators.size() < 3 or main.grid == null:
 		push_error("SMOKE_WEST_DEST_0525_NO_OPS")
 		quit(44)
@@ -7601,8 +7616,8 @@ func _assert_west_dest_0525(main) -> bool:
 		await process_frame
 	var d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
 	var d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
-	if d1 != Vector2i(6, 7) or d2 != Vector2i(5, 16):
-		push_error("SMOKE_WEST_DEST_0525_DEST d1=%s d2=%s want=(6,7)/(5,16)" % [d1, d2])
+	if d1 != Vector2i(6, 6) or d2 != Vector2i(5, 16):
+		push_error("SMOKE_WEST_DEST_0525_DEST d1=%s d2=%s want=(6,6)/(5,16)" % [d1, d2])
 		quit(44)
 		return false
 	var lc: Vector2i = lead.grid_cell()
@@ -7611,12 +7626,12 @@ func _assert_west_dest_0525(main) -> bool:
 		quit(44)
 		return false
 	var span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
-	if span != 5:
+	if span != 6:
 		push_error("SMOKE_WEST_DEST_0525_SPAN n=%s d1=%s d2=%s" % [span, d1, d2])
 		quit(44)
 		return false
 	var cd1 := maxi(absi(d1.x - lc.x), absi(d1.y - lc.y))
-	if cd1 < 5 or absi(d1.x - lc.x) >= 2:
+	if cd1 < 6 or absi(d1.x - lc.x) >= 2:
 		push_error("SMOKE_WEST_DEST_0525_POCKET d1=%s lead=%s cd=%s" % [d1, lc, cd1])
 		quit(44)
 		return false
@@ -7865,7 +7880,7 @@ func _assert_face_arc_south_cap_0526(main) -> bool:
 
 
 func _assert_west_obs_offset_0527(main) -> bool:
-	## v0.5.27: dest cells (7,12)/(6,7)/(5,15) span 5. Observation
+	## v0.5.27: dest cells (7,12)/(6,7)/(5,15) span 6. Observation
 	## rings offset further along-file / courtyard. No west-wall hug.
 	if main.operators.size() < 3 or main.grid == null:
 		push_error("SMOKE_WEST_OBS_OFFSET_0527_NO_OPS")
@@ -7917,8 +7932,8 @@ func _assert_west_obs_offset_0527(main) -> bool:
 		await process_frame
 	var d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
 	var d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
-	if d1 != Vector2i(6, 7) or d2 != Vector2i(5, 16):
-		push_error("SMOKE_WEST_OBS_OFFSET_0527_DEST d1=%s d2=%s want=(6,7)/(5,16)" % [d1, d2])
+	if d1 != Vector2i(6, 6) or d2 != Vector2i(5, 16):
+		push_error("SMOKE_WEST_OBS_OFFSET_0527_DEST d1=%s d2=%s want=(6,6)/(5,16)" % [d1, d2])
 		quit(44)
 		return false
 	var lc: Vector2i = lead.grid_cell()
@@ -7927,7 +7942,7 @@ func _assert_west_obs_offset_0527(main) -> bool:
 		quit(44)
 		return false
 	var span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
-	if span != 5:
+	if span != 6:
 		push_error("SMOKE_WEST_OBS_OFFSET_0527_SPAN n=%s d1=%s d2=%s" % [span, d1, d2])
 		quit(44)
 		return false
@@ -7985,7 +8000,7 @@ func _assert_west_obs_offset_0527(main) -> bool:
 
 
 func _assert_west_obs_cam_0528(main) -> bool:
-	## v0.5.28: dest cells (7,12)/(6,7)/(5,15) span 5. Observation
+	## v0.5.28: dest cells (7,12)/(6,7)/(5,15) span 6. Observation
 	## rings offset one more along-file / courtyard step. Camera pulls
 	## to ~0.34. No west-wall hug.
 	if main.operators.size() < 3 or main.grid == null:
@@ -8038,8 +8053,8 @@ func _assert_west_obs_cam_0528(main) -> bool:
 		await process_frame
 	var d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
 	var d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
-	if d1 != Vector2i(6, 7) or d2 != Vector2i(5, 16):
-		push_error("SMOKE_WEST_OBS_CAM_0528_DEST d1=%s d2=%s want=(6,7)/(5,16)" % [d1, d2])
+	if d1 != Vector2i(6, 6) or d2 != Vector2i(5, 16):
+		push_error("SMOKE_WEST_OBS_CAM_0528_DEST d1=%s d2=%s want=(6,6)/(5,16)" % [d1, d2])
 		quit(44)
 		return false
 	var lc: Vector2i = lead.grid_cell()
@@ -8048,7 +8063,7 @@ func _assert_west_obs_cam_0528(main) -> bool:
 		quit(44)
 		return false
 	var span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
-	if span != 5:
+	if span != 6:
 		push_error("SMOKE_WEST_OBS_CAM_0528_SPAN n=%s d1=%s d2=%s" % [span, d1, d2])
 		quit(44)
 		return false
@@ -8112,7 +8127,7 @@ func _assert_west_obs_cam_0528(main) -> bool:
 
 
 func _assert_west_obs_cam_0529(main) -> bool:
-	## v0.5.29: dest cells (7,12)/(6,7)/(5,15) span 5. Smaller
+	## v0.5.29: dest cells (7,12)/(6,7)/(5,15) span 6. Smaller
 	## bodies (~0.30) and observation rings (~0.24). Rings offset one
 	## more along-file / courtyard step. Camera pulls to ~0.32. No
 	## west-wall hug.
@@ -8166,8 +8181,8 @@ func _assert_west_obs_cam_0529(main) -> bool:
 		await process_frame
 	var d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
 	var d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
-	if d1 != Vector2i(6, 7) or d2 != Vector2i(5, 16):
-		push_error("SMOKE_WEST_OBS_CAM_0529_DEST d1=%s d2=%s want=(6,7)/(5,16)" % [d1, d2])
+	if d1 != Vector2i(6, 6) or d2 != Vector2i(5, 16):
+		push_error("SMOKE_WEST_OBS_CAM_0529_DEST d1=%s d2=%s want=(6,6)/(5,16)" % [d1, d2])
 		quit(44)
 		return false
 	var lc: Vector2i = lead.grid_cell()
@@ -8176,7 +8191,7 @@ func _assert_west_obs_cam_0529(main) -> bool:
 		quit(44)
 		return false
 	var span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
-	if span != 5:
+	if span != 6:
 		push_error("SMOKE_WEST_OBS_CAM_0529_SPAN n=%s d1=%s d2=%s" % [span, d1, d2])
 		quit(44)
 		return false
@@ -8252,9 +8267,9 @@ func _assert_west_obs_cam_0529(main) -> bool:
 
 
 func _assert_west_obs_cam_0530(main) -> bool:
-	## v0.5.36 leftover: dest cells (7,12)/(6,7)/(5,16) span 5. Bodies and
+	## v0.5.37 leftover: dest cells (7,12)/(6,6)/(5,16) span 6. Bodies and
 	## observation rings at visual floor (~0.16). Leftover zoom cap raised
-	## past 0.34 so camera ~0.36 can land. No west-wall hug.
+	## past 0.34 so camera ~0.40 can land. No west-wall hug.
 	if main.operators.size() < 3 or main.grid == null:
 		push_error("SMOKE_WEST_OBS_CAM_0530_NO_OPS")
 		quit(44)
@@ -8305,8 +8320,8 @@ func _assert_west_obs_cam_0530(main) -> bool:
 		await process_frame
 	var d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
 	var d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
-	if d1 != Vector2i(6, 7) or d2 != Vector2i(5, 16):
-		push_error("SMOKE_WEST_OBS_CAM_0530_DEST d1=%s d2=%s want=(6,7)/(5,16)" % [d1, d2])
+	if d1 != Vector2i(6, 6) or d2 != Vector2i(5, 16):
+		push_error("SMOKE_WEST_OBS_CAM_0530_DEST d1=%s d2=%s want=(6,6)/(5,16)" % [d1, d2])
 		quit(44)
 		return false
 	var lc: Vector2i = lead.grid_cell()
@@ -8315,7 +8330,7 @@ func _assert_west_obs_cam_0530(main) -> bool:
 		quit(44)
 		return false
 	var span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
-	if span != 5:
+	if span != 6:
 		push_error("SMOKE_WEST_OBS_CAM_0530_SPAN n=%s d1=%s d2=%s" % [span, d1, d2])
 		quit(44)
 		return false
@@ -8391,10 +8406,10 @@ func _assert_west_obs_cam_0530(main) -> bool:
 
 
 func _assert_west_obs_cam_0531(main) -> bool:
-	## v0.5.36 leftover: dest cells (7,12)/(6,7)/(5,16) span 5. Bodies and
+	## v0.5.37 leftover: dest cells (7,12)/(6,6)/(5,16) span 6. Bodies and
 	## observation rings at visual floor (~0.16). Rings offset one more
 	## along-file / courtyard step. Leftover zoom cap raised past 0.34 so
-	## camera ~0.36 can land. No west-wall hug.
+	## camera ~0.40 can land. No west-wall hug.
 	if main.operators.size() < 3 or main.grid == null:
 		push_error("SMOKE_WEST_OBS_CAM_0531_NO_OPS")
 		quit(44)
@@ -8445,8 +8460,8 @@ func _assert_west_obs_cam_0531(main) -> bool:
 		await process_frame
 	var d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
 	var d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
-	if d1 != Vector2i(6, 7) or d2 != Vector2i(5, 16):
-		push_error("SMOKE_WEST_OBS_CAM_0531_DEST d1=%s d2=%s want=(6,7)/(5,16)" % [d1, d2])
+	if d1 != Vector2i(6, 6) or d2 != Vector2i(5, 16):
+		push_error("SMOKE_WEST_OBS_CAM_0531_DEST d1=%s d2=%s want=(6,6)/(5,16)" % [d1, d2])
 		quit(44)
 		return false
 	var lc: Vector2i = lead.grid_cell()
@@ -8455,7 +8470,7 @@ func _assert_west_obs_cam_0531(main) -> bool:
 		quit(44)
 		return false
 	var span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
-	if span != 5:
+	if span != 6:
 		push_error("SMOKE_WEST_OBS_CAM_0531_SPAN n=%s d1=%s d2=%s" % [span, d1, d2])
 		quit(44)
 		return false
@@ -8531,9 +8546,9 @@ func _assert_west_obs_cam_0531(main) -> bool:
 
 
 func _assert_west_dest_0532(main) -> bool:
-	## v0.5.36 leftover: dest cells spread. First follower 5 along-file
+	## v0.5.37 leftover: dest cells spread. First follower 6 along-file
 	## (dx=1, not hugging the west wall), second 2 back / 4 the other way.
-	## Span 5. Cone still empty. Visual knobs stay at the floor.
+	## Span 6. Cone still empty. Visual knobs stay at the floor.
 	if main.operators.size() < 3 or main.grid == null:
 		push_error("SMOKE_WEST_DEST_0532_NO_OPS")
 		quit(44)
@@ -8584,8 +8599,8 @@ func _assert_west_dest_0532(main) -> bool:
 		await process_frame
 	var d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
 	var d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
-	if d1 != Vector2i(6, 7) or d2 != Vector2i(5, 16):
-		push_error("SMOKE_WEST_DEST_0532_DEST d1=%s d2=%s want=(6,7)/(5,16)" % [d1, d2])
+	if d1 != Vector2i(6, 6) or d2 != Vector2i(5, 16):
+		push_error("SMOKE_WEST_DEST_0532_DEST d1=%s d2=%s want=(6,6)/(5,16)" % [d1, d2])
 		quit(44)
 		return false
 	var lc: Vector2i = lead.grid_cell()
@@ -8594,12 +8609,12 @@ func _assert_west_dest_0532(main) -> bool:
 		quit(44)
 		return false
 	var span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
-	if span != 5:
+	if span != 6:
 		push_error("SMOKE_WEST_DEST_0532_SPAN n=%s d1=%s d2=%s" % [span, d1, d2])
 		quit(44)
 		return false
 	var cd1 := maxi(absi(d1.x - lc.x), absi(d1.y - lc.y))
-	if cd1 < 5 or absi(d1.x - lc.x) >= 2:
+	if cd1 < 6 or absi(d1.x - lc.x) >= 2:
 		push_error("SMOKE_WEST_DEST_0532_POCKET d1=%s lead=%s cd=%s" % [d1, lc, cd1])
 		quit(44)
 		return false
@@ -8664,9 +8679,9 @@ func _assert_west_dest_0532(main) -> bool:
 
 
 func _assert_west_dest_0533(main) -> bool:
-	## v0.5.36 leftover: dest cells (7,12)/(6,7)/(5,16) span 5. First 5
+	## v0.5.37 leftover: dest cells (7,12)/(6,6)/(5,16) span 6. First 6
 	## along-file (dx=1, not hugging the west wall), second 2 back / 4
-	## the other way. Leftover zoom cap raised past 0.34 so camera ~0.36
+	## the other way. Leftover zoom cap raised past 0.34 so camera ~0.40
 	## can land. Bodies/rings stay on the visual floor (~0.16). Cone still empty.
 	if main.operators.size() < 3 or main.grid == null:
 		push_error("SMOKE_WEST_DEST_0533_NO_OPS")
@@ -8718,8 +8733,8 @@ func _assert_west_dest_0533(main) -> bool:
 		await process_frame
 	var d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
 	var d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
-	if d1 != Vector2i(6, 7) or d2 != Vector2i(5, 16):
-		push_error("SMOKE_WEST_DEST_0533_DEST d1=%s d2=%s want=(6,7)/(5,16)" % [d1, d2])
+	if d1 != Vector2i(6, 6) or d2 != Vector2i(5, 16):
+		push_error("SMOKE_WEST_DEST_0533_DEST d1=%s d2=%s want=(6,6)/(5,16)" % [d1, d2])
 		quit(44)
 		return false
 	var lc: Vector2i = lead.grid_cell()
@@ -8728,12 +8743,12 @@ func _assert_west_dest_0533(main) -> bool:
 		quit(44)
 		return false
 	var span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
-	if span != 5:
+	if span != 6:
 		push_error("SMOKE_WEST_DEST_0533_SPAN n=%s d1=%s d2=%s" % [span, d1, d2])
 		quit(44)
 		return false
 	var cd1 := maxi(absi(d1.x - lc.x), absi(d1.y - lc.y))
-	if cd1 < 5 or absi(d1.x - lc.x) >= 2:
+	if cd1 < 6 or absi(d1.x - lc.x) >= 2:
 		push_error("SMOKE_WEST_DEST_0533_POCKET d1=%s lead=%s cd=%s" % [d1, lc, cd1])
 		quit(44)
 		return false
@@ -8822,10 +8837,10 @@ func _assert_west_dest_0533(main) -> bool:
 
 
 func _assert_west_dest_0534(main) -> bool:
-	## v0.5.36 leftover: dest cells (7,12)/(6,7)/(5,16) span 5. On-ring
+	## v0.5.37 leftover: dest cells (7,12)/(6,6)/(5,16) span 6. On-ring
 	## extra cut so #2's ring does not punch the west wall. Dest world
 	## clamps onto walkable floor. Leftover zoom cap raised past 0.34 so
-	## camera ~0.36 can land. Bodies/rings stay on the visual floor (~0.16).
+	## camera ~0.40 can land. Bodies/rings stay on the visual floor (~0.16).
 	## Cone still empty.
 	if main.operators.size() < 3 or main.grid == null:
 		push_error("SMOKE_WEST_DEST_0534_NO_OPS")
@@ -8877,8 +8892,8 @@ func _assert_west_dest_0534(main) -> bool:
 		await process_frame
 	var d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
 	var d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
-	if d1 != Vector2i(6, 7) or d2 != Vector2i(5, 16):
-		push_error("SMOKE_WEST_DEST_0534_DEST d1=%s d2=%s want=(6,7)/(5,16)" % [d1, d2])
+	if d1 != Vector2i(6, 6) or d2 != Vector2i(5, 16):
+		push_error("SMOKE_WEST_DEST_0534_DEST d1=%s d2=%s want=(6,6)/(5,16)" % [d1, d2])
 		quit(44)
 		return false
 	var lc: Vector2i = lead.grid_cell()
@@ -8887,12 +8902,12 @@ func _assert_west_dest_0534(main) -> bool:
 		quit(44)
 		return false
 	var span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
-	if span != 5:
+	if span != 6:
 		push_error("SMOKE_WEST_DEST_0534_SPAN n=%s d1=%s d2=%s" % [span, d1, d2])
 		quit(44)
 		return false
 	var cd1 := maxi(absi(d1.x - lc.x), absi(d1.y - lc.y))
-	if cd1 < 5 or absi(d1.x - lc.x) >= 2:
+	if cd1 < 6 or absi(d1.x - lc.x) >= 2:
 		push_error("SMOKE_WEST_DEST_0534_POCKET d1=%s lead=%s cd=%s" % [d1, lc, cd1])
 		quit(44)
 		return false
@@ -9004,9 +9019,9 @@ func _assert_west_dest_0534(main) -> bool:
 
 
 func _assert_west_dest_0535(main) -> bool:
-	## v0.5.36 leftover: dest cells (7,12)/(6,7)/(5,16) span 5. West-follow
+	## v0.5.37 leftover: dest cells (7,12)/(6,6)/(5,16) span 6. West-follow
 	## detour ≤6. Dest world spread above the 184.6 lead→#2 edge. Leftover
-	## zoom cap raised past 0.34 so camera ~0.36 can land. Bodies/rings stay
+	## zoom cap raised past 0.34 so camera ~0.40 can land. Bodies/rings stay
 	## on the visual floor (~0.16). Cone still empty.
 	if main.operators.size() < 3 or main.grid == null:
 		push_error("SMOKE_WEST_DEST_0535_NO_OPS")
@@ -9058,8 +9073,8 @@ func _assert_west_dest_0535(main) -> bool:
 		await process_frame
 	var d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
 	var d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
-	if d1 != Vector2i(6, 7) or d2 != Vector2i(5, 16):
-		push_error("SMOKE_WEST_DEST_0535_DEST d1=%s d2=%s want=(6,7)/(5,16)" % [d1, d2])
+	if d1 != Vector2i(6, 6) or d2 != Vector2i(5, 16):
+		push_error("SMOKE_WEST_DEST_0535_DEST d1=%s d2=%s want=(6,6)/(5,16)" % [d1, d2])
 		quit(44)
 		return false
 	var lc: Vector2i = lead.grid_cell()
@@ -9068,12 +9083,12 @@ func _assert_west_dest_0535(main) -> bool:
 		quit(44)
 		return false
 	var span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
-	if span != 5:
+	if span != 6:
 		push_error("SMOKE_WEST_DEST_0535_SPAN n=%s d1=%s d2=%s" % [span, d1, d2])
 		quit(44)
 		return false
 	var cd1 := maxi(absi(d1.x - lc.x), absi(d1.y - lc.y))
-	if cd1 < 5 or absi(d1.x - lc.x) >= 2:
+	if cd1 < 6 or absi(d1.x - lc.x) >= 2:
 		push_error("SMOKE_WEST_DEST_0535_POCKET d1=%s lead=%s cd=%s" % [d1, lc, cd1])
 		quit(44)
 		return false
@@ -9185,8 +9200,7 @@ func _assert_west_dest_0535(main) -> bool:
 
 
 func _assert_west_dest_0536(main) -> bool:
-	## v0.5.36: dest cells (7,12)/(6,7)/(5,16) span 5. Leftover zoom caps
-	## that failed above 0.34 are relaxed so west-squad camera sits at ~0.36.
+	## v0.5.37 leftover: dest cells (7,12)/(6,6)/(5,16) span 6. Camera ~0.40.
 	## Dest world spread above the 184.6 lead→#2 edge. West-follow detour ≤6.
 	## Bodies/rings stay on the visual floor (~0.16). Cone still empty.
 	if main.operators.size() < 3 or main.grid == null:
@@ -9239,8 +9253,8 @@ func _assert_west_dest_0536(main) -> bool:
 		await process_frame
 	var d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
 	var d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
-	if d1 != Vector2i(6, 7) or d2 != Vector2i(5, 16):
-		push_error("SMOKE_WEST_DEST_0536_DEST d1=%s d2=%s want=(6,7)/(5,16)" % [d1, d2])
+	if d1 != Vector2i(6, 6) or d2 != Vector2i(5, 16):
+		push_error("SMOKE_WEST_DEST_0536_DEST d1=%s d2=%s want=(6,6)/(5,16)" % [d1, d2])
 		quit(44)
 		return false
 	var lc: Vector2i = lead.grid_cell()
@@ -9249,12 +9263,12 @@ func _assert_west_dest_0536(main) -> bool:
 		quit(44)
 		return false
 	var span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
-	if span != 5:
+	if span != 6:
 		push_error("SMOKE_WEST_DEST_0536_SPAN n=%s d1=%s d2=%s" % [span, d1, d2])
 		quit(44)
 		return false
 	var cd1 := maxi(absi(d1.x - lc.x), absi(d1.y - lc.y))
-	if cd1 < 5 or absi(d1.x - lc.x) >= 2:
+	if cd1 < 6 or absi(d1.x - lc.x) >= 2:
 		push_error("SMOKE_WEST_DEST_0536_POCKET d1=%s lead=%s cd=%s" % [d1, lc, cd1])
 		quit(44)
 		return false
@@ -9311,7 +9325,7 @@ func _assert_west_dest_0536(main) -> bool:
 		quit(44)
 		return false
 	var z := float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0
-	if z < 0.345 or z > 0.42:
+	if z < 0.30 or z > 0.44:
 		push_error("SMOKE_WEST_DEST_0536_ZOOM z=%s d1=%s d2=%s" % [z, d1, d2])
 		quit(44)
 		return false
@@ -9337,6 +9351,187 @@ func _assert_west_dest_0536(main) -> bool:
 		return false
 	print(
 		"SMOKE_OK_WEST_DEST_0536 d1=", d1, " d2=", d2, " lead=", lc,
+		" span=", span, " cd1=", cd1, " cd2=", cd2, " pair=", pair, " cheb=", cheb,
+		" fade=", snapped(fade, 0.01),
+		" zoom=", snapped(z, 0.01),
+		" extra=", snapped(extra, 0.1),
+		" ring_x=", snapped(ring_x, 0.1),
+		" scale=", snapped(scale, 0.01),
+		" obs=", snapped(obs, 0.01),
+		" dest_spread=", snapped(dest_spread, 0.1),
+		" detour=", detour
+	)
+	if bool(a.follow_lead) != flags[0]:
+		main.toggle_follow(1)
+	if bool(b.follow_lead) != flags[1]:
+		main.toggle_follow(2)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	lead.global_position = homes[0]
+	a.global_position = homes[1]
+	b.global_position = homes[2]
+	main._follow_dest.clear()
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	if main.has_method("_update_observation_rings"):
+		main._update_observation_rings()
+	return true
+
+
+func _assert_west_dest_0537(main) -> bool:
+	## v0.5.37: dest cells (7,12)/(6,6)/(5,16) span 6. #1 pulled along-file;
+	## #2 stays (5,16). Camera ~0.40 (leftover cap already ~0.44) so the
+	## lead→#2 world gap (~190.9) reads. West-follow detour ≤6.
+	## Bodies/rings stay on the visual floor (~0.16). Cone still empty.
+	if main.operators.size() < 3 or main.grid == null:
+		push_error("SMOKE_WEST_DEST_0537_NO_OPS")
+		quit(44)
+		return false
+	var lead: OperatorUnit = main.operators[0]
+	var a: OperatorUnit = main.operators[1]
+	var b: OperatorUnit = main.operators[2]
+	var homes: Array[Vector2] = [lead.global_position, a.global_position, b.global_position]
+	var flags: Array[bool] = [bool(a.follow_lead), bool(b.follow_lead)]
+	if main.c2 and not main.c2.sentries.is_empty():
+		_park_sentries(main, null)
+	var lead_c := Vector2i(7, 12)
+	var a_c := Vector2i(6, 14)
+	var b_c := Vector2i(6, 16)
+	if main.grid.is_blocked(lead_c.x, lead_c.y) or main._cell_is_operable(lead_c):
+		lead_c = Vector2i(7, 13)
+	main._select_op(0)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	if lead.has_method("set_facing"):
+		lead.set_facing(0.0)
+	else:
+		lead.facing_deg = 0.0
+		if lead.has_method("_rebuild_cone"):
+			lead._rebuild_cone()
+	lead.global_position = main.grid.cell_to_world_center(lead_c)
+	a.global_position = main.grid.cell_to_world_center(a_c)
+	b.global_position = main.grid.cell_to_world_center(b_c)
+	main._stealth_avoid_cache.clear()
+	main._stealth_avoid_msec = 0
+	if not bool(a.follow_lead):
+		main.toggle_follow(1)
+	if not bool(b.follow_lead):
+		main.toggle_follow(2)
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	main._tick_squad_follow(0.05)
+	await _tick_follow_steps(main, 16)
+	for _hold in 16:
+		if main.has_method("_update_observation_rings"):
+			main._update_observation_rings()
+		if main.has_method("_follow_selected_cam"):
+			main._follow_selected_cam(0.05)
+		main._tick_squad_follow(0.05)
+		if main.has_method("_tick_command_moves"):
+			main._tick_command_moves(0.05)
+		await process_frame
+	var d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+	var d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+	if d1 != Vector2i(6, 6) or d2 != Vector2i(5, 16):
+		push_error("SMOKE_WEST_DEST_0537_DEST d1=%s d2=%s want=(6,6)/(5,16)" % [d1, d2])
+		quit(44)
+		return false
+	var lc: Vector2i = lead.grid_cell()
+	if lc != Vector2i(7, 12) and lc != Vector2i(7, 13):
+		push_error("SMOKE_WEST_DEST_0537_LEAD lead=%s d1=%s d2=%s" % [lc, d1, d2])
+		quit(44)
+		return false
+	var span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
+	if span != 6:
+		push_error("SMOKE_WEST_DEST_0537_SPAN n=%s d1=%s d2=%s" % [span, d1, d2])
+		quit(44)
+		return false
+	var cd1 := maxi(absi(d1.x - lc.x), absi(d1.y - lc.y))
+	if cd1 < 6 or absi(d1.x - lc.x) >= 2:
+		push_error("SMOKE_WEST_DEST_0537_POCKET d1=%s lead=%s cd=%s" % [d1, lc, cd1])
+		quit(44)
+		return false
+	var cd2 := maxi(absi(d2.x - lc.x), absi(d2.y - lc.y))
+	if cd2 < 4 or d2.y < 16 or absi(d2.x - lc.x) > 2:
+		push_error("SMOKE_WEST_DEST_0537_SECOND d2=%s lead=%s cd=%s" % [d2, lc, cd2])
+		quit(44)
+		return false
+	if d1.x <= 4 or d2.x <= 4:
+		push_error("SMOKE_WEST_DEST_0537_WALL d1=%s d2=%s lead=%s" % [d1, d2, lc])
+		quit(44)
+		return false
+	if d1.x == lc.x or d2.x == lc.x:
+		push_error("SMOKE_WEST_DEST_0537_COLUMN d1=%s d2=%s lead=%s" % [d1, d2, lc])
+		quit(44)
+		return false
+	if not _dest_is_rear(main, d1, lead) or not _dest_is_rear(main, d2, lead):
+		push_error("SMOKE_WEST_DEST_0537_REAR d1=%s d2=%s lead=%s" % [d1, d2, lc])
+		quit(44)
+		return false
+	var pair := maxi(absi(d1.x - d2.x), absi(d1.y - d2.y))
+	if pair < 9:
+		push_error("SMOKE_WEST_DEST_0537_MASH d1=%s d2=%s pair=%s" % [d1, d2, pair])
+		quit(44)
+		return false
+	var cheb := int(main.follow_min_chebyshev()) if main.has_method("follow_min_chebyshev") else 0
+	if cheb < 2:
+		push_error("SMOKE_WEST_DEST_0537_STACK cheb=%s d1=%s d2=%s" % [cheb, d1, d2])
+		quit(44)
+		return false
+	var cone := int(main.follow_cone_hits()) if main.has_method("follow_cone_hits") else 99
+	if cone > 0:
+		push_error("SMOKE_WEST_DEST_0537_CONE n=%s d1=%s d2=%s" % [cone, d1, d2])
+		quit(44)
+		return false
+	var fade := float(main.follow_cone_visual_fade()) if main.has_method("follow_cone_visual_fade") else 1.0
+	if fade > 0.50:
+		push_error("SMOKE_WEST_DEST_0537_FADE s=%s" % fade)
+		quit(44)
+		return false
+	var hug := int(main.follow_obs_west_hug()) if main.has_method("follow_obs_west_hug") else 99
+	if hug > 0:
+		push_error("SMOKE_WEST_DEST_0537_HUG n=%s d1=%s d2=%s" % [hug, d1, d2])
+		quit(44)
+		return false
+	var extra := float(main.follow_west_ring_extra()) if main.has_method("follow_west_ring_extra") else 99.0
+	if extra > 50.0:
+		push_error("SMOKE_WEST_DEST_0537_EXTRA extra=%s d1=%s d2=%s" % [extra, d1, d2])
+		quit(44)
+		return false
+	var ring_x := float(main.follow_ring_west_min_x()) if main.has_method("follow_ring_west_min_x") else 0.0
+	if ring_x < 156.0:
+		push_error("SMOKE_WEST_DEST_0537_RING_X x=%s extra=%s d2=%s" % [ring_x, extra, d2])
+		quit(44)
+		return false
+	var z := float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0
+	if z < 0.385 or z > 0.44:
+		push_error("SMOKE_WEST_DEST_0537_ZOOM z=%s d1=%s d2=%s" % [z, d1, d2])
+		quit(44)
+		return false
+	var scale := float(main.follow_cluster_body_scale()) if main.has_method("follow_cluster_body_scale") else 1.0
+	if scale < 0.15 or scale > 0.18:
+		push_error("SMOKE_WEST_DEST_0537_BODY s=%s" % scale)
+		quit(44)
+		return false
+	var obs := float(main.follow_obs_visual_scale()) if main.has_method("follow_obs_visual_scale") else 1.0
+	if obs < 0.15 or obs > 0.18:
+		push_error("SMOKE_WEST_DEST_0537_OBS s=%s" % obs)
+		quit(44)
+		return false
+	var dest_spread := float(main.follow_dest_world_min_spacing()) if main.has_method("follow_dest_world_min_spacing") else 0.0
+	if dest_spread < 186.0:
+		push_error("SMOKE_WEST_DEST_0537_SPREAD spread=%s d1=%s d2=%s" % [dest_spread, d1, d2])
+		quit(44)
+		return false
+	var detour := int(main.follow_max_detour()) if main.has_method("follow_max_detour") else 99
+	if detour > 6:
+		push_error("SMOKE_WEST_DEST_0537_DETOUR n=%s d1=%s d2=%s" % [detour, d1, d2])
+		quit(44)
+		return false
+	print(
+		"SMOKE_OK_WEST_DEST_0537 d1=", d1, " d2=", d2, " lead=", lc,
 		" span=", span, " cd1=", cd1, " cd2=", cd2, " pair=", pair, " cheb=", cheb,
 		" fade=", snapped(fade, 0.01),
 		" zoom=", snapped(z, 0.01),
@@ -10793,7 +10988,7 @@ func _assert_west_follow_queue(main) -> bool:
 		quit(44)
 		return false
 	var span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
-	if span > 5:
+	if span > 6:
 		push_error("SMOKE_WEST_FOLLOW_SPAN n=%s d1=%s d2=%s lead=%s" % [span, d1, d2, lead.grid_cell()])
 		quit(44)
 		return false
@@ -10982,7 +11177,7 @@ func _assert_west_combo_touch(main) -> bool:
 	var combo_idle := int(main.follow_idle_waits()) if main.has_method("follow_idle_waits") else 99
 	var combo_spread := float(main.follow_dest_min_spacing()) if main.has_method("follow_dest_min_spacing") else 0.0
 	var combo_span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
-	if combo_cheb < 1 or combo_idle > 0 or combo_spread < 28.0 or combo_span > 5:
+	if combo_cheb < 1 or combo_idle > 0 or combo_spread < 28.0 or combo_span > 6:
 		push_error("SMOKE_WEST_COMBO_CROWD cheb=%s idle=%s spread=%s span=%s d1=%s d2=%s" % [
 			combo_cheb, combo_idle, combo_spread, combo_span, d1, d2
 		])

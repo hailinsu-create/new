@@ -1,8 +1,8 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.36 phone feel: west trio dest spread
-## (span 5, (6,7)/(5,16), west-follow detour ≤6, no west-wall hug), bodies/rings
-## at visual floor (~0.16) + camera at ~0.36, south-corridor full path y=14
+## Forced-touch HUD stills for v0.5.37 phone feel: west trio dest spread
+## (span 6, (6,6)/(5,16), west-follow detour ≤6, no west-wall hug), bodies/rings
+## at visual floor (~0.16) + camera at ~0.40, south-corridor full path y=14
 ## pulled into y≤13 (mid x≈21 included), settle-on-ring after ↻, bidirectional
 ## ↺/↻ swipe, faded yellow cone, compact 5-key, crate-cluster axis_run 0.
 
