@@ -42,12 +42,14 @@ const FOLLOW_WEST_SLOT_EXTRA := 52.0
 ## shoved #2 through the west wall. Dest-cell extra stays; ring extra is smaller.
 const FOLLOW_WEST_RING_EXTRA := 44.0
 const FOLLOW_WEST_RING_BACK := 8.0
-const FOLLOW_CAM_WEST_ZOOM := 0.40
+## West follow frames by pan/crop, not world zoom. Floor ≥0.85; keep ~1.0 so
+## the courtyard is not a postage stamp and bodies stay readable.
+const FOLLOW_CAM_WEST_ZOOM := 1.0
 const FOLLOW_CAM_WEST_CONE := 108.0
-const FOLLOW_CAM_WEST_PAN := 0.28
-const FOLLOW_CAM_FILE_ZOOM := 0.82
-const FOLLOW_WEST_OBS_SCALE := 0.16
-const FOLLOW_WEST_BODY_SCALE := 0.16
+const FOLLOW_CAM_WEST_PAN := 0.62
+const FOLLOW_CAM_FILE_ZOOM := 1.0
+const FOLLOW_WEST_OBS_SCALE := 1.0
+const FOLLOW_WEST_BODY_SCALE := 1.0
 const FOLLOW_WEST_OBS_OFFSET := 76.0
 const FOLLOW_WEST_OBS_SIDE := 52.0
 const FOLLOW_WEST_OBS_SLOT := 24.0
@@ -1690,7 +1692,8 @@ func _apply_cam() -> void:
 	_ensure_game_camera()
 	_cam_zoom = clampf(_cam_zoom, 0.72, 1.65)
 	_cam_squad_zoom = clampf(_cam_squad_zoom, FOLLOW_CAM_WEST_ZOOM, 1.0)
-	var max_pan := 220.0 * _cam_zoom
+	## Pan/crop budget so west trio + cone stay framed at ~1.0 zoom.
+	var max_pan := 380.0 * _cam_zoom
 	_cam_pan.x = clampf(_cam_pan.x, -max_pan, max_pan)
 	_cam_pan.y = clampf(_cam_pan.y, -max_pan, max_pan)
 	var z := _cam_zoom * _cam_zoom_punch * _cam_squad_zoom
@@ -9247,6 +9250,24 @@ func follow_cluster_body_scale() -> float:
 	return s if any else 1.0
 
 
+func follow_cam_squad_zoom() -> float:
+	return _cam_squad_zoom
+
+
+func follow_cam_world_span() -> Vector2:
+	## World pixels visible at the current follow zoom. ~1280x720 at 1.0;
+	## ~3200x1800 at the old 0.40 postage-stamp zoom.
+	var vp := Vector2(1280.0, 720.0)
+	if get_viewport() != null:
+		vp = get_viewport().get_visible_rect().size
+	var z := maxf(_cam_zoom * _cam_zoom_punch * _cam_squad_zoom, 0.01)
+	return vp / z
+
+
+func follow_cam_pan() -> Vector2:
+	return _cam_pan
+
+
 func follow_body_arc_hits() -> int:
 	return _follow_body_arc_hits
 
@@ -9602,12 +9623,12 @@ func _apply_west_obs_scale() -> void:
 func _apply_west_obs_offset(west: bool) -> void:
 	## Visual observation-ring stagger. Dest cells stay; rings slide off the
 	## cluster centroid so the west trio + yellow cone read as three bodies.
-	## v0.5.37: dest cells (6,6)/(5,16) span 6. #1 steps one more along-file
+	## v0.5.38: dest cells (6,6)/(5,16) span 6. #1 stays six along-file
 	## (dx=1). #2 stays off the south wall. Dest world clamps onto walkable
-	## floor so the south wall does not wrap a courtyard detour. Camera ~0.40
-	## (leftover cap already ~0.44) so the still-sticky lead→#2 world gap
-	## (~190.9) reads on screen. Bodies/rings stay on the visual floor
-	## (~0.16). Rings keep the courtyard / along-file offset.
+	## floor so the south wall does not wrap a courtyard detour. Follow
+	## camera stays ~1.0 (floor ≥0.85) and pans/crops the trio + cone.
+	## Bodies and observation rings are full-size (~1.0). Rings keep the
+	## courtyard / along-file offset.
 	var centroid := Vector2.ZERO
 	var n := 0
 	if west and selected != null:
@@ -10852,6 +10873,8 @@ func dump_touch_feel() -> Dictionary:
 		"ring_extra": follow_west_ring_extra() if has_method("follow_west_ring_extra") else 0.0,
 		"ring_west_x": follow_ring_west_min_x() if has_method("follow_ring_west_min_x") else 9999.0,
 		"cam_squad_zoom": _cam_squad_zoom,
+		"cam_world_span": follow_cam_world_span() if has_method("follow_cam_world_span") else Vector2(1280, 720),
+		"cam_pan": _cam_pan,
 		"cluster_scale": follow_cluster_body_scale() if has_method("follow_cluster_body_scale") else 1.0,
 		"cone_fade": follow_cone_visual_fade() if has_method("follow_cone_visual_fade") else 1.0,
 		"dest_world_spread": follow_dest_world_min_spacing() if has_method("follow_dest_world_min_spacing") else -1.0,
@@ -11265,7 +11288,7 @@ func follow_west_queue_hits() -> int:
 
 
 func follow_west_lead_span() -> int:
-	## Max Chebyshev from the lead to a follow dest. v0.5.37 west file is ≤6:
+	## Max Chebyshev from the lead to a follow dest. v0.5.38 west file is ≤6:
 	## first follower is 6 along-file, second 2 back / 4 the other way.
 	if selected == null or grid == null:
 		return 99
@@ -11374,9 +11397,9 @@ func _follow_selected_cam(delta: float) -> void:
 	var west := _follow_in_west(selected.grid_cell())
 	var cluster := west and n >= 3
 	_apply_west_obs_scale()
+	## Do not shrink the world to fit the file. Keep ~1.0 zoom and pan.
 	var want_z := 1.0
 	if cluster:
-		## Keep the west trio + yellow cone on screen even after they stop.
 		want_z = FOLLOW_CAM_WEST_ZOOM
 	elif moving and west and n >= 2:
 		want_z = FOLLOW_CAM_WEST_ZOOM

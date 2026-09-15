@@ -1,10 +1,11 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.37 phone feel: west trio dest spread
+## Forced-touch HUD stills for v0.5.38 phone feel: west trio dest spread
 ## (span 6, (6,6)/(5,16), west-follow detour ≤6, no west-wall hug), bodies/rings
-## at visual floor (~0.16) + camera at ~0.40, south-corridor full path y=14
-## pulled into y≤13 (mid x≈21 included), settle-on-ring after ↻, bidirectional
-## ↺/↻ swipe, faded yellow cone, compact 5-key, crate-cluster axis_run 0.
+## at ~1.0 + follow camera at ~1.0 (pan/crop, not postage-stamp zoom),
+## south-corridor full path y=14 pulled into y≤13 (mid x≈21 included),
+## settle-on-ring after ↻, bidirectional ↺/↻ swipe, faded yellow cone,
+## compact 5-key, crate-cluster axis_run 0.
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
@@ -171,6 +172,8 @@ func _run() -> void:
 
 	await _walk_three_follow(main)
 
+	_dump_yard_search(main)
+
 	if main.has_method("raid_prepare_ref"):
 		main.raid_prepare_ref([0, 1, 2], [0.0, 0.0, 90.0], {"grenades": 2, "mines": 1})
 	await _settle(6)
@@ -332,6 +335,7 @@ func _walk_west_combo_follow(main) -> void:
 		" ring_extra=", snapped(float(main.follow_west_ring_extra()) if main.has_method("follow_west_ring_extra") else 0.0, 0.1),
 		" ring_west_x=", snapped(float(main.follow_ring_west_min_x()) if main.has_method("follow_ring_west_min_x") else 0.0, 0.1)
 	)
+	_dump_west_follow_readable(main, "west_combo")
 	await _save("08_west_combo_follow")
 	if bool(a.follow_lead):
 		main.toggle_follow(1)
@@ -1007,6 +1011,7 @@ func _walk_west_rear(main) -> void:
 		" ring_west_x=", snapped(float(main.follow_ring_west_min_x()) if main.has_method("follow_ring_west_min_x") else 0.0, 0.1)
 	)
 	_dump_feel(main, "west_rear")
+	_dump_west_follow_readable(main, "west_rear")
 	await _save("08f_west_rear")
 	if bool(a.follow_lead):
 		main.toggle_follow(1)
@@ -1399,6 +1404,8 @@ func _dump_feel(main, tag: String) -> void:
 		" ring_extra=", snapped(float(f.get("ring_extra", 0.0)), 0.1),
 		" ring_west_x=", snapped(float(f.get("ring_west_x", 0.0)), 0.1),
 		" cam_squad_zoom=", snapped(float(f.get("cam_squad_zoom", 1.0)), 0.01),
+		" cam_world_span=", _span_txt(f.get("cam_world_span", Vector2(1280, 720))),
+		" cam_pan=", _pan_txt(f.get("cam_pan", Vector2.ZERO)),
 		" cluster_scale=", snapped(float(f.get("cluster_scale", 1.0)), 0.01),
 		" cone_fade=", snapped(float(f.get("cone_fade", 1.0)), 0.01),
 		" dest_world_spread=", snapped(float(f.get("dest_world_spread", -1.0)), 0.1),
@@ -1564,6 +1571,55 @@ func _count_chrome(main, tag: String) -> void:
 		" left_cards=", cards,
 		" hotspots=", hotspots,
 		" caps=", caps
+	)
+
+
+func _span_txt(v) -> String:
+	var s: Vector2 = v if v is Vector2 else Vector2(1280, 720)
+	return "%s x %s" % [snapped(s.x, 1.0), snapped(s.y, 1.0)]
+
+
+func _pan_txt(v) -> String:
+	var p: Vector2 = v if v is Vector2 else Vector2.ZERO
+	return "%s,%s" % [snapped(p.x, 0.1), snapped(p.y, 0.1)]
+
+
+func _dump_west_follow_readable(main, tag: String) -> void:
+	var z := float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0
+	var cluster := float(main.follow_cluster_body_scale()) if main.has_method("follow_cluster_body_scale") else 1.0
+	var obs := float(main.follow_obs_visual_scale()) if main.has_method("follow_obs_visual_scale") else 1.0
+	var span: Vector2 = main.follow_cam_world_span() if main.has_method("follow_cam_world_span") else Vector2(1280, 720)
+	var pan: Vector2 = main.follow_cam_pan() if main.has_method("follow_cam_pan") else Vector2.ZERO
+	var postage := 1 if z < 0.85 or span.x > 1600.0 or cluster < 0.92 or obs < 0.92 else 0
+	print(
+		"DUMP_WEST_FOLLOW_READABLE tag=", tag,
+		" zoom=", snapped(z, 0.01),
+		" cluster=", snapped(cluster, 0.01),
+		" obs=", snapped(obs, 0.01),
+		" world_span=", _span_txt(span),
+		" pan=", _pan_txt(pan),
+		" postage=", postage
+	)
+
+
+func _dump_yard_search(main) -> void:
+	## Courtyard play evidence: 跟 / 绕背 / 开匣 / 需枪 without raid_prepare_ref.
+	var crate_caps := PackedStringArray()
+	if main.c2 and main.c2.prompt and main.c2.prompt.has_method("visible_captions"):
+		crate_caps = main.c2.prompt.visible_captions()
+	var alarm := ""
+	if main.touch_hud and main.touch_hud.has_method("setup_visible_cmds"):
+		alarm = " ".join(main.touch_hud.setup_visible_cmds())
+	var cta := ""
+	if main.get("alarm_button") != null:
+		cta = str(main.alarm_button.text)
+	var z := float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0
+	print(
+		"DUMP_YARD_SEARCH crate_caps=", " ".join(crate_caps),
+		" alarm_cmds=", alarm,
+		" need_gun=", cta,
+		" zoom=", snapped(z, 0.01),
+		" postage=", 1 if z < 0.85 else 0
 	)
 
 

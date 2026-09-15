@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.5.37":
+	if ver != "0.5.38":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3459,6 +3459,8 @@ func _assert_simplified_touch(main) -> bool:
 		return false
 	if not await _assert_touch_feel_0537(main):
 		return false
+	if not await _assert_touch_feel_0538(main):
+		return false
 	return true
 
 
@@ -4448,8 +4450,8 @@ func _assert_touch_feel_0529(main) -> bool:
 
 
 func _assert_touch_feel_0530(main) -> bool:
-	## West dest leftover. 0537 re-runs settle / compact / south path
-	## plus #1 (6,6) + camera 0.40.
+	## West dest leftover. 0538 re-runs settle / compact / south path
+	## plus readable zoom/scales.
 	main._ensure_touch_hud()
 	main._update_hud()
 	await process_frame
@@ -4461,8 +4463,8 @@ func _assert_touch_feel_0530(main) -> bool:
 
 
 func _assert_touch_feel_0531(main) -> bool:
-	## West dest leftover. 0537 re-runs settle / compact / south path
-	## plus #1 (6,6) + camera 0.40.
+	## West dest leftover. 0538 re-runs settle / compact / south path
+	## plus readable zoom/scales.
 	main._ensure_touch_hud()
 	main._update_hud()
 	await process_frame
@@ -4474,8 +4476,8 @@ func _assert_touch_feel_0531(main) -> bool:
 
 
 func _assert_touch_feel_0532(main) -> bool:
-	## West dest leftover. 0537 re-runs settle / compact / south path
-	## plus #1 (6,6) + #2 (5,16) + detour ≤6 + camera 0.40.
+	## West dest leftover. 0538 re-runs settle / compact / south path
+	## plus dest (6,6)/(5,16) + detour ≤6 + readable zoom/scales.
 	main._ensure_touch_hud()
 	main._update_hud()
 	await process_frame
@@ -4487,8 +4489,8 @@ func _assert_touch_feel_0532(main) -> bool:
 
 
 func _assert_touch_feel_0533(main) -> bool:
-	## West dest leftover. 0537 re-runs settle / compact / south path
-	## plus #1 (6,6) + #2 (5,16) + detour ≤6 + camera 0.40.
+	## West dest leftover. 0538 re-runs settle / compact / south path
+	## plus dest (6,6)/(5,16) + detour ≤6 + readable zoom/scales.
 	main._ensure_touch_hud()
 	main._update_hud()
 	await process_frame
@@ -4500,8 +4502,8 @@ func _assert_touch_feel_0533(main) -> bool:
 
 
 func _assert_touch_feel_0534(main) -> bool:
-	## West dest leftover. 0537 re-runs settle / compact / south path
-	## plus #1 (6,6) + #2 (5,16) + detour ≤6 + camera 0.40.
+	## West dest leftover. 0538 re-runs settle / compact / south path
+	## plus dest (6,6)/(5,16) + detour ≤6 + readable zoom/scales.
 	main._ensure_touch_hud()
 	main._update_hud()
 	await process_frame
@@ -4513,8 +4515,8 @@ func _assert_touch_feel_0534(main) -> bool:
 
 
 func _assert_touch_feel_0535(main) -> bool:
-	## West dest leftover. 0537 re-runs settle / compact / south path
-	## plus #1 (6,6) + camera 0.40.
+	## West dest leftover. 0538 re-runs settle / compact / south path
+	## plus dest (6,6)/(5,16) + readable zoom/scales.
 	main._ensure_touch_hud()
 	main._update_hud()
 	await process_frame
@@ -4526,8 +4528,8 @@ func _assert_touch_feel_0535(main) -> bool:
 
 
 func _assert_touch_feel_0536(main) -> bool:
-	## West dest leftover. 0537 re-runs settle / compact / south path
-	## plus #1 (6,6) + camera 0.40.
+	## West dest leftover. 0538 re-runs settle / compact / south path
+	## plus dest (6,6)/(5,16) + readable zoom/scales.
 	main._ensure_touch_hud()
 	main._update_hud()
 	await process_frame
@@ -4539,16 +4541,28 @@ func _assert_touch_feel_0536(main) -> bool:
 
 
 func _assert_touch_feel_0537(main) -> bool:
-	## #1 dest pulled along-file to (6,6); #2 stays (5,16). Span 6.
-	## West-follow detour ≤6. Camera ~0.40 (leftover cap already ~0.44)
-	## so the still-sticky lead→#2 world gap (~190.9) reads. Bodies/rings
-	## stay at the visual floor (~0.16). Full south-corridor path y14=0,
-	## east 0, axis_run 0. Settle-on-ring, bidirectional ↺/↻, yellow cone.
+	## West dest leftover. 0538 re-runs settle / compact / south path
+	## plus dest (6,6)/(5,16) + readable zoom/scales.
 	main._ensure_touch_hud()
 	main._update_hud()
 	await process_frame
 	await process_frame
 	if not await _assert_west_dest_0537(main):
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_0537")
+	return true
+
+
+func _assert_touch_feel_0538(main) -> bool:
+	## West follow at ~1.0 zoom / 1.0 body+obs scale (pan/crop, not
+	## postage-stamp world zoom). Dest (7,12)/(6,6)/(5,16) span 6,
+	## detour ≤6. Full south-corridor path y14=0, east 0, axis_run 0.
+	## Settle-on-ring, bidirectional ↺/↻, yellow cone.
+	main._ensure_touch_hud()
+	main._update_hud()
+	await process_frame
+	await process_frame
+	if not await _assert_west_dest_0538(main):
 		return false
 	if not await _assert_face_arc_south_cap_0526(main):
 		return false
@@ -4558,7 +4572,7 @@ func _assert_touch_feel_0537(main) -> bool:
 		return false
 	if not await _assert_follow_settle_ring(main):
 		return false
-	print("SMOKE_OK_TOUCH_FEEL_0537")
+	print("SMOKE_OK_TOUCH_FEEL_0538")
 	return true
 
 
@@ -4730,8 +4744,8 @@ func _assert_west_follow_rear(main) -> bool:
 			main._follow_selected_cam(0.05)
 		await process_frame
 	var z_walk := float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0
-	if (bool(a.is_moving()) or bool(b.is_moving())) and z_walk > 0.90:
-		push_error("SMOKE_WEST_CAM_NO_PULLBACK z=%s a=%s b=%s" % [z_walk, a.grid_cell(), b.grid_cell()])
+	if (bool(a.is_moving()) or bool(b.is_moving())) and z_walk < 0.85:
+		push_error("SMOKE_WEST_CAM_POSTAGE z=%s a=%s b=%s" % [z_walk, a.grid_cell(), b.grid_cell()])
 		quit(44)
 		return false
 	await _tick_follow_steps(main, 16)
@@ -4776,7 +4790,7 @@ func _assert_west_follow_rear(main) -> bool:
 			main._follow_selected_cam(0.05)
 		await process_frame
 	var z := float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0
-	if z > 0.80:
+	if z < 0.85:
 		push_error("SMOKE_WEST_CAM_HOLD z=%s walk=%s d1=%s d2=%s" % [z, z_walk, d1, d2])
 		quit(44)
 		return false
@@ -5149,18 +5163,18 @@ func _assert_west_obs_tight(main) -> bool:
 		quit(44)
 		return false
 	var z := float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0
-	if z > 0.58:
+	if z < 0.85:
 		push_error("SMOKE_WEST_OBS_CAM z=%s d1=%s d2=%s" % [z, d1, d2])
 		quit(44)
 		return false
 	var scale := float(main.follow_obs_visual_scale()) if main.has_method("follow_obs_visual_scale") else 1.0
-	if scale > 0.70:
+	if scale < 0.92:
 		push_error("SMOKE_WEST_OBS_SCALE s=%s z=%s" % [scale, z])
 		quit(44)
 		return false
 	var rad := float(main.follow_obs_visual_radius()) if main.has_method("follow_obs_visual_radius") else 0.0
 	var kit := float(b.kit_range_px) if "kit_range_px" in b else 280.0
-	if rad <= 8.0 or rad > kit * 0.80:
+	if rad < kit * 0.92:
 		push_error("SMOKE_WEST_OBS_RAD r=%s kit=%s scale=%s" % [rad, kit, scale])
 		quit(44)
 		return false
@@ -5543,7 +5557,7 @@ func _assert_west_body_stagger(main) -> bool:
 		quit(44)
 		return false
 	var scale := float(main.follow_cluster_body_scale()) if main.has_method("follow_cluster_body_scale") else 1.0
-	if scale > 0.88:
+	if scale < 0.92:
 		push_error("SMOKE_WEST_STAGGER_SCALE s=%s spread=%s" % [scale, spread])
 		quit(44)
 		return false
@@ -6045,7 +6059,7 @@ func _assert_west_half_cell(main) -> bool:
 		quit(44)
 		return false
 	var scale := float(main.follow_cluster_body_scale()) if main.has_method("follow_cluster_body_scale") else 1.0
-	if scale > 0.72:
+	if scale < 0.92:
 		push_error("SMOKE_WEST_HALF_SCALE s=%s" % scale)
 		quit(44)
 		return false
@@ -6362,7 +6376,7 @@ func _assert_west_tighter(main) -> bool:
 		quit(44)
 		return false
 	var scale := float(main.follow_cluster_body_scale()) if main.has_method("follow_cluster_body_scale") else 1.0
-	if scale > 0.58:
+	if scale < 0.92:
 		push_error("SMOKE_WEST_TIGHT_SCALE s=%s" % scale)
 		quit(44)
 		return false
@@ -6494,12 +6508,12 @@ func _assert_west_clearer(main) -> bool:
 		quit(44)
 		return false
 	var scale := float(main.follow_cluster_body_scale()) if main.has_method("follow_cluster_body_scale") else 1.0
-	if scale > 0.50:
+	if scale < 0.92:
 		push_error("SMOKE_WEST_CLEAR_SCALE s=%s" % scale)
 		quit(44)
 		return false
 	var obs := float(main.follow_obs_visual_scale()) if main.has_method("follow_obs_visual_scale") else 1.0
-	if obs > 0.50:
+	if obs < 0.92:
 		push_error("SMOKE_WEST_CLEAR_OBS s=%s" % obs)
 		quit(44)
 		return false
@@ -6509,7 +6523,7 @@ func _assert_west_clearer(main) -> bool:
 		quit(44)
 		return false
 	var z := float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0
-	if z > 0.52:
+	if z < 0.85:
 		push_error("SMOKE_WEST_CLEAR_CAM z=%s d1=%s d2=%s" % [z, d1, d2])
 		quit(44)
 		return false
@@ -6728,12 +6742,12 @@ func _assert_west_cone_fade(main) -> bool:
 		quit(44)
 		return false
 	var scale := float(main.follow_cluster_body_scale()) if main.has_method("follow_cluster_body_scale") else 1.0
-	if scale > 0.42:
+	if scale < 0.92:
 		push_error("SMOKE_WEST_FADE_SCALE s=%s" % scale)
 		quit(44)
 		return false
 	var obs := float(main.follow_obs_visual_scale()) if main.has_method("follow_obs_visual_scale") else 1.0
-	if obs > 0.40:
+	if obs < 0.92:
 		push_error("SMOKE_WEST_FADE_OBS s=%s" % obs)
 		quit(44)
 		return false
@@ -6752,7 +6766,7 @@ func _assert_west_cone_fade(main) -> bool:
 		quit(44)
 		return false
 	var z := float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0
-	if z > 0.48:
+	if z < 0.85:
 		push_error("SMOKE_WEST_FADE_CAM z=%s d1=%s d2=%s" % [z, d1, d2])
 		quit(44)
 		return false
@@ -7232,12 +7246,12 @@ func _assert_west_scale_0523(main) -> bool:
 		quit(44)
 		return false
 	var scale := float(main.follow_cluster_body_scale()) if main.has_method("follow_cluster_body_scale") else 1.0
-	if scale > 0.36:
+	if scale < 0.92:
 		push_error("SMOKE_WEST_SCALE_0523_BODY s=%s" % scale)
 		quit(44)
 		return false
 	var obs := float(main.follow_obs_visual_scale()) if main.has_method("follow_obs_visual_scale") else 1.0
-	if obs > 0.32:
+	if obs < 0.92:
 		push_error("SMOKE_WEST_SCALE_0523_OBS s=%s" % obs)
 		quit(44)
 		return false
@@ -7430,7 +7444,7 @@ func _assert_west_cam_ring_0524(main) -> bool:
 		quit(44)
 		return false
 	var z := float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0
-	if z > 0.48:
+	if z < 0.85:
 		push_error("SMOKE_WEST_CAM_RING_0524_ZOOM z=%s d1=%s d2=%s" % [z, d1, d2])
 		quit(44)
 		return false
@@ -8087,7 +8101,7 @@ func _assert_west_obs_cam_0528(main) -> bool:
 		quit(44)
 		return false
 	var z := float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0
-	if z > 0.44:
+	if z < 0.85:
 		push_error("SMOKE_WEST_OBS_CAM_0528_ZOOM z=%s off=%s" % [z, obs_off])
 		quit(44)
 		return false
@@ -8215,17 +8229,17 @@ func _assert_west_obs_cam_0529(main) -> bool:
 		quit(44)
 		return false
 	var z := float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0
-	if z > 0.44:
+	if z < 0.85:
 		push_error("SMOKE_WEST_OBS_CAM_0529_ZOOM z=%s off=%s" % [z, obs_off])
 		quit(44)
 		return false
 	var scale := float(main.follow_cluster_body_scale()) if main.has_method("follow_cluster_body_scale") else 1.0
-	if scale > 0.32:
+	if scale < 0.92:
 		push_error("SMOKE_WEST_OBS_CAM_0529_BODY s=%s" % scale)
 		quit(44)
 		return false
 	var obs := float(main.follow_obs_visual_scale()) if main.has_method("follow_obs_visual_scale") else 1.0
-	if obs > 0.26:
+	if obs < 0.92:
 		push_error("SMOKE_WEST_OBS_CAM_0529_OBS s=%s" % obs)
 		quit(44)
 		return false
@@ -8267,9 +8281,9 @@ func _assert_west_obs_cam_0529(main) -> bool:
 
 
 func _assert_west_obs_cam_0530(main) -> bool:
-	## v0.5.37 leftover: dest cells (7,12)/(6,6)/(5,16) span 6. Bodies and
-	## observation rings at visual floor (~0.16). Leftover zoom cap raised
-	## past 0.34 so camera ~0.40 can land. No west-wall hug.
+	## v0.5.38 leftover: dest cells (7,12)/(6,6)/(5,16) span 6. Bodies and
+	## observation rings at ~1.0. Leftover zoom cap raised
+	## past 0.34 so camera ~1.0 can land. No west-wall hug.
 	if main.operators.size() < 3 or main.grid == null:
 		push_error("SMOKE_WEST_OBS_CAM_0530_NO_OPS")
 		quit(44)
@@ -8354,17 +8368,17 @@ func _assert_west_obs_cam_0530(main) -> bool:
 		quit(44)
 		return false
 	var z := float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0
-	if z > 0.44:
+	if z < 0.85:
 		push_error("SMOKE_WEST_OBS_CAM_0530_ZOOM z=%s off=%s" % [z, obs_off])
 		quit(44)
 		return false
 	var scale := float(main.follow_cluster_body_scale()) if main.has_method("follow_cluster_body_scale") else 1.0
-	if scale > 0.28:
+	if scale < 0.92:
 		push_error("SMOKE_WEST_OBS_CAM_0530_BODY s=%s" % scale)
 		quit(44)
 		return false
 	var obs := float(main.follow_obs_visual_scale()) if main.has_method("follow_obs_visual_scale") else 1.0
-	if obs > 0.22:
+	if obs < 0.92:
 		push_error("SMOKE_WEST_OBS_CAM_0530_OBS s=%s" % obs)
 		quit(44)
 		return false
@@ -8406,10 +8420,10 @@ func _assert_west_obs_cam_0530(main) -> bool:
 
 
 func _assert_west_obs_cam_0531(main) -> bool:
-	## v0.5.37 leftover: dest cells (7,12)/(6,6)/(5,16) span 6. Bodies and
-	## observation rings at visual floor (~0.16). Rings offset one more
+	## v0.5.38 leftover: dest cells (7,12)/(6,6)/(5,16) span 6. Bodies and
+	## observation rings at ~1.0. Rings offset one more
 	## along-file / courtyard step. Leftover zoom cap raised past 0.34 so
-	## camera ~0.40 can land. No west-wall hug.
+	## camera ~1.0 can land. No west-wall hug.
 	if main.operators.size() < 3 or main.grid == null:
 		push_error("SMOKE_WEST_OBS_CAM_0531_NO_OPS")
 		quit(44)
@@ -8494,17 +8508,17 @@ func _assert_west_obs_cam_0531(main) -> bool:
 		quit(44)
 		return false
 	var z := float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0
-	if z > 0.44:
+	if z < 0.85:
 		push_error("SMOKE_WEST_OBS_CAM_0531_ZOOM z=%s off=%s" % [z, obs_off])
 		quit(44)
 		return false
 	var scale := float(main.follow_cluster_body_scale()) if main.has_method("follow_cluster_body_scale") else 1.0
-	if scale > 0.18:
+	if scale < 0.92:
 		push_error("SMOKE_WEST_OBS_CAM_0531_BODY s=%s" % scale)
 		quit(44)
 		return false
 	var obs := float(main.follow_obs_visual_scale()) if main.has_method("follow_obs_visual_scale") else 1.0
-	if obs > 0.18:
+	if obs < 0.92:
 		push_error("SMOKE_WEST_OBS_CAM_0531_OBS s=%s" % obs)
 		quit(44)
 		return false
@@ -8546,7 +8560,7 @@ func _assert_west_obs_cam_0531(main) -> bool:
 
 
 func _assert_west_dest_0532(main) -> bool:
-	## v0.5.37 leftover: dest cells spread. First follower 6 along-file
+	## v0.5.38 leftover: dest cells spread. First follower 6 along-file
 	## (dx=1, not hugging the west wall), second 2 back / 4 the other way.
 	## Span 6. Cone still empty. Visual knobs stay at the floor.
 	if main.operators.size() < 3 or main.grid == null:
@@ -8679,10 +8693,10 @@ func _assert_west_dest_0532(main) -> bool:
 
 
 func _assert_west_dest_0533(main) -> bool:
-	## v0.5.37 leftover: dest cells (7,12)/(6,6)/(5,16) span 6. First 6
+	## v0.5.38 leftover: dest cells (7,12)/(6,6)/(5,16) span 6. First 6
 	## along-file (dx=1, not hugging the west wall), second 2 back / 4
-	## the other way. Leftover zoom cap raised past 0.34 so camera ~0.40
-	## can land. Bodies/rings stay on the visual floor (~0.16). Cone still empty.
+	## the other way. Follow camera ~1.0 (floor ≥0.85) with pan/crop.
+	## Bodies/rings restored to ~1.0. Cone still empty.
 	if main.operators.size() < 3 or main.grid == null:
 		push_error("SMOKE_WEST_DEST_0533_NO_OPS")
 		quit(44)
@@ -8790,17 +8804,17 @@ func _assert_west_dest_0533(main) -> bool:
 		quit(44)
 		return false
 	var z := float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0
-	if z > 0.44:
+	if z < 0.85:
 		push_error("SMOKE_WEST_DEST_0533_ZOOM z=%s d1=%s d2=%s" % [z, d1, d2])
 		quit(44)
 		return false
 	var scale := float(main.follow_cluster_body_scale()) if main.has_method("follow_cluster_body_scale") else 1.0
-	if scale > 0.18:
+	if scale < 0.92:
 		push_error("SMOKE_WEST_DEST_0533_BODY s=%s" % scale)
 		quit(44)
 		return false
 	var obs := float(main.follow_obs_visual_scale()) if main.has_method("follow_obs_visual_scale") else 1.0
-	if obs > 0.18:
+	if obs < 0.92:
 		push_error("SMOKE_WEST_DEST_0533_OBS s=%s" % obs)
 		quit(44)
 		return false
@@ -8837,10 +8851,10 @@ func _assert_west_dest_0533(main) -> bool:
 
 
 func _assert_west_dest_0534(main) -> bool:
-	## v0.5.37 leftover: dest cells (7,12)/(6,6)/(5,16) span 6. On-ring
+	## v0.5.38 leftover: dest cells (7,12)/(6,6)/(5,16) span 6. On-ring
 	## extra cut so #2's ring does not punch the west wall. Dest world
 	## clamps onto walkable floor. Leftover zoom cap raised past 0.34 so
-	## camera ~0.40 can land. Bodies/rings stay on the visual floor (~0.16).
+	## camera ~1.0 can land. Bodies/rings restored to ~1.0.
 	## Cone still empty.
 	if main.operators.size() < 3 or main.grid == null:
 		push_error("SMOKE_WEST_DEST_0534_NO_OPS")
@@ -8964,7 +8978,7 @@ func _assert_west_dest_0534(main) -> bool:
 		quit(44)
 		return false
 	var z := float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0
-	if z < 0.30 or z > 0.44:
+	if z < 0.85:
 		push_error("SMOKE_WEST_DEST_0534_ZOOM z=%s d1=%s d2=%s" % [z, d1, d2])
 		quit(44)
 		return false
@@ -8974,12 +8988,12 @@ func _assert_west_dest_0534(main) -> bool:
 		quit(44)
 		return false
 	var scale := float(main.follow_cluster_body_scale()) if main.has_method("follow_cluster_body_scale") else 1.0
-	if scale < 0.15 or scale > 0.18:
+	if scale < 0.92:
 		push_error("SMOKE_WEST_DEST_0534_BODY s=%s" % scale)
 		quit(44)
 		return false
 	var obs := float(main.follow_obs_visual_scale()) if main.has_method("follow_obs_visual_scale") else 1.0
-	if obs < 0.15 or obs > 0.18:
+	if obs < 0.92:
 		push_error("SMOKE_WEST_DEST_0534_OBS s=%s" % obs)
 		quit(44)
 		return false
@@ -9019,10 +9033,10 @@ func _assert_west_dest_0534(main) -> bool:
 
 
 func _assert_west_dest_0535(main) -> bool:
-	## v0.5.37 leftover: dest cells (7,12)/(6,6)/(5,16) span 6. West-follow
+	## v0.5.38 leftover: dest cells (7,12)/(6,6)/(5,16) span 6. West-follow
 	## detour ≤6. Dest world spread above the 184.6 lead→#2 edge. Leftover
-	## zoom cap raised past 0.34 so camera ~0.40 can land. Bodies/rings stay
-	## on the visual floor (~0.16). Cone still empty.
+	## zoom cap raised past 0.34 so camera ~1.0 can land. Bodies/rings stay
+	## at ~1.0. Cone still empty.
 	if main.operators.size() < 3 or main.grid == null:
 		push_error("SMOKE_WEST_DEST_0535_NO_OPS")
 		quit(44)
@@ -9145,17 +9159,17 @@ func _assert_west_dest_0535(main) -> bool:
 		quit(44)
 		return false
 	var z := float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0
-	if z < 0.30 or z > 0.44:
+	if z < 0.85:
 		push_error("SMOKE_WEST_DEST_0535_ZOOM z=%s d1=%s d2=%s" % [z, d1, d2])
 		quit(44)
 		return false
 	var scale := float(main.follow_cluster_body_scale()) if main.has_method("follow_cluster_body_scale") else 1.0
-	if scale < 0.15 or scale > 0.18:
+	if scale < 0.92:
 		push_error("SMOKE_WEST_DEST_0535_BODY s=%s" % scale)
 		quit(44)
 		return false
 	var obs := float(main.follow_obs_visual_scale()) if main.has_method("follow_obs_visual_scale") else 1.0
-	if obs < 0.15 or obs > 0.18:
+	if obs < 0.92:
 		push_error("SMOKE_WEST_DEST_0535_OBS s=%s" % obs)
 		quit(44)
 		return false
@@ -9200,9 +9214,9 @@ func _assert_west_dest_0535(main) -> bool:
 
 
 func _assert_west_dest_0536(main) -> bool:
-	## v0.5.37 leftover: dest cells (7,12)/(6,6)/(5,16) span 6. Camera ~0.40.
+	## v0.5.38 leftover: dest cells (7,12)/(6,6)/(5,16) span 6. Camera ~1.0.
 	## Dest world spread above the 184.6 lead→#2 edge. West-follow detour ≤6.
-	## Bodies/rings stay on the visual floor (~0.16). Cone still empty.
+	## Bodies/rings restored to ~1.0. Cone still empty.
 	if main.operators.size() < 3 or main.grid == null:
 		push_error("SMOKE_WEST_DEST_0536_NO_OPS")
 		quit(44)
@@ -9325,17 +9339,17 @@ func _assert_west_dest_0536(main) -> bool:
 		quit(44)
 		return false
 	var z := float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0
-	if z < 0.30 or z > 0.44:
+	if z < 0.85:
 		push_error("SMOKE_WEST_DEST_0536_ZOOM z=%s d1=%s d2=%s" % [z, d1, d2])
 		quit(44)
 		return false
 	var scale := float(main.follow_cluster_body_scale()) if main.has_method("follow_cluster_body_scale") else 1.0
-	if scale < 0.15 or scale > 0.18:
+	if scale < 0.92:
 		push_error("SMOKE_WEST_DEST_0536_BODY s=%s" % scale)
 		quit(44)
 		return false
 	var obs := float(main.follow_obs_visual_scale()) if main.has_method("follow_obs_visual_scale") else 1.0
-	if obs < 0.15 or obs > 0.18:
+	if obs < 0.92:
 		push_error("SMOKE_WEST_DEST_0536_OBS s=%s" % obs)
 		quit(44)
 		return false
@@ -9380,10 +9394,9 @@ func _assert_west_dest_0536(main) -> bool:
 
 
 func _assert_west_dest_0537(main) -> bool:
-	## v0.5.37: dest cells (7,12)/(6,6)/(5,16) span 6. #1 pulled along-file;
-	## #2 stays (5,16). Camera ~0.40 (leftover cap already ~0.44) so the
-	## lead→#2 world gap (~190.9) reads. West-follow detour ≤6.
-	## Bodies/rings stay on the visual floor (~0.16). Cone still empty.
+	## v0.5.38 leftover: dest cells (7,12)/(6,6)/(5,16) span 6. #1 stays
+	## along-file; #2 stays (5,16). Follow camera ~1.0 (floor ≥0.85) with
+	## pan/crop. Bodies/rings ~1.0. West-follow detour ≤6. Cone still empty.
 	if main.operators.size() < 3 or main.grid == null:
 		push_error("SMOKE_WEST_DEST_0537_NO_OPS")
 		quit(44)
@@ -9506,17 +9519,17 @@ func _assert_west_dest_0537(main) -> bool:
 		quit(44)
 		return false
 	var z := float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0
-	if z < 0.385 or z > 0.44:
+	if z < 0.85:
 		push_error("SMOKE_WEST_DEST_0537_ZOOM z=%s d1=%s d2=%s" % [z, d1, d2])
 		quit(44)
 		return false
 	var scale := float(main.follow_cluster_body_scale()) if main.has_method("follow_cluster_body_scale") else 1.0
-	if scale < 0.15 or scale > 0.18:
+	if scale < 0.92:
 		push_error("SMOKE_WEST_DEST_0537_BODY s=%s" % scale)
 		quit(44)
 		return false
 	var obs := float(main.follow_obs_visual_scale()) if main.has_method("follow_obs_visual_scale") else 1.0
-	if obs < 0.15 or obs > 0.18:
+	if obs < 0.92:
 		push_error("SMOKE_WEST_DEST_0537_OBS s=%s" % obs)
 		quit(44)
 		return false
@@ -9530,6 +9543,11 @@ func _assert_west_dest_0537(main) -> bool:
 		push_error("SMOKE_WEST_DEST_0537_DETOUR n=%s d1=%s d2=%s" % [detour, d1, d2])
 		quit(44)
 		return false
+	var world_span: Vector2 = main.follow_cam_world_span() if main.has_method("follow_cam_world_span") else Vector2(1280, 720)
+	if world_span.x > 1600.0:
+		push_error("SMOKE_WEST_DEST_0537_POSTAGE span=%s z=%s" % [world_span, z])
+		quit(44)
+		return false
 	print(
 		"SMOKE_OK_WEST_DEST_0537 d1=", d1, " d2=", d2, " lead=", lc,
 		" span=", span, " cd1=", cd1, " cd2=", cd2, " pair=", pair, " cheb=", cheb,
@@ -9540,7 +9558,155 @@ func _assert_west_dest_0537(main) -> bool:
 		" scale=", snapped(scale, 0.01),
 		" obs=", snapped(obs, 0.01),
 		" dest_spread=", snapped(dest_spread, 0.1),
-		" detour=", detour
+		" detour=", detour,
+		" world_span=", snapped(world_span.x, 1.0), "x", snapped(world_span.y, 1.0)
+	)
+	if bool(a.follow_lead) != flags[0]:
+		main.toggle_follow(1)
+	if bool(b.follow_lead) != flags[1]:
+		main.toggle_follow(2)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	lead.global_position = homes[0]
+	a.global_position = homes[1]
+	b.global_position = homes[2]
+	main._follow_dest.clear()
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	if main.has_method("_update_observation_rings"):
+		main._update_observation_rings()
+	return true
+
+
+func _assert_west_dest_0538(main) -> bool:
+	## v0.5.38: dest cells (7,12)/(6,6)/(5,16) span 6. Follow camera ~1.0
+	## (floor ≥0.85) with pan/crop so the courtyard is not a postage stamp.
+	## Bodies and observation rings ~1.0. West-follow detour ≤6.
+	if main.operators.size() < 3 or main.grid == null:
+		push_error("SMOKE_WEST_DEST_0538_NO_OPS")
+		quit(44)
+		return false
+	var lead: OperatorUnit = main.operators[0]
+	var a: OperatorUnit = main.operators[1]
+	var b: OperatorUnit = main.operators[2]
+	var homes: Array[Vector2] = [lead.global_position, a.global_position, b.global_position]
+	var flags: Array[bool] = [bool(a.follow_lead), bool(b.follow_lead)]
+	if main.c2 and not main.c2.sentries.is_empty():
+		_park_sentries(main, null)
+	var lead_c := Vector2i(7, 12)
+	var a_c := Vector2i(6, 14)
+	var b_c := Vector2i(6, 16)
+	if main.grid.is_blocked(lead_c.x, lead_c.y) or main._cell_is_operable(lead_c):
+		lead_c = Vector2i(7, 13)
+	main._select_op(0)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	if lead.has_method("set_facing"):
+		lead.set_facing(0.0)
+	else:
+		lead.facing_deg = 0.0
+		if lead.has_method("_rebuild_cone"):
+			lead._rebuild_cone()
+	lead.global_position = main.grid.cell_to_world_center(lead_c)
+	a.global_position = main.grid.cell_to_world_center(a_c)
+	b.global_position = main.grid.cell_to_world_center(b_c)
+	main._stealth_avoid_cache.clear()
+	main._stealth_avoid_msec = 0
+	if not bool(a.follow_lead):
+		main.toggle_follow(1)
+	if not bool(b.follow_lead):
+		main.toggle_follow(2)
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	main._tick_squad_follow(0.05)
+	await _tick_follow_steps(main, 16)
+	for _hold in 16:
+		if main.has_method("_update_observation_rings"):
+			main._update_observation_rings()
+		if main.has_method("_follow_selected_cam"):
+			main._follow_selected_cam(0.05)
+		main._tick_squad_follow(0.05)
+		if main.has_method("_tick_command_moves"):
+			main._tick_command_moves(0.05)
+		await process_frame
+	var d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+	var d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+	if d1 != Vector2i(6, 6) or d2 != Vector2i(5, 16):
+		push_error("SMOKE_WEST_DEST_0538_DEST d1=%s d2=%s want=(6,6)/(5,16)" % [d1, d2])
+		quit(44)
+		return false
+	var lc: Vector2i = lead.grid_cell()
+	if lc != Vector2i(7, 12) and lc != Vector2i(7, 13):
+		push_error("SMOKE_WEST_DEST_0538_LEAD lead=%s d1=%s d2=%s" % [lc, d1, d2])
+		quit(44)
+		return false
+	var span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
+	if span != 6:
+		push_error("SMOKE_WEST_DEST_0538_SPAN n=%s d1=%s d2=%s" % [span, d1, d2])
+		quit(44)
+		return false
+	if d1.x <= 4 or d2.x <= 4:
+		push_error("SMOKE_WEST_DEST_0538_WALL d1=%s d2=%s lead=%s" % [d1, d2, lc])
+		quit(44)
+		return false
+	if d2.y < 16:
+		push_error("SMOKE_WEST_DEST_0538_SOUTH d2=%s lead=%s" % [d2, lc])
+		quit(44)
+		return false
+	var hug := int(main.follow_obs_west_hug()) if main.has_method("follow_obs_west_hug") else 99
+	if hug > 0:
+		push_error("SMOKE_WEST_DEST_0538_HUG n=%s d1=%s d2=%s" % [hug, d1, d2])
+		quit(44)
+		return false
+	var z := float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0
+	if z < 0.85:
+		push_error("SMOKE_WEST_DEST_0538_ZOOM z=%s d1=%s d2=%s" % [z, d1, d2])
+		quit(44)
+		return false
+	var scale := float(main.follow_cluster_body_scale()) if main.has_method("follow_cluster_body_scale") else 1.0
+	if scale < 0.92:
+		push_error("SMOKE_WEST_DEST_0538_BODY s=%s" % scale)
+		quit(44)
+		return false
+	var obs := float(main.follow_obs_visual_scale()) if main.has_method("follow_obs_visual_scale") else 1.0
+	if obs < 0.92:
+		push_error("SMOKE_WEST_DEST_0538_OBS s=%s" % obs)
+		quit(44)
+		return false
+	var dest_spread := float(main.follow_dest_world_min_spacing()) if main.has_method("follow_dest_world_min_spacing") else 0.0
+	if dest_spread < 186.0:
+		push_error("SMOKE_WEST_DEST_0538_SPREAD spread=%s d1=%s d2=%s" % [dest_spread, d1, d2])
+		quit(44)
+		return false
+	var detour := int(main.follow_max_detour()) if main.has_method("follow_max_detour") else 99
+	if detour > 6:
+		push_error("SMOKE_WEST_DEST_0538_DETOUR n=%s d1=%s d2=%s" % [detour, d1, d2])
+		quit(44)
+		return false
+	var fade := float(main.follow_cone_visual_fade()) if main.has_method("follow_cone_visual_fade") else 1.0
+	if fade > 0.50:
+		push_error("SMOKE_WEST_DEST_0538_FADE s=%s" % fade)
+		quit(44)
+		return false
+	var world_span: Vector2 = main.follow_cam_world_span() if main.has_method("follow_cam_world_span") else Vector2(1280, 720)
+	if world_span.x > 1600.0:
+		push_error("SMOKE_WEST_DEST_0538_POSTAGE span=%s z=%s" % [world_span, z])
+		quit(44)
+		return false
+	var pan: Vector2 = main.follow_cam_pan() if main.has_method("follow_cam_pan") else Vector2.ZERO
+	print(
+		"SMOKE_OK_WEST_DEST_0538 d1=", d1, " d2=", d2, " lead=", lc,
+		" span=", span,
+		" zoom=", snapped(z, 0.01),
+		" scale=", snapped(scale, 0.01),
+		" obs=", snapped(obs, 0.01),
+		" fade=", snapped(fade, 0.01),
+		" dest_spread=", snapped(dest_spread, 0.1),
+		" detour=", detour,
+		" world_span=", snapped(world_span.x, 1.0), "x", snapped(world_span.y, 1.0),
+		" pan=", snapped(pan.x, 0.1), snapped(pan.y, 0.1)
 	)
 	if bool(a.follow_lead) != flags[0]:
 		main.toggle_follow(1)
