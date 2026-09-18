@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.6.7":
+	if ver != "0.6.8":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3430,6 +3430,8 @@ func _assert_simplified_touch(main) -> bool:
 		return false
 	if not await _assert_touch_feel_0613(main):
 		return false
+	if not await _assert_touch_feel_0615(main):
+		return false
 	return true
 
 
@@ -4662,6 +4664,22 @@ func _assert_touch_feel_0613(main) -> bool:
 		quit(44)
 		return false
 	print("SMOKE_OK_TOUCH_FEEL_0613 fade=0.46")
+	return true
+
+
+func _assert_touch_feel_0615(main) -> bool:
+	## v0.6.8: crate take shows 拿到X in world, not only the HUD flash.
+	if not main.has_method("_spawn_loot_chip") or not main.has_method("last_loot_chip_text"):
+		push_error("SMOKE_LOOT_0615_NO_API")
+		quit(44)
+		return false
+	main._spawn_loot_chip(Vector2(200, 200), "kar98k")
+	var txt := str(main.last_loot_chip_text())
+	if txt.find("拿到") < 0:
+		push_error("SMOKE_LOOT_0615_TEXT %s" % txt)
+		quit(44)
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_0615 chip=", txt)
 	return true
 
 

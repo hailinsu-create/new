@@ -324,6 +324,7 @@ var _follow_body_arc_hits: int = 0
 var _follow_ring_hold: bool = false
 var _follow_dest_marks: Dictionary = {}
 var _follow_file: Line2D = null
+var _last_loot_chip: String = ""
 var _stealth_avoid_cache: Dictionary = {}
 var _stealth_avoid_msec: int = 0
 var _move_ghost: Line2D = null
@@ -5902,6 +5903,36 @@ func flash_text() -> String:
 	if flash_label == null or float(flash_label.modulate.a) < 0.08:
 		return ""
 	return str(flash_label.text)
+
+
+func last_loot_chip_text() -> String:
+	return _last_loot_chip
+
+
+func _spawn_loot_chip(at: Vector2, kind: String) -> void:
+	## World-space "拿到X" so phone players see the crate pay off, not only HUD.
+	var zh := kind
+	if WeaponCatalogScript:
+		zh = str(WeaponCatalogScript.tag_zh(kind))
+	_last_loot_chip = "拿到%s" % zh
+	if entities == null:
+		return
+	var lab := Label.new()
+	lab.name = "LootChip"
+	lab.text = _last_loot_chip
+	lab.add_theme_font_size_override("font_size", 13)
+	lab.add_theme_color_override("font_color", Color(0.96, 0.86, 0.42))
+	lab.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.02, 0.90))
+	lab.add_theme_constant_override("shadow_offset_x", 1)
+	lab.add_theme_constant_override("shadow_offset_y", 1)
+	lab.z_index = 12
+	lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	entities.add_child(lab)
+	lab.global_position = at + Vector2(-22, -28)
+	var tw := lab.create_tween()
+	tw.tween_property(lab, "position:y", lab.position.y - 18.0, 0.85)
+	tw.parallel().tween_property(lab, "modulate:a", 0.0, 0.85)
+	tw.tween_callback(lab.queue_free)
 
 
 func _flash(text: String, color: Color) -> void:
@@ -11600,6 +11631,7 @@ func _complete_stash_search(op: OperatorUnit) -> bool:
 	_sfx(_pickup_cue(str(item.get("kind", "ammo"))))
 	_operator_bark(op, "crate")
 	_flash(str(rec.get("text", "拾取")), Color(0.95, 0.82, 0.35))
+	_spawn_loot_chip(op.global_position, str(item.get("kind", "ammo")))
 	_update_role_cards()
 	_update_hud()
 	return true

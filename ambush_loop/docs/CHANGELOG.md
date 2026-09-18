@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.6.8 — Engine: crate loot world chip
+
+Sideload APK: `dist/AmbushLoop-v0.6.8-loot-chip.apk`
+
+Same RAID as 0.6.7. Dest span 6.
+
+### Play
+- **开匣拿到**: a world "拿到X" chip pops off the crate for ~0.85s.
+
+### Android
+- `versionName` 0.6.8 / `versionCode` 57.
+
 ## 0.6.7 — Engine: west cone fade tune
 
 Same RAID as 0.6.6. Dest span 6.
