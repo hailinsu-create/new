@@ -22,4 +22,6 @@ Third prop (art study): `build_gun_case.py` → `gun_case.glb` + turnaround + is
 
 Fourth prop (art study): `build_sandbag.py` → `sandbag.glb` + turnaround + iso. Three-bag stack. Shaded **front**: stacked canvas bricks + neck ties (sag is a later defect pass).
 
+Fifth prop (art study): `build_lamp_post.py` → `lamp_post.glb` + turnaround + iso. Iron stem + caged sodium lamp. Iso reads; contact sheet is cramped on a tall prop (later camera pass).
+
 Faced characters: Meshy only after `MESHY_API_KEY` exists. Scaffold: `meshy/README.md`. Skip until then.
