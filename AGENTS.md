@@ -1,17 +1,18 @@
----
-description: Always hand every user task to grok.com CLI (grok-4.6 Extra High Fast). Cursor Agent is only a router.
-alwaysApply: true
----
-
 # Always use grok.com CLI Extra High Fast
 
 This repo spends **lning's grok.com quota** (`lningha@gmail.com` / SuperGrok Heavy), not Cursor-billed Grok.
 
-**Every Cloud Agent** must hand the task to grok.com CLI Extra High Fast. Do not use Cursor Grok, Composer, or a weaker grok CLI model/effort/tier.
+Every Cloud Agent, Cursor Agent, and Bot-forwarded run must call grok.com CLI at the highest Fast profile. Do not use Cursor Grok, Composer, or a weaker grok CLI model/effort/tier.
 
-This policy is also in `AGENTS.md` so Cloud Agents load it even when `.mdc` rules are skipped.
+Pinned profile (enforced by `.cursor/grok/run.sh`):
 
-Project hooks in `.cursor/hooks.json` **deny** Cursor implementation tools (Write, StrReplace, Task/subagents, and non-git shells). Follow this rule even if a hook fails open.
+| Setting | Value |
+| --- | --- |
+| Model | `grok-4.6` (highest catalog model; there is no `grok-4.6-fast` slug) |
+| Effort | `xhigh` (Extra High — highest advertised grok-4.6 effort) |
+| Fast | xAI priority processing via `x-grok-service-tier: priority` |
+
+Do not pass a weaker model, a lower `--effort`, or skip Fast.
 
 ## If you are already Grok CLI
 
@@ -39,4 +40,8 @@ If login fails, run `bash .cursor/grok/run.sh login` and give the user the devic
 
 Allowed Cursor-side actions: write the prompt file, invoke `run.sh`, relay output, git commit/push/PR plumbing after Grok finished. Everything else is Grok's job.
 
-Pinned profile (already inside `run.sh`): model `grok-4.6`, effort `xhigh`, Fast via `x-grok-service-tier: priority`.
+Project hooks in `.cursor/hooks.json` **deny** Cursor implementation tools (Write, StrReplace, Task/subagents, and non-git shells). Follow this even if a hook fails open.
+
+## Cursor Cloud specific instructions
+
+Hand **every** Cloud Agent task to grok.com CLI Extra High Fast through `.cursor/grok/run.sh` as above. The wrapper always re-applies `grok-4.6` + `--effort xhigh` + Fast/priority even if `GROK_CONFIG` was already set. Confirm stderr contains `grok-cli: using grok-4.6 extra-high fast` before treating the run as complete.

@@ -95,7 +95,7 @@ PY
 
 refresh_oidc() {
   [[ -f "${OIDC_REFRESH}" ]] || die "missing OIDC refresh helper: ${OIDC_REFRESH}"
-  python3 "${OIDC_REFRESH}"
+  python3 "${OIDC_REFRESH}" "$@"
 }
 
 logged_in() {
@@ -135,7 +135,7 @@ cmd_status() {
 
 cmd_refresh() {
   [[ -f "${HOME}/.grok/auth.json" ]] || die "not authenticated. Run: $0 login   (grok login --device-auth) with the grok.com account whose quota you want to use."
-  refresh_oidc
+  refresh_oidc "$@"
 }
 
 cmd_login() {
@@ -152,7 +152,12 @@ cmd_run() {
   fi
 
   local cwd="${GROK_CLI_CWD:-$(pwd)}"
-  if [[ -z "${GROK_CONFIG:-}" ]]; then
+  # Always re-apply Extra High Fast. A pre-set GROK_CONFIG must not drop
+  # the priority Fast header or a weaker default effort.
+  if [[ -f "${SCRIPT_DIR}/pin_profile.py" ]]; then
+    export GROK_CONFIG="$(python3 "${SCRIPT_DIR}/pin_profile.py" grok-config)"
+    python3 "${SCRIPT_DIR}/pin_profile.py" user-config >/dev/null || true
+  else
     export GROK_CONFIG="$(python3 - <<PY
 import json
 print(json.dumps({
@@ -168,6 +173,7 @@ PY
   local extra=(
     --always-approve
     --no-auto-update
+    --trust
     --output-format plain
     --cwd "${cwd}"
     -m "${PINNED_MODEL}"

@@ -147,7 +147,8 @@ def main() -> None:
                 "permission": "allow",
                 "additional_context": (
                     "HARD REQUIREMENT: implement nothing with Cursor. "
-                    "Hand every user task to grok.com CLI Extra High Fast: "
+                    "Every Cloud Agent must hand every user task to grok.com CLI "
+                    "Grok 4.6 Extra High Fast (effort xhigh, x-grok-service-tier=priority): "
                     "bash .cursor/grok/run.sh run --file /tmp/grok-prompt.txt. "
                     "If grok CLI is already running this turn, do the work and do not recurse."
                 ),
