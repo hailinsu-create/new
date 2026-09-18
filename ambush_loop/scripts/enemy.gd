@@ -61,6 +61,13 @@ var _outline_boost: bool = false
 var _fade_corpse: bool = false
 var _last_runner: bool = false
 var echo_kit: bool = false
+var _distract_t: float = 0.0
+var _distract_pos: Vector2 = Vector2.ZERO
+var _decoy_stepped: bool = false
+var vis_cone: Polygon2D = null
+const SEE_R := 110.0
+const SEE_HALF := 24.0
+const CONE_RAYS := 12
 
 @onready var body: Polygon2D = $Body
 @onready var tag: Label = $Tag
@@ -72,6 +79,7 @@ func setup(id: int, p_route: PackedVector2Array, p_grid: AmbushGrid = null, p_lo
 	route = p_route.duplicate()
 	spawn_route = p_route_name
 	did_branch = false
+	_decoy_stepped = false
 	grid = p_grid
 	loot_ammo = p_loot
 	alive = true
@@ -88,6 +96,7 @@ func setup(id: int, p_route: PackedVector2Array, p_grid: AmbushGrid = null, p_lo
 	_trail_world = PackedVector2Array()
 	_reset_present_fx()
 	_apply_hostile_silhouette()
+	_ensure_vision_cone()
 	_refresh_tag()
 	if route.size() > 0:
 		global_position = route[0]
@@ -156,12 +165,57 @@ func maybe_branch(door_locked: bool, decision_world: Vector2, alt_world: PackedV
 	return true
 
 
+func distract(pos: Vector2, seconds: float = 0.35) -> void:
+	if not alive or not active:
+		return
+	_distract_pos = pos
+	_distract_t = maxf(_distract_t, seconds)
+	if not _decoy_stepped:
+		_decoy_stepped = true
+		_decoy_step_one_cell(pos)
+
+
+func _decoy_step_one_cell(pos: Vector2) -> void:
+	## Commandos pebble: peel one cell toward the noise, then resume the authored route.
+	if grid == null:
+		return
+	var cell: Vector2i = grid.world_to_cell(global_position)
+	var want: Vector2i = grid.world_to_cell(pos)
+	var dx := clampi(want.x - cell.x, -1, 1)
+	var dy := clampi(want.y - cell.y, -1, 1)
+	if dx == 0 and dy == 0:
+		return
+	if absi(want.x - cell.x) >= absi(want.y - cell.y):
+		dy = 0
+	else:
+		dx = 0
+	var next := Vector2i(cell.x + dx, cell.y + dy)
+	if not grid.in_bounds(next.x, next.y) or grid.is_blocked(next.x, next.y):
+		return
+	var world: Vector2 = grid.cell_to_world_center(next)
+	var rebuilt := PackedVector2Array()
+	rebuilt.append(global_position)
+	rebuilt.append(world)
+	if route_index < route.size():
+		for i in range(maxi(route_index, 0), route.size()):
+			rebuilt.append(route[i])
+	elif route.size() > 0:
+		rebuilt.append(route[route.size() - 1])
+	route = rebuilt
+	route_index = 1
+
+
 func sim_step(delta: float) -> void:
 	if not active or not alive:
 		return
 
 	return_cd = maxf(return_cd - delta, 0.0)
 	returning_fire = false
+	if _distract_t > 0.0:
+		_distract_t = maxf(_distract_t - delta, 0.0)
+		if _distract_pos != Vector2.ZERO:
+			_face_move(_distract_pos)
+		return
 
 	if route_index >= route.size():
 		# Standing on the last waypoint. Main resolves mouth escape after all movers
@@ -204,6 +258,7 @@ func _face_move(target: Vector2) -> void:
 		kind_rim.rotation = body.rotation
 	if weapon and is_instance_valid(weapon):
 		weapon.rotation = _weapon_snap
+	_rebuild_vision_cone()
 
 
 func resolve_return_fire() -> void:
@@ -260,6 +315,7 @@ func apply_fire(amount: float, from: OperatorUnit = null) -> void:
 		kill()
 	else:
 		CombatFxScript.impact(self, global_position, _kind_color.lightened(0.25), false)
+		CombatFxScript.steel_spark(self, global_position + Vector2(randf_range(-4.0, 4.0), randf_range(-6.0, 2.0)))
 		_play_hit_sfx()
 
 
@@ -270,6 +326,8 @@ func kill() -> void:
 	active = false
 	alerted = false
 	returning_fire = false
+	if vis_cone:
+		vis_cone.visible = false
 	_hit_flash = 0.0
 	_return_flash = 0.0
 	if body:
@@ -333,6 +391,8 @@ func _process(delta: float) -> void:
 	_update_hp_bar()
 	_tick_chevron_pulse()
 	_tick_echo_mast()
+	if alive and active:
+		_rebuild_vision_cone()
 
 
 func _ensure_contact_shadow() -> void:
@@ -427,13 +487,13 @@ func _hostile_body_poly() -> PackedVector2Array:
 func _kind_body_color() -> Color:
 	match kind_id():
 		"flank":
-			return Color(0.90, 0.42, 0.12)
+			return Color(0.48, 0.30, 0.16)
 		"sneak":
-			return Color(0.16, 0.20, 0.24)
+			return Color(0.16, 0.18, 0.14)
 		"echo":
-			return Color(0.22, 0.48, 0.62)
+			return Color(0.28, 0.32, 0.30)
 		_:
-			return Color(0.82, 0.16, 0.14)
+			return Color(0.38, 0.32, 0.24)
 
 
 func _kind_outline_color() -> Color:
@@ -448,12 +508,12 @@ func _kind_outline_color() -> Color:
 
 func _kind_rim_color() -> Color:
 	if echo_kit:
-		return Color(0.42, 0.88, 1.0, 0.95)
+		return Color(0.82, 0.70, 0.32, 0.95)
 	match kind_id():
 		"flank":
 			return Color(1.0, 0.62, 0.18, 0.95)
 		"sneak":
-			return Color(0.42, 0.82, 0.70, 0.92)
+			return Color(0.62, 0.72, 0.48, 0.92)
 		_:
 			return Color(1.0, 0.32, 0.22, 0.95)
 
@@ -561,7 +621,7 @@ func _ensure_echo_mast() -> void:
 		mast.polygon = PackedVector2Array([
 			Vector2(-1.4, -16), Vector2(1.4, -16), Vector2(1.1, -38), Vector2(-1.1, -38)
 		])
-		mast.color = Color(0.55, 0.88, 0.98, 0.95)
+		mast.color = Color(0.28, 0.26, 0.20, 0.95)
 		mast.z_index = 4
 		body.add_child(mast)
 	mast.visible = echo_kit
@@ -572,7 +632,7 @@ func _ensure_echo_mast() -> void:
 		tip.polygon = PackedVector2Array([
 			Vector2(-4.2, -36), Vector2(4.2, -36), Vector2(2.6, -44), Vector2(-2.6, -44)
 		])
-		tip.color = Color(0.78, 0.96, 1.0, 0.95)
+		tip.color = Color(0.72, 0.56, 0.26, 0.95)
 		tip.z_index = 5
 		body.add_child(tip)
 	tip.visible = echo_kit
@@ -587,10 +647,10 @@ func _tick_echo_mast() -> void:
 		return
 	var pulse := 0.55 + 0.45 * sin(_present_t * 6.2)
 	if tip:
-		tip.color = Color(0.62 + 0.30 * pulse, 0.92, 1.0, 0.70 + 0.28 * pulse)
+		tip.color = Color(0.62 + 0.20 * pulse, 0.52, 0.28, 0.70 + 0.28 * pulse)
 		tip.visible = alive
 	if mast:
-		mast.color = Color(0.40, 0.82, 0.96, 0.70 + 0.25 * pulse)
+		mast.color = Color(0.32, 0.28, 0.18, 0.70 + 0.25 * pulse)
 		mast.visible = alive
 
 
@@ -702,9 +762,9 @@ func _refresh_tag() -> void:
 		tag.text = "%s%d%s" % [kind_short(), label_id, bang]
 	var col := _kind_color.lightened(0.25)
 	if echo_kit:
-		col = Color(0.55, 0.92, 1.0)
+		col = Color(0.72, 0.62, 0.36)
 	elif kind_id() == "sneak":
-		col = Color(0.62, 0.78, 0.72)
+		col = Color(0.52, 0.50, 0.36)
 	tag.add_theme_color_override("font_color", col)
 
 
@@ -1215,3 +1275,66 @@ func _update_hp_bar() -> void:
 	var rc := _kind_rim_color()
 	hp_bar.color = Color(rc.r, rc.g, rc.b, 1.0)
 	hp_bar.z_index = 6
+
+
+func _ensure_vision_cone() -> void:
+	if vis_cone != null and is_instance_valid(vis_cone):
+		return
+	vis_cone = get_node_or_null("VisCone") as Polygon2D
+	if vis_cone == null:
+		vis_cone = Polygon2D.new()
+		vis_cone.name = "VisCone"
+		vis_cone.z_index = -1
+		add_child(vis_cone)
+		move_child(vis_cone, 0)
+	_rebuild_vision_cone()
+
+
+func _rebuild_vision_cone() -> void:
+	_ensure_vision_cone()
+	if vis_cone == null:
+		return
+	if not alive or not active:
+		vis_cone.visible = false
+		return
+	vis_cone.visible = true
+	var pts := PackedVector2Array([Vector2.ZERO])
+	for i in range(CONE_RAYS + 1):
+		var t := lerpf(-SEE_HALF, SEE_HALF, float(i) / float(CONE_RAYS))
+		var rad := deg_to_rad(facing_deg + t)
+		var dirv := Vector2(cos(rad), sin(rad))
+		var dist := _clip_see(dirv)
+		pts.append(dirv * dist)
+	vis_cone.polygon = pts
+	if alerted or returning_fire:
+		vis_cone.color = Color(0.92, 0.22, 0.14, 0.22)
+	else:
+		vis_cone.color = Color(0.82, 0.86, 0.28, 0.18)
+	var edge := get_node_or_null("VisConeEdge") as Line2D
+	if edge == null:
+		edge = Line2D.new()
+		edge.name = "VisConeEdge"
+		edge.width = 1.2
+		edge.z_index = 0
+		add_child(edge)
+	var epts := PackedVector2Array()
+	for i in range(1, pts.size()):
+		epts.append(pts[i])
+	edge.points = epts
+	edge.default_color = Color(0.92, 0.28, 0.16, 0.55) if alerted else Color(0.82, 0.88, 0.32, 0.40)
+	edge.visible = vis_cone.visible
+
+
+func _clip_see(dirv: Vector2) -> float:
+	if grid == null:
+		return SEE_R
+	var step := 16.0
+	var traveled := step
+	var last_ok := step
+	while traveled <= SEE_R:
+		var sample: Vector2 = global_position + dirv * traveled
+		if grid.has_method("has_los") and not bool(grid.has_los(global_position, sample)):
+			return last_ok
+		last_ok = traveled
+		traveled += step
+	return SEE_R

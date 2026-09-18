@@ -1,11 +1,15 @@
-# Ambush Loop — Commandos-prep completeness
+# Ambush Loop — Commandos raid completeness
 
-Honest checklist against a Commandos-style ambush-prep fantasy. This is a 2D
-top-down Godot vertical slice, not a Commandos clone.
+Honest checklist against a Commandos-style night raid. 2D top-down Godot slice,
+not a Commandos clone. Full contract: `docs/COMMANDOS_RAID.md`.
 
 ## Done in this slice
 
-- **Plan then lock:** SETUP → Space alarm freezes layout / facing / fire mode / door / tools. No mid-fight micro.
+- **Scout then alarm:** SETUP (walk/loot/plant) → Space starts a combat wave. Not a frozen watch-only plan.
+- **Sweep between waves:** clear a wave → walk/vacuum loot → next alarm or extract.
+- **Kits from the map:** knife start; 10 named WWII guns (Allied/Axis pairs) plus ammo/mine/grenade/decoy crates; 6-slot backpack.
+- **Commandos verbs kept small:** click-to-move, cover pads, mines, auto grenades, decoys, backpack swap. No RTS box-select.
+- **Plan then lock (legacy, replaced):** old SETUP lock-watch is gone as the core loop.
 - **Specialist kits:** rifle (filler), MG (wide/fast/short), scout (long/narrow/scarce).
 - **Cover protect arcs:** cyan fan; only attacks from that facing get 60% mitigation.
 - **LOS-clipped fire cones:** yellow, wall-cut; authored routes only (no free pathing).
@@ -28,7 +32,7 @@ top-down Godot vertical slice, not a Commandos clone.
 | Isometric / pixel Commandos art | Geometry + labels only; no art pipeline |
 | Steam/itch store page + CI export artifacts | Presets ship; builds are local (export templates required) |
 | Human playtest pass | Smoke is the regression gate, not a player report |
-| Mid-mission Commandos verbs | Climb, knife, distract, vehicles, multi-floor — explicitly out of design |
+| Climb / vehicles / multi-floor | Night-raid slice stays one floor; knife, mine, grenade, decoy shipped |
 | Real audio mix / VO / soundtrack | Quiet drone + beeps; Dummy driver in headless |
 
 Launch-bar checklist: `docs/LAUNCH_BAR.md`.  
@@ -36,6 +40,6 @@ Post-launch roadmap: `docs/开发规划.md`（v3：安卓 APK 首发）。
 
 ## Smoke gates that must stay green
 
-`godot --headless --path ambush_loop -s res://scripts/smoke_test.gd` prints `SMOKE_SLICE_COMPLETE` and `SMOKE_OK_LAUNCH_BAR` and exits 0.
+`godot --headless --path ambush_loop -s res://scripts/smoke_test.gd` prints `SMOKE_SLICE_COMPLETE`, `SMOKE_OK_RAID_LOOP`, and `SMOKE_OK_LAUNCH_BAR` and exits 0.
 
-Includes: title scene + GameSettings + AudioDirector autoloads; mission list lock (6 nights: yard / warehouse / pump / railcut / depot / radio); campaign journal names 电台; yard escape → restore → 1×/2× fingerprint match → reference win + debrief + chain strip; abort keeps intel; squad wipe fail; fail intel wall + covered-vs-leak + second-layer miss + leak paint; warehouse barrel present; pump open + locked alternate route; railcut geometry + delayed-flank contract + reference win; depot three-route + 2.2s sneak + tripwire; radio 3.6s sneak + 5.2s echo kit queued + tripwire + campaign credits naming 电台; night handoff copy; roles with distinct ranges; LOS clip.
+Includes: title + settings + audio; 6-night lock; raid contract (knife start, stashes, click-to-move); yard knife-leak + pickup + 2-wave reference extract; abort/wipe fail; warehouse/pump/railcut/depot/radio multi-wave reference raids; geometry/roles/LOS/feel gates.

@@ -26,7 +26,7 @@ var _emphasis: int = 0
 var _pulse_t: float = 0.0
 var _hold_p: float = 0.0
 var _role_hint: bool = false
-var _role_hint_col: Color = Color(0.62, 0.84, 0.42)
+var _role_hint_col: Color = Color(0.62, 0.52, 0.28)
 var _hint_ring: Line2D = null
 
 
@@ -57,7 +57,7 @@ func _ensure_crate_look() -> void:
 		Vector2(-17, -13), Vector2(-10, -19), Vector2(10, -19), Vector2(17, -13),
 		Vector2(17, 14), Vector2(10, 19), Vector2(-10, 19), Vector2(-17, 14)
 	])
-	pad.color = Color(0.28, 0.36, 0.22, 0.94)
+	pad.color = Color(0.30, 0.26, 0.16, 0.94)
 	var shadow := Polygon2D.new()
 	shadow.name = "CrateShadow"
 	shadow.polygon = PackedVector2Array([
@@ -68,6 +68,16 @@ func _ensure_crate_look() -> void:
 	shadow.show_behind_parent = true
 	add_child(shadow)
 	_crate_bits.append(shadow)
+	var mud := Polygon2D.new()
+	mud.name = "MudLip"
+	mud.polygon = PackedVector2Array([
+		Vector2(-18, 12), Vector2(18, 12), Vector2(14, 22), Vector2(-14, 22)
+	])
+	mud.color = Color(0.16, 0.12, 0.06, 0.55)
+	mud.z_index = -1
+	mud.show_behind_parent = true
+	add_child(mud)
+	_crate_bits.append(mud)
 	var rim := Polygon2D.new()
 	rim.name = "CrateRim"
 	rim.polygon = PackedVector2Array([
@@ -91,7 +101,7 @@ func _ensure_crate_look() -> void:
 	bag_a.polygon = PackedVector2Array([
 		Vector2(-15, 3), Vector2(-1, 1), Vector2(2, 9), Vector2(-13, 13)
 	])
-	bag_a.color = Color(0.44, 0.40, 0.22, 0.92)
+	bag_a.color = Color(0.40, 0.34, 0.18, 0.92)
 	bag_a.z_index = 1
 	add_child(bag_a)
 	_crate_bits.append(bag_a)
@@ -249,7 +259,7 @@ func _mount_kit_prop() -> void:
 			mast.polygon = PackedVector2Array([
 				Vector2(-2.4, 10), Vector2(2.4, 10), Vector2(2.0, -18), Vector2(-2.0, -18)
 			])
-			mast.color = Color(0.16, 0.24, 0.28, 0.95)
+			mast.color = Color(0.18, 0.16, 0.12, 0.95)
 			mast.z_index = 3
 			add_child(mast)
 			_crate_bits.append(mast)
@@ -259,7 +269,7 @@ func _mount_kit_prop() -> void:
 				Vector2(-18, 8), Vector2(-12, -14), Vector2(10, -18), Vector2(18, 4),
 				Vector2(8, 14), Vector2(-12, 14)
 			])
-			dish.color = Color(0.32, 0.58, 0.70, 0.96)
+			dish.color = Color(0.36, 0.32, 0.22, 0.96)
 			dish.z_index = 4
 			add_child(dish)
 			_crate_bits.append(dish)
@@ -268,7 +278,7 @@ func _mount_kit_prop() -> void:
 			boom.polygon = PackedVector2Array([
 				Vector2(-2, -16), Vector2(6, -22), Vector2(8, -19), Vector2(1, -10)
 			])
-			boom.color = Color(0.62, 0.90, 1.0, 0.94)
+			boom.color = Color(0.62, 0.52, 0.28, 0.94)
 			boom.z_index = 5
 			add_child(boom)
 			_crate_bits.append(boom)
@@ -277,7 +287,7 @@ func _mount_kit_prop() -> void:
 			feed.polygon = PackedVector2Array([
 				Vector2(5, -22), Vector2(9, -24), Vector2(10, -21), Vector2(6, -19)
 			])
-			feed.color = Color(0.82, 0.96, 1.0, 0.95)
+			feed.color = Color(0.78, 0.64, 0.32, 0.95)
 			feed.z_index = 5
 			add_child(feed)
 			_crate_bits.append(feed)
@@ -321,13 +331,13 @@ func is_free() -> bool:
 func set_highlight(on: bool) -> void:
 	_ensure_crate_look()
 	if pad:
-		pad.color = Color(0.42, 0.62, 0.34, 0.95) if on else Color(0.30, 0.38, 0.24, 0.92)
+		pad.color = Color(0.46, 0.40, 0.22, 0.95) if on else Color(0.30, 0.26, 0.16, 0.92)
 	for bit in _crate_bits:
 		if bit != null and is_instance_valid(bit):
 			bit.modulate = Color(1.15, 1.2, 1.05) if on else Color.WHITE
 
 
-func set_role_hint(on: bool, tint: Color = Color(0.62, 0.84, 0.42)) -> void:
+func set_role_hint(on: bool, tint: Color = Color(0.62, 0.52, 0.28)) -> void:
 	_role_hint = on
 	_role_hint_col = tint
 	_ensure_hint_ring()
@@ -394,7 +404,7 @@ func set_protect_preview(emphasis: int) -> void:
 	match emphasis:
 		2:
 			protect_arc.visible = true
-			protect_arc.color = Color(0.22, 0.95, 0.68, 0.46)
+			protect_arc.color = Color(0.48, 0.58, 0.28, 0.46)
 			if _arc_edge:
 				_arc_edge.visible = true
 			if _arc_arrow:
@@ -402,13 +412,13 @@ func set_protect_preview(emphasis: int) -> void:
 			set_process(true)
 		1:
 			protect_arc.visible = true
-			protect_arc.color = Color(0.22, 0.78, 0.58, 0.26)
+			protect_arc.color = Color(0.40, 0.48, 0.24, 0.26)
 			if _arc_edge:
 				_arc_edge.visible = true
-				_arc_edge.default_color = Color(0.32, 0.92, 0.68, 0.55)
+				_arc_edge.default_color = Color(0.48, 0.52, 0.28, 0.55)
 			if _arc_arrow:
 				_arc_arrow.visible = true
-				_arc_arrow.color = Color(0.32, 0.88, 0.62, 0.62)
+				_arc_arrow.color = Color(0.48, 0.50, 0.26, 0.62)
 		_:
 			protect_arc.visible = false
 			if _arc_edge:
@@ -493,7 +503,7 @@ func _rebuild_arc_edge(fan: PackedVector2Array) -> void:
 		loop.append(fan[i])
 	loop.append(Vector2.ZERO)
 	_arc_edge.points = loop
-	_arc_edge.default_color = Color(0.28, 0.95, 0.72, 0.78 if _emphasis >= 2 else 0.50)
+	_arc_edge.default_color = Color(0.48, 0.52, 0.28, 0.78 if _emphasis >= 2 else 0.50)
 	_arc_edge.visible = _emphasis > 0
 	if _arc_arrow == null or not is_instance_valid(_arc_arrow):
 		_arc_arrow = Polygon2D.new()
@@ -506,7 +516,7 @@ func _rebuild_arc_edge(fan: PackedVector2Array) -> void:
 	var back := Vector2(cos(rad), sin(rad)) * (PREVIEW_RANGE - 10.0)
 	var perp := Vector2(-sin(rad), cos(rad)) * 7.0
 	_arc_arrow.polygon = PackedVector2Array([tip, back + perp, back - perp])
-	_arc_arrow.color = Color(0.35, 0.98, 0.72, 0.75 if _emphasis >= 2 else 0.42)
+	_arc_arrow.color = Color(0.50, 0.54, 0.28, 0.75 if _emphasis >= 2 else 0.42)
 	_arc_arrow.visible = _emphasis > 0
 
 
@@ -525,7 +535,7 @@ func _process(delta: float) -> void:
 		_pulse_t += delta
 		var wave := 0.5 + 0.5 * sin(_pulse_t * 4.8)
 		if protect_arc:
-			protect_arc.color = Color(0.22, 0.95, 0.68, 0.28 + 0.18 * wave)
+			protect_arc.color = Color(0.48, 0.58, 0.28, 0.28 + 0.18 * wave)
 		if _arc_edge:
 			_arc_edge.default_color = Color(0.40, 1.0, 0.78, 0.50 + 0.32 * wave)
 		if _arc_arrow:
