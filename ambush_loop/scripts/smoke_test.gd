@@ -10244,6 +10244,11 @@ func _assert_first_session_0542(main) -> bool:
 		push_error("SMOKE_SESSION_0542_CRATE_NOT_ABOVE r=%s op=%s" % [crate_rect, op_s])
 		quit(44)
 		return false
+	op.cancel_search()
+	op.global_position = home
+	for o in main.operators:
+		if o != null and o.has_method("wipe_inventory"):
+			o.wipe_inventory()
 	main._refresh_alarm_cta()
 	main._refresh_touch_hud()
 	var armed: bool = main.has_method("squad_has_firearm") and bool(main.squad_has_firearm())
