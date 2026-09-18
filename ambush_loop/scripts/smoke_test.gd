@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.6.3":
+	if ver != "0.6.4":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3424,6 +3424,8 @@ func _assert_simplified_touch(main) -> bool:
 		return false
 	if not await _assert_touch_feel_0605(main):
 		return false
+	if not await _assert_touch_feel_0607(main):
+		return false
 	return true
 
 
@@ -4612,6 +4614,19 @@ func _assert_touch_feel_0605(main) -> bool:
 	if not _assert_alert_chrome_0605(main):
 		return false
 	print("SMOKE_OK_TOUCH_FEEL_0605")
+	return true
+
+
+func _assert_touch_feel_0607(main) -> bool:
+	## v0.6.4: 绕背 dashed wrap is fat enough to read. Dest/RAID unchanged.
+	var src := FileAccess.get_file_as_string("res://scripts/c2/context_prompt.gd")
+	if src.find("3.2") < 0 or src.find("0.90") < 0:
+		push_error("SMOKE_FLANK_0607_THIN_DASH")
+		quit(44)
+		return false
+	if not await _assert_flank_side_wrap(main):
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_0607")
 	return true
 
 

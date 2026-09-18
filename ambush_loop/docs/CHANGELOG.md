@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.4 — Engine: flank-path dash readability
+
+Same RAID as 0.6.3. Dest span 6.
+
+### Play
+- **绕背虚线**: thicker (3.2px) gold-orange dashes + cell ticks + fatter tip. Side wrap still ≥4 cells.
+
+### Android
+- `versionName` 0.6.4 / `versionCode` 53.
+
 ## 0.6.3 — Engine: ALERT watch chrome
 
 Sideload APK: `dist/AmbushLoop-v0.6.3-alert-chrome.apk`  

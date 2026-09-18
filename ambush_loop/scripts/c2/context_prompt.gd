@@ -604,7 +604,7 @@ func _draw_rings() -> void:
 		_draw.draw_arc(p, 16.0, 0.0, TAU, 22, col, 1.6, true)
 		_draw.draw_arc(p, 7.0, 0.0, TAU, 14, Color(col.r, col.g, col.b, 0.22), 1.0, true)
 	if _guide.size() >= 2:
-		var gcol := Color(0.86, 0.42, 0.28, 0.72)
+		var gcol := Color(0.92, 0.46, 0.24, 0.90)
 		for i in range(1, _guide.size()):
 			var a: Vector2 = xf * _guide[i - 1]
 			var b: Vector2 = xf * _guide[i]
@@ -616,11 +616,12 @@ func _draw_rings() -> void:
 			var pos := 0.0
 			var on := true
 			while pos < len:
-				var span := 7.0 if on else 5.0
+				var span := 8.0 if on else 4.0
 				var npos := minf(pos + span, len)
 				if on:
-					_draw.draw_line(a + dir * pos, a + dir * npos, gcol, 2.0, true)
+					_draw.draw_line(a + dir * pos, a + dir * npos, gcol, 3.2, true)
 				pos = npos
 				on = not on
+			_draw.draw_circle(a, 2.4, Color(0.94, 0.52, 0.22, 0.80))
 		var tip: Vector2 = xf * _guide[_guide.size() - 1]
-		_draw.draw_circle(tip, 4.0, Color(0.90, 0.38, 0.22, 0.9))
+		_draw.draw_circle(tip, 5.5, Color(0.96, 0.40, 0.18, 0.95))
