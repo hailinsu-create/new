@@ -24,6 +24,8 @@ Fourth prop (art study): `build_sandbag.py` → `sandbag.glb` + turnaround + iso
 
 Fifth prop (art study): `build_lamp_post.py` → `lamp_post.glb` + turnaround + iso. Iron stem + caged sodium lamp. Iso reads; contact sheet is cramped on a tall prop (later camera pass).
 
-Sixth prop (art study): `build_fence_section.py` → `fence_section.glb` + turnaround + iso. Two posts + three rails.
+Sixth prop: `build_fence_section.py` → fence iso in the west alley.
+
+Seventh prop: `build_rations_crate.py` → darker pine **RATION** crate, iso on the courtyard island.
 
 Faced characters: Meshy only after `MESHY_API_KEY` exists. Scaffold: `meshy/README.md`. Skip until then.

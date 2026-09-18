@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.6.11 — Look: rations crate on the courtyard island
+
+Sideload APK: `dist/AmbushLoop-v0.6.11-yard-props.apk`  
+Release tag: `v0.6.11-yard-props`
+
+20-round PaperRoute close. Same RAID as 0.6.10. Dest span 6, zoom 1.0.
+
+### Play
+- Courtyard island now has pine crate + ammo can + rifle case + darker **RATIONS** crate.
+
+### Android
+- `versionName` 0.6.11 / `versionCode` 60.
+
 ## 0.6.10 — Engine: pause/speed watch labels
 
 Same RAID as 0.6.9. Dest span 6.

@@ -11,6 +11,7 @@ const LookGunIso := preload("res://art/look/gun_case_iso.png")
 const LookBagIso := preload("res://art/look/sandbag_iso.png")
 const LookLampIso := preload("res://art/look/lamp_post_iso.png")
 const LookFenceIso := preload("res://art/look/fence_section_iso.png")
+const LookRationsIso := preload("res://art/look/rations_crate_iso.png")
 
 class StaticCacheLayer extends Node2D:
 	var map: Node2D
@@ -810,6 +811,9 @@ func _landmark_yard(c: CanvasItem) -> void:
 		## Long rifle case on the west lip of the crate island.
 		var gun := Rect2(crate.position + Vector2(-52, 10), Vector2(70, 26))
 		c.draw_texture_rect(LookGunIso, gun, false)
+	if LookRationsIso:
+		var rat := Rect2(crate.position + Vector2(8, crate.size.y + 6), Vector2(40, 32))
+		c.draw_texture_rect(LookRationsIso, rat, false)
 	var t := AmbushGrid.TILE
 	# Clothesline across the west yard (overlay; does not block spine x=13).
 	c.draw_line(Vector2(8.2 * t, 7.15 * t), Vector2(17.6 * t, 7.05 * t), Color(0.22, 0.20, 0.14, 0.70), 1.6, true)
