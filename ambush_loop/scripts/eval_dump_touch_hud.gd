@@ -1,6 +1,7 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.39 phone feel: west trio dest spread
+## Forced-touch HUD stills for v0.5.40 phone feel: obs fill fade/clip at 1.0
+## (LOS wash, not a 280px soap disc; kit_range unchanged), west trio dest spread
 ## (span 6, (6,6)/(5,16), west-follow detour ≤6, no west-wall hug), bodies/rings
 ## at ~1.0 + follow camera at ~1.0 (pan/crop, not postage-stamp zoom),
 ## courtyard / along-file ring offset shrunk (not the 0.16-era 154px shove),
@@ -324,6 +325,9 @@ func _walk_west_combo_follow(main) -> void:
 		" zoom=", snapped(float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0, 0.01),
 		" obs_scale=", snapped(float(main.follow_obs_visual_scale()) if main.has_method("follow_obs_visual_scale") else 1.0, 0.01),
 		" obs_r=", snapped(float(main.follow_obs_visual_radius()) if main.has_method("follow_obs_visual_radius") else 0.0, 0.1),
+		" obs_kit=", snapped(float(main.follow_obs_kit_range()) if main.has_method("follow_obs_kit_range") else 0.0, 0.1),
+		" obs_fill_a=", snapped(float(main.follow_obs_fill_alpha()) if main.has_method("follow_obs_fill_alpha") else 0.0, 0.001),
+		" obs_fill_court=", int(main.follow_obs_fill_courtyard()) if main.has_method("follow_obs_fill_courtyard") else -1,
 		" d1=", main._follow_dest.get(int(a.op_id), Vector2i(-1, -1)),
 		" d2=", main._follow_dest.get(int(b.op_id), Vector2i(-1, -1)),
 		" rear=", int(main.follow_rear_ok_count()) if main.has_method("follow_rear_ok_count") else -1,
@@ -1402,6 +1406,9 @@ func _dump_feel(main, tag: String) -> void:
 		" follow_arc_on=", f.get("follow_arc_on", -1),
 		" obs_scale=", snapped(float(f.get("obs_scale", 1.0)), 0.01),
 		" obs_r=", snapped(float(f.get("obs_r", 0.0)), 0.1),
+		" obs_kit=", snapped(float(f.get("obs_kit", 0.0)), 0.1),
+		" obs_fill_a=", snapped(float(f.get("obs_fill_a", 0.0)), 0.001),
+		" obs_fill_court=", f.get("obs_fill_court", -1),
 		" obs_off=", snapped(float(f.get("obs_off", 0.0)), 0.1),
 		" obs_ring_spread=", snapped(float(f.get("obs_ring_spread", 0.0)), 0.1),
 		" ring_extra=", snapped(float(f.get("ring_extra", 0.0)), 0.1),
@@ -1604,7 +1611,9 @@ func _dump_west_follow_readable(main, tag: String) -> void:
 		" pan=", _pan_txt(pan),
 		" postage=", postage,
 		" obs_off=", snapped(float(main.follow_obs_world_offset()) if main.has_method("follow_obs_world_offset") else 0.0, 0.1),
-		" obs_courtyard=", snapped(float(main.follow_west_obs_courtyard()) if main.has_method("follow_west_obs_courtyard") else 0.0, 0.1)
+		" obs_courtyard=", snapped(float(main.follow_west_obs_courtyard()) if main.has_method("follow_west_obs_courtyard") else 0.0, 0.1),
+		" obs_fill_a=", snapped(float(main.follow_obs_fill_alpha()) if main.has_method("follow_obs_fill_alpha") else 0.0, 0.001),
+		" obs_fill_court=", int(main.follow_obs_fill_courtyard()) if main.has_method("follow_obs_fill_courtyard") else -1
 	)
 
 

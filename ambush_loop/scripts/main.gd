@@ -55,6 +55,8 @@ const FOLLOW_WEST_BODY_SCALE := 1.0
 ## along-file stagger so three 1.0 rings still read as three, but park
 ## them on the west file instead of sliding a 280px soap bubble into
 ## the crate courtyard. Zoom / body stay ~1.0.
+## v0.6 Engine: fill is LOS-clipped + faded and does not inherit this
+## offset. Outline stagger stays; kit_range gameplay stays.
 const FOLLOW_WEST_OBS_OFFSET := 48.0
 const FOLLOW_WEST_OBS_SIDE := 28.0
 const FOLLOW_WEST_OBS_SLOT := 12.0
@@ -9532,6 +9534,42 @@ func follow_obs_visual_radius() -> float:
 	return 0.0
 
 
+func follow_obs_kit_range() -> float:
+	for op in operators:
+		if op == null or not op.has_method("observation_kit_range"):
+			continue
+		if op.has_method("observation_ring_visible") and not bool(op.observation_ring_visible()):
+			continue
+		return float(op.observation_kit_range())
+	return 0.0
+
+
+func follow_obs_fill_alpha() -> float:
+	var a := 0.0
+	var any := false
+	for op in operators:
+		if op == null or not op.has_method("observation_fill_alpha"):
+			continue
+		any = true
+		a = maxf(a, float(op.observation_fill_alpha()))
+	return a if any else 0.0
+
+
+func follow_obs_fill_courtyard() -> int:
+	## 1 if any observation fill still paints the yard crate island (19,10).
+	if grid == null:
+		return 0
+	var world: Vector2 = grid.cell_to_world_center(Vector2i(19, 10))
+	for op in operators:
+		if op == null or not op.has_method("observation_fill_covers_world"):
+			continue
+		if op.has_method("observation_ring_visible") and not bool(op.observation_ring_visible()):
+			continue
+		if bool(op.observation_fill_covers_world(world)):
+			return 1
+	return 0
+
+
 func follow_obs_world_offset() -> float:
 	var m := 0.0
 	var any := false
@@ -10878,6 +10916,9 @@ func dump_touch_feel() -> Dictionary:
 		"follow_arc_on": follow_dest_arc_active() if has_method("follow_dest_arc_active") else -1,
 		"obs_scale": follow_obs_visual_scale() if has_method("follow_obs_visual_scale") else 1.0,
 		"obs_r": follow_obs_visual_radius() if has_method("follow_obs_visual_radius") else 0.0,
+		"obs_kit": follow_obs_kit_range() if has_method("follow_obs_kit_range") else 0.0,
+		"obs_fill_a": follow_obs_fill_alpha() if has_method("follow_obs_fill_alpha") else 0.0,
+		"obs_fill_court": follow_obs_fill_courtyard() if has_method("follow_obs_fill_courtyard") else 0,
 		"obs_off": follow_obs_world_offset() if has_method("follow_obs_world_offset") else 0.0,
 		"obs_ring_spread": follow_obs_ring_min_spacing() if has_method("follow_obs_ring_min_spacing") else 0.0,
 		"ring_extra": follow_west_ring_extra() if has_method("follow_west_ring_extra") else 0.0,

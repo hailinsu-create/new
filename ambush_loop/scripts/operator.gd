@@ -12,6 +12,12 @@ const EXPOSED_DAMAGE_MULT := 1.0
 const LOOT_RANGE := 56.0
 const CONE_RAYS := 14
 const CLUSTER_VISUAL_MIN := 0.16
+## Observation fill is a short, faint LOS wash. The outline stays at kit_range.
+## Do not scale the body or silently shrink kit_range_px to hide courtyard soap.
+const OBS_FILL_RANGE_MUL := 0.40
+const OBS_FILL_ALPHA := 0.010
+const OBS_RING_ALPHA := 0.26
+const OBS_RAYS := 36
 const MuzzleFlashScript := preload("res://scripts/fx/muzzle_flash.gd")
 const CombatFxScript := preload("res://scripts/fx/combat_fx.gd")
 const Silhouette := preload("res://scripts/fx/operator_silhouette.gd")
@@ -62,6 +68,7 @@ var obs_fill: Polygon2D = null
 var obs_tag: Label = null
 var obs_visual_scale: float = 1.0
 var _obs_world_off: Vector2 = Vector2.ZERO
+var _obs_rebuild_at: Vector2 = Vector2.INF
 var _cluster_visual_scale: float = 1.0
 var role_glyph: Polygon2D = null
 var body_outline: Polygon2D = null
@@ -1068,6 +1075,9 @@ func _process(delta: float) -> void:
 	_tick_outline_boost()
 	_tick_sel_ring()
 	_refresh_pack_glyph()
+	if obs_ring != null and is_instance_valid(obs_ring) and obs_ring.visible:
+		if _obs_rebuild_at == Vector2.INF or global_position.distance_squared_to(_obs_rebuild_at) > 64.0:
+			_rebuild_observation_ring()
 
 
 func _refresh_role_glyph() -> void:
@@ -1725,8 +1735,27 @@ func _ensure_observation_visual() -> void:
 	_rebuild_observation_ring()
 
 
+func observation_kit_range() -> float:
+	return kit_range_px
+
+
 func observation_visual_radius() -> float:
 	return kit_range_px * clampf(obs_visual_scale, CLUSTER_VISUAL_MIN, 1.0)
+
+
+func observation_fill_alpha() -> float:
+	if obs_fill == null or not is_instance_valid(obs_fill) or not obs_fill.visible:
+		return 0.0
+	return float(obs_fill.color.a)
+
+
+func observation_fill_covers_world(world: Vector2) -> bool:
+	if obs_fill == null or not is_instance_valid(obs_fill) or not obs_fill.visible:
+		return false
+	if obs_fill.polygon.size() < 3:
+		return false
+	var local: Vector2 = to_local(world)
+	return Geometry2D.is_point_in_polygon(local, obs_fill.polygon)
 
 
 func observation_visual_scale() -> float:
@@ -1751,12 +1780,14 @@ func set_obs_world_offset(off: Vector2) -> void:
 
 
 func _apply_obs_world_offset() -> void:
+	## Outline may stagger off the body so three west rings still read as three.
+	## Fill stays on the body — sliding a 280px disc into the court was the soap.
 	if obs_ring:
 		obs_ring.position = _obs_world_off
 	if obs_fill:
-		obs_fill.position = _obs_world_off
+		obs_fill.position = Vector2.ZERO
 	if obs_tag:
-		obs_tag.position = Vector2(-28, -48) + _obs_world_off
+		obs_tag.position = Vector2(-28, -48)
 
 
 func cluster_visual_scale() -> float:
@@ -1780,25 +1811,51 @@ func set_cone_visual_fade(s: float) -> void:
 		_rebuild_cone()
 
 
+func _obs_clip_distance(local_dir: Vector2, rad: float) -> float:
+	## Same Commandos LOS march as the fire cone, but the radius is visual.
+	## Gameplay kit_range_px / range_px are not written here.
+	if grid == null or rad <= 1.0:
+		return rad
+	var origin := global_position
+	var step := float(AmbushGrid.TILE) * 0.5
+	var traveled := step
+	var last_ok := step
+	while traveled <= rad:
+		var sample: Vector2 = origin + local_dir * traveled
+		var cell := grid.world_to_cell(sample)
+		var origin_cell := grid.world_to_cell(origin)
+		if cell != origin_cell and grid.is_blocked(cell.x, cell.y):
+			return maxf(last_ok, step)
+		if not grid.has_los(origin, sample):
+			return maxf(last_ok, step)
+		last_ok = traveled
+		traveled += step
+	return rad
+
+
 func _rebuild_observation_ring() -> void:
 	if obs_ring == null and obs_fill == null:
 		return
 	var rad := observation_visual_radius()
-	var pts := PackedVector2Array()
-	const RAYS := 36
-	for i in RAYS:
-		var r := deg_to_rad(float(i) * (360.0 / float(RAYS)))
-		pts.append(Vector2(cos(r), sin(r)) * rad)
+	var fill_rad := rad * OBS_FILL_RANGE_MUL
+	var ring_pts := PackedVector2Array()
+	var fill_pts := PackedVector2Array()
+	for i in OBS_RAYS:
+		var ang := deg_to_rad(float(i) * (360.0 / float(OBS_RAYS)))
+		var dir := Vector2(cos(ang), sin(ang))
+		ring_pts.append(dir * _obs_clip_distance(dir, rad))
+		fill_pts.append(dir * _obs_clip_distance(dir, fill_rad))
 	if obs_ring:
-		var loop := pts.duplicate()
+		var loop := ring_pts.duplicate()
 		if loop.size() > 0:
 			loop.append(loop[0])
 		obs_ring.points = loop
-		obs_ring.width = 1.2 + 0.4 * obs_visual_scale
-		obs_ring.default_color = Color(0.72, 0.68, 0.42, 0.22 + 0.16 * obs_visual_scale)
+		obs_ring.width = 1.15 + 0.25 * obs_visual_scale
+		obs_ring.default_color = Color(0.72, 0.68, 0.42, OBS_RING_ALPHA)
 	if obs_fill:
-		obs_fill.polygon = pts
-		obs_fill.color = Color(0.35, 0.8, 0.95, 0.022 + 0.023 * obs_visual_scale)
+		obs_fill.polygon = fill_pts
+		obs_fill.color = Color(0.35, 0.78, 0.92, OBS_FILL_ALPHA)
+	_obs_rebuild_at = global_position
 	_apply_obs_world_offset()
 
 

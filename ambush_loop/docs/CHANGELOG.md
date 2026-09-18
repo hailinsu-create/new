@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.5.40 — Engine: obs ring fill fade/clip at 1.0
+
+Sideload APK: `dist/AmbushLoop-v0.5.40-touch-slide.apk`  
+Release tag: `v0.5.40-touch-slide`
+
+Same RAID as 0.5.39 (`SCOUT → ALERT → SWEEP`, auto fire + auto nade). Phone default stays 简配夜袭.
+
+### Play (phone)
+- **观察环填色**: at body/obs scale 1.0 the cyan disc no longer soaps the crate courtyard. Fill is a short LOS wash (~0.40 kit range, alpha ~0.010) parked on the body. Outline stays at true kit range (scout 280) and still takes the modest west stagger. `kit_range_px` / fire cone / ambush rules unchanged. Follow camera stays ~1.0 (floor ≥0.85, pan/crop). Dest cells stay lead (7,12), first (6,6), second (5,16), span 6, detour ≤6.
+- **绕箱南走廊**: unchanged from 0.5.26–0.5.39. Full path y14=0 (mid x≈21 included), east overshoot 0, axis_run 0. Far-side bow sits on the y=13 rim (~15px; far-cap constant still 20).
+- Forced-touch path covers settle-on-ring, bidirectional ↺/↻, west trio + faded cone + dest (6,6)/(5,16) + detour ≤6 + readable bodies/rings + pan/crop follow at ~1.0 + shrunk courtyard offset + **clipped/faded obs fill (no courtyard soap)**, compact narrow pack, crate-face axis_run 0, and south-corridor **full path** y≤13. 0540 pack is slim so the suite finishes without a 10-minute cut.
+
+### Android
+- `versionName` 0.5.40 / `versionCode` 46 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title **v0.5.40 COMMANDOS/WW2**.
+2. Compact bar still stacks **匍匐** over **背包**; **↺ / ↻** sit next to **需枪**. Hold or swipe either way.
+3. West alley **跟**: dests (7,12)/(6,6)/(5,16), span 6. Observation fill is a faint LOS wash on the body, not a 280px soap bubble over the crate island. Outline at kit range. Bodies ~1.0. Follow camera at ~1.0 (pan/crop). Yellow cone still faded. South-corridor crate arc still y≤13 at x≈21.
+
 ## 0.5.39 — Phone feel: west obs-ring courtyard offset shrink
 
 Sideload APK: `dist/AmbushLoop-v0.5.39-touch-slide.apk`  
