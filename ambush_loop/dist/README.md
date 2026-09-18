@@ -2,6 +2,7 @@
 
 Delivered build:
 
+- `AmbushLoop-v0.6.8-loot-chip.apk` — Godot 4.7.2 debug, arm64, v0.6.8: crate 拿到X chip, cone fade 0.46, sandbag+lamp in yard, short SCOUT tip. Same RAID as 0.6.5.
 - `AmbushLoop-v0.6.5-gun-case.apk` — Godot 4.7.2 debug, arm64, v0.6.5: rifle-crate iso on courtyard island, compact ↺/↻ 60×62, thicker 绕背 dash. Same RAID as 0.6.3.
 - `AmbushLoop-v0.6.3-alert-chrome.apk` — Godot 4.7.2 debug, arm64, v0.6.3: ALERT watch chrome (pause/speed/abort 120×64), yard night-grade hatch, west-wall 开匣 pit. Same RAID as 0.6.0.
 - `AmbushLoop-v0.6.0-overhaul.apk` — Godot 4.7.2 debug, arm64, v0.6.0 overhaul: obs fill LOS-clip, west file tape, first-session 跟/开匣/绕背, Blender crate+ammo can in the yard. Same RAID as 0.5.39.
