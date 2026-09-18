@@ -20,4 +20,6 @@ Second prop: `build_ammo_can.py` → `ammo_can.glb` + turnaround + iso.
 
 Third prop (art study): `build_gun_case.py` → `gun_case.glb` + turnaround + iso. Long rifle crate; shaded **front** is flush **RIFLE** stencil; **side** is the short end with lid board seams. Shared studio: `_look_studio.py`.
 
+Fourth prop (art study): `build_sandbag.py` → `sandbag.glb` + turnaround + iso. Three-bag stack. Shaded **front**: stacked canvas bricks + neck ties (sag is a later defect pass).
+
 Faced characters: Meshy only after `MESHY_API_KEY` exists. Scaffold: `meshy/README.md`. Skip until then.
