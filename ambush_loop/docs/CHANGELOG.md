@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.6 — Engine: SCOUT tip brevity
+
+Same RAID as 0.6.5. Dest span 6.
+
+### Play
+- **院子教学一行**: `交叉封锁 · 侧翼东廊` (keeps 交叉封锁 / 侧翼).
+
+### Android
+- `versionName` 0.6.6 / `versionCode` 55.
+
 ## 0.6.5 — Engine: compact ↺/↻ thumb fit
 
 Same RAID as 0.6.4. Dest span 6.

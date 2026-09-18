@@ -454,7 +454,7 @@ static func make_yard() -> LevelDef:
 	l.ambush_zone = Rect2(320, 280, 400, 160)
 	l.has_ammo_pack = false
 	l.beat_kind = "ambush_zone"
-	l.beat_text = "交叉封锁 · 侧翼从东廊随后到"
+	l.beat_text = "交叉封锁 · 侧翼东廊"
 	l.highlight_hook = "交叉封锁第一枪"
 	l.must_bring = "先搜匣：灰狼步枪、铁砧机枪、夜枭狙。第一波锁主路，打扫后再打东廊。"
 	l.role_why = {
@@ -464,7 +464,7 @@ static func make_yard() -> LevelDef:
 	}
 	l.fix_one = "改一处就能赢：把铁砧转到东箱扫橙线侧翼，灰狼继续锁主路。"
 	l.spawn_teaching = [
-		"陷阱路线：橙线侧翼从东廊随后到 — 只锁红线主路会漏。必须带铁砧扫东箱。",
+		"东廊橙线随后到 — 铁砧扫东箱。",
 		"第二层：只锁红线主路，东廊橙线会自己绕出。",
 	]
 	l.situation = "北门院子是补给链最外一圈。夜巡小队要从北门进南闸汇合，再转入仓区。切断这一班，内院才不会提前亮灯。"

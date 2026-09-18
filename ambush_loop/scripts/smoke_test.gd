@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.6.5":
+	if ver != "0.6.6":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3426,6 +3426,8 @@ func _assert_simplified_touch(main) -> bool:
 		return false
 	if not await _assert_touch_feel_0607(main):
 		return false
+	if not await _assert_touch_feel_0611(main):
+		return false
 	return true
 
 
@@ -4627,6 +4629,26 @@ func _assert_touch_feel_0607(main) -> bool:
 	if not await _assert_flank_side_wrap(main):
 		return false
 	print("SMOKE_OK_TOUCH_FEEL_0607")
+	return true
+
+
+func _assert_touch_feel_0611(main) -> bool:
+	## v0.6.6: SCOUT beat line is short. Keep 交叉封锁 / 侧翼.
+	var yard: LevelDef = LevelDef.by_id("yard")
+	var beat := str(yard.beat_text)
+	if beat.find("交叉封锁") < 0 or beat.find("侧翼") < 0:
+		push_error("SMOKE_SCOUT_TIP_0611_MISS %s" % beat)
+		quit(44)
+		return false
+	if beat.length() > 16:
+		push_error("SMOKE_SCOUT_TIP_0611_LONG n=%s %s" % [beat.length(), beat])
+		quit(44)
+		return false
+	if main.spawn_teach_label and str(main.spawn_teach_label.text).find("交叉封锁") < 0:
+		push_error("SMOKE_SCOUT_TIP_0611_HUD %s" % main.spawn_teach_label.text)
+		quit(44)
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_0611 beat=", beat, " n=", beat.length())
 	return true
 
 
