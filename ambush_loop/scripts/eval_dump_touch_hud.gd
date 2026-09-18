@@ -227,11 +227,25 @@ func _walk_west_crate(main) -> void:
 		fired = bool(main.simulate_hotspot("开匣"))
 	if op.has_method("cancel_search"):
 		op.cancel_search()
+	var crate_rect := Rect2()
+	if main.c2 and main.c2.prompt and main.c2.prompt.has_method("visible_hotspot_rects"):
+		for rec in main.c2.prompt.visible_hotspot_rects():
+			if str(rec.get("cmd", "")) == "crate":
+				crate_rect = rec["rect"]
+				break
+	var xf_c: Transform2D = main.get_viewport().get_canvas_transform()
+	var crate_s: Vector2 = xf_c * crate_world
 	print(
 		"DUMP_WEST_CRATE cell=", crate_cell,
 		" gest=", main._last_touch_gesture,
 		" caps=", " ".join(main.c2.prompt.visible_captions() if main.c2 and main.c2.prompt else PackedStringArray()),
 		" fire=", fired
+	)
+	print(
+		"DUMP_WEST_CRATE_PIT r=", crate_rect,
+		" crate_s=", crate_s,
+		" east=", 1 if crate_rect.position.x >= crate_s.x - 16.0 else 0,
+		" above=", 1 if crate_rect.get_center().y <= (xf_c * op.global_position).y - 4.0 else 0
 	)
 	await _save("07_west_crate")
 	op.stop_move()

@@ -14,7 +14,7 @@ const PROBE_WHISTLE := 32.0
 const HOLD_SEC := 0.55
 const BTN_SIZE := Vector2(88, 36)
 const FLANK_BTN := Vector2(88, 38)
-const CRATE_BTN := Vector2(92, 38)
+const CRATE_BTN := Vector2(96, 42)
 var host: Node = null
 var _root: Control = null
 var _draw: Control = null
@@ -459,9 +459,17 @@ func _place_hotspot(
 ) -> Vector2:
 	var sz := _btn_sz(cmd)
 	var x_off := (float(i) - (float(n) - 1.0) * 0.5) * (sz.x + 8.0)
-	## 开匣: dump 07 sat left/below in the soap. Pin above the soldier.
-	if cmd == "crate" and op_screen != Vector2.INF:
-		var pin := op_screen + Vector2(-sz.x * 0.5, -sz.y - 22.0)
+	## 开匣: dump 07 sat left in the west-wall soap. Pin above the crate,
+	## biased east (courtyard), never west of the crate screen x.
+	if cmd == "crate":
+		var anchor: Vector2 = screen if screen != Vector2.INF else op_screen
+		if op_screen != Vector2.INF:
+			anchor.y = minf(anchor.y, op_screen.y)
+		var pin := Vector2(anchor.x - sz.x * 0.22, anchor.y - sz.y - 24.0)
+		if op_screen != Vector2.INF:
+			pin.y = minf(pin.y, op_screen.y - sz.y - 22.0)
+		if screen != Vector2.INF:
+			pin.x = maxf(pin.x, screen.x - 6.0)
 		pin.x = clampf(pin.x, safe.position.x, safe.end.x - sz.x)
 		pin.y = clampf(pin.y, safe.position.y, maxf(safe.position.y, safe.end.y - sz.y))
 		return pin

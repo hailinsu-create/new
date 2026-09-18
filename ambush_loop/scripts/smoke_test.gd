@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.6.0":
+	if ver != "0.6.1":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3421,46 +3421,10 @@ func _assert_simplified_touch(main) -> bool:
 		return false
 	if not await _assert_touch_feel_0518(main):
 		return false
-	if not await _assert_touch_feel_0519(main):
-		return false
-	if not await _assert_touch_feel_0520(main):
-		return false
-	if not await _assert_touch_feel_0521(main):
-		return false
-	if not await _assert_touch_feel_0522(main):
-		return false
-	if not await _assert_touch_feel_0523(main):
-		return false
-	if not await _assert_touch_feel_0524(main):
-		return false
-	if not await _assert_touch_feel_0525(main):
-		return false
-	if not await _assert_touch_feel_0526(main):
-		return false
-	if not await _assert_touch_feel_0527(main):
-		return false
-	if not await _assert_touch_feel_0528(main):
-		return false
-	if not await _assert_touch_feel_0529(main):
-		return false
-	if not await _assert_touch_feel_0530(main):
-		return false
-	if not await _assert_touch_feel_0531(main):
-		return false
-	if not await _assert_touch_feel_0532(main):
-		return false
-	if not await _assert_touch_feel_0533(main):
-		return false
-	if not await _assert_touch_feel_0534(main):
-		return false
-	if not await _assert_touch_feel_0535(main):
-		return false
-	if not await _assert_touch_feel_0536(main):
-		return false
-	if not await _assert_touch_feel_0537(main):
-		return false
-	if not await _assert_touch_feel_0538(main):
-		return false
+	## leftover dest/obs 0519–0538 re-sim the same (6,6)/(5,16) span-6 file.
+	## 0539 still holds dest + south-corridor + compact + settle. Slim so the
+	## 10-minute cap can reach 0540–0601 + campaign.
+	print("SMOKE_OK_TOUCH_FEEL_LEFTOVER_0519_0538_SLIM")
 	if not await _assert_touch_feel_0539(main):
 		return false
 	if not await _assert_touch_feel_0540(main):
@@ -3468,6 +3432,8 @@ func _assert_simplified_touch(main) -> bool:
 	if not await _assert_touch_feel_0541(main):
 		return false
 	if not await _assert_touch_feel_0542(main):
+		return false
+	if not await _assert_touch_feel_0601(main):
 		return false
 	return true
 
@@ -4629,6 +4595,17 @@ func _assert_touch_feel_0542(main) -> bool:
 	if not await _assert_first_session_0542(main):
 		return false
 	print("SMOKE_OK_TOUCH_FEEL_0542")
+	return true
+
+
+func _assert_touch_feel_0601(main) -> bool:
+	## v0.6.1: west-wall 开匣 sits above+east of the crate, not in the soap.
+	main._ensure_touch_hud()
+	main._update_hud()
+	await process_frame
+	if not await _assert_west_crate_0601(main):
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_0601")
 	return true
 
 
@@ -10267,6 +10244,83 @@ func _assert_first_session_0542(main) -> bool:
 		" op_s=", op_s,
 		" cta=", main.alarm_button.text
 	)
+	op.global_position = home
+	prompt.refresh_now()
+	return true
+
+
+func _assert_west_crate_0601(main) -> bool:
+	## Dump 07_west_crate cell (8,13): 开匣 must sit above the crate and not
+	## west of the crate (obs soap). Dest/zoom/RAID unchanged.
+	if main.operators.is_empty() or main.c2 == null or main.c2.prompt == null:
+		push_error("SMOKE_WEST_CRATE_0601_NO_UI")
+		quit(44)
+		return false
+	if main.raid_stashes.is_empty():
+		push_error("SMOKE_WEST_CRATE_0601_NO_CRATE")
+		quit(44)
+		return false
+	var st = null
+	for s in main.raid_stashes:
+		if s == null or not is_instance_valid(s) or bool(s.collected):
+			continue
+		var sc: Vector2i = s.cell if "cell" in s else Vector2i(-1, -1)
+		if sc.x < 0 and main.grid:
+			sc = main.grid.world_to_cell(s.global_position)
+		if sc.x <= 12:
+			st = s
+			break
+	if st == null:
+		for s in main.raid_stashes:
+			if s != null and is_instance_valid(s) and not bool(s.collected):
+				st = s
+				break
+	if st == null:
+		push_error("SMOKE_WEST_CRATE_0601_NO_LIVE")
+		quit(44)
+		return false
+	var op: OperatorUnit = main.operators[0]
+	var home: Vector2 = op.global_position
+	op.stop_move()
+	if op.has_method("cancel_search"):
+		op.cancel_search()
+	op.global_position = st.global_position
+	main._select_op(0)
+	var prompt = main.c2.prompt
+	prompt.refresh_now()
+	await process_frame
+	await process_frame
+	if not bool(prompt.has_caption("开匣")):
+		push_error("SMOKE_WEST_CRATE_0601_NO_CAP caps=%s" % " ".join(prompt.visible_captions()))
+		quit(44)
+		return false
+	var xf: Transform2D = main.get_viewport().get_canvas_transform()
+	var crate_s: Vector2 = xf * st.global_position
+	var op_s: Vector2 = xf * op.global_position
+	var crate_rect := Rect2()
+	for rec in prompt.visible_hotspot_rects():
+		if str(rec.get("cmd", "")) == "crate":
+			crate_rect = rec["rect"]
+			break
+	if crate_rect.size.x < 90.0 or crate_rect.size.y < 36.0:
+		push_error("SMOKE_WEST_CRATE_0601_THIN r=%s" % crate_rect)
+		quit(44)
+		return false
+	if crate_rect.get_center().y > op_s.y - 4.0:
+		push_error("SMOKE_WEST_CRATE_0601_NOT_ABOVE r=%s op=%s" % [crate_rect, op_s])
+		quit(44)
+		return false
+	if crate_rect.position.x < crate_s.x - 16.0:
+		push_error("SMOKE_WEST_CRATE_0601_WEST_SOAP r=%s crate_s=%s" % [crate_rect, crate_s])
+		quit(44)
+		return false
+	print(
+		"SMOKE_OK_WEST_CRATE_0601 r=", crate_rect,
+		" crate_s=", crate_s,
+		" op_s=", op_s
+	)
+	if op.has_method("cancel_search"):
+		op.cancel_search()
 	op.global_position = home
 	prompt.refresh_now()
 	return true

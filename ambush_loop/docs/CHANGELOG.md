@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.6.1 — Engine: west-wall 开匣 pit
+
+Sideload APK: (slice; APK at 0.6.3)  
+Same RAID as 0.6.0. Dest cells stay (7,12)/(6,6)/(5,16) span 6.
+
+### Play (phone)
+- **西墙开匣**: dump `07_west_crate` cell (8,13). Hotspot sits above the crate, biased east toward the courtyard, never west into the observation soap. Thumb 96×42.
+
+### Android
+- `versionName` 0.6.1 / `versionCode` 50.
+
 ## 0.6.0 — Overhaul milestone (Engine ring/file/pits + Look Blender in yard)
 
 Sideload APK: `dist/AmbushLoop-v0.6.0-overhaul.apk`  
