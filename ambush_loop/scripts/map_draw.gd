@@ -9,6 +9,7 @@ const LookCrateIso := preload("res://art/look/yard_crate_iso.png")
 const LookCanIso := preload("res://art/look/ammo_can_iso.png")
 const LookGunIso := preload("res://art/look/gun_case_iso.png")
 const LookBagIso := preload("res://art/look/sandbag_iso.png")
+const LookLampIso := preload("res://art/look/lamp_post_iso.png")
 
 class StaticCacheLayer extends Node2D:
 	var map: Node2D
@@ -790,8 +791,8 @@ func _landmark_yard(c: CanvasItem) -> void:
 	c.draw_rect(win.grow(-6), Color(0.95, 0.68, 0.22, 0.55))
 	c.draw_rect(win.grow(-10), Color(1.0, 0.82, 0.40, 0.35))
 	c.draw_rect(win.grow(-6), Color(0.55, 0.32, 0.10, 0.8), false, 1.5)
-	_lamp_post(c, Vector2(10.6 * AmbushGrid.TILE, 8.4 * AmbushGrid.TILE), Color(0.72, 0.62, 0.32))
-	_lamp_post(c, Vector2(27.4 * AmbushGrid.TILE, 15.2 * AmbushGrid.TILE), Color(0.68, 0.52, 0.24))
+	_yard_lamp(c, Vector2(10.6 * AmbushGrid.TILE, 8.4 * AmbushGrid.TILE), Color(0.72, 0.62, 0.32))
+	_yard_lamp(c, Vector2(27.4 * AmbushGrid.TILE, 15.2 * AmbushGrid.TILE), Color(0.68, 0.52, 0.24))
 	# Courtyard crate-stack: Blender iso bake (Look stream). Island already blocked.
 	var crate := _cell_rect(19, 10, 3, 2)
 	if LookCrateIso:
@@ -1328,6 +1329,14 @@ func _silhouette_radio_dish(c: CanvasItem) -> void:
 	)
 	# Echo hall phosphor ribbon so x=24 reads as the dish-gap path.
 	c.draw_rect(Rect2(24.05 * t, 5.2 * t, 0.9 * t, 10.5 * t), Color(0.36, 0.32, 0.18, 0.22))
+
+
+func _yard_lamp(c: CanvasItem, p: Vector2, glow: Color) -> void:
+	if LookLampIso:
+		c.draw_texture_rect(LookLampIso, Rect2(p.x - 11.0, p.y - 30.0, 24.0, 40.0), false)
+		_lamp_post(c, p, glow, false)
+	else:
+		_lamp_post(c, p, glow, true)
 
 
 func _lamp_post(c: CanvasItem, p: Vector2, glow: Color, stem: bool = true) -> void:
