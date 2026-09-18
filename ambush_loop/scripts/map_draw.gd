@@ -10,6 +10,7 @@ const LookCanIso := preload("res://art/look/ammo_can_iso.png")
 const LookGunIso := preload("res://art/look/gun_case_iso.png")
 const LookBagIso := preload("res://art/look/sandbag_iso.png")
 const LookLampIso := preload("res://art/look/lamp_post_iso.png")
+const LookFenceIso := preload("res://art/look/fence_section_iso.png")
 
 class StaticCacheLayer extends Node2D:
 	var map: Node2D
@@ -815,6 +816,10 @@ func _landmark_yard(c: CanvasItem) -> void:
 	for i in 5:
 		var hx := 8.8 * t + float(i) * 22.0
 		c.draw_rect(Rect2(hx, 7.15 * t, 8.0, 16.0 + float(i % 3) * 4.0), Color(0.42, 0.48, 0.36, 0.28))
+	if LookFenceIso:
+		## West-alley fence sections (overlay; does not block the file).
+		c.draw_texture_rect(LookFenceIso, Rect2(4.6 * t, 8.6 * t, 36.0, 28.0), false)
+		c.draw_texture_rect(LookFenceIso, Rect2(4.6 * t, 11.4 * t, 36.0, 28.0), false)
 	if LookBagIso:
 		## West-wall sandbag stack (overlay; does not block).
 		var bag := Rect2(8.4 * t, 15.2 * t, 42.0, 32.0)
