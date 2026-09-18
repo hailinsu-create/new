@@ -36,7 +36,7 @@ For every user request (not only `/grok`):
 3. Return Grok's stdout. Start with one line: the work ran on **grok.com CLI quota** as **Grok 4.6 Extra High Fast**.
 4. If Grok edited files, summarize paths from its output or `git status`. Do not redo the edits.
 
-If login fails, run `bash .cursor/grok/run.sh login` and give the user the device-auth URL/code. Do not fall back to Cursor Grok.
+If login/refresh fails, see **invalid_grant / Bot-forwarded agents** below. Do not fall back to Cursor Grok.
 
 Allowed Cursor-side actions: write the prompt file, invoke `run.sh`, relay output, git commit/push/PR plumbing after Grok finished. Everything else is Grok's job.
 
@@ -45,3 +45,18 @@ Project hooks in `.cursor/hooks.json` **deny** Cursor implementation tools (Writ
 ## Cursor Cloud specific instructions
 
 Hand **every** Cloud Agent task to grok.com CLI Extra High Fast through `.cursor/grok/run.sh` as above. The wrapper always re-applies `grok-4.6` + `--effort xhigh` + Fast/priority even if `GROK_CONFIG` was already set. Confirm stderr contains `grok-cli: using grok-4.6 extra-high fast` before treating the run as complete.
+
+## invalid_grant / Bot-forwarded agents
+
+Day-to-day CLI auth is the OIDC `refresh_token` in `~/.grok/auth.json` on the Saved environment disk. Access tokens last 6 hours and are skip-if-valid refreshed; device-auth is not the keep-alive path.
+
+If you are a **Grok Bot-forwarded Cloud Agent** (or any new VM that is not the keeper `bc-886bf39b-fc12-43b3-80c4-0135a6598ca5`):
+
+- `invalid_grant` / refresh failure means the Saved environment disk's refresh_token was rotated by the keeper or another agent and is now invalid.
+- **Do not** run `run.sh login` / `grok login --device-auth`. Scanning a device code on this VM only logs in this VM; it does not write the Saved snapshot. Other Bot tasks will still fail.
+- **Do not** fall back to Cursor Grok.
+- Tell the user to click **Save** on the keeper conversation's Environment panel (not Git):
+  - https://cursor.com/agents/bc-886bf39b-fc12-43b3-80c4-0135a6598ca5
+  - https://cursor.com/dashboard/cloud-agents/environments/e/fbfdc9fc-a3c0-11f1-a7d1-d6b4613131ce
+
+Device-login is allowed only on the keeper VM itself, and only when the **current** `~/.grok/auth.json` refresh also returns `invalid_grant`.
