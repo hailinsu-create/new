@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.5.40":
+	if ver != "0.5.41":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3465,6 +3465,8 @@ func _assert_simplified_touch(main) -> bool:
 		return false
 	if not await _assert_touch_feel_0540(main):
 		return false
+	if not await _assert_touch_feel_0541(main):
+		return false
 	return true
 
 
@@ -4602,6 +4604,18 @@ func _assert_touch_feel_0540(main) -> bool:
 	if not await _assert_west_obs_fill_0540(main):
 		return false
 	print("SMOKE_OK_TOUCH_FEEL_0540")
+	return true
+
+
+func _assert_touch_feel_0541(main) -> bool:
+	## v0.5.41: west file tape through dests. Span 6 dests unchanged.
+	main._ensure_touch_hud()
+	main._update_hud()
+	await process_frame
+	await process_frame
+	if not await _assert_west_file_0541(main):
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_0541")
 	return true
 
 
@@ -10050,6 +10064,107 @@ func _assert_west_obs_fill_0540(main) -> bool:
 		main.reset_follow_dest_flips()
 	if main.has_method("_update_observation_rings"):
 		main._update_observation_rings()
+	return true
+
+
+func _assert_west_file_0541(main) -> bool:
+	## Formation tape through west dests. Dest cells stay (6,6)/(5,16) span 6.
+	if main.operators.size() < 3 or main.grid == null:
+		push_error("SMOKE_WEST_FILE_0541_NO_OPS")
+		quit(44)
+		return false
+	var lead: OperatorUnit = main.operators[0]
+	var a: OperatorUnit = main.operators[1]
+	var b: OperatorUnit = main.operators[2]
+	var homes: Array[Vector2] = [lead.global_position, a.global_position, b.global_position]
+	var flags: Array[bool] = [bool(a.follow_lead), bool(b.follow_lead)]
+	if main.c2 and not main.c2.sentries.is_empty():
+		_park_sentries(main, null)
+	var lead_c := Vector2i(7, 12)
+	if main.grid.is_blocked(lead_c.x, lead_c.y) or main._cell_is_operable(lead_c):
+		lead_c = Vector2i(7, 13)
+	main._select_op(0)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	if lead.has_method("set_facing"):
+		lead.set_facing(0.0)
+	else:
+		lead.facing_deg = 0.0
+	lead.global_position = main.grid.cell_to_world_center(lead_c)
+	a.global_position = main.grid.cell_to_world_center(Vector2i(6, 14))
+	b.global_position = main.grid.cell_to_world_center(Vector2i(6, 16))
+	main._stealth_avoid_cache.clear()
+	main._stealth_avoid_msec = 0
+	if not bool(a.follow_lead):
+		main.toggle_follow(1)
+	if not bool(b.follow_lead):
+		main.toggle_follow(2)
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	main._tick_squad_follow(0.05)
+	await _tick_follow_steps(main, 12)
+	for _hold in 12:
+		if main.has_method("_update_observation_rings"):
+			main._update_observation_rings()
+		if main.has_method("_follow_selected_cam"):
+			main._follow_selected_cam(0.05)
+		main._tick_squad_follow(0.05)
+		if main.has_method("_sync_follow_file_line"):
+			main._sync_follow_file_line()
+		await process_frame
+	var d1: Vector2i = main._follow_dest.get(int(a.op_id), Vector2i(-1, -1))
+	var d2: Vector2i = main._follow_dest.get(int(b.op_id), Vector2i(-1, -1))
+	if d1 != Vector2i(6, 6) or d2 != Vector2i(5, 16):
+		push_error("SMOKE_WEST_FILE_0541_DEST d1=%s d2=%s" % [d1, d2])
+		quit(44)
+		return false
+	var span := int(main.follow_west_lead_span()) if main.has_method("follow_west_lead_span") else 99
+	if span != 6:
+		push_error("SMOKE_WEST_FILE_0541_SPAN n=%s" % span)
+		quit(44)
+		return false
+	var z := float(main.get("_cam_squad_zoom")) if main.get("_cam_squad_zoom") != null else 1.0
+	if z < 0.85:
+		push_error("SMOKE_WEST_FILE_0541_ZOOM z=%s" % z)
+		quit(44)
+		return false
+	var n := int(main.follow_file_point_count()) if main.has_method("follow_file_point_count") else 0
+	if n < 3:
+		push_error("SMOKE_WEST_FILE_0541_PTS n=%s" % n)
+		quit(44)
+		return false
+	var flen := float(main.follow_file_length()) if main.has_method("follow_file_length") else 0.0
+	if flen < 240.0:
+		push_error("SMOKE_WEST_FILE_0541_LEN n=%s pts=%s" % [flen, n])
+		quit(44)
+		return false
+	var world_span: Vector2 = main.follow_cam_world_span() if main.has_method("follow_cam_world_span") else Vector2(1280, 720)
+	if world_span.x > 1600.0:
+		push_error("SMOKE_WEST_FILE_0541_POSTAGE span=%s z=%s" % [world_span, z])
+		quit(44)
+		return false
+	print(
+		"SMOKE_OK_WEST_FILE_0541 d1=", d1, " d2=", d2,
+		" span=", span, " pts=", n, " len=", snapped(flen, 0.1),
+		" zoom=", snapped(z, 0.01),
+		" world_span=", snapped(world_span.x, 1.0), "x", snapped(world_span.y, 1.0)
+	)
+	if bool(a.follow_lead) != flags[0]:
+		main.toggle_follow(1)
+	if bool(b.follow_lead) != flags[1]:
+		main.toggle_follow(2)
+	lead.stop_move()
+	a.stop_move()
+	b.stop_move()
+	lead.global_position = homes[0]
+	a.global_position = homes[1]
+	b.global_position = homes[2]
+	main._follow_dest.clear()
+	if main.has_method("reset_follow_dest_flips"):
+		main.reset_follow_dest_flips()
+	if main.has_method("_clear_follow_dest_marks"):
+		main._clear_follow_dest_marks()
 	return true
 
 

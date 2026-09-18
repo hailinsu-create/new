@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.40 phone feel: obs fill fade/clip at 1.0
+## Forced-touch HUD stills for v0.5.41 phone feel: west file tape + obs fill fade/clip at 1.0
 ## (LOS wash, not a 280px soap disc; kit_range unchanged), west trio dest spread
 ## (span 6, (6,6)/(5,16), west-follow detour ≤6, no west-wall hug), bodies/rings
 ## at ~1.0 + follow camera at ~1.0 (pan/crop, not postage-stamp zoom),
@@ -339,7 +339,9 @@ func _walk_west_combo_follow(main) -> void:
 		" obs_ring_spread=", snapped(float(main.follow_obs_ring_min_spacing()) if main.has_method("follow_obs_ring_min_spacing") else 0.0, 0.1),
 		" ring_extra=", snapped(float(main.follow_west_ring_extra()) if main.has_method("follow_west_ring_extra") else 0.0, 0.1),
 		" obs_courtyard=", snapped(float(main.follow_west_obs_courtyard()) if main.has_method("follow_west_obs_courtyard") else 0.0, 0.1),
-		" ring_west_x=", snapped(float(main.follow_ring_west_min_x()) if main.has_method("follow_ring_west_min_x") else 0.0, 0.1)
+		" ring_west_x=", snapped(float(main.follow_ring_west_min_x()) if main.has_method("follow_ring_west_min_x") else 0.0, 0.1),
+		" file_pts=", int(main.follow_file_point_count()) if main.has_method("follow_file_point_count") else -1,
+		" file_len=", snapped(float(main.follow_file_length()) if main.has_method("follow_file_length") else 0.0, 0.1)
 	)
 	_dump_west_follow_readable(main, "west_combo")
 	await _save("08_west_combo_follow")
@@ -1409,6 +1411,8 @@ func _dump_feel(main, tag: String) -> void:
 		" obs_kit=", snapped(float(f.get("obs_kit", 0.0)), 0.1),
 		" obs_fill_a=", snapped(float(f.get("obs_fill_a", 0.0)), 0.001),
 		" obs_fill_court=", f.get("obs_fill_court", -1),
+		" file_pts=", f.get("file_pts", -1),
+		" file_len=", snapped(float(f.get("file_len", 0.0)), 0.1),
 		" obs_off=", snapped(float(f.get("obs_off", 0.0)), 0.1),
 		" obs_ring_spread=", snapped(float(f.get("obs_ring_spread", 0.0)), 0.1),
 		" ring_extra=", snapped(float(f.get("ring_extra", 0.0)), 0.1),
@@ -1613,7 +1617,9 @@ func _dump_west_follow_readable(main, tag: String) -> void:
 		" obs_off=", snapped(float(main.follow_obs_world_offset()) if main.has_method("follow_obs_world_offset") else 0.0, 0.1),
 		" obs_courtyard=", snapped(float(main.follow_west_obs_courtyard()) if main.has_method("follow_west_obs_courtyard") else 0.0, 0.1),
 		" obs_fill_a=", snapped(float(main.follow_obs_fill_alpha()) if main.has_method("follow_obs_fill_alpha") else 0.0, 0.001),
-		" obs_fill_court=", int(main.follow_obs_fill_courtyard()) if main.has_method("follow_obs_fill_courtyard") else -1
+		" obs_fill_court=", int(main.follow_obs_fill_courtyard()) if main.has_method("follow_obs_fill_courtyard") else -1,
+		" file_pts=", int(main.follow_file_point_count()) if main.has_method("follow_file_point_count") else -1,
+		" file_len=", snapped(float(main.follow_file_length()) if main.has_method("follow_file_length") else 0.0, 0.1)
 	)
 
 

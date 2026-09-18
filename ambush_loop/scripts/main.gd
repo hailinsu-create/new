@@ -323,6 +323,7 @@ var _follow_arc_hits: int = 0
 var _follow_body_arc_hits: int = 0
 var _follow_ring_hold: bool = false
 var _follow_dest_marks: Dictionary = {}
+var _follow_file: Line2D = null
 var _stealth_avoid_cache: Dictionary = {}
 var _stealth_avoid_msec: int = 0
 var _move_ghost: Line2D = null
@@ -8327,6 +8328,7 @@ func _tick_squad_follow(delta: float = 0.05) -> void:
 			continue
 		_apply_follow_cells(op, cells, dest_w)
 	_sync_follow_dest_marks()
+	_sync_follow_file_line()
 
 
 func _follow_start_dest_blend(
@@ -9455,6 +9457,59 @@ func _sync_follow_dest_marks() -> void:
 			drop.append(k)
 	for k2 in drop:
 		_clear_follow_dest_mark(int(k2))
+	_sync_follow_file_line()
+
+
+func _sync_follow_file_line() -> void:
+	## Visual file through west dests. Dest cells stay span 6; the tape is
+	## why three bodies read as one squad at 1.0 zoom (no postage stamp).
+	var world := get_node_or_null("World") as Node
+	if world == null:
+		return
+	if _follow_file == null or not is_instance_valid(_follow_file):
+		_follow_file = Line2D.new()
+		_follow_file.name = "FollowFile"
+		_follow_file.width = 2.0
+		_follow_file.default_color = Color(0.86, 0.76, 0.36, 0.62)
+		_follow_file.z_index = 5
+		_follow_file.show_behind_parent = false
+		_follow_file.joint_mode = Line2D.LINE_JOINT_ROUND
+		_follow_file.begin_cap_mode = Line2D.LINE_CAP_ROUND
+		_follow_file.end_cap_mode = Line2D.LINE_CAP_ROUND
+		world.add_child(_follow_file)
+	var pts := PackedVector2Array()
+	if _follow_west_cluster() and selected != null and _is_command_phase():
+		var worlds: Array[Vector2] = [_follow_lead_world(selected)]
+		for op in operators:
+			if op == null or op == selected or not bool(op.follow_lead) or not op.alive:
+				continue
+			var w: Vector2 = follow_dest_world_of(int(op.op_id))
+			if w.length_squared() < 1.0:
+				w = op.global_position
+			worlds.append(w)
+		worlds.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.y < b.y)
+		for w2 in worlds:
+			pts.append(w2)
+	_follow_file.points = pts
+	_follow_file.visible = pts.size() >= 3
+
+
+func follow_file_point_count() -> int:
+	if _follow_file == null or not is_instance_valid(_follow_file) or not _follow_file.visible:
+		return 0
+	return _follow_file.points.size()
+
+
+func follow_file_length() -> float:
+	if _follow_file == null or not is_instance_valid(_follow_file) or not _follow_file.visible:
+		return 0.0
+	var pts: PackedVector2Array = _follow_file.points
+	if pts.size() < 2:
+		return 0.0
+	var n := 0.0
+	for i in range(1, pts.size()):
+		n += pts[i - 1].distance_to(pts[i])
+	return n
 
 
 func _make_follow_dest_mark(op: OperatorUnit) -> Node2D:
@@ -9464,6 +9519,12 @@ func _make_follow_dest_mark(op: OperatorUnit) -> Node2D:
 	if op != null:
 		var kit: Color = OperatorUnit.role_kit_color(int(op.role))
 		col = Color(kit.r, kit.g, kit.b, 0.85)
+	var boot := Polygon2D.new()
+	boot.polygon = PackedVector2Array([
+		Vector2(0, -10), Vector2(7, -2), Vector2(5, 9), Vector2(-5, 9), Vector2(-7, -2)
+	])
+	boot.color = Color(col.r, col.g, col.b, 0.42)
+	n.add_child(boot)
 	var a := Line2D.new()
 	a.width = 2.0
 	a.default_color = col
@@ -9481,7 +9542,7 @@ func _make_follow_dest_mark(op: OperatorUnit) -> Node2D:
 	var loop := PackedVector2Array()
 	for i in 10:
 		var r := float(i) / 10.0 * TAU
-		loop.append(Vector2(cos(r), sin(r)) * 11.0)
+		loop.append(Vector2(cos(r), sin(r)) * 12.0)
 	ring.points = loop
 	n.add_child(ring)
 	return n
@@ -9500,6 +9561,9 @@ func _clear_follow_dest_marks() -> void:
 	var keys: Array = _follow_dest_marks.keys()
 	for k in keys:
 		_clear_follow_dest_mark(int(k))
+	if _follow_file != null and is_instance_valid(_follow_file):
+		_follow_file.visible = false
+		_follow_file.points = PackedVector2Array()
 
 
 func follow_cone_visual_fade() -> float:
@@ -10919,6 +10983,8 @@ func dump_touch_feel() -> Dictionary:
 		"obs_kit": follow_obs_kit_range() if has_method("follow_obs_kit_range") else 0.0,
 		"obs_fill_a": follow_obs_fill_alpha() if has_method("follow_obs_fill_alpha") else 0.0,
 		"obs_fill_court": follow_obs_fill_courtyard() if has_method("follow_obs_fill_courtyard") else 0,
+		"file_pts": follow_file_point_count() if has_method("follow_file_point_count") else 0,
+		"file_len": follow_file_length() if has_method("follow_file_length") else 0.0,
 		"obs_off": follow_obs_world_offset() if has_method("follow_obs_world_offset") else 0.0,
 		"obs_ring_spread": follow_obs_ring_min_spacing() if has_method("follow_obs_ring_min_spacing") else 0.0,
 		"ring_extra": follow_west_ring_extra() if has_method("follow_west_ring_extra") else 0.0,

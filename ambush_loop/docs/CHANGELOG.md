@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.5.41 — Engine: west trio file tape (span 6 kept)
+
+Sideload APK: `dist/AmbushLoop-v0.5.41-touch-slide.apk`  
+Release tag: `v0.5.41-touch-slide`
+
+Same RAID as 0.5.40. Dest cells stay lead (7,12) / (6,6) / (5,16) span 6. Follow camera ~1.0. A gold file tape through the dests is why the trio reads as one squad without postage-stamp zoom.
+
+### Play (phone)
+- **西巷队形线**: west follow draws a file through lead + dests, north to south. Dest span 6, detour ≤6, bodies 1.0, obs fill still the 0.5.40 LOS wash. No dest rethink this slice.
+- Forced-touch dump prints `file_pts` / `file_len`. 0541 pack is slim.
+
+### Android
+- `versionName` 0.5.41 / `versionCode` 47 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title **v0.5.41 COMMANDOS/WW2**.
+2. West alley **跟**: dests (7,12)/(6,6)/(5,16) plus a gold file tape linking them. Courtyard still not soaped. Camera ~1.0 pan/crop.
+
 ## 0.5.40 — Engine: obs ring fill fade/clip at 1.0
 
 Sideload APK: `dist/AmbushLoop-v0.5.40-touch-slide.apk`  
