@@ -16,6 +16,10 @@ Same RAID as 0.5.41. Dump-found yard scrape: 跟 chip was 36×18; 开匣 sat lef
 ### Android
 - `versionName` 0.5.42 / `versionCode` 48.
 
+## Look — Blender yard crate in the playable courtyard
+
+`blender-headless` crate iso bake is now a sprite on the courtyard island (19,10). GLB in ArtSource stays the source of truth. Review: `eval_touch_ux/01_scout_touch_simple.png` — pine crate with iron straps on the hatched court, not three brown rects.
+
 ## 0.5.41 — Engine: west trio file tape (span 6 kept)
 
 Sideload APK: `dist/AmbushLoop-v0.5.41-touch-slide.apk`  

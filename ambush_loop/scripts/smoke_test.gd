@@ -12634,6 +12634,7 @@ func _assert_props(main) -> bool:
 		"Radio dish", "Guy wire", "Morse hut", "dish hall",
 		"Lighthouse mast", "Dish array", "Echo hall phosphor",
 		"Duty board", "Shift roster", "Valve log",
+		"yard_crate_iso",
 		"Timetable slate", "Fuel ticket", "Call log",
 		"Rain barrel", "Spare dish", "Sandbag row",
 		"Oil stain", "Hose coil", "Switch box", "Drip pan",

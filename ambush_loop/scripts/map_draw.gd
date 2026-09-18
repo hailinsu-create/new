@@ -5,6 +5,7 @@ extends Node2D
 ## glow, fail flash, and barrel highlight stay on the live overlay.
 
 const Ww2Pal := preload("res://scripts/art/ww2_palette.gd")
+const LookCrateIso := preload("res://art/look/yard_crate_iso.png")
 
 class StaticCacheLayer extends Node2D:
 	var map: Node2D
@@ -788,11 +789,15 @@ func _landmark_yard(c: CanvasItem) -> void:
 	c.draw_rect(win.grow(-6), Color(0.55, 0.32, 0.10, 0.8), false, 1.5)
 	_lamp_post(c, Vector2(10.6 * AmbushGrid.TILE, 8.4 * AmbushGrid.TILE), Color(0.72, 0.62, 0.32))
 	_lamp_post(c, Vector2(27.4 * AmbushGrid.TILE, 15.2 * AmbushGrid.TILE), Color(0.68, 0.52, 0.24))
-	# Courtyard crate-stack silhouette on the mid island (already blocked).
+	# Courtyard crate-stack: Blender iso bake (Look stream). Island already blocked.
 	var crate := _cell_rect(19, 10, 3, 2)
-	c.draw_rect(crate.grow(-4), Color(0.28, 0.20, 0.10, 0.45))
-	c.draw_rect(Rect2(crate.position + Vector2(8, 6), Vector2(22, 14)), Color(0.38, 0.28, 0.12, 0.55))
-	c.draw_rect(Rect2(crate.position + Vector2(36, 10), Vector2(18, 18)), Color(0.32, 0.22, 0.10, 0.5))
+	if LookCrateIso:
+		var dest := Rect2(crate.position + Vector2(2, -10), Vector2(crate.size.x - 6, crate.size.y + 14))
+		c.draw_texture_rect(LookCrateIso, dest, false)
+	else:
+		c.draw_rect(crate.grow(-4), Color(0.28, 0.20, 0.10, 0.45))
+		c.draw_rect(Rect2(crate.position + Vector2(8, 6), Vector2(22, 14)), Color(0.38, 0.28, 0.12, 0.55))
+		c.draw_rect(Rect2(crate.position + Vector2(36, 10), Vector2(18, 18)), Color(0.32, 0.22, 0.10, 0.5))
 	var t := AmbushGrid.TILE
 	# Clothesline across the west yard (overlay; does not block spine x=13).
 	c.draw_line(Vector2(8.2 * t, 7.15 * t), Vector2(17.6 * t, 7.05 * t), Color(0.22, 0.20, 0.14, 0.70), 1.6, true)
