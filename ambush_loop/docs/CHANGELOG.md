@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.10 — Engine: pause/speed watch labels
+
+Same RAID as 0.6.9. Dest span 6.
+
+### Play
+- **警报条**: 暂停观战 / 继续观战, 倍速 1× / 倍速 2×.
+
+### Android
+- `versionName` 0.6.10 / `versionCode` 59.
+
 ## 0.6.9 — Engine: settle-on-ring regression guard
 
 Same RAID as 0.6.8. Dest span 6.

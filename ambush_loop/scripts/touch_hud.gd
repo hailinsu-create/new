@@ -569,9 +569,9 @@ func refresh_phase(
 		_:
 			set_hint("点继续。菜单可清空记忆或回标题")
 	if _btns.has("pause"):
-		_btns["pause"].text = "继续" if watching_paused else "暂停"
+		_btns["pause"].text = "继续观战" if watching_paused else "暂停观战"
 	if _btns.has("speed"):
-		_btns["speed"].text = "2×" if speed_hi else "1×"
+		_btns["speed"].text = "倍速 2×" if speed_hi else "倍速 1×"
 	if _btns.has("mute"):
 		_btns["mute"].text = "静音中" if muted else "静音"
 	if _btns.has("log"):
