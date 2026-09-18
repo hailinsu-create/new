@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.42 phone feel: first-session 跟/开匣/绕背 + west file tape + obs fill fade/clip at 1.0
+## Forced-touch HUD stills for v0.6.0 overhaul: Blender crate/can in yard + first-session 跟/开匣/绕背 + west file tape + obs fill fade/clip at 1.0
 ## (LOS wash, not a 280px soap disc; kit_range unchanged), west trio dest spread
 ## (span 6, (6,6)/(5,16), west-follow detour ≤6, no west-wall hug), bodies/rings
 ## at ~1.0 + follow camera at ~1.0 (pan/crop, not postage-stamp zoom),

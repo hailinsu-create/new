@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.6.0 — Overhaul milestone (Engine ring/file/pits + Look Blender in yard)
+
+Sideload APK: `dist/AmbushLoop-v0.6.0-overhaul.apk`  
+Release tag: `v0.6.0-overhaul`
+
+PaperRoute sequenced overhaul from 0.5.39. RAID contract unchanged (`SCOUT → ALERT → SWEEP`, ALERT lock-move, auto fire/nades, 10-gun kit, compact 5-key).
+
+### Engine
+- 0.5.40: obs fill LOS-clip + fade at body 1.0; `kit_range` 280; courtyard not soaped.
+- 0.5.41: west file tape through dests (7,12)/(6,6)/(5,16) span 6; zoom 1.0 pan/crop.
+- 0.5.42: 跟 chip 42×22; 开匣 above crate; 绕背 above operator.
+
+### Look
+- Headless Blender crate (plank seams + AMMO stencil) and ammo can (30CAL) as GLB + iso bake.
+- Both sprites live on courtyard island (19,10).
+
+### Android
+- `versionName` 0.6.0 / `versionCode` 49 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title **v0.6.0 COMMANDOS/WW2**.
+2. Courtyard island shows a pine crate + olive ammo can (not three brown rects).
+3. West **跟** draws a gold file; observation fill does not soap the court.
+
 ## 0.5.42 — Engine: first-session 跟 / 开匣 / 绕背 / 需枪
 
 Sideload APK: `dist/AmbushLoop-v0.5.42-touch-slide.apk`  

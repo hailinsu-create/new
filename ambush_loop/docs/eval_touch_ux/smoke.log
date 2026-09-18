@@ -1,6 +1,6 @@
 Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
 
-SMOKE_GAME_VERSION 0.5.42
+SMOKE_GAME_VERSION 0.6.0
 SMOKE_OK_JOURNAL
 SMOKE_OK_LAUNCH_BAR title+GameSettings+AudioDirector+missions+android_preset
 SMOKE_OK_ATMO yard wall=brick kit=crate
@@ -9,7 +9,7 @@ SMOKE_OK_WEAPON_MODELS n=10
 SMOKE_OK_ROLES mg_cone=48.0 scout_range=280.0 protect=西
 SMOKE_OK_IDENTITY rifle=灰狼 mg=铁砧 scout=夜枭 glyph=1
 SMOKE_OK_LOS wall=80.0 open=220.0
-SMOKE_OK_SFX_BODY fire=0.33 tension=0.41 echo=0.29
+SMOKE_OK_SFX_BODY fire=0.34 tension=0.4 echo=0.29
 SMOKE_OK_SFX_MODELS bolt=0.31 smg=0.08 mg=0.26 mg42=0.42
 SMOKE_OK_SFX cues=role_fire muted=false every_shot=1 ui=1 hit=1
 SMOKE_OK_ENGAGE_HELPERS killzone=3
@@ -63,7 +63,7 @@ SMOKE_OK_WEST_FOLLOW_QUEUE d1=(6, 6) d2=(5, 16) detour=0 spread=143.1 cheb=4 spa
 SMOKE_OK_WEST_COMBO_TOUCH crate=(6, 12) flank_pts=3 d1=(6, 6) d2=(5, 16) detour=0 cheb=4 span=6
 SMOKE_OK_WEST_STACK_TAP gest=tap caps=
 SMOKE_OK_TOUCH_FEEL_057
-SMOKE_OK_FOLLOW_WALK_CONT flips=3 hop=3 stalls=0 move=37 d1=(21, 13) d2=(22, 15) lead=(24, 14)
+SMOKE_OK_FOLLOW_WALK_CONT flips=3 hop=3 stalls=0 move=38 d1=(21, 13) d2=(22, 15) lead=(24, 14)
 SMOKE_OK_FLANK_GUIDE_COMPLETE pts=5 dash=5 cells=5 wrap=true body=0 dest=(11, 12) walk=6
 SMOKE_OK_FOLLOW_BADGE_HIT hit=[P: (186.56, 592.0), S: (39.44, 20.0)] body=[P: (124.0, 628.0), S: (60.32, 80.0)]
 SMOKE_OK_WEST_COMBO_TOUCH crate=(6, 12) flank_pts=3 d1=(6, 6) d2=(5, 16) detour=0 cheb=4 span=6
@@ -192,13 +192,13 @@ SMOKE_OK_WEST_DEST_0539 d1=(6, 6) d2=(5, 16) lead=(7, 12) span=6 zoom=1.0 scale=
 SMOKE_OK_FACE_ARC_SOUTH_CAP_0526 n=16 bow=15.0 wrap=0 east=0.0 far=15.0 y14=0 y14_mid=0 axis_run=0
 SMOKE_OK_COMPACT_ROTATE cmds=crouch bag rotate_ccw rotate_cw alarm f=0.015.030.015.00.0330.00.0 swipe=22
 SMOKE_OK_COMPACT_NARROW font=11 need=259.0 avail=320.0 twist=48.0 stacked=1 cmds=crouch bag rotate_ccw rotate_cw alarm
-SMOKE_OK_FOLLOW_SETTLE_RING hold=1 body_ring=6.4 body_center=14.0 ring_center=14.4
+SMOKE_OK_FOLLOW_SETTLE_RING hold=1 body_ring=7.0 body_center=14.4 ring_center=14.4
 SMOKE_OK_TOUCH_FEEL_0539
 SMOKE_OK_WEST_FILL_0540 d1=(6, 6) d2=(5, 16) span=6 zoom=1.0 scale=1.0 obs=1.0 kit=280.0 obs_r=280.0 fill_a=0.01 court=0 world_span=1280.0x720.0
 SMOKE_OK_TOUCH_FEEL_0540
 SMOKE_OK_WEST_FILE_0541 d1=(6, 6) d2=(5, 16) span=6 pts=3 len=434.5 zoom=1.0 world_span=1280.0x720.0
 SMOKE_OK_TOUCH_FEEL_0541
-SMOKE_OK_SESSION_0542 chip=[P: (186.56, 592.0), S: (39.44, 20.0)] crate=[P: (349.1874, 338.7854), S: (92.0, 38.0)] op_s=(457.1874, 384.7854) cta=拉警报
+SMOKE_OK_SESSION_0542 chip=[P: (186.56, 592.0), S: (39.44, 20.0)] crate=[P: (411.187, 324.7716), S: (92.0, 38.0)] op_s=(457.187, 384.7716) cta=拉警报
 SMOKE_OK_TOUCH_FEEL_0542
 SMOKE_OK_TOUCH_PARITY
 SMOKE_OK_LIFECYCLE
