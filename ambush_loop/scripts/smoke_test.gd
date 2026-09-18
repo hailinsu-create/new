@@ -12821,6 +12821,7 @@ func _assert_props(main) -> bool:
 		"yard_crate_iso",
 		"ammo_can_iso",
 		"gun_case_iso",
+		"sandbag_iso",
 		"Timetable slate", "Fuel ticket", "Call log",
 		"Rain barrel", "Spare dish", "Sandbag row",
 		"Oil stain", "Hose coil", "Switch box", "Drip pan",

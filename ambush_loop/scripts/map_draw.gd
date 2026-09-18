@@ -8,6 +8,7 @@ const Ww2Pal := preload("res://scripts/art/ww2_palette.gd")
 const LookCrateIso := preload("res://art/look/yard_crate_iso.png")
 const LookCanIso := preload("res://art/look/ammo_can_iso.png")
 const LookGunIso := preload("res://art/look/gun_case_iso.png")
+const LookBagIso := preload("res://art/look/sandbag_iso.png")
 
 class StaticCacheLayer extends Node2D:
 	var map: Node2D
@@ -813,6 +814,10 @@ func _landmark_yard(c: CanvasItem) -> void:
 	for i in 5:
 		var hx := 8.8 * t + float(i) * 22.0
 		c.draw_rect(Rect2(hx, 7.15 * t, 8.0, 16.0 + float(i % 3) * 4.0), Color(0.42, 0.48, 0.36, 0.28))
+	if LookBagIso:
+		## West-wall sandbag stack (overlay; does not block).
+		var bag := Rect2(8.4 * t, 15.2 * t, 42.0, 32.0)
+		c.draw_texture_rect(LookBagIso, bag, false)
 	# Bicycle wreck west of the spine, south of the west crates.
 	var bike := Vector2(10.2 * t, 12.6 * t)
 	c.draw_circle(bike, 7.0, Color(0.10, 0.10, 0.08, 0.55))
