@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.9 — Engine: settle-on-ring regression guard
+
+Same RAID as 0.6.8. Dest span 6.
+
+### Play
+- **松手留环**: dedicated 0617 net so follower bodies stay on the slot ring after ↻.
+
+### Android
+- `versionName` 0.6.9 / `versionCode` 58.
+
 ## 0.6.8 — Engine: crate loot world chip
 
 Sideload APK: `dist/AmbushLoop-v0.6.8-loot-chip.apk`

@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.6.8":
+	if ver != "0.6.9":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3432,6 +3432,8 @@ func _assert_simplified_touch(main) -> bool:
 		return false
 	if not await _assert_touch_feel_0615(main):
 		return false
+	if not await _assert_touch_feel_0617(main):
+		return false
 	return true
 
 
@@ -4680,6 +4682,14 @@ func _assert_touch_feel_0615(main) -> bool:
 		quit(44)
 		return false
 	print("SMOKE_OK_TOUCH_FEEL_0615 chip=", txt)
+	return true
+
+
+func _assert_touch_feel_0617(main) -> bool:
+	## v0.6.9: settle-on-ring regression net (body stays on the slot ring).
+	if not await _assert_follow_settle_ring(main):
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_0617")
 	return true
 
 
