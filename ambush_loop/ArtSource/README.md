@@ -12,7 +12,10 @@ Contract: each `build_*.py` is deterministic, no GUI, writes a GLB next to the s
 `yard_crate` is an art-study WWII supply crate (mailbox-scale, wet pine + iron straps). It is **not** imported into the playable courtyard until a later Look prompt names a frame and a defect.
 
 Review (point at `yard_crate_turnaround.png`):
-- **Shaded side (bottom-middle):** no plank seams; the side is a flat pine slab.
-- **Clay front (top-left):** the stencil is a raised plus, not a painted marking.
+- **Shaded side (bottom-middle):** vertical side slats with gaps — not a flat pine slab.
+- **Clay front (top-left):** flush **AMMO** stencil bars, not a raised plus.
+- Also writes `yard_crate_iso.png` / `yard_crate_top.png` for the 2D yard (Look import is a later commit).
 
-Faced characters: Meshy only after `MESHY_API_KEY` exists. Skip until then.
+Second prop: `build_ammo_can.py` → `ammo_can.glb` + turnaround + iso.
+
+Faced characters: Meshy only after `MESHY_API_KEY` exists. Scaffold: `meshy/README.md`. Skip until then.
