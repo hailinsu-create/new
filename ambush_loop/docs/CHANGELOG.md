@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.7 — Engine: west cone fade tune
+
+Same RAID as 0.6.6. Dest span 6.
+
+### Play
+- **黄锥填色**: west follow cone fade 0.38 → 0.46 (still ≤0.50 leftover cap). Sector reads; courtyard not soaped.
+
+### Android
+- `versionName` 0.6.7 / `versionCode` 56.
+
 ## 0.6.6 — Engine: SCOUT tip brevity
 
 Same RAID as 0.6.5. Dest span 6.

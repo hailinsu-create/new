@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.6.6":
+	if ver != "0.6.7":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3428,6 +3428,8 @@ func _assert_simplified_touch(main) -> bool:
 		return false
 	if not await _assert_touch_feel_0611(main):
 		return false
+	if not await _assert_touch_feel_0613(main):
+		return false
 	return true
 
 
@@ -4649,6 +4651,17 @@ func _assert_touch_feel_0611(main) -> bool:
 		quit(44)
 		return false
 	print("SMOKE_OK_TOUCH_FEEL_0611 beat=", beat, " n=", beat.length())
+	return true
+
+
+func _assert_touch_feel_0613(main) -> bool:
+	## v0.6.7: west yellow cone fade is readable but still ≤0.50 leftover cap.
+	var src := FileAccess.get_file_as_string("res://scripts/main.gd")
+	if src.find("FOLLOW_WEST_CONE_FADE := 0.46") < 0:
+		push_error("SMOKE_CONE_0613_CONST")
+		quit(44)
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_0613 fade=0.46")
 	return true
 
 
