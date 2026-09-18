@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.6.4":
+	if ver != "0.6.5":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -5873,7 +5873,7 @@ func _assert_compact_narrow(main) -> bool:
 		push_error("SMOKE_COMPACT_NARROW_OVERFLOW need=%s avail=%s" % [snapped(need, 0.1), snapped(avail, 0.1)])
 		quit(44)
 		return false
-	if twist_min < 48.0:
+	if twist_min < 52.0:
 		push_error("SMOKE_COMPACT_NARROW_TWIST_SMALL n=%s" % snapped(twist_min, 0.1))
 		quit(44)
 		return false

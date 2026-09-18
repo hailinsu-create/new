@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.5 — Engine: compact ↺/↻ thumb fit
+
+Same RAID as 0.6.4. Dest span 6.
+
+### Play
+- **简配拧键**: ↺/↻ 60×62 (narrow 52×56). Narrow pack still fits ≤360.
+
+### Android
+- `versionName` 0.6.5 / `versionCode` 54.
+
 ## 0.6.4 — Engine: flank-path dash readability
 
 Same RAID as 0.6.3. Dest span 6.

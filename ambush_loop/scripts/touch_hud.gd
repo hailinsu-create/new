@@ -30,7 +30,7 @@ var _compact_sep: int = 4
 var _compact_stacked: bool = true
 var _compact_need_w: float = 0.0
 var _compact_avail_w: float = 0.0
-var _compact_twist_min: float = 54.0
+var _compact_twist_min: float = 60.0
 var _compact_alarm_w: float = 96.0
 const HOLD_FIRST_MS := 160
 const HOLD_REPEAT_MS := 110
@@ -223,8 +223,8 @@ func _build() -> void:
 	_twist_pair.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_twist_pair.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_row_setup.add_child(_twist_pair)
-	_add(_twist_pair, "rotate_ccw", "↺", Color(0.42, 0.58, 0.36), Vector2(54, 56))
-	_add(_twist_pair, "rotate_cw", "↻", Color(0.42, 0.58, 0.36), Vector2(54, 56))
+	_add(_twist_pair, "rotate_ccw", "↺", Color(0.42, 0.58, 0.36), Vector2(60, 62))
+	_add(_twist_pair, "rotate_cw", "↻", Color(0.42, 0.58, 0.36), Vector2(60, 62))
 	_add(_row_setup, "alarm", "需枪", Color(0.72, 0.22, 0.18), Vector2(96, 56))
 	# Hidden: still wired so apply_touch_command / smoke keep working.
 	_add(_row_setup, "fire", "开火", Color(0.55, 0.48, 0.28))
@@ -438,8 +438,8 @@ func _layout_compact(avail_override: float = -1.0) -> void:
 	_compact_sep = 3 if tight else 4
 	var stack_w := 52.0 if tight else 60.0
 	var stack_h := 24.0 if tight else 26.0
-	var twist := 48.0 if tight else 54.0
-	var twist_h := 52.0 if tight else 56.0
+	var twist := 52.0 if tight else 60.0
+	var twist_h := 56.0 if tight else 62.0
 	var alarm_w := 88.0 if tight else 96.0
 	var alarm_h := 52.0 if tight else 56.0
 	_compact_twist_min = twist
