@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.6.1":
+	if ver != "0.6.2":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3435,6 +3435,8 @@ func _assert_simplified_touch(main) -> bool:
 		return false
 	if not await _assert_touch_feel_0601(main):
 		return false
+	if not await _assert_touch_feel_0603(main):
+		return false
 	return true
 
 
@@ -4606,6 +4608,14 @@ func _assert_touch_feel_0601(main) -> bool:
 	if not await _assert_west_crate_0601(main):
 		return false
 	print("SMOKE_OK_TOUCH_FEEL_0601")
+	return true
+
+
+func _assert_touch_feel_0603(main) -> bool:
+	## v0.6.2: yard hatch contrast + courtyard key. Presentation only.
+	if not _assert_night_grade_0603(main):
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_0603")
 	return true
 
 
@@ -10323,6 +10333,39 @@ func _assert_west_crate_0601(main) -> bool:
 		op.cancel_search()
 	op.global_position = home
 	prompt.refresh_now()
+	return true
+
+
+func _assert_night_grade_0603(main) -> bool:
+	## Hatch split under the faint obs ring. kit_range / dests unchanged.
+	var Pal := load("res://scripts/art/ww2_palette.gd") as GDScript
+	if Pal == null:
+		push_error("SMOKE_NIGHT_0603_NO_PAL")
+		quit(44)
+		return false
+	var g: Color = Pal.night_grade("yard")
+	if g.g < 0.70 or g.r < 0.66:
+		push_error("SMOKE_NIGHT_0603_GRADE_DIM %s" % g)
+		quit(44)
+		return false
+	var fa: Color = Pal.floor_a("yard")
+	var fb: Color = Pal.floor_b("yard")
+	var split := absf(fa.g - fb.g)
+	if split < 0.030:
+		push_error("SMOKE_NIGHT_0603_HATCH_FLAT a=%s b=%s split=%s" % [fa, fb, snapped(split, 0.001)])
+		quit(44)
+		return false
+	var keys_src := FileAccess.get_file_as_string("res://scripts/fx/night_keys.gd")
+	if keys_src.find("20.2") < 0 or keys_src.find("crate island") < 0:
+		push_error("SMOKE_NIGHT_0603_NO_COURT_KEY")
+		quit(44)
+		return false
+	if main.has_method("_ensure_night_grade"):
+		main._ensure_night_grade()
+	print(
+		"SMOKE_OK_NIGHT_GRADE_0603 g=", snapped(g.r, 0.01), snapped(g.g, 0.01), snapped(g.b, 0.01),
+		" hatch=", snapped(split, 0.001)
+	)
 	return true
 
 

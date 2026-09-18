@@ -52,6 +52,8 @@ func _draw() -> void:
 		_:
 			_pool(Vector2(30.5 * t, 6.4 * t), 76.0, Color(0.78, 0.76, 0.62, 0.12 if saving else 0.20))
 			_pool(Vector2(18.5 * t, 11.0 * t), 44.0, Color(0.52, 0.46, 0.28, 0.07 if saving else 0.12))
+			## Courtyard crate island — hatched floor must read under the faint ring.
+			_pool(Vector2(20.2 * t, 10.6 * t), 36.0, Color(0.72, 0.68, 0.48, 0.08 if saving else 0.13))
 			_pool(Vector2(33.5 * t, 7.2 * t), 30.0, Color(0.86, 0.58, 0.22, 0.09 if saving else 0.14))
 			_pool(Vector2(10.6 * t, 8.4 * t), 32.0, Color(0.58, 0.52, 0.32, 0.06 if saving else 0.10))
 			_pool(Vector2(10.6 * t, 16.6 * t), 26.0, Color(0.36, 0.32, 0.18, 0.05 if saving else 0.09))

@@ -38,7 +38,8 @@ static func night_grade(id: String, saving: bool = false) -> Color:
 		"radio":
 			return Color(0.58 + mild, 0.66, 0.62, 1.0)
 		_:
-			return Color(0.62 + mild, 0.68, 0.48, 1.0)
+			## Yard: lift so hatched court still splits under the faint obs ring.
+			return Color(0.70 + mild, 0.74, 0.56, 1.0)
 
 
 static func saving_contrast(c: Color) -> Color:
@@ -64,7 +65,7 @@ static func floor_a(id: String) -> Color:
 		"radio":
 			return Color(0.046, 0.052, 0.050)
 		_:
-			return Color(0.056, 0.060, 0.044)
+			return Color(0.072, 0.078, 0.052)
 
 
 static func floor_b(id: String) -> Color:
@@ -80,7 +81,7 @@ static func floor_b(id: String) -> Color:
 		"radio":
 			return Color(0.038, 0.044, 0.042)
 		_:
-			return Color(0.044, 0.048, 0.036)
+			return Color(0.036, 0.038, 0.026)
 
 
 static func op_wool(role: int) -> Color:

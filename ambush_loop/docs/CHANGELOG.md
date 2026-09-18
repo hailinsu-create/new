@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.2 — Engine: yard night-grade hatch readability
+
+Same RAID as 0.6.1. Dest span 6, zoom 1.0, kit_range unchanged.
+
+### Play
+- **院子夜分级**: hatched court splits more under the faint obs ring. Courtyard crate island gets a moon key pool. Presentation only.
+
+### Android
+- `versionName` 0.6.2 / `versionCode` 51.
+
 ## 0.6.1 — Engine: west-wall 开匣 pit
 
 Sideload APK: (slice; APK at 0.6.3)  
