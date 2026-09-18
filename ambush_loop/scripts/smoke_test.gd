@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.6.2":
+	if ver != "0.6.3":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3407,24 +3407,9 @@ func _assert_simplified_touch(main) -> bool:
 		return false
 	if not await _assert_touch_feel_0511(main):
 		return false
-	if not await _assert_touch_feel_0512(main):
-		return false
-	if not await _assert_touch_feel_0513(main):
-		return false
-	if not await _assert_touch_feel_0514(main):
-		return false
-	if not await _assert_touch_feel_0515(main):
-		return false
-	if not await _assert_touch_feel_0516(main):
-		return false
-	if not await _assert_touch_feel_0517(main):
-		return false
-	if not await _assert_touch_feel_0518(main):
-		return false
-	## leftover dest/obs 0519–0538 re-sim the same (6,6)/(5,16) span-6 file.
-	## 0539 still holds dest + south-corridor + compact + settle. Slim so the
-	## 10-minute cap can reach 0540–0601 + campaign.
-	print("SMOKE_OK_TOUCH_FEEL_LEFTOVER_0519_0538_SLIM")
+	## leftover feel 0512–0538: facing/blend/arc/dest re-sims. 0511 holds
+	## badge+west combo; 0539 holds dest span 6 + south + compact + settle.
+	print("SMOKE_OK_TOUCH_FEEL_LEFTOVER_0512_0538_SLIM")
 	if not await _assert_touch_feel_0539(main):
 		return false
 	if not await _assert_touch_feel_0540(main):
@@ -3436,6 +3421,8 @@ func _assert_simplified_touch(main) -> bool:
 	if not await _assert_touch_feel_0601(main):
 		return false
 	if not await _assert_touch_feel_0603(main):
+		return false
+	if not await _assert_touch_feel_0605(main):
 		return false
 	return true
 
@@ -4616,6 +4603,15 @@ func _assert_touch_feel_0603(main) -> bool:
 	if not _assert_night_grade_0603(main):
 		return false
 	print("SMOKE_OK_TOUCH_FEEL_0603")
+	return true
+
+
+func _assert_touch_feel_0605(main) -> bool:
+	## v0.6.3: ALERT watch chrome — pause/speed/abort thumb-sized, short hint.
+	main._ensure_touch_hud()
+	if not _assert_alert_chrome_0605(main):
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_0605")
 	return true
 
 
@@ -10366,6 +10362,55 @@ func _assert_night_grade_0603(main) -> bool:
 		"SMOKE_OK_NIGHT_GRADE_0603 g=", snapped(g.r, 0.01), snapped(g.g, 0.01), snapped(g.b, 0.01),
 		" hatch=", snapped(split, 0.001)
 	)
+	return true
+
+
+func _assert_alert_chrome_0605(main) -> bool:
+	main._ensure_touch_hud()
+	var th = main.touch_hud
+	if th == null:
+		push_error("SMOKE_ALERT_0605_NO_HUD")
+		quit(44)
+		return false
+	var prev = main.phase
+	main.phase = main.Phase.WATCHING
+	if th.has_method("refresh_phase"):
+		th.refresh_phase("WATCHING", false, false, false, false)
+	main._update_hud()
+	var pause: Button = th._btns.get("pause") if th._btns.has("pause") else null
+	var speed: Button = th._btns.get("speed") if th._btns.has("speed") else null
+	var abort: Button = th._btns.get("abort") if th._btns.has("abort") else null
+	if pause == null or speed == null or abort == null:
+		push_error("SMOKE_ALERT_0605_BTNS")
+		quit(44)
+		return false
+	if pause.custom_minimum_size.x < 118.0 or pause.custom_minimum_size.y < 62.0:
+		push_error("SMOKE_ALERT_0605_PAUSE_SMALL %s" % pause.custom_minimum_size)
+		quit(44)
+		return false
+	if speed.custom_minimum_size.x < 118.0 or abort.custom_minimum_size.x < 118.0:
+		push_error("SMOKE_ALERT_0605_THIN speed=%s abort=%s" % [speed.custom_minimum_size, abort.custom_minimum_size])
+		quit(44)
+		return false
+	var hint := str(th._hint.text) if th._hint else ""
+	if hint.find("暂停") < 0 or hint.find("倍速") < 0 or hint.find("中止") < 0:
+		push_error("SMOKE_ALERT_0605_HINT %s" % hint)
+		quit(44)
+		return false
+	if hint.length() > 42:
+		push_error("SMOKE_ALERT_0605_HINT_LONG n=%s %s" % [hint.length(), hint])
+		quit(44)
+		return false
+	var cmds: PackedStringArray = th.watch_visible_cmds() if th.has_method("watch_visible_cmds") else PackedStringArray()
+	if not cmds.has("pause") or not cmds.has("speed") or not cmds.has("abort"):
+		push_error("SMOKE_ALERT_0605_CMDS %s" % " ".join(cmds))
+		quit(44)
+		return false
+	print("SMOKE_OK_ALERT_CHROME_0605 pause=", pause.custom_minimum_size, " hint=", hint)
+	main.phase = prev
+	if th.has_method("refresh_phase"):
+		th.refresh_phase("SETUP", false, false, false, false)
+	main._update_hud()
 	return true
 
 

@@ -244,9 +244,9 @@ func _build() -> void:
 	_row_watch.add_theme_constant_override("separation", 10)
 	_row_watch.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(_row_watch)
-	_add(_row_watch, "abort", "中止", Color(0.55, 0.20, 0.20), Vector2(108, 60))
-	_add(_row_watch, "pause", "暂停", Color(0.35, 0.38, 0.42), Vector2(108, 60))
-	_add(_row_watch, "speed", "倍速", Color(0.35, 0.38, 0.42), Vector2(108, 60))
+	_add(_row_watch, "abort", "中止", Color(0.58, 0.20, 0.18), Vector2(120, 64))
+	_add(_row_watch, "pause", "暂停", Color(0.40, 0.44, 0.38), Vector2(120, 64))
+	_add(_row_watch, "speed", "倍速", Color(0.42, 0.46, 0.32), Vector2(120, 64))
 	_add_wave_chip(_row_watch)
 	_add(_row_watch, "nade_watch", "自动雷", Color(0.82, 0.42, 0.18))
 	_add(_row_watch, "skip", "终局", Color(0.42, 0.52, 0.28))
@@ -272,11 +272,11 @@ func _add_wave_chip(row: HBoxContainer) -> void:
 	p.name = "WaveChip"
 	p.visible = false
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	p.custom_minimum_size = Vector2(124, 56)
+	p.custom_minimum_size = Vector2(140, 64)
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.10, 0.12, 0.08, 0.92)
-	sb.border_color = Color(0.82, 0.78, 0.38, 0.85)
-	sb.set_border_width_all(1)
+	sb.bg_color = Color(0.12, 0.14, 0.08, 0.94)
+	sb.border_color = Color(0.90, 0.82, 0.36, 0.95)
+	sb.set_border_width_all(2)
 	sb.set_corner_radius_all(8)
 	sb.content_margin_left = 10
 	sb.content_margin_right = 10
@@ -287,8 +287,8 @@ func _add_wave_chip(row: HBoxContainer) -> void:
 	lab.name = "Lab"
 	lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lab.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	lab.add_theme_font_size_override("font_size", 14)
-	lab.add_theme_color_override("font_color", Color(0.92, 0.88, 0.52))
+	lab.add_theme_font_size_override("font_size", 15)
+	lab.add_theme_color_override("font_color", Color(0.96, 0.90, 0.48))
 	lab.text = "下一波 —"
 	lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(lab)
@@ -563,7 +563,7 @@ func refresh_phase(
 		"SWEEP":
 			set_hint("打扫：走近尸体热区搜刮/拖尸 → 背包换枪 → 下一波或撤离")
 		"WATCHING":
-			set_hint("警报中 — 自动火力 / 自动手雷。暂停 / 倍速 / 中止。走位等打扫")
+			set_hint("警报中 — 暂停 / 倍速 / 中止。自动火力与手雷。")
 		"REPLAY":
 			set_hint("复盘只读 — 拖时间轴；警报钮返回搜刮")
 		_:

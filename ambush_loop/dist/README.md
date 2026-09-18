@@ -2,6 +2,7 @@
 
 Delivered build:
 
+- `AmbushLoop-v0.6.3-alert-chrome.apk` — Godot 4.7.2 debug, arm64, v0.6.3: ALERT watch chrome (pause/speed/abort 120×64), yard night-grade hatch, west-wall 开匣 pit. Same RAID as 0.6.0.
 - `AmbushLoop-v0.6.0-overhaul.apk` — Godot 4.7.2 debug, arm64, v0.6.0 overhaul: obs fill LOS-clip, west file tape, first-session 跟/开匣/绕背, Blender crate+ammo can in the yard. Same RAID as 0.5.39.
 - `AmbushLoop-v0.5.39-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest (6,6)/(5,16) span 6, west-follow pan/crop at ~1.0, bodies/rings at ~1.0, courtyard/along-file ring offset shrunk (not the 0.16-era 154px shove), south-corridor full path y≤13 (mid x≈21 included), compact 5-key. Same RAID as 0.5.38.
 - `AmbushLoop-v0.5.38-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest (6,6)/(5,16) span 6, west-follow pan/crop at ~1.0 (not postage-stamp zoom), bodies/rings at ~1.0, south-corridor full path y≤13 (mid x≈21 included), compact 5-key (superseded for phone feel). Same RAID as 0.5.37.

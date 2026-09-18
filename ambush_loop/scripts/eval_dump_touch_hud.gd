@@ -183,6 +183,15 @@ func _run() -> void:
 	await _settle(16)
 	_count_chrome(main, "alert")
 	_dump_feel(main, "alert")
+	if main.touch_hud:
+		var th = main.touch_hud
+		var pause: Button = th._btns.get("pause") if th._btns.has("pause") else null
+		var hint := str(th._hint.text) if th._hint else ""
+		print(
+			"DUMP_ALERT_CHROME pause=", pause.custom_minimum_size if pause else Vector2.ZERO,
+			" hint=", hint,
+			" watch_cmds=", " ".join(th.watch_visible_cmds() if th.has_method("watch_visible_cmds") else PackedStringArray())
+		)
 	await _save("02_alert_touch_watch")
 
 	print("DUMP_TOUCH_HUD_OK")

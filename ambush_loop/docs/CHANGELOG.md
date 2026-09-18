@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.6.3 — Engine: ALERT watch chrome
+
+Sideload APK: `dist/AmbushLoop-v0.6.3-alert-chrome.apk`  
+Release tag: `v0.6.3-alert-chrome`
+
+Same RAID as 0.6.2. Dest span 6, zoom 1.0.
+
+### Play (phone)
+- **警报条**: 暂停 / 倍速 / 中止 are 120×64. Wave chip gold border is thicker. Hint is one short line.
+
+### Android
+- `versionName` 0.6.3 / `versionCode` 52.
+
 ## 0.6.2 — Engine: yard night-grade hatch readability
 
 Same RAID as 0.6.1. Dest span 6, zoom 1.0, kit_range unchanged.
