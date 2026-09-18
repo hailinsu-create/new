@@ -117,8 +117,9 @@ def _build() -> bpy.types.Object:
         stencil,
         face_y=-D * 0.5 - 0.0012,
         box_w=0.62,
-        box_h=0.07,
-        origin_z=0.07,
+        box_h=0.09,
+        origin_z=0.065,
+        thick=0.0036,
         prefix="CaseStamp",
     )
     bpy.context.view_layer.update()
