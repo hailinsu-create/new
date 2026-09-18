@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.5.39 — Phone feel: west obs-ring courtyard offset shrink
+
+Sideload APK: `dist/AmbushLoop-v0.5.39-touch-slide.apk`  
+Release tag: `v0.5.39-touch-slide`
+
+Same RAID as 0.5.38 (`SCOUT → ALERT → SWEEP`, auto fire + auto nade). Phone default stays 简配夜袭.
+
+### Play (phone)
+- **西巷观察环**: dest cells stay lead (7,12), first (6,6) six along-file (dx=1, not hugging the west wall), second (5,16) two back / four the other way. Span 6. West-follow dest world still clamps onto walkable floor (detour ≤6). Follow camera stays ~1.0 (floor ≥0.85, pan/crop, not postage-stamp zoom). Bodies and observation rings stay ~1.0. Courtyard / along-file **ring offset only** is cut (76/52/46 east → 48/28/18) so full-size rings sit on the west file instead of a 154px soap bubble in the crate courtyard. Yellow-cone fade kept. Gameplay cone / ambush / RAID rules unchanged.
+- **绕箱南走廊**: unchanged from 0.5.26–0.5.38. Full path y14=0 (mid x≈21 included), east overshoot 0, axis_run 0. Far-side bow sits on the y=13 rim (~15px; far-cap constant still 20).
+- Forced-touch path covers settle-on-ring, bidirectional ↺/↻, west trio + faded cone + dest (6,6)/(5,16) + detour ≤6 + readable bodies/rings + pan/crop follow at ~1.0 + **shrunk courtyard offset**, compact narrow pack, crate-face axis_run 0, and south-corridor **full path** y≤13. 0539 pack is slim so the suite finishes without a 10-minute cut.
+
+### Android
+- `versionName` 0.5.39 / `versionCode` 45 (`com.ambushloop.game`).
+
+### How to tell you have this build
+1. Title **v0.5.39 COMMANDOS/WW2**.
+2. Compact bar still stacks **匍匐** over **背包**; **↺ / ↻** sit next to **需枪**. Hold or swipe either way.
+3. West alley **跟**: dests (7,12)/(6,6)/(5,16), span 6. On-ring extra ~44 side / ~8–12 back. Courtyard ring offset ~18 east (not ~46). Bodies and observation rings at ~1.0. Follow camera at ~1.0 (pan/crop). Yellow cone still faded. South-corridor crate arc still y≤13 at x≈21.
+
 ## 0.5.38 — Phone feel: west follow pan/crop at ~1.0, bodies/rings 1.0
 
 Sideload APK: `dist/AmbushLoop-v0.5.38-touch-slide.apk`  

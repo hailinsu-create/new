@@ -50,11 +50,16 @@ const FOLLOW_CAM_WEST_PAN := 0.62
 const FOLLOW_CAM_FILE_ZOOM := 1.0
 const FOLLOW_WEST_OBS_SCALE := 1.0
 const FOLLOW_WEST_BODY_SCALE := 1.0
-const FOLLOW_WEST_OBS_OFFSET := 76.0
-const FOLLOW_WEST_OBS_SIDE := 52.0
-const FOLLOW_WEST_OBS_SLOT := 24.0
-const FOLLOW_WEST_OBS_COURTYARD := 46.0
-const FOLLOW_WEST_OBS_LEAD_MUL := 0.78
+## v0.5.39: full-size rings no longer need the 0.16-era courtyard shove
+## (76 radial / 52 side / 46 east → 154px off the bodies). Keep a modest
+## along-file stagger so three 1.0 rings still read as three, but park
+## them on the west file instead of sliding a 280px soap bubble into
+## the crate courtyard. Zoom / body stay ~1.0.
+const FOLLOW_WEST_OBS_OFFSET := 48.0
+const FOLLOW_WEST_OBS_SIDE := 28.0
+const FOLLOW_WEST_OBS_SLOT := 12.0
+const FOLLOW_WEST_OBS_COURTYARD := 18.0
+const FOLLOW_WEST_OBS_LEAD_MUL := 0.62
 const FOLLOW_WEST_CONE_FADE := 0.38
 const FLANK_WRAP_MIN_PTS := 4
 const PROGRESS_PATH := "user://ambush_loop.cfg"
@@ -9576,6 +9581,10 @@ func follow_west_ring_extra() -> float:
 	return FOLLOW_WEST_RING_EXTRA
 
 
+func follow_west_obs_courtyard() -> float:
+	return FOLLOW_WEST_OBS_COURTYARD
+
+
 func follow_ring_west_min_x() -> float:
 	## Smallest on-ring world x among the west file. Cell 5 west edge is 160.
 	if selected == null:
@@ -9623,12 +9632,13 @@ func _apply_west_obs_scale() -> void:
 func _apply_west_obs_offset(west: bool) -> void:
 	## Visual observation-ring stagger. Dest cells stay; rings slide off the
 	## cluster centroid so the west trio + yellow cone read as three bodies.
-	## v0.5.38: dest cells (6,6)/(5,16) span 6. #1 stays six along-file
+	## v0.5.39: dest cells (6,6)/(5,16) span 6. #1 stays six along-file
 	## (dx=1). #2 stays off the south wall. Dest world clamps onto walkable
 	## floor so the south wall does not wrap a courtyard detour. Follow
 	## camera stays ~1.0 (floor ≥0.85) and pans/crops the trio + cone.
-	## Bodies and observation rings are full-size (~1.0). Rings keep the
-	## courtyard / along-file offset.
+	## Bodies and observation rings are full-size (~1.0). Courtyard /
+	## along-file ring offset is the modest 1.0-scale stagger, not the
+	## 0.16-era 154px courtyard shove.
 	var centroid := Vector2.ZERO
 	var n := 0
 	if west and selected != null:
@@ -10871,6 +10881,7 @@ func dump_touch_feel() -> Dictionary:
 		"obs_off": follow_obs_world_offset() if has_method("follow_obs_world_offset") else 0.0,
 		"obs_ring_spread": follow_obs_ring_min_spacing() if has_method("follow_obs_ring_min_spacing") else 0.0,
 		"ring_extra": follow_west_ring_extra() if has_method("follow_west_ring_extra") else 0.0,
+		"obs_courtyard": follow_west_obs_courtyard() if has_method("follow_west_obs_courtyard") else 0.0,
 		"ring_west_x": follow_ring_west_min_x() if has_method("follow_ring_west_min_x") else 9999.0,
 		"cam_squad_zoom": _cam_squad_zoom,
 		"cam_world_span": follow_cam_world_span() if has_method("follow_cam_world_span") else Vector2(1280, 720),
