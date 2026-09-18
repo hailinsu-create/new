@@ -25,6 +25,8 @@ Method: one Engine **or** Look slice → smoke/dump → commit. RAID 契约不�
 
 ## R01–R20
 
+HEAD close: `bd7172f` **v0.6.11** (`versionCode` 60). APKs: R05 `v0.6.3-alert-chrome`, R10 `v0.6.5-gun-case`, R15 `v0.6.8-loot-chip`, R20 `v0.6.11-yard-props`.
+
 | 轮 | 轨 | 切片 | 验收 | 版本 / 包 |
 |---|---|---|---|---|
 | R01 | Engine | 西墙 **开匣** 钉在匣上方偏东，不进西皂 | smoke `SMOKE_OK_WEST_CRATE_0601`；dump `07_west_crate` | 0.6.1 |
