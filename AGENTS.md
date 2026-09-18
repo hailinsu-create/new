@@ -1,6 +1,9 @@
+<!-- grok-cli-router:lningha@gmail.com -->
 # Always use grok.com CLI Extra High Fast
 
 This repo spends **lning's grok.com quota** (`lningha@gmail.com` / SuperGrok Heavy), not Cursor-billed Grok.
+
+Required CLI account: `lningha@gmail.com`. `hailinsu@gmail.com` is the Cursor owner (X Basic), not CLI quota. `.cursor/grok/run.sh` refuses any other OIDC email unless `GROK_ALLOW_ANY_ACCOUNT=1`.
 
 Every Cloud Agent, Cursor Agent, and Bot-forwarded run must call grok.com CLI at the highest Fast profile. Do not use Cursor Grok, Composer, or a weaker grok CLI model/effort/tier.
 
@@ -18,7 +21,7 @@ Do not pass a weaker model, a lower `--effort`, or skip Fast.
 
 You are the worker. Do the user's task yourself. Do **not** call `run.sh`, `grok -p`, or spawn another Grok CLI. Recursion is forbidden.
 
-You are Grok CLI if any of these are true: the process is the `grok` binary; stderr/logs say `grok-cli: using grok-4.6 extra-high fast`; you authenticated as a grok.com session (`lningha@gmail.com` / SuperGrok Heavy).
+You are Grok CLI if any of these are true: the process is the `grok` binary; `GROK_AGENT=1`; stderr/logs say `grok-cli: using grok-4.6 extra-high fast`; you authenticated as a grok.com session (`lningha@gmail.com` / SuperGrok Heavy).
 
 ## If you are a Cursor Agent or Cloud Agent
 
@@ -40,11 +43,25 @@ If login/refresh fails, see **invalid_grant / Bot-forwarded agents** below. Do n
 
 Allowed Cursor-side actions: write the prompt file, invoke `run.sh`, relay output, git commit/push/PR plumbing after Grok finished. Everything else is Grok's job.
 
-Project hooks in `.cursor/hooks.json` **deny** Cursor implementation tools (Write, StrReplace, Task/subagents, and non-git shells). Follow this even if a hook fails open.
+Project hooks in `.cursor/hooks.json` **deny** Cursor implementation tools (Write, StrReplace, Task/subagents, and non-git shells). Follow this even if a hook fails open. Those deny-hooks must no-op when `GROK_AGENT=1` so the grok.com worker can edit files.
 
 ## Cursor Cloud specific instructions
 
 Hand **every** Cloud Agent task to grok.com CLI Extra High Fast through `.cursor/grok/run.sh` as above. The wrapper always re-applies `grok-4.6` + `--effort xhigh` + Fast/priority even if `GROK_CONFIG` was already set. Confirm stderr contains `grok-cli: using grok-4.6 extra-high fast` before treating the run as complete.
+
+Keep this file on the repo default branch. Cloud Agents that clone `main` without it rely on the environment snapshot inject to seed it.
+
+## Environment snapshot
+
+Cloud Agent VMs must boot:
+
+```bash
+bash "$HOME/.grok-cursor-router/inject.sh"
+```
+
+That start hook skip-if-valid refreshes OIDC (never `--force`), pins Extra High Fast, seeds this file if the grok-cli-router marker is missing, copies the router into workspaces that do not already git-track it, and must **not** overwrite git-tracked router files with a stale snapshot.
+
+After changing `~/.grok/auth.json` or `~/.grok-cursor-router/`, click **Save** on the keeper Environment panel (not Git). Disk edits on a Bot VM are discarded unless Saved.
 
 ## invalid_grant / Bot-forwarded agents
 

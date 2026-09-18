@@ -7,17 +7,19 @@ alwaysApply: true
 
 This repo spends **lning's grok.com quota** (`lningha@gmail.com` / SuperGrok Heavy), not Cursor-billed Grok.
 
+Required CLI account: `lningha@gmail.com`. `hailinsu@gmail.com` is the Cursor owner, not CLI quota. Do not fall back to Cursor Grok.
+
 **Every Cloud Agent** must hand the task to grok.com CLI Extra High Fast. Do not use Cursor Grok, Composer, or a weaker grok CLI model/effort/tier.
 
-This policy is also in `AGENTS.md` so Cloud Agents load it even when `.mdc` rules are skipped.
+This policy is also in `AGENTS.md` (marker `grok-cli-router:lningha@gmail.com`) so Cloud Agents load it even when `.mdc` rules are skipped.
 
-Project hooks in `.cursor/hooks.json` **deny** Cursor implementation tools (Write, StrReplace, Task/subagents, and non-git shells). Follow this rule even if a hook fails open.
+Project hooks in `.cursor/hooks.json` **deny** Cursor implementation tools (Write, StrReplace, Task/subagents, and non-git shells). Follow this rule even if a hook fails open. Deny-hooks must no-op when `GROK_AGENT=1`.
 
 ## If you are already Grok CLI
 
 You are the worker. Do the user's task yourself. Do **not** call `run.sh`, `grok -p`, or spawn another Grok CLI. Recursion is forbidden.
 
-You are Grok CLI if any of these are true: the process is the `grok` binary; stderr/logs say `grok-cli: using grok-4.6 extra-high fast`; you authenticated as a grok.com session (`lningha@gmail.com` / SuperGrok Heavy).
+You are Grok CLI if any of these are true: the process is the `grok` binary; `GROK_AGENT=1`; stderr/logs say `grok-cli: using grok-4.6 extra-high fast`; you authenticated as a grok.com session (`lningha@gmail.com` / SuperGrok Heavy).
 
 ## If you are a Cursor Agent or Cloud Agent
 

@@ -166,6 +166,28 @@ class OidcRefreshTests(unittest.TestCase):
             self.assertEqual(entry["key"], SECRET_ACCESS)
             self.assertEqual(entry["refresh_token"], SECRET_REFRESH)
 
+    def test_print_email_does_not_http(self) -> None:
+        future = (datetime.now(timezone.utc) + timedelta(hours=5)).strftime(
+            "%Y-%m-%dT%H:%M:%S.000000Z"
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "auth.json")
+            with open(path, "w", encoding="utf-8") as handle:
+                json.dump(sample_auth(future), handle)
+            fake = MagicMock(
+                side_effect=AssertionError("urlopen must not run for --print-email")
+            )
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                rc = oidc_refresh.main(
+                    ["--auth-file", path, "--print-email"], urlopen=fake
+                )
+            self.assertEqual(rc, 0)
+            self.assertEqual(stdout.getvalue().strip(), "user@example.com")
+            self.assertEqual(secrets_leaked(stdout.getvalue() + stderr.getvalue()), [])
+            fake.assert_not_called()
+
     def test_no_refresh_token_exits_1(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "auth.json")

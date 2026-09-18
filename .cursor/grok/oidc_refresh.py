@@ -30,7 +30,7 @@ AUTH_PATH = os.path.expanduser("~/.grok/auth.json")
 DEFAULT_MIN_REMAINING_SECONDS = 60
 USAGE = (
     "usage: oidc_refresh.py [--auth-file PATH] [--force] "
-    "[--min-remaining SECONDS]"
+    "[--min-remaining SECONDS] [--print-email]"
 )
 
 
@@ -79,6 +79,24 @@ def find_oidc_entry(data: object) -> tuple[str, dict] | None:
         if value.get("refresh_token") and value.get("oidc_client_id"):
             return str(key), value
     return None
+
+
+def oidc_email(path: str = AUTH_PATH) -> str:
+    """Return the OIDC email from auth.json. Empty string if missing. No HTTP."""
+    try:
+        with open(path, encoding="utf-8") as handle:
+            data = json.load(handle)
+    except Exception:
+        return ""
+    if not isinstance(data, dict):
+        return ""
+    found = find_oidc_entry(data)
+    if found is not None:
+        return str(found[1].get("email") or "")
+    for value in data.values():
+        if isinstance(value, dict) and value.get("email"):
+            return str(value["email"])
+    return ""
 
 
 def access_remaining_seconds(entry: dict) -> float | None:
@@ -252,6 +270,7 @@ def main(argv: list[str] | None = None, urlopen=urllib.request.urlopen) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     path = AUTH_PATH
     force = False
+    print_email = False
     min_remaining_seconds = float(DEFAULT_MIN_REMAINING_SECONDS)
     i = 0
     while i < len(args):
@@ -264,6 +283,10 @@ def main(argv: list[str] | None = None, urlopen=urllib.request.urlopen) -> int:
             force = True
             i += 1
             continue
+        if arg == "--print-email":
+            print_email = True
+            i += 1
+            continue
         if arg == "--min-remaining" and i + 1 < len(args):
             try:
                 min_remaining_seconds = float(args[i + 1])
@@ -274,6 +297,9 @@ def main(argv: list[str] | None = None, urlopen=urllib.request.urlopen) -> int:
             continue
         print(USAGE, file=sys.stderr)
         return 1
+    if print_email:
+        print(oidc_email(path))
+        return 0
     try:
         meta = refresh_auth_file(
             path,
