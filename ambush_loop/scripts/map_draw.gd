@@ -7,6 +7,7 @@ extends Node2D
 const Ww2Pal := preload("res://scripts/art/ww2_palette.gd")
 const LookCrateIso := preload("res://art/look/yard_crate_iso.png")
 const LookCanIso := preload("res://art/look/ammo_can_iso.png")
+const LookGunIso := preload("res://art/look/gun_case_iso.png")
 
 class StaticCacheLayer extends Node2D:
 	var map: Node2D
@@ -802,6 +803,10 @@ func _landmark_yard(c: CanvasItem) -> void:
 	if LookCanIso:
 		var can := Rect2(crate.position + Vector2(crate.size.x - 38, crate.size.y - 2), Vector2(36, 28))
 		c.draw_texture_rect(LookCanIso, can, false)
+	if LookGunIso:
+		## Long rifle case on the west lip of the crate island.
+		var gun := Rect2(crate.position + Vector2(-52, 10), Vector2(70, 26))
+		c.draw_texture_rect(LookGunIso, gun, false)
 	var t := AmbushGrid.TILE
 	# Clothesline across the west yard (overlay; does not block spine x=13).
 	c.draw_line(Vector2(8.2 * t, 7.15 * t), Vector2(17.6 * t, 7.05 * t), Color(0.22, 0.20, 0.14, 0.70), 1.6, true)

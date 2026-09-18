@@ -18,7 +18,7 @@ Review (point at `yard_crate_turnaround.png`):
 
 Second prop: `build_ammo_can.py` → `ammo_can.glb` + turnaround + iso.
 
-Third prop (art study): `build_gun_case.py` → `gun_case.glb` + turnaround + iso. Long rifle crate; shaded **front** is flush **RIFLE** stencil; **side** is the short end with lid board seams. Shared studio: `_look_studio.py`.
+Third prop: `build_gun_case.py` → `gun_case.glb` + turnaround + iso. Long rifle crate; shaded **front** is flush **RIFLE** stencil. Iso is now in `art/look/gun_case_iso.png` on the courtyard island west lip.
 
 Fourth prop (art study): `build_sandbag.py` → `sandbag.glb` + turnaround + iso. Three-bag stack. Shaded **front**: stacked canvas bricks + neck ties (sag is a later defect pass).
 
