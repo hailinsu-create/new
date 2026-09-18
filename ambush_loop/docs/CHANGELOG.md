@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.5.42 — Engine: first-session 跟 / 开匣 / 绕背 / 需枪
+
+Sideload APK: `dist/AmbushLoop-v0.5.42-touch-slide.apk`  
+Release tag: `v0.5.42-touch-slide`
+
+Same RAID as 0.5.41. Dump-found yard scrape: 跟 chip was 36×18; 开匣 sat left in the obs soap (`07_west_crate.png`).
+
+### Play (phone)
+- **跟**: chip 42×22, raised tab, still misses gun stamp / number (smoke fat cap 52×36).
+- **开匣**: larger hotspot, prefers above the soldier/crate, not west into the ring.
+- **绕背**: 88×38 thumb target.
+- **需枪**: CTA contract unchanged until a firearm is held.
+
+### Android
+- `versionName` 0.5.42 / `versionCode` 48.
+
 ## 0.5.41 — Engine: west trio file tape (span 6 kept)
 
 Sideload APK: `dist/AmbushLoop-v0.5.41-touch-slide.apk`  

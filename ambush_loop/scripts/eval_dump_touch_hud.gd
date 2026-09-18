@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Forced-touch HUD stills for v0.5.41 phone feel: west file tape + obs fill fade/clip at 1.0
+## Forced-touch HUD stills for v0.5.42 phone feel: first-session 跟/开匣/绕背 + west file tape + obs fill fade/clip at 1.0
 ## (LOS wash, not a 280px soap disc; kit_range unchanged), west trio dest spread
 ## (span 6, (6,6)/(5,16), west-follow detour ≤6, no west-wall hug), bodies/rings
 ## at ~1.0 + follow camera at ~1.0 (pan/crop, not postage-stamp zoom),
@@ -1625,6 +1625,13 @@ func _dump_west_follow_readable(main, tag: String) -> void:
 
 func _dump_yard_search(main) -> void:
 	## Courtyard play evidence: 跟 / 绕背 / 开匣 / 需枪 without raid_prepare_ref.
+	if main.operators.size() > 0 and not main.raid_stashes.is_empty() and main.grid:
+		main._select_op(0)
+		main.operators[0].stop_move()
+		main.operators[0].global_position = main.raid_stashes[0].global_position
+		if main.c2 and main.c2.prompt and main.c2.prompt.has_method("refresh_now"):
+			main.c2.prompt.refresh_now()
+		main._update_hud()
 	var crate_caps := PackedStringArray()
 	if main.c2 and main.c2.prompt and main.c2.prompt.has_method("visible_captions"):
 		crate_caps = main.c2.prompt.visible_captions()

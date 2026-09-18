@@ -13,7 +13,8 @@ const PROBE_FLANK := 76.0
 const PROBE_WHISTLE := 32.0
 const HOLD_SEC := 0.55
 const BTN_SIZE := Vector2(88, 36)
-const FLANK_BTN := Vector2(76, 32)
+const FLANK_BTN := Vector2(88, 38)
+const CRATE_BTN := Vector2(92, 38)
 var host: Node = null
 var _root: Control = null
 var _draw: Control = null
@@ -332,7 +333,9 @@ func _map_safe(vis: Vector2) -> Rect2:
 func _btn_sz(cmd: String) -> Vector2:
 	if cmd == "flank":
 		return FLANK_BTN
-	if cmd == "crate" or cmd == "cover":
+	if cmd == "crate":
+		return CRATE_BTN
+	if cmd == "cover":
 		return Vector2(84, 34)
 	return BTN_SIZE
 
@@ -456,16 +459,33 @@ func _place_hotspot(
 ) -> Vector2:
 	var sz := _btn_sz(cmd)
 	var x_off := (float(i) - (float(n) - 1.0) * 0.5) * (sz.x + 8.0)
+	## 开匣: dump 07 sat left/below in the soap. Pin above the soldier.
+	if cmd == "crate" and op_screen != Vector2.INF:
+		var pin := op_screen + Vector2(-sz.x * 0.5, -sz.y - 22.0)
+		pin.x = clampf(pin.x, safe.position.x, safe.end.x - sz.x)
+		pin.y = clampf(pin.y, safe.position.y, maxf(safe.position.y, safe.end.y - sz.y))
+		return pin
 	var cands: Array[Vector2] = []
 	if cmd == "flank" or cmd == "knife":
+		## Thumb target above the operator, not parked on the sentry body.
 		if op_screen != Vector2.INF:
-			cands.append(op_screen + Vector2(22.0, -sz.y - 6.0))
-			cands.append(op_screen + Vector2(22.0, 8.0))
-			cands.append(op_screen + Vector2(-sz.x - 22.0, -sz.y - 6.0))
-			cands.append(op_screen + Vector2(-sz.x - 22.0, 8.0))
 			cands.append(op_screen + Vector2(-sz.x * 0.5, -sz.y - 28.0))
-			cands.append(op_screen + Vector2(-sz.x * 0.5, 16.0))
-		cands.append(screen + Vector2(-sz.x * 0.5 + x_off, -sz.y - 16.0))
+			cands.append(op_screen + Vector2(-sz.x * 0.5, -sz.y - 8.0))
+			cands.append(op_screen + Vector2(22.0, -sz.y - 22.0))
+			cands.append(op_screen + Vector2(-sz.x - 22.0, -sz.y - 22.0))
+			cands.append(op_screen + Vector2(22.0, 8.0))
+			cands.append(op_screen + Vector2(-sz.x - 22.0, 8.0))
+		cands.append(screen + Vector2(-sz.x * 0.5 + x_off, -sz.y - 22.0))
+	elif cmd == "crate":
+		## Dump 07_west_crate: 开匣 sat left in the soap. Prefer above the
+		## soldier / crate, then right, then left as last resort.
+		if op_screen != Vector2.INF:
+			cands.append(op_screen + Vector2(-sz.x * 0.5, -sz.y - 22.0))
+			cands.append(op_screen + Vector2(10.0, -sz.y - 18.0))
+		cands.append(screen + Vector2(-sz.x * 0.5 + x_off, -sz.y - 20.0))
+		cands.append(screen + Vector2(16.0 + x_off, -sz.y - 10.0))
+		cands.append(screen + Vector2(-sz.x * 0.5 + x_off, 10.0))
+		cands.append(screen + Vector2(-sz.x - 16.0 + x_off, -sz.y - 8.0))
 	else:
 		cands.append(screen + Vector2(-sz.x * 0.5 + x_off, -sz.y - 12.0))
 		cands.append(screen + Vector2(14.0 + x_off, -sz.y - 6.0))
@@ -473,20 +493,34 @@ func _place_hotspot(
 		cands.append(screen + Vector2(-sz.x * 0.5 + x_off, 8.0))
 	var best := cands[0]
 	var best_hits := 999
+	var best_above := Vector2.INF
+	var best_above_hits := 999
 	for raw in cands:
 		var pos := raw
 		pos.x = clampf(pos.x, safe.position.x, safe.end.x - sz.x)
 		pos.y = clampf(pos.y, safe.position.y, maxf(safe.position.y, safe.end.y - sz.y))
 		var hr := Rect2(pos, sz)
-		if op_screen != Vector2.INF and cmd != "flank" and cmd != "knife":
+		if op_screen != Vector2.INF and cmd != "flank" and cmd != "knife" and cmd != "crate":
 			if hr.grow(8.0).has_point(op_screen):
 				continue
+		if cmd == "crate" and op_screen != Vector2.INF:
+			if hr.grow(4.0).has_point(op_screen) and pos.y + sz.y > op_screen.y - 8.0:
+				continue
 		var hits := _count_hits(hr, blocked)
+		var above := op_screen != Vector2.INF and (pos.y + sz.y) <= (op_screen.y - 4.0)
+		if above and hits < best_above_hits:
+			best_above_hits = hits
+			best_above = pos
 		if hits < best_hits:
 			best_hits = hits
 			best = pos
-		if hits == 0:
-			return pos
+		if hits == 0 and (cmd != "crate" or above or best_above == Vector2.INF):
+			if cmd == "crate" and above:
+				return pos
+			if cmd != "crate":
+				return pos
+	if cmd == "crate" and best_above != Vector2.INF:
+		return best_above
 	return best
 
 

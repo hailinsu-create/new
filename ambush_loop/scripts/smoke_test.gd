@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.5.41":
+	if ver != "0.5.42":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3467,6 +3467,8 @@ func _assert_simplified_touch(main) -> bool:
 		return false
 	if not await _assert_touch_feel_0541(main):
 		return false
+	if not await _assert_touch_feel_0542(main):
+		return false
 	return true
 
 
@@ -4616,6 +4618,17 @@ func _assert_touch_feel_0541(main) -> bool:
 	if not await _assert_west_file_0541(main):
 		return false
 	print("SMOKE_OK_TOUCH_FEEL_0541")
+	return true
+
+
+func _assert_touch_feel_0542(main) -> bool:
+	## First-session 跟 / 开匣 / 绕背 / 需枪 from yard scrape.
+	main._ensure_touch_hud()
+	main._update_hud()
+	await process_frame
+	if not await _assert_first_session_0542(main):
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_0542")
 	return true
 
 
@@ -10165,6 +10178,92 @@ func _assert_west_file_0541(main) -> bool:
 		main.reset_follow_dest_flips()
 	if main.has_method("_clear_follow_dest_marks"):
 		main._clear_follow_dest_marks()
+	return true
+
+
+func _assert_first_session_0542(main) -> bool:
+	## 跟 chip is thumb-sized. 开匣 sits above the crate, not in the west soap.
+	## 需枪 CTA stays 需枪 until a gun is held.
+	if main.operators.is_empty() or main.c2 == null or main.c2.portraits == null:
+		push_error("SMOKE_SESSION_0542_NO_UI")
+		quit(44)
+		return false
+	var strip = main.c2.portraits
+	main._select_op(0)
+	if main.operators.size() > 1 and not bool(main.operators[1].follow_lead):
+		pass
+	main._update_hud()
+	await process_frame
+	await process_frame
+	var hit: Rect2 = strip.follow_hit_rect(1) if strip.has_method("follow_hit_rect") else Rect2()
+	if hit.size.x < 36.0 or hit.size.y < 20.0:
+		push_error("SMOKE_SESSION_0542_CHIP_SMALL r=%s" % hit)
+		quit(44)
+		return false
+	if hit.size.x > 52.0 or hit.size.y > 36.0:
+		push_error("SMOKE_SESSION_0542_CHIP_FAT r=%s" % hit)
+		quit(44)
+		return false
+	if main.raid_stashes.is_empty():
+		push_error("SMOKE_SESSION_0542_NO_CRATE")
+		quit(44)
+		return false
+	var op: OperatorUnit = main.operators[0]
+	var home: Vector2 = op.global_position
+	var st = null
+	for s in main.raid_stashes:
+		if s != null and is_instance_valid(s) and not bool(s.collected):
+			st = s
+			break
+	if st == null:
+		push_error("SMOKE_SESSION_0542_NO_LIVE_CRATE")
+		quit(44)
+		return false
+	op.stop_move()
+	op.global_position = st.global_position
+	main._select_op(0)
+	var prompt = main.c2.prompt
+	prompt.refresh_now()
+	await process_frame
+	if not bool(prompt.has_caption("开匣")):
+		push_error("SMOKE_SESSION_0542_NO_CRATE_CAP caps=%s" % " ".join(prompt.visible_captions()))
+		quit(44)
+		return false
+	var xf: Transform2D = main.get_viewport().get_canvas_transform()
+	var op_s: Vector2 = xf * op.global_position
+	var crate_rect := Rect2()
+	for rec in prompt.visible_hotspot_rects():
+		if str(rec.get("cmd", "")) == "crate":
+			crate_rect = rec["rect"]
+			break
+	if crate_rect.size.x < 80.0:
+		push_error("SMOKE_SESSION_0542_CRATE_THIN r=%s" % crate_rect)
+		quit(44)
+		return false
+	if crate_rect.get_center().y > op_s.y - 4.0:
+		push_error("SMOKE_SESSION_0542_CRATE_NOT_ABOVE r=%s op=%s" % [crate_rect, op_s])
+		quit(44)
+		return false
+	main._refresh_alarm_cta()
+	main._refresh_touch_hud()
+	var armed: bool = main.has_method("squad_has_firearm") and bool(main.squad_has_firearm())
+	if not armed:
+		if str(main.alarm_button.text) != "需枪":
+			push_error("SMOKE_SESSION_0542_CTA %s" % main.alarm_button.text)
+			quit(44)
+			return false
+		if main.touch_hud and main.touch_hud._btns.has("alarm") and str(main.touch_hud._btns["alarm"].text) != "需枪":
+			push_error("SMOKE_SESSION_0542_TOUCH_CTA %s" % main.touch_hud._btns["alarm"].text)
+			quit(44)
+			return false
+	print(
+		"SMOKE_OK_SESSION_0542 chip=", hit,
+		" crate=", crate_rect,
+		" op_s=", op_s,
+		" cta=", main.alarm_button.text
+	)
+	op.global_position = home
+	prompt.refresh_now()
 	return true
 
 

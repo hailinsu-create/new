@@ -1,2 +1,312 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SMOKE_GAME_VERSION 0.5.42
+SMOKE_OK_JOURNAL
+SMOKE_OK_LAUNCH_BAR title+GameSettings+AudioDirector+missions+android_preset
+SMOKE_OK_ATMO yard wall=brick kit=crate
+SMOKE_OK_CLOCK 1x=60 2x=120 hitch=104
+SMOKE_OK_WEAPON_MODELS n=10
+SMOKE_OK_ROLES mg_cone=48.0 scout_range=280.0 protect=西
+SMOKE_OK_IDENTITY rifle=灰狼 mg=铁砧 scout=夜枭 glyph=1
+SMOKE_OK_LOS wall=80.0 open=220.0
+SMOKE_OK_SFX_BODY fire=0.33 tension=0.41 echo=0.29
+SMOKE_OK_SFX_MODELS bolt=0.31 smg=0.08 mg=0.26 mg42=0.42
+SMOKE_OK_SFX cues=role_fire muted=false every_shot=1 ui=1 hit=1
+SMOKE_OK_ENGAGE_HELPERS killzone=3
+SMOKE_OK_KILLZONE_UNION n=3
+SMOKE_OK_KEEP_FACING
+SMOKE_OK_SLOT_SWAP
+SMOKE_OK_TRIPWIRE_TOOLING relocate=1 touch_ghost=1
+SMOKE_OK_TOUCH_NO_DESKTOP_BARS
+SMOKE_OK_TOUCH_RESIDENT crouch bag rotate_ccw rotate_cw alarm
+SMOKE_OK_TOUCH_WATCH_3 abort pause speed
+SMOKE_OK_LEFT_CARDS_OFF
+SMOKE_OK_SKILLBAR_OFF
+SMOKE_OK_MINIMAP_OFF
+SMOKE_OK_PORTRAIT_THUMB off_top=-120.0 y=600.0
+SMOKE_OK_HOTSPOT_CRATE n=1
+SMOKE_OK_HOTSPOT_KNIFE
+SMOKE_OK_HOTSPOT_WHISTLE
+SMOKE_OK_HOTSPOT_FLANK
+SMOKE_OK_FLANK_RANGE
+SMOKE_OK_NORTH_FOLDED intel_y=32.0 check_bot=40.0
+SMOKE_OK_FOLLOW
+SMOKE_OK_GESTURE_PAN
+SMOKE_OK_GESTURE_SPRINT
+SMOKE_OK_TOUCH_FEEL
+SMOKE_OK_WORLD_INK spawn=0 route=0 north=0 eat=0
+SMOKE_OK_HOTSPOT_CRATE_TIGHT
+SMOKE_OK_STEALTH_AROUND n=19
+SMOKE_OK_FLANK_AVOID_CONE pts=5
+SMOKE_OK_FOLLOW_AVOID_CONE pts=2
+SMOKE_OK_YARD_TOUCH_LOOP n=7
+SMOKE_OK_TOUCH_FEEL_053
+SMOKE_OK_CRATE_TAGS_HIDDEN n=0
+SMOKE_OK_FLANK_CLEARS_WEST hits=0 caps=绕背
+SMOKE_OK_FOLLOW_SPACING spread=64.0 d1=(11, 12) d2=(11, 14)
+SMOKE_OK_YARD_TOUCH_LOOP n=7
+SMOKE_OK_TOUCH_FEEL_054
+SMOKE_OK_FACING_INK_HIDDEN n=0
+SMOKE_OK_WEST_CRATE_TOUCH cell=(6, 12)
+SMOKE_OK_WEST_FLANK_PATH pts=7 hits=0
+SMOKE_OK_FOLLOW_OUTSIDE_CONE d1=(15, 16) d2=(13, 16)
+SMOKE_OK_FOLLOW_AVOID_SECTOR dest=(12, 13) pts=8
+SMOKE_OK_TOUCH_FEEL_055
+SMOKE_OK_FOLLOW_CONE_MARGIN d1=(15, 16) d2=(13, 16) rim=0
+SMOKE_OK_WEST_FOLLOW_QUEUE d1=(6, 6) d2=(5, 16) detour=0 spread=143.1 cheb=4 span=6
+SMOKE_OK_WEST_COMBO_TOUCH crate=(6, 12) flank_pts=3 d1=(6, 6) d2=(5, 16) detour=0 cheb=4 span=6
+SMOKE_OK_TOUCH_NO_BODY_SELECT
+SMOKE_OK_TOUCH_COVER_SAME_CELL
+SMOKE_OK_TOUCH_FEEL_056
+SMOKE_OK_FOLLOW_SHORT_DETOUR d1=(10, 11) d2=(10, 14) a=(10, 11) b=(10, 15) detour=0
+SMOKE_OK_WEST_FOLLOW_QUEUE d1=(6, 6) d2=(5, 16) detour=0 spread=143.1 cheb=4 span=6
+SMOKE_OK_WEST_COMBO_TOUCH crate=(6, 12) flank_pts=3 d1=(6, 6) d2=(5, 16) detour=0 cheb=4 span=6
+SMOKE_OK_WEST_STACK_TAP gest=tap caps=
+SMOKE_OK_TOUCH_FEEL_057
+SMOKE_OK_FOLLOW_WALK_CONT flips=3 hop=3 stalls=0 move=37 d1=(21, 13) d2=(22, 15) lead=(24, 14)
+SMOKE_OK_FLANK_GUIDE_COMPLETE pts=5 dash=5 cells=5 wrap=true body=0 dest=(11, 12) walk=6
+SMOKE_OK_FOLLOW_BADGE_HIT hit=[P: (186.56, 592.0), S: (39.44, 20.0)] body=[P: (124.0, 628.0), S: (60.32, 80.0)]
+SMOKE_OK_WEST_COMBO_TOUCH crate=(6, 12) flank_pts=3 d1=(6, 6) d2=(5, 16) detour=0 cheb=4 span=6
+SMOKE_OK_TOUCH_FEEL_058
+SMOKE_OK_FLANK_SIDE_WRAP pts=6 dash=6 dest=(11, 12) from=(12, 14)
+SMOKE_OK_FOLLOW_SETTLE d1=(21, 13) d2=(22, 15) lead=(24, 14)
+SMOKE_OK_THREE_FOLLOW_SIDE_WRAP pts=5 d1=(9, 11) d2=(9, 13) lead=(11, 12)
+SMOKE_OK_FOLLOW_BADGE_HIT hit=[P: (186.56, 592.0), S: (39.44, 20.0)] body=[P: (124.0, 628.0), S: (60.32, 80.0)]
+SMOKE_OK_TOUCH_FEEL_059
+SMOKE_OK_FOLLOW_BEHIND d1=(21, 13) d2=(22, 15) lead=(24, 14)
+SMOKE_OK_FOLLOW_SETTLE d1=(21, 13) d2=(22, 15) lead=(24, 14)
+SMOKE_OK_THREE_FOLLOW_SIDE_WRAP pts=5 d1=(9, 11) d2=(9, 13) lead=(11, 12)
+SMOKE_OK_FOLLOW_BADGE_HIT hit=[P: (186.56, 592.0), S: (39.44, 20.0)] body=[P: (124.0, 628.0), S: (60.32, 80.0)]
+SMOKE_OK_TOUCH_FEEL_0510
+SMOKE_OK_WEST_FOLLOW_QUEUE d1=(6, 6) d2=(5, 16) detour=0 spread=143.1 cheb=4 span=6
+SMOKE_OK_WEST_FOLLOW_REAR d1=(6, 6) d2=(5, 16) lead=(7, 12) span=6 cheb=4 zoom=1.01.0
+SMOKE_OK_FOLLOW_FACING_NUDGE east=(11, 12)(11, 14) nudge=(11, 11)(11, 13) lead=(13, 13) face=20.0
+SMOKE_OK_FOLLOW_FACING_TURN east=(11, 12)(11, 14) nudge=(11, 11)(11, 13) south=(14, 11)(12, 11) lead=(13, 13)
+SMOKE_OK_FOLLOW_BADGE_HIT hit=[P: (186.56, 592.0), S: (39.44, 20.0)] body=[P: (124.0, 628.0), S: (60.32, 80.0)]
+SMOKE_OK_WEST_COMBO_TOUCH crate=(6, 12) flank_pts=3 d1=(6, 6) d2=(5, 16) detour=0 cheb=4 span=6
+SMOKE_OK_TOUCH_FEEL_0511
+SMOKE_OK_FOLLOW_FACING_NUDGE east=(11, 12)(11, 14) nudge=(11, 11)(11, 13) lead=(13, 13) face=20.0
+SMOKE_OK_FOLLOW_FACING_TURN east=(11, 12)(11, 14) nudge=(11, 11)(11, 13) south=(14, 11)(12, 11) lead=(13, 13)
+SMOKE_OK_WEST_FOLLOW_REAR d1=(6, 6) d2=(5, 16) lead=(7, 12) span=6 cheb=4 zoom=1.01.0
+SMOKE_OK_FOLLOW_BADGE_HIT hit=[P: (186.56, 592.0), S: (39.44, 20.0)] body=[P: (124.0, 628.0), S: (60.32, 80.0)]
+SMOKE_OK_WEST_COMBO_TOUCH crate=(6, 12) flank_pts=3 d1=(6, 6) d2=(5, 16) detour=0 cheb=4 span=6
+SMOKE_OK_TOUCH_FEEL_0512
+SMOKE_OK_FOLLOW_FACING_NUDGE east=(11, 12)(11, 14) nudge=(11, 11)(11, 13) lead=(13, 13) face=20.0
+SMOKE_OK_FOLLOW_FACING_TURN east=(11, 12)(11, 14) nudge=(11, 11)(11, 13) south=(14, 11)(12, 11) lead=(13, 13)
+SMOKE_OK_FOLLOW_DEST_BLEND east=(11, 12)(11, 14) hop=(11, 11)(11, 13) hits=2 on=2 along=5.7/32.0
+SMOKE_OK_WEST_FOLLOW_REAR d1=(6, 6) d2=(5, 16) lead=(7, 12) span=6 cheb=4 zoom=1.01.0
+SMOKE_OK_WEST_FOLLOW_QUEUE d1=(6, 6) d2=(5, 16) detour=0 spread=143.1 cheb=4 span=6
+SMOKE_OK_WEST_COMBO_TOUCH crate=(6, 12) flank_pts=3 d1=(6, 6) d2=(5, 16) detour=0 cheb=4 span=6
+SMOKE_OK_FOLLOW_BADGE_HIT hit=[P: (186.56, 592.0), S: (39.44, 20.0)] body=[P: (124.0, 628.0), S: (60.32, 80.0)]
+SMOKE_OK_TOUCH_FEEL_0513
+SMOKE_OK_FOLLOW_FACING_NUDGE east=(11, 12)(11, 14) nudge=(11, 11)(11, 13) lead=(13, 13) face=20.0
+SMOKE_OK_FOLLOW_FACING_TURN east=(11, 12)(11, 14) nudge=(11, 11)(11, 13) south=(14, 11)(12, 11) lead=(13, 13)
+SMOKE_OK_FOLLOW_DEST_BLEND east=(11, 12)(11, 14) hop=(11, 11)(11, 13) hits=2 on=2 along=5.7/32.0
+SMOKE_OK_WEST_FOLLOW_REAR d1=(6, 6) d2=(5, 16) lead=(7, 12) span=6 cheb=4 zoom=1.01.0
+SMOKE_OK_WEST_FOLLOW_QUEUE d1=(6, 6) d2=(5, 16) detour=0 spread=143.1 cheb=4 span=6
+SMOKE_OK_WEST_COMBO_TOUCH crate=(6, 12) flank_pts=3 d1=(6, 6) d2=(5, 16) detour=0 cheb=4 span=6
+SMOKE_OK_TOUCH_FEEL_0514
+SMOKE_OK_WEST_OBS_TIGHT d1=(6, 6) d2=(5, 16) zoom=1.0 scale=1.0 rad=280.0/280.0 inset=49.0
+SMOKE_OK_FOLLOW_FACE_ARC east=(11, 12)(11, 14) hop=(14, 11)(12, 11) hits=2 on=2 bow=15.9 path=6
+SMOKE_OK_FOLLOW_FACE_ARC_LAND south=(14, 11)(12, 11) lead=(13, 13)
+SMOKE_OK_FOLLOW_DEST_BLEND east=(11, 12)(11, 14) hop=(11, 11)(11, 13) hits=2 on=2 along=5.7/32.0
+SMOKE_OK_WEST_FOLLOW_REAR d1=(6, 6) d2=(5, 16) lead=(7, 12) span=6 cheb=4 zoom=1.01.0
+SMOKE_OK_WEST_FOLLOW_QUEUE d1=(6, 6) d2=(5, 16) detour=0 spread=143.1 cheb=4 span=6
+SMOKE_OK_WEST_COMBO_TOUCH crate=(6, 12) flank_pts=3 d1=(6, 6) d2=(5, 16) detour=0 cheb=4 span=6
+SMOKE_OK_TOUCH_FEEL_0515
+SMOKE_OK_FOLLOW_NUDGE_ARC hits=12 ang_steps=6 max_step=15.6
+SMOKE_OK_WEST_BODY_STAGGER d1=(6, 6) d2=(5, 16) spread=190.9 scale=1.0
+SMOKE_OK_FACE_ARC_WALKABLE n=8 bow=51.8 live_block=0
+SMOKE_OK_WEST_OBS_TIGHT d1=(6, 6) d2=(5, 16) zoom=1.0 scale=1.0 rad=280.0/280.0 inset=49.0
+SMOKE_OK_FOLLOW_FACE_ARC east=(11, 12)(11, 14) hop=(14, 11)(12, 11) hits=2 on=2 bow=15.9 path=6
+SMOKE_OK_FOLLOW_FACE_ARC_LAND south=(14, 11)(12, 11) lead=(13, 13)
+SMOKE_OK_FOLLOW_DEST_BLEND east=(11, 12)(11, 14) hop=(11, 11)(11, 13) hits=2 on=2 along=5.7/32.0
+SMOKE_OK_WEST_FOLLOW_REAR d1=(6, 6) d2=(5, 16) lead=(7, 12) span=6 cheb=4 zoom=1.01.0
+SMOKE_OK_WEST_FOLLOW_QUEUE d1=(6, 6) d2=(5, 16) detour=0 spread=143.1 cheb=4 span=6
+SMOKE_OK_WEST_COMBO_TOUCH crate=(6, 12) flank_pts=3 d1=(6, 6) d2=(5, 16) detour=0 cheb=4 span=6
+SMOKE_OK_TOUCH_FEEL_0516
+SMOKE_OK_COMPACT_ROTATE cmds=crouch bag rotate_ccw rotate_cw alarm f=0.015.030.015.00.0330.00.0 swipe=22
+SMOKE_OK_FOLLOW_BODY_RING hits=17 ang_steps=6 max_step=15.6 path=9
+SMOKE_OK_WEST_HALF_CELL d1=(6, 6) d2=(5, 16) span=6 scale=1.0 dest_spread=190.9 inset=2 near=2
+SMOKE_OK_FACE_ARC_ROUND n=12 bow=20.0 raw_bow=19.5 raw_block=1 axis_run=3
+SMOKE_OK_FOLLOW_NUDGE_ARC hits=12 ang_steps=6 max_step=15.6
+SMOKE_OK_WEST_BODY_STAGGER d1=(6, 6) d2=(5, 16) spread=190.9 scale=1.0
+SMOKE_OK_FACE_ARC_WALKABLE n=8 bow=51.8 live_block=0
+SMOKE_OK_WEST_FOLLOW_REAR d1=(6, 6) d2=(5, 16) lead=(7, 12) span=6 cheb=4 zoom=1.01.0
+SMOKE_OK_TOUCH_FEEL_0517
+SMOKE_OK_WEST_TIGHTER d1=(6, 6) d2=(5, 16) span=6 scale=1.0 dest_spread=190.9 body_ring=0.0
+SMOKE_OK_FACE_ARC_CLUSTER n=14 bow=119.2 raw_bow=77.9 axis_run=0
+SMOKE_OK_TOUCH_FEEL_0518
+SMOKE_OK_COMPACT_NARROW font=11 need=259.0 avail=320.0 twist=48.0 stacked=1 cmds=crouch bag rotate_ccw rotate_cw alarm
+SMOKE_OK_FACE_ARC_CLUSTER_ROUND n=16 bow=15.0 raw_bow=44.4 axis_run=0
+SMOKE_OK_TOUCH_FEEL_0519
+SMOKE_OK_WEST_TIGHTER d1=(6, 6) d2=(5, 16) span=6 scale=1.0 dest_spread=190.9 body_ring=0.0
+SMOKE_OK_WEST_CLEARER d1=(6, 6) d2=(5, 16) span=6 scale=1.0 obs=1.0 dest_spread=190.9 zoom=1.0
+SMOKE_OK_WEST_CONE_FADE d1=(6, 6) d2=(5, 16) span=6 scale=1.0 obs=1.0 fade=0.38 cone_a=0.14 dest_spread=190.9 zoom=1.0
+SMOKE_OK_FACE_ARC_CLUSTER n=14 bow=119.2 raw_bow=77.9 axis_run=0
+SMOKE_OK_FACE_ARC_CLUSTER_ROUND n=16 bow=15.0 raw_bow=44.4 axis_run=0
+SMOKE_OK_FACE_ARC_CLUSTER_BOW n=16 bow=15.0 raw_bow=44.4 axis_run=0 east=0.0 far=15.0
+SMOKE_OK_TOUCH_FEEL_0520
+SMOKE_OK_WEST_FILE_SPREAD d1=(6, 6) d2=(5, 16) lead=(7, 12) span=6 dx=1/2 cd=6/4 cheb=4 fade=0.38
+SMOKE_OK_FACE_ARC_CLUSTER_BOW n=16 bow=15.0 raw_bow=44.4 axis_run=0 east=0.0 far=15.0
+SMOKE_OK_TOUCH_FEEL_0521
+SMOKE_OK_WEST_FIRST_POCKET d1=(6, 6) d2=(5, 16) lead=(7, 12) cd1=6 pair=10
+SMOKE_OK_FACE_ARC_SOUTH_CORRIDOR n=16 bow=15.0 wrap=0 east=0.0 far=15.0 axis_run=0
+SMOKE_OK_TOUCH_FEEL_0522
+SMOKE_OK_WEST_SCALE_0523 d1=(6, 6) d2=(5, 16) lead=(7, 12) span=6 scale=1.0 obs=1.0 fade=0.38
+SMOKE_OK_FACE_ARC_SOUTH_CAP n=16 bow=15.0 wrap=0 east=0.0 far=15.0 axis_run=0
+SMOKE_OK_TOUCH_FEEL_0523
+SMOKE_OK_WEST_CAM_RING_0524 d1=(6, 6) d2=(5, 16) lead=(7, 12) span=6 zoom=1.0 obs_off=87.8 fade=0.38
+SMOKE_OK_FACE_ARC_SOUTH_CAP_0524 n=16 bow=15.0 wrap=0 east=0.0 far=15.0 y14=0 axis_run=0
+SMOKE_OK_TOUCH_FEEL_0524
+SMOKE_OK_WEST_DEST_0525 d1=(6, 6) d2=(5, 16) lead=(7, 12) span=6 cd1=6 pair=10 cheb=4 fade=0.38
+SMOKE_OK_FACE_ARC_SOUTH_CAP_0525 n=16 bow=15.0 wrap=0 east=0.0 far=15.0 y14=0 axis_run=0
+SMOKE_OK_TOUCH_FEEL_0525
+SMOKE_OK_FACE_ARC_SOUTH_CAP_0526 n=16 bow=15.0 wrap=0 east=0.0 far=15.0 y14=0 y14_mid=0 axis_run=0
+SMOKE_OK_TOUCH_FEEL_0526
+SMOKE_OK_WEST_OBS_OFFSET_0527 d1=(6, 6) d2=(5, 16) lead=(7, 12) span=6 obs_off=87.8 ring_sp=271.4 hug=0 fade=0.38
+SMOKE_OK_TOUCH_FEEL_0527
+SMOKE_OK_WEST_OBS_CAM_0528 d1=(6, 6) d2=(5, 16) lead=(7, 12) span=6 obs_off=87.8 ring_sp=271.4 hug=0 zoom=1.0 fade=0.38
+SMOKE_OK_TOUCH_FEEL_0528
+SMOKE_OK_WEST_OBS_CAM_0529 d1=(6, 6) d2=(5, 16) lead=(7, 12) span=6 obs_off=87.8 ring_sp=271.4 hug=0 zoom=1.0 scale=1.0 obs=1.0 fade=0.38
+SMOKE_OK_TOUCH_FEEL_0529
+SMOKE_OK_WEST_OBS_CAM_0530 d1=(6, 6) d2=(5, 16) lead=(7, 12) span=6 obs_off=87.8 ring_sp=271.4 hug=0 zoom=1.0 scale=1.0 obs=1.0 fade=0.38
+SMOKE_OK_TOUCH_FEEL_0530
+SMOKE_OK_WEST_OBS_CAM_0531 d1=(6, 6) d2=(5, 16) lead=(7, 12) span=6 obs_off=87.8 ring_sp=271.4 hug=0 zoom=1.0 scale=1.0 obs=1.0 fade=0.38
+SMOKE_OK_TOUCH_FEEL_0531
+SMOKE_OK_WEST_DEST_0532 d1=(6, 6) d2=(5, 16) lead=(7, 12) span=6 cd1=6 pair=10 cheb=4 fade=0.38
+SMOKE_OK_TOUCH_FEEL_0532
+SMOKE_OK_WEST_DEST_0533 d1=(6, 6) d2=(5, 16) lead=(7, 12) span=6 cd1=6 pair=10 cheb=4 fade=0.38 zoom=1.0 scale=1.0 obs=1.0 dest_spread=190.9
+SMOKE_OK_TOUCH_FEEL_0533
+SMOKE_OK_WEST_DEST_0534 d1=(6, 6) d2=(5, 16) lead=(7, 12) span=6 cd1=6 cd2=4 pair=10 cheb=4 fade=0.38 zoom=1.0 extra=44.0 ring_x=164.0 scale=1.0 obs=1.0 dest_spread=190.9 detour=0
+SMOKE_OK_TOUCH_FEEL_0534
+SMOKE_OK_WEST_DEST_0535 d1=(6, 6) d2=(5, 16) lead=(7, 12) span=6 cd1=6 cd2=4 pair=10 cheb=4 fade=0.38 zoom=1.0 extra=44.0 ring_x=164.0 scale=1.0 obs=1.0 dest_spread=190.9 detour=0
+SMOKE_OK_TOUCH_FEEL_0535
+SMOKE_OK_WEST_DEST_0536 d1=(6, 6) d2=(5, 16) lead=(7, 12) span=6 cd1=6 cd2=4 pair=10 cheb=4 fade=0.38 zoom=1.0 extra=44.0 ring_x=164.0 scale=1.0 obs=1.0 dest_spread=190.9 detour=0
+SMOKE_OK_TOUCH_FEEL_0536
+SMOKE_OK_WEST_DEST_0537 d1=(6, 6) d2=(5, 16) lead=(7, 12) span=6 cd1=6 cd2=4 pair=10 cheb=4 fade=0.38 zoom=1.0 extra=44.0 ring_x=164.0 scale=1.0 obs=1.0 dest_spread=190.9 detour=0 world_span=1280.0x720.0
+SMOKE_OK_TOUCH_FEEL_0537
+SMOKE_OK_WEST_DEST_0538 d1=(6, 6) d2=(5, 16) lead=(7, 12) span=6 zoom=1.0 scale=1.0 obs=1.0 fade=0.38 dest_spread=190.9 detour=0 world_span=1280.0x720.0 pan=-249.214.9
+SMOKE_OK_TOUCH_FEEL_0538
+SMOKE_OK_WEST_DEST_0539 d1=(6, 6) d2=(5, 16) lead=(7, 12) span=6 zoom=1.0 scale=1.0 obs=1.0 fade=0.38 dest_spread=190.9 detour=0 courtyard=18.0 obs_off=87.8 world_span=1280.0x720.0 pan=-249.214.9
+SMOKE_OK_FACE_ARC_SOUTH_CAP_0526 n=16 bow=15.0 wrap=0 east=0.0 far=15.0 y14=0 y14_mid=0 axis_run=0
+SMOKE_OK_COMPACT_ROTATE cmds=crouch bag rotate_ccw rotate_cw alarm f=0.015.030.015.00.0330.00.0 swipe=22
+SMOKE_OK_COMPACT_NARROW font=11 need=259.0 avail=320.0 twist=48.0 stacked=1 cmds=crouch bag rotate_ccw rotate_cw alarm
+SMOKE_OK_FOLLOW_SETTLE_RING hold=1 body_ring=6.4 body_center=14.0 ring_center=14.4
+SMOKE_OK_TOUCH_FEEL_0539
+SMOKE_OK_WEST_FILL_0540 d1=(6, 6) d2=(5, 16) span=6 zoom=1.0 scale=1.0 obs=1.0 kit=280.0 obs_r=280.0 fill_a=0.01 court=0 world_span=1280.0x720.0
+SMOKE_OK_TOUCH_FEEL_0540
 SMOKE_OK_WEST_FILE_0541 d1=(6, 6) d2=(5, 16) span=6 pts=3 len=434.5 zoom=1.0 world_span=1280.0x720.0
+SMOKE_OK_TOUCH_FEEL_0541
+SMOKE_OK_SESSION_0542 chip=[P: (186.56, 592.0), S: (39.44, 20.0)] crate=[P: (349.1874, 338.7854), S: (92.0, 38.0)] op_s=(457.1874, 384.7854) cta=拉警报
+SMOKE_OK_TOUCH_FEEL_0542
+SMOKE_OK_TOUCH_PARITY
+SMOKE_OK_LIFECYCLE
+SMOKE_OK_WATCH_JUICE tracer_pool timeline chip cone_freeze hp_bar
+SMOKE_OK_STINGER cue=alarm_stinger
+SMOKE_OK_WIN_STINGER cue=win_stinger fade=0.2
+SMOKE_OK_PERF_TIER
+SMOKE_OK_READABILITY outlines=3 legend_chips=3
+SMOKE_OK_ANIM walk_bob_hook weapon=1 last_runner=1
+SMOKE_OK_COVER_IDLE
+FEEL_OK_YARD_HOOK 交叉封锁第一枪
+FEEL_OK_OP_PARTS Head,ShoulderL,LegL,Weapon
+FEEL_OK_CONTACT_SHADOW
+FEEL_OK_ENEMY_KINDS main:23,flank:24,sneak:18
+FEEL_OK_NIGHT_GRADE
+FEEL_OK_NIGHT_KEYS
+FEEL_OK_MISSION_SKY
+FEEL_OK_KILL_BURST
+SMOKE_OK_HUD_CHROME cards=96.0 dock=482.0
+SMOKE_OK_FEEL_GATE
+SMOKE_OK_PROPS landmarks=6 sig=yard:-1:-1:0:162399739|s|yard|yard
+SMOKE_OK_TEACHING_SINGLE
+SMOKE_OK_PAYOFF_COPY hooks=6 roles=3 first_shot=1
+SMOKE_OK_NIGHT_HANDOFF
+SMOKE_OK_TEACHING beats=6 timeline=1 path=1 spawn_teach=1 overlay=1
+SMOKE_OK_PENDING_BREATH
+SMOKE_OK_SPAWN_GHOSTS n=3
+SMOKE_OK_HIT_TICK
+SMOKE_OK_DRY_GUN
+SMOKE_OK_BARK
+SMOKE_OK_BEST_LOOPS
+SMOKE_OK_REPLAY_CONE
+SMOKE_OK_PLAN_GHOST
+SMOKE_OK_ROLE_HINT
+SMOKE_OK_DOOR_SLAM
+SMOKE_OK_BARREL_FUSE
+SMOKE_OK_METRONOME
+SMOKE_OK_TENSION
+SMOKE_OK_KILL_STAMP
+SMOKE_OK_COMPASS
+SMOKE_OK_FACING_WORDS
+SMOKE_OK_PERFECT
+SMOKE_OK_WAVE_PUNCH
+SMOKE_OK_WATCH_CLOCK
+SMOKE_OK_HOLD_PULSE
+SMOKE_OK_LOOT_STREAK
+SMOKE_OK_BOOT_PRINT
+SMOKE_OK_CHECKLIST ○  已部署≥1 / ○  射界覆盖主路 / ○  侧翼
+LEVEL=yard
+SMOKE_OK_SPAWN_PREVIEW n=2
+SMOKE_OK_INSERT_KNIVES
+SMOKE_OK_NAMED_CRATES n=9 kar98k mg42 kar98k_zf grenade mine ammo m1911 thompson luger
+SMOKE_OK_ALARM_CTA 需枪
+SMOKE_OK_CINEMA 警报中  ·  第1/2波  ·  初阵  ·  1×  ·  t=0.0s  ·  敌0 待0 员3
+SMOKE_OK_RAID_CONTRACT stashes=9 waves=2
+SMOKE_OK_RAID_VERBS g=1 mines=1 decoy=1
+SMOKE_OK_OCCUPANCY
+SMOKE_OK_AMMO_TYPES
+SMOKE_OK_TRANSFER
+SMOKE_OK_BACKPACK occ=6 equip=thompson
+SMOKE_OK_BACKPACK_UI
+SMOKE_OK_AUTO_GRENADE n=2 left=1
+SMOKE_OK_NADE_MARK
+SMOKE_OK_ALARM_GATE
+SMOKE_OK_DECOY_REROUTE
+SMOKE_OK_TOUCH_NADE
+SMOKE_OK_TOUCH_BAG
+SMOKE_OK_GRENADE_KILL
+SMOKE_OK_DECOY_PAUSE
+SMOKE_OK_MINE_INV
+SMOKE_OK_LOC
+SMOKE_OK_SENTRY n=1
+SMOKE_OK_PORTRAITS
+SMOKE_OK_SKILLBAR
+SMOKE_OK_MINIMAP
+SMOKE_OK_CROUCH speed=68.4
+SMOKE_OK_KO
+SMOKE_OK_ENEMY_CONE n=14
+SMOKE_OK_C2_SFX
+SMOKE_OK_C2_LOC
+SMOKE_OK_TOUCH_CROUCH
+SMOKE_OK_SPRINT speed=174.6
+SMOKE_OK_QUIET_LOC
+SMOKE_OK_ABORT_INTEL n=1 tick=31
+SMOKE_OK_ABORT_KEEP
+SMOKE_OK_WIPE tick=30
+SMOKE_OK_FAIL_PATHS
+SMOKE_OK_SKIP_OUTCOME tick=929
+SMOKE_OK_CRATE_SEARCH
+SMOKE_OK_PICKUP kar98k
+SMOKE_OK_KNIFE_LEAK tick=929
+SMOKE_OK_KNIFE_FAIL_COPY
+SMOKE_OK yard raid won
+SMOKE_OK_RAID_LOOP
+SMOKE_OK_FLASH_CLEAR
+SMOKE_OK_ATMO warehouse wall=brick kit=pallet
+SMOKE_OK warehouse raid won
+SMOKE_OK_ATMO pump wall=pipe kit=valve
+SMOKE_OK pump raid won
+SMOKE_OK_ATMO railcut wall=concrete kit=sleeper
+SMOKE_OK_RAILCUT_CONTRACT covers=6 no_door delayed_flank=3.8 trip_west/east
+SMOKE_OK railcut raid won
+SMOKE_OK_ATMO depot wall=plate kit=drum
+SMOKE_OK_DEPOT_CONTRACT covers=6 routes=3 delayed_sneak=2.2 trip_west_alley sneak_chip
+SMOKE_OK depot raid won
+SMOKE_OK_ATMO radio wall=mesh kit=dish
+SMOKE_OK_RADIO_CONTRACT covers=6 routes=4 sneak=3.6 echo=5.2 dish_pad kit=echo hall breath=1
+SMOKE_OK radio raid won
+SMOKE_OK_TYPICAL_LOOPS yard,warehouse,pump,railcut,depot,radio
 SMOKE_SLICE_COMPLETE
+EXIT:0

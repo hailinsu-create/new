@@ -19,9 +19,9 @@ var _hold_fired: bool = false
 var _ignore_pick: bool = false
 var _press_follow: bool = false
 const LONG_MS := 350
-const FOLLOW_CHIP := Vector2(36, 18)
+const FOLLOW_CHIP := Vector2(42, 22)
 const FOLLOW_PAD := 0.0
-const FOLLOW_POS := Vector2(66, -6)
+const FOLLOW_POS := Vector2(64, -10)
 const FOLLOW_HIT_MAX_Y := 20.0
 const FOLLOW_GUN_GAP := 6.0
 
@@ -131,7 +131,7 @@ func _ready() -> void:
 		cap.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		cap.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		cap.add_theme_font_size_override("font_size", 12)
+		cap.add_theme_font_size_override("font_size", 13)
 		cap.add_theme_font_override("font", NightOps.ui_font_bold())
 		cap.add_theme_color_override("font_color", Color(0.88, 0.84, 0.62))
 		cap.mouse_filter = Control.MOUSE_FILTER_IGNORE
