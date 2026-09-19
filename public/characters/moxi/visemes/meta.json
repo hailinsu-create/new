@@ -1,0 +1,17 @@
+{
+  "width": 160,
+  "height": 120,
+  "cx": 80,
+  "cy": 52,
+  "ids": [
+    "rest",
+    "A",
+    "E",
+    "I",
+    "O",
+    "U",
+    "M",
+    "F"
+  ],
+  "note": "Line-art visemes deformed from the original \u58a8\u6c50 smile. Landmark is layout.face.mouth."
+}
