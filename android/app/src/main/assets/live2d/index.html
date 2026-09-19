@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; touch-action: none; }
+    #stage { position: absolute; inset: 0; width: 100%; height: 100%; }
+    canvas { display: block; width: 100% !important; height: 100% !important; }
+  </style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+// MUST run before cubism4: Android WebView has no Node `process`.
+window.process = window.process || { env: { NODE_ENV: "production" } };
+window.global = window.global || window;
+</script>
+<script>
+(function () {
+  var BASE = (function () {
+    var href = location.href || "";
+    var idx = href.lastIndexOf("/");
+    return idx >= 0 ? href.slice(0, idx + 1) : "./";
+  })();
+
+  // 墨汐 expressions. Moods without a dedicated mesh fall back as in character.json.
+  var MOOD_EXPR = {
+    IDLE: "idle",
+    TALK: "talk",
+    THINK: "idle",
+    HAPPY: "smile",
+    CARE: "smile",
+    SURPRISE: "surprise",
+    SHY: "smile"
+  };
+  var currentMood = "IDLE";
+  var paused = false;
+  var blinkUntil = 0;
+  var nextBlink = Date.now() + 1800 + Math.random() * 2400;
+  var hasEyeL = null;
+  var hasEyeR = null;
+  var hasAngleY = null;
+  var hasBodyX = null;
+  var hasBreath = null;
+
+  var app = null;
+  var model = null;
+  var mouthTimer = null;
+  var holdTimer = null;
+  var ready = false;
+  var speaking = false;
+  var mouthOpen = 0;
+  var mouthHold = 0;
+  var patchedUpdate = false;
+  var character = null;
+  var lipSyncParam = "ParamMouthOpenY";
+  var MODEL_URL = BASE + "model/moxi/moxi.model3.json";
+  var CHARACTER_URL = BASE + "model/moxi/character.json";
+  var MOUTH_DRAWABLE = "mouth_open";
+  var hasMouthForm = null;
+  // Rest-pose mouth_open quad (model units) is narrower than the painted
+  // smile, so the closed lip corners leaked as black marks. Cover the smile
+  // when the overlay is shown. Vertex order from moc3: TR, TL, BR, BL.
+  // Rest pose is ~(-0.040,0.122)-(0.012,0.088). Shift/widen just enough to
+  // cover the painted smile corners without stamping a huge beige oval.
+  var MOUTH_QUAD = [0.054, 0.122, -0.044, 0.122, 0.054, 0.088, -0.044, 0.088];
+
+  function notifyAndroid(msg) {
+    try {
+      if (String(msg) === "ready") window.__pangchuangReady = true;
+      if (String(msg).indexOf("error:") === 0) window.__pangchuangError = String(msg).slice(6);
+      if (window.PangchuangBridge && window.PangchuangBridge.onLive2dEvent) {
+        window.PangchuangBridge.onLive2dEvent(String(msg));
+      }
+    } catch (e) {}
+  }
+
+  function log() {
+    var args = Array.prototype.slice.call(arguments);
+    try { console.log.apply(console, ["[PangchuangLive2D]"].concat(args)); } catch (e) {}
+    notifyAndroid("log:" + args.join(" "));
+  }
+
+  function sleep(ms) {
+    return new Promise(function (r) { setTimeout(r, ms); });
+  }
+
+  function loadScript(src) {
+    return new Promise(function (resolve, reject) {
+      var s = document.createElement("script");
+      s.src = src;
+      s.async = false;
+      s.onload = function () { resolve(src); };
+      s.onerror = function () { reject(new Error("script fail: " + src)); };
+      document.head.appendChild(s);
+    });
+  }
+
+  function stageSize() {
+    var stage = document.getElementById("stage");
+    var w = (stage && stage.clientWidth) || window.innerWidth || 1;
+    var h = (stage && stage.clientHeight) || window.innerHeight || 1;
+    return { w: Math.max(1, w), h: Math.max(1, h) };
+  }
+
+  function waitForSize() {
+    return new Promise(function (resolve) {
+      var tries = 0;
+      (function tick() {
+        var size = stageSize();
+        if ((size.w >= 8 && size.h >= 8) || tries > 60) return resolve(size);
+        tries += 1;
+        requestAnimationFrame(tick);
+      })();
+    });
+  }
+
+  function coreModel() {
+    try { return model && model.internalModel && model.internalModel.coreModel; }
+    catch (e) { return null; }
+  }
+
+  function getParam(id) {
+    var core = coreModel();
+    if (!core) return null;
+    if (typeof core.getParameterValueById === "function") {
+      try { return core.getParameterValueById(id); } catch (e) { return null; }
+    }
+    return null;
+  }
+
+  function setParam(id, value) {
+    var core = coreModel();
+    if (!core) return;
+    if (typeof core.setParameterValueById === "function") core.setParameterValueById(id, value);
+  }
+
+  function hasParam(id) {
+    return getParam(id) != null;
+  }
+
+  function probeParams() {
+    hasEyeL = hasParam("ParamEyeLOpen");
+    hasEyeR = hasParam("ParamEyeROpen");
+    hasAngleY = hasParam("ParamAngleY");
+    hasBodyX = hasParam("ParamBodyAngleX");
+    hasBreath = hasParam("ParamBreath");
+    hasMouthForm = hasParam("ParamMouthForm");
+    log("params", "eyeL=" + hasEyeL, "eyeR=" + hasEyeR, "angleY=" + hasAngleY, "bodyX=" + hasBodyX, "breath=" + hasBreath, "mouthForm=" + hasMouthForm);
+  }
+
+  function setMouthDrawableOpacity(value) {
+    var core = coreModel();
+    if (!core) return;
+    try {
+      var drawables = (core.getCoreModel && core.getCoreModel() && core.getCoreModel().drawables)
+        || (core._model && core._model.drawables);
+      if (!drawables || !drawables.opacities) return;
+      var index = -1;
+      if (typeof core.getDrawableIndex === "function") {
+        try { index = core.getDrawableIndex(MOUTH_DRAWABLE); } catch (e) {}
+      }
+      if (index < 0) {
+        var ids = (typeof core.getDrawableIds === "function" && core.getDrawableIds()) || drawables.ids;
+        if (ids) {
+          for (var i = 0; i < ids.length; i++) {
+            if (ids[i] === MOUTH_DRAWABLE) { index = i; break; }
+          }
+        }
+      }
+      if (index >= 0 && index < drawables.opacities.length) {
+        drawables.opacities[index] = value;
+      }
+    } catch (e) {}
+  }
+
+  function drawables() {
+    var core = coreModel();
+    if (!core) return null;
+    try {
+      return (core.getCoreModel && core.getCoreModel() && core.getCoreModel().drawables)
+        || (core._model && core._model.drawables);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function enlargeMouthQuad() {
+    // After core.update() so the WASM vertex buffer is the live draw copy.
+    var d = drawables();
+    var core = coreModel();
+    if (!d || !core) return;
+    var index = -1;
+    try { index = core.getDrawableIndex(MOUTH_DRAWABLE); } catch (e) { return; }
+    if (index < 0 || !d.vertexPositions || !d.vertexPositions[index]) return;
+    var pos = d.vertexPositions[index];
+    if (pos.length < 8) return;
+    for (var i = 0; i < 8; i++) pos[i] = MOUTH_QUAD[i];
+  }
+
+  function setMouthOpen(value) {
+    var v = Math.max(0, Math.min(1, Number(value) || 0));
+    setParam(lipSyncParam, v);
+    // 墨汐 mouth_open is a sprite, not a deforming jaw. Partial opacity
+    // stamps a muddy oval on the painted smile. Snap overlay on/off.
+    setMouthDrawableOpacity(v > 0.22 ? 1 : 0);
+    if (hasMouthForm) {
+      setParam("ParamMouthForm", v > 0.22 ? 0.2 + 0.45 * v : 0);
+    }
+  }
+
+  function clearExpression() {
+    try {
+      if (model && model.internalModel && model.internalModel.motionManager &&
+          model.internalModel.motionManager.expressionManager) {
+        model.internalModel.motionManager.expressionManager.resetExpression();
+      }
+    } catch (e) {}
+  }
+
+  function applyMood(mood) {
+    var key = String(mood || "IDLE").toUpperCase();
+    currentMood = key;
+    var expr = MOOD_EXPR[key] || "idle";
+    mouthHold = key === "SURPRISE" ? 0.35 : (key === "SHY" ? 0.12 : 0);
+    clearExpression();
+    if (expr && model && typeof model.expression === "function") {
+      try { model.expression(expr); } catch (e) {}
+    }
+    applyMoodParams(true);
+  }
+
+  function applyMoodParams(force) {
+    if (paused && !force) return;
+    if (currentMood === "THINK") {
+      if (hasAngleY) setParam("ParamAngleY", -7.5);
+      setParam("ParamEyeBallY", -0.28);
+      setParam("ParamBrowLY", -0.15);
+      setParam("ParamBrowRY", -0.15);
+    } else if (currentMood === "CARE") {
+      if (hasBodyX) setParam("ParamBodyAngleX", 2.4);
+      setParam("ParamBrowLY", -0.45);
+      setParam("ParamBrowRY", -0.45);
+      setParam("ParamEyeLSmile", 0.35);
+      setParam("ParamEyeRSmile", 0.35);
+    } else if (currentMood === "SHY") {
+      setParam("ParamAngleX", 8);
+      setParam("ParamEyeLSmile", 0.7);
+      setParam("ParamEyeRSmile", 0.7);
+      setParam("ParamBrowLForm", 0.3);
+      setParam("ParamBrowRForm", 0.3);
+    }
+  }
+
+  function applyBlink() {
+    if (paused) return;
+    if (hasEyeL === false && hasEyeR === false) return;
+    var now = Date.now();
+    if (now >= nextBlink) {
+      blinkUntil = now + 110;
+      nextBlink = now + 2200 + Math.random() * 3800;
+    }
+    var open = now < blinkUntil ? 0.08 : 1;
+    if (hasEyeL) setParam("ParamEyeLOpen", open);
+    if (hasEyeR) setParam("ParamEyeROpen", open);
+  }
+
+  function applyIdleMotion() {
+    if (paused || speaking) return;
+    if (currentMood === "THINK" || currentMood === "SHY") return;
+    var t = Date.now() / 1000;
+    if (hasAngleY && currentMood !== "CARE") {
+      setParam("ParamAngleY", Math.sin(t * 0.55) * 2.1);
+    }
+    if (hasBodyX && currentMood !== "CARE") {
+      setParam("ParamBodyAngleX", Math.sin(t * 0.33) * 1.15);
+    }
+    if (hasBreath) setParam("ParamBreath", 0.5 + 0.5 * Math.sin(t * 1.35));
+  }
+
+  function stopMotions() {
+    try {
+      var mm = model && model.internalModel && model.internalModel.motionManager;
+      if (mm && typeof mm.stopAllMotions === "function") mm.stopAllMotions();
+    } catch (e) {}
+  }
+
+  function applyMouthOverride() {
+    if (paused) return;
+    applyBlink();
+    if (speaking) {
+      setMouthOpen(mouthOpen);
+      setParam("ParamAngleX", Math.sin(Date.now() / 320) * 2.4);
+      setParam("ParamAngleY", Math.sin(Date.now() / 470) * 1.4);
+      if (hasBreath) setParam("ParamBreath", 0.5 + 0.5 * Math.sin(Date.now() / 1000 * 1.35));
+      return;
+    }
+    setMouthOpen(mouthHold);
+    applyMoodParams(false);
+    applyIdleMotion();
+  }
+
+  function ensureClippingManager() {
+    // pixi-live2d-display Cubism4InternalModel.updateWebGLContext writes
+    // renderer._clippingManager._currentFrameNo. 墨汐 has no masks, so the
+    // manager is never created and the first draw throws, leaving a blank canvas.
+    var internal = model && model.internalModel;
+    if (!internal || typeof internal.updateWebGLContext !== "function") return;
+    if (internal.__pangchuangClipPatched) return;
+    internal.updateWebGLContext = function (gl, fbo) {
+      var r = this.renderer;
+      if (!r) return;
+      r.firstDraw = true;
+      r._bufferData = { vertex: null, uv: null, index: null };
+      if (typeof r.startUp === "function") r.startUp(gl);
+      if (r._clippingManager) {
+        r._clippingManager._currentFrameNo = fbo;
+        r._clippingManager._maskTexture = undefined;
+      }
+    };
+    internal.__pangchuangClipPatched = true;
+    log("patched updateWebGLContext (mask-safe)");
+  }
+
+  function patchModelUpdate() {
+    if (patchedUpdate || !model || !model.internalModel) return;
+    var internal = model.internalModel;
+    if (typeof internal.update !== "function") return;
+    ensureClippingManager();
+    var orig = internal.update.bind(internal);
+    internal.update = function (elapsed, now) {
+      try { orig(elapsed, now); } catch (e) { log("internal.update", e && e.message); }
+      applyMouthOverride();
+      try {
+        if (internal.coreModel && typeof internal.coreModel.update === "function") {
+          internal.coreModel.update();
+        }
+      } catch (e) {}
+      // core.update rebakes vertices/opacity from params; re-apply mesh cover.
+      enlargeMouthQuad();
+      if (speaking) setMouthDrawableOpacity(mouthOpen > 0.22 ? 1 : 0);
+      else setMouthDrawableOpacity(mouthHold > 0.22 ? 1 : 0);
+    };
+    patchedUpdate = true;
+    log("patched internalModel.update for lip-sync override", lipSyncParam);
+  }
+
+  function stopMouth() {
+    speaking = false;
+    mouthOpen = 0;
+    if (mouthTimer) { clearInterval(mouthTimer); mouthTimer = null; }
+    setMouthOpen(mouthHold);
+    setParam("ParamAngleX", 0);
+    setParam("ParamAngleY", 0);
+  }
+
+  function layoutModel() {
+    if (!app || !model) return;
+    var size = stageSize();
+    app.renderer.resize(size.w, size.h);
+    var iw = (model.internalModel && model.internalModel.width) || 1536;
+    var ih = (model.internalModel && model.internalModel.height) || 1024;
+    var overlay = (character && character.overlay) || {};
+    var side = Math.min(size.w, size.h);
+    var faceSpan = Number(overlay.faceSpan) || 620;
+    var scale = side / faceSpan;
+    var focusX = overlay.focusX != null ? Number(overlay.focusX) : 0.50;
+    var focusY = overlay.focusY != null ? Number(overlay.focusY) : 0.32;
+    // Do not use Live2DModel.anchor: if pivot is still 0 the bust sits in a corner.
+    if (model.anchor && typeof model.anchor.set === "function") model.anchor.set(0, 0);
+    if (model.pivot && typeof model.pivot.set === "function") model.pivot.set(0, 0);
+    model.scale.set(scale);
+    model.position.set(
+      size.w * 0.5 - iw * scale * focusX,
+      size.h * 0.5 - ih * scale * focusY
+    );
+    model.visible = true;
+    model.alpha = 1;
+    log(
+      "layout",
+      size.w + "x" + size.h,
+      "canvas=" + Math.round(iw) + "x" + Math.round(ih),
+      "scale=" + scale.toFixed(4),
+      "focus=" + focusX + "," + focusY
+    );
+  }
+
+  async function probeModelUrl() {
+    var res = await fetch(MODEL_URL, { method: "GET", cache: "no-store" });
+    log("model fetch", res.status, MODEL_URL, "ct=" + (res.headers.get("content-type") || ""));
+    if (!res.ok) throw new Error("model HTTP " + res.status + " url=" + MODEL_URL);
+    var text = await res.text();
+    if (text.indexOf("FileReferences") < 0) {
+      throw new Error("model3.json invalid body len=" + text.length);
+    }
+    log("model3.json ok bytes", text.length);
+  }
+
+  async function loadCharacter() {
+    try {
+      var res = await fetch(CHARACTER_URL, { method: "GET", cache: "no-store" });
+      if (!res.ok) {
+        log("character.json missing", res.status);
+        return;
+      }
+      character = await res.json();
+      if (character && character.lipSync && character.lipSync.parameter) {
+        lipSyncParam = character.lipSync.parameter;
+      }
+      log("character", character.displayName || "moxi", "lipSync", lipSyncParam);
+    } catch (e) {
+      log("character.json fail", e && e.message);
+    }
+  }
+
+  function ensureWebGL() {
+    var c = document.createElement("canvas");
+    var gl = c.getContext("webgl", { alpha: true, premultipliedAlpha: true, preserveDrawingBuffer: true })
+      || c.getContext("experimental-webgl", { alpha: true, preserveDrawingBuffer: true });
+    if (!gl) throw new Error("WebGL unavailable in this WebView");
+    return true;
+  }
+
+  function createApp(size) {
+    ensureWebGL();
+    var opts = {
+      width: size.w,
+      height: size.h,
+      backgroundAlpha: 0,
+      antialias: true,
+      autoDensity: true,
+      resolution: Math.min(window.devicePixelRatio || 1, 2),
+      powerPreference: "default",
+      preference: "webgl",
+      preferWebGLVersion: 1,
+      preserveDrawingBuffer: true
+    };
+    try {
+      return new PIXI.Application(opts);
+    } catch (e1) {
+      log("PIXI app first fail", e1 && e1.message);
+      var opts2 = {
+        width: size.w,
+        height: size.h,
+        backgroundAlpha: 0,
+        antialias: false,
+        resolution: 1,
+        preserveDrawingBuffer: true
+      };
+      return new PIXI.Application(opts2);
+    }
+  }
+
+  async function boot() {
+    try {
+      notifyAndroid("boot");
+      log("href", location.href);
+      log("base", BASE);
+      await waitForSize();
+
+      window.process = window.process || { env: { NODE_ENV: "production" } };
+      window.global = window.global || window;
+
+      await loadScript(BASE + "js/live2dcubismcore.min.js");
+      log("core script loaded", typeof window.Live2DCubismCore);
+      if (!window.Live2DCubismCore) throw new Error("Live2DCubismCore missing after script");
+
+      await loadScript(BASE + "js/pixi.min.js");
+      log("pixi loaded", typeof window.PIXI, !!(window.PIXI && PIXI.Application));
+      if (!window.PIXI || !PIXI.Application) throw new Error("PIXI.Application missing");
+
+      await loadScript(BASE + "js/cubism4.min.js");
+      for (var i = 0; i < 40; i++) {
+        if (PIXI.live2d && PIXI.live2d.Live2DModel) break;
+        await sleep(50);
+      }
+      if (!PIXI.live2d || !PIXI.live2d.Live2DModel) {
+        var keys = Object.getOwnPropertyNames(PIXI.live2d || {}).slice(0, 12).join(",");
+        throw new Error("Live2DModel missing keys=" + keys + " process=" + typeof process);
+      }
+      log("cubism4 ok Live2DModel");
+
+      if (typeof PIXI.live2d.startUpCubism4 === "function") {
+        await PIXI.live2d.startUpCubism4();
+        log("startUpCubism4 ok");
+      }
+
+      await loadCharacter();
+      await probeModelUrl();
+
+      var size = stageSize();
+      app = createApp(size);
+      window.__app = app;
+      document.getElementById("stage").appendChild(app.view);
+
+      log("Live2DModel.from", MODEL_URL);
+      model = await PIXI.live2d.Live2DModel.from(MODEL_URL, {
+        autoInteract: false,
+        autoUpdate: true
+      });
+      window.__model = model;
+      app.stage.addChild(model);
+      ensureClippingManager();
+      patchModelUpdate();
+      probeParams();
+      layoutModel();
+      await sleep(80);
+      layoutModel();
+      window.addEventListener("resize", layoutModel);
+      try { model.motion("Idle"); } catch (e) {}
+      applyMood("IDLE");
+      await sleep(120);
+      ready = true;
+      log("ready");
+      notifyAndroid("ready");
+    } catch (err) {
+      var msg = (err && err.message) ? err.message : String(err);
+      console.error(err);
+      notifyAndroid("error:" + msg);
+    }
+  }
+
+  window.PangchuangLive2D = {
+    isReady: function () { return ready; },
+    mouthOpen: function () { return mouthOpen; },
+    paramA: function () { return getParam(lipSyncParam); },
+    paramMouth: function () { return getParam(lipSyncParam); },
+    paramMouthForm: function () { return getParam("ParamMouthForm"); },
+    paramEyeL: function () { return getParam("ParamEyeLOpen"); },
+    paramAngleY: function () { return getParam("ParamAngleY"); },
+    paramBodyX: function () { return getParam("ParamBodyAngleX"); },
+    currentMood: function () { return currentMood; },
+    forceBlink: function () {
+      blinkUntil = Date.now() + 180;
+      nextBlink = Date.now() + 4000;
+      applyBlink();
+    },
+    setPaused: function (value) {
+      paused = !!value;
+      try {
+        if (app && app.ticker) {
+          if (paused) app.ticker.stop();
+          else app.ticker.start();
+        }
+      } catch (e) {}
+    },
+    setMood: function (mood) { applyMood(String(mood || "IDLE").toUpperCase()); },
+    setOverlayCrop: function (span, fx, fy) {
+      character = character || {};
+      character.overlay = character.overlay || {};
+      if (span != null) character.overlay.faceSpan = Number(span);
+      if (fx != null) character.overlay.focusX = Number(fx);
+      if (fy != null) character.overlay.focusY = Number(fy);
+      layoutModel();
+      return {
+        faceSpan: character.overlay.faceSpan,
+        focusX: character.overlay.focusX,
+        focusY: character.overlay.focusY
+      };
+    },
+    getOverlayCrop: function () {
+      var o = (character && character.overlay) || {};
+      return { faceSpan: o.faceSpan, focusX: o.focusX, focusY: o.focusY };
+    },
+    speak: function (durationMs, mood) {
+      if (!ready || !model) return;
+      var dur = Math.max(700, Math.min(5600, Number(durationMs) || 1800));
+      applyMood(String(mood || "TALK").toUpperCase());
+      if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+      if (mouthTimer) { clearInterval(mouthTimer); mouthTimer = null; }
+      // Do not start Talk: it only keys ParamMouthOpenY and fights JS lip-sync.
+      // Leave Idle running so breath/angle still move hair in the round window.
+      speaking = true;
+      var start = Date.now();
+      mouthTimer = setInterval(function () {
+        var t = (Date.now() - start) / 1000;
+        // Articulated open/close, not a timid sine that sits around 0.6.
+        var sylA = Math.pow(Math.max(0, Math.sin(t * 7.6)), 1.7);
+        var sylB = Math.pow(Math.max(0, Math.sin(t * 12.4 + 0.9)), 2.3);
+        var sylC = Math.pow(Math.max(0, Math.sin(t * 4.3 + 0.2)), 1.25);
+        var raw = Math.min(1, sylA * 0.95 + sylB * 0.80 + sylC * 0.16);
+        if (raw > 0.38) mouthOpen = 0.88 + 0.12 * raw;
+        else if (raw < 0.16) mouthOpen = 0;
+        else mouthOpen = (raw - 0.16) / 0.22 * 0.88;
+      }, 33);
+      holdTimer = setTimeout(function () {
+        stopMouth();
+        holdTimer = setTimeout(function () {
+          try { model.motion("Idle"); } catch (e) {}
+          applyMood("IDLE");
+          notifyAndroid("speak_end");
+        }, 700);
+      }, dur);
+    },
+    idle: function () {
+      stopMouth();
+      if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+      try { model.motion("Idle"); } catch (e) {}
+      applyMood("IDLE");
+    },
+    tap: function () {
+      if (!ready || !model) return;
+      applyMood("HAPPY");
+      mouthHold = 0.9;
+      setTimeout(function () {
+        if (speaking) return;
+        mouthHold = 0;
+        try { model.motion("Idle"); } catch (e) {}
+        applyMood("IDLE");
+      }, 900);
+    }
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
+})();
+</script>
+</body>
+</html>
