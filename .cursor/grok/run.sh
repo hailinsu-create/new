@@ -93,9 +93,12 @@ else:
 PY
 }
 
+# Unconditional refresh POSTs the token endpoint even when access is still
+# valid. xAI rotates refresh_token on each POST, which poisons other Cloud
+# Agents booted from the same Saved disk. Default is skip-if-still-valid.
 refresh_oidc() {
   [[ -f "${OIDC_REFRESH}" ]] || die "missing OIDC refresh helper: ${OIDC_REFRESH}"
-  python3 "${OIDC_REFRESH}"
+  python3 "${OIDC_REFRESH}" "$@"
 }
 
 logged_in() {
@@ -135,7 +138,8 @@ cmd_status() {
 
 cmd_refresh() {
   [[ -f "${HOME}/.grok/auth.json" ]] || die "not authenticated. Run: $0 login   (grok login --device-auth) with the grok.com account whose quota you want to use."
-  refresh_oidc
+  # Default: skip when access remaining > 60s. --force rotates refresh_token.
+  refresh_oidc "$@"
 }
 
 cmd_login() {
@@ -226,7 +230,9 @@ usage: run.sh <command>
 
   status   Show grok binary and grok.com login state
   login    Start grok login --device-auth
-  refresh  Renew the grok.com OIDC access token using the stored refresh_token
+  refresh  Skip-if-still-valid OIDC refresh (skips when access remaining > 60s).
+           --force            Always POST; rotates refresh_token
+           --min-remaining N  Skip threshold in seconds (default 60)
   run      Send a prompt to grok CLI (grok-4.6 extra-high fast, grok.com quota)
 
   run --file PATH
