@@ -2,25 +2,23 @@
 
 ## Done
 
-- Cleared `.cursor/hooks.json` (no force-grok hooks). Backups under `.cursor/hooks/*.bak`.
-- `always-use-grok-cli.mdc` → `alwaysApply: false` (paused stub).
-- `force-grok-cli.py` → always-allow noop (original `.bak`).
-- Added `AGENTS.md`, `.cursor/rules/opencode-routing.mdc`, `.cursor/skills/chatgpt-ds-workflow/SKILL.md`.
-- Installed `opencode` **1.18.31** at `~/.opencode/bin/opencode` (VM-local; not in git).
+- Grok force-routing paused (hooks empty; backups under `.cursor/hooks/*.bak`)
+- OpenCode Go WORK: `bash .cursor/opencode/run-ds41.sh` → `opencode-go/deepseek-v4.1-flash` (**no `--auto`**)
+- ChatGPT **web quota** PLAN/REVIEW bridge:
+  - `bash .cursor/chatgpt/chatgpt-web.sh -Mode plan|review -RequestFile <f>`
+  - CDP Chrome `~/.chatgpt-web/profile` :9222
+  - Smoke: `CHATGPT_WEB_OK`
 
-## Auth
+## Auth (VM-local, not in git)
 
-- OpenCode Go key on this VM (`~/.local/share/opencode/auth.json` + `~/.bashrc` `OPENCODE_API_KEY`). Prefer also Dashboard Secret for new pods.
-- WORK model: `opencode-go/deepseek-v4.1-flash` (ds 4.1)
-- **No `--auto`** (user: too slow).
+- OpenCode: `~/.local/share/opencode/auth.json` + `OPENCODE_API_KEY`
+- ChatGPT: cookies in `~/.chatgpt-web/profile` — Environment **Save** after snapshot
+
+## Invoke cheat-sheet
 
 ```bash
+bash .cursor/chatgpt/status.sh
+bash .cursor/chatgpt/chatgpt-web.sh -Mode plan  -RequestFile req.md -OutFile plan.md
 bash .cursor/opencode/run-ds41.sh "<task>"
-# or:
-opencode run -m opencode-go/deepseek-v4.1-flash "<task>"
+bash .cursor/chatgpt/chatgpt-web.sh -Mode review -RequestFile req.md -OutFile review.md
 ```
-
-## Not on this VM yet
-
-- ChatGPT web bridge (expected `chatgpt:unavailable` fail-open)
-- Pre-baked opencode in environment build (install was runtime-only)
