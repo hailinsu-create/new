@@ -1,0 +1,29 @@
+---
+description: Route PLAN/REVIEW to ChatGPT web and WORK to opencode/ds4.1 (Grok CLI paused).
+alwaysApply: true
+---
+
+# OpenCode + ChatGPT routing (B+C)
+
+Grok CLI forced routing is **paused**. Do **not** call `.cursor/grok/run.sh` unless the user explicitly re-enables Grok.
+
+## Pipeline
+
+1. **PLAN** — ChatGPT web, highest thinking. Cloud: if bridge missing → `chatgpt:unavailable` and continue (fail-open). Never use Codex OAuth/`codex exec` as a substitute.
+2. **WORK** — Prefer opencode with DeepSeek Flash / OpenCode Go:
+   - `opencode --version` should be ≥ 1.14.24
+   - Model preference: `opencode-go/deepseek-v4-flash` or connected DeepSeek `deepseek-v4-flash` (user alias: ds4.1)
+   - Flags when supported: `--variant max --auto`
+   - If opencode or auth missing: implement in-agent, still obey any PLAN/REVIEW verdict.
+3. **VERIFY** — Cursor runs tests / walkthrough evidence.
+4. **REVIEW** — ChatGPT web again → `approve | revise | block`. On `block`, stop and tell the user.
+
+## Forbidden
+
+- `jev-decide` / `jev-*` as final gate
+- Re-enabling force-grok hooks without user ask
+- Spending Grok.com CLI while paused
+
+## Auth
+
+Ask the user (or Dashboard Secrets) for `DEEPSEEK_API_KEY` / OpenCode Go when WORK needs it. Do not invent keys.
