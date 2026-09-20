@@ -8,14 +8,16 @@
 - Added `AGENTS.md`, `.cursor/rules/opencode-routing.mdc`, `.cursor/skills/chatgpt-ds-workflow/SKILL.md`.
 - Installed `opencode` **1.18.31** at `~/.opencode/bin/opencode` (VM-local; not in git).
 
-## Auth still needed (user)
+## Auth
 
-Add Dashboard Secrets (requested this turn):
+- OpenCode Go key configured on this VM (`~/.local/share/opencode/auth.json` + `OPENCODE_API_KEY`).
+- Prefer Dashboard Secret `OPENCODE_API_KEY` so new pods inherit it (do not commit the key).
+- WORK model: `opencode-go/deepseek-v4.1-flash` (ds 4.1)
 
-- `DEEPSEEK_API_KEY` (required for DeepSeek WORK)
-- `OPENCODE_API_KEY` (optional, OpenCode Go)
-
-Then either re-snapshot the environment or run `opencode` `/connect` deepseek once on a keeper/bootstrap VM and Save.
+```bash
+export PATH="$HOME/.opencode/bin:$PATH"
+opencode run --auto -m opencode-go/deepseek-v4.1-flash "<task>"
+```
 
 ## Not on this VM yet
 

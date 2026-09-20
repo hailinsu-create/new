@@ -10,10 +10,11 @@ Grok CLI forced routing is **paused**. Do **not** call `.cursor/grok/run.sh` unl
 ## Pipeline
 
 1. **PLAN** — ChatGPT web, highest thinking. Cloud: if bridge missing → `chatgpt:unavailable` and continue (fail-open). Never use Codex OAuth/`codex exec` as a substitute.
-2. **WORK** — Prefer opencode with DeepSeek Flash / OpenCode Go:
+2. **WORK** — Prefer OpenCode Go → DeepSeek V4.1 Flash:
    - `opencode --version` should be ≥ 1.14.24
-   - Model preference: `opencode-go/deepseek-v4-flash` or connected DeepSeek `deepseek-v4-flash` (user alias: ds4.1)
-   - Flags when supported: `--variant max --auto`
+   - Model: `opencode-go/deepseek-v4.1-flash` (alias: ds 4.1)
+   - Invoke: `opencode run --auto -m opencode-go/deepseek-v4.1-flash "<task>"`
+   - Auth: `OPENCODE_API_KEY` (Dashboard Secret or `~/.local/share/opencode/auth.json`)
    - If opencode or auth missing: implement in-agent, still obey any PLAN/REVIEW verdict.
 3. **VERIFY** — Cursor runs tests / walkthrough evidence.
 4. **REVIEW** — ChatGPT web again → `approve | revise | block`. On `block`, stop and tell the user.

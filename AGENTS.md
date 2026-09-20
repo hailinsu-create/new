@@ -23,8 +23,8 @@ Grok.com CLI Extra High Fast 已按用户要求**暂定**（见 `.cursor/rules/a
 1. **不要**再强制 `bash .cursor/grok/run.sh`（Grok 暂定 / auth 失效）。
 2. PLAN：把任务写成简短 brief；能调 ChatGPT 桥则调，否则 `chatgpt:unavailable` 后自行做最小 PLAN 并标注。
 3. WORK：优先  
-   `opencode run --model opencode-go/deepseek-v4-flash --variant max --auto "<task>"`  
-   （以本机 `opencode models` 实际 id 为准；旧称 ds4.1 / deepseek-v4.1-flash 等同 Flash 线。）
+   `opencode run --auto -m opencode-go/deepseek-v4.1-flash "<task>"`  
+   （ds 4.1 = DeepSeek V4.1 Flash via OpenCode Go；需 `OPENCODE_API_KEY`。）
 4. REVIEW：同样 fail-open；有 bridge 则送 diff+证据要 `approve|revise|block`。
 5. Ambush / PaperRoute 游戏改动仍遵循 `.cursor/skills/paperroute-game-build/SKILL.md`。
 
