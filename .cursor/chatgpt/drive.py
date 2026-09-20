@@ -26,33 +26,6 @@ def cdp_up() -> bool:
         return False
 
 
-def looks_logged_in(page) -> bool:
-    url = page.url or ""
-    if "auth" in url and "login" in url:
-        return False
-    # Logged-in UIs expose a composer / prompt textarea
-    for sel in (
-        "textarea#prompt-textarea",
-        "div#prompt-textarea",
-        '[data-testid="composer-input"]',
-        "textarea[placeholder*='Message']",
-        "div[contenteditable='true']",
-    ):
-        try:
-            if page.locator(sel).first.count() > 0:
-                return True
-        except Exception:
-            pass
-    body = ""
-    try:
-        body = page.locator("body").inner_text(timeout=3000)[:2000]
-    except Exception:
-        pass
-    if re.search(r"\b(Log in|Sign up|Sign in)\b", body, re.I) and "Log out" not in body:
-        return False
-    return "Log in" not in body[:500]
-
-
 def find_composer(page):
     selectors = [
         "textarea#prompt-textarea",
@@ -69,6 +42,21 @@ def find_composer(page):
         except Exception:
             continue
     return None
+
+
+def session_usable(page) -> tuple[bool, str]:
+    """Guest or logged-in is OK — both use chatgpt.com web surface."""
+    url = page.url or ""
+    if "/auth/" in url and "login" in url:
+        return False, "not_logged_in"
+    if find_composer(page) is not None:
+        return True, "composer_ready"
+    return False, "not_logged_in"
+
+
+def looks_logged_in(page) -> bool:
+    ok, _ = session_usable(page)
+    return ok
 
 
 def try_enable_thinking(page) -> None:
@@ -97,6 +85,8 @@ def extract_last_assistant(page) -> str:
     # Prefer markdown/assistant message blocks
     candidates = [
         '[data-message-author-role="assistant"]',
+        'div[data-message-author-role="assistant"]',
+        '[data-testid="assistant-message"]',
         'div[data-testid^="conversation-turn"]',
         "article",
     ]
@@ -108,13 +98,39 @@ def extract_last_assistant(page) -> str:
             n = 0
         if n:
             try:
-                return locs.nth(n - 1).inner_text(timeout=5000).strip()
+                text = locs.nth(n - 1).inner_text(timeout=5000).strip()
+                if text and "Interactive content" not in text[:80]:
+                    return text
             except Exception:
                 pass
     try:
-        return page.locator("main").inner_text(timeout=5000)[-8000:].strip()
+        main = page.locator("main").inner_text(timeout=5000)
     except Exception:
         return ""
+
+    # Prefer block containing REVIEW verdict
+    if "VERDICT:" in main:
+        # take from last occurrence of a review-ish start, else last 2k before chrome
+        idx = main.rfind("VERDICT:")
+        start = main.rfind("\n\n", 0, idx)
+        start = 0 if start < 0 else start
+        part = main[start:]
+        for stop in ("Chat with ChatGPT", "Where should we begin?", "\nLog in\n"):
+            if stop in part:
+                part = part.split(stop)[0]
+        # drop leading interactive chrome lines
+        lines = [ln for ln in part.strip().splitlines() if "Interactive content" not in ln]
+        return "\n".join(lines).strip()
+
+    for marker in ("ChatGPT said:", "ChatGPT 说："):
+        if marker in main:
+            part = main.split(marker)[-1]
+            for stop in ("Chat with ChatGPT", "Where should we begin?", "\nLog in\n"):
+                if stop in part:
+                    part = part.split(stop)[0]
+            return part.strip()
+
+    return main[-8000:].strip()
 
 
 def wait_generation(page, timeout_s: float) -> None:
@@ -166,9 +182,10 @@ def run(mode: str, request_text: str, out_path: Path, timeout_s: float) -> int:
             page.reload(wait_until="domcontentloaded", timeout=60000)
         page.wait_for_timeout(1500)
 
-        if not looks_logged_in(page):
-            print("chatgpt:not_logged_in open Chrome on chatgpt.com and sign in", file=sys.stderr)
-            out_path.write_text("chatgpt:not_logged_in\n", encoding="utf-8")
+        ok, reason = session_usable(page)
+        if not ok:
+            print(f"chatgpt:{reason} open Chrome on chatgpt.com and sign in", file=sys.stderr)
+            out_path.write_text(f"chatgpt:{reason}\n", encoding="utf-8")
             return 4
 
         try_enable_thinking(page)
@@ -191,14 +208,31 @@ def run(mode: str, request_text: str, out_path: Path, timeout_s: float) -> int:
             tag = composer.evaluate("el => el.tagName.toLowerCase()")
         except Exception:
             tag = ""
+        # Clear any leftover draft text
+        page.keyboard.press("Control+A")
+        page.keyboard.press("Backspace")
         if tag == "textarea":
             composer.fill(prompt)
         else:
-            # contenteditable
-            page.keyboard.press("Control+A")
             page.keyboard.insert_text(prompt)
 
-        page.keyboard.press("Enter")
+        sent = False
+        for sel in (
+            'button[data-testid="send-button"]',
+            'button[aria-label*="Send"]',
+            'button[aria-label*="发送"]',
+        ):
+            try:
+                btn = page.locator(sel).first
+                if btn.count() and btn.is_enabled() and btn.is_visible():
+                    btn.click(timeout=3000)
+                    sent = True
+                    break
+            except Exception:
+                continue
+        if not sent:
+            page.keyboard.press("Enter")
+        page.wait_for_timeout(500)
         wait_generation(page, timeout_s)
         text = extract_last_assistant(page)
         if not text:
@@ -228,8 +262,8 @@ def main() -> int:
             page = context.pages[0] if context.pages else context.new_page()
             if "chatgpt.com" not in (page.url or ""):
                 page.goto(CHAT_URL, wait_until="domcontentloaded", timeout=60000)
-            ok = looks_logged_in(page)
-            print(json.dumps({"cdp": True, "logged_in": ok, "url": page.url}))
+            ok, reason = session_usable(page)
+            print(json.dumps({"cdp": True, "usable": ok, "reason": reason, "url": page.url}))
             return 0 if ok else 4
 
     if not args.request_file:
