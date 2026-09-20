@@ -9,16 +9,11 @@ Grok CLI forced routing is **paused**. Do **not** call `.cursor/grok/run.sh` unl
 
 ## Pipeline
 
-1. **PLAN** — ChatGPT web, highest thinking. Cloud: if bridge missing → `chatgpt:unavailable` and continue (fail-open). Never use Codex OAuth/`codex exec` as a substitute.
+1. **PLAN** — ChatGPT **web quota** via `bash .cursor/chatgpt/chatgpt-web.sh -Mode plan -RequestFile <f>`. If bridge fails → `chatgpt:unavailable` fail-open. Never Codex OAuth.
 2. **WORK** — OpenCode Go → DeepSeek V4.1 Flash (**ds 4.1**):
-   - Model: `opencode-go/deepseek-v4.1-flash`
-   - Invoke: `bash .cursor/opencode/run-ds41.sh "<task>"`  
-     or `opencode run -m opencode-go/deepseek-v4.1-flash "<task>"`
-   - **Do not** pass `--auto` (too slow per user).
-   - Auth: `OPENCODE_API_KEY` / `~/.local/share/opencode/auth.json`
-   - If opencode missing: implement in-agent; still obey PLAN/REVIEW.
-3. **VERIFY** — Cursor runs tests / walkthrough evidence.
-4. **REVIEW** — ChatGPT web again → `approve | revise | block`. On `block`, stop and tell the user.
+   - `bash .cursor/opencode/run-ds41.sh "<task>"` (**no** `--auto`)
+3. **VERIFY** — Cursor tests / evidence.
+4. **REVIEW** — `bash .cursor/chatgpt/chatgpt-web.sh -Mode review -RequestFile <f>` → `approve|revise|block`. On `block`, stop.
 
 ## Forbidden
 
