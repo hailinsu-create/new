@@ -10,13 +10,14 @@
 
 ## Auth
 
-- OpenCode Go key configured on this VM (`~/.local/share/opencode/auth.json` + `OPENCODE_API_KEY`).
-- Prefer Dashboard Secret `OPENCODE_API_KEY` so new pods inherit it (do not commit the key).
+- OpenCode Go key on this VM (`~/.local/share/opencode/auth.json` + `~/.bashrc` `OPENCODE_API_KEY`). Prefer also Dashboard Secret for new pods.
 - WORK model: `opencode-go/deepseek-v4.1-flash` (ds 4.1)
+- **No `--auto`** (user: too slow).
 
 ```bash
-export PATH="$HOME/.opencode/bin:$PATH"
-opencode run --auto -m opencode-go/deepseek-v4.1-flash "<task>"
+bash .cursor/opencode/run-ds41.sh "<task>"
+# or:
+opencode run -m opencode-go/deepseek-v4.1-flash "<task>"
 ```
 
 ## Not on this VM yet
