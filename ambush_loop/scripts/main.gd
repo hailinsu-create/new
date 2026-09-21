@@ -325,6 +325,8 @@ var _follow_ring_hold: bool = false
 var _follow_dest_marks: Dictionary = {}
 var _follow_file: Line2D = null
 var _last_loot_chip: String = ""
+var _last_alarm_cta: String = ""
+var _alarm_cta_pulse_tween: Tween = null
 var _stealth_avoid_cache: Dictionary = {}
 var _stealth_avoid_msec: int = 0
 var _move_ghost: Line2D = null
@@ -12085,6 +12087,7 @@ func _extract_win() -> void:
 func _refresh_alarm_cta() -> void:
 	if alarm_button == null:
 		return
+	var prev := str(_last_alarm_cta)
 	match phase:
 		Phase.SETUP:
 			if squad_has_firearm():
@@ -12105,6 +12108,27 @@ func _refresh_alarm_cta() -> void:
 			alarm_button.disabled = true
 		_:
 			alarm_button.disabled = true
+	var now := str(alarm_button.text)
+	## R44: first firearm loot flips 需枪→拉警报 with a short pulse so phone thumbs notice.
+	if phase == Phase.SETUP and now == "拉警报" and (prev == "需枪" or prev == "强拉警报" or prev == ""):
+		if prev == "需枪" or prev == "强拉警报":
+			_pulse_alarm_cta()
+	_last_alarm_cta = now
+
+
+func _pulse_alarm_cta() -> void:
+	## ~0.18s one-shot pulse on desktop CTA + touch CTA.
+	if _alarm_cta_pulse_tween != null and is_instance_valid(_alarm_cta_pulse_tween):
+		_alarm_cta_pulse_tween.kill()
+	if alarm_button:
+		alarm_button.modulate = Color(1.55, 1.35, 0.55)
+		_alarm_cta_pulse_tween = create_tween()
+		_alarm_cta_pulse_tween.tween_property(alarm_button, "modulate", Color.WHITE, 0.18)
+	if touch_hud and touch_hud._btns.has("alarm") and touch_hud._btns["alarm"]:
+		var tb: Button = touch_hud._btns["alarm"]
+		tb.modulate = Color(1.55, 1.35, 0.55)
+		var tw := tb.create_tween()
+		tw.tween_property(tb, "modulate", Color.WHITE, 0.18)
 
 
 func raid_prepare_ref(slots: Array, facings: Array, extra: Dictionary = {}) -> void:
