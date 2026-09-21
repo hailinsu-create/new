@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.6.12":
+	if ver != "0.6.13":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -10504,7 +10504,7 @@ func _assert_alert_chrome_0605(main) -> bool:
 		push_error("SMOKE_ALERT_0605_HINT %s" % hint)
 		quit(44)
 		return false
-	if hint.length() > 42:
+	if hint.length() > 36:
 		push_error("SMOKE_ALERT_0605_HINT_LONG n=%s %s" % [hint.length(), hint])
 		quit(44)
 		return false

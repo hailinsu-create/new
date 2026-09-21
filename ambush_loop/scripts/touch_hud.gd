@@ -563,7 +563,7 @@ func refresh_phase(
 		"SWEEP":
 			set_hint("打扫：走近尸体热区搜刮/拖尸 → 背包换枪 → 下一波或撤离")
 		"WATCHING":
-			set_hint("警报中 — 暂停 / 倍速 / 中止。自动火力与手雷。")
+			set_hint("警报：暂停·倍速·中止 · 自动开火")
 		"REPLAY":
 			set_hint("复盘只读 — 拖时间轴；警报钮返回搜刮")
 		_:
