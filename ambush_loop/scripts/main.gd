@@ -5931,9 +5931,10 @@ func _spawn_loot_chip(at: Vector2, kind: String) -> void:
 	lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	entities.add_child(lab)
 	lab.global_position = at + Vector2(-22, -28)
+	## R36: longer float so 开匣 pay-off stays readable on phone (~1.0s, +10px rise).
 	var tw := lab.create_tween()
-	tw.tween_property(lab, "position:y", lab.position.y - 18.0, 0.85)
-	tw.parallel().tween_property(lab, "modulate:a", 0.0, 0.85)
+	tw.tween_property(lab, "position:y", lab.position.y - 28.0, 1.00)
+	tw.parallel().tween_property(lab, "modulate:a", 0.0, 1.00)
 	tw.tween_callback(lab.queue_free)
 
 

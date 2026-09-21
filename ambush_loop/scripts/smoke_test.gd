@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.6.21":
+	if ver != "0.6.22":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -4673,6 +4673,7 @@ func _assert_touch_feel_0613(main) -> bool:
 
 func _assert_touch_feel_0615(main) -> bool:
 	## v0.6.8: crate take shows 拿到X in world, not only the HUD flash.
+	## R36: float lasts 1.00s and rises 28px (source contract).
 	if not main.has_method("_spawn_loot_chip") or not main.has_method("last_loot_chip_text"):
 		push_error("SMOKE_LOOT_0615_NO_API")
 		quit(44)
@@ -4683,7 +4684,12 @@ func _assert_touch_feel_0615(main) -> bool:
 		push_error("SMOKE_LOOT_0615_TEXT %s" % txt)
 		quit(44)
 		return false
-	print("SMOKE_OK_TOUCH_FEEL_0615 chip=", txt)
+	var src := FileAccess.get_file_as_string("res://scripts/main.gd")
+	if src.find("position.y - 28.0, 1.00") < 0:
+		push_error("SMOKE_LOOT_R36_TWEEN")
+		quit(44)
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_0615 chip=", txt, " r36=1.00s/28px")
 	return true
 
 
