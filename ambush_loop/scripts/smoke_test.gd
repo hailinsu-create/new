@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.6.23":
+	if ver != "0.6.24":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3436,6 +3436,8 @@ func _assert_simplified_touch(main) -> bool:
 		return false
 	if not await _assert_touch_feel_0619(main):
 		return false
+	if not await _assert_touch_feel_r38(main):
+		return false
 	return true
 
 
@@ -4725,6 +4727,30 @@ func _assert_touch_feel_0619(main) -> bool:
 	main.phase = prev
 	if th.has_method("refresh_phase"):
 		th.refresh_phase("SETUP", false, false, false, false)
+	return true
+
+
+func _assert_touch_feel_r38(main) -> bool:
+	## R38: compact crouch/bag stack height +4px (28 tight / 30 normal).
+	var src := FileAccess.get_file_as_string("res://scripts/touch_hud.gd")
+	if src.find("stack_h := 28.0 if tight else 30.0") < 0:
+		push_error("SMOKE_R38_STACK_H")
+		quit(44)
+		return false
+	main._ensure_touch_hud()
+	var th = main.touch_hud
+	if th == null or not th._btns.has("crouch"):
+		push_error("SMOKE_R38_NO_HUD")
+		quit(44)
+		return false
+	if th.has_method("_layout_compact"):
+		th._layout_compact()
+	var h := float(th._btns["crouch"].custom_minimum_size.y)
+	if h < 27.5:
+		push_error("SMOKE_R38_CROUCH_SHORT h=%s" % h)
+		quit(44)
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_R38 crouch_h=", h)
 	return true
 
 

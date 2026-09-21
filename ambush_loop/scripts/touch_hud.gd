@@ -213,8 +213,8 @@ func _build() -> void:
 	_stack_secondary.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_stack_secondary.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_row_setup.add_child(_stack_secondary)
-	_add(_stack_secondary, "crouch", "匍匐", Color(0.36, 0.48, 0.32), Vector2(60, 26))
-	_add(_stack_secondary, "bag", "背包", Color(0.48, 0.44, 0.28), Vector2(60, 26))
+	_add(_stack_secondary, "crouch", "匍匐", Color(0.36, 0.48, 0.32), Vector2(60, 30))
+	_add(_stack_secondary, "bag", "背包", Color(0.48, 0.44, 0.28), Vector2(60, 30))
 	_add_spacer(_row_setup)
 	_twist_pair = HBoxContainer.new()
 	_twist_pair.name = "TwistPair"
@@ -437,7 +437,8 @@ func _layout_compact(avail_override: float = -1.0) -> void:
 	_compact_font = 11 if tight else 12
 	_compact_sep = 3 if tight else 4
 	var stack_w := 52.0 if tight else 60.0
-	var stack_h := 24.0 if tight else 26.0
+	## R38: +4px stack height for thumb hit on 匍匐/背包.
+	var stack_h := 28.0 if tight else 30.0
 	var twist := 58.0 if tight else 66.0
 	var twist_h := 56.0 if tight else 62.0
 	var alarm_w := 88.0 if tight else 96.0
