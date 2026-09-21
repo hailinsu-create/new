@@ -12,6 +12,7 @@ const LookBagIso := preload("res://art/look/sandbag_iso.png")
 const LookLampIso := preload("res://art/look/lamp_post_iso.png")
 const LookFenceIso := preload("res://art/look/fence_section_iso.png")
 const LookRationsIso := preload("res://art/look/rations_crate_iso.png")
+const LookOilDrumIso := preload("res://art/look/oil_drum_iso.png")
 
 class StaticCacheLayer extends Node2D:
 	var map: Node2D
@@ -814,6 +815,10 @@ func _landmark_yard(c: CanvasItem) -> void:
 	if LookRationsIso:
 		var rat := Rect2(crate.position + Vector2(8, crate.size.y + 6), Vector2(40, 32))
 		c.draw_texture_rect(LookRationsIso, rat, false)
+	if LookOilDrumIso:
+		## Oil drum on the SE/east lip of the crate island.
+		var drum := Rect2(crate.position + Vector2(crate.size.x + 2, crate.size.y - 8), Vector2(34, 40))
+		c.draw_texture_rect(LookOilDrumIso, drum, false)
 	var t := AmbushGrid.TILE
 	# Clothesline across the west yard (overlay; does not block spine x=13).
 	c.draw_line(Vector2(8.2 * t, 7.15 * t), Vector2(17.6 * t, 7.05 * t), Color(0.22, 0.20, 0.14, 0.70), 1.6, true)
