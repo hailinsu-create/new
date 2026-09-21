@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.6.20":
+	if ver != "0.6.27":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3436,6 +3436,12 @@ func _assert_simplified_touch(main) -> bool:
 		return false
 	if not await _assert_touch_feel_0619(main):
 		return false
+	if not await _assert_touch_feel_r38(main):
+		return false
+	if not await _assert_touch_feel_r40(main):
+		return false
+	if not await _assert_touch_feel_r42(main):
+		return false
 	return true
 
 
@@ -4673,6 +4679,7 @@ func _assert_touch_feel_0613(main) -> bool:
 
 func _assert_touch_feel_0615(main) -> bool:
 	## v0.6.8: crate take shows 拿到X in world, not only the HUD flash.
+	## R36: float lasts 1.00s and rises 28px (source contract).
 	if not main.has_method("_spawn_loot_chip") or not main.has_method("last_loot_chip_text"):
 		push_error("SMOKE_LOOT_0615_NO_API")
 		quit(44)
@@ -4683,7 +4690,12 @@ func _assert_touch_feel_0615(main) -> bool:
 		push_error("SMOKE_LOOT_0615_TEXT %s" % txt)
 		quit(44)
 		return false
-	print("SMOKE_OK_TOUCH_FEEL_0615 chip=", txt)
+	var src := FileAccess.get_file_as_string("res://scripts/main.gd")
+	if src.find("position.y - 28.0, 1.00") < 0:
+		push_error("SMOKE_LOOT_R36_TWEEN")
+		quit(44)
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_0615 chip=", txt, " r36=1.00s/28px")
 	return true
 
 
@@ -4719,6 +4731,80 @@ func _assert_touch_feel_0619(main) -> bool:
 	main.phase = prev
 	if th.has_method("refresh_phase"):
 		th.refresh_phase("SETUP", false, false, false, false)
+	return true
+
+
+func _assert_touch_feel_r38(main) -> bool:
+	## R38: compact crouch/bag stack height +4px (28 tight / 30 normal).
+	var src := FileAccess.get_file_as_string("res://scripts/touch_hud.gd")
+	if src.find("stack_h := 28.0 if tight else 30.0") < 0:
+		push_error("SMOKE_R38_STACK_H")
+		quit(44)
+		return false
+	main._ensure_touch_hud()
+	var th = main.touch_hud
+	if th == null or not th._btns.has("crouch"):
+		push_error("SMOKE_R38_NO_HUD")
+		quit(44)
+		return false
+	if th.has_method("_layout_compact"):
+		th._layout_compact()
+	var h := float(th._btns["crouch"].custom_minimum_size.y)
+	if h < 27.5:
+		push_error("SMOKE_R38_CROUCH_SHORT h=%s" % h)
+		quit(44)
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_R38 crouch_h=", h)
+	return true
+
+
+func _assert_touch_feel_r40(main) -> bool:
+	## R40: SCOUT teach/beat has 1px outline; wording still 交叉封锁 · 侧翼 ≤16.
+	var src := FileAccess.get_file_as_string("res://scripts/main.gd")
+	if src.find('spawn_teach_label.add_theme_constant_override("outline_size", 1)') < 0:
+		push_error("SMOKE_R40_OUTLINE")
+		quit(44)
+		return false
+	var yard: LevelDef = LevelDef.by_id("yard")
+	var beat := str(yard.beat_text)
+	if beat != "交叉封锁 · 侧翼" or beat.length() > 16:
+		push_error("SMOKE_R40_BEAT %s" % beat)
+		quit(44)
+		return false
+	if main.spawn_teach_label == null:
+		push_error("SMOKE_R40_NO_LABEL")
+		quit(44)
+		return false
+	var ol := int(main.spawn_teach_label.get_theme_constant("outline_size"))
+	if ol < 1:
+		push_error("SMOKE_R40_OUTLINE_RUNTIME ol=%s" % ol)
+		quit(44)
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_R40 outline=", ol, " beat=", beat)
+	return true
+
+
+func _assert_touch_feel_r42(main) -> bool:
+	## R42: obs fill alpha 0.010→0.008 (less soap). kit_range / ring scale unchanged.
+	var src := FileAccess.get_file_as_string("res://scripts/operator.gd")
+	if src.find("OBS_FILL_ALPHA := 0.008") < 0:
+		push_error("SMOKE_R42_FILL_ALPHA")
+		quit(44)
+		return false
+	## Explicit kit_range contract (scout 280) — fill soap only.
+	if main.operators.is_empty():
+		push_error("SMOKE_R42_NO_OPS")
+		quit(44)
+		return false
+	var kit := 0.0
+	for op in main.operators:
+		if op != null and op.has_method("observation_kit_range"):
+			kit = maxf(kit, float(op.observation_kit_range()))
+	if kit < 200.0:
+		push_error("SMOKE_R42_KIT_RANGE kit=%s" % kit)
+		quit(44)
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_R42 fill_a=0.008 kit=", snapped(kit, 0.1))
 	return true
 
 
@@ -10499,6 +10585,10 @@ func _assert_alert_chrome_0605(main) -> bool:
 		push_error("SMOKE_ALERT_0605_THIN speed=%s abort=%s" % [speed.custom_minimum_size, abort.custom_minimum_size])
 		quit(44)
 		return false
+	if str(abort.text).find("中止观战") < 0:
+		push_error("SMOKE_ALERT_0605_ABORT_LABEL %s" % abort.text)
+		quit(44)
+		return false
 	var hint := str(th._hint.text) if th._hint else ""
 	if hint.find("暂停") < 0 or hint.find("倍速") < 0 or hint.find("中止") < 0:
 		push_error("SMOKE_ALERT_0605_HINT %s" % hint)
@@ -12899,6 +12989,8 @@ func _assert_props(main) -> bool:
 		"wooden_barrel_iso",
 		"field_radio_iso",
 		"jerry_can_iso",
+		"spare_tire_iso",
+		"handcart_iso",
 		"Timetable slate", "Fuel ticket", "Call log",
 		"Rain barrel", "Spare dish", "Sandbag row",
 		"Oil stain", "Hose coil", "Switch box", "Drip pan",

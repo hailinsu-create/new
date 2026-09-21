@@ -16,6 +16,8 @@ const LookOilDrumIso := preload("res://art/look/oil_drum_iso.png")
 const LookWoodBarrelIso := preload("res://art/look/wooden_barrel_iso.png")
 const LookFieldRadioIso := preload("res://art/look/field_radio_iso.png")
 const LookJerryCanIso := preload("res://art/look/jerry_can_iso.png")
+const LookSpareTireIso := preload("res://art/look/spare_tire_iso.png")
+const LookHandcartIso := preload("res://art/look/handcart_iso.png")
 
 class StaticCacheLayer extends Node2D:
 	var map: Node2D
@@ -833,6 +835,16 @@ func _landmark_yard(c: CanvasItem) -> void:
 		## crate island (its oil drum + ammo can already own the SE/east lip).
 		var jerry := Rect2(10.8 * t, 14.0 * t, 34.0, 36.0)
 		c.draw_texture_rect(LookJerryCanIso, jerry, false)
+	if LookSpareTireIso:
+		## Spare tire propped by the bike wreck — separated from the jerry can
+		## silhouette on the south-west lip (overlay only; no collision).
+		var tire := Rect2(9.5 * t, 12.2 * t, 38.0, 38.0)
+		c.draw_texture_rect(LookSpareTireIso, tire, false)
+	if LookHandcartIso:
+		## Wooden handcart east of the courtyard island, off the walk spine
+		## (overlay only — does not block dest/path).
+		var cart := Rect2(22.6 * t, 12.4 * t, 56.0, 40.0)
+		c.draw_texture_rect(LookHandcartIso, cart, false)
 	if LookFieldRadioIso:
 		## Field radio set down under the NE courtyard window, off the x=32 flank lane.
 		var radio := Rect2(33.3 * t, 8.1 * t, 32.0, 28.0)

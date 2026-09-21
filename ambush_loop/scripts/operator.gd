@@ -15,7 +15,7 @@ const CLUSTER_VISUAL_MIN := 0.16
 ## Observation fill is a short, faint LOS wash. The outline stays at kit_range.
 ## Do not scale the body or silently shrink kit_range_px to hide courtyard soap.
 const OBS_FILL_RANGE_MUL := 0.40
-const OBS_FILL_ALPHA := 0.010
+const OBS_FILL_ALPHA := 0.008
 const OBS_RING_ALPHA := 0.26
 const OBS_RAYS := 36
 const MuzzleFlashScript := preload("res://scripts/fx/muzzle_flash.gd")
