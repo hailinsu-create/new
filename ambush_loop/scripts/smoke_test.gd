@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.6.27":
+	if ver != "0.6.28":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3442,6 +3442,8 @@ func _assert_simplified_touch(main) -> bool:
 		return false
 	if not await _assert_touch_feel_r42(main):
 		return false
+	if not await _assert_touch_feel_r44(main):
+		return false
 	return true
 
 
@@ -4805,6 +4807,66 @@ func _assert_touch_feel_r42(main) -> bool:
 		quit(44)
 		return false
 	print("SMOKE_OK_TOUCH_FEEL_R42 fill_a=0.008 kit=", snapped(kit, 0.1))
+	return true
+
+
+func _assert_touch_feel_r44(main) -> bool:
+	## R44: knives-only CTA 需枪 → loot firearm → 拉警报 + pulse helper.
+	if main.operators.is_empty() or main.alarm_button == null:
+		push_error("SMOKE_R44_NO_UI")
+		quit(44)
+		return false
+	if not main.has_method("_pulse_alarm_cta"):
+		push_error("SMOKE_R44_NO_PULSE")
+		quit(44)
+		return false
+	var src := FileAccess.get_file_as_string("res://scripts/main.gd")
+	if src.find("0.18") < 0 or src.find("_pulse_alarm_cta") < 0:
+		push_error("SMOKE_R44_PULSE_SRC")
+		quit(44)
+		return false
+	for o in main.operators:
+		if o != null and o.has_method("wipe_inventory"):
+			o.wipe_inventory()
+	main._alarm_warned_no_gun = false
+	main._last_alarm_cta = ""
+	main._alarm_cta_pulse_count = 0
+	main.phase = main.Phase.SETUP
+	main._refresh_alarm_cta()
+	main._refresh_touch_hud()
+	await process_frame
+	if str(main.alarm_button.text) != "需枪":
+		push_error("SMOKE_R44_PRE %s" % main.alarm_button.text)
+		quit(44)
+		return false
+	main.operators[0].receive_item("rifle", 5)
+	main._refresh_alarm_cta()
+	main._refresh_touch_hud()
+	await process_frame
+	if str(main.alarm_button.text) != "拉警报":
+		push_error("SMOKE_R44_POST %s armed=%s" % [main.alarm_button.text, main.squad_has_firearm()])
+		quit(44)
+		return false
+	if int(main._alarm_cta_pulse_count) != 1:
+		push_error("SMOKE_R44_PULSE_COUNT n=%s" % main._alarm_cta_pulse_count)
+		quit(44)
+		return false
+	if absf(float(main._alarm_cta_last_pulse_sec) - 0.18) > 0.001:
+		push_error("SMOKE_R44_PULSE_SEC s=%s" % main._alarm_cta_last_pulse_sec)
+		quit(44)
+		return false
+	## Second refresh must not retrigger pulse.
+	main._refresh_alarm_cta()
+	if int(main._alarm_cta_pulse_count) != 1:
+		push_error("SMOKE_R44_PULSE_RETRIG n=%s" % main._alarm_cta_pulse_count)
+		quit(44)
+		return false
+	if main.touch_hud and main.touch_hud._btns.has("alarm"):
+		if str(main.touch_hud._btns["alarm"].text).find("拉警报") < 0:
+			push_error("SMOKE_R44_TOUCH %s" % main.touch_hud._btns["alarm"].text)
+			quit(44)
+			return false
+	print("SMOKE_OK_TOUCH_FEEL_R44 cta=", main.alarm_button.text, " pulse=", main._alarm_cta_last_pulse_sec)
 	return true
 
 
