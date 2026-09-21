@@ -29,10 +29,17 @@ if [[ ! -d "${WS}/.git" ]]; then
   exit 0
 fi
 
+# Skip-if-valid OIDC refresh before any early-exit or copy. Never --force: a
+# still-valid access token must skip, otherwise a Bot cold start POSTs the
+# token endpoint, rotates refresh_token, and poisons the Saved disk.
+if [[ -f "${ROOT}/grok/oidc_refresh.py" ]]; then
+  python3 "${ROOT}/grok/oidc_refresh.py" >>/tmp/grok-oidc-refresh.log 2>&1 || true
+fi
+
 if git -C "${WS}" ls-files --error-unmatch .cursor/grok/run.sh >/dev/null 2>&1; then
   chmod +x "${WS}/.cursor/grok/run.sh" "${WS}/.cursor/grok/install.sh" 2>/dev/null || true
   chmod +x "${WS}/.cursor/hooks/force-grok-cli.py" 2>/dev/null || true
-  echo "grok-cli: workspace already has router from git"
+  echo "grok-cli: workspace already has router from git; OIDC refresh skipped-or-attempted"
   exit 0
 fi
 
@@ -42,4 +49,4 @@ cp -a "${ROOT}/grok/." "${WS}/.cursor/grok/"
 cp -a "${ROOT}/hooks/." "${WS}/.cursor/hooks/"
 cp -a "${ROOT}/hooks.json" "${WS}/.cursor/hooks.json"
 chmod +x "${WS}/.cursor/grok/run.sh" "${WS}/.cursor/grok/install.sh" "${WS}/.cursor/hooks/force-grok-cli.py" "${WS}/.cursor/grok/inject-from-snapshot.sh" || true
-echo "grok-cli: injected grok.com CLI router into ${WS}/.cursor"
+echo "grok-cli: injected grok.com CLI router into ${WS}/.cursor; OIDC refresh skipped-or-attempted"
