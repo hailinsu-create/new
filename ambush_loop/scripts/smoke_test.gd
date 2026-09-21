@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.6.24":
+	if ver != "0.6.25":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -3438,6 +3438,8 @@ func _assert_simplified_touch(main) -> bool:
 		return false
 	if not await _assert_touch_feel_r38(main):
 		return false
+	if not await _assert_touch_feel_r40(main):
+		return false
 	return true
 
 
@@ -4751,6 +4753,32 @@ func _assert_touch_feel_r38(main) -> bool:
 		quit(44)
 		return false
 	print("SMOKE_OK_TOUCH_FEEL_R38 crouch_h=", h)
+	return true
+
+
+func _assert_touch_feel_r40(main) -> bool:
+	## R40: SCOUT teach/beat has 1px outline; wording still 交叉封锁 · 侧翼 ≤16.
+	var src := FileAccess.get_file_as_string("res://scripts/main.gd")
+	if src.find('spawn_teach_label.add_theme_constant_override("outline_size", 1)') < 0:
+		push_error("SMOKE_R40_OUTLINE")
+		quit(44)
+		return false
+	var yard: LevelDef = LevelDef.by_id("yard")
+	var beat := str(yard.beat_text)
+	if beat != "交叉封锁 · 侧翼" or beat.length() > 16:
+		push_error("SMOKE_R40_BEAT %s" % beat)
+		quit(44)
+		return false
+	if main.spawn_teach_label == null:
+		push_error("SMOKE_R40_NO_LABEL")
+		quit(44)
+		return false
+	var ol := int(main.spawn_teach_label.get_theme_constant("outline_size"))
+	if ol < 1:
+		push_error("SMOKE_R40_OUTLINE_RUNTIME ol=%s" % ol)
+		quit(44)
+		return false
+	print("SMOKE_OK_TOUCH_FEEL_R40 outline=", ol, " beat=", beat)
 	return true
 
 

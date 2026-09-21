@@ -651,6 +651,9 @@ func _build_role_card_hud(root: Control) -> void:
 	spawn_teach_label.add_theme_font_size_override("font_size", 13)
 	spawn_teach_label.add_theme_font_override("font", NightOps.ui_font_bold())
 	spawn_teach_label.add_theme_color_override("font_color", Color(0.98, 0.82, 0.38))
+	## R40: 1px outline so beat reads on dark yard hatch (wording unchanged).
+	spawn_teach_label.add_theme_color_override("font_outline_color", Color(0.02, 0.02, 0.02, 0.95))
+	spawn_teach_label.add_theme_constant_override("outline_size", 1)
 	spawn_teach_label.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.02, 0.92))
 	spawn_teach_label.add_theme_constant_override("shadow_offset_x", 1)
 	spawn_teach_label.add_theme_constant_override("shadow_offset_y", 1)
