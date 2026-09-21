@@ -454,7 +454,7 @@ static func make_yard() -> LevelDef:
 	l.ambush_zone = Rect2(320, 280, 400, 160)
 	l.has_ammo_pack = false
 	l.beat_kind = "ambush_zone"
-	l.beat_text = "交叉封锁 · 侧翼东廊"
+	l.beat_text = "交叉封锁 · 侧翼"
 	l.highlight_hook = "交叉封锁第一枪"
 	l.must_bring = "先搜匣：灰狼步枪、铁砧机枪、夜枭狙。第一波锁主路，打扫后再打东廊。"
 	l.role_why = {

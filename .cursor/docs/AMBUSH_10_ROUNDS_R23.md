@@ -2,26 +2,20 @@
 
 Date: 2026-09-21  
 Branch: `cursor/ambush-oil-drum-r21-0641`  
-Start: **0.6.12** / code 61 (R22 oil drum in yard)  
-Method: ChatGPT PLAN/REVIEW + ds4.1 WORK (no `--auto`) + Cursor VERIFY. One Engine **or** Look per round.
+Final: **0.6.19** / code 68  
+Gate: ChatGPT web PLAN/REVIEW + ds4.1 WORK (no `--auto`) + Cursor smoke.
 
-| Round | Stream | Slice | Version |
-|---|---|---|---|
-| R23 | Engine | Shorten ALERT HUD hint to one compact line | 0.6.13 / 62 |
-| R24 | Look | Wooden barrel art study (≠ oil drum) | — |
-| R25 | Engine | cone_fade polish ≤0.50 | 0.6.14 / 63 |
-| R26 | Look | Wooden barrel iso into yard edge | 0.6.15 / 64 |
-| R27 | Engine | Compact-mode thumb less skinny | 0.6.16 / 65 |
-| R28 | Look | Field radio art study | — |
-| R29 | Engine | Loot-flash chip clearer | 0.6.17 / 66 |
-| R30 | Look | Field radio iso into yard | 0.6.18 / 67 |
-| R31 | Engine | One concise SCOUT teach line | 0.6.19 / 68 |
-| R32 | Look | Jerry can art study | — |
+| Round | Stream | Slice | Version | REVIEW |
+|---|---|---|---|---|
+| R23 | Engine | ALERT hint → `警报：暂停·倍速·中止 · 自动开火` | 0.6.13 / 62 | approve |
+| R24 | Look | Wooden barrel art study | — | approve |
+| R25 | Engine | `FOLLOW_WEST_CONE_FADE` 0.46→0.48 | 0.6.14→… | approve |
+| R26 | Look | Wooden barrel iso on west-yard lip | … | approve |
+| R27 | Engine | Compact twist thumb 58/66 | … | approve |
+| R28 | Look | Field radio art study | — | approve |
+| R29 | Engine | Loot chip font 15 + outline | … | approve |
+| R30 | Look | Field radio iso under NE window | … | approve |
+| R31 | Engine | SCOUT beat `交叉封锁 · 侧翼` | **0.6.19 / 68** | approve |
+| R32 | Look | Jerry can art study | — | approve |
 
-## Must-NOT
-
-1. RAID frozen: SCOUT→ALERT→SWEEP, ALERT lock-move, auto fire/nades, 10-gun kit.
-2. No body <1.0, no west zoom <0.85.
-3. No west dest retile `(6,6)/(5,16)` span==6.
-4. No art-study + yard-import same round. No Meshy.
-5. No drive-by refactors of unrelated UI/props/collision.
+Smoke: `SMOKE_SLICE_COMPLETE` on 0.6.19.
