@@ -124,7 +124,7 @@ func _process(_delta: float) -> void:
 	if _abort_armed and Time.get_ticks_msec() - _abort_msec > 2200:
 		_abort_armed = false
 		if _btns.has("abort") and _btns["abort"]:
-			_btns["abort"].text = "中止"
+			_btns["abort"].text = "中止观战"
 	if _hold_cmd != "":
 		var b: Button = _btns.get(_hold_cmd)
 		if b == null or b.disabled or (not b.is_pressed() and not _hold_forced):
@@ -244,7 +244,7 @@ func _build() -> void:
 	_row_watch.add_theme_constant_override("separation", 10)
 	_row_watch.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(_row_watch)
-	_add(_row_watch, "abort", "中止", Color(0.58, 0.20, 0.18), Vector2(120, 64))
+	_add(_row_watch, "abort", "中止观战", Color(0.58, 0.20, 0.18), Vector2(120, 64))
 	_add(_row_watch, "pause", "暂停", Color(0.40, 0.44, 0.38), Vector2(120, 64))
 	_add(_row_watch, "speed", "倍速", Color(0.42, 0.46, 0.32), Vector2(120, 64))
 	_add_wave_chip(_row_watch)
@@ -343,10 +343,10 @@ func _add(parent: Control, cmd: String, label: String, tint: Color, minsz: Vecto
 				if not _abort_armed:
 					_abort_armed = true
 					_abort_msec = Time.get_ticks_msec()
-					b.text = "确认中止"
+					b.text = "确认中止观战"
 					return
 				_abort_armed = false
-				b.text = "中止"
+				b.text = "中止观战"
 			if _host != null and _host.has_method("apply_touch_command"):
 				_host.call("apply_touch_command", c)
 		)
@@ -621,7 +621,7 @@ func refresh_phase(
 	if phase_name != "WATCHING":
 		_abort_armed = false
 		if _btns.has("abort"):
-			_btns["abort"].text = "中止"
+			_btns["abort"].text = "中止观战"
 		if _wave_chip:
 			_wave_chip.visible = false
 	_paint_crouch_sticky()

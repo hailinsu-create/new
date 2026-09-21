@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.6.20":
+	if ver != "0.6.21":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -10497,6 +10497,10 @@ func _assert_alert_chrome_0605(main) -> bool:
 		return false
 	if speed.custom_minimum_size.x < 118.0 or abort.custom_minimum_size.x < 118.0:
 		push_error("SMOKE_ALERT_0605_THIN speed=%s abort=%s" % [speed.custom_minimum_size, abort.custom_minimum_size])
+		quit(44)
+		return false
+	if str(abort.text).find("中止观战") < 0:
+		push_error("SMOKE_ALERT_0605_ABORT_LABEL %s" % abort.text)
 		quit(44)
 		return false
 	var hint := str(th._hint.text) if th._hint else ""
