@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.6.19":
+	if ver != "0.6.20":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -12898,6 +12898,7 @@ func _assert_props(main) -> bool:
 		"oil_drum_iso",
 		"wooden_barrel_iso",
 		"field_radio_iso",
+		"jerry_can_iso",
 		"Timetable slate", "Fuel ticket", "Call log",
 		"Rain barrel", "Spare dish", "Sandbag row",
 		"Oil stain", "Hose coil", "Switch box", "Drip pan",

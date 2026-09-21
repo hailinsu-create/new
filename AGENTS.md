@@ -15,7 +15,7 @@ Grok.com CLI Extra High Fast 已按用户要求**暂定**（见 `.cursor/rules/a
 | Role | Who | Cloud Agent behavior |
 |------|-----|----------------------|
 | PLAN / REVIEW | ChatGPT **网页额度** | `bash .cursor/chatgpt/chatgpt-web.sh -Mode plan\|review -RequestFile <f>`；若 `chatgpt:unavailable` / `not_logged_in` → fail-open 并标注 |
-| WORK | `opencode-go/deepseek-v4.1-flash`（ds 4.1） | `bash .cursor/opencode/run-ds41.sh`；**不要** `--auto` |
+| WORK | `opencode-go/deepseek-v4.1-flash`（ds 4.1） | `bash .cursor/opencode/run-ds41.sh` → **`--variant max`**；**不要** `--auto` |
 | VERIFY | Cursor | 跑测、证据、PR；不替代 REVIEW 裁决 |
 
 ## Cursor Cloud specific instructions
