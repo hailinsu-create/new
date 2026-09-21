@@ -438,7 +438,7 @@ func _layout_compact(avail_override: float = -1.0) -> void:
 	_compact_sep = 3 if tight else 4
 	var stack_w := 52.0 if tight else 60.0
 	var stack_h := 24.0 if tight else 26.0
-	var twist := 52.0 if tight else 60.0
+	var twist := 58.0 if tight else 66.0
 	var twist_h := 56.0 if tight else 62.0
 	var alarm_w := 88.0 if tight else 96.0
 	var alarm_h := 52.0 if tight else 56.0
@@ -563,7 +563,7 @@ func refresh_phase(
 		"SWEEP":
 			set_hint("打扫：走近尸体热区搜刮/拖尸 → 背包换枪 → 下一波或撤离")
 		"WATCHING":
-			set_hint("警报中 — 暂停 / 倍速 / 中止。自动火力与手雷。")
+			set_hint("警报：暂停·倍速·中止 · 自动开火")
 		"REPLAY":
 			set_hint("复盘只读 — 拖时间轴；警报钮返回搜刮")
 		_:

@@ -11,7 +11,8 @@ Grok CLI forced routing is **paused**. Do **not** call `.cursor/grok/run.sh` unl
 
 1. **PLAN** — ChatGPT **web quota** via `bash .cursor/chatgpt/chatgpt-web.sh -Mode plan -RequestFile <f>`. If bridge fails → `chatgpt:unavailable` fail-open. Never Codex OAuth.
 2. **WORK** — OpenCode Go → DeepSeek V4.1 Flash (**ds 4.1**):
-   - `bash .cursor/opencode/run-ds41.sh "<task>"` (**no** `--auto`)
+   - `bash .cursor/opencode/run-ds41.sh "<task>"` → `opencode run -m opencode-go/deepseek-v4.1-flash --variant max`
+   - **Do not** pass `--auto` (too slow per user).
 3. **VERIFY** — Cursor tests / evidence.
 4. **REVIEW** — `bash .cursor/chatgpt/chatgpt-web.sh -Mode review -RequestFile <f>` → `approve|revise|block`. On `block`, stop.
 

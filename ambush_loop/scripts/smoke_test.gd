@@ -16,7 +16,7 @@ func _init() -> void:
 func _run() -> void:
 	var ver := str(ProjectSettings.get_setting("application/config/version", ""))
 	print("SMOKE_GAME_VERSION ", ver)
-	if ver != "0.6.11":
+	if ver != "0.6.20":
 		push_error("SMOKE_BAD_VERSION %s" % ver)
 		quit(90)
 		return
@@ -4663,11 +4663,11 @@ func _assert_touch_feel_0611(main) -> bool:
 func _assert_touch_feel_0613(main) -> bool:
 	## v0.6.7: west yellow cone fade is readable but still ≤0.50 leftover cap.
 	var src := FileAccess.get_file_as_string("res://scripts/main.gd")
-	if src.find("FOLLOW_WEST_CONE_FADE := 0.46") < 0:
+	if src.find("FOLLOW_WEST_CONE_FADE := 0.48") < 0:
 		push_error("SMOKE_CONE_0613_CONST")
 		quit(44)
 		return false
-	print("SMOKE_OK_TOUCH_FEEL_0613 fade=0.46")
+	print("SMOKE_OK_TOUCH_FEEL_0613 fade=0.48")
 	return true
 
 
@@ -5965,7 +5965,7 @@ func _assert_compact_narrow(main) -> bool:
 		push_error("SMOKE_COMPACT_NARROW_OVERFLOW need=%s avail=%s" % [snapped(need, 0.1), snapped(avail, 0.1)])
 		quit(44)
 		return false
-	if twist_min < 52.0:
+	if twist_min < 56.0:
 		push_error("SMOKE_COMPACT_NARROW_TWIST_SMALL n=%s" % snapped(twist_min, 0.1))
 		quit(44)
 		return false
@@ -10504,7 +10504,7 @@ func _assert_alert_chrome_0605(main) -> bool:
 		push_error("SMOKE_ALERT_0605_HINT %s" % hint)
 		quit(44)
 		return false
-	if hint.length() > 42:
+	if hint.length() > 36:
 		push_error("SMOKE_ALERT_0605_HINT_LONG n=%s %s" % [hint.length(), hint])
 		quit(44)
 		return false
@@ -12895,6 +12895,10 @@ func _assert_props(main) -> bool:
 		"lamp_post_iso",
 		"fence_section_iso",
 		"rations_crate_iso",
+		"oil_drum_iso",
+		"wooden_barrel_iso",
+		"field_radio_iso",
+		"jerry_can_iso",
 		"Timetable slate", "Fuel ticket", "Call log",
 		"Rain barrel", "Spare dish", "Sandbag row",
 		"Oil stain", "Hose coil", "Switch box", "Drip pan",

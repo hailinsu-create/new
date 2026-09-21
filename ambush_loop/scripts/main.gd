@@ -62,7 +62,7 @@ const FOLLOW_WEST_OBS_SIDE := 28.0
 const FOLLOW_WEST_OBS_SLOT := 12.0
 const FOLLOW_WEST_OBS_COURTYARD := 18.0
 const FOLLOW_WEST_OBS_LEAD_MUL := 0.62
-const FOLLOW_WEST_CONE_FADE := 0.46
+const FOLLOW_WEST_CONE_FADE := 0.48
 const FLANK_WRAP_MIN_PTS := 4
 const PROGRESS_PATH := "user://ambush_loop.cfg"
 const LEVEL_ORDER := ["yard", "warehouse", "pump", "railcut", "depot", "radio"]
@@ -5920,8 +5920,10 @@ func _spawn_loot_chip(at: Vector2, kind: String) -> void:
 	var lab := Label.new()
 	lab.name = "LootChip"
 	lab.text = _last_loot_chip
-	lab.add_theme_font_size_override("font_size", 13)
-	lab.add_theme_color_override("font_color", Color(0.96, 0.86, 0.42))
+	lab.add_theme_font_size_override("font_size", 15)
+	lab.add_theme_color_override("font_color", Color(0.98, 0.90, 0.48))
+	lab.add_theme_color_override("font_outline_color", Color(0.03, 0.02, 0.01, 0.95))
+	lab.add_theme_constant_override("outline_size", 3)
 	lab.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.02, 0.90))
 	lab.add_theme_constant_override("shadow_offset_x", 1)
 	lab.add_theme_constant_override("shadow_offset_y", 1)

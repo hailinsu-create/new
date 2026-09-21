@@ -12,6 +12,10 @@ const LookBagIso := preload("res://art/look/sandbag_iso.png")
 const LookLampIso := preload("res://art/look/lamp_post_iso.png")
 const LookFenceIso := preload("res://art/look/fence_section_iso.png")
 const LookRationsIso := preload("res://art/look/rations_crate_iso.png")
+const LookOilDrumIso := preload("res://art/look/oil_drum_iso.png")
+const LookWoodBarrelIso := preload("res://art/look/wooden_barrel_iso.png")
+const LookFieldRadioIso := preload("res://art/look/field_radio_iso.png")
+const LookJerryCanIso := preload("res://art/look/jerry_can_iso.png")
 
 class StaticCacheLayer extends Node2D:
 	var map: Node2D
@@ -814,7 +818,25 @@ func _landmark_yard(c: CanvasItem) -> void:
 	if LookRationsIso:
 		var rat := Rect2(crate.position + Vector2(8, crate.size.y + 6), Vector2(40, 32))
 		c.draw_texture_rect(LookRationsIso, rat, false)
+	if LookOilDrumIso:
+		## Oil drum on the SE/east lip of the crate island.
+		var drum := Rect2(crate.position + Vector2(crate.size.x + 2, crate.size.y - 8), Vector2(34, 40))
+		c.draw_texture_rect(LookOilDrumIso, drum, false)
 	var t := AmbushGrid.TILE
+	if LookWoodBarrelIso:
+		## Single wooden barrel on the free west-yard lip by the clothesline
+		## (off the crate island — the oil drum already owns its SE edge).
+		var barrel := Rect2(9.2 * t, 9.0 * t, 36.0, 40.0)
+		c.draw_texture_rect(LookWoodBarrelIso, barrel, false)
+	if LookJerryCanIso:
+		## Single jerry can on the south-west lip by the bike wreck — off the
+		## crate island (its oil drum + ammo can already own the SE/east lip).
+		var jerry := Rect2(10.8 * t, 14.0 * t, 34.0, 36.0)
+		c.draw_texture_rect(LookJerryCanIso, jerry, false)
+	if LookFieldRadioIso:
+		## Field radio set down under the NE courtyard window, off the x=32 flank lane.
+		var radio := Rect2(33.3 * t, 8.1 * t, 32.0, 28.0)
+		c.draw_texture_rect(LookFieldRadioIso, radio, false)
 	# Clothesline across the west yard (overlay; does not block spine x=13).
 	c.draw_line(Vector2(8.2 * t, 7.15 * t), Vector2(17.6 * t, 7.05 * t), Color(0.22, 0.20, 0.14, 0.70), 1.6, true)
 	for i in 5:
