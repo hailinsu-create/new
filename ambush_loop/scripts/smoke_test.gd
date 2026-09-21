@@ -4830,6 +4830,7 @@ func _assert_touch_feel_r44(main) -> bool:
 			o.wipe_inventory()
 	main._alarm_warned_no_gun = false
 	main._last_alarm_cta = ""
+	main._alarm_cta_pulse_count = 0
 	main.phase = main.Phase.SETUP
 	main._refresh_alarm_cta()
 	main._refresh_touch_hud()
@@ -4846,12 +4847,26 @@ func _assert_touch_feel_r44(main) -> bool:
 		push_error("SMOKE_R44_POST %s armed=%s" % [main.alarm_button.text, main.squad_has_firearm()])
 		quit(44)
 		return false
+	if int(main._alarm_cta_pulse_count) != 1:
+		push_error("SMOKE_R44_PULSE_COUNT n=%s" % main._alarm_cta_pulse_count)
+		quit(44)
+		return false
+	if absf(float(main._alarm_cta_last_pulse_sec) - 0.18) > 0.001:
+		push_error("SMOKE_R44_PULSE_SEC s=%s" % main._alarm_cta_last_pulse_sec)
+		quit(44)
+		return false
+	## Second refresh must not retrigger pulse.
+	main._refresh_alarm_cta()
+	if int(main._alarm_cta_pulse_count) != 1:
+		push_error("SMOKE_R44_PULSE_RETRIG n=%s" % main._alarm_cta_pulse_count)
+		quit(44)
+		return false
 	if main.touch_hud and main.touch_hud._btns.has("alarm"):
 		if str(main.touch_hud._btns["alarm"].text).find("拉警报") < 0:
 			push_error("SMOKE_R44_TOUCH %s" % main.touch_hud._btns["alarm"].text)
 			quit(44)
 			return false
-	print("SMOKE_OK_TOUCH_FEEL_R44 cta=", main.alarm_button.text)
+	print("SMOKE_OK_TOUCH_FEEL_R44 cta=", main.alarm_button.text, " pulse=", main._alarm_cta_last_pulse_sec)
 	return true
 
 

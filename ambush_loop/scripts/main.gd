@@ -63,6 +63,8 @@ const FOLLOW_WEST_OBS_SLOT := 12.0
 const FOLLOW_WEST_OBS_COURTYARD := 18.0
 const FOLLOW_WEST_OBS_LEAD_MUL := 0.62
 const FOLLOW_WEST_CONE_FADE := 0.48
+## R44: one-shot CTA pulse when 需枪 flips to 拉警报 (seconds).
+const ALARM_CTA_PULSE_SEC := 0.18
 const FLANK_WRAP_MIN_PTS := 4
 const PROGRESS_PATH := "user://ambush_loop.cfg"
 const LEVEL_ORDER := ["yard", "warehouse", "pump", "railcut", "depot", "radio"]
@@ -327,6 +329,8 @@ var _follow_file: Line2D = null
 var _last_loot_chip: String = ""
 var _last_alarm_cta: String = ""
 var _alarm_cta_pulse_tween: Tween = null
+var _alarm_cta_pulse_count: int = 0
+var _alarm_cta_last_pulse_sec: float = 0.0
 var _stealth_avoid_cache: Dictionary = {}
 var _stealth_avoid_msec: int = 0
 var _move_ghost: Line2D = null
@@ -12117,18 +12121,20 @@ func _refresh_alarm_cta() -> void:
 
 
 func _pulse_alarm_cta() -> void:
-	## ~0.18s one-shot pulse on desktop CTA + touch CTA.
+	## One-shot pulse on desktop CTA + touch CTA (ALARM_CTA_PULSE_SEC).
+	_alarm_cta_pulse_count += 1
+	_alarm_cta_last_pulse_sec = ALARM_CTA_PULSE_SEC
 	if _alarm_cta_pulse_tween != null and is_instance_valid(_alarm_cta_pulse_tween):
 		_alarm_cta_pulse_tween.kill()
 	if alarm_button:
 		alarm_button.modulate = Color(1.55, 1.35, 0.55)
 		_alarm_cta_pulse_tween = create_tween()
-		_alarm_cta_pulse_tween.tween_property(alarm_button, "modulate", Color.WHITE, 0.18)
+		_alarm_cta_pulse_tween.tween_property(alarm_button, "modulate", Color.WHITE, ALARM_CTA_PULSE_SEC)
 	if touch_hud and touch_hud._btns.has("alarm") and touch_hud._btns["alarm"]:
 		var tb: Button = touch_hud._btns["alarm"]
 		tb.modulate = Color(1.55, 1.35, 0.55)
 		var tw := tb.create_tween()
-		tw.tween_property(tb, "modulate", Color.WHITE, 0.18)
+		tw.tween_property(tb, "modulate", Color.WHITE, ALARM_CTA_PULSE_SEC)
 
 
 func raid_prepare_ref(slots: Array, facings: Array, extra: Dictionary = {}) -> void:
