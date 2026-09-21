@@ -15,7 +15,7 @@ Gate: ChatGPT web PLAN/REVIEW + WORK + Cursor smoke.
 | R39 | Look | Wooden handcart art study | — | approve |
 | R40 | Engine | SCOUT teach 1px outline | 0.6.25 / 74 | approve |
 | R41 | Look | Handcart iso east of island | 0.6.26 / 75 | approve |
-| R42 | Engine | Obs fill α 0.010→0.008 | **0.6.27 / 76** | pending |
-| R43 | Look | Barbed-wire coil art study | — | pending |
+| R42 | Engine | Obs fill α 0.010→0.008 | **0.6.27 / 76** | approve |
+| R43 | Look | Barbed-wire coil art study | — | approve |
 
 Smoke: `SMOKE_SLICE_COMPLETE` on 0.6.27. RAID frozen; body≥1; west zoom≥0.85; dest span 6.
