@@ -13,6 +13,8 @@ PINNED_MODEL="grok-4.6"
 PINNED_EFFORT="xhigh"
 PINNED_FAST_HEADER="x-grok-service-tier"
 PINNED_FAST_VALUE="priority"
+# Empty GROK_REQUIRED_EMAIL disables the check. Default is lning's grok.com account.
+REQUIRED_EMAIL="${GROK_REQUIRED_EMAIL-lningha@gmail.com}"
 
 die() {
   echo "grok-cli: $*" >&2
@@ -93,9 +95,48 @@ else:
 PY
 }
 
+# Unconditional refresh POSTs the token endpoint even when access is still
+# valid. xAI rotates refresh_token on each POST, which poisons other Cloud
+# Agents booted from the same Saved disk. Default is skip-if-still-valid.
 refresh_oidc() {
   [[ -f "${OIDC_REFRESH}" ]] || die "missing OIDC refresh helper: ${OIDC_REFRESH}"
-  python3 "${OIDC_REFRESH}"
+  python3 "${OIDC_REFRESH}" "$@"
+}
+
+auth_email() {
+  if [[ -f "${OIDC_REFRESH}" ]]; then
+    python3 "${OIDC_REFRESH}" --print-email 2>/dev/null || true
+    return 0
+  fi
+  python3 - <<'PY'
+import json, os
+path = os.path.expanduser("~/.grok/auth.json")
+try:
+    data = json.load(open(path))
+except Exception:
+    print("")
+    raise SystemExit(0)
+if isinstance(data, dict):
+    for value in data.values():
+        if isinstance(value, dict) and value.get("email"):
+            print(value["email"])
+            raise SystemExit(0)
+print("")
+PY
+}
+
+require_account() {
+  if [[ "${GROK_ALLOW_ANY_ACCOUNT:-}" == "1" || -z "${REQUIRED_EMAIL}" ]]; then
+    return 0
+  fi
+  local email
+  email="$(auth_email | tr -d '\r' | tail -n 1)"
+  if [[ -z "${email}" ]]; then
+    return 0
+  fi
+  if [[ "${email}" != "${REQUIRED_EMAIL}" ]]; then
+    die "authenticated as ${email} but this repo must spend ${REQUIRED_EMAIL} (lning SuperGrok Heavy). Do not fall back to Cursor Grok. Do not use hailinsu@gmail.com."
+  fi
 }
 
 logged_in() {
@@ -121,8 +162,13 @@ cmd_status() {
   echo "binary: ${grok}"
   "$grok" --version
   echo "profile: ${PINNED_MODEL} extra-high fast (effort=${PINNED_EFFORT}, ${PINNED_FAST_HEADER}=${PINNED_FAST_VALUE})"
+  echo "required_account: ${REQUIRED_EMAIL:-any}"
   if logged_in; then
+    local email
+    email="$(auth_email | tr -d '\r' | tail -n 1)"
+    echo "account: ${email:-unknown}"
     echo "auth: grok.com session present"
+    require_account
     "$grok" models || true
     return 0
   fi
@@ -135,7 +181,8 @@ cmd_status() {
 
 cmd_refresh() {
   [[ -f "${HOME}/.grok/auth.json" ]] || die "not authenticated. Run: $0 login   (grok login --device-auth) with the grok.com account whose quota you want to use."
-  refresh_oidc
+  # Default: skip when access remaining > 60s. --force rotates refresh_token.
+  refresh_oidc "$@"
 }
 
 cmd_login() {
@@ -148,11 +195,17 @@ cmd_run() {
   local grok
   grok="$(find_grok)"
   if ! logged_in; then
-    die "not authenticated. Run: $0 login   (grok login --device-auth) with the grok.com account whose quota you want to use."
+    die "not authenticated. Run: $0 login   (grok login --device-auth) with ${REQUIRED_EMAIL:-the grok.com account whose quota you want to use}."
   fi
+  require_account
 
   local cwd="${GROK_CLI_CWD:-$(pwd)}"
-  if [[ -z "${GROK_CONFIG:-}" ]]; then
+  # Always re-apply Extra High Fast. A pre-set GROK_CONFIG must not drop
+  # the priority Fast header or a weaker default effort.
+  if [[ -f "${SCRIPT_DIR}/pin_profile.py" ]]; then
+    export GROK_CONFIG="$(python3 "${SCRIPT_DIR}/pin_profile.py" grok-config)"
+    python3 "${SCRIPT_DIR}/pin_profile.py" user-config >/dev/null || true
+  else
     export GROK_CONFIG="$(python3 - <<PY
 import json
 print(json.dumps({
@@ -168,6 +221,7 @@ PY
   local extra=(
     --always-approve
     --no-auto-update
+    --trust
     --output-format plain
     --cwd "${cwd}"
     -m "${PINNED_MODEL}"
@@ -226,7 +280,9 @@ usage: run.sh <command>
 
   status   Show grok binary and grok.com login state
   login    Start grok login --device-auth
-  refresh  Renew the grok.com OIDC access token using the stored refresh_token
+  refresh  Skip-if-still-valid OIDC refresh (skips when access remaining > 60s).
+           --force            Always POST; rotates refresh_token
+           --min-remaining N  Skip threshold in seconds (default 60)
   run      Send a prompt to grok CLI (grok-4.6 extra-high fast, grok.com quota)
 
   run --file PATH
