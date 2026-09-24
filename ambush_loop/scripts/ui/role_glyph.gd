@@ -32,7 +32,7 @@ func _draw() -> void:
 
 
 func _draw_rifle(c: Vector2) -> void:
-	var kit := Color(0.46, 0.62, 0.48)
+	var kit := Color(0.42, 0.38, 0.24)
 	var body := PackedVector2Array([
 		c + Vector2(0, -10.2), c + Vector2(-3.4, -8.6), c + Vector2(-5.6, -4.0),
 		c + Vector2(-4.6, 2.2), c + Vector2(-5.4, 8.6), c + Vector2(-2.4, 8.8),
@@ -49,7 +49,7 @@ func _draw_rifle(c: Vector2) -> void:
 
 
 func _draw_mg(c: Vector2) -> void:
-	var kit := Color(0.62, 0.72, 0.32)
+	var kit := Color(0.52, 0.46, 0.24)
 	var body := PackedVector2Array([
 		c + Vector2(-4.8, -8.6), c + Vector2(4.8, -8.6), c + Vector2(7.4, -3.0),
 		c + Vector2(6.2, 3.0), c + Vector2(6.6, 8.6), c + Vector2(2.6, 8.8),
@@ -68,7 +68,7 @@ func _draw_mg(c: Vector2) -> void:
 
 
 func _draw_scout(c: Vector2) -> void:
-	var kit := Color(0.32, 0.58, 0.46)
+	var kit := Color(0.30, 0.34, 0.24)
 	var cape := PackedVector2Array([
 		c + Vector2(-3.4, -6.6), c + Vector2(3.4, -6.6),
 		c + Vector2(7.6, 4.2), c + Vector2(0, 7.4), c + Vector2(-7.6, 4.2)

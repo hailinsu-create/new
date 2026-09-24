@@ -21,6 +21,8 @@ var pending_level_id: String = ""
 var force_touch_hud: bool = false
 ## "standard" keeps current FX; "power_saving" drops particles/trails and uses sparse map tiles.
 var quality_tier: String = QUALITY_STANDARD
+var hold_to_move: bool = false
+var few_crates: bool = false
 
 
 func want_touch_controls() -> bool:
@@ -29,6 +31,11 @@ func want_touch_controls() -> bool:
 	if OS.has_feature("android") or OS.has_feature("mobile"):
 		return true
 	return DisplayServer.is_touchscreen_available()
+
+
+func simplified_night_raid() -> bool:
+	## Phone default (and desktop "触控底栏"): context hotspots, not 16 keys.
+	return want_touch_controls()
 
 
 func is_handheld() -> bool:

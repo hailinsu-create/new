@@ -5,11 +5,12 @@ extends Node
 
 const MIX_RATE := 22050
 const CUES := [
-	"alarm", "alarm_stinger", "fire", "fire_mg", "fire_scout", "return_fire", "empty", "loot", "op_death", "escape", "fail", "win",
+	"alarm", "alarm_stinger", "fire", "fire_mg", "fire_scout", "fire_smg", "fire_bolt", "fire_garand", "fire_mg42", "fire_pistol", "fire_shotgun", "fire_ping", "return_fire", "empty", "loot", "op_death", "escape", "fail", "win",
 	"win_stinger", "door", "trip", "barrel", "kill", "hit", "ui",
 	"spawn", "echo_ping",
 	"handoff", "leak", "night_enter", "tension",
-	"ambient_yard", "ambient_warehouse", "ambient_pump", "ambient_railcut", "ambient_depot", "ambient_radio"
+	"ambient_yard", "ambient_warehouse", "ambient_pump", "ambient_railcut", "ambient_depot", "ambient_radio",
+	"foot", "whistle", "knife", "crate_lid", "body_drop", "select", "stealth_bed"
 ]
 
 var muted: bool = false
@@ -149,6 +150,20 @@ func _gain(cue: String) -> float:
 			return -12.0
 		"fire_scout":
 			return -15.0
+		"fire_smg":
+			return -14.0
+		"fire_bolt":
+			return -12.0
+		"fire_garand":
+			return -13.0
+		"fire_mg42":
+			return -11.0
+		"fire_pistol":
+			return -14.0
+		"fire_shotgun":
+			return -11.0
+		"fire_ping":
+			return -16.0
 		"door":
 			return -13.0
 		"trip":
@@ -185,6 +200,20 @@ func _gain(cue: String) -> float:
 			return -25.0
 		"ambient_radio":
 			return -26.0
+		"foot":
+			return -24.0
+		"whistle":
+			return -14.0
+		"knife":
+			return -12.0
+		"crate_lid":
+			return -15.0
+		"body_drop":
+			return -16.0
+		"select":
+			return -18.0
+		"stealth_bed":
+			return -20.0
 		_:
 			return -15.0
 
@@ -201,6 +230,20 @@ func _build_stream(cue: String) -> AudioStreamWAV:
 			return _pcm(_mg_burst())
 		"fire_scout":
 			return _pcm(_crack(2400.0, 0.080, 0.14))
+		"fire_smg":
+			return _pcm(_crack(1650.0, 0.032, 0.22))
+		"fire_bolt":
+			return _pcm(_bolt_shot())
+		"fire_garand":
+			return _pcm(_garand_shot())
+		"fire_mg42":
+			return _pcm(_mg42_burst())
+		"fire_pistol":
+			return _pcm(_crack(1750.0, 0.038, 0.16))
+		"fire_shotgun":
+			return _pcm(_shotgun_boom())
+		"fire_ping":
+			return _pcm(_click())
 		"return_fire":
 			return _pcm(_crack(920.0, 0.07, 0.16))
 		"empty":
@@ -253,6 +296,20 @@ func _build_stream(cue: String) -> AudioStreamWAV:
 			return _pcm(_ambient_depot())
 		"ambient_radio":
 			return _pcm(_ambient_radio())
+		"foot":
+			return _pcm(_foot())
+		"whistle":
+			return _pcm(_whistle())
+		"knife":
+			return _pcm(_knife())
+		"crate_lid":
+			return _pcm(_crate_lid())
+		"body_drop":
+			return _pcm(_body_drop())
+		"select":
+			return _pcm(_select_click())
+		"stealth_bed":
+			return _pcm(_stealth_bed())
 		_:
 			return _pcm(_crack(800.0, 0.04, 0.1))
 
@@ -446,6 +503,45 @@ func _mg_burst() -> PackedFloat32Array:
 		_crack(640.0, 0.026, 0.18),
 		_silence(0.010),
 		_crack(580.0, 0.030, 0.16),
+	])
+
+
+func _mg42_burst() -> PackedFloat32Array:
+	return _concat([
+		_crack(860.0, 0.016, 0.22),
+		_silence(0.005),
+		_crack(820.0, 0.015, 0.21),
+		_silence(0.005),
+		_crack(780.0, 0.015, 0.20),
+		_silence(0.005),
+		_crack(740.0, 0.015, 0.18),
+		_silence(0.005),
+		_crack(700.0, 0.018, 0.17),
+	])
+
+
+func _bolt_shot() -> PackedFloat32Array:
+	return _concat([
+		_crack(1550.0, 0.095, 0.18),
+		_silence(0.045),
+		_tone(380.0, 0.042, 0.12, 0.05),
+		_tone(240.0, 0.055, 0.09, 0.04),
+	])
+
+
+func _garand_shot() -> PackedFloat32Array:
+	return _concat([
+		_crack(2100.0, 0.048, 0.18),
+		_silence(0.018),
+		_tone(2680.0, 0.038, 0.14, 0.01),
+	])
+
+
+func _shotgun_boom() -> PackedFloat32Array:
+	return _overlay([
+		_crack(620.0, 0.085, 0.22),
+		_body_thump(0.16, 0.28, 88.0),
+		_noise_burst(0.12, 0.22, 0.35),
 	])
 
 
@@ -730,4 +826,52 @@ func _ambient_radio() -> PackedFloat32Array:
 		_tone(1760.0, 0.72, 0.035, 0.012),
 		morse,
 		_hiss(0.72, 0.045),
+	])
+
+
+func _foot() -> PackedFloat32Array:
+	return _overlay([
+		_noise_burst(0.045, 0.16, 0.35),
+		_body_thump(0.07, 0.10, 90.0),
+	])
+
+
+func _whistle() -> PackedFloat32Array:
+	return _overlay([
+		_tone(1680.0, 0.28, 0.16, 0.02),
+		_tone(2520.0, 0.22, 0.08, 0.01),
+		_tone(2100.0, 0.10, 0.06, 0.01),
+	])
+
+
+func _knife() -> PackedFloat32Array:
+	return _overlay([
+		_noise_burst(0.04, 0.22, 0.15),
+		_tone(420.0, 0.08, 0.10, 0.08),
+	])
+
+
+func _crate_lid() -> PackedFloat32Array:
+	return _overlay([
+		_tone(220.0, 0.12, 0.10, 0.12),
+		_noise_burst(0.08, 0.10, 0.4),
+	])
+
+
+func _body_drop() -> PackedFloat32Array:
+	return _overlay([
+		_body_thump(0.16, 0.18, 70.0),
+		_noise_burst(0.10, 0.12, 0.3),
+	])
+
+
+func _select_click() -> PackedFloat32Array:
+	return _blip(880.0, 1320.0, 0.05, 0.14)
+
+
+func _stealth_bed() -> PackedFloat32Array:
+	return _overlay([
+		_tone(92.0, 0.80, 0.05, 0.02),
+		_tone(138.0, 0.80, 0.03, 0.015),
+		_hiss(0.80, 0.02),
 	])
