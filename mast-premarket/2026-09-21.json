@@ -1,0 +1,663 @@
+{
+  "date": "2026-09-21",
+  "generatedAt": "2026-09-21T08:30:19+08:00",
+  "marketSummary": "周一盘前主线是“外部紧、内部稳”的对峙：美联储9月16日加息25个基点至3.75%—4.00%并保留年内再加息一次的路径，9月18日十年美债收益率重上5%、美元周线走强，但美股靠芯片股收涨；中美经贸团队9月20日在纽约磋商，为本周元首会晤铺路；人民币升破6.7创约四年新高，国内9月LPR连续16个月不变、资金利率低于政策利率；A股9月18日成交2.09万亿元、超4200只个股上涨，科技领涨、煤炭回调。产业端，存储涨价与AI芯片需求指引偏强，创新药械获政策加持，电子布、炭黑涨价伴随成本与需求双向挤压；豆粕外强内弱，电力受用电高增长与煤价高企夹击。海外利率、国内流动性、产业景气三类证据方向并不一致，最可能错在把磋商预期当成果、把单日普涨当增量资金、把涨价当利润；若美债站稳5%上方或成交跌回2万亿下方，科技轮动叙事会最先失效。本报告只做概率与风险约束，不下单、不读账户。",
+  "facts": [
+    {
+      "id": "F01",
+      "title": "美联储9月16日以12比0投票将联邦基金利率目标区间上调25个基点至3.75%—4.00%，为2023年以来首次加息",
+      "sourceName": "美国联邦储备委员会（FOMC声明）",
+      "sourceUrl": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm",
+      "publishedAt": "2026-09-16T14:00:00-04:00",
+      "reliability": 0.95,
+      "direction": -1,
+      "magnitude": 3,
+      "affects": [
+        "全部",
+        "sz159577",
+        "sh513310",
+        "sh511260",
+        "sh511030",
+        "sh513120"
+      ],
+      "rationale": "全球无风险利率中枢上移，折现率抬升压制长久期权益（美国50、中韩半导体、港股创新药）和债券价格；对国内债市通过中美利差与汇率渠道间接约束宽松空间。传导限制在于加息已被高度预期，且单次加息不等于连续紧缩周期；事实本身已在数日前落地，边际冲击递减。",
+      "evidenceType": "structural",
+      "independenceGroup": "fomc-2026-09-16"
+    },
+    {
+      "id": "F02",
+      "title": "9月18日美国10年期国债收益率报5.00%，较前一交易日上行约6个基点，过去一个月累计上行约35个基点，周内一度突破5%关口",
+      "sourceName": "TradingEconomics（美国10年期国债收益率）",
+      "sourceUrl": "https://zh.tradingeconomics.com/united-states/government-bond-yield",
+      "publishedAt": "2026-09-18T18:00:00-04:00",
+      "reliability": 0.86,
+      "direction": -1,
+      "magnitude": 2,
+      "affects": [
+        "全部",
+        "sz159577",
+        "sh511260",
+        "sh513120",
+        "sh515880",
+        "sh513310"
+      ],
+      "rationale": "美债收益率重新站上5%意味全球长久期资产折现压力回升，对高估值科技、创新药和国内长端利率均构成外部约束；但当日美股仍收涨，说明定价分歧大，收益率对A股的传导更多是情绪与估值层面而非直接盈利冲击。",
+      "evidenceType": "market",
+      "independenceGroup": "us10y-2026-09-18"
+    },
+    {
+      "id": "F03",
+      "title": "9月18日美股三大指数涨跌不一：标普500涨0.17%收7650.50点，纳斯达克综合指数涨0.39%收26522.55点，道琼斯指数跌0.18%并录得3月以来最大单周跌幅；VIX收于14.81",
+      "sourceName": "Yahoo Finance（路透）",
+      "sourceUrl": "https://finance.yahoo.com/markets/stocks/articles/nasdaq-futures-lead-wall-st-091428378.html",
+      "publishedAt": "2026-09-18T15:20:00-05:00",
+      "reliability": 0.88,
+      "direction": 1,
+      "magnitude": 1,
+      "affects": [
+        "sz159577",
+        "sh513310",
+        "sh515880"
+      ],
+      "rationale": "半导体与科技权重支撑纳指和标普收涨，为A股及港股科技板块提供温和的隔夜正向映射；但道指周线三连跌、上行动能集中于少数科技股，说明风险偏好修复并不稳固。",
+      "evidenceType": "market",
+      "independenceGroup": "us-equities-2026-09-18"
+    },
+    {
+      "id": "F04",
+      "title": "9月18日ICE美元指数纽约尾盘收报100.20，单日微跌0.05%，但本周累计上涨1.08%，全周交投区间99.09—100.56",
+      "sourceName": "汇通网（FX678）",
+      "sourceUrl": "https://www.fx678.com/C/20260919/202609190334461125.html",
+      "publishedAt": "2026-09-19T03:34:00+08:00",
+      "reliability": 0.8,
+      "direction": 0,
+      "magnitude": 1,
+      "affects": [
+        "全部",
+        "sz159577",
+        "sh513120",
+        "sh513310"
+      ],
+      "rationale": "美元周线走强抬升非美市场的外部资金成本，对港股与人民币资产偏不利；但人民币同期升破6.7、美元单日回落，说明汇率定价更多由贸易顺差与结汇主导，美元对国内资产的压制有限。",
+      "evidenceType": "market",
+      "independenceGroup": "dxy-2026-09-18"
+    },
+    {
+      "id": "F05",
+      "title": "当地时间9月20日上午，中美经贸团队在美国纽约开始举行新一轮经贸磋商（何立峰与贝森特），为即将举行的中美元首会晤做经贸领域的准备",
+      "sourceName": "中国新闻网（新华社）",
+      "sourceUrl": "https://www.chinanews.com.cn/cj/2026/09-21/10700496.shtml",
+      "publishedAt": "2026-09-21T00:10:00+08:00",
+      "reliability": 0.9,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "全部",
+        "sh513120",
+        "sh515880",
+        "sz159985",
+        "sz159577",
+        "sh513310"
+      ],
+      "rationale": "元首会晤前的经贸磋商降低尾部对抗风险，对港股创新药、A股科技、农产品贸易和外资风险偏好构成正面事件驱动；但谈判尚未落地为取消关税等实质文本，预期兑现前存在“利好落空”的反向风险。",
+      "evidenceType": "event",
+      "independenceGroup": "china-us-trade-2026-09-20"
+    },
+    {
+      "id": "F06",
+      "title": "9月20日公布的9月贷款市场报价利率（LPR）维持不变：1年期3.0%、5年期以上3.5%，已连续16个月按兵不动；7天期逆回购政策利率维持在1.4%",
+      "sourceName": "央视网",
+      "sourceUrl": "https://jingji.cctv.com/2026/09/20/ARTIF8PP8kwZd58Rr2yCO0VT260920.shtml",
+      "publishedAt": "2026-09-20T09:15:00+08:00",
+      "reliability": 0.95,
+      "direction": 0,
+      "magnitude": 1,
+      "affects": [
+        "全部",
+        "sh511030",
+        "sh511260",
+        "公司债"
+      ],
+      "rationale": "政策利率与LPR连续持平确认货币宽松节奏偏稳，债市定价基础未变，信用债与利率债更多受资金面和供需驱动；但“不降息”也意味着缺乏增量催化，债券价格短期以震荡为主。",
+      "evidenceType": "event",
+      "independenceGroup": "lpr-2026-09-20"
+    },
+    {
+      "id": "F07",
+      "title": "工信部等十部门印发《医药工业发展“十五五”规划》：到2030年规模以上医药工业企业营业收入不低于3.5万亿元，首创新药占全球比例不低于25%，创新药产业规模年均增速不低于20%，创新医疗器械累计上市不少于200个",
+      "sourceName": "新华社（新华网）",
+      "sourceUrl": "https://www.news.cn/20260918/2493f9301c554871804bedbd242f5a38/c.html",
+      "publishedAt": "2026-09-18T09:05:42+08:00",
+      "reliability": 0.95,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sh513120",
+        "sz300760"
+      ],
+      "rationale": "国家级规划给出创新药械的量化目标与长期政策背书，直接强化港股创新药和医疗器械的产业逻辑；但规划是五年期指引，短期盈利兑现仍取决于产品获批、放量节奏与支付端改革。",
+      "evidenceType": "structural",
+      "independenceGroup": "pharma-15th-plan"
+    },
+    {
+      "id": "F08",
+      "title": "国家药监局9月20日在国新办发布会上表示，今年以来已批准59个创新药和51个创新医疗器械上市，下一步将推进药品试验数据保护、儿童药与罕见病用药市场独占期，并在脑机接口等前沿领域制定临床与审评指导原则",
+      "sourceName": "中新经纬",
+      "sourceUrl": "https://www.jwview.com/jingwei/html/m/09-20/689594.shtml",
+      "publishedAt": "2026-09-20T12:59:22+08:00",
+      "reliability": 0.9,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sh513120",
+        "sz300760"
+      ],
+      "rationale": "监管层明确“支持创新药、创新医疗器械”并给出制度工具，属于产业政策的直接正向证据；但审评便利不等同销售放量，医保谈判与集采仍是后续变量。",
+      "evidenceType": "event",
+      "independenceGroup": "nmpa-2026-09-20"
+    },
+    {
+      "id": "F09",
+      "title": "国家药监局披露：2026年以来创新药对外授权（BD）交易总额突破1200亿美元、同比增长36%，其中首付款规模超100亿美元，单笔平均交易金额与首付款占比双双提升",
+      "sourceName": "中国证券报（中证网）",
+      "sourceUrl": "https://www.cs.com.cn/ssgs/01/2026/09/19/detail_2026091910040274.html",
+      "publishedAt": "2026-09-19T08:17:00+08:00",
+      "reliability": 0.9,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sh513120"
+      ],
+      "rationale": "BD总额与首付款双升是创新药出海景气的硬数据，直接支撑港股创新药板块的估值逻辑；但授权金额为潜在总额，里程碑付款节奏与海外临床失败率意味着当期现金流远小于表面数字。",
+      "evidenceType": "event",
+      "independenceGroup": "innovative-drug-bd-2026"
+    },
+    {
+      "id": "F10",
+      "title": "9月18日港股收涨：恒生指数涨0.60%收24750.78点，恒生科技指数涨2.2%收4405.5点；南向资金全天净买入11.93亿港元，成交约1031.97亿港元",
+      "sourceName": "东方财富网",
+      "sourceUrl": "https://finance.eastmoney.com/a/202609183878612123.html",
+      "publishedAt": "2026-09-18T16:10:00+08:00",
+      "reliability": 0.85,
+      "direction": 1,
+      "magnitude": 1,
+      "affects": [
+        "sh513120",
+        "sh513310",
+        "港股权益"
+      ],
+      "rationale": "港股科技领涨且南向维持净买入，为港股创新药与半导体权重提供承接力；但净买入规模较前期明显收敛，指数上行更多依赖科技板块而非全面风险偏好回升。",
+      "evidenceType": "market",
+      "independenceGroup": "hk-close-2026-09-18"
+    },
+    {
+      "id": "F11",
+      "title": "9月18日港股通标的中芯国际涨4.41%、华虹宏力涨4.81%，兆易创新H股涨9.73%；南向资金净买入中芯国际约5.28亿港元、长飞光纤光缆约5.64亿港元",
+      "sourceName": "证券时报·数据宝（今日头条转载）",
+      "sourceUrl": "https://www.toutiao.com/article/7686868233349120551/",
+      "publishedAt": "2026-09-18T21:34:00+08:00",
+      "reliability": 0.82,
+      "direction": 1,
+      "magnitude": 1,
+      "affects": [
+        "sh513310",
+        "sh515880",
+        "光通信"
+      ],
+      "rationale": "南向资金集中流入港股半导体与光通信龙头，说明内地资金对中韩半导体产业链与光通信主题的参与度上升；但个股级别资金流不代表指数当日的全面强势，ETF折溢价与权重结构会稀释影响。",
+      "evidenceType": "market",
+      "independenceGroup": "hk-semis-southbound-2026-09-18"
+    },
+    {
+      "id": "F12",
+      "title": "9月18日韩国综合指数高开涨超2%，SK海力士涨超4%、三星电子涨超3%；韩国财政部表示美联储加息对韩国市场影响有限，若债市波动过大将采取行动",
+      "sourceName": "同花顺财经（证券时报）",
+      "sourceUrl": "https://news.10jqka.com.cn/20260918/c680039142.shtml",
+      "publishedAt": "2026-09-18T09:04:28+08:00",
+      "reliability": 0.82,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sh513310"
+      ],
+      "rationale": "韩国存储双雄大涨与官方稳市表态对中韩半导体ETF形成直接的正向映射，叠加当日A股半导体净流入居前，产业情绪共振；但韩股大涨部分来自隔夜美股芯片反弹的补涨，连续性依赖存储价格与设备订单。",
+      "evidenceType": "market",
+      "independenceGroup": "korea-semis-2026-09-18"
+    },
+    {
+      "id": "F13",
+      "title": "英伟达首席执行官9月17日表示，随着人工智能向医疗、制造、金融服务等行业渗透，公司明年芯片销量将达到今年的两倍；同期半导体设备关键零部件交货周期被报道已延长一倍以上",
+      "sourceName": "同花顺财经（证券时报）",
+      "sourceUrl": "https://news.10jqka.com.cn/20260918/c680039142.shtml",
+      "publishedAt": "2026-09-18T09:04:28+08:00",
+      "reliability": 0.8,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sh513310",
+        "sh515880",
+        "sz159577",
+        "AI算力",
+        "通信"
+      ],
+      "rationale": "头部算力芯片厂商给出翻倍指引并伴随供应链紧张叙事，强化AI算力与半导体设备的需求确定性，利好中韩半导体、美国50与A股通信主题；但管理层指引属于前瞻表态，需后续订单、资本开支与财报验证。",
+      "evidenceType": "market",
+      "independenceGroup": "nvidia-outlook-2026-09-17"
+    },
+    {
+      "id": "F14",
+      "title": "存储超级周期延续：TrendForce预计2026年三季度常规DRAM合约价环比涨13%—18%、NAND涨10%—15%；三星电子与SK海力士三季度营业利润一致预期自低位上修，HBM4占比提升；美光将于9月30日公布财报并指引营收490亿—510亿美元",
+      "sourceName": "CHOSUNBIZ（朝鲜日报商业）",
+      "sourceUrl": "https://biz.chosun.com/en/en-it/2026/09/15/KTK7BBY54BAEPEJ7YDRIEFTI3Q/",
+      "publishedAt": "2026-09-15T06:00:00+09:00",
+      "reliability": 0.85,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sh513310"
+      ],
+      "rationale": "存储合约价上行、龙头盈利预期上修与HBM4放量构成中韩半导体ETF的中期基本面支撑；但涨价斜率较上半年收敛、消费端承受力接近极限，且汇率（韩元走强）可能削弱美元收入折算，盈利弹性存在折损。",
+      "evidenceType": "structural",
+      "independenceGroup": "memory-supercycle-2026q3"
+    },
+    {
+      "id": "F15",
+      "title": "美光科技高管9月16日表示，真正有意义的新增存储供应要到2028年前后才会开始爬坡，目前看不到供需平衡点；同期SK海力士与工会达成以现金支付50%利润分红的协议，解除生产中断威胁",
+      "sourceName": "东方财富网（财联社）",
+      "sourceUrl": "https://finance.eastmoney.com/a/202609163876263912.html",
+      "publishedAt": "2026-09-16T20:35:00+08:00",
+      "reliability": 0.82,
+      "direction": 1,
+      "magnitude": 1,
+      "affects": [
+        "sh513310"
+      ],
+      "rationale": "供给端明确“2028年前无实质新增”与劳资风险解除，强化存储紧缺的持续性叙事，对中韩半导体偏多；但供给纪律随时可能被资本开支计划打破，且该表态来自厂商，存在强化涨价预期的立场偏差。",
+      "evidenceType": "structural",
+      "independenceGroup": "micron-supply-2026-09-16"
+    },
+    {
+      "id": "F16",
+      "title": "9月18日A股普涨：上证指数涨0.94%收3911.87点，深证成指涨1.72%，创业板指涨2.25%，科创50涨2.88%；沪深两市成交2.09万亿元，超4200只个股上涨；通信设备、存储芯片、GPU、房地产等板块领涨，煤炭、汽车、油气、银行下跌",
+      "sourceName": "中国新闻网（中新经纬）",
+      "sourceUrl": "https://www.chinanews.com.cn/cj/2026/09-18/10698972.shtml",
+      "publishedAt": "2026-09-18T15:30:00+08:00",
+      "reliability": 0.88,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "全部",
+        "sh515880",
+        "A股权益",
+        "通信",
+        "A股科技"
+      ],
+      "rationale": "成交重回2万亿上方且科技全面领涨，说明存量资金向高位科技“换座位”的轮动仍在延续，为A股通信与半导体提供短线动能；但放量普涨同时伴随煤炭、汽车等板块杀跌，若后续成交无法维持2万亿上方，轮动行情容易迅速降温。",
+      "evidenceType": "market",
+      "independenceGroup": "a-share-session-2026-09-18"
+    },
+    {
+      "id": "F17",
+      "title": "电子布（玻纤布）景气上行：年内已多轮提价，7628厚布主流成交价升至10—10.2元/米、单月环比涨17%—18%，薄布与极薄布均价达12.7—13.1元/米、年内累计涨幅超140%；行业库存近乎为零，AI服务器用低介电布结构性缺货，多家公司上半年量价齐升",
+      "sourceName": "证券时报（stcn.com）",
+      "sourceUrl": "https://www.stcn.com/article/detail/4093548.html",
+      "publishedAt": "2026-08-20T22:03:00+08:00",
+      "reliability": 0.85,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sh515880",
+        "AI算力",
+        "通信",
+        "光通信",
+        "A股科技"
+      ],
+      "rationale": "电子布是覆铜板/PCB与光模块产业链的关键上游，量价齐升与零库存佐证AI硬件需求真实，利好通信与算力主题的盈利预期；但涨价同时抬高中下游成本，且2026—2027年行业扩产计划密集，供给释放可能逆转价格。",
+      "evidenceType": "structural",
+      "independenceGroup": "electronic-cloth-2026"
+    },
+    {
+      "id": "F18",
+      "title": "工业和信息化部印发《信息通信行业发展“十五五”规划》，提出到2030年全面建成覆盖完善、性能领先的新一代通信网，为2035年基本实现信息通信行业现代化奠定基础；新一代通信网以6G为代表，涵盖万兆光网、卫星互联网并与算力基础设施协同布局",
+      "sourceName": "光明网（经济日报）",
+      "sourceUrl": "https://tech.gmw.cn/2026-09/20/content_39009572.htm",
+      "publishedAt": "2026-09-20T09:30:00+08:00",
+      "reliability": 0.9,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sh515880",
+        "通信",
+        "光通信",
+        "AI算力",
+        "A股科技"
+      ],
+      "rationale": "通信行业“十五五”顶层规划落地，为A股通信设备、光通信与算力网络提供长期需求框架和政策确定性；但规划偏中长期，短期订单仍取决于运营商集采与云厂商资本开支节奏。",
+      "evidenceType": "event",
+      "independenceGroup": "ict-15th-plan"
+    },
+    {
+      "id": "F19",
+      "title": "国家能源局8月21日数据：7月全社会用电量10400亿千瓦时、同比增长1.7%，再创月度历史新高；1—7月累计同比增长4.7%，其中互联网数据服务用电量同比增长43.3%、充换电服务业增长55.8%",
+      "sourceName": "人民网（新华社）",
+      "sourceUrl": "https://finance.people.com.cn/n1/2026/0821/c1004-40784003.html",
+      "publishedAt": "2026-08-21T15:34:00+08:00",
+      "reliability": 0.9,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sh516370"
+      ],
+      "rationale": "用电总量与数据中心用电高增长为电力公用事业的长期需求提供硬数据支撑，利好电力运营与电网相关资产；但7月用电增速已从上半年的5.3%降至1.7%，居民用电同比下滑，短期电力消费动能边际转弱。",
+      "evidenceType": "structural",
+      "independenceGroup": "nea-electricity-2026-07"
+    },
+    {
+      "id": "F20",
+      "title": "国家发展改革委、国家能源局印发《新型电力系统建设“十五五”规划》，提出到2030年初步建成新型电力系统，明确未来5年电力发展的总体思路：非化石能源发电装机的主体地位进一步巩固，电力在终端用能格局中的主体地位进一步强化",
+      "sourceName": "人民网（人民日报）",
+      "sourceUrl": "https://finance.people.com.cn/n1/2026/0822/c1004-40784116.html",
+      "publishedAt": "2026-08-22T05:48:00+08:00",
+      "reliability": 0.9,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sh516370"
+      ],
+      "rationale": "电力系统“十五五”规划明确电能替代与新能源装机方向，意味着电网投资、调峰储能和电力运营的长期需求中枢上移；但新能源高比例接入也带来电价市场化与利用小时波动的盈利不确定性。",
+      "evidenceType": "structural",
+      "independenceGroup": "power-system-15th-plan"
+    },
+    {
+      "id": "F21",
+      "title": "生意社数据显示，9月4日动力煤基准价为902.75元/吨，9月初产地与港口动力煤价格延续上涨、环比明显走强，火电燃料成本压力仍处高位",
+      "sourceName": "生意社（100ppi.com）",
+      "sourceUrl": "https://www.100ppi.com/cindex/n-list-369.html",
+      "publishedAt": "2026-09-04T17:00:00+08:00",
+      "reliability": 0.72,
+      "direction": -1,
+      "magnitude": 1,
+      "affects": [
+        "sh516370"
+      ],
+      "rationale": "煤价高企直接抬高火电企业燃料成本，压制电力板块的短期盈利弹性；但电价市场化改革与容量电价可部分对冲，且煤价绝对水平在9月中旬后出现松动迹象，成本压力并非单向恶化。",
+      "evidenceType": "structural",
+      "independenceGroup": "thermal-coal-price-2026-09"
+    },
+    {
+      "id": "F22",
+      "title": "9月18日国内焦煤主力合约日内下跌5%、报1531.5元/吨，上海原油主力合约日内下跌7%，能源类商品普遍走弱；当日A股煤炭开采板块逆势回调",
+      "sourceName": "新浪财经（7×24快讯）",
+      "sourceUrl": "https://wap.cj.sina.cn/7x24/5100857",
+      "publishedAt": "2026-09-18T09:07:00+08:00",
+      "reliability": 0.75,
+      "direction": 1,
+      "magnitude": 1,
+      "affects": [
+        "sh516370"
+      ],
+      "rationale": "燃料价格回落边际缓解电力企业的成本压力，是电力板块的偏正向信号；但单日期货下跌不代表煤价趋势反转，且同日A股呈现科技强、资源弱的风格切换，板块资金面并不支持电力独立走强。",
+      "evidenceType": "market",
+      "independenceGroup": "coal-futures-2026-09-18"
+    },
+    {
+      "id": "F23",
+      "title": "炭黑价格冲上历史高位：截至9月16日生意社炭黑基准价12778.57元/吨，较9月初上涨39.77%；山东N330市场价达1.2万元/吨，单周涨31.87%；华东高温煤焦油价格升至6720元/吨，较9月初上涨46.09%",
+      "sourceName": "中国企业报道（证券日报）",
+      "sourceUrl": "https://www.cenr.com.cn/cyjj/ny/2026/09/17/233967.html",
+      "publishedAt": "2026-09-17T08:30:00+08:00",
+      "reliability": 0.85,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sz002068",
+        "炭黑",
+        "化工",
+        "新材料"
+      ],
+      "rationale": "炭黑与原料煤焦油同步跳涨、供给端焦企减产与下游双节补库构成价格上行的强证据，对炭黑龙头企业形成价格与情绪催化；但原料涨幅快于成品，前期低价长单造成成本错配，短期利润兑现存在时间差。",
+      "evidenceType": "structural",
+      "independenceGroup": "carbon-black-price-2026-09"
+    },
+    {
+      "id": "F24",
+      "title": "黑猫股份在股票交易异常波动公告中表示，受煤焦油价格上涨推高成本影响，公司对炭黑产品进行顺价调价，但“产品价格上调仅为成本传导举措，并不必然导致利润同步增长”；公司2026年上半年归母净利润亏损约1.06亿元，其中二季度亏损约1130万元、环比大幅减亏",
+      "sourceName": "网易财经（财中社）",
+      "sourceUrl": "https://m.163.com/dy/article/L6F9N5HG05568V7Z.html",
+      "publishedAt": "2026-09-10T11:21:00+08:00",
+      "reliability": 0.82,
+      "direction": -1,
+      "magnitude": 1,
+      "affects": [
+        "sz002068",
+        "炭黑",
+        "化工"
+      ],
+      "rationale": "公司自身明确否认涨价等于利润改善，且上半年仍处亏损、盈利修复依赖原料与下游承接，构成对“涨价即拐点”叙事的直接反证；不过二季度亏损环比大幅收窄，边际改善方向仍在。",
+      "evidenceType": "structural",
+      "independenceGroup": "blackcat-2026-h1"
+    },
+    {
+      "id": "F25",
+      "title": "行业资讯显示，9月18日炭黑价格指数持平于11526.25，但原料成本高企、供应收缩与需求走弱并存，炭黑厂出货困难并出现减产，下游企业减产或暂停新单，市场情绪偏空、新单议价承压，轮胎企业检修计划或进一步拖累采购",
+      "sourceName": "TDD-Global（炭黑日报，9月18日）",
+      "sourceUrl": "https://www.tdd-global.com/article-hot-news/carbon-black-daily-starting-to-give-way-sep-18.html",
+      "publishedAt": "2026-09-20T12:00:00+08:00",
+      "reliability": 0.62,
+      "direction": -1,
+      "magnitude": 1,
+      "affects": [
+        "sz002068",
+        "炭黑",
+        "大宗商品"
+      ],
+      "rationale": "高价开始抑制下游采购、需求端出现减产与观望，说明炭黑涨价进入“有价无市”风险区，对相关个股的涨价逻辑构成反方证据；但该来源为行业资讯机构、可靠度中等，且现货基准价尚未回落。",
+      "evidenceType": "market",
+      "independenceGroup": "carbon-black-demand-2026-09-18"
+    },
+    {
+      "id": "F26",
+      "title": "迈瑞医疗在8月31日接受253家机构调研时表示，公司正积极筹备天津联盟吻合器集采报量；同期医疗器械行业设备集中采购在全国铺开，多省推进乙类大型医用设备集采、部分品类降价明显",
+      "sourceName": "同花顺财经（证券时报）",
+      "sourceUrl": "https://stock.10jqka.com.cn/20260901/c679465364.shtml",
+      "publishedAt": "2026-09-01T10:00:00+08:00",
+      "reliability": 0.78,
+      "direction": -1,
+      "magnitude": 1,
+      "affects": [
+        "sz300760"
+      ],
+      "rationale": "集采报量与设备集中采购扩围意味着医疗器械价格端仍受政策压制，是行业盈利与估值的持续反方证据；但公司参与报量同时可能以价换量、提升份额，且高端与海外业务受集采影响相对较小。",
+      "evidenceType": "structural",
+      "independenceGroup": "medical-device-procurement-2026"
+    },
+    {
+      "id": "F27",
+      "title": "迈瑞医疗2026年半年报：生命信息与支持业务收入48.11亿元、同比降0.11%，其中国际业务增长超10%、国际收入占比提升至77%；实验室整体解决方案“瑞检生态”装机近1450家医院（约80%为三级医院），上半年新增装机超350家",
+      "sourceName": "巨潮资讯网（迈瑞医疗2026年半年度报告）",
+      "sourceUrl": "https://static.cninfo.com.cn/finalpage/2026-08-29/1225529856.PDF",
+      "publishedAt": "2026-08-29T16:00:00+08:00",
+      "reliability": 0.92,
+      "direction": 1,
+      "magnitude": 1,
+      "affects": [
+        "sz300760"
+      ],
+      "rationale": "国际业务双位数增长、高端客户装机扩张是公司穿越集采周期与国内需求疲弱的硬证据，对医疗器械龙头构成正向基本面支撑；但国内业务与整体增速仍承压，海外拓展面临地缘与合规成本。",
+      "evidenceType": "structural",
+      "independenceGroup": "mindray-2026-h1"
+    },
+    {
+      "id": "F28",
+      "title": "9月18日大商所豆粕主力M2701合约收报3397元/吨，生意社豆粕现货基准价3448元/吨，现货升水（基差）51元/吨",
+      "sourceName": "生意社（100ppi.com）",
+      "sourceUrl": "https://www.100ppi.com/data/detail-20260918-1249867.html",
+      "publishedAt": "2026-09-18T17:00:00+08:00",
+      "reliability": 0.8,
+      "direction": -1,
+      "magnitude": 1,
+      "affects": [
+        "sz159985",
+        "豆粕",
+        "农产品",
+        "大宗商品"
+      ],
+      "rationale": "国内豆粕期货收跌、现货升水结构说明近端供应并不紧张，对豆粕ETF当日表现构成压制；但现货升水意味着基差存在修复需求，且成本端由外部大豆价格主导，单日期货下跌不足以判定趋势。",
+      "evidenceType": "market",
+      "independenceGroup": "meal-dce-2026-09-18"
+    },
+    {
+      "id": "F29",
+      "title": "9月18日CBOT大豆期货主力收报1303美分/蒲式耳，维持在近月高位，美豆出口需求与中国采购预期改善支撑外盘价格",
+      "sourceName": "我的钢铁网（Mysteel）",
+      "sourceUrl": "https://ncp.mysteel.com/a/26091916/26C0322292B87C2F.html",
+      "publishedAt": "2026-09-19T16:00:00+08:00",
+      "reliability": 0.82,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sz159985",
+        "豆粕",
+        "农产品",
+        "大宗商品"
+      ],
+      "rationale": "美豆价格走强抬升国内进口成本，是豆粕ETF的重要正向成本驱动，且中国采购提供需求侧支撑；但CBOT上涨也受原油与地缘扰动影响，若能源回落或南美天气正常，成本支撑会快速减弱。",
+      "evidenceType": "market",
+      "independenceGroup": "cbot-soy-2026-09-18"
+    },
+    {
+      "id": "F30",
+      "title": "国内豆类现实供应宽松：港口大豆库存约998.9万吨，油厂大豆库存839.1万吨，豆粕库存110.98万吨处于年内峰值附近；9月进口大豆到港量预计约1018.55万吨，油厂开机率约64%、周度压榨量232万吨，10月到港预计降至850万吨",
+      "sourceName": "腾讯新闻（亿点点财识，基于生意社、Mysteel、卓创资讯公开数据）",
+      "sourceUrl": "https://news.qq.com/rain/a/20260901A055Q800",
+      "publishedAt": "2026-09-01T11:41:00+08:00",
+      "reliability": 0.65,
+      "direction": -1,
+      "magnitude": 1,
+      "affects": [
+        "sz159985",
+        "豆粕",
+        "农产品",
+        "大宗商品"
+      ],
+      "rationale": "港口与油厂库存高企、到港与压榨维持千万吨级/高位，国内现货宽松压制豆粕价格上行空间，是豆粕ETF的反方证据；但该文为自媒体整理、可靠度一般，且10月到港回落与双节备货可能边际收紧供需。",
+      "evidenceType": "structural",
+      "independenceGroup": "china-soy-supply-2026-09"
+    },
+    {
+      "id": "F31",
+      "title": "农业农村部印发《全国种植业发展“十五五”规划》，明确到2030年粮食综合生产能力稳步提升，守牢谷物基本自给、口粮绝对安全底线",
+      "sourceName": "光明网",
+      "sourceUrl": "https://tech.gmw.cn/2026-09/18/content_39007547.htm",
+      "publishedAt": "2026-09-18T10:17:00+08:00",
+      "reliability": 0.85,
+      "direction": 1,
+      "magnitude": 1,
+      "affects": [
+        "sz159985",
+        "农产品",
+        "大宗商品"
+      ],
+      "rationale": "种植业五年规划强调稳产保供，长期看对农产品价格中枢形成“有保有压”的政策框架，对豆粕等饲料原料主题影响偏中性到正向（需求端养殖与饲料刚需受保护）；但规划不直接改变当期进口与库存格局，传导偏慢。",
+      "evidenceType": "structural",
+      "independenceGroup": "agri-15th-plan"
+    },
+    {
+      "id": "F32",
+      "title": "9月18日在岸人民币兑美元收报6.6973、离岸一度升至6.6934，双双升破6.7并创约四年新高；当日人民币兑美元中间价报6.7521、较上日调升59个基点，为连续第8个交易日调升，本周中间价累计调升222个基点",
+      "sourceName": "香港商报",
+      "sourceUrl": "https://www.hkcd.com.hk/content_app/2026-09/19/content_8775950.html",
+      "publishedAt": "2026-09-19T09:50:00+08:00",
+      "reliability": 0.85,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "全部",
+        "sh513120",
+        "sz159577",
+        "sh515880",
+        "sh513310"
+      ],
+      "rationale": "人民币强势由出口顺差、结汇需求与中间价引导共同驱动，利好人民币资产整体风险偏好与港股（港元资产）表现；但持续升值会压缩出口企业利润与海外收入折算，且美联储偏鹰与美元强势可能阶段性打断升值节奏。",
+      "evidenceType": "event",
+      "independenceGroup": "cny-2026-09-18"
+    },
+    {
+      "id": "F33",
+      "title": "央行9月流动性操作偏中性：9月7日以等量方式续做5000亿元3个月期买断式逆回购，结束此前连续两个月的加量续做；9月初以来DR001持续运行在1.35%附近、低于1.40%的政策利率，9月1—4日7天期逆回购为地量或零操作",
+      "sourceName": "中国经济网（证券日报）",
+      "sourceUrl": "http://m.ce.cn/cj/gd/202609/t20260905_3195726.shtml",
+      "publishedAt": "2026-09-05T09:15:00+08:00",
+      "reliability": 0.85,
+      "direction": 1,
+      "magnitude": 1,
+      "affects": [
+        "sh511030",
+        "sh511260",
+        "信用债",
+        "公司债",
+        "利率",
+        "债券"
+      ],
+      "rationale": "资金利率低于政策利率、央行等量续做中长期工具，说明银行间流动性充裕，为债券持有体验与信用债配置提供友好环境；但等量续做也意味着央行有意避免利率过度偏离政策中枢，短端进一步下行空间受约束。",
+      "evidenceType": "structural",
+      "independenceGroup": "pboc-outright-repo-2026-09"
+    },
+    {
+      "id": "F34",
+      "title": "9月18日中国10年期国债收益率报1.677%，较前一交易日小幅下行，处于历史低位区间",
+      "sourceName": "聚金数据（中国10年期国债收益率）",
+      "sourceUrl": "https://www.jujindata.com/bond/detail/cn10y",
+      "publishedAt": "2026-09-18T17:30:00+08:00",
+      "reliability": 0.8,
+      "direction": 1,
+      "magnitude": 1,
+      "affects": [
+        "sh511260",
+        "sh511030",
+        "利率"
+      ],
+      "rationale": "国内长端利率低位企稳、窄幅震荡，为十年国债ETF提供稳定的价格环境，并降低信用债的相对估值压力；但1.68%附近处于历史低位、票息保护薄，若股市持续走强或供给放量，利率存在低位反弹风险。",
+      "evidenceType": "market",
+      "independenceGroup": "china10y-2026-09-18"
+    },
+    {
+      "id": "F35",
+      "title": "标普信评月度报告显示：2026年8月工商企业类信用债市场净流入规模大幅收缩、全月净融资较前两月显著回落，近半数省份呈净流出；当月债券取消发行规模环比增加约88%，同业存单取消发行规模环比大增超200%",
+      "sourceName": "网易财经（标普信评，8月债市洞察）",
+      "sourceUrl": "https://www.163.com/dy/article/L6G79J7T05568W0A.html",
+      "publishedAt": "2026-09-10T09:00:00+08:00",
+      "reliability": 0.72,
+      "direction": -1,
+      "magnitude": 1,
+      "affects": [
+        "sh511030",
+        "信用债",
+        "公司债",
+        "债券"
+      ],
+      "rationale": "信用债净融资收缩、取消发行增多说明低资质主体的再融资难度上升、信用分层加剧，对公司债ETF构成结构性反方证据；但收缩也意味着供给减少、高等级品种稀缺性上升，对AAA公司债反而是供需两端的支撑。",
+      "evidenceType": "structural",
+      "independenceGroup": "credit-netfinancing-2026-08"
+    },
+    {
+      "id": "F36",
+      "title": "NOPA数据显示美国8月大豆压榨量为2.05456亿蒲式耳、低于市场预期，但美豆粕期货在报告后大涨约2.5%、创合约新高，市场对美豆粕需求前景的乐观预期强化",
+      "sourceName": "18期货网（豆粕研报）",
+      "sourceUrl": "https://www.18qh.com/zixun/c-2026-09-17-4491406.html",
+      "publishedAt": "2026-09-17T09:00:00+08:00",
+      "reliability": 0.65,
+      "direction": 1,
+      "magnitude": 1,
+      "affects": [
+        "sz159985",
+        "豆粕",
+        "农产品",
+        "大宗商品"
+      ],
+      "rationale": "压榨量低于预期叠加豆粕期货创合约新高，说明市场更关注需求与成本端而非短期压榨放缓，对国内豆粕形成外部价格支撑；但单一机构月度数据波动大，且国内高库存会削弱外盘涨幅的向内传导。",
+      "evidenceType": "market",
+      "independenceGroup": "nopa-crush-2026-08"
+    }
+  ]
+}
