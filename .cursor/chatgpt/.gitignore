@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.pyc
+last-out.md
+last-out.md
+smoke-out.md
+smoke-req.md

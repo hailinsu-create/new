@@ -1,0 +1,23 @@
+---
+description: Route PLAN/REVIEW to ChatGPT web and WORK to opencode/ds4.1 (Grok CLI paused).
+alwaysApply: true
+---
+
+# OpenCode + ChatGPT routing (B+C)
+
+Grok CLI forced routing is **paused**. Do **not** call `.cursor/grok/run.sh` unless the user explicitly re-enables Grok.
+
+## Pipeline
+
+1. **PLAN** — ChatGPT **web quota** via `bash .cursor/chatgpt/chatgpt-web.sh -Mode plan -RequestFile <f>`. If bridge fails → `chatgpt:unavailable` fail-open. Never Codex OAuth.
+2. **WORK** — OpenCode Go → DeepSeek V4.1 Flash (**ds 4.1**):
+   - `bash .cursor/opencode/run-ds41.sh "<task>"` (**no** `--auto`)
+3. **VERIFY** — Cursor tests / evidence.
+4. **REVIEW** — `bash .cursor/chatgpt/chatgpt-web.sh -Mode review -RequestFile <f>` → `approve|revise|block`. On `block`, stop.
+
+## Forbidden
+
+- `jev-decide` / `jev-*` as final gate
+- Re-enabling force-grok hooks without user ask
+- Spending Grok.com CLI while paused
+- Defaulting WORK to `--auto`

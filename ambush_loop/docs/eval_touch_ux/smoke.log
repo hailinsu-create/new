@@ -1,0 +1,6 @@
+SMOKE_GAME_VERSION 0.6.0
+SMOKE_OK_WEST_FILL_0540 d1=(6, 6) d2=(5, 16) span=6 zoom=1.0 scale=1.0 obs=1.0 kit=280.0 obs_r=280.0 fill_a=0.01 court=0 world_span=1280.0x720.0
+SMOKE_OK_WEST_FILE_0541 d1=(6, 6) d2=(5, 16) span=6 pts=3 len=434.5 zoom=1.0 world_span=1280.0x720.0
+SMOKE_OK_SESSION_0542 chip=[P: (186.56, 592.0), S: (39.44, 20.0)] crate=[P: (411.1881, 324.8073), S: (92.0, 38.0)] op_s=(457.1881, 384.8073) cta=需枪
+SMOKE_OK_PROPS landmarks=6 sig=yard:-1:-1:0:162399739|s|yard|yard
+SMOKE_SLICE_COMPLETE

@@ -1,0 +1,54 @@
+# Sideload APKs
+
+Delivered build:
+
+- `AmbushLoop-v0.6.11-yard-props.apk` — Godot 4.7.2 debug, arm64, v0.6.11: rations crate on island, pause/speed 观战 labels, fence+thicker RIFLE stencil. Same RAID as 0.6.8.
+- `AmbushLoop-v0.6.8-loot-chip.apk` — Godot 4.7.2 debug, arm64, v0.6.8: crate 拿到X chip, cone fade 0.46, sandbag+lamp in yard, short SCOUT tip. Same RAID as 0.6.5.
+- `AmbushLoop-v0.6.5-gun-case.apk` — Godot 4.7.2 debug, arm64, v0.6.5: rifle-crate iso on courtyard island, compact ↺/↻ 60×62, thicker 绕背 dash. Same RAID as 0.6.3.
+- `AmbushLoop-v0.6.3-alert-chrome.apk` — Godot 4.7.2 debug, arm64, v0.6.3: ALERT watch chrome (pause/speed/abort 120×64), yard night-grade hatch, west-wall 开匣 pit. Same RAID as 0.6.0.
+- `AmbushLoop-v0.6.0-overhaul.apk` — Godot 4.7.2 debug, arm64, v0.6.0 overhaul: obs fill LOS-clip, west file tape, first-session 跟/开匣/绕背, Blender crate+ammo can in the yard. Same RAID as 0.5.39.
+- `AmbushLoop-v0.5.39-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest (6,6)/(5,16) span 6, west-follow pan/crop at ~1.0, bodies/rings at ~1.0, courtyard/along-file ring offset shrunk (not the 0.16-era 154px shove), south-corridor full path y≤13 (mid x≈21 included), compact 5-key. Same RAID as 0.5.38.
+- `AmbushLoop-v0.5.38-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest (6,6)/(5,16) span 6, west-follow pan/crop at ~1.0 (not postage-stamp zoom), bodies/rings at ~1.0, south-corridor full path y≤13 (mid x≈21 included), compact 5-key (superseded for phone feel). Same RAID as 0.5.37.
+- `AmbushLoop-v0.5.37-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest (6,6)/(5,16) span 6, west-follow detour ≤6 + camera ~0.40, bodies/rings at visual floor (~0.16), south-corridor full path y≤13 (mid x≈21 included), compact 5-key (superseded for phone feel). Same RAID as 0.5.36.
+- `AmbushLoop-v0.5.36-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest (6,7)/(5,16) span 5, west-follow detour ≤6 + camera ~0.36 (leftover z>0.34 caps relaxed), bodies/rings at visual floor (~0.16), south-corridor full path y≤13 (mid x≈21 included), compact 5-key (superseded for phone feel). Same RAID as 0.5.35.
+- `AmbushLoop-v0.5.35-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest (6,7)/(5,16) span 5, west-follow detour ≤6 + camera ~0.32, bodies/rings at visual floor (~0.16), south-corridor full path y≤13 (mid x≈21 included), compact 5-key (superseded for phone feel). Same RAID as 0.5.34.
+- `AmbushLoop-v0.5.34-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest (6,7)/(5,15) span 5, on-ring extra cut + camera ~0.30, bodies/rings at visual floor (~0.16), south-corridor full path y≤13 (mid x≈21 included), compact 5-key (superseded for phone feel). Same RAID as 0.5.33.
+- `AmbushLoop-v0.5.33-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest (6,7)/(5,15) span 5, bodies/rings at visual floor (~0.16) + camera at ~0.26 clamp, south-corridor full path y≤13 (mid x≈21 included), compact 5-key (superseded for phone feel). Same RAID as 0.5.32.
+- `AmbushLoop-v0.5.32-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest (6,8)/(5,15) span 4, bodies/rings at visual floor (~0.16) + camera at ~0.26 clamp, south-corridor full path y≤13 (mid x≈21 included), compact 5-key (superseded for phone feel). Same RAID as 0.5.31.
+- `AmbushLoop-v0.5.31-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest (6,9)/(5,14) span 3 kept, bodies/rings at visual floor (~0.16) + camera at ~0.26 clamp, south-corridor full path y≤13 (mid x≈21 included), compact 5-key (superseded for phone feel). Same RAID as 0.5.30.
+- `AmbushLoop-v0.5.30-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest (6,9)/(5,14) span 3 kept, bodies/rings one step smaller + camera one more courtyard/along-file step, south-corridor full path y≤13 (mid x≈21 included), compact 5-key (superseded for phone feel). Same RAID as 0.5.29.
+- `AmbushLoop-v0.5.29-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest (6,9)/(5,14) span 3 kept, bodies/rings one step smaller + camera one more courtyard/along-file step, south-corridor full path y≤13 (mid x≈21 included), compact 5-key (superseded for phone feel). Same RAID as 0.5.28.
+- `AmbushLoop-v0.5.28-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest (6,9)/(5,14) span 3 kept, observation-ring + camera one more courtyard/along-file step, south-corridor full path y≤13 (mid x≈21 included), compact 5-key (superseded for phone feel). Same RAID as 0.5.27.
+- `AmbushLoop-v0.5.27-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest (6,9)/(5,14) span 3 kept, observation-ring courtyard/along-file offset, south-corridor full path y≤13 (mid x≈21 included), compact 5-key (superseded for phone feel). Same RAID as 0.5.26.
+- `AmbushLoop-v0.5.26-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest (6,9)/(5,14) span 3, south-corridor full path y≤13 (mid x≈21 included), compact 5-key (superseded for phone feel). Same RAID as 0.5.25.
+- `AmbushLoop-v0.5.25-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest restagger (6,9)/(5,14) span 3, south-corridor east-end y≤13, compact 5-key (superseded for phone feel). Same RAID as 0.5.24.
+- `AmbushLoop-v0.5.24-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio camera pull + observation-ring world offset (dest cells unchanged), south-corridor far-side bow toward ~20px, compact 5-key (superseded for phone feel). Same RAID as 0.5.23.
+- `AmbushLoop-v0.5.23-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio body/ring one step smaller, south-corridor far-side bow capped below ~28px, compact 5-key (superseded for phone feel). Same RAID as 0.5.22.
+- `AmbushLoop-v0.5.22-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: first west follower out of the 1-cell pocket (along-file), south-corridor crate arc stays off the east exit, compact 5-key (superseded for phone feel). Same RAID as 0.5.21.
+- `AmbushLoop-v0.5.21-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio dest span 2 (second follower one cell back), crate-face axis_run 0, compact 5-key (superseded for phone feel). Same RAID as 0.5.20.
+- `AmbushLoop-v0.5.20-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio shrink + faded yellow cone, bowed crate-wall arcs, compact 5-key (superseded for phone feel).
+- `AmbushLoop-v0.5.19-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west clearer scale/cam/stagger, compact 5-key narrow pack, rounder crate-cluster arcs (superseded for phone feel).
+- `AmbushLoop-v0.5.18-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: settle on ring after ↻, compact ↺/swipe, west tighter stagger/scale, rounder crate-cluster arcs (superseded for phone feel).
+- `AmbushLoop-v0.5.17-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: follower bodies ride the slot ring, west shrink/half-cell stand, compact ↻ hold, rounder crate arcs (superseded for phone feel).
+- `AmbushLoop-v0.5.16-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: 15° ↻ dests ride the slot ring, west trio extra stagger/scale, arc samples snag onto walkable cells (superseded for phone feel).
+- `AmbushLoop-v0.5.15-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west trio observation rings shrink + camera ~0.54 hold, 90° dests slide on the facing-slot arc (superseded for phone feel).
+- `AmbushLoop-v0.5.14-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west 1-cell diagonal dests + camera holds pullback on the trio + cone, dests lerp toward interpolated slot points (superseded for phone feel).
+- `AmbushLoop-v0.5.13-touch-slide.apk` — Godot 4.7.2 debug, arm64, phone feel: west-alley 1-cell stagger + camera pullback, dest hops slide (~0.2s) (superseded for phone feel).
+- `AmbushLoop-v0.5.12-touch-aim.apk` — Godot 4.7.2 debug, arm64, phone feel: 射界 dests interpolate with facing (20° already moves), west-alley rear file, 跟 chip off gun (superseded for phone feel).
+- `AmbushLoop-v0.5.11-touch-form.apk` — Godot 4.7.2 debug, arm64, phone feel: west-alley rear file, 射界 twist turns follow dests, 跟 chip raised off gun/number (superseded for phone feel).
+- `AmbushLoop-v0.5.10-touch-rear.apk` — follow files behind the lead, stop land freezes, three-follow + side wrap, 跟 badge probes (superseded for phone feel).
+- `AmbushLoop-v0.5.9-touch-wrap.apk` — side 绕背 wraps sentry body, lead-stop formation holds, 跟 badge probes (superseded for phone feel).
+- `AmbushLoop-v0.5.8-touch-follow.apk` — walk-follow continuity, full 绕背 dashed path, 跟 badge hit (superseded for phone feel).
+- `AmbushLoop-v0.5.7-touch-detour.apk` — short 2–3 cell follow detour, west-alley spacing (superseded for phone feel).
+- `AmbushLoop-v0.5.6-touch-queue.apk` — follow dest rim, west-alley queue (superseded for phone feel).
+- `AmbushLoop-v0.5.5-touch-outside.apk` — follow stays outside 射界, 射界 ink hidden (superseded for phone feel).
+- `AmbushLoop-v0.5.4-touch-clear.apk` — crate names off, 绕背 clears west court, follow spacing (superseded for phone feel).
+- `AmbushLoop-v0.5.3-touch-smooth.apk` — north world ink, cone-avoid 绕背/跟上, tighter hotspots, yard-loop taps (superseded for phone feel).
+- `AmbushLoop-v0.5.2-touch-feel.apk` — folded north chrome, 绕背 guide, short-drag pan / long-press sprint, follow badge (superseded for phone feel).
+- `AmbushLoop-v0.5.1-touch-rail.apk` — portraits in the thumb band, context hotspots, ALERT 3 keys (superseded for phone feel).
+- `AmbushLoop-v0.5.0-commandos2-kit.apk` — portraits, skill hotbar, sentry cones, crouch/KO, 10 guns, 6-slot pack, auto nades (superseded for phone HUD).
+- `AmbushLoop-v0.4.0-commandos2-kit.apk` — 10 named guns, 6-slot backpack, auto grenades (superseded).
+
+Older: `AmbushLoop-v0.3.1-commandos-ww2-playtest.apk`, `AmbushLoop-v0.3.0-commandos-ww2-playtest.apk` (superseded).
+
+Do not install an older `AmbushLoop-playtest.apk` or `AmbushLoop.apk` from `main` / release `ambush-loop-playtest-0.2.0`. Those are the locked-watch 0.2.0 friend pack.
