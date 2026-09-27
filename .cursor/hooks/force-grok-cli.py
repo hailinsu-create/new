@@ -1,17 +1,31 @@
 #!/usr/bin/env python3
 """Force Cursor Agent / Cloud Agent to hand work to grok.com CLI.
 
-Grok CLI is a separate process and does not run these Cursor hooks.
+Grok CLI must not honor these deny-hooks: when GROK_AGENT=1 this script
+allows every event so the grok.com worker can implement the task.
 """
 from __future__ import annotations
 
 import json
+import os
 import sys
 
+REQUIRED_ACCOUNT = "lningha@gmail.com"
 ROUTE = (
     "You are only a router. Do not implement with Cursor tools. "
-    "Write the user's task to /tmp/grok-prompt.txt and run: "
+    f"Spend {REQUIRED_ACCOUNT} grok.com CLI quota (not Cursor Grok, "
+    "not hailinsu@gmail.com). Write the user's task to "
+    "/tmp/grok-prompt.txt and run: "
     "bash .cursor/grok/run.sh run --file /tmp/grok-prompt.txt"
+)
+SESSION_CONTEXT = (
+    "HARD REQUIREMENT: implement nothing with Cursor. "
+    "Every Cloud Agent must hand every user task to grok.com CLI "
+    f"as {REQUIRED_ACCOUNT} SuperGrok Heavy, Grok 4.6 Extra High Fast "
+    "(effort xhigh, x-grok-service-tier=priority): "
+    "bash .cursor/grok/run.sh run --file /tmp/grok-prompt.txt. "
+    "If grok CLI is already running this turn (GROK_AGENT=1), do the "
+    "work and do not recurse. Do not use hailinsu@gmail.com."
 )
 
 ALLOW_TOOLS = {
@@ -129,7 +143,14 @@ def mcp_allowed(name: str, data: dict) -> bool:
     return False
 
 
+def running_as_grok_cli() -> bool:
+    return os.environ.get("GROK_AGENT") == "1"
+
+
 def main() -> None:
+    if running_as_grok_cli():
+        allow()
+
     try:
         data = json.load(sys.stdin)
     except Exception:
@@ -145,12 +166,7 @@ def main() -> None:
             {
                 "continue": True,
                 "permission": "allow",
-                "additional_context": (
-                    "HARD REQUIREMENT: implement nothing with Cursor. "
-                    "Hand every user task to grok.com CLI Extra High Fast: "
-                    "bash .cursor/grok/run.sh run --file /tmp/grok-prompt.txt. "
-                    "If grok CLI is already running this turn, do the work and do not recurse."
-                ),
+                "additional_context": SESSION_CONTEXT,
             }
         )
         raise SystemExit(0)

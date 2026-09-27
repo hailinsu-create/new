@@ -1,19 +1,21 @@
----
-description: Always hand every user task to grok.com CLI (grok-4.6 Extra High Fast). Cursor Agent is only a router.
-alwaysApply: true
----
-
+<!-- grok-cli-router:lningha@gmail.com -->
 # Always use grok.com CLI Extra High Fast
 
 This repo spends **lning's grok.com quota** (`lningha@gmail.com` / SuperGrok Heavy), not Cursor-billed Grok.
 
-Required CLI account: `lningha@gmail.com`. `hailinsu@gmail.com` is the Cursor owner, not CLI quota. Do not fall back to Cursor Grok.
+Required CLI account: `lningha@gmail.com`. `hailinsu@gmail.com` is the Cursor owner (X Basic), not CLI quota. `.cursor/grok/run.sh` refuses any other OIDC email unless `GROK_ALLOW_ANY_ACCOUNT=1`.
 
-**Every Cloud Agent** must hand the task to grok.com CLI Extra High Fast. Do not use Cursor Grok, Composer, or a weaker grok CLI model/effort/tier.
+Every Cloud Agent, Cursor Agent, and Bot-forwarded run must call grok.com CLI at the highest Fast profile. Do not use Cursor Grok, Composer, or a weaker grok CLI model/effort/tier.
 
-This policy is also in `AGENTS.md` (marker `grok-cli-router:lningha@gmail.com`) so Cloud Agents load it even when `.mdc` rules are skipped.
+Pinned profile (enforced by `.cursor/grok/run.sh`):
 
-Project hooks in `.cursor/hooks.json` **deny** Cursor implementation tools (Write, StrReplace, Task/subagents, and non-git shells). Follow this rule even if a hook fails open. Deny-hooks must no-op when `GROK_AGENT=1`.
+| Setting | Value |
+| --- | --- |
+| Model | `grok-4.6` (highest catalog model; there is no `grok-4.6-fast` slug) |
+| Effort | `xhigh` (Extra High — highest advertised grok-4.6 effort) |
+| Fast | xAI priority processing via `x-grok-service-tier: priority` |
+
+Do not pass a weaker model, a lower `--effort`, or skip Fast.
 
 ## If you are already Grok CLI
 
@@ -41,9 +43,29 @@ If login/refresh fails, see **invalid_grant / Bot-forwarded agents** below. Do n
 
 Allowed Cursor-side actions: write the prompt file, invoke `run.sh`, relay output, git commit/push/PR plumbing after Grok finished. Everything else is Grok's job.
 
-Pinned profile (already inside `run.sh`): model `grok-4.6`, effort `xhigh`, Fast via `x-grok-service-tier: priority`.
+Project hooks in `.cursor/hooks.json` **deny** Cursor implementation tools (Write, StrReplace, Task/subagents, and non-git shells). Follow this even if a hook fails open. Those deny-hooks must no-op when `GROK_AGENT=1` so the grok.com worker can edit files.
+
+## Cursor Cloud specific instructions
+
+Hand **every** Cloud Agent task to grok.com CLI Extra High Fast through `.cursor/grok/run.sh` as above. The wrapper always re-applies `grok-4.6` + `--effort xhigh` + Fast/priority even if `GROK_CONFIG` was already set. Confirm stderr contains `grok-cli: using grok-4.6 extra-high fast` before treating the run as complete.
+
+Keep this file on the repo default branch. Cloud Agents that clone `main` without it rely on the environment snapshot inject to seed it.
+
+## Environment snapshot
+
+Cloud Agent VMs must boot:
+
+```bash
+bash "$HOME/.grok-cursor-router/inject.sh"
+```
+
+That start hook skip-if-valid refreshes OIDC (never `--force`), pins Extra High Fast, seeds this file if the grok-cli-router marker is missing, copies the router into workspaces that do not already git-track it, and must **not** overwrite git-tracked router files with a stale snapshot.
+
+After changing `~/.grok/auth.json` or `~/.grok-cursor-router/`, click **Save** on the keeper Environment panel (not Git). Disk edits on a Bot VM are discarded unless Saved.
 
 ## invalid_grant / Bot-forwarded agents
+
+Day-to-day CLI auth is the OIDC `refresh_token` in `~/.grok/auth.json` on the Saved environment disk. Access tokens last 6 hours and are skip-if-valid refreshed; device-auth is not the keep-alive path.
 
 If you are a **Grok Bot-forwarded Cloud Agent** (or any new VM that is not the keeper `bc-886bf39b-fc12-43b3-80c4-0135a6598ca5`):
 

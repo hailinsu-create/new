@@ -1,6 +1,12 @@
 {
   "version": 1,
   "hooks": {
+    "sessionStart": [
+      {
+        "command": "python3 .cursor/hooks/force-grok-cli.py",
+        "timeout": 10
+      }
+    ],
     "beforeSubmitPrompt": [
       {
         "command": "python3 .cursor/hooks/force-grok-cli.py",
