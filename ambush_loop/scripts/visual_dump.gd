@@ -4,12 +4,16 @@ extends SceneTree
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
+const TestStorageGuard := preload("res://scripts/test_storage_guard.gd")
 const OUT_A := "/opt/cursor/artifacts"
 const OUT_B := "/tmp/ambush-feel/.audit"
 
 
 func _init() -> void:
 	print("DUMP_INIT")
+	if not TestStorageGuard.check():
+		quit(91)
+		return
 	call_deferred("_run")
 
 

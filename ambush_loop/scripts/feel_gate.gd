@@ -5,9 +5,13 @@ extends SceneTree
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
+const TestStorageGuard := preload("res://scripts/test_storage_guard.gd")
 
 
 func _init() -> void:
+	if not TestStorageGuard.check():
+		quit(91)
+		return
 	call_deferred("_boot")
 
 
