@@ -7,9 +7,13 @@ extends SceneTree
 
 const SAVE_PATH := "user://ambush_loop.cfg"
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
+const TestStorageGuard := preload("res://scripts/test_storage_guard.gd")
 
 
 func _init() -> void:
+	if not TestStorageGuard.check():
+		quit(91)
+		return
 	call_deferred("_run")
 
 
@@ -3219,6 +3223,25 @@ func _assert_touch_parity(main) -> bool:
 		push_error("SMOKE_ANDROID_BACK_STUCK")
 		quit(44)
 		return false
+	var game_settings = main.get_node_or_null("/root/GameSettings")
+	if game_settings == null:
+		push_error("SMOKE_NO_GAME_SETTINGS_FOR_BACK")
+		quit(44)
+		return false
+	game_settings._last_android_back_ms = -game_settings.ANDROID_BACK_DEBOUNCE_MS
+	game_settings._notification(1007) # NOTIFICATION_WM_GO_BACK_REQUEST
+	game_settings._notification(1007) # Android 16 may duplicate one press.
+	if not main.pause_overlay.is_open():
+		push_error("SMOKE_ANDROID_DOUBLE_BACK_CLOSED_MENU")
+		quit(44)
+		return false
+	game_settings._last_android_back_ms = Time.get_ticks_msec() - game_settings.ANDROID_BACK_DEBOUNCE_MS
+	game_settings._notification(1007)
+	if main.pause_overlay.is_open():
+		push_error("SMOKE_ANDROID_NEXT_BACK_STUCK")
+		quit(44)
+		return false
+	print("SMOKE_OK_ANDROID_BACK_DEBOUNCE")
 	main._select_op(0)
 	main._deploy_selected_to(main.cover_slots[0], false)
 	var f0: float = float(main.selected.facing_deg)

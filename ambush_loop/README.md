@@ -26,10 +26,13 @@ From the repository root:
 
 ```bash
 godot --path ambush_loop
-godot --headless --path ambush_loop -s res://scripts/smoke_test.gd
+pwsh -File ambush_loop/scripts/run_isolated_test.ps1 -GodotExe "C:\path\to\Godot_v4.7.2-stable_win64_console.exe"
+# Linux / cloud: bash ambush_loop/scripts/run_isolated_test.sh /path/to/godot
 ```
 
 The editor **Main Scene** is `scenes/title.tscn`. Smoke bypasses the title and loads `scenes/main.tscn` directly; it must print `SMOKE_SLICE_COMPLETE` and `SMOKE_OK_RAID_LOOP` and exit 0.
+The isolated runner creates a unique `user://` directory before Godot starts. Direct runs of the destructive smoke/dump scripts now refuse to run without this isolation.
+On Windows, `scripts/verify_storage_isolation.ps1 -GodotExe <absolute Godot path>` tests a simulated player save across normal exit, expected assertion failure, and forced process termination. `scripts/check_m0_env.ps1` records the Godot, template, JDK, Android SDK and adb baseline (pass all four absolute paths as named parameters).
 
 Raid contract: `docs/COMMANDOS_RAID.md`. Kit: `docs/COMMANDOS2_KIT.md`. Operators spawn at insertion cells with a knife, loot crates into a 6-slot pack, take cover, pull the alarm per wave (auto fire + auto grenades), sweep loot, extract after the last wave.
 

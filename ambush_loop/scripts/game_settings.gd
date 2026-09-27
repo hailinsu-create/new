@@ -4,6 +4,7 @@ extends Node
 
 const SETTINGS_PATH := "user://ambush_loop_settings.cfg"
 const PROGRESS_PATH := "user://ambush_loop.cfg"
+const ANDROID_BACK_DEBOUNCE_MS := 200
 const LEVEL_ORDER := ["yard", "warehouse", "pump", "railcut", "depot", "radio"]
 const QUALITY_STANDARD := "standard"
 const QUALITY_POWER_SAVING := "power_saving"
@@ -23,6 +24,7 @@ var force_touch_hud: bool = false
 var quality_tier: String = QUALITY_STANDARD
 var hold_to_move: bool = false
 var few_crates: bool = false
+var _last_android_back_ms: int = -ANDROID_BACK_DEBOUNCE_MS
 
 
 func want_touch_controls() -> bool:
@@ -79,6 +81,12 @@ func _normalize_quality_tier(tier: String) -> String:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		# Godot 4.7.2 can deliver one Android 16 Back press twice a few ms apart.
+		# Without this guard a toggle menu opens and immediately closes again.
+		var now_ms := Time.get_ticks_msec()
+		if now_ms - _last_android_back_ms < ANDROID_BACK_DEBOUNCE_MS:
+			return
+		_last_android_back_ms = now_ms
 		var scene := get_tree().current_scene if get_tree() else null
 		if scene != null and scene.has_method("handle_android_back"):
 			scene.handle_android_back()
