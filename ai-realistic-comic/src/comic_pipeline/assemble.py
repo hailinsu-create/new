@@ -47,9 +47,18 @@ def _draw_dialogue(img: Image.Image, text: str) -> Image.Image:
     w, h = img.size
     box_h = max(80, h // 8)
     draw.rectangle((0, h - box_h, w, h), fill=(0, 0, 0, 180) if img.mode == "RGBA" else (10, 10, 12))
-    try:
-        font = ImageFont.truetype("DejaVuSans.ttf", size=max(18, w // 28))
-    except OSError:
+    font = None
+    for candidate in (
+        "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
+        "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+        "DejaVuSans.ttf",
+    ):
+        try:
+            font = ImageFont.truetype(candidate, size=max(18, w // 28))
+            break
+        except OSError:
+            continue
+    if font is None:
         font = ImageFont.load_default()
     draw.text((24, h - box_h + 20), text[:80], fill=(245, 240, 230), font=font)
     return img
