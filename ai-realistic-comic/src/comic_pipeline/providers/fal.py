@@ -35,9 +35,26 @@ class FalProvider:
         os.environ["FAL_KEY"] = self.settings.fal_key.strip()
         settings = self.settings
 
-        # Single reference → PuLID face lock.
-        # Zero/multiple refs → plain text-to-image (PuLID collapses multi-character casts).
-        if len(refs) == 1:
+        if settings.comic_ref_mode == "edit":
+            avoid = f" Avoid: {negative}." if negative else ""
+            if refs:
+                model = settings.fal_edit_model
+                arguments = {
+                    "prompt": prompt + avoid,
+                    "image_urls": [fal_client.upload_file(str(r)) for r in refs],
+                    "image_size": settings.fal_image_size,
+                    "num_images": 1,
+                    "enable_safety_checker": settings.fal_enable_safety_checker,
+                }
+            else:
+                model = settings.fal_edit_t2i_model
+                arguments = {
+                    "prompt": prompt + avoid,
+                    "image_size": settings.fal_image_size,
+                    "num_images": 1,
+                    "enable_safety_checker": settings.fal_enable_safety_checker,
+                }
+        elif len(refs) == 1:
             model = settings.fal_pulid_model
             ref_url = fal_client.upload_file(str(refs[0]))
             arguments = {

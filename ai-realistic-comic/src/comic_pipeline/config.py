@@ -16,6 +16,12 @@ class Settings(BaseSettings):
     fal_t2i_model: str = "fal-ai/flux/dev"
     fal_pulid_model: str = "fal-ai/flux-pulid"
     fal_kontext_model: str = "fal-ai/flux-pro/kontext"
+    # Multi-reference semantic edit: all panel characters' look sheets go in together.
+    fal_edit_model: str = "fal-ai/bytedance/seedream/v4/edit"
+    fal_edit_t2i_model: str = "fal-ai/bytedance/seedream/v4/text-to-image"
+    # edit = multi-reference semantic edit (supports 2+ characters per frame);
+    # pulid = legacy single-face lock with flux.
+    comic_ref_mode: str = "edit"
     fal_image_model: str = ""
 
     fal_image_size: str = "portrait_4_3"
@@ -42,6 +48,11 @@ class Settings(BaseSettings):
 
     def resolved_t2i_model(self) -> str:
         return self.fal_image_model or self.fal_t2i_model
+
+    def planned_model(self, ref_count: int) -> str:
+        if self.comic_ref_mode == "edit":
+            return self.fal_edit_model if ref_count else self.fal_edit_t2i_model
+        return self.fal_pulid_model if ref_count == 1 else self.resolved_t2i_model()
 
     def resolved_provider(self) -> str:
         if self.comic_mock:

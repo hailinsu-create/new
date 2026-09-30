@@ -129,6 +129,32 @@ def cast_character(
     typer.echo(f"Saved character {char_id} in {project}")
 
 
+@app.command("refs")
+def refs_cmd(
+    project: str = typer.Argument(...),
+    force: bool = typer.Option(False, help="Regenerate look sheets (costs budget)"),
+) -> None:
+    """Generate look sheets for every character card in the project."""
+    project_dir = _projects_root() / project
+    proj = load_project(project_dir)
+    settings = get_settings()
+    require_provider(settings)
+    budget_path = _output_root() / project / "budget.json"
+    ledger = BudgetLedger.load_or_new(budget_path, settings.comic_budget_usd)
+    for char in proj.characters:
+        ensure_character_reference(
+            project_dir=project_dir,
+            project=proj,
+            character=char,
+            settings=settings,
+            ledger=ledger,
+            force=force,
+        )
+        typer.echo(f"ref {char.id}: {char.reference_images} | spent ${ledger.spent_usd:.4f}")
+    ledger.save(budget_path)
+    save_project(project_dir, proj)
+
+
 @app.command("plan")
 def plan_cmd(project: str = typer.Argument(...)) -> None:
     project_dir = _projects_root() / project
@@ -157,7 +183,9 @@ def generate_cmd(
         typer.echo(str(exc))
         raise typer.Exit(code=1)
 
-    ledger = BudgetLedger(limit_usd=settings.comic_budget_usd)
+    ledger = BudgetLedger.load_or_new(
+        _output_root() / project / "budget.json", settings.comic_budget_usd
+    )
     panel_dir = _output_root() / project / "panels"
     panels = episode.panels[:limit] if limit else episode.panels
     for panel in panels:

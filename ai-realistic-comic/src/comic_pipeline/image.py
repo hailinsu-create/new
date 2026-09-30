@@ -11,7 +11,9 @@ from comic_pipeline.prompts.genres import GENRE_STYLE, genre_negative
 from comic_pipeline.providers import get_image_provider
 
 
-def build_panel_prompt(project: Project, panel: Panel) -> tuple[str, str]:
+def build_panel_prompt(
+    project: Project, panel: Panel, settings: Settings | None = None
+) -> tuple[str, str]:
     cmap = project.character_map()
     char_blocks = []
     for cid in panel.characters:
@@ -19,17 +21,30 @@ def build_panel_prompt(project: Project, panel: Panel) -> tuple[str, str]:
         if char:
             char_blocks.append(char.prompt_block())
     primary = len(panel.characters) == 1
-    identity = (
-        "same character identity as reference, consistent face and wardrobe, solo subject focus"
-        if primary
-        else (
-            "ONE primary face only; secondary figure at most as silhouette/back/profile blur, "
-            "do not give two equal clear faces"
+    if settings is not None and settings.comic_ref_mode == "edit":
+        identity = (
+            "keep each character's face, species and wardrobe exactly as in their reference image; "
+            "characters must look clearly different from each other"
+            if not primary
+            else "same character identity as reference, consistent face and wardrobe"
         )
-    )
+    else:
+        identity = (
+            "same character identity as reference, consistent face and wardrobe, solo subject focus"
+            if primary
+            else (
+                "ONE primary face only; secondary figure at most as silhouette/back/profile blur, "
+                "do not give two equal clear faces"
+            )
+        )
+    ref_prefix = ""
+    if settings is not None and settings.comic_ref_mode == "edit" and panel.characters:
+        names = [cmap[c].name for c in panel.characters if c in cmap]
+        ref_prefix = " ".join(f"Image {i} is {n}." for i, n in enumerate(names, 1))
     prompt = ", ".join(
         p
         for p in [
+            ref_prefix,
             GENRE_STYLE[project.genre],
             panel.setting,
             f"{panel.shot} shot",
@@ -50,11 +65,13 @@ def build_panel_prompt(project: Project, panel: Panel) -> tuple[str, str]:
     return prompt, negative
 
 
-def reference_paths(project_dir: Path, project: Project, panel: Panel) -> list[Path]:
+def reference_paths(
+    project_dir: Path, project: Project, panel: Panel, edit_mode: bool = False
+) -> list[Path]:
     paths: list[Path] = []
     cmap = project.character_map()
-    # Only the first listed character is the PuLID lock target.
-    for cid in panel.characters[:1]:
+    ids = panel.characters if edit_mode else panel.characters[:1]
+    for cid in ids:
         char = cmap.get(cid)
         if not char:
             continue
@@ -67,7 +84,11 @@ def reference_paths(project_dir: Path, project: Project, panel: Panel) -> list[P
 
 
 def _assert_panel_policy(panel: Panel, settings: Settings) -> None:
-    if settings.comic_forbid_multi_face and len(panel.characters) > 1:
+    if (
+        settings.comic_ref_mode != "edit"
+        and settings.comic_forbid_multi_face
+        and len(panel.characters) > 1
+    ):
         # Allowed only if action explicitly marks secondary as silhouette/back.
         action = (panel.action or "").lower()
         allowed_markers = ("silhouette", "back view", "back-view", "over-shoulder of", "blurred")
@@ -92,7 +113,7 @@ def generate_panel_image(
 ) -> Path:
     _assert_panel_policy(panel, settings)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    prompt, negative = build_panel_prompt(project, panel)
+    prompt, negative = build_panel_prompt(project, panel, settings)
     # Simplify composition on retry instead of burning more random rolls.
     if attempt > 1:
         prompt = (
@@ -100,13 +121,11 @@ def generate_panel_image(
             + ", simpler composition, single clear subject, medium shot, fewer props, "
             "identity lock priority over cinematic complexity"
         )
-    refs = reference_paths(project_dir, project, panel)
-    if len(panel.characters) == 1 and refs:
-        refs = refs[:1]
-        planned_model = settings.fal_pulid_model
-    else:
-        refs = []
-        planned_model = settings.resolved_t2i_model()
+    edit_mode = settings.comic_ref_mode == "edit"
+    refs = reference_paths(project_dir, project, panel, edit_mode)
+    if not edit_mode:
+        refs = refs[:1] if len(panel.characters) == 1 else []
+    planned_model = settings.planned_model(len(refs))
 
     provider = get_image_provider(settings)
     cache_key = hashlib.sha256(
@@ -120,7 +139,8 @@ def generate_panel_image(
                 "attempt": 1,  # cache ignores retry noise; force controls reruns
                 "t2i": settings.resolved_t2i_model(),
                 "pulid": settings.fal_pulid_model,
-                "mode": "pulid" if refs else "t2i",
+                "mode": settings.comic_ref_mode if refs else "t2i",
+                "edit": settings.fal_edit_model,
             },
             ensure_ascii=False,
             sort_keys=True,
@@ -229,7 +249,7 @@ def ensure_character_reference(
             emotion="neutral calm",
             action=(
                 f"solo lookbook portrait of ONLY {character.name}, "
-                "front three-quarter view, plain soft neutral backdrop, "
+                "three-quarter view from head to thighs so the full wardrobe is visible, plain soft neutral backdrop, "
                 "identity lock sheet, single subject, no other characters"
             ),
             setting="studio portrait for continuity lock",

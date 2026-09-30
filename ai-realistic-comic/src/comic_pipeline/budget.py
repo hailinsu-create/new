@@ -7,6 +7,7 @@ from pathlib import Path
 # Approximate fal list prices (USD / megapixel), portrait rounds up to ~1 MP.
 COST_T2I_USD = 0.025
 COST_PULID_USD = 0.0333
+COST_SEEDREAM_USD = 0.03
 
 
 @dataclass
@@ -15,7 +16,20 @@ class BudgetLedger:
     spent_usd: float = 0.0
     events: list[dict] = field(default_factory=list)
 
+    @classmethod
+    def load_or_new(cls, path: Path, limit_usd: float) -> "BudgetLedger":
+        if path.is_file():
+            data = json.loads(path.read_text(encoding="utf-8"))
+            return cls(
+                limit_usd=limit_usd,
+                spent_usd=float(data.get("spent_usd", 0.0)),
+                events=list(data.get("events", [])),
+            )
+        return cls(limit_usd=limit_usd)
+
     def estimate(self, model: str) -> float:
+        if "seedream" in model.lower():
+            return COST_SEEDREAM_USD
         if "pulid" in model.lower():
             return COST_PULID_USD
         return COST_T2I_USD

@@ -16,7 +16,7 @@ def test_budget_blocks_overspend() -> None:
 
 
 def test_forbid_multi_face() -> None:
-    settings = Settings(comic_forbid_multi_face=True, comic_mock=True)
+    settings = Settings(comic_forbid_multi_face=True, comic_mock=True, comic_ref_mode="pulid")
     with pytest.raises(RuntimeError, match="multiple characters"):
         _assert_panel_policy(
             Panel(id="x", shot="two", characters=["a", "b"], action="face each other"),
@@ -25,7 +25,7 @@ def test_forbid_multi_face() -> None:
 
 
 def test_allow_silhouette_secondary() -> None:
-    settings = Settings(comic_forbid_multi_face=True, comic_mock=True)
+    settings = Settings(comic_forbid_multi_face=True, comic_mock=True, comic_ref_mode="pulid")
     _assert_panel_policy(
         Panel(
             id="x",
@@ -34,4 +34,14 @@ def test_allow_silhouette_secondary() -> None:
             action="primary woman; blurred silhouette back-view of warrior",
         ),
         settings,
+    )
+
+
+def test_seedream_cost_and_edit_planning() -> None:
+    assert BudgetLedger(limit_usd=1).estimate("fal-ai/bytedance/seedream/v4/edit") == 0.03
+    settings = Settings(comic_mock=True)
+    assert settings.planned_model(2) == settings.fal_edit_model
+    assert settings.planned_model(0) == settings.fal_edit_t2i_model
+    _assert_panel_policy(
+        Panel(id="x", shot="two", characters=["a", "b"], action="face each other"), settings
     )
