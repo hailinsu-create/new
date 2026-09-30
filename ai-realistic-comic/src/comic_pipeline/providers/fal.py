@@ -35,7 +35,9 @@ class FalProvider:
         os.environ["FAL_KEY"] = self.settings.fal_key.strip()
         settings = self.settings
 
-        if refs:
+        # Single reference → PuLID face lock.
+        # Zero/multiple refs → plain text-to-image (PuLID collapses multi-character casts).
+        if len(refs) == 1:
             model = settings.fal_pulid_model
             ref_url = fal_client.upload_file(str(refs[0]))
             arguments = {
@@ -53,8 +55,8 @@ class FalProvider:
             arguments = {
                 "prompt": prompt,
                 "image_size": settings.fal_image_size,
-                "num_inference_steps": settings.fal_num_inference_steps,
-                "guidance_scale": settings.fal_guidance_scale,
+                "num_inference_steps": max(settings.fal_num_inference_steps, 32),
+                "guidance_scale": max(settings.fal_guidance_scale, 4.0),
                 "enable_safety_checker": settings.fal_enable_safety_checker,
                 "num_images": 1,
             }

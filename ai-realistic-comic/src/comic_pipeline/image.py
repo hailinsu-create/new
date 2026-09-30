@@ -17,19 +17,33 @@ def build_panel_prompt(project: Project, panel: Panel) -> tuple[str, str]:
         char = cmap.get(cid)
         if char:
             char_blocks.append(char.prompt_block())
+    multi = len(panel.characters) > 1
+    identity = (
+        "TWO DISTINCT characters in one frame, different faces bodies and outfits, "
+        "do not merge identities, do not make them look like the same person"
+        if multi
+        else "same character identity as reference, consistent face and wardrobe"
+    )
     prompt = ", ".join(
-        [
+        p
+        for p in [
             GENRE_STYLE[project.genre],
             panel.setting,
             f"{panel.shot} shot",
             panel.action,
             f"emotion: {panel.emotion}" if panel.emotion else "",
-            "; ".join(char_blocks),
+            " | ".join(char_blocks),
             "highly detailed skin texture, realistic eyes, coherent anatomy",
-            "same character identity as reference, consistent face and wardrobe",
+            identity,
         ]
+        if p
     )
     negative = panel.negative or genre_negative(project.genre)
+    if multi:
+        negative = (
+            f"{negative}, identical twins, same face twice, merged faces, "
+            "clone characters, gender swap, wrong costume"
+        )
     return prompt, negative
 
 
@@ -59,6 +73,11 @@ def generate_panel_image(
     out_path.parent.mkdir(parents=True, exist_ok=True)
     prompt, negative = build_panel_prompt(project, panel)
     refs = reference_paths(project_dir, project, panel)
+    # PuLID locks ONE face — using it on multi-character panels collapses identities.
+    if len(panel.characters) != 1:
+        refs = []
+    elif refs:
+        refs = refs[:1]
     provider = get_image_provider(settings)
     cache_key = hashlib.sha256(
         json.dumps(
@@ -71,6 +90,7 @@ def generate_panel_image(
                 "t2i": settings.resolved_t2i_model(),
                 "pulid": settings.fal_pulid_model,
                 "comfy_workflow": settings.comfy_workflow_path,
+                "mode": "pulid" if refs else "t2i",
             },
             ensure_ascii=False,
             sort_keys=True,
@@ -124,16 +144,24 @@ def ensure_character_reference(
 
     rel = f"characters/{character.id}_ref.png"
     out = project_dir / rel
+    # Wipe stale file so PuLID/t2i always regenerates a fresh lock sheet.
+    if out.is_file():
+        out.unlink()
     panel = Panel(
         id=f"{character.id}_ref",
         shot="portrait look-sheet",
         characters=[character.id],
         emotion="neutral calm",
         action=(
-            "character lookbook portrait, front three-quarter view, "
-            "plain soft neutral backdrop, identity lock sheet"
+            f"solo lookbook portrait of ONLY {character.name}, "
+            "front three-quarter view, plain soft neutral backdrop, "
+            "identity lock sheet, single subject, no other characters"
         ),
         setting="studio portrait for continuity lock",
+        negative=(
+            "second person, crowd, twins, wrong gender, anime, cartoon, "
+            "deformed face, watermark, text overlay"
+        ),
     )
     if character.id not in project.character_map():
         project.characters.append(character)

@@ -2,73 +2,85 @@ title: 盘丝洞·初会
 genre: fantasy
 logline: 悟空入盘丝洞，遇妖娆蛛妖拦路试探。
 panels:
-- id: p01
-  page: 1
-  shot: wide establishing
-  characters:
-  - wukong
-  emotion: alert
-  dialogue: 这洞里……丝丝阴风。
-  action: Sun Wukong steps into a cavern mouth draped with enormous spider webs, staff
-    ready
-  setting: misty mountain cave entrance at dusk, silk strands catching moonlight
-  negative: anime, cartoon, deformed face, extra fingers, watermark
-- id: p02
-  page: 1
-  shot: medium full-body
-  characters:
-  - zhizhu
-  emotion: alluring invitation
-  dialogue: 客官，可是迷了路？
-  action: Spider Spirit emerges from layered silk curtains, hip cocked, one shoulder
-    bare, smiling with dangerous charm
-  setting: luminous silk throne chamber inside the cave, violet ambient glow
-  negative: anime, cartoon, deformed face, extra fingers, watermark, nude explicit
-- id: p03
-  page: 1
-  shot: close-up two-shot
-  characters:
-  - zhizhu
-  - wukong
-  emotion: tense chemistry
-  dialogue: ''
-  action: extreme close eye contact — her seductive half-lidded gaze meets his sharp
-    gold-amber stare across silk threads
-  setting: shallow depth of field, floating glowing silk strands between them
-  negative: anime, cartoon, deformed face, extra fingers, watermark
-- id: p04
-  page: 1
-  shot: over-shoulder
-  characters:
-  - zhizhu
-  - wukong
-  emotion: playful threat
-  dialogue: 留下喝一杯丝露如何？
-  action: she extends a hand wrapped in violet spider silk toward Wukong; he leans
-    back slightly, smirking, staff across body
-  setting: silk chamber with reflective wet stone floor
-  negative: anime, cartoon, deformed face, extra fingers, watermark, nude explicit
-- id: p05
-  page: 1
-  shot: dynamic medium
-  characters:
-  - wukong
-  - zhizhu
-  emotion: clash
-  dialogue: 吃俺老孙一棒！
-  action: explosive clash — golden staff smashing through violet silk webs as she
-    whirls silk whips, robes flowing, cinematic motion
-  setting: collapsing silk bridges inside the cavern, sparks and glowing threads
-  negative: anime, cartoon, deformed face, extra fingers, watermark
-- id: p06
-  page: 1
-  shot: wide coda
-  characters:
-  - wukong
-  - zhizhu
-  emotion: lingering tension
-  dialogue: 有趣……改日再陪你玩。
-  action: aftermath tableau — she retreats into shadow with a lingering smile, silk
-    reforming; Wukong stands amid torn webs, staff planted, watching her go
-  setting: torn glowing webs, moonlight shaft into the cave
-  negative: anime, cartoon, deformed face, extra fingers, watermark, nude explicit
+  - id: p01
+    page: 1
+    shot: wide establishing
+    characters:
+      - wukong
+    emotion: alert
+    dialogue: 这洞里……丝丝阴风。
+    action: >-
+      ONLY the male Monkey King warrior at a cavern mouth draped with enormous spider webs,
+      golden fillet headband, facial fur, holding golden staff, alone, no woman in frame
+    setting: misty mountain cave entrance at dusk, silk strands catching moonlight
+    negative: woman, female seductress, anime, cartoon, deformed face, watermark
+  - id: p02
+    page: 1
+    shot: medium full-body
+    characters:
+      - zhizhu
+    emotion: alluring invitation
+    dialogue: 客官，可是迷了路？
+    action: >-
+      ONLY the glamorous female spider yaoguai emerges from layered silk curtains,
+      hip cocked, black-violet sheer robe off one shoulder, violet silk on fingers,
+      seductive smile, alone, no monkey, no staff, no golden headband
+    setting: luminous silk throne chamber inside the cave, violet ambient glow
+    negative: monkey, fur, golden headband, staff, male warrior, anime, cartoon, nude explicit
+  - id: p03
+    page: 1
+    shot: close-up two-shot
+    characters:
+      - zhizhu
+      - wukong
+    emotion: tense chemistry
+    dialogue: ""
+    action: >-
+      two-shot close-up of TWO different beings facing each other across glowing silk threads —
+      LEFT: human female spider yaoguai with pale skin seductive eyes black-violet silk;
+      RIGHT: male Monkey King with furred face gold-amber eyes golden headband;
+      clearly different species and outfits
+    setting: shallow depth of field, floating glowing silk strands between them
+    negative: identical twins, same face twice, merged faces, both women, both monkeys, anime
+  - id: p04
+    page: 1
+    shot: over-shoulder
+    characters:
+      - zhizhu
+      - wukong
+    emotion: playful threat
+    dialogue: 留下喝一杯丝露如何？
+    action: >-
+      TWO distinct characters — foreground female spider yaoguai offers violet silk thread;
+      opposite her the male Monkey King leans back smirking with golden staff across his chest;
+      different faces and costumes, not clones
+    setting: silk chamber with reflective wet stone floor
+    negative: identical twins, same face twice, merged faces, both women, anime, nude explicit
+  - id: p05
+    page: 1
+    shot: dynamic medium
+    characters:
+      - wukong
+      - zhizhu
+    emotion: clash
+    dialogue: 吃俺老孙一棒！
+    action: >-
+      battle between TWO characters — male Monkey King swings golden staff through webs;
+      female spider yaoguai in black-violet robes whirls glowing silk whips;
+      opposite sides of frame, distinct species
+    setting: collapsing silk bridges inside the cavern, sparks and glowing threads
+    negative: identical twins, same face twice, one person only, anime, cartoon
+  - id: p06
+    page: 1
+    shot: wide coda
+    characters:
+      - wukong
+      - zhizhu
+    emotion: lingering tension
+    dialogue: 有趣……改日再陪你玩。
+    action: >-
+      wide aftermath with TWO people — foreground male Monkey King with staff planted amid torn webs;
+      background female spider yaoguai retreats into shadow with lingering smile;
+      clearly separated and differently dressed
+    setting: torn glowing webs, moonlight shaft into the cave
+    negative: identical twins, same face twice, missing monkey features, anime, cartoon
