@@ -8,7 +8,7 @@ import yaml
 from dotenv import load_dotenv
 
 from comic_pipeline.assemble import assemble_pages
-from comic_pipeline.config import get_settings, require_fal
+from comic_pipeline.config import get_settings, require_provider
 from comic_pipeline.image import ensure_character_reference, generate_panel_image
 from comic_pipeline.llm import plan_episode
 from comic_pipeline.models import Character, Project, load_episode, load_project, save_episode, save_project
@@ -54,17 +54,20 @@ def init_project(
 
 @app.command("doctor")
 def doctor() -> None:
-    """Check fal credentials and model defaults."""
+    """Check active image provider credentials and defaults."""
     settings = get_settings()
     typer.echo(f"COMIC_MOCK={settings.comic_mock}")
+    typer.echo(f"IMAGE_PROVIDER={settings.resolved_provider()}")
     typer.echo(f"FAL_KEY={'set' if settings.fal_key.strip() else 'MISSING'}")
     typer.echo(f"FAL_T2I_MODEL={settings.resolved_t2i_model()}")
     typer.echo(f"FAL_PULID_MODEL={settings.fal_pulid_model}")
+    typer.echo(f"COMFY_API_URL={settings.comfy_api_url or '(empty)'}")
+    typer.echo(f"COMFY_WORKFLOW_PATH={settings.comfy_workflow_path or '(empty)'}")
     try:
-        require_fal(settings)
-        typer.echo("fal mode: ready")
+        require_provider(settings)
+        typer.echo(f"{settings.resolved_provider()} mode: ready")
     except RuntimeError as exc:
-        typer.echo(f"fal mode: NOT ready — {exc}")
+        typer.echo(f"{settings.resolved_provider()} mode: NOT ready — {exc}")
         raise typer.Exit(code=1)
 
 
@@ -100,7 +103,7 @@ def cast_character(
     settings = get_settings()
     if make_ref:
         try:
-            require_fal(settings)
+            require_provider(settings)
         except RuntimeError as exc:
             typer.echo(str(exc))
             raise typer.Exit(code=1)
@@ -140,7 +143,7 @@ def generate_cmd(
     episode = load_episode(project_dir / "episode.yaml")
     settings = get_settings()
     try:
-        require_fal(settings)
+        require_provider(settings)
     except RuntimeError as exc:
         typer.echo(str(exc))
         raise typer.Exit(code=1)

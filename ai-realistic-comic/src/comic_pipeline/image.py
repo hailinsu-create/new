@@ -2,15 +2,12 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 from pathlib import Path
 
-import httpx
-from PIL import Image, ImageDraw
-
-from comic_pipeline.config import Settings, require_fal
+from comic_pipeline.config import Settings, require_provider
 from comic_pipeline.models import Character, Panel, Project
 from comic_pipeline.prompts.genres import GENRE_STYLE, genre_negative
+from comic_pipeline.providers import get_image_provider
 
 
 def build_panel_prompt(project: Project, panel: Panel) -> tuple[str, str]:
@@ -62,6 +59,7 @@ def generate_panel_image(
     out_path.parent.mkdir(parents=True, exist_ok=True)
     prompt, negative = build_panel_prompt(project, panel)
     refs = reference_paths(project_dir, project, panel)
+    provider = get_image_provider(settings)
     cache_key = hashlib.sha256(
         json.dumps(
             {
@@ -69,8 +67,10 @@ def generate_panel_image(
                 "negative": negative,
                 "id": panel.id,
                 "refs": [str(r) for r in refs],
+                "provider": provider.name,
                 "t2i": settings.resolved_t2i_model(),
                 "pulid": settings.fal_pulid_model,
+                "comfy_workflow": settings.comfy_workflow_path,
             },
             ensure_ascii=False,
             sort_keys=True,
@@ -82,20 +82,13 @@ def generate_panel_image(
         if meta.get("cache_key") == cache_key:
             return out_path
 
-    if settings.comic_mock:
-        _write_mock_image(out_path, panel, prompt)
-        provider = "mock"
-        model_used = "mock"
-    else:
-        require_fal(settings)
-        model_used = _call_fal(
-            out_path=out_path,
-            prompt=prompt,
-            negative=negative,
-            refs=refs,
-            settings=settings,
-        )
-        provider = "fal"
+    require_provider(settings)
+    model_used = provider.generate(
+        out_path=out_path,
+        prompt=prompt,
+        negative=negative,
+        refs=refs,
+    )
 
     meta_path.write_text(
         json.dumps(
@@ -105,7 +98,7 @@ def generate_panel_image(
                 "prompt": prompt,
                 "negative": negative,
                 "refs": [str(r) for r in refs],
-                "provider": provider,
+                "provider": provider.name,
                 "model": model_used,
             },
             ensure_ascii=False,
@@ -116,103 +109,6 @@ def generate_panel_image(
     return out_path
 
 
-def _write_mock_image(out_path: Path, panel: Panel, prompt: str) -> None:
-    img = Image.new("RGB", (768, 1024), (28, 34, 48))
-    draw = ImageDraw.Draw(img)
-    draw.rectangle((40, 40, 728, 984), outline=(210, 190, 140), width=3)
-    lines = [
-        f"{panel.id} | {panel.shot}",
-        panel.setting[:48],
-        panel.action[:48],
-        (panel.dialogue or "")[:40],
-        "MOCK photoreal panel",
-    ]
-    y = 80
-    for line in lines:
-        draw.text((60, y), line, fill=(235, 230, 220))
-        y += 40
-    draw.text((60, 900), prompt[:70] + "...", fill=(150, 160, 180))
-    img.save(out_path)
-
-
-def _configure_fal(settings: Settings) -> None:
-    # fal_client reads FAL_KEY from the environment.
-    os.environ["FAL_KEY"] = settings.fal_key.strip()
-
-
-def _upload_ref(path: Path) -> str:
-    import fal_client
-
-    return fal_client.upload_file(str(path))
-
-
-def _download(url: str, out_path: Path) -> None:
-    with httpx.Client(timeout=180.0) as client:
-        resp = client.get(url)
-        resp.raise_for_status()
-        out_path.write_bytes(resp.content)
-
-
-def _call_fal(
-    *,
-    out_path: Path,
-    prompt: str,
-    negative: str,
-    refs: list[Path],
-    settings: Settings,
-) -> str:
-    import fal_client
-
-    _configure_fal(settings)
-
-    if refs:
-        model = settings.fal_pulid_model
-        ref_url = _upload_ref(refs[0])
-        arguments = {
-            "prompt": prompt,
-            "reference_image_url": ref_url,
-            "negative_prompt": negative,
-            "image_size": settings.fal_image_size,
-            "num_inference_steps": settings.fal_num_inference_steps,
-            "guidance_scale": settings.fal_guidance_scale,
-            "id_weight": settings.fal_id_weight,
-            "enable_safety_checker": settings.fal_enable_safety_checker,
-        }
-    else:
-        model = settings.resolved_t2i_model()
-        arguments = {
-            "prompt": prompt,
-            "image_size": settings.fal_image_size,
-            "num_inference_steps": settings.fal_num_inference_steps,
-            "guidance_scale": settings.fal_guidance_scale,
-            "enable_safety_checker": settings.fal_enable_safety_checker,
-            "num_images": 1,
-        }
-        # flux/dev accepts negative via some endpoints; keep optional.
-        if "flux" in model:
-            arguments["enable_safety_checker"] = settings.fal_enable_safety_checker
-
-    def _on_update(update) -> None:  # noqa: ANN001
-        if isinstance(update, fal_client.InProgress) and update.logs:
-            for log in update.logs:
-                msg = log.get("message") if isinstance(log, dict) else getattr(log, "message", None)
-                if msg:
-                    print(f"[fal:{model}] {msg}")
-
-    result = fal_client.subscribe(
-        model,
-        arguments=arguments,
-        with_logs=True,
-        on_queue_update=_on_update,
-    )
-    images = result.get("images") or []
-    if not images:
-        raise RuntimeError(f"fal returned no images: {result}")
-    url = images[0]["url"] if isinstance(images[0], dict) else images[0]
-    _download(url, out_path)
-    return model
-
-
 def ensure_character_reference(
     *,
     project_dir: Path,
@@ -220,7 +116,7 @@ def ensure_character_reference(
     character: Character,
     settings: Settings,
 ) -> Path | None:
-    """Generate a locked look sheet if no reference exists yet (mock or fal)."""
+    """Generate a locked look sheet if no reference exists yet."""
     if character.reference_images:
         existing = project_dir / character.reference_images[0]
         if existing.is_file():

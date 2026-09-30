@@ -6,9 +6,11 @@
 
 ## 主路径：fal.ai（角色一致性）
 
-默认走 **fal**：
+默认 `IMAGE_PROVIDER=fal`：
 - 定妆 / 无参考：`fal-ai/flux/dev`
 - 有角色参考图：`fal-ai/flux-pulid`（锁脸）
+
+以后切 AutoDL/ComfyUI 只需改 `IMAGE_PROVIDER=comfy` + `COMFY_API_URL`（角色卡/分镜/定妆图不用动）。见 [docs/provider-switch.md](docs/provider-switch.md)。
 
 ```bash
 cd ai-realistic-comic
