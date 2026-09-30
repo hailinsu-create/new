@@ -4,24 +4,33 @@
 
 > 本目录当前暂存在 [`hailinsu-create/new`](https://github.com/hailinsu-create/new) 仓库内（Cloud Agent token 无法 `gh repo create`）。你在 GitHub 建好空仓库 `ai-realistic-comic` 后，可把本目录迁出为独立 repo。
 
-## 快速开始（Mock，无需 API Key）
+## 主路径：fal.ai（角色一致性）
+
+默认走 **fal**：
+- 定妆 / 无参考：`fal-ai/flux/dev`
+- 有角色参考图：`fal-ai/flux-pulid`（锁脸）
 
 ```bash
 cd ai-realistic-comic
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
-cp .env.example .env   # COMIC_MOCK=1
-comic run demo-xianxia
-# 输出：output/demo-xianxia/panels/*.png 与 pages/page_01.png
-pytest -q
+cp .env.example .env
+# 写入 FAL_KEY=...（Cloud Agent Secrets 或本地 export）
+comic doctor
+comic cast demo-spider-wukong --id zhizhu --name 蜘蛛精 --make-ref
+comic generate demo-spider-wukong --force
+comic assemble demo-spider-wukong
 ```
 
-## 实网出图
+也可用 `comic run <project>` 一条龙（分镜无 `OPENAI_API_KEY` 时用内置 mock episode）。
 
-1. 在 `.env` 设置 `COMIC_MOCK=0`、`FAL_KEY`、`OPENAI_API_KEY`（可选自定义 `OPENAI_BASE_URL`）。
-2. 为角色生成/放入定妆图：`comic cast demo-xianxia --id lin_zhuiguang --name 林追光 ...`（默认 `make_ref`）。
-3. `comic run demo-xianxia` 或分步：`plan` → `generate` → `assemble`。
+## 离线 Mock（仅 CI / 无 Key）
+
+```bash
+COMIC_MOCK=1 comic run demo-xianxia
+pytest -q
+```
 
 ## CLI
 

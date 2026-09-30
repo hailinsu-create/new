@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 
 import httpx
 from PIL import Image, ImageDraw
 
-from comic_pipeline.config import Settings
+from comic_pipeline.config import Settings, require_fal
 from comic_pipeline.models import Character, Panel, Project
 from comic_pipeline.prompts.genres import GENRE_STYLE, genre_negative
 
@@ -23,11 +24,12 @@ def build_panel_prompt(project: Project, panel: Panel) -> tuple[str, str]:
         [
             GENRE_STYLE[project.genre],
             panel.setting,
-            panel.shot + " shot",
+            f"{panel.shot} shot",
             panel.action,
-            panel.emotion and f"emotion: {panel.emotion}",
+            f"emotion: {panel.emotion}" if panel.emotion else "",
             "; ".join(char_blocks),
             "highly detailed skin texture, realistic eyes, coherent anatomy",
+            "same character identity as reference, consistent face and wardrobe",
         ]
     )
     negative = panel.negative or genre_negative(project.genre)
@@ -59,9 +61,17 @@ def generate_panel_image(
 ) -> Path:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     prompt, negative = build_panel_prompt(project, panel)
+    refs = reference_paths(project_dir, project, panel)
     cache_key = hashlib.sha256(
         json.dumps(
-            {"prompt": prompt, "negative": negative, "id": panel.id},
+            {
+                "prompt": prompt,
+                "negative": negative,
+                "id": panel.id,
+                "refs": [str(r) for r in refs],
+                "t2i": settings.resolved_t2i_model(),
+                "pulid": settings.fal_pulid_model,
+            },
             ensure_ascii=False,
             sort_keys=True,
         ).encode("utf-8")
@@ -72,17 +82,20 @@ def generate_panel_image(
         if meta.get("cache_key") == cache_key:
             return out_path
 
-    refs = reference_paths(project_dir, project, panel)
-    if settings.comic_mock or not settings.fal_key:
+    if settings.comic_mock:
         _write_mock_image(out_path, panel, prompt)
+        provider = "mock"
+        model_used = "mock"
     else:
-        _call_fal(
+        require_fal(settings)
+        model_used = _call_fal(
             out_path=out_path,
             prompt=prompt,
             negative=negative,
             refs=refs,
             settings=settings,
         )
+        provider = "fal"
 
     meta_path.write_text(
         json.dumps(
@@ -92,6 +105,8 @@ def generate_panel_image(
                 "prompt": prompt,
                 "negative": negative,
                 "refs": [str(r) for r in refs],
+                "provider": provider,
+                "model": model_used,
             },
             ensure_ascii=False,
             indent=2,
@@ -120,6 +135,24 @@ def _write_mock_image(out_path: Path, panel: Panel, prompt: str) -> None:
     img.save(out_path)
 
 
+def _configure_fal(settings: Settings) -> None:
+    # fal_client reads FAL_KEY from the environment.
+    os.environ["FAL_KEY"] = settings.fal_key.strip()
+
+
+def _upload_ref(path: Path) -> str:
+    import fal_client
+
+    return fal_client.upload_file(str(path))
+
+
+def _download(url: str, out_path: Path) -> None:
+    with httpx.Client(timeout=180.0) as client:
+        resp = client.get(url)
+        resp.raise_for_status()
+        out_path.write_bytes(resp.content)
+
+
 def _call_fal(
     *,
     out_path: Path,
@@ -127,60 +160,57 @@ def _call_fal(
     negative: str,
     refs: list[Path],
     settings: Settings,
-) -> None:
-    # fal queue API (synchronous wait via /requests endpoint pattern)
-    model = settings.fal_image_model
-    headers = {
-        "Authorization": f"Key {settings.fal_key}",
-        "Content-Type": "application/json",
-    }
-    body: dict = {
-        "prompt": prompt,
-        "num_images": 1,
-        "image_size": "portrait_4_3",
-        "enable_safety_checker": True,
-    }
-    # If reference provided, prefer image-to-image strength for consistency.
+) -> str:
+    import fal_client
+
+    _configure_fal(settings)
+
     if refs:
-        import base64
+        model = settings.fal_pulid_model
+        ref_url = _upload_ref(refs[0])
+        arguments = {
+            "prompt": prompt,
+            "reference_image_url": ref_url,
+            "negative_prompt": negative,
+            "image_size": settings.fal_image_size,
+            "num_inference_steps": settings.fal_num_inference_steps,
+            "guidance_scale": settings.fal_guidance_scale,
+            "id_weight": settings.fal_id_weight,
+            "enable_safety_checker": settings.fal_enable_safety_checker,
+        }
+    else:
+        model = settings.resolved_t2i_model()
+        arguments = {
+            "prompt": prompt,
+            "image_size": settings.fal_image_size,
+            "num_inference_steps": settings.fal_num_inference_steps,
+            "guidance_scale": settings.fal_guidance_scale,
+            "enable_safety_checker": settings.fal_enable_safety_checker,
+            "num_images": 1,
+        }
+        # flux/dev accepts negative via some endpoints; keep optional.
+        if "flux" in model:
+            arguments["enable_safety_checker"] = settings.fal_enable_safety_checker
 
-        raw = refs[0].read_bytes()
-        b64 = base64.b64encode(raw).decode("ascii")
-        body["image_url"] = f"data:image/png;base64,{b64}"
-        body["strength"] = 0.55
-        # Many fal flux endpoints accept image_url for img2img variants.
-        if not model.endswith("/image-to-image"):
-            model = model.rstrip("/") + "/image-to-image"
+    def _on_update(update) -> None:  # noqa: ANN001
+        if isinstance(update, fal_client.InProgress) and update.logs:
+            for log in update.logs:
+                msg = log.get("message") if isinstance(log, dict) else getattr(log, "message", None)
+                if msg:
+                    print(f"[fal:{model}] {msg}")
 
-    submit_url = f"https://queue.fal.run/{model}"
-    with httpx.Client(timeout=180.0) as client:
-        submit = client.post(submit_url, headers=headers, json=body)
-        submit.raise_for_status()
-        submitted = submit.json()
-        status_url = submitted.get("status_url") or submitted.get("response_url")
-        result = submitted
-        # Poll if queued
-        for _ in range(60):
-            if "images" in result or (isinstance(result.get("data"), dict) and "images" in result["data"]):
-                break
-            if not status_url:
-                break
-            poll = client.get(status_url, headers=headers)
-            poll.raise_for_status()
-            result = poll.json()
-            if result.get("status") in {"COMPLETED", "OK"} and result.get("response_url"):
-                done = client.get(result["response_url"], headers=headers)
-                done.raise_for_status()
-                result = done.json()
-                break
-            if result.get("status") == "FAILED":
-                raise RuntimeError(f"fal generation failed: {result}")
-        images = result.get("images") or result.get("data", {}).get("images") or []
-        if not images:
-            raise RuntimeError(f"fal returned no images: {result}")
-        url = images[0]["url"] if isinstance(images[0], dict) else images[0]
-        img_bytes = client.get(url).content
-        out_path.write_bytes(img_bytes)
+    result = fal_client.subscribe(
+        model,
+        arguments=arguments,
+        with_logs=True,
+        on_queue_update=_on_update,
+    )
+    images = result.get("images") or []
+    if not images:
+        raise RuntimeError(f"fal returned no images: {result}")
+    url = images[0]["url"] if isinstance(images[0], dict) else images[0]
+    _download(url, out_path)
+    return model
 
 
 def ensure_character_reference(
@@ -203,10 +233,12 @@ def ensure_character_reference(
         shot="portrait look-sheet",
         characters=[character.id],
         emotion="neutral calm",
-        action="character lookbook portrait, front three-quarter view, plain soft backdrop",
+        action=(
+            "character lookbook portrait, front three-quarter view, "
+            "plain soft neutral backdrop, identity lock sheet"
+        ),
         setting="studio portrait for continuity lock",
     )
-    # Temporarily inject character into project context
     if character.id not in project.character_map():
         project.characters.append(character)
     generate_panel_image(

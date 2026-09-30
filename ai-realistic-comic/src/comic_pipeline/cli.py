@@ -8,7 +8,7 @@ import yaml
 from dotenv import load_dotenv
 
 from comic_pipeline.assemble import assemble_pages
-from comic_pipeline.config import get_settings
+from comic_pipeline.config import get_settings, require_fal
 from comic_pipeline.image import ensure_character_reference, generate_panel_image
 from comic_pipeline.llm import plan_episode
 from comic_pipeline.models import Character, Project, load_episode, load_project, save_episode, save_project
@@ -52,6 +52,22 @@ def init_project(
     typer.echo(f"Created {project_dir}")
 
 
+@app.command("doctor")
+def doctor() -> None:
+    """Check fal credentials and model defaults."""
+    settings = get_settings()
+    typer.echo(f"COMIC_MOCK={settings.comic_mock}")
+    typer.echo(f"FAL_KEY={'set' if settings.fal_key.strip() else 'MISSING'}")
+    typer.echo(f"FAL_T2I_MODEL={settings.resolved_t2i_model()}")
+    typer.echo(f"FAL_PULID_MODEL={settings.fal_pulid_model}")
+    try:
+        require_fal(settings)
+        typer.echo("fal mode: ready")
+    except RuntimeError as exc:
+        typer.echo(f"fal mode: NOT ready — {exc}")
+        raise typer.Exit(code=1)
+
+
 @app.command("cast")
 def cast_character(
     project: str = typer.Argument(...),
@@ -63,7 +79,7 @@ def cast_character(
     wardrobe: str = typer.Option(""),
     signature_props: str = typer.Option(""),
     notes: str = typer.Option(""),
-    make_ref: bool = typer.Option(True, help="Generate a look-sheet reference image"),
+    make_ref: bool = typer.Option(True, help="Generate a look-sheet reference image via fal"),
 ) -> None:
     """Add or update a character card; optionally bake a reference look sheet."""
     project_dir = _projects_root() / project
@@ -83,6 +99,11 @@ def cast_character(
     proj.characters = list(existing.values())
     settings = get_settings()
     if make_ref:
+        try:
+            require_fal(settings)
+        except RuntimeError as exc:
+            typer.echo(str(exc))
+            raise typer.Exit(code=1)
         ensure_character_reference(
             project_dir=project_dir,
             project=proj,
@@ -118,6 +139,11 @@ def generate_cmd(
     proj = load_project(project_dir)
     episode = load_episode(project_dir / "episode.yaml")
     settings = get_settings()
+    try:
+        require_fal(settings)
+    except RuntimeError as exc:
+        typer.echo(str(exc))
+        raise typer.Exit(code=1)
     panel_dir = _output_root() / project / "panels"
     panels = episode.panels[:limit] if limit else episode.panels
     for panel in panels:
