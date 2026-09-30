@@ -48,7 +48,7 @@ def _draw_dialogue(img: Image.Image, text: str) -> Image.Image:
     box_h = max(80, h // 8)
     draw.rectangle((0, h - box_h, w, h), fill=(0, 0, 0, 180) if img.mode == "RGBA" else (10, 10, 12))
     font = None
-    size = max(18, w // 28)
+    size = max(28, w // 22)
     for candidate, index in (
         ("/usr/share/fonts/truetype/wqy/wqy-microhei.ttc", 0),
         ("/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc", 0),
