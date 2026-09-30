@@ -58,7 +58,7 @@ class Project(BaseModel):
     name: str
     genre: Genre = "xianxia"
     title: str = ""
-    layout: Literal["grid_2x3", "vertical_strip"] = "grid_2x3"
+    layout: Literal["grid_2x3", "grid_2x4", "vertical_strip"] = "grid_2x3"
     characters: list[Character] = Field(default_factory=list)
 
     def character_map(self) -> dict[str, Character]:

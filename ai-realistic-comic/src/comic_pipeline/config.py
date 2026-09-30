@@ -13,13 +13,9 @@ class Settings(BaseSettings):
     image_provider: str = "fal"
 
     fal_key: str = ""
-    # Text-to-image for look sheets / panels without a reference.
     fal_t2i_model: str = "fal-ai/flux/dev"
-    # Character-locked generation when a reference image exists.
     fal_pulid_model: str = "fal-ai/flux-pulid"
-    # Optional scene-edit model (Kontext) for later; unused by default.
     fal_kontext_model: str = "fal-ai/flux-pro/kontext"
-    # Back-compat alias used by older .env files.
     fal_image_model: str = ""
 
     fal_image_size: str = "portrait_4_3"
@@ -28,7 +24,14 @@ class Settings(BaseSettings):
     fal_num_inference_steps: int = 28
     fal_enable_safety_checker: bool = True
 
-    # ComfyUI / AutoDL (future). Same character refs + episode.yaml.
+    # Economic gates — no infinite rerolls.
+    comic_budget_usd: float = 0.80
+    comic_max_ref_tries: int = 3
+    comic_max_panel_tries: int = 2
+    comic_max_page_repair: int = 2
+    # Reject panels that ask for 2+ named characters with equal face time.
+    comic_forbid_multi_face: bool = True
+
     comfy_api_url: str = "http://127.0.0.1:8188"
     comfy_workflow_path: str = ""
     comfy_client_id: str = "ai-realistic-comic"
@@ -51,13 +54,11 @@ def get_settings() -> Settings:
 
 
 def require_provider(settings: Settings) -> None:
-    """Raise a clear error when the active image backend is not configured."""
     from comic_pipeline.providers import get_image_provider
 
     get_image_provider(settings).ready()
 
 
-# Back-compat name used by older call sites / tests.
 def require_fal(settings: Settings) -> None:
     if settings.comic_mock:
         return
@@ -68,6 +69,5 @@ def require_fal(settings: Settings) -> None:
         raise RuntimeError(
             "FAL_KEY is not set. Add it as a Cloud Agent / environment secret "
             "(or export FAL_KEY / put it in ai-realistic-comic/.env), then rerun. "
-            "For offline smoke tests only: COMIC_MOCK=1. "
-            "To prepare AutoDL later: IMAGE_PROVIDER=comfy + COMFY_API_URL."
+            "For offline smoke tests only: COMIC_MOCK=1."
         )

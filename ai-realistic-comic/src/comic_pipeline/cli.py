@@ -8,8 +8,12 @@ import yaml
 from dotenv import load_dotenv
 
 from comic_pipeline.assemble import assemble_pages
+from comic_pipeline.budget import BudgetLedger
 from comic_pipeline.config import get_settings, require_provider
-from comic_pipeline.image import ensure_character_reference, generate_panel_image
+from comic_pipeline.image import (
+    ensure_character_reference,
+    generate_panel_with_retries,
+)
 from comic_pipeline.llm import plan_episode
 from comic_pipeline.models import Character, Project, load_episode, load_project, save_episode, save_project
 
@@ -36,7 +40,6 @@ def init_project(
     genre: str = typer.Option("xianxia", help="xianxia | fantasy | scifi"),
     title: str = typer.Option("", help="Display title"),
 ) -> None:
-    """Create a new project skeleton."""
     if genre not in {"xianxia", "fantasy", "scifi"}:
         raise typer.BadParameter("genre must be xianxia, fantasy, or scifi")
     project_dir = _projects_root() / slug
@@ -54,15 +57,17 @@ def init_project(
 
 @app.command("doctor")
 def doctor() -> None:
-    """Check active image provider credentials and defaults."""
     settings = get_settings()
     typer.echo(f"COMIC_MOCK={settings.comic_mock}")
     typer.echo(f"IMAGE_PROVIDER={settings.resolved_provider()}")
     typer.echo(f"FAL_KEY={'set' if settings.fal_key.strip() else 'MISSING'}")
+    typer.echo(f"COMIC_BUDGET_USD={settings.comic_budget_usd}")
+    typer.echo(f"COMIC_MAX_REF_TRIES={settings.comic_max_ref_tries}")
+    typer.echo(f"COMIC_MAX_PANEL_TRIES={settings.comic_max_panel_tries}")
+    typer.echo(f"COMIC_MAX_PAGE_REPAIR={settings.comic_max_page_repair}")
+    typer.echo(f"COMIC_FORBID_MULTI_FACE={settings.comic_forbid_multi_face}")
     typer.echo(f"FAL_T2I_MODEL={settings.resolved_t2i_model()}")
     typer.echo(f"FAL_PULID_MODEL={settings.fal_pulid_model}")
-    typer.echo(f"COMFY_API_URL={settings.comfy_api_url or '(empty)'}")
-    typer.echo(f"COMFY_WORKFLOW_PATH={settings.comfy_workflow_path or '(empty)'}")
     try:
         require_provider(settings)
         typer.echo(f"{settings.resolved_provider()} mode: ready")
@@ -82,9 +87,9 @@ def cast_character(
     wardrobe: str = typer.Option(""),
     signature_props: str = typer.Option(""),
     notes: str = typer.Option(""),
-    make_ref: bool = typer.Option(True, help="Generate a look-sheet reference image via fal"),
+    make_ref: bool = typer.Option(True, help="Generate look-sheet if missing"),
+    force_ref: bool = typer.Option(False, help="Regenerate look-sheet (costs budget)"),
 ) -> None:
-    """Add or update a character card; optionally bake a reference look sheet."""
     project_dir = _projects_root() / project
     proj = load_project(project_dir)
     char = Character(
@@ -107,21 +112,25 @@ def cast_character(
         except RuntimeError as exc:
             typer.echo(str(exc))
             raise typer.Exit(code=1)
+        ledger = BudgetLedger(limit_usd=settings.comic_budget_usd)
         ensure_character_reference(
             project_dir=project_dir,
             project=proj,
             character=char,
             settings=settings,
+            ledger=ledger,
+            force=force_ref,
         )
         existing[char_id] = char
         proj.characters = list(existing.values())
+        ledger.save(_output_root() / project / "budget.json")
+        typer.echo(f"budget spent ${ledger.spent_usd:.4f} / ${ledger.limit_usd:.4f}")
     save_project(project_dir, proj)
     typer.echo(f"Saved character {char_id} in {project}")
 
 
 @app.command("plan")
 def plan_cmd(project: str = typer.Argument(...)) -> None:
-    """Turn story.md into episode.yaml storyboard."""
     project_dir = _projects_root() / project
     proj = load_project(project_dir)
     settings = get_settings()
@@ -137,7 +146,7 @@ def generate_cmd(
     force: bool = typer.Option(False, help="Ignore panel cache"),
     limit: Optional[int] = typer.Option(None, help="Only first N panels"),
 ) -> None:
-    """Generate panel images from episode.yaml."""
+    """Generate panels with budget + retry caps."""
     project_dir = _projects_root() / project
     proj = load_project(project_dir)
     episode = load_episode(project_dir / "episode.yaml")
@@ -147,24 +156,35 @@ def generate_cmd(
     except RuntimeError as exc:
         typer.echo(str(exc))
         raise typer.Exit(code=1)
+
+    ledger = BudgetLedger(limit_usd=settings.comic_budget_usd)
     panel_dir = _output_root() / project / "panels"
     panels = episode.panels[:limit] if limit else episode.panels
     for panel in panels:
         out = panel_dir / f"{panel.id}.png"
-        generate_panel_image(
-            project_dir=project_dir,
-            project=proj,
-            panel=panel,
-            out_path=out,
-            settings=settings,
-            force=force,
-        )
-        typer.echo(f"panel {panel.id} -> {out}")
+        try:
+            generate_panel_with_retries(
+                project_dir=project_dir,
+                project=proj,
+                panel=panel,
+                out_path=out,
+                settings=settings,
+                force=force,
+                ledger=ledger,
+            )
+            typer.echo(
+                f"panel {panel.id} -> {out} | spent ${ledger.spent_usd:.4f}/${ledger.limit_usd:.4f}"
+            )
+        except RuntimeError as exc:
+            ledger.save(_output_root() / project / "budget.json")
+            typer.echo(f"STOP on {panel.id}: {exc}")
+            raise typer.Exit(code=1)
+    ledger.save(_output_root() / project / "budget.json")
+    typer.echo(f"budget total ${ledger.spent_usd:.4f} / ${ledger.limit_usd:.4f}")
 
 
 @app.command("assemble")
 def assemble_cmd(project: str = typer.Argument(...)) -> None:
-    """Compose pages with dialogue bars."""
     project_dir = _projects_root() / project
     proj = load_project(project_dir)
     episode = load_episode(project_dir / "episode.yaml")
@@ -185,7 +205,6 @@ def run_all(
     project: str = typer.Argument(...),
     force: bool = typer.Option(False),
 ) -> None:
-    """plan + generate + assemble."""
     plan_cmd(project)
     generate_cmd(project, force=force, limit=None)
     assemble_cmd(project)

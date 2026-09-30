@@ -24,6 +24,10 @@ def assemble_pages(
         panels = by_page[page_no]
         if project.layout == "vertical_strip":
             page_path = _assemble_vertical(panels, panel_dir, out_dir / f"page_{page_no:02d}.png")
+        elif project.layout == "grid_2x4":
+            page_path = _assemble_grid(
+                panels, panel_dir, out_dir / f"page_{page_no:02d}.png", cols=2, rows=4
+            )
         else:
             page_path = _assemble_grid(panels, panel_dir, out_dir / f"page_{page_no:02d}.png")
         outputs.append(page_path)
@@ -65,8 +69,13 @@ def _draw_dialogue(img: Image.Image, text: str) -> Image.Image:
     return img
 
 
-def _assemble_grid(panels, panel_dir: Path, out_path: Path) -> Path:
-    cols, rows = 2, 3
+def _assemble_grid(
+    panels,
+    panel_dir: Path,
+    out_path: Path,
+    cols: int = 2,
+    rows: int = 3,
+) -> Path:
     cell_w, cell_h = 768, 1024
     page = Image.new("RGB", (cols * cell_w, rows * cell_h), (12, 12, 14))
     for idx, panel in enumerate(panels[: cols * rows]):
