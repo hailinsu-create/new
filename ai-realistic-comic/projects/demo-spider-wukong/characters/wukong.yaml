@@ -1,10 +1,13 @@
 id: wukong
 name: 孙悟空
 age_look: young adult simian-human hybrid warrior, athletic
-face: sharp clever monkey features with human structure, gold-amber eyes, confident smirk, light fur along jawline
+face: sharp clever monkey features with human structure, gold-amber eyes, confident
+  smirk, light fur along jawline
 hair: wild upright black-brown fur-hair with golden fillet headband
-wardrobe: traditional Journey-to-the-West inspired battle gear — tiger-skin skirt, monk-style open chest wrap, armored wrist guards, cloud boots
+wardrobe: traditional Journey-to-the-West inspired battle gear — tiger-skin skirt,
+  monk-style open chest wrap, armored wrist guards, cloud boots
 signature_props: golden Ruyi Jingu Bang staff
-notes: >-
-  LOCKED look: photoreal live-action mythic Wukong, recognizable but cinematic, not cute chibi.
-reference_images: []
+notes: 'LOCKED look: photoreal live-action mythic Wukong, recognizable but cinematic,
+  not cute chibi.'
+reference_images:
+- characters/wukong_ref.png

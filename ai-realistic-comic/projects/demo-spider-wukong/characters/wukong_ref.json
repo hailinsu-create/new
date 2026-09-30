@@ -1,0 +1,9 @@
+{
+  "panel_id": "wukong_ref",
+  "cache_key": "0129a832e6d81fda",
+  "prompt": "cinematic still photograph, photorealistic high fantasy live-action, volumetric god rays, weathered armor and cloak fabrics, epic landscape, shallow depth of field, IMAX still frame, NOT anime, NOT cartoon, NOT illustration, studio portrait for continuity lock, portrait look-sheet shot, character lookbook portrait, front three-quarter view, plain soft neutral backdrop, identity lock sheet, emotion: neutral calm, Character 孙悟空 (id=wukong); age look: young adult simian-human hybrid warrior, athletic; face: sharp clever monkey features with human structure, gold-amber eyes, confident smirk, light fur along jawline; hair: wild upright black-brown fur-hair with golden fillet headband; wardrobe (LOCKED unless panel says costume change): traditional Journey-to-the-West inspired battle gear — tiger-skin skirt, monk-style open chest wrap, armored wrist guards, cloud boots; signature props: golden Ruyi Jingu Bang staff; notes: LOCKED look: photoreal live-action mythic Wukong, recognizable but cinematic, not cute chibi., highly detailed skin texture, realistic eyes, coherent anatomy, same character identity as reference, consistent face and wardrobe",
+  "negative": "cartoon, anime, illustration, deformed face, extra fingers",
+  "refs": [],
+  "provider": "fal",
+  "model": "fal-ai/flux/dev"
+}

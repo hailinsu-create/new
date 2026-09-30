@@ -1,0 +1,9 @@
+{
+  "panel_id": "zhizhu_ref",
+  "cache_key": "38911b0d50726147",
+  "prompt": "cinematic still photograph, photorealistic high fantasy live-action, volumetric god rays, weathered armor and cloak fabrics, epic landscape, shallow depth of field, IMAX still frame, NOT anime, NOT cartoon, NOT illustration, studio portrait for continuity lock, portrait look-sheet shot, character lookbook portrait, front three-quarter view, plain soft neutral backdrop, identity lock sheet, emotion: neutral calm, Character 蜘蛛精 (id=zhizhu); age look: ageless woman appearing mid-20s East Asian; face: oval face, fox-like elongated eyes with wet sheen, full lips, beauty mark near mouth corner, seductive half-lidded gaze; hair: glossy jet-black hair in loose high cascade with a few silk-thread ornaments, a few strands clinging to collarbone; wardrobe (LOCKED unless panel says costume change): sheer black-violet silk robe slipping off one shoulder, deep cleavage wrapped in translucent gauze, high slit skirt revealing long legs, dark jade waist chain, bare feet with anklet; signature props: glowing violet spider-silk threads coiled around fingers; notes: LOCKED look: glamorous yaoguai seductress, alluring and dangerous, photoreal live-action, elegant not vulgar pornographic; keep same face/hair/wardrobe every panel., highly detailed skin texture, realistic eyes, coherent anatomy, same character identity as reference, consistent face and wardrobe",
+  "negative": "cartoon, anime, illustration, deformed face, extra fingers",
+  "refs": [],
+  "provider": "fal",
+  "model": "fal-ai/flux/dev"
+}
