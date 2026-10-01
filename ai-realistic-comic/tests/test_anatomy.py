@@ -52,7 +52,7 @@ def test_strict_check_flags_extra_arm(monkeypatch, tmp_path):
     monkeypatch.setattr(qa, "_enabled", lambda s: True)
     reply = {"arms": [{}, {}, {}, {}, {}], "unattached_or_extra_limbs": 1, "malformed_hands": 0, "verdict": "x"}
     monkeypatch.setattr(qa, "_judge", lambda s, i, p, model=None, reasoning=False: json.dumps(reply))
-    a = qa.strict_limb_check(Settings(), _img(tmp_path), 2, None)
+    a = qa.strict_limb_check(Settings(comic_strict_audit=True), _img(tmp_path), 2, None)
     assert not a.ok and len(a.issues) == 2
 
 
@@ -60,13 +60,13 @@ def test_strict_check_passes_four_arms(monkeypatch, tmp_path):
     monkeypatch.setattr(qa, "_enabled", lambda s: True)
     reply = {"arms": [{}, {}, {}, {}], "unattached_or_extra_limbs": 0, "malformed_hands": 0}
     monkeypatch.setattr(qa, "_judge", lambda s, i, p, model=None, reasoning=False: json.dumps(reply))
-    assert qa.strict_limb_check(Settings(), _img(tmp_path), 2, None).ok
+    assert qa.strict_limb_check(Settings(comic_strict_audit=True), _img(tmp_path), 2, None).ok
 
 
 def test_strict_check_empty_reply_is_skipped_not_crash(monkeypatch, tmp_path):
     monkeypatch.setattr(qa, "_enabled", lambda s: True)
     monkeypatch.setattr(qa, "_judge", lambda s, i, p, model=None, reasoning=False: "")
-    a = qa.strict_limb_check(Settings(), _img(tmp_path), 2, None)
+    a = qa.strict_limb_check(Settings(comic_strict_audit=True), _img(tmp_path), 2, None)
     assert a.ok and a.skipped
 
 
