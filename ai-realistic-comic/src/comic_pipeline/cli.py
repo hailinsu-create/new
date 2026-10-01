@@ -12,7 +12,7 @@ from comic_pipeline.assemble import assemble_pages
 from comic_pipeline.budget import BudgetLedger
 from comic_pipeline.compliance import PLATFORMS, format_report, lint_project, lint_still
 from comic_pipeline.config import get_settings, require_provider
-from comic_pipeline.export import export_release
+from comic_pipeline.export import export_release, export_still_release
 from comic_pipeline.image import (
     ensure_character_reference,
     generate_panel_with_retries,
@@ -233,6 +233,43 @@ def export_cmd(
         budget_path=out_root / "budget.json",
     )
     typer.echo(f"export -> {manifest.parent}")
+
+
+@app.command("export-stills")
+def export_stills_cmd(
+    platform: str = typer.Option(..., help=f"One of: {', '.join(sorted(PLATFORMS))}"),
+    out: str = typer.Option("launch/fanvue", help="Output folder under output/"),
+    items: list[str] = typer.Argument(..., help="project:still-id pairs"),
+) -> None:
+    """Lint and stamp finished stills (full + free preview) and merge their provenance into manifest.json."""
+    settings = get_settings()
+    out_dir = _output_root() / out
+    entries = []
+    for item in items:
+        project, _, still_id = item.partition(":")
+        project_dir = _projects_root() / project
+        proj = load_project(project_dir)
+        spec = load_still(project_dir / "stills" / f"{still_id}.yaml")
+        report = lint_still(spec, proj, settings, platform)
+        if not report.ok:
+            typer.echo(format_report(report))
+            raise typer.Exit(code=1)
+        still_dir = _output_root() / project / "stills" / still_id
+        info = json.loads((still_dir / "still.json").read_text(encoding="utf-8")) if (still_dir / "still.json").is_file() else {}
+        entries.append(
+            export_still_release(
+                project=proj, still=spec, image=still_dir / "final.png", still_report=info, platform=platform, out_dir=out_dir
+            )
+        )
+        typer.echo(f"exported {item}")
+    manifest = out_dir / "manifest.json"
+    old = json.loads(manifest.read_text(encoding="utf-8")).get("items", []) if manifest.is_file() else []
+    merged = {e["file"]: e for e in [*old, *entries]}
+    manifest.write_text(
+        json.dumps({"platform": platform, "platform_label_rule": PLATFORMS[platform]["label"], "items": list(merged.values())}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    typer.echo(f"export-stills -> {out_dir}")
 
 
 @app.command("qa")

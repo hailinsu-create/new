@@ -92,3 +92,45 @@ def export_release(
     manifest_path = out_dir / "manifest.json"
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     return manifest_path
+
+
+def export_still_release(
+    *,
+    project: Project,
+    still,
+    image: Path,
+    still_report: dict,
+    platform: str,
+    out_dir: Path,
+) -> dict:
+    """Stamp a finished still with the AI disclosure, write a full-size file and a free-preview file, and
+    return its provenance entry. The manifest is merged by the caller."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    stem = f"{project.name}__{still.id}"
+    full = out_dir / f"{stem}.jpg"
+    stamp_disclosure(image, full, "AI-Generated")
+    with Image.open(image) as im:
+        prev = im.convert("RGB")
+        prev.thumbnail((1080, 1440))
+        tmp = out_dir / f"_{stem}_prev.png"
+        prev.save(tmp)
+    preview = out_dir / f"{stem}_preview.jpg"
+    stamp_disclosure(tmp, preview, "AI-Generated")
+    tmp.unlink()
+    cmap = project.character_map()
+    return {
+        "file": full.name,
+        "preview": preview.name,
+        "project": project.name,
+        "still": still.id,
+        "platform": platform,
+        "sha256": hashlib.sha256(full.read_bytes()).hexdigest(),
+        "characters": [
+            {"id": c, "name": cmap[c].name, "declared_age_look": cmap[c].age_look, "fictional": True}
+            for c in still.characters
+        ],
+        "score": still_report.get("final_total"),
+        "needs_review": still_report.get("needs_review"),
+        "prompt_sha256": hashlib.sha256(str(still_report.get("prompt", "")).encode("utf-8")).hexdigest(),
+        "spent_usd": still_report.get("spent_usd"),
+    }
