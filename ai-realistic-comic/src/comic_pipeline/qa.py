@@ -86,6 +86,7 @@ def qa_reference(
     image: Path,
     ledger: BudgetLedger | None = None,
     render_style: str = "photoreal",
+    full_body: bool = False,
 ) -> QAResult:
     blank = blank_image_issue(image)
     if blank:
@@ -108,7 +109,7 @@ def qa_reference(
         "face_matches_card, wardrobe_matches_card (major garments, colors and silhouette match; ignore tiny accessory "
         "differences, but flag extra capes/armor/large items not in the card), "
         "species_matches_card, adult_appearance (clearly an adult), no_artifacts (no extra limbs/fingers, "
-        "no text or watermark), full_outfit_visible, "
+        "no text or watermark), full_outfit_visible (the entire body from head to feet and the footwear are inside the frame, nothing cropped), "
         f"style_matches ({style_rule}); plus 'issues' (short strings, ONLY for failed boolean checks) "
         "and 'pass' (boolean)."
     )
@@ -126,6 +127,7 @@ def qa_reference(
             "adult_appearance",
             "no_artifacts",
             "style_matches",
+            *(["full_outfit_visible"] if full_body else []),
         ],
         raw,
     )

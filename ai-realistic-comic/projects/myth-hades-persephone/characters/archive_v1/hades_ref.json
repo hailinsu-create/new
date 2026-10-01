@@ -1,0 +1,18 @@
+{
+  "panel_id": "hades_ref",
+  "cache_key": "b50c37a3f19832dd",
+  "prompt": "photorealistic studio lookbook photograph, seamless plain neutral grey backdrop, soft even key light, 85mm lens, sharp focus on face and costume, NOT anime, NOT illustration, neutral studio portrait for continuity lock, portrait look-sheet shot, solo lookbook portrait of ONLY 哈迪斯, three-quarter view from head to thighs so the full wardrobe is visible, plain soft neutral grey studio backdrop, identity lock sheet, single subject, no other characters, no scenery, emotion: neutral calm, Character 哈迪斯 (id=hades); age look: adult man, late 30s, tall broad-shouldered mythic king of the dead, composed and magnetic; face: strong angular face, pale cool skin, deep-set dark grey eyes, defined jaw with a short neat dark beard, faint silver at the temples, calm intense gaze; human, no blue skin; hair: shoulder-length straight black hair swept back, a thin obsidian circlet; wardrobe (LOCKED unless panel says costume change): LOCKED charcoal-black layered robes with iron-grey embroidery at the collar, open V neckline, heavy black fur-trimmed cloak clasped at one shoulder with an obsidian brooch, leather and iron bracers; signature props: obsidian two-pronged bident; faint pale-blue soul-fire glowing in the free hand; notes: Original design for the Greek god of the underworld. Adult, human-looking, photoreal live-action, not an animation or webcomic likeness., highly detailed skin texture, realistic eyes, coherent anatomy, simpler composition, single clear subject, medium shot, fewer props, identity lock priority over cinematic complexity. Fix these problems from the previous attempt: face_matches_card; wardrobe_matches_card",
+  "negative": "second person, crowd, twins, wrong gender, anime, cartoon, scenery, cave, extra cape or armor not in the card, deformed face, watermark, text overlay, identical twins, same face twice, merged faces, costume swap, sunny outdoor canyon, split screen, diptych, collage, modern clothes",
+  "refs": [],
+  "provider": "fal",
+  "model": "fal-ai/bytedance/seedream/v4/text-to-image",
+  "attempt": 3,
+  "qa": {
+    "ok": false,
+    "issues": [
+      "face_matches_card",
+      "failed check: face_matches_card"
+    ],
+    "skipped": false
+  }
+}

@@ -79,6 +79,9 @@ class Project(BaseModel):
     render_style: Literal["photoreal", "stylized"] = "photoreal"
     content_tier: Literal["sfw", "suggestive", "explicit"] = "suggestive"
     atmosphere: str = ""
+    tone: str = ""  # global look modifier appended to every prompt, e.g. dark gothic low-key lighting
+    ref_framing: Literal["three_quarter", "full_body"] = "three_quarter"
+    ref_backdrop: str = "plain neutral grey"
     characters: list[Character] = Field(default_factory=list)
 
     def character_map(self) -> dict[str, Character]:

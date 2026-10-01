@@ -1,15 +1,20 @@
 {
   "panel_id": "persephone_ref",
-  "cache_key": "5965b2d48ad17209",
-  "prompt": "photorealistic studio lookbook photograph, seamless plain neutral grey backdrop, soft even key light, 85mm lens, sharp focus on face and costume, NOT anime, NOT illustration, neutral studio portrait for continuity lock, portrait look-sheet shot, solo lookbook portrait of ONLY 珀耳塞福涅, three-quarter view from head to thighs so the full wardrobe is visible, plain soft neutral grey studio backdrop, identity lock sheet, single subject, no other characters, no scenery, emotion: neutral calm, Character 珀耳塞福涅 (id=persephone); age look: adult woman, late 20s, radiant and self-possessed goddess of spring turned queen of the underworld; face: soft oval face, warm olive skin with a natural flush, large amber-brown eyes, full rose lips, a knowing half-smile; human; hair: long wavy chestnut-auburn hair with a few braided strands, a crown of living wildflowers and wheat with pomegranate seeds, tips of some petals darkened as if touched by the underworld; wardrobe (LOCKED unless panel says costume change): LOCKED draped sage-green and pale-gold Greek chiton pinned at both shoulders, deep-red pomegranate silk sash at the waist, gold arm cuff, bare arms, sandals; elegant and sensual, covered; signature props: a split pomegranate in one hand; notes: Original design for the Greek goddess Persephone. Adult, photoreal live-action, not a webcomic likeness., highly detailed skin texture, realistic eyes, coherent anatomy",
+  "cache_key": "08596dad9d523f45",
+  "prompt": "photorealistic studio lookbook photograph, seamless dark charcoal-grey with faint low mist backdrop, 85mm lens, sharp focus on face and costume, NOT anime, NOT illustration, NOT a 3D render, studio portrait for continuity lock, portrait look-sheet shot, solo lookbook photograph of ONLY 珀耳塞福涅, full-length standing pose from head to bare feet, entire body and footwear fully in frame, small margin above the head and below the feet, dark charcoal-grey with faint low mist studio backdrop, identity lock sheet, single subject, no other characters, no scenery, emotion: neutral calm, Character 珀耳塞福涅 (id=persephone); age look: adult woman, late 20s, radiant and self-possessed goddess of spring turned queen of the underworld; face: soft oval face, warm olive skin with a natural flush, large amber-brown eyes, full rose lips, a knowing half-smile; human; hair: long wavy chestnut-auburn hair with a few braided strands, a crown of wilted dark wildflowers, black-tipped wheat and pomegranate seeds; wardrobe (LOCKED unless panel says costume change): LOCKED dark sage-green and black sheer gauze chiton with a deep plunging neckline to the navel and a very high thigh slit, opaque black silk lining over breasts and hips, off both shoulders, blood-red pomegranate silk sash, gold arm cuffs, bare midriff, bare legs, bare feet; sensual and dangerous but covered; signature props: a split pomegranate in one hand; notes: Original design for the Greek goddess Persephone as dark queen of the underworld. Adult, dark gothic photoreal live-action, not a webcomic likeness., highly detailed skin texture, realistic eyes, coherent anatomy, dark gothic cinematic mood, low-key chiaroscuro lighting with deep shadows, desaturated cold palette with one warm accent, subtle mist and grain, simpler composition, single clear subject, medium shot, fewer props, identity lock priority over cinematic complexity. Fix these problems from the previous attempt: face_matches_card: The card specifies 'large amber-brown eyes' but the image shows bright orange/yellow eyes, which do not match.",
   "negative": "second person, crowd, twins, wrong gender, anime, cartoon, scenery, cave, extra cape or armor not in the card, deformed face, watermark, text overlay, identical twins, same face twice, merged faces, costume swap, sunny outdoor canyon, split screen, diptych, collage, modern clothes",
   "refs": [],
   "provider": "fal",
   "model": "fal-ai/bytedance/seedream/v4/text-to-image",
-  "attempt": 1,
+  "attempt": 3,
   "qa": {
-    "ok": true,
-    "issues": [],
+    "ok": false,
+    "issues": [
+      "face_matches_card: eyes are amber-brown in card, but yellow/orange in image",
+      "no_artifacts: eyes appear to be edited/not natural",
+      "failed check: face_matches_card",
+      "failed check: no_artifacts"
+    ],
     "skipped": false
   }
 }

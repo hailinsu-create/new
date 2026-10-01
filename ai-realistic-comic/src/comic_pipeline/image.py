@@ -13,14 +13,17 @@ from comic_pipeline.providers import get_image_provider
 from comic_pipeline.qa import QAResult, qa_panel, qa_reference
 
 
-REF_STYLE_PHOTO = (
-    "photorealistic studio lookbook photograph, seamless plain neutral grey backdrop, soft even key light, "
-    "85mm lens, sharp focus on face and costume, NOT anime, NOT illustration"
-)
-REF_STYLE_STYLIZED = (
-    "high-end digital painting character sheet, seamless plain neutral grey backdrop, soft even lighting, "
-    "clearly stylized, not a photograph"
-)
+def ref_style(project: Project) -> str:
+    backdrop = project.ref_backdrop
+    if project.render_style == "stylized":
+        return (
+            f"high-end digital painting character sheet, seamless {backdrop} backdrop, "
+            "clearly stylized, not a photograph"
+        )
+    return (
+        f"photorealistic studio lookbook photograph, seamless {backdrop} backdrop, "
+        "85mm lens, sharp focus on face and costume, NOT anime, NOT illustration, NOT a 3D render"
+    )
 
 
 def build_panel_prompt(
@@ -59,9 +62,7 @@ def build_panel_prompt(
         p
         for p in [
             ref_prefix,
-            REF_STYLE_STYLIZED
-            if is_ref and stylized
-            else REF_STYLE_PHOTO
+            ref_style(project)
             if is_ref
             else STYLIZED_ANCHOR
             if stylized
@@ -76,6 +77,7 @@ def build_panel_prompt(
             else "highly detailed skin texture, realistic eyes, coherent anatomy",
             "" if is_ref else identity,
             "" if is_ref else project.atmosphere,
+            project.tone,
         ]
         if p
     )
@@ -310,23 +312,33 @@ def ensure_character_reference(
             characters=[character.id],
             emotion="neutral calm",
             action=(
-                f"solo lookbook portrait of ONLY {character.name}, "
-                "three-quarter view from head to thighs so the full wardrobe is visible, "
-                "plain soft neutral grey studio backdrop, identity lock sheet, "
+                f"solo lookbook photograph of ONLY {character.name}, "
+                + (
+                    "full-length standing pose from head to bare feet, entire body and footwear fully in frame, "
+                    "small margin above the head and below the feet, "
+                    if project.ref_framing == "full_body"
+                    else "three-quarter view from head to thighs so the full wardrobe is visible, "
+                )
+                + f"{project.ref_backdrop} studio backdrop, identity lock sheet, "
                 "single subject, no other characters, no scenery"
             ),
-            setting="neutral studio portrait for continuity lock",
+            setting="studio portrait for continuity lock",
             negative=(
                 "second person, crowd, twins, wrong gender, anime, cartoon, scenery, cave, "
                 "extra cape or armor not in the card, deformed face, watermark, text overlay"
             ),
+        )
+        ref_settings = (
+            settings.model_copy(update={"fal_image_size": "portrait_16_9"})
+            if project.ref_framing == "full_body"
+            else settings
         )
         generate_panel_image(
             project_dir=project_dir,
             project=project,
             panel=panel,
             out_path=out,
-            settings=settings,
+            settings=ref_settings,
             force=True,
             ledger=ledger,
             attempt=attempt,
@@ -334,7 +346,9 @@ def ensure_character_reference(
         )
         last_path = out
         try:
-            final_qa = qa_reference(settings, character, out, ledger, project.render_style)
+            final_qa = qa_reference(
+                settings, character, out, ledger, project.render_style, project.ref_framing == "full_body"
+            )
         except Exception as qa_exc:  # noqa: BLE001
             final_qa = QAResult(ok=True, skipped=True, issues=[f"qa unavailable: {qa_exc}"[:200]])
         _record_qa(out, final_qa)
