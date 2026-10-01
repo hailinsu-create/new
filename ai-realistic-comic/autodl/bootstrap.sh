@@ -14,15 +14,45 @@ echo "==> GPU"
 nvidia-smi --query-gpu=name,memory.total --format=csv || true
 
 echo "==> Python packages (pipeline + diffusers)"
-pip -q install -U pip
-pip -q install -e .
-# Prefer the image's torch if CUDA works; only reinstall if missing.
-python - <<'PY'
+export PATH="/root/miniconda3/bin:/root/miniconda/bin:/opt/conda/bin:$PATH"
+PYBIN="$(command -v python3 || command -v python)"
+$PYBIN -m pip -q install -U pip
+$PYBIN -m pip -q install -e .
+# Prefer the image's torch if CUDA works; bump if missing torch.accelerator
+# (current diffusers get_device() requires PyTorch >= 2.6).
+$PYBIN - <<'PY'
+import importlib
+import subprocess
+import sys
+
 import torch
+
 assert torch.cuda.is_available(), "CUDA torch missing — pick a PyTorch+CUDA AutoDL image"
 print("torch", torch.__version__, "cuda", torch.version.cuda, "gpu", torch.cuda.get_device_name(0))
+if not hasattr(torch, "accelerator"):
+    print("upgrading torch for accelerator API…")
+    subprocess.check_call(
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "-q",
+            "install",
+            "-U",
+            "torch",
+            "torchvision",
+            "--index-url",
+            "https://download.pytorch.org/whl/cu124",
+        ]
+    )
+    importlib.reload(torch)
+    import torch
+
+    assert hasattr(torch, "accelerator"), f"torch {torch.__version__} still missing accelerator"
+    assert torch.cuda.is_available(), "CUDA broken after torch upgrade"
+    print("upgraded torch", torch.__version__, "cuda", torch.version.cuda)
 PY
-pip -q install -U "git+https://github.com/huggingface/diffusers" transformers accelerate sentencepiece protobuf pillow pyyaml
+$PYBIN -m pip -q install -U "diffusers>=0.35.0" transformers accelerate sentencepiece protobuf pillow pyyaml
 
 echo "==> Done. HF cache: $HF_HOME"
 echo "Next: bash autodl/run_smoke.sh"
