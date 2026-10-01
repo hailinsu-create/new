@@ -1,0 +1,23 @@
+{
+  "panel_id": "hades_ref",
+  "model": "fal-ai/bytedance/seedream/v4/edit",
+  "prompt": "Image 1 is the current look sheet of this character: keep exactly the same person (face, makeup, hair style), the same camera distance, full-length framing and the same backdrop. Apply ONLY these changes: the held weapon must be an obsidian bident with EXACTLY TWO prongs (not a three-pronged trident); the eyes must be dark storm-grey, not blue or pale; keep the open black robe, bare chest, cloak, leather trousers, gauntlets, greaves, soul-fire and dark mist exactly as they are. Also fix: face_matches_card: eyes are blue, not dark grey; faint silver at temples is missing; face appears gaunt/elongated, not strong angular; beard is not short neat dark, it's longer and greyish; gaze is intense but not calm; wardrobe_matches_card: robe is charcoal, not black leather; no bare-knuckled iron gauntlets, instead has full metal gauntlets; no obsidian brooch, instead has a large silver/blue gem brooch; thin dark-silver chain is present but also has an additional chain around the waist; no fur-trimmed cloak, instead has a fur collar on the robe; species_matches_card: ears are pointed, indicating non-human (elf-like); no_artifacts: trident has three prongs, not two (bident); full_outfit_visible: feet are bare, card specifies iron greaves and bare-knuckled iron gauntlets, implying footwear or at least not bare feet. Character card: Character 哈迪斯 (id=hades); age look: adult man, late 30s, tall broad-shouldered mythic king of the dead, composed and magnetic; face: strong angular face, pale cool skin, deep-set DARK GREY eyes, defined jaw with a short neat dark beard, faint silver at the temples, calm intense predatory gaze; human, no blue skin, eyes not blue; hair: shoulder-length straight black hair swept back, a thin obsidian circlet; wardrobe (LOCKED unless panel says costume change): LOCKED black leather and charcoal robe hanging open from the shoulders down to the waist, bare muscular chest and abdomen with faint scars and a thin dark-silver chain, black leather trousers, iron greaves and bare-knuckled iron gauntlets, heavy black fur-trimmed cloak clasped with an obsidian brooch at one shoulder; signature props: obsidian bident with exactly two prongs; faint pale-blue soul-fire in the free hand; notes: Original design for the Greek god of the underworld. Adult, human-looking, grey eyes (NOT blue), dark gothic photoreal live-action, not an animation or webcomic likeness.. dark gothic cinematic mood, low-key chiaroscuro lighting with deep shadows, desaturated cold palette with one warm accent, subtle mist and grain, photorealistic, single subject, plain backdrop, no text.",
+  "instruction": "the held weapon must be an obsidian bident with EXACTLY TWO prongs (not a three-pronged trident); the eyes must be dark storm-grey, not blue or pale; keep the open black robe, bare chest, cloak, leather trousers, gauntlets, greaves, soul-fire and dark mist exactly as they are",
+  "base": "hades_ref.png",
+  "attempt": 2,
+  "provider": "fal",
+  "qa": {
+    "ok": false,
+    "issues": [
+      "face_matches_card: The character has prominent elf ears, which are not mentioned in the card and contradict the 'human' species description.",
+      "wardrobe_matches_card: The card specifies a 'thin dark-silver chain' on the chest/abdomen, but the image shows a thick silver chain around the waist. The card also specifies 'bare-knuckled iron gauntlets', but the image shows full gauntlets covering the knuckles. The card specifies an 'obsidian circlet', but the image shows a thin black band.",
+      "species_matches_card: The character has elf ears, but the card specifies 'human'.",
+      "full_outfit_visible: The card specifies 'iron greaves' and 'black leather trousers', but the character is barefoot, and the greaves do not fully cover the lower legs as implied by the card's description of greaves and trousers.",
+      "failed check: face_matches_card",
+      "failed check: wardrobe_matches_card",
+      "failed check: species_matches_card",
+      "failed check: full_outfit_visible"
+    ],
+    "skipped": false
+  }
+}

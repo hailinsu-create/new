@@ -1,0 +1,10 @@
+{
+  "panel_id": "wukong_ref",
+  "cache_key": "63465a040ea64221",
+  "prompt": "Image 1 is 孙悟空., cinematic still photograph, photorealistic high fantasy live-action, volumetric god rays, weathered armor and cloak fabrics, epic landscape, shallow depth of field, IMAX still frame, NOT anime, NOT cartoon, NOT illustration, studio portrait for continuity lock, portrait look-sheet shot, solo lookbook portrait of ONLY 孙悟空, three-quarter view from head to thighs so the full wardrobe is visible, plain soft neutral backdrop, identity lock sheet, single subject, no other characters, emotion: neutral calm, Character 孙悟空 (id=wukong); age look: adult male simian-human warrior, athletic toned build, clearly non-human monkey king; face: LOCKED monkey-king face — dense short brown-black facial fur over cheeks and brow, pronounced simian muzzle and nose pad, bright gold-amber eyes, confident smirk, pointed ears; NOT a human man, NOT a woman; hair: wild upright black-brown fur-hair with a bright golden fillet (金箍) on the forehead; wardrobe (LOCKED unless panel says costume change): LOCKED ochre tiger-skin skirt, open chest wrap showing toned fur-dusted torso, armored wrist guards, cloud boots; signature props: thick golden Ruyi Jingu Bang staff; notes: MALE Monkey King only, adult. Must never resemble Spider Spirit. Photoreal cinematic live-action, not cute., highly detailed skin texture, realistic eyes, coherent anatomy, same character identity as reference, consistent face and wardrobe, continuous cave silk-grotto atmosphere, cool violet mist, no outdoor sunny canyon",
+  "negative": "second person, crowd, twins, wrong gender, anime, cartoon, deformed face, watermark, text overlay, identical twins, same face twice, merged faces, costume swap, sunny outdoor canyon, split screen, diptych, collage, modern clothes",
+  "refs": [],
+  "provider": "fal",
+  "model": "fal-ai/bytedance/seedream/v4/text-to-image",
+  "attempt": 1
+}

@@ -1,0 +1,9 @@
+{
+  "panel_id": "zhizhu_ref",
+  "cache_key": "a221cb648ae2322d",
+  "prompt": "cinematic still photograph, photorealistic high fantasy live-action, volumetric god rays, weathered armor and cloak fabrics, epic landscape, shallow depth of field, IMAX still frame, NOT anime, NOT cartoon, NOT illustration, studio portrait for continuity lock, portrait look-sheet shot, solo lookbook portrait of ONLY 蜘蛛精, front three-quarter view, plain soft neutral backdrop, identity lock sheet, single subject, no other characters, emotion: neutral calm, Character 蜘蛛精 (id=zhizhu); age look: adult East Asian woman, mid-20s, glamorous yaoguai seductress; face: unmistakably human female face, pale skin, fox-like elongated eyes with wet sheen, smoky makeup, full crimson lips, beauty mark near mouth corner, seductive half-lidded gaze; NOT a monkey, NO fur, NO golden headband; hair: long glossy jet-black human hair cascading loosely with silk-thread ornaments, strands clinging to collarbone; wardrobe (LOCKED unless panel says costume change): LOCKED sexy black-violet sheer silk robe slipping off one shoulder, translucent gauze over deep neckline, high slit skirt, dark jade waist chain, bare feet with anklet; elegant dangerous allure, not nude; signature props: glowing violet spider-silk threads coiled around fingers; notes: FEMALE spider demon only. Must never resemble Sun Wukong. Photoreal live-action., highly detailed skin texture, realistic eyes, coherent anatomy, same character identity as reference, consistent face and wardrobe",
+  "negative": "second person, crowd, twins, wrong gender, anime, cartoon, deformed face, watermark, text overlay",
+  "refs": [],
+  "provider": "fal",
+  "model": "fal-ai/flux/dev"
+}

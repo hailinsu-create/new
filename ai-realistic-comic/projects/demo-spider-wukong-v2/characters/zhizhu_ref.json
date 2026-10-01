@@ -1,0 +1,10 @@
+{
+  "panel_id": "zhizhu_ref",
+  "cache_key": "8cd4b8d8a1c3257c",
+  "prompt": "Image 1 is 蜘蛛精., cinematic still photograph, photorealistic high fantasy live-action, volumetric god rays, weathered armor and cloak fabrics, epic landscape, shallow depth of field, IMAX still frame, NOT anime, NOT cartoon, NOT illustration, studio portrait for continuity lock, portrait look-sheet shot, solo lookbook portrait of ONLY 蜘蛛精, three-quarter view from head to thighs so the full wardrobe is visible, plain soft neutral backdrop, identity lock sheet, single subject, no other characters, emotion: neutral calm, Character 蜘蛛精 (id=zhizhu); age look: adult East Asian woman, late 20s, glamorous spider-demon seductress, curvy hourglass figure; face: unmistakably human female face, pale flushed skin, long fox-like wet eyes with dark smoky liner, full glossy crimson lips, small beauty mark at lip corner, languid half-lidded seductive gaze; NOT a monkey, NO fur, NO golden headband; hair: long glossy jet-black loose hair, a few strands clinging to bare collarbone, violet silk-thread hairpins; wardrobe (LOCKED unless panel says costume change): LOCKED black-violet sheer gauze robe slipping off both shoulders, deep plunging neckline, silk sash at the waist, high thigh slit, dark jade waist chain, bare feet with anklet; sensual and dangerous, always covered (no nudity); signature props: glowing violet spider-silk threads coiled around fingers; notes: FEMALE spider demon only. Adult. Must never resemble Sun Wukong. Photoreal live-action, sensual but not explicit., highly detailed skin texture, realistic eyes, coherent anatomy, same character identity as reference, consistent face and wardrobe, continuous cave silk-grotto atmosphere, cool violet mist, no outdoor sunny canyon",
+  "negative": "second person, crowd, twins, wrong gender, anime, cartoon, deformed face, watermark, text overlay, identical twins, same face twice, merged faces, costume swap, sunny outdoor canyon, split screen, diptych, collage, modern clothes",
+  "refs": [],
+  "provider": "fal",
+  "model": "fal-ai/bytedance/seedream/v4/text-to-image",
+  "attempt": 1
+}

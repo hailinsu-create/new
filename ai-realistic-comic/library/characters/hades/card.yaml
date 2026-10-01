@@ -1,0 +1,30 @@
+id: hades
+name: 哈迪斯
+age_look: adult man, late 30s, tall broad-shouldered mythic king of the dead, composed
+  and magnetic
+face: strong angular face, pale cool skin, deep-set DARK GREY eyes, defined jaw with
+  a short neat dark beard, faint silver at the temples, calm intense predatory gaze;
+  human, no blue skin, eyes not blue
+hair: shoulder-length straight black hair swept back, a thin obsidian circlet
+wardrobe: LOCKED black leather and charcoal robe hanging open from the shoulders down
+  to the waist, bare muscular chest and abdomen with faint scars and a thin dark-silver
+  chain, black leather trousers, iron greaves and bare-knuckled iron gauntlets, heavy
+  black fur-trimmed cloak clasped with an obsidian brooch at one shoulder
+signature_props: 'obsidian bident with exactly two prongs (the look sheet shows no
+  weapon: add it in scene prompts); faint pale-blue soul-fire in the free hand'
+notes: 'Original design for the Greek god of the underworld. Adult, human-looking,
+  grey eyes (NOT blue), dark gothic photoreal live-action, not an animation or webcomic
+  likeness. Known sheet deviation: ears render slightly pointed and the soul-fire
+  renders orange; treat ears as human and fire as pale blue in scenes.'
+reference_images:
+- ref.png
+alias: the tall pale dark-haired man with a short grey-flecked beard and a thin black
+  circlet
+variant_of: ''
+form: ''
+tags:
+- greek
+- underworld
+- male
+- dark
+- v2

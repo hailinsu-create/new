@@ -1,0 +1,100 @@
+title: 盘丝洞·初会
+genre: fantasy
+logline: 切镜版——单人锁脸为主，经济型分镜，避免双正脸同框融身份。
+panels:
+  - id: p01
+    page: 1
+    shot: wide
+    characters: [wukong]
+    emotion: alert
+    dialogue: 这洞里……丝丝阴风。
+    action: >-
+      ONLY male Monkey King at cavern mouth full of white spider webs, golden fillet headband,
+      furred simian-human face, ochre/tiger-skin warrior gear, golden staff ready, alone
+    setting: misty mountain cave entrance at dusk, cool violet fog, silk strands in moonlight
+    negative: woman, female, purple dress, sunny canyon, anime
+
+  - id: p02
+    page: 1
+    shot: detail
+    characters: []
+    emotion: ominous
+    dialogue: ""
+    action: >-
+      no people, extreme detail of glowing violet spider silk webs filling a dark grotto,
+      dew drops, cinematic macro atmosphere plate for continuity
+    setting: deep silk grotto interior, purple ambient glow, cool mist
+    negative: person, face, human, monkey, text, anime
+
+  - id: p03
+    page: 1
+    shot: full-body
+    characters: [zhizhu]
+    emotion: alluring invitation
+    dialogue: 客官，可是迷了路？
+    action: >-
+      ONLY glamorous female spider yaoguai, seductive hip pose, black-violet sheer silk robe
+      slipping off one shoulder, violet silk threads on fingers, alone, no monkey, no staff
+    setting: luminous silk chamber in cave, violet glow, silk curtains
+    negative: monkey, fur, golden headband, staff, male, sunny canyon, nude explicit, anime
+
+  - id: p04
+    page: 1
+    shot: close-up
+    characters: [zhizhu]
+    emotion: dangerous charm
+    dialogue: ""
+    action: >-
+      ONLY her face and shoulders close-up, fox-like wet eyes, half-lidded seductive gaze,
+      glossy black hair, beauty mark, violet silk collar, identity lock
+    setting: soft violet cave bokeh
+    negative: monkey, second person, staff, anime
+
+  - id: p05
+    page: 1
+    shot: close-up
+    characters: [wukong]
+    emotion: wary smirk
+    dialogue: ""
+    action: >-
+      ONLY Monkey King close-up, furred face, gold-amber eyes, bright golden headband,
+      confident smirk, staff tip visible at frame edge
+    setting: cool cave bokeh with faint webs
+    negative: woman, purple dress, beauty mark, anime
+
+  - id: p06
+    page: 1
+    shot: over-shoulder
+    characters: [zhizhu]
+    emotion: playful threat
+    dialogue: 留下喝一杯丝露如何？
+    action: >-
+      primary ONLY spider yaoguai offering glowing violet thread toward camera;
+      optional blurred silhouette back-view of a distant warrior in deep background soft focus,
+      no second clear face
+    setting: silk chamber wet stone floor, violet light
+    negative: two clear faces, identical twins, monkey close-up face, anime, nude explicit
+
+  - id: p07
+    page: 1
+    shot: dynamic medium
+    characters: [wukong]
+    emotion: clash
+    dialogue: 吃俺老孙一棒！
+    action: >-
+      ONLY Monkey King swings golden staff smashing violet webs, fur, golden headband,
+      ochre warrior gear, explosive silk strands, alone in frame (no woman body)
+    setting: collapsing silk bridges inside cavern, sparks, cool mist not sunlight
+    negative: woman, purple dress, sunny outdoor, anime
+
+  - id: p08
+    page: 1
+    shot: medium coda
+    characters: [zhizhu]
+    emotion: lingering smile
+    dialogue: 有趣……改日再陪你玩。
+    action: >-
+      ONLY spider yaoguai retreating into shadow with lingering seductive smile,
+      violet silk reforming around her, alone; no monkey in frame
+    setting: torn glowing webs, moonlight shaft into cave
+    negative: monkey, staff, golden headband, sunny canyon, anime

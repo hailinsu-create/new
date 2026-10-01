@@ -1,0 +1,23 @@
+{
+  "panel_id": "hades_ref",
+  "model": "fal-ai/bytedance/seedream/v4/edit",
+  "prompt": "Image 1 is the current look sheet of this character: keep exactly the same person (face, makeup, hair style), the same camera distance, full-length framing and the same backdrop. Apply ONLY these changes: remove the trident completely: his right hand hangs relaxed at his side holding nothing; ears must be normal rounded human ears, NOT pointed; eyes dark storm-grey; keep the rest identical (bare chest, cloak with fur collar, leather trousers, silver chain, gauntlets, greaves, soul-fire in left hand, dark mist). Character card: Character 哈迪斯 (id=hades); age look: adult man, late 30s, tall broad-shouldered mythic king of the dead, composed and magnetic; face: strong angular face, pale cool skin, deep-set DARK GREY eyes, defined jaw with a short neat dark beard, faint silver at the temples, calm intense predatory gaze; human, no blue skin, eyes not blue; hair: shoulder-length straight black hair swept back, a thin obsidian circlet; wardrobe (LOCKED unless panel says costume change): LOCKED black leather and charcoal robe hanging open from the shoulders down to the waist, bare muscular chest and abdomen with faint scars and a thin dark-silver chain, black leather trousers, iron greaves and bare-knuckled iron gauntlets, heavy black fur-trimmed cloak clasped with an obsidian brooch at one shoulder; signature props: obsidian bident with exactly two prongs; faint pale-blue soul-fire in the free hand; notes: Original design for the Greek god of the underworld. Adult, human-looking, grey eyes (NOT blue), dark gothic photoreal live-action, not an animation or webcomic likeness.. dark gothic cinematic mood, low-key chiaroscuro lighting with deep shadows, desaturated cold palette with one warm accent, subtle mist and grain, photorealistic, single subject, plain backdrop, no text.",
+  "instruction": "remove the trident completely: his right hand hangs relaxed at his side holding nothing; ears must be normal rounded human ears, NOT pointed; eyes dark storm-grey; keep the rest identical (bare chest, cloak with fur collar, leather trousers, silver chain, gauntlets, greaves, soul-fire in left hand, dark mist)",
+  "base": "hades_ref.png",
+  "attempt": 1,
+  "provider": "fal",
+  "qa": {
+    "ok": false,
+    "issues": [
+      "face_matches_card: The character has pointed ears, which are not mentioned in the card and contradict the 'human' species.",
+      "wardrobe_matches_card: The card specifies 'obsidian circlet' and 'bare-knuckled iron gauntlets'. The image shows a thin black band on the forehead and full iron gauntlets. The card also specifies 'faint pale-blue soul-fire in the free hand', but the image shows orange fire.",
+      "species_matches_card: The character has pointed ears, which indicates an elf or similar fantasy race, not human as specified in the card.",
+      "full_outfit_visible: The card specifies 'iron greaves' and 'black leather trousers', but the character is barefoot, which is not mentioned in the card and implies missing footwear.",
+      "failed check: face_matches_card",
+      "failed check: wardrobe_matches_card",
+      "failed check: species_matches_card",
+      "failed check: full_outfit_visible"
+    ],
+    "skipped": false
+  }
+}

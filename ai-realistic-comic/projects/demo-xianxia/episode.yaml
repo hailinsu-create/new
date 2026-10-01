@@ -1,0 +1,64 @@
+title: 云海渡劫
+genre: xianxia
+logline: '# 云海渡劫'
+panels:
+- id: p01
+  page: 1
+  shot: wide establishing
+  characters:
+  - lin_zhuiguang
+  emotion: awe
+  dialogue: ''
+  action: stands at the threshold of a vast realm
+  setting: misty mountain pass at dawn
+  negative: cartoon, anime, illustration, deformed face, extra fingers
+- id: p02
+  page: 1
+  shot: medium
+  characters:
+  - lin_zhuiguang
+  emotion: resolve
+  dialogue: 此劫，我渡。
+  action: tightens grip on signature prop
+  setting: stone path lined with ancient runes
+  negative: cartoon, anime, illustration, deformed face, extra fingers
+- id: p03
+  page: 1
+  shot: close-up
+  characters:
+  - lin_zhuiguang
+  emotion: tension
+  dialogue: ''
+  action: eyes reflect distant stormlight
+  setting: wind-swept cliff
+  negative: cartoon, anime, illustration, deformed face, extra fingers
+- id: p04
+  page: 1
+  shot: over-shoulder
+  characters:
+  - lin_zhuiguang
+  emotion: confrontation
+  dialogue: 你不该来。
+  action: faces an opposing silhouette
+  setting: broken bridge over cloud sea
+  negative: cartoon, anime, illustration, deformed face, extra fingers
+- id: p05
+  page: 1
+  shot: dynamic medium
+  characters:
+  - lin_zhuiguang
+  emotion: surge
+  dialogue: ''
+  action: unleashes controlled energy burst
+  setting: bridge stones cracking
+  negative: cartoon, anime, illustration, deformed face, extra fingers
+- id: p06
+  page: 1
+  shot: wide coda
+  characters:
+  - lin_zhuiguang
+  emotion: quiet triumph
+  dialogue: 路还长。
+  action: walks into clearing light
+  setting: sun breaking through storm clouds
+  negative: cartoon, anime, illustration, deformed face, extra fingers
