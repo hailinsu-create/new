@@ -14,3 +14,10 @@ Known deviations of the current v2 sheets (documented, not hidden):
 - 珀耳塞福涅: eye color drifts orange; dress slit is high.
 - 许仙: background/face flagged by QA as slightly off the card.
 - 白素贞 (human form) and 白素贞 (蛇形): same face; the serpent form passed QA.
+
+## Approved scene templates (`library/stills/`)
+
+`still.yaml` + `approved.jpg` for each user-approved two-character still (recipe: nano-banana-pro, see `docs/still-mode.md`).
+Copy a `still.yaml` into a project's `stills/` folder and adjust it, or start from `templates/still.template.yaml`.
+
+Library state: hades v3, persephone v2, baisuzhen v2, baisuzhen_snake v2, xuxian v2 (aliases included in the cards).

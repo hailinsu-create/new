@@ -9,12 +9,12 @@
   - human-form
   - dark
   - v2
-  version: 1
-  ref_sha256: 8367e36a594c46ea0411808e3f6137a4756f526060e4e426c8d96edfa5b3fc4b
+  version: 2
+  ref_sha256: af978f692a28751edbd46f653fd39ac36061c8ff0502796f16aa9d5b0489a531
   source_project: legend-white-snake
   genre: xianxia
   render_style: photoreal
-  archived_at: '2026-10-01T04:13:26.518086+00:00'
+  archived_at: '2026-10-01T06:52:16.398133+00:00'
 - id: baisuzhen_snake
   name: 白素贞(蛇形)
   form: serpent
@@ -26,12 +26,12 @@
   - serpent-form
   - dark
   - v2
-  version: 1
-  ref_sha256: fd4e4ae4df1341310d7b8904200904ba1d441a388cc7db78306fca365ead8118
+  version: 2
+  ref_sha256: 245fc2ce29c831ab4a89e4701f61a6064a8b2c76bf713d86cd44a4724bfb2013
   source_project: legend-white-snake
   genre: xianxia
   render_style: photoreal
-  archived_at: '2026-10-01T04:13:26.719444+00:00'
+  archived_at: '2026-10-01T06:52:16.000577+00:00'
 - id: hades
   name: 哈迪斯
   form: ''
@@ -42,12 +42,12 @@
   - male
   - dark
   - v2
-  version: 2
-  ref_sha256: 0c0c9b1259a195c14c97b3318205c8daeeca5a49d635c841038d3dca79dc9508
+  version: 3
+  ref_sha256: 70ef254caad124e12dbc367955361741aa6758c112c41426a31991de2d6520a0
   source_project: myth-hades-persephone
   genre: fantasy
   render_style: photoreal
-  archived_at: '2026-10-01T04:13:41.253767+00:00'
+  archived_at: '2026-10-01T06:52:15.583002+00:00'
 - id: persephone
   name: 珀耳塞福涅
   form: ''
@@ -58,12 +58,12 @@
   - female
   - dark
   - v2
-  version: 1
-  ref_sha256: de5e66bedce5e20abeb524f9353d14f11426189622538bcceefa19410f8df72a
+  version: 2
+  ref_sha256: 402d00786ba3760f97a8cb70472821a672e557e3f5dfe03ec497d46f59747f19
   source_project: myth-hades-persephone
   genre: fantasy
   render_style: photoreal
-  archived_at: '2026-10-01T04:13:26.316556+00:00'
+  archived_at: '2026-10-01T06:52:15.782426+00:00'
 - id: xuxian
   name: 许仙
   form: ''
@@ -74,9 +74,9 @@
   - human
   - dark
   - v2
-  version: 1
-  ref_sha256: bae901c4c31db66d6222897ace024b38f40305f40e0e6772046a86a84c2bfe72
+  version: 2
+  ref_sha256: 3fc28bad98b205d730659a3dceff575c46d647b34fdb04965b715eb34f7eecc9
   source_project: legend-white-snake
   genre: xianxia
   render_style: photoreal
-  archived_at: '2026-10-01T04:13:26.905970+00:00'
+  archived_at: '2026-10-01T06:52:16.202549+00:00'
