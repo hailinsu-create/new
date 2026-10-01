@@ -1,5 +1,21 @@
 # Single refined still (two characters)
 
+**Approved recipe (locked in by the user after review):** `fal-ai/nano-banana-pro/edit` is the default model for stills
+(`FAL_STILL_MODEL`, 2K output at about $0.15 per image, so `COMIC_STILL_BUDGET_USD` defaults to $0.80 and at most
+`COMIC_STILL_MAX_CANDIDATES`=3 candidates are generated). In the capped four-model test on the Hades x Persephone lap pose it
+produced the cleanest anatomy and best look; sample: `docs/samples/approved-nano-banana-pro-hades-persephone.jpg`.
+Start every new still from the template:
+
+```bash
+comic still-new <project> <still-id> <char_a> <char_b>   # copies templates/still.template.yaml
+comic still <project> <still-id> --platform fanvue
+```
+
+Template rules that made the approved sample: alias-only descriptions (no famous names), camera framed from the hips up
+(legs/feet out of frame), full look sheets as references, touch/hand poses that rest on fabric or props, covered wardrobe.
+Per-still `edit_model`, `ref_crop`, `crop_top`/`crop_bottom` remain available as safety nets. aura-sr upscaling is skipped
+when the model output is already at least `COMIC_UPSCALE_MIN_WIDTH` (1600) px wide.
+
 ```bash
 comic refs  <project>                    # look sheets must exist and pass QA
 comic still <project> <still-id> --platform fanvue
@@ -8,7 +24,7 @@ comic still <project> <still-id> --platform fanvue
 A still is `projects/<project>/stills/<id>.yaml` (see `demo-spider-wukong-v3/stills/silk-bind.yaml`): the two characters,
 camera, lighting, blocking (who is where, gaze, touch), wardrobe state, and `motif` (the specific dynamic the image is about).
 
-Pipeline, all counted against `COMIC_STILL_BUDGET_USD` (default $0.40):
+Pipeline, all counted against `COMIC_STILL_BUDGET_USD` (default $0.80):
 
 1. `COMIC_STILL_CANDIDATES` candidates (default 2) from the multi-reference edit model with both look sheets.
 2. A vision judge scores each 0-10 on identity, distinction, interaction, aesthetics, anatomy, wardrobe and motif, and lists
@@ -30,11 +46,12 @@ this, so the still pipeline now counts instead of scoring:
    fused or duplicated parts are blocking. A hand showing 4 fingers, or "missing"/occluded items, are repair hints only
    (occlusion and cropping cause false alarms). Non-human forms (serpent tail) are declared from `Character.form`.
 2. The judge's anatomy score below 6 also blocks.
-3. If no candidate passes, up to `COMIC_STILL_MAX_CANDIDATES` (default 4) are generated; each repair pass feeds the concrete
+3. If no candidate passes, up to `COMIC_STILL_MAX_CANDIDATES` (default 3) are generated; each repair pass feeds the concrete
    anatomy findings into the edit prompt ("Repair: ...").
 4. The shortlisted winner gets one strict second opinion from a reasoning model (`FAL_STRICT_MODEL`, default
    `google/gemini-2.5-pro`, `COMIC_STRICT_AUDIT=1`) that must enumerate every arm back to its shoulder. If it fails, one repair
-   pass runs. An empty reply is retried once, then recorded as skipped.
+   pass runs when `COMIC_STRICT_BLOCKING=1`; by default it is advisory (`strict_warnings` in `still.json`) because it both missed real
+   defects and flagged fine images. An empty reply is retried once, then recorded as skipped.
 5. Unresolved blockers are never upscaled; `still.json` has `needs_review: true` and the CLI prints a warning.
 
 The prompt carries an explicit anatomy rule and an anatomy negative list. Poses that hide hands (hand on fabric, behind a

@@ -1,0 +1,32 @@
+# Two-character hero still template (approved recipe: fal-ai/nano-banana-pro/edit, see docs/still-mode.md).
+# Create from it with: comic still-new <project> <still-id> <char_a> <char_b>
+id: {id}
+title: {id}
+characters:
+- {char_a}
+- {char_b}
+
+# Describe people by their look-sheet alias, not by famous names ("the tall pale dark-haired man ..."): mythic and
+# franchise names pull the model toward well-known depictions (blue skin, tridents).
+setting: <place, 3-4 concrete props, atmosphere (mist, candlelight, moon)>
+
+# Keep feet and legs out of the frame: models draw extra toes, and look sheets are full-body/barefoot.
+camera: 85mm portrait lens at f/1.8, intimate waist-up medium shot, framed from the hips up so legs and feet are out of frame, shallow depth of field
+lighting: <key light colour and direction, rim light, haze, deep shadows>
+
+# Who sits/stands where, gaze, and touch. Prefer hands resting on fabric, on a prop or hidden by hair over fingers-to-lips
+# close-ups; two hands per person at most are visible.
+blocking: <A ... B ...; faces a few centimeters apart, eyes half-closed, slow shared breath>
+
+# Always covered. fal forbids sexually explicit output and its safety checker blanks nudity.
+wardrobe_state: <what each wears and how it slips/hangs; both fully covered below the chest line>
+motif: <the one dynamic this image is about, consensual adult, e.g. "quiet surrender, power melting into tenderness">
+mood: dark, hushed, sensual, devotional
+
+negative: anime, cartoon, collage, split screen, twins, merged faces, illustration, painting, 3D render, CGI, concept art, extra fingers, deformed hands, text, watermark, minor, child
+
+# Optional safety nets (all default off):
+# edit_model: fal-ai/nano-banana-pro/edit   # per-still override (gpt-image-1.5 follows framing text well too)
+# ref_crop: 0.5      # use only the top half of each full-body look sheet
+# crop_bottom: 0.15  # deterministic reframing after generation
+# crop_top: 0.0

@@ -62,6 +62,30 @@ def init_project(
     typer.echo(f"Created {project_dir}")
 
 
+@app.command("still-new")
+def still_new(
+    project: str = typer.Argument(...),
+    still_id: str = typer.Argument(..., help="New still id (file name)"),
+    char_a: str = typer.Argument(..., help="First character id"),
+    char_b: str = typer.Argument(..., help="Second character id"),
+) -> None:
+    """Create projects/<project>/stills/<id>.yaml from templates/still.template.yaml."""
+    project_dir = _projects_root() / project
+    proj = load_project(project_dir)
+    cmap = proj.character_map()
+    for cid in (char_a, char_b):
+        if cid not in cmap:
+            raise typer.BadParameter(f"unknown character '{cid}' in {project}: {', '.join(cmap)}")
+    target = project_dir / "stills" / f"{still_id}.yaml"
+    if target.exists():
+        typer.echo(f"Already exists: {target}")
+        raise typer.Exit(code=1)
+    text = (Path(__file__).resolve().parents[2] / "templates" / "still.template.yaml").read_text(encoding="utf-8")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(text.format(id=still_id, char_a=char_a, char_b=char_b), encoding="utf-8")
+    typer.echo(f"Created {target}\nFill the <...> fields, then: comic still {project} {still_id} --platform fanvue")
+
+
 @app.command("doctor")
 def doctor() -> None:
     settings = get_settings()

@@ -94,6 +94,9 @@ def _repair_fixes(audit_issues: list[str], warnings: list[str]) -> list[str]:
     return fixes
 
 
+NANO_ASPECT = {"portrait_4_3": "3:4", "portrait_16_9": "9:16", "square_hd": "1:1", "landscape_4_3": "4:3"}
+
+
 def crop_refs(refs: list[Path], still: Still, out_dir: Path) -> list[Path]:
     if not still.ref_crop:
         return refs
@@ -123,6 +126,15 @@ def _edit_args(settings: Settings, provider, prompt: str, negative: str, images:
 
     if settings.comic_mock:
         return {"prompt": prompt}
+    if "nano-banana-pro" in model:
+        return {
+            "prompt": f"{prompt} Avoid: {negative}.",
+            "image_urls": [fal_client.upload_file(str(p)) for p in images],
+            "aspect_ratio": NANO_ASPECT.get(size, "3:4"),
+            "resolution": settings.fal_still_resolution,
+            "num_images": 1,
+            "output_format": "png",
+        }
     if "gpt-image" in model:
         return {
             "prompt": f"{prompt} Avoid: {negative}.",
@@ -160,7 +172,7 @@ def make_still(
         raise RuntimeError(f"still {still.id}: both characters need look sheets (run `comic refs`)")
     refs = crop_refs(refs, still, out_dir)
     prompt, negative = build_still_prompt(project, still)
-    edit_model = still.edit_model or settings.fal_edit_model
+    edit_model = still.edit_model or settings.fal_still_model
 
     report: dict = {"still": still.id, "candidates": [], "prompt": prompt}
     best_path: Path | None = None
@@ -252,7 +264,9 @@ def make_still(
     def strict(path: Path, judged: StillJudgement, tag: str) -> None:
         audit = strict_limb_check(settings, path, len(still.characters), ledger, tag=tag, nonhuman=nonhuman)
         report.setdefault("strict", {})[path.name] = {"ok": audit.ok, "issues": audit.issues, **audit.counts}
-        if not audit.ok:
+        if not audit.ok and not settings.comic_strict_blocking:
+            report.setdefault("strict_warnings", []).extend(audit.issues)
+        elif not audit.ok:
             judged.blocking = list(dict.fromkeys([*judged.blocking, *audit.issues]))
             judged.fixes = [*_repair_fixes(audit.issues, []), *judged.fixes][:6]
 
@@ -277,7 +291,9 @@ def make_still(
 
     final = out_dir / "final.png"
     upscaled = False
-    if not settings.comic_mock and best.ok:
+    with Image.open(best_path) as probe:
+        wide_enough = probe.width >= settings.comic_upscale_min_width
+    if not settings.comic_mock and best.ok and not wide_enough:
         try:
             import fal_client
 

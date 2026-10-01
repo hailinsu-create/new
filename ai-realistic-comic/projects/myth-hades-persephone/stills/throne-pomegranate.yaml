@@ -3,30 +3,26 @@ title: 石榴籽
 characters:
 - persephone
 - hades
-setting: dark hall of black obsidian columns far behind them out of focus, the high back of
-  an obsidian throne draped with dark fur behind the man, tall iron candelabras with warm amber
-  flames in the soft background, black river mist
-camera: 85mm portrait lens at f/1.8, tight chest-up two-shot, only heads, shoulders and upper
-  chests in frame, no legs, no feet, no lower body, shallow depth of field
+setting: vast shadow-realm hall of black obsidian columns, an obsidian throne draped with a
+  dark fur, tall iron candelabras with warm amber flames, black river mist at the floor, a split
+  pomegranate on the armrest
+camera: 85mm portrait lens at f/1.8, intimate waist-up medium shot, framed from the hips up
+  so legs and feet are out of frame, shallow depth of field
 lighting: low-key amber candlelight rim light from the sides, soft warm glow on their faces,
   deep shadows, haze
-blocking: the pale dark-haired man sits on the throne and the olive-skinned woman sits sideways
-  in his lap, pressed chest to chest; her arms are wrapped around his neck so that both of her
-  hands are hidden behind his head under his hair; his arms are wrapped around her back so that
-  both of his hands are hidden behind her back, out of frame; no hands are visible anywhere;
-  she holds a single pomegranate seed between her lips and he leans in to take it from her mouth,
-  faces a few centimeters apart, eyes half-closed, slow shared breath, her hair spilling over
-  his shoulder
-wardrobe_state: her dark green and black sheer gauze gown slides off both shoulders over an
-  opaque black lining, deep neckline, red silk sash, wilted flower crown; his black cloak with
-  a fur collar hangs open from his shoulders over his bare chest, thin silver chain; both fully
-  covered below the chest line
-motif: 'forbidden temptation and quiet surrender: a stern ruler softened by a woman passing
-  him a pomegranate seed mouth to mouth, mutual consent, slow-burn intimacy'
+blocking: the pale dark-haired man sits on the throne, one hand resting on her waist, the other
+  lightly cupping the back of her neck; the olive-skinned woman sits sideways across his lap,
+  one arm around his shoulders, the other hand raising a pomegranate seed toward his lips; their
+  faces a few centimeters apart, her forehead almost touching his, eyes half-closed, slow shared
+  breath, her hair spilling over his arm
+wardrobe_state: her dark green and black sheer gauze gown slides off both shoulders with opaque
+  black lining, deep neckline, high thigh slit, red silk sash, gold cuffs, wilted flower crown;
+  his black cloak with fur collar hangs open from his shoulders over his bare chest, black leather
+  trousers, silver chain at the waist; both fully covered below the chest line
+motif: 'forbidden temptation and quiet surrender: a stern ruler of a shadow realm softened by
+  a woman feeding him a pomegranate seed, mutual consent, slow-burn intimacy, power melting
+  into tenderness'
 mood: dark, hushed, sensual, devotional
 negative: anime, cartoon, collage, split screen, twins, merged faces, blue skin, red hair, glowing
   red eyes, trident, staff, spear, pointed elf ears, illustration, painting, 3D render, CGI,
   concept art, extra fingers, deformed hands, text, watermark, minor, child
-crop_bottom: 0.41
-ref_crop: 0.5
-edit_model: fal-ai/gpt-image-1.5/edit

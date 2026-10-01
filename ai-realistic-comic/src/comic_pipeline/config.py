@@ -25,11 +25,15 @@ class Settings(BaseSettings):
 
     # Single refined still: candidates -> judge -> targeted edit pass -> upscale.
     comic_strict_audit: bool = True
+    comic_strict_blocking: bool = False  # advisory by default: it missed real defects and flagged fine images
     fal_strict_model: str = "google/gemini-2.5-pro"
     comic_still_candidates: int = 2
-    comic_still_max_candidates: int = 4  # extra candidates only while none passes the anatomy/blocking gate
+    fal_still_model: str = "fal-ai/nano-banana-pro/edit"  # approved for two-person stills (best anatomy/composition in our shootout)
+    fal_still_resolution: str = "2K"
+    comic_upscale_min_width: int = 1600  # skip aura-sr when the model already outputs this wide
+    comic_still_max_candidates: int = 3  # extra candidates only while none passes the anatomy/blocking gate
     comic_still_min_score: float = 7.5
-    comic_still_budget_usd: float = 0.40
+    comic_still_budget_usd: float = 0.80
     fal_upscale_model: str = "fal-ai/aura-sr"
 
     # Vision-LLM quality gate (cheap): validates look sheets and panels before they are accepted.
