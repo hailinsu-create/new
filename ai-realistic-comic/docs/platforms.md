@@ -12,6 +12,25 @@ Rules change often. Re-read each source before launching; `comic lint --platform
 | Fansly | not allowed, even labeled | stylized only | stylized only | Non-photorealistic virtual entities still need real-ID verification. |
 | OnlyFans | account must be a verified human | conditional | conditional | Per-post `#ai` / `#AIGenerated` caption; fully synthetic personas are reported as not permitted. |
 
+## No-ID posting options (policy snapshot 2026-10-01)
+
+"No ID" only ever applies to posting. Money has to reach you through a payment provider (PayPal, Stripe, a bank), and those verify
+you; no platform on this list changes that. Fanvue also lets you stay anonymous publicly (stage name, separate email); its KYC is
+private and only needed to get paid.
+
+| Platform | Posting needs ID? | Photoreal fictional AI people | Suggestive (clothed) | Money |
+|---|---|---|---|---|
+| Ko-fi | no (18+; ID only if flagged underage) | not prohibited; AI must not be passed off as hand-made; no AI models trained for explicit content | yes with NSFW tag and 18+ gate; sexualised nudity and pay-per-view adult services are banned | tips/memberships/shop go straight to your PayPal or Stripe |
+| DeviantArt | no | allowed; "Created using AI tools" label mandatory for anything sold, recommended otherwise | yes with Mature label; explicit only in paid tiers | subscriptions/premium galleries; check payout terms |
+| Civitai | no (18+; mature uploads certify fully synthetic) | yes; mature images need generation metadata (prompt) to stay public | yes | Creator Program needs a high Creator Score and a $50 minimum; not a realistic income path |
+| pixiv | no | **not allowed** (photorealistic images are prohibited, AI or not) | - | - |
+
+Sources:
+- Ko-fi: https://help.ko-fi.com/hc/en-us/articles/360007937553-Ko-fi-Content-Guidelines and https://help.ko-fi.com/hc/en-us/articles/360007974034-Using-the-NSFW-tag and https://help.ko-fi.com/hc/en-us/articles/19789627403293-Ko-fi-s-stance-on-AI
+- DeviantArt: https://www.deviantartsupport.com/kb/en/article/what-is-deviantarts-policy-around-sexual-erotic-and-fetish-themes
+- Civitai: https://civitai.com/content/2257 and https://civitai.com/articles/13632/policy-and-content-adjustments
+- pixiv: https://www.pixiv.net/terms/?lang=en&page=guideline and https://www.pixiv.net/info.php?id=10747
+
 Sources:
 - Fanvue: https://help.fanvue.com/en/articles/9538738-is-ai-content-allowed-on-fanvue
 - Patreon: https://support.patreon.com/hc/en-us/articles/34055590411789 and https://www.patreon.com/policy/guidelines
