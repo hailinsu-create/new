@@ -8,6 +8,8 @@ export HF_HOME="${HF_HOME:-/root/autodl-tmp/hf}"
 export HUGGINGFACE_HUB_CACHE="${HUGGINGFACE_HUB_CACHE:-$HF_HOME/hub}"
 export TRANSFORMERS_CACHE="${TRANSFORMERS_CACHE:-$HF_HOME/transformers}"
 export TORCH_HOME="${TORCH_HOME:-/root/autodl-tmp/torch}"
+# AutoDL CN: huggingface.co is often blocked; hf-mirror works.
+export HF_ENDPOINT="${HF_ENDPOINT:-https://hf-mirror.com}"
 mkdir -p "$HF_HOME" "$TORCH_HOME" /root/autodl-tmp/out
 
 echo "==> GPU"

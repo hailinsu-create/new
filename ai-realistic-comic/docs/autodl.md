@@ -106,3 +106,13 @@ comic autodl doctor   # Token / 余额
 comic autodl run      # 全流程
 comic autodl stop     # 仅关机
 ```
+
+## Hugging Face mirror (China / AutoDL)
+
+`huggingface.co` is often unreachable from AutoDL. Set:
+
+```bash
+export HF_ENDPOINT=https://hf-mirror.com
+```
+
+before bootstrap / smoke (already defaulted in `autodl/bootstrap.sh`).
