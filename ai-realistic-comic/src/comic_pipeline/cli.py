@@ -21,7 +21,7 @@ from comic_pipeline.llm import plan_episode
 from comic_pipeline.qa import qa_panel, qa_reference
 from comic_pipeline.refine import edit_character_reference
 from comic_pipeline.library import archive_character, list_library, use_character
-from comic_pipeline.still import make_still
+from comic_pipeline.still import make_library_still, make_still
 from comic_pipeline.models import load_still, Character, Project, load_episode, load_project, save_episode, save_project
 
 app = typer.Typer(add_completion=False, no_args_is_help=True, help="AI realistic comic pipeline")
@@ -62,6 +62,36 @@ def init_project(
     typer.echo(f"Created {project_dir}")
 
 
+
+@app.command("still-library")
+def still_library_cmd(
+    still_id: str = typer.Argument(..., help="library/stills/<id>"),
+    ref_crop: float = typer.Option(0.55, help="Top fraction of each look sheet to keep"),
+) -> None:
+    """Render an archived library still on the active IMAGE_PROVIDER (fal or local/AutoDL)."""
+    settings = get_settings()
+    out_dir = _output_root() / "library-stills" / still_id
+    ledger = BudgetLedger.load_or_new(out_dir / "budget.json", settings.comic_still_budget_usd)
+    try:
+        final = make_library_still(
+            root=ROOT,
+            still_id=still_id,
+            settings=settings,
+            out_dir=out_dir,
+            ledger=ledger,
+            ref_crop=ref_crop,
+        )
+    except RuntimeError as exc:
+        ledger.save(out_dir / "budget.json")
+        typer.echo(f"STOP: {exc}")
+        raise typer.Exit(code=1)
+    except Exception:
+        ledger.save(out_dir / "budget.json")
+        raise
+    ledger.save(out_dir / "budget.json")
+    typer.echo(f"still-library -> {final} | spent ${ledger.spent_usd:.4f}/${ledger.limit_usd:.4f}")
+
+
 @app.command("still-new")
 def still_new(
     project: str = typer.Argument(...),
@@ -99,6 +129,8 @@ def doctor() -> None:
     typer.echo(f"COMIC_FORBID_MULTI_FACE={settings.comic_forbid_multi_face}")
     typer.echo(f"FAL_T2I_MODEL={settings.resolved_t2i_model()}")
     typer.echo(f"FAL_PULID_MODEL={settings.fal_pulid_model}")
+    typer.echo(f"LOCAL_STILL_MODEL={settings.local_still_model}")
+    typer.echo(f"LOCAL_CANDIDATES={settings.local_candidates}")
     try:
         require_provider(settings)
         typer.echo(f"{settings.resolved_provider()} mode: ready")

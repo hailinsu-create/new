@@ -154,6 +154,36 @@ def _edit_args(settings: Settings, provider, prompt: str, negative: str, images:
     }
 
 
+def _still_edit(
+    settings: Settings,
+    provider,
+    *,
+    prompt: str,
+    negative: str,
+    images: list[Path],
+    size: str,
+    model: str,
+    out_path: Path,
+    seed: int | None = None,
+) -> str:
+    """Route a still edit to fal or local GPU without changing prompt/ref assets."""
+    backend = settings.resolved_provider()
+    if backend == "local":
+        args = {
+            "prompt": prompt,
+            "negative": negative,
+            "images": images,
+            "size": size,
+            "height": settings.local_height,
+            "width": settings.local_width,
+            "steps": settings.local_steps,
+        }
+        if seed is not None:
+            args["seed"] = seed
+        return provider.call(model, args, out_path)
+    return provider.call(model, _edit_args(settings, provider, prompt, negative, images, size, model), out_path)
+
+
 def make_still(
     *,
     project_dir: Path,
@@ -172,7 +202,15 @@ def make_still(
         raise RuntimeError(f"still {still.id}: both characters need look sheets (run `comic refs`)")
     refs = crop_refs(refs, still, out_dir)
     prompt, negative = build_still_prompt(project, still)
-    edit_model = still.edit_model or settings.fal_still_model
+    backend = settings.resolved_provider()
+    if backend == "local":
+        edit_model = settings.local_still_model
+        n_candidates = max(1, settings.local_candidates)
+        max_candidates = n_candidates
+    else:
+        edit_model = still.edit_model or settings.fal_still_model
+        n_candidates = settings.comic_still_candidates
+        max_candidates = settings.comic_still_max_candidates
 
     report: dict = {"still": still.id, "candidates": [], "prompt": prompt}
     best_path: Path | None = None
@@ -195,8 +233,8 @@ def make_still(
         judged.anatomy_counts = audit.counts
         return judged
 
-    for i in range(1, settings.comic_still_max_candidates + 1):
-        if i > settings.comic_still_candidates and best is not None and best.ok:
+    for i in range(1, max_candidates + 1):
+        if i > n_candidates and best is not None and best.ok:
             break
         cand = out_dir / f"candidate_{i}.png"
         try:
@@ -206,7 +244,17 @@ def make_still(
                 raise
             report["stopped"] = "budget exhausted before another candidate"
             break
-        provider.call(edit_model, _edit_args(settings, provider, prompt, negative, refs, still.image_size, edit_model), cand)
+        _still_edit(
+            settings,
+            provider,
+            prompt=prompt,
+            negative=negative,
+            images=refs,
+            size=still.image_size,
+            model=edit_model,
+            out_path=cand,
+            seed=settings.local_seed + i - 1 if backend == "local" else None,
+        )
         apply_crop(cand, still)
         ledger.charge(model=edit_model, panel_id=f"{still.id}_cand{i}")
         judged = evaluate(cand, f"{still.id}_c{i}")
@@ -236,10 +284,16 @@ def make_still(
             f"{project.character_map()[still.characters[1]].label}. "
             f"Apply these improvements only: {'; '.join(base.fixes)}. {ANATOMY_RULE}. {IDENTITY_RULE}."
         )
-        provider.call(
-            edit_model,
-            _edit_args(settings, provider, fix_prompt, negative, [base_path, *refs], still.image_size, edit_model),
-            refined,
+        _still_edit(
+            settings,
+            provider,
+            prompt=fix_prompt,
+            negative=negative,
+            images=[base_path, *refs],
+            size=still.image_size,
+            model=edit_model,
+            out_path=refined,
+            seed=settings.local_seed + 99 if backend == "local" else None,
         )
         apply_crop(refined, still)
         ledger.charge(model=edit_model, panel_id=f"{still.id}_refine")
@@ -296,7 +350,7 @@ def make_still(
     upscaled = False
     with Image.open(best_path) as probe:
         wide_enough = probe.width >= settings.comic_upscale_min_width
-    if not settings.comic_mock and best.ok and not wide_enough:
+    if not settings.comic_mock and backend == "fal" and best.ok and not wide_enough:
         try:
             import fal_client
 
@@ -330,3 +384,51 @@ def make_still(
     )
     (out_dir / "still.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     return final
+
+
+def make_library_still(
+    *,
+    root: Path,
+    still_id: str,
+    settings: Settings,
+    out_dir: Path,
+    ledger: BudgetLedger,
+    ref_crop: float = 0.55,
+) -> Path:
+    """Run the still pipeline from an archived library still (no project folder required)."""
+    import shutil
+
+    import yaml
+
+    from comic_pipeline.models import Character, Still
+
+    still_dir = root / "library" / "stills" / still_id
+    still = Still.model_validate(yaml.safe_load((still_dir / "still.yaml").read_text(encoding="utf-8")))
+    if ref_crop and not still.ref_crop:
+        still = still.model_copy(update={"ref_crop": ref_crop})
+    work = out_dir / "_project"
+    chars_dir = work / "characters"
+    chars_dir.mkdir(parents=True, exist_ok=True)
+    chars: list[Character] = []
+    for cid in still.characters:
+        cdir = root / "library" / "characters" / cid
+        char = Character.model_validate(yaml.safe_load((cdir / "card.yaml").read_text(encoding="utf-8")))
+        char = char.model_copy(update={"reference_images": [f"characters/{cid}_ref.png"]})
+        shutil.copy2(cdir / "ref.png", chars_dir / f"{cid}_ref.png")
+        (chars_dir / f"{cid}.yaml").write_text(
+            yaml.safe_dump(char.model_dump(), allow_unicode=True, sort_keys=False), encoding="utf-8"
+        )
+        chars.append(char)
+    project = Project(name=still_id, genre="fantasy", characters=chars, render_style="photoreal")
+    (work / "project.yaml").write_text(
+        yaml.safe_dump({"name": still_id, "genre": "fantasy", "render_style": "photoreal"}, allow_unicode=True),
+        encoding="utf-8",
+    )
+    return make_still(
+        project_dir=work,
+        project=project,
+        still=still,
+        settings=settings,
+        out_dir=out_dir,
+        ledger=ledger,
+    )

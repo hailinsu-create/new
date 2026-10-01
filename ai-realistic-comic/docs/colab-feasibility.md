@@ -1,3 +1,9 @@
+# ABANDONED — Colab path
+
+2026-10-01: Google AI Pro on the available account did not unlock Colab paid GPUs (A100/L4 unavailable; free T4 only). Workflow moved to **AutoDL rented GPUs** — see [autodl.md](autodl.md).
+
+---
+
 # Moving image generation to Google Colab (Google AI Pro) - feasibility, 2026-10-01
 
 Sources: Colab FAQ https://research.google.com/colaboratory/faq.html, Google One help

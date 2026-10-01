@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     # Explicit mock only. Default is real generation via IMAGE_PROVIDER.
     comic_mock: bool = False
 
-    # fal (default) | comfy — swap backends without changing episode/character assets.
+    # fal (default) | local (AutoDL/Diffusers) | comfy — swap backends without changing assets.
     image_provider: str = "fal"
 
     fal_key: str = ""
@@ -60,6 +60,15 @@ class Settings(BaseSettings):
     comfy_api_url: str = "http://127.0.0.1:8188"
     comfy_workflow_path: str = ""
     comfy_client_id: str = "ai-realistic-comic"
+
+    # Local GPU (AutoDL): IMAGE_PROVIDER=local
+    local_still_model: str = "qwen-image-edit-2511"
+    local_dtype: str = "bfloat16"
+    local_steps: int = 40
+    local_height: int = 1280
+    local_width: int = 960
+    local_seed: int = 1
+    local_candidates: int = 1  # keep low on rented GPU to save clock time
 
     openai_api_key: str = ""
     openai_base_url: str = "https://api.openai.com/v1"

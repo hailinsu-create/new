@@ -33,19 +33,23 @@ class BudgetLedger:
         return cls(limit_usd=limit_usd)
 
     def estimate(self, model: str) -> float:
-        if "aura-sr" in model.lower() or "upscale" in model.lower():
+        m = model.lower()
+        # Local/AutoDL GPU time is billed on the rental platform, not per-image here.
+        if m.startswith("local:") or "qwen-image-edit" in m or "flux.2-klein" in m or "flux2-klein" in m:
+            return 0.0
+        if "aura-sr" in m or "upscale" in m:
             return COST_UPSCALE_USD
-        if "nano-banana-pro" in model.lower():
+        if "nano-banana-pro" in m:
             return COST_NANO_BANANA_PRO_USD
-        if "gpt-image" in model.lower():
+        if "gpt-image" in m:
             return COST_GPT_IMAGE_USD
-        if "gemini-2.5-pro" in model.lower():
+        if "gemini-2.5-pro" in m:
             return COST_STRICT_USD
-        if "any-llm" in model.lower():
+        if "any-llm" in m:
             return COST_QA_USD
-        if "seedream" in model.lower():
+        if "seedream" in m:
             return COST_SEEDREAM_USD
-        if "pulid" in model.lower():
+        if "pulid" in m:
             return COST_PULID_USD
         return COST_T2I_USD
 

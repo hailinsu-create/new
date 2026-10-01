@@ -39,3 +39,20 @@ def test_require_fal_errors_without_key() -> None:
 def test_unknown_provider() -> None:
     with pytest.raises(RuntimeError, match="Unknown IMAGE_PROVIDER"):
         get_image_provider(Settings(comic_mock=False, image_provider="nope"))
+
+
+def test_local_provider_selected() -> None:
+    from comic_pipeline.providers.local import LocalProvider
+
+    p = get_image_provider(Settings(comic_mock=False, image_provider="local"))
+    assert isinstance(p, LocalProvider)
+    assert p.resolve_model("fal-ai/nano-banana-pro/edit") == "Qwen/Qwen-Image-Edit-2511"
+    assert p.resolve_model("qwen2511") == "Qwen/Qwen-Image-Edit-2511"
+
+
+def test_budget_local_is_free() -> None:
+    from comic_pipeline.budget import BudgetLedger
+
+    led = BudgetLedger(limit_usd=1.0)
+    assert led.estimate("qwen-image-edit-2511") == 0.0
+    assert led.estimate("Qwen/Qwen-Image-Edit-2511") == 0.0
