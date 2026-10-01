@@ -334,7 +334,7 @@ def ensure_character_reference(
         )
         last_path = out
         try:
-            final_qa = qa_reference(settings, character, out, ledger)
+            final_qa = qa_reference(settings, character, out, ledger, project.render_style)
         except Exception as qa_exc:  # noqa: BLE001
             final_qa = QAResult(ok=True, skipped=True, issues=[f"qa unavailable: {qa_exc}"[:200]])
         _record_qa(out, final_qa)

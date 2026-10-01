@@ -85,6 +85,7 @@ def qa_reference(
     character: Character,
     image: Path,
     ledger: BudgetLedger | None = None,
+    render_style: str = "photoreal",
 ) -> QAResult:
     blank = blank_image_issue(image)
     if blank:
@@ -93,6 +94,11 @@ def qa_reference(
         return QAResult(ok=True, skipped=True)
     if ledger is not None:
         ledger.ensure_can_afford(settings.fal_vlm_endpoint)
+    style_rule = (
+        "painterly stylized illustration"
+        if render_style == "stylized"
+        else "photographic live-action look, NOT a 3D render, animation, game CG or illustration"
+    )
     prompt = (
         "You are a strict QA reviewer for a character look sheet used as an identity reference. "
         f"Character card: name={character.name}; look={character.age_look}; face={character.face}; "
@@ -102,7 +108,8 @@ def qa_reference(
         "face_matches_card, wardrobe_matches_card (major garments, colors and silhouette match; ignore tiny accessory "
         "differences, but flag extra capes/armor/large items not in the card), "
         "species_matches_card, adult_appearance (clearly an adult), no_artifacts (no extra limbs/fingers, "
-        "no text or watermark), full_outfit_visible; plus 'issues' (short strings, ONLY for failed boolean checks) "
+        "no text or watermark), full_outfit_visible, "
+        f"style_matches ({style_rule}); plus 'issues' (short strings, ONLY for failed boolean checks) "
         "and 'pass' (boolean)."
     )
     raw = _judge(settings, [image], prompt)
@@ -118,6 +125,7 @@ def qa_reference(
             "species_matches_card",
             "adult_appearance",
             "no_artifacts",
+            "style_matches",
         ],
         raw,
     )

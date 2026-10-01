@@ -138,6 +138,7 @@ def cast_character(
 def refs_cmd(
     project: str = typer.Argument(...),
     force: bool = typer.Option(False, help="Regenerate look sheets (costs budget)"),
+    only: Optional[str] = typer.Option(None, help="Only this character id"),
 ) -> None:
     """Generate look sheets for every character card in the project."""
     project_dir = _projects_root() / project
@@ -147,6 +148,8 @@ def refs_cmd(
     budget_path = _output_root() / project / "budget.json"
     ledger = BudgetLedger.load_or_new(budget_path, settings.comic_budget_usd)
     for char in proj.characters:
+        if only and char.id != only:
+            continue
         ensure_character_reference(
             project_dir=project_dir,
             project=proj,
@@ -219,7 +222,7 @@ def qa_cmd(project: str = typer.Argument(...)) -> None:
     ledger = BudgetLedger.load_or_new(budget_path, settings.comic_budget_usd)
     for char in proj.characters:
         for rel in char.reference_images[:1]:
-            res = qa_reference(settings, char, project_dir / rel, ledger)
+            res = qa_reference(settings, char, project_dir / rel, ledger, proj.render_style)
             typer.echo(f"ref {char.id}: {'PASS' if res.ok else 'FAIL'} {res.hint()}")
     for panel in episode.panels:
         img = _output_root() / project / "panels" / f"{panel.id}.png"
