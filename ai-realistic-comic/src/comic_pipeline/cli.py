@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Optional
 
@@ -9,12 +10,15 @@ from dotenv import load_dotenv
 
 from comic_pipeline.assemble import assemble_pages
 from comic_pipeline.budget import BudgetLedger
+from comic_pipeline.compliance import PLATFORMS, format_report, lint_project
 from comic_pipeline.config import get_settings, require_provider
+from comic_pipeline.export import export_release
 from comic_pipeline.image import (
     ensure_character_reference,
     generate_panel_with_retries,
 )
 from comic_pipeline.llm import plan_episode
+from comic_pipeline.qa import qa_panel, qa_reference
 from comic_pipeline.models import Character, Project, load_episode, load_project, save_episode, save_project
 
 app = typer.Typer(add_completion=False, no_args_is_help=True, help="AI realistic comic pipeline")
@@ -155,6 +159,79 @@ def refs_cmd(
     save_project(project_dir, proj)
 
 
+@app.command("lint")
+def lint_cmd(
+    project: str = typer.Argument(...),
+    platform: Optional[str] = typer.Option(None, help=f"One of: {', '.join(sorted(PLATFORMS))}"),
+) -> None:
+    """Check adult-age declarations, minor-coded terms, content tier and platform fit."""
+    project_dir = _projects_root() / project
+    proj = load_project(project_dir)
+    ep_path = project_dir / "episode.yaml"
+    episode = load_episode(ep_path) if ep_path.is_file() else None
+    report = lint_project(proj, episode, get_settings(), platform)
+    typer.echo(format_report(report))
+    if not report.ok:
+        raise typer.Exit(code=1)
+
+
+@app.command("export")
+def export_cmd(
+    project: str = typer.Argument(...),
+    platform: str = typer.Option(..., help=f"One of: {', '.join(sorted(PLATFORMS))}"),
+) -> None:
+    """Lint, stamp the AI disclosure on pages, and write caption + provenance manifest."""
+    project_dir = _projects_root() / project
+    proj = load_project(project_dir)
+    episode = load_episode(project_dir / "episode.yaml")
+    report = lint_project(proj, episode, get_settings(), platform)
+    typer.echo(format_report(report))
+    if not report.ok:
+        raise typer.Exit(code=1)
+    out_root = _output_root() / project
+    pages = sorted((out_root / "pages").glob("page_*.png"))
+    if not pages:
+        typer.echo("No assembled pages; run `comic assemble` first.")
+        raise typer.Exit(code=1)
+    manifest = export_release(
+        project=proj,
+        episode=episode,
+        pages=pages,
+        panel_dir=out_root / "panels",
+        platform=platform,
+        out_dir=out_root / "export" / platform,
+        budget_path=out_root / "budget.json",
+    )
+    typer.echo(f"export -> {manifest.parent}")
+
+
+@app.command("qa")
+def qa_cmd(project: str = typer.Argument(...)) -> None:
+    """Run the vision QA gate over existing look sheets and panels (about $0.005 per image)."""
+    from comic_pipeline.image import _record_qa, reference_paths
+
+    project_dir = _projects_root() / project
+    proj = load_project(project_dir)
+    episode = load_episode(project_dir / "episode.yaml")
+    settings = get_settings()
+    budget_path = _output_root() / project / "budget.json"
+    ledger = BudgetLedger.load_or_new(budget_path, settings.comic_budget_usd)
+    for char in proj.characters:
+        for rel in char.reference_images[:1]:
+            res = qa_reference(settings, char, project_dir / rel, ledger)
+            typer.echo(f"ref {char.id}: {'PASS' if res.ok else 'FAIL'} {res.hint()}")
+    for panel in episode.panels:
+        img = _output_root() / project / "panels" / f"{panel.id}.png"
+        if not img.is_file():
+            continue
+        refs = reference_paths(project_dir, proj, panel, settings.comic_ref_mode == "edit")
+        res = qa_panel(settings, proj, panel, img, refs, ledger)
+        _record_qa(img, res)
+        typer.echo(f"panel {panel.id}: {'PASS' if res.ok else 'FAIL'} {res.hint()}")
+    ledger.save(budget_path)
+    typer.echo(f"spent ${ledger.spent_usd:.4f} / ${ledger.limit_usd:.4f}")
+
+
 @app.command("plan")
 def plan_cmd(project: str = typer.Argument(...)) -> None:
     project_dir = _projects_root() / project
@@ -177,6 +254,10 @@ def generate_cmd(
     proj = load_project(project_dir)
     episode = load_episode(project_dir / "episode.yaml")
     settings = get_settings()
+    report = lint_project(proj, episode, settings)
+    if not report.ok:
+        typer.echo(format_report(report))
+        raise typer.Exit(code=1)
     try:
         require_provider(settings)
     except RuntimeError as exc:
@@ -200,6 +281,9 @@ def generate_cmd(
                 force=force,
                 ledger=ledger,
             )
+            qa = json.loads(out.with_suffix(".json").read_text(encoding="utf-8")).get("qa") or {}
+            if qa and not qa.get("ok"):
+                typer.echo(f"  QA flagged {panel.id}: {'; '.join(qa.get('issues', []))}")
             typer.echo(
                 f"panel {panel.id} -> {out} | spent ${ledger.spent_usd:.4f}/${ledger.limit_usd:.4f}"
             )

@@ -2,13 +2,25 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 
 from comic_pipeline.budget import BudgetLedger
 from comic_pipeline.config import Settings, require_provider
 from comic_pipeline.models import Character, Panel, Project
-from comic_pipeline.prompts.genres import GENRE_STYLE, genre_negative
+from comic_pipeline.prompts.genres import GENRE_STYLE, STYLIZED_ANCHOR, genre_negative
 from comic_pipeline.providers import get_image_provider
+from comic_pipeline.qa import QAResult, qa_panel, qa_reference
+
+
+REF_STYLE_PHOTO = (
+    "photorealistic studio lookbook photograph, seamless plain neutral grey backdrop, soft even key light, "
+    "85mm lens, sharp focus on face and costume, NOT anime, NOT illustration"
+)
+REF_STYLE_STYLIZED = (
+    "high-end digital painting character sheet, seamless plain neutral grey backdrop, soft even lighting, "
+    "clearly stylized, not a photograph"
+)
 
 
 def build_panel_prompt(
@@ -37,27 +49,40 @@ def build_panel_prompt(
                 "do not give two equal clear faces"
             )
         )
+    stylized = project.render_style == "stylized"
+    is_ref = panel.id.endswith("_ref")
     ref_prefix = ""
-    if settings is not None and settings.comic_ref_mode == "edit" and panel.characters:
+    if settings is not None and settings.comic_ref_mode == "edit" and panel.characters and not is_ref:
         names = [cmap[c].name for c in panel.characters if c in cmap]
         ref_prefix = " ".join(f"Image {i} is {n}." for i, n in enumerate(names, 1))
     prompt = ", ".join(
         p
         for p in [
             ref_prefix,
-            GENRE_STYLE[project.genre],
+            REF_STYLE_STYLIZED
+            if is_ref and stylized
+            else REF_STYLE_PHOTO
+            if is_ref
+            else STYLIZED_ANCHOR
+            if stylized
+            else GENRE_STYLE[project.genre],
             panel.setting,
             f"{panel.shot} shot",
             panel.action,
             f"emotion: {panel.emotion}" if panel.emotion else "",
             " | ".join(char_blocks),
-            "highly detailed skin texture, realistic eyes, coherent anatomy",
-            identity,
-            "continuous cave silk-grotto atmosphere, cool violet mist, no outdoor sunny canyon",
+            "coherent anatomy, clean hands"
+            if stylized
+            else "highly detailed skin texture, realistic eyes, coherent anatomy",
+            "" if is_ref else identity,
+            "" if is_ref else project.atmosphere,
         ]
         if p
     )
     negative = panel.negative or genre_negative(project.genre)
+    if stylized:
+        negative = re.sub(r"\b(anime|cartoon|illustration|manga)\b,?\s*", "", negative)
+        negative = f"{negative}, photograph, photorealistic, skin pores"
     negative = (
         f"{negative}, identical twins, same face twice, merged faces, costume swap, "
         "sunny outdoor canyon, split screen, diptych, collage, modern clothes"
@@ -110,6 +135,7 @@ def generate_panel_image(
     force: bool = False,
     ledger: BudgetLedger | None = None,
     attempt: int = 1,
+    hint: str = "",
 ) -> Path:
     _assert_panel_policy(panel, settings)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -122,6 +148,8 @@ def generate_panel_image(
             "identity lock priority over cinematic complexity"
         )
     edit_mode = settings.comic_ref_mode == "edit"
+    if hint:
+        prompt = f"{prompt}. Fix these problems from the previous attempt: {hint}"
     refs = reference_paths(project_dir, project, panel, edit_mode)
     if not edit_mode:
         refs = refs[:1] if len(panel.characters) == 1 else []
@@ -187,6 +215,20 @@ def generate_panel_image(
     return out_path
 
 
+def _record_qa(out_path: Path, qa: QAResult) -> None:
+    meta_path = out_path.with_suffix(".json")
+    meta = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.is_file() else {}
+    meta["qa"] = qa.as_dict()
+    meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _existing_qa(out_path: Path) -> dict | None:
+    meta_path = out_path.with_suffix(".json")
+    if not meta_path.is_file():
+        return None
+    return json.loads(meta_path.read_text(encoding="utf-8")).get("qa")
+
+
 def generate_panel_with_retries(
     *,
     project_dir: Path,
@@ -197,11 +239,12 @@ def generate_panel_with_retries(
     force: bool = False,
     ledger: BudgetLedger | None = None,
 ) -> Path:
-    """Generate a panel with at most comic_max_panel_tries attempts."""
+    """Generate a panel with at most comic_max_panel_tries attempts; QA failures feed the retry."""
     last_err: Exception | None = None
+    hint = ""
     for attempt in range(1, settings.comic_max_panel_tries + 1):
         try:
-            return generate_panel_image(
+            generate_panel_image(
                 project_dir=project_dir,
                 project=project,
                 panel=panel,
@@ -210,7 +253,19 @@ def generate_panel_with_retries(
                 force=force or attempt > 1,
                 ledger=ledger,
                 attempt=attempt,
+                hint=hint,
             )
+            if _existing_qa(out_path) is not None and attempt == 1 and not force:
+                return out_path
+            refs = reference_paths(project_dir, project, panel, settings.comic_ref_mode == "edit")
+            try:
+                qa = qa_panel(settings, project, panel, out_path, refs, ledger)
+            except Exception as qa_exc:  # noqa: BLE001
+                qa = QAResult(ok=True, skipped=True, issues=[f"qa unavailable: {qa_exc}"[:200]])
+            _record_qa(out_path, qa)
+            if qa.ok or attempt >= settings.comic_max_panel_tries:
+                return out_path
+            hint = qa.hint()
         except Exception as exc:  # noqa: BLE001
             last_err = exc
             if attempt >= settings.comic_max_panel_tries:
@@ -228,7 +283,7 @@ def ensure_character_reference(
     ledger: BudgetLedger | None = None,
     force: bool = False,
 ) -> Path | None:
-    """Generate a locked look sheet if missing. Respects max ref tries / budget."""
+    """Generate a look sheet and only accept it once QA passes (bounded by comic_max_ref_tries)."""
     if character.reference_images and not force:
         existing = project_dir / character.reference_images[0]
         if existing.is_file():
@@ -240,7 +295,14 @@ def ensure_character_reference(
         character.reference_images = [rel]
         return out
 
+    previous_refs = character.reference_images
+    character.reference_images = []
+    if character.id not in project.character_map():
+        project.characters.append(character)
+
+    hint = ""
     last_path: Path | None = None
+    final_qa: QAResult | None = None
     for attempt in range(1, settings.comic_max_ref_tries + 1):
         panel = Panel(
             id=f"{character.id}_ref",
@@ -249,17 +311,16 @@ def ensure_character_reference(
             emotion="neutral calm",
             action=(
                 f"solo lookbook portrait of ONLY {character.name}, "
-                "three-quarter view from head to thighs so the full wardrobe is visible, plain soft neutral backdrop, "
-                "identity lock sheet, single subject, no other characters"
+                "three-quarter view from head to thighs so the full wardrobe is visible, "
+                "plain soft neutral grey studio backdrop, identity lock sheet, "
+                "single subject, no other characters, no scenery"
             ),
-            setting="studio portrait for continuity lock",
+            setting="neutral studio portrait for continuity lock",
             negative=(
-                "second person, crowd, twins, wrong gender, anime, cartoon, "
-                "deformed face, watermark, text overlay"
+                "second person, crowd, twins, wrong gender, anime, cartoon, scenery, cave, "
+                "extra cape or armor not in the card, deformed face, watermark, text overlay"
             ),
         )
-        if character.id not in project.character_map():
-            project.characters.append(character)
         generate_panel_image(
             project_dir=project_dir,
             project=project,
@@ -269,9 +330,18 @@ def ensure_character_reference(
             force=True,
             ledger=ledger,
             attempt=attempt,
+            hint=hint,
         )
         last_path = out
-        # Economic mode: accept first successful write; no visual auto-judge yet.
-        break
-    character.reference_images = [rel]
+        try:
+            final_qa = qa_reference(settings, character, out, ledger)
+        except Exception as qa_exc:  # noqa: BLE001
+            final_qa = QAResult(ok=True, skipped=True, issues=[f"qa unavailable: {qa_exc}"[:200]])
+        _record_qa(out, final_qa)
+        if final_qa.ok:
+            break
+        hint = final_qa.hint()
+    character.reference_images = [rel] if last_path else previous_refs
+    if final_qa is not None and not final_qa.ok:
+        print(f"[qa] {character.id} look sheet accepted after max tries with issues: {final_qa.hint()}")
     return last_path

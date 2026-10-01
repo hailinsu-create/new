@@ -33,3 +33,9 @@ def genre_negative(genre: str) -> str:
         "scifi": "medieval castle, fantasy dragons",
     }
     return f"{base}, {extras.get(genre, '')}".strip(", ")
+
+
+STYLIZED_ANCHOR = (
+    "high-end cinematic digital painting, clearly stylized illustration with painterly brushwork and "
+    "idealized proportions, not a photograph, no skin pores, no photographic grain"
+)

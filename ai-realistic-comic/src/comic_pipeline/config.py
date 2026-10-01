@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     # edit = multi-reference semantic edit (supports 2+ characters per frame);
     # pulid = legacy single-face lock with flux.
     comic_ref_mode: str = "edit"
+
+    # Vision-LLM quality gate (cheap): validates look sheets and panels before they are accepted.
+    comic_qa: bool = True
+    fal_vlm_endpoint: str = "fal-ai/any-llm/vision"
+    fal_vlm_model: str = "google/gemini-2.5-flash"
     fal_image_model: str = ""
 
     fal_image_size: str = "portrait_4_3"

@@ -59,6 +59,9 @@ class Project(BaseModel):
     genre: Genre = "xianxia"
     title: str = ""
     layout: Literal["grid_2x3", "grid_2x4", "vertical_strip"] = "grid_2x3"
+    render_style: Literal["photoreal", "stylized"] = "photoreal"
+    content_tier: Literal["sfw", "suggestive", "explicit"] = "suggestive"
+    atmosphere: str = ""
     characters: list[Character] = Field(default_factory=list)
 
     def character_map(self) -> dict[str, Character]:

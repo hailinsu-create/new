@@ -8,6 +8,7 @@ from pathlib import Path
 COST_T2I_USD = 0.025
 COST_PULID_USD = 0.0333
 COST_SEEDREAM_USD = 0.03
+COST_QA_USD = 0.005
 
 
 @dataclass
@@ -28,6 +29,8 @@ class BudgetLedger:
         return cls(limit_usd=limit_usd)
 
     def estimate(self, model: str) -> float:
+        if "any-llm" in model.lower():
+            return COST_QA_USD
         if "seedream" in model.lower():
             return COST_SEEDREAM_USD
         if "pulid" in model.lower():

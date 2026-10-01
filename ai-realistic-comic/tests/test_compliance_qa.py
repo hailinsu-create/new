@@ -1,0 +1,60 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+from PIL import Image
+
+from comic_pipeline.compliance import lint_project
+from comic_pipeline.config import Settings
+from comic_pipeline.models import Character, Episode, Panel, Project
+from comic_pipeline.qa import _parse_json, _result_from, blank_image_issue
+
+
+def _project(**kw) -> Project:
+    return Project(
+        name="t",
+        characters=[Character(id="a", name="A", age_look="adult woman, late 20s")],
+        **kw,
+    )
+
+
+def test_adult_age_required_and_minor_terms_blocked() -> None:
+    settings = Settings(comic_mock=True)
+    proj = Project(name="t", characters=[Character(id="a", name="A", age_look="young woman")])
+    rep = lint_project(proj, None, settings)
+    assert any("explicit adult age" in e for e in rep.errors)
+
+    bad = Project(
+        name="t", characters=[Character(id="a", name="A", age_look="adult", notes="schoolgirl uniform")]
+    )
+    assert not lint_project(bad, None, settings).ok
+
+
+def test_platform_profiles() -> None:
+    settings = Settings(comic_mock=True)
+    ep = Episode(title="e", genre="fantasy", panels=[Panel(id="p", shot="s", characters=["a"])])
+    assert lint_project(_project(), ep, settings, "fanvue").ok
+    assert not lint_project(_project(), ep, settings, "patreon_adult").ok
+    assert lint_project(_project(render_style="stylized"), ep, settings, "patreon_adult").ok
+    assert not lint_project(_project(), ep, settings, "gumroad").ok
+    assert not lint_project(_project(), ep, settings, "fansly").ok
+
+
+def test_explicit_blocked_on_fal() -> None:
+    settings = Settings(comic_mock=False, image_provider="fal")
+    rep = lint_project(_project(content_tier="explicit"), None, settings)
+    assert any("Acceptable Use" in e for e in rep.errors)
+
+
+def test_blank_image_detected(tmp_path: Path) -> None:
+    black = tmp_path / "b.png"
+    Image.new("RGB", (64, 64), (0, 0, 0)).save(black)
+    assert blank_image_issue(black)
+
+
+def test_qa_result_parsing() -> None:
+    data = _parse_json('```json\n{"single_frame": false, "issues": ["collage"], "pass": true}\n```')
+    res = _result_from(data, ["single_frame"], "")
+    assert not res.ok
+    assert "collage" in res.hint()
+    assert _result_from({"single_frame": True, "issues": []}, ["single_frame"], "").ok
