@@ -24,7 +24,8 @@ class Settings(BaseSettings):
     comic_ref_mode: str = "edit"
 
     # Single refined still: candidates -> judge -> targeted edit pass -> upscale.
-    comic_strict_audit: bool = True
+    comic_strict_audit: bool = False  # about $0.03/still; missed real defects, so off by default
+    comic_anatomy_audit: bool = False  # about $0.015/candidate; same weakness, off by default (judge still runs)
     comic_strict_blocking: bool = False  # advisory by default: it missed real defects and flagged fine images
     fal_strict_model: str = "google/gemini-2.5-pro"
     comic_still_candidates: int = 2

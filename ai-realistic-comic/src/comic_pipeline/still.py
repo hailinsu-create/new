@@ -10,7 +10,7 @@ from comic_pipeline.config import Settings
 from comic_pipeline.models import Project, Still
 from comic_pipeline.prompts.genres import GENRE_STYLE, STYLIZED_ANCHOR
 from comic_pipeline.providers import get_image_provider
-from comic_pipeline.qa import StillJudgement, audit_anatomy, judge_still, strict_limb_check
+from comic_pipeline.qa import AnatomyAudit, StillJudgement, audit_anatomy, judge_still, strict_limb_check
 
 PHOTO_FINISH = (
     "photorealistic live-action cinematic still, natural skin micro-texture, fine fur detail, "
@@ -182,7 +182,10 @@ def make_still(
 
     def evaluate(path: Path, tag: str) -> StillJudgement:
         judged = judge_still(settings, project, still, path, refs, ledger)
-        audit = audit_anatomy(settings, path, len(still.characters), ledger, tag=tag, nonhuman=nonhuman)
+        if settings.comic_anatomy_audit:
+            audit = audit_anatomy(settings, path, len(still.characters), ledger, tag=tag, nonhuman=nonhuman)
+        else:
+            audit = AnatomyAudit(True, skipped=True)
         blocking = [*judged.blocking, *audit.issues]
         if judged.scores.get("anatomy", 10.0) < 6:
             blocking.append("anatomy score below 6")

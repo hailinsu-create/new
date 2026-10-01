@@ -37,6 +37,11 @@ Output: `output/<project>/stills/<id>/final.png`, `still.json` (scores, prompt, 
 
 ## Anatomy gate (extra hands, fingers, limbs)
 
+Cost note: the count-based audit (`COMIC_ANATOMY_AUDIT=1`, about $0.015 per candidate) and the strict second opinion (`COMIC_STRICT_AUDIT=1`, about
+$0.03 per still) are **off by default** because they missed real defects (see the reality check below). Default per still is now
+2 candidates x $0.15 + two $0.005 judge calls, about $0.31; set `COMIC_STILL_CANDIDATES=1` for about $0.155.
+
+
 Multi-person contact poses (embraces, laps, coils) are still the hardest case for diffusion/edit models: arms overlap, so the
 model can lose track of which limb belongs to whom. A single 0-10 "anatomy" score averaged with seven other scores hides
 this, so the still pipeline now counts instead of scoring:
