@@ -18,39 +18,28 @@ export PATH="/root/miniconda3/bin:/root/miniconda/bin:/opt/conda/bin:$PATH"
 PYBIN="$(command -v python3 || command -v python)"
 $PYBIN -m pip -q install -U pip
 $PYBIN -m pip -q install -e .
-# Prefer the image's torch if CUDA works; bump if missing torch.accelerator
-# (current diffusers get_device() requires PyTorch >= 2.6).
+
+set +e
 $PYBIN - <<'PY'
-import importlib
-import subprocess
-import sys
-
 import torch
-
 assert torch.cuda.is_available(), "CUDA torch missing — pick a PyTorch+CUDA AutoDL image"
 print("torch", torch.__version__, "cuda", torch.version.cuda, "gpu", torch.cuda.get_device_name(0))
-if not hasattr(torch, "accelerator"):
-    print("upgrading torch for accelerator API…")
-    subprocess.check_call(
-        [
-            sys.executable,
-            "-m",
-            "pip",
-            "-q",
-            "install",
-            "-U",
-            "torch",
-            "torchvision",
-            "--index-url",
-            "https://download.pytorch.org/whl/cu124",
-        ]
-    )
-    importlib.reload(torch)
-    import torch
+raise SystemExit(0 if hasattr(torch, "accelerator") else 2)
+PY
+status=$?
+set -e
+if [ "$status" -eq 2 ]; then
+  echo "upgrading torch for accelerator API…"
+  $PYBIN -m pip -q install -U torch torchvision --index-url https://download.pytorch.org/whl/cu124
+elif [ "$status" -ne 0 ]; then
+  exit "$status"
+fi
 
-    assert hasattr(torch, "accelerator"), f"torch {torch.__version__} still missing accelerator"
-    assert torch.cuda.is_available(), "CUDA broken after torch upgrade"
-    print("upgraded torch", torch.__version__, "cuda", torch.version.cuda)
+$PYBIN - <<'PY'
+import torch
+assert torch.cuda.is_available(), "CUDA broken after torch setup"
+assert hasattr(torch, "accelerator"), f"torch {torch.__version__} still missing accelerator"
+print("torch ok", torch.__version__, "cuda", torch.version.cuda, "gpu", torch.cuda.get_device_name(0))
 PY
 $PYBIN -m pip -q install -U "diffusers>=0.35.0" transformers accelerate sentencepiece protobuf pillow pyyaml
 
