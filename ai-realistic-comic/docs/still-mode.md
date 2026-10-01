@@ -40,6 +40,18 @@ this, so the still pipeline now counts instead of scoring:
 The prompt carries an explicit anatomy rule and an anatomy negative list. Poses that hide hands (hand on fabric, behind a
 neck, resting on a throne arm) are less error-prone than fingers-to-lips close-ups.
 
+**Reality check (measured, not assumed):** on the Hades x Persephone lap pose, the count-based checks (flash and the reasoning
+model) reported "4 arms, 5 fingers each" on images a human reviewer saw with an extra hand and six fingers/toes on every
+person. Vision models are poor at counting digits, so these checks are a weak filter, not a guarantee. What actually
+removed the errors was *not showing the parts*:
+
+- `ref_crop` (e.g. 0.5): feed head-to-waist crops of the look sheets. Full-body refs make edit models reproduce legs and
+  bare feet regardless of the camera text.
+- `crop_top` / `crop_bottom`: deterministic reframing after generation. Models ignore "legs and feet out of frame".
+- `edit_model: fal-ai/gpt-image-1.5/edit`: follows framing and pose text (chest-up, seed passed mouth to mouth) far better
+  than seedream/nano-banana-pro/flux-2-pro, which all drew full-body laps with extra hands in the same test.
+- Prefer poses where hands/feet are not the subject (close two-shots, faces, shoulders, hands hidden by hair).
+
 Limits: the checker is itself a vision model; it can miss errors or raise false alarms. Eyeball the final image.
 
 ## Content limits enforced by `comic still`

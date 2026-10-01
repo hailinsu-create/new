@@ -10,6 +10,7 @@ COST_PULID_USD = 0.0333
 COST_SEEDREAM_USD = 0.03
 COST_QA_USD = 0.005
 COST_STRICT_USD = 0.03  # reasoning VLM second opinion, conservative guess
+COST_GPT_IMAGE_USD = 0.06  # gpt-image-1.5 edit, medium quality, 1024x1536 (conservative)
 COST_UPSCALE_USD = 0.02  # conservative guess; fal bills aura-sr by output size
 
 
@@ -33,6 +34,8 @@ class BudgetLedger:
     def estimate(self, model: str) -> float:
         if "aura-sr" in model.lower() or "upscale" in model.lower():
             return COST_UPSCALE_USD
+        if "gpt-image" in model.lower():
+            return COST_GPT_IMAGE_USD
         if "gemini-2.5-pro" in model.lower():
             return COST_STRICT_USD
         if "any-llm" in model.lower():

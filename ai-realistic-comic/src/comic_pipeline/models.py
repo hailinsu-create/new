@@ -72,6 +72,10 @@ class Still(BaseModel):
     mood: str = ""
     negative: str = ""
     image_size: str = "portrait_4_3"
+    edit_model: str = ""  # per-still override, e.g. fal-ai/gpt-image-1.5/edit (follows framing/pose text far better than seedream)
+    ref_crop: float = 0.0  # keep only this top fraction of each full-body look sheet (e.g. 0.5 = head to waist); full-body refs make the edit model reproduce legs and bare feet
+    crop_top: float = 0.0  # fraction of height removed from the top after generation (deterministic reframing)
+    crop_bottom: float = 0.0  # models ignore "feet out of frame"; cropping guarantees no feet/legs
 
 
 class Episode(BaseModel):

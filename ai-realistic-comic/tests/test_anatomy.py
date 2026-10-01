@@ -68,3 +68,16 @@ def test_strict_check_empty_reply_is_skipped_not_crash(monkeypatch, tmp_path):
     monkeypatch.setattr(qa, "_judge", lambda s, i, p, model=None, reasoning=False: "")
     a = qa.strict_limb_check(Settings(), _img(tmp_path), 2, None)
     assert a.ok and a.skipped
+
+
+def test_crop_helpers(tmp_path):
+    from comic_pipeline.models import Still
+    from comic_pipeline.still import apply_crop, crop_refs
+
+    img = tmp_path / "a.png"
+    Image.new("RGB", (100, 200), "red").save(img)
+    still = Still(id="s", ref_crop=0.5, crop_bottom=0.25)
+    ref = crop_refs([img], still, tmp_path)[0]
+    assert Image.open(ref).size == (100, 100)
+    apply_crop(img, still)
+    assert Image.open(img).size == (100, 150)

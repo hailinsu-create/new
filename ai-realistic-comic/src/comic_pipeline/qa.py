@@ -41,7 +41,15 @@ def _parse_json(text: str) -> dict:
     match = re.search(r"\{.*\}", text, re.DOTALL)
     if not match:
         raise ValueError(f"no JSON in judge reply: {text[:200]}")
-    return json.loads(match.group(0))
+    raw = match.group(0)
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        repaired = re.sub(r",\s*([}\]])", r"\1", raw)
+        try:
+            return json.loads(repaired)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"unparseable JSON in judge reply: {exc}") from exc
 
 
 def _judge(settings: Settings, images: list[Path], prompt: str, model: str | None = None, reasoning: bool = False) -> str:
@@ -256,7 +264,10 @@ def audit_anatomy(
     try:
         if ledger is not None:
             ledger.ensure_can_afford(settings.fal_vlm_endpoint)
-        data = _parse_json(_judge(settings, [image], full_prompt))
+        try:
+            data = _parse_json(_judge(settings, [image], full_prompt))
+        except ValueError:
+            data = {}
         if ledger is not None:
             ledger.charge(model=settings.fal_vlm_endpoint, panel_id=f"{tag}_anatomy_full")
         counts = {k: _int(data.get(k)) for k in ("people", "arms", "hands", "legs", "feet", "orphan_limbs")}
@@ -281,7 +292,10 @@ def audit_anatomy(
         for tp in tiles:
             if ledger is not None:
                 ledger.ensure_can_afford(settings.fal_vlm_endpoint)
-            hd = _parse_json(_judge(settings, [tp], h_prompt))
+            try:
+                hd = _parse_json(_judge(settings, [tp], h_prompt))
+            except ValueError:
+                hd = {}
             if ledger is not None:
                 ledger.charge(model=settings.fal_vlm_endpoint, panel_id=f"{tag}_anatomy_{tp.stem[-6:]}")
             for hand in hd.get("hands", []):
@@ -395,10 +409,17 @@ def judge_still(
         "illustration/3D look instead of photographic, skin/hair/eye colors or held props contradicting the references], "
         "\"fixes\": [up to 4 short, concrete edit instructions to improve the image]}."
     )
-    raw = _judge(settings, [image, *refs], prompt)
-    if ledger is not None:
-        ledger.charge(model=settings.fal_vlm_endpoint, panel_id=f"{still.id}_judge")
-    data = _parse_json(raw)
+    data, raw = {}, ""
+    for attempt in (1, 2):
+        raw = _judge(settings, [image, *refs], prompt)
+        if ledger is not None:
+            ledger.charge(model=settings.fal_vlm_endpoint, panel_id=f"{still.id}_judge{attempt}")
+        try:
+            data = _parse_json(raw)
+            break
+        except ValueError:
+            if attempt == 2:
+                return StillJudgement({}, 5.0, [], [], raw=raw)
     scores = {k: float(v) for k, v in (data.get("scores") or {}).items() if k in STILL_KEYS}
     total = sum(scores.values()) / max(1, len(scores)) if scores else 0.0
     return StillJudgement(

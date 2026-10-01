@@ -263,6 +263,9 @@ def still_cmd(
         ledger.save(out_dir / "budget.json")
         typer.echo(f"STOP: {exc}")
         raise typer.Exit(code=1)
+    except Exception:
+        ledger.save(out_dir / "budget.json")
+        raise
     ledger.save(out_dir / "budget.json")
     typer.echo(f"still -> {final} | spent ${ledger.spent_usd:.4f}/${ledger.limit_usd:.4f}")
     try:

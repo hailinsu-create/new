@@ -94,11 +94,45 @@ def _repair_fixes(audit_issues: list[str], warnings: list[str]) -> list[str]:
     return fixes
 
 
-def _edit_args(settings: Settings, provider, prompt: str, negative: str, images: list[Path], size: str) -> dict:
+def crop_refs(refs: list[Path], still: Still, out_dir: Path) -> list[Path]:
+    if not still.ref_crop:
+        return refs
+    dest = out_dir / "refs_cropped"
+    dest.mkdir(parents=True, exist_ok=True)
+    out = []
+    for i, ref in enumerate(refs, 1):
+        with Image.open(ref) as im:
+            im = im.convert("RGB")
+            target = dest / f"ref{i}_{ref.stem}.png"
+            im.crop((0, 0, im.width, int(im.height * still.ref_crop))).save(target)
+        out.append(target)
+    return out
+
+
+def apply_crop(path: Path, still: Still) -> None:
+    if not (still.crop_top or still.crop_bottom):
+        return
+    with Image.open(path) as im:
+        im = im.convert("RGB")
+        w, h = im.size
+        im.crop((0, int(h * still.crop_top), w, int(h * (1 - still.crop_bottom)))).save(path)
+
+
+def _edit_args(settings: Settings, provider, prompt: str, negative: str, images: list[Path], size: str, model: str = "") -> dict:
     import fal_client
 
     if settings.comic_mock:
         return {"prompt": prompt}
+    if "gpt-image" in model:
+        return {
+            "prompt": f"{prompt} Avoid: {negative}.",
+            "image_urls": [fal_client.upload_file(str(p)) for p in images],
+            "image_size": "1024x1536",
+            "quality": "medium",
+            "input_fidelity": "high",
+            "num_images": 1,
+            "output_format": "png",
+        }
     return {
         "prompt": f"{prompt} Avoid: {negative}.",
         "image_urls": [fal_client.upload_file(str(p)) for p in images],
@@ -124,8 +158,9 @@ def make_still(
     refs = still_refs(project_dir, project, still)
     if len(refs) != 2:
         raise RuntimeError(f"still {still.id}: both characters need look sheets (run `comic refs`)")
+    refs = crop_refs(refs, still, out_dir)
     prompt, negative = build_still_prompt(project, still)
-    edit_model = settings.fal_edit_model
+    edit_model = still.edit_model or settings.fal_edit_model
 
     report: dict = {"still": still.id, "candidates": [], "prompt": prompt}
     best_path: Path | None = None
@@ -156,7 +191,8 @@ def make_still(
                 raise
             report["stopped"] = "budget exhausted before another candidate"
             break
-        provider.call(edit_model, _edit_args(settings, provider, prompt, negative, refs, still.image_size), cand)
+        provider.call(edit_model, _edit_args(settings, provider, prompt, negative, refs, still.image_size, edit_model), cand)
+        apply_crop(cand, still)
         ledger.charge(model=edit_model, panel_id=f"{still.id}_cand{i}")
         judged = evaluate(cand, f"{still.id}_c{i}")
         report["candidates"].append(
@@ -187,9 +223,10 @@ def make_still(
         )
         provider.call(
             edit_model,
-            _edit_args(settings, provider, fix_prompt, negative, [base_path, *refs], still.image_size),
+            _edit_args(settings, provider, fix_prompt, negative, [base_path, *refs], still.image_size, edit_model),
             refined,
         )
+        apply_crop(refined, still)
         ledger.charge(model=edit_model, panel_id=f"{still.id}_refine")
         rj = evaluate(refined, f"{still.id}_r")
         report["refine"] = {
