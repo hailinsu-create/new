@@ -94,16 +94,19 @@ class LocalProvider:
             "generator": g,
             "num_inference_steps": int(arguments.get("steps") or self.settings.local_steps),
         }
-        if negative:
+        is_qwen = "qwen" in model_id.lower()
+        is_flux_klein = "flux" in model_id.lower() and "klein" in model_id.lower()
+        # Flux2KleinPipeline has no negative_prompt kwarg (only negative_prompt_embeds).
+        if negative and is_qwen:
             kwargs["negative_prompt"] = negative
         if pil:
             # Qwen edit + FLUX.2 klein both take image= or image=list
-            kwargs["image"] = pil if len(pil) > 1 else pil[0]
-        if "qwen" in model_id.lower():
+            kwargs["image"] = pil if (len(pil) > 1 or is_flux_klein) else pil[0]
+        if is_qwen:
             kwargs.setdefault("true_cfg_scale", 4.0)
             kwargs.setdefault("guidance_scale", 1.0)
         else:
-            kwargs.setdefault("guidance_scale", float(arguments.get("guidance_scale") or 1.0))
+            kwargs.setdefault("guidance_scale", float(arguments.get("guidance_scale") or 4.0))
 
         print(f"[local:{model_id}] {w}x{h} steps={kwargs['num_inference_steps']} refs={len(pil)} seed={seed}")
         out = pipe(**kwargs).images[0]
