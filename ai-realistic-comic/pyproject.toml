@@ -17,10 +17,12 @@ dependencies = [
   "Pillow>=10.0",
   "python-dotenv>=1.0",
   "fal-client>=0.5",
+  "paramiko>=3.4",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+autodl = ["paramiko>=3.4"]
 
 [project.scripts]
 comic = "comic_pipeline.cli:app"

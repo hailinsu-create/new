@@ -20,7 +20,7 @@ bash autodl/bootstrap.sh
 bash autodl/run_smoke.sh
 ```
 
-See [autodl.md](autodl.md).
+See [autodl.md](autodl.md). One-shot from your laptop/CI: `comic autodl run` (needs `AUTODL_TOKEN`).
 
 ## ComfyUI (optional later)
 

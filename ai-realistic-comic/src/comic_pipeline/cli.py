@@ -22,9 +22,14 @@ from comic_pipeline.qa import qa_panel, qa_reference
 from comic_pipeline.refine import edit_character_reference
 from comic_pipeline.library import archive_character, list_library, use_character
 from comic_pipeline.still import make_library_still, make_still
+from comic_pipeline.autodl import AutodlClient, AutodlError, run_remote_smoke, stop_instance
 from comic_pipeline.models import load_still, Character, Project, load_episode, load_project, save_episode, save_project
 
 app = typer.Typer(add_completion=False, no_args_is_help=True, help="AI realistic comic pipeline")
+autodl_app = typer.Typer(no_args_is_help=True, help="AutoDL: rent GPU, run stills, pull results, power off")
+app.add_typer(autodl_app, name="autodl")
+
+
 ROOT = Path.cwd()
 
 
@@ -555,3 +560,63 @@ def list_projects() -> None:
 
 if __name__ == "__main__":
     app()
+
+
+@autodl_app.command("doctor")
+def autodl_doctor() -> None:
+    """Check AutoDL token / SSH settings and print balance if possible."""
+    settings = get_settings()
+    typer.echo(f"AUTODL_TOKEN={'set' if settings.autodl_token.strip() else 'MISSING'}")
+    typer.echo(f"AUTODL_INSTANCE_UUID={settings.autodl_instance_uuid or '(will create)'}")
+    typer.echo(f"AUTODL_GPU_SPEC={settings.autodl_gpu_spec}")
+    typer.echo(f"AUTODL_IMAGE_UUID={settings.autodl_image_uuid}")
+    typer.echo(f"AUTODL_AUTO_STOP={settings.autodl_auto_stop}")
+    typer.echo(f"AUTODL_SSH_HOST={settings.autodl_ssh_host or '(from API snapshot)'}")
+    typer.echo(f"LOCAL_STILL_MODEL={settings.local_still_model}")
+    if not settings.autodl_token.strip() and not (settings.autodl_ssh_host and settings.autodl_ssh_password):
+        typer.echo("Set AUTODL_TOKEN (recommended) or AUTODL_SSH_HOST+AUTODL_SSH_PASSWORD.")
+        raise typer.Exit(code=1)
+    if settings.autodl_token.strip():
+        try:
+            bal = AutodlClient(settings.autodl_token).balance()
+            typer.echo(f"wallet: {bal}")
+        except AutodlError as exc:
+            typer.echo(f"API error: {exc}")
+            raise typer.Exit(code=1)
+    typer.echo("autodl: ready")
+
+
+@autodl_app.command("run")
+def autodl_run(
+    still: list[str] = typer.Option(
+        ["hades-persephone-throne", "baisuzhen-xuxian-coil"],
+        "--still",
+        help="library still id (repeatable)",
+    ),
+    branch: str = typer.Option("", help="Git branch to clone on the GPU box"),
+    no_stop: bool = typer.Option(False, help="Leave the instance running after the job"),
+) -> None:
+    """Create/power-on GPU → run still-library → download /root/autodl-tmp/out → power off."""
+    settings = get_settings()
+    if no_stop:
+        settings = settings.model_copy(update={"autodl_auto_stop": False})
+    br = branch or settings.autodl_git_branch
+    try:
+        out = run_remote_smoke(settings, branch=br, stills=list(still))
+    except AutodlError as exc:
+        typer.echo(f"STOP: {exc}")
+        raise typer.Exit(code=1)
+    typer.echo(f"autodl run -> {out}")
+    for p in sorted(out.glob("*")):
+        typer.echo(f"  {p.name}")
+
+
+@autodl_app.command("stop")
+def autodl_stop_cmd() -> None:
+    """Power off AUTODL_INSTANCE_UUID (stops billing)."""
+    settings = get_settings()
+    try:
+        stop_instance(settings)
+    except AutodlError as exc:
+        typer.echo(f"STOP: {exc}")
+        raise typer.Exit(code=1)

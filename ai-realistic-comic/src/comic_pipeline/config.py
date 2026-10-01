@@ -70,6 +70,22 @@ class Settings(BaseSettings):
     local_seed: int = 1
     local_candidates: int = 1  # keep low on rented GPU to save clock time
 
+    # AutoDL automation (Pro API + SSH). Token: 控制台 → 账号 → 设置 → 开发者Token
+    autodl_token: str = ""
+    autodl_instance_uuid: str = ""  # reuse a stopped instance; empty = create new
+    autodl_gpu_spec: str = "4090D"
+    autodl_image_uuid: str = "base-image-l2t43iu6uk"
+    autodl_cuda_v_from: int = 118
+    autodl_instance_name: str = "comic-still-smoke"
+    autodl_expand_gb: int = 0
+    autodl_auto_stop: bool = True
+    autodl_boot_timeout_s: int = 900
+    autodl_job_timeout_s: int = 7200
+    autodl_ssh_host: str = ""  # optional: skip API create, SSH into an already-running box
+    autodl_ssh_port: int = 22
+    autodl_ssh_password: str = ""
+    autodl_git_branch: str = "cursor/ai-realistic-comic-e63b"
+
     openai_api_key: str = ""
     openai_base_url: str = "https://api.openai.com/v1"
     openai_model: str = "gpt-4o-mini"
