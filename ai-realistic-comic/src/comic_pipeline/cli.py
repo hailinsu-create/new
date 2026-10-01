@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 from comic_pipeline.assemble import assemble_pages
 from comic_pipeline.budget import BudgetLedger
-from comic_pipeline.compliance import PLATFORMS, format_report, lint_project
+from comic_pipeline.compliance import PLATFORMS, format_report, lint_project, lint_still
 from comic_pipeline.config import get_settings, require_provider
 from comic_pipeline.export import export_release
 from comic_pipeline.image import (
@@ -19,7 +19,8 @@ from comic_pipeline.image import (
 )
 from comic_pipeline.llm import plan_episode
 from comic_pipeline.qa import qa_panel, qa_reference
-from comic_pipeline.models import Character, Project, load_episode, load_project, save_episode, save_project
+from comic_pipeline.still import make_still
+from comic_pipeline.models import load_still, Character, Project, load_episode, load_project, save_episode, save_project
 
 app = typer.Typer(add_completion=False, no_args_is_help=True, help="AI realistic comic pipeline")
 ROOT = Path.cwd()
@@ -230,6 +231,35 @@ def qa_cmd(project: str = typer.Argument(...)) -> None:
         typer.echo(f"panel {panel.id}: {'PASS' if res.ok else 'FAIL'} {res.hint()}")
     ledger.save(budget_path)
     typer.echo(f"spent ${ledger.spent_usd:.4f} / ${ledger.limit_usd:.4f}")
+
+
+@app.command("still")
+def still_cmd(
+    project: str = typer.Argument(...),
+    still_id: str = typer.Argument(..., help="projects/<project>/stills/<id>.yaml"),
+    platform: Optional[str] = typer.Option(None, help="Lint against a platform profile first"),
+) -> None:
+    """Make one refined two-character image: candidates, judge, targeted edit, upscale."""
+    project_dir = _projects_root() / project
+    proj = load_project(project_dir)
+    spec = load_still(project_dir / "stills" / f"{still_id}.yaml")
+    settings = get_settings()
+    report = lint_still(spec, proj, settings, platform)
+    typer.echo(format_report(report))
+    if not report.ok:
+        raise typer.Exit(code=1)
+    out_dir = _output_root() / project / "stills" / still_id
+    ledger = BudgetLedger.load_or_new(out_dir / "budget.json", settings.comic_still_budget_usd)
+    try:
+        final = make_still(
+            project_dir=project_dir, project=proj, still=spec, settings=settings, out_dir=out_dir, ledger=ledger
+        )
+    except RuntimeError as exc:
+        ledger.save(out_dir / "budget.json")
+        typer.echo(f"STOP: {exc}")
+        raise typer.Exit(code=1)
+    ledger.save(out_dir / "budget.json")
+    typer.echo(f"still -> {final} | spent ${ledger.spent_usd:.4f}/${ledger.limit_usd:.4f}")
 
 
 @app.command("plan")

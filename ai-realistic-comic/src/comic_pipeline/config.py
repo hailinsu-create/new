@@ -23,6 +23,12 @@ class Settings(BaseSettings):
     # pulid = legacy single-face lock with flux.
     comic_ref_mode: str = "edit"
 
+    # Single refined still: candidates -> judge -> targeted edit pass -> upscale.
+    comic_still_candidates: int = 2
+    comic_still_min_score: float = 7.5
+    comic_still_budget_usd: float = 0.40
+    fal_upscale_model: str = "fal-ai/aura-sr"
+
     # Vision-LLM quality gate (cheap): validates look sheets and panels before they are accepted.
     comic_qa: bool = True
     fal_vlm_endpoint: str = "fal-ai/any-llm/vision"

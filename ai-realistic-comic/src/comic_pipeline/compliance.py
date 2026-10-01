@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass, field
 
 from comic_pipeline.config import Settings
-from comic_pipeline.models import Episode, Project
+from comic_pipeline.models import Episode, Project, Still
 
 # Policy snapshot researched 2026-09-30. Platform rules change often: re-check each source before launch.
 PLATFORMS: dict[str, dict] = {
@@ -67,6 +67,18 @@ MINOR_PATTERNS = re.compile(
 )
 ADULT_MARKER = re.compile(
     r"\badult\b|\b(2[1-9]|[3-9][0-9])\s*(?:years|yo|y/o)\b|\b(?:early|mid|late)[- ]?(?:2\d|3\d|4\d)s\b|\b[2-4]0s\b",
+    re.IGNORECASE,
+)
+
+
+HARM_PATTERNS = re.compile(
+    r"\b(rape|raped|non-?consensual|forced|coerced|drugged|unconscious|passed out|sleeping victim|"
+    r"incest|bestiality|gore|mutilat\w*|torture|snuff|blood\w*|beaten|abuse[ds]?)\b|强奸|迷奸|强迫|昏迷|乱伦|兽交|血腥|虐待",
+    re.IGNORECASE,
+)
+NUDITY_PATTERNS = re.compile(
+    r"\b(nude|naked|topless|bottomless|nipples?|genitals?|pussy|penis|explicit|intercourse|sex act|orgasm|"
+    r"cum|bare[- ]breasted|fully exposed)\b|裸体|全裸|半裸|露点|性交|做爱",
     re.IGNORECASE,
 )
 
@@ -145,3 +157,34 @@ def format_report(rep: LintReport) -> str:
     lines = [f"ERROR  {e}" for e in rep.errors] + [f"WARN   {w}" for w in rep.warnings]
     lines.append("lint: OK" if rep.ok else "lint: FAILED")
     return "\n".join(lines)
+
+
+def lint_still(still: Still, project: Project, settings: Settings, platform: str | None = None) -> LintReport:
+    """Lint a single-image spec: consent/harm terms, minor-coded terms, nudity vs provider policy."""
+    rep = lint_project(project, None, settings, platform)
+    cmap = project.character_map()
+    if len(still.characters) != 2:
+        rep.errors.append(f"still {still.id}: exactly two characters required, got {still.characters}")
+    for cid in still.characters:
+        if cid not in cmap:
+            rep.errors.append(f"still {still.id}: unknown character {cid!r}")
+    text = " ".join(
+        [still.title, still.setting, still.camera, still.lighting, still.blocking,
+         still.wardrobe_state, still.motif, still.mood]
+    )
+    hit = MINOR_PATTERNS.search(text)
+    if hit:
+        rep.errors.append(f"still {still.id}: minor-coded term {hit.group(0)!r}")
+    hit = HARM_PATTERNS.search(text)
+    if hit:
+        rep.errors.append(
+            f"still {still.id}: term {hit.group(0)!r} implies non-consent or harm; "
+            "motifs must be consensual, playful adult dynamics between fictional characters"
+        )
+    hit = NUDITY_PATTERNS.search(text)
+    if hit and settings.resolved_provider() == "fal":
+        rep.errors.append(
+            f"still {still.id}: {hit.group(0)!r} asks for nudity/explicit content, which fal's policy and "
+            "safety checker do not allow; describe covered or implied states instead"
+        )
+    return rep

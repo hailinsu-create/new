@@ -162,3 +162,64 @@ def qa_panel(
     if names:
         required += ["faces_match_references", "wardrobe_matches_references"]
     return _result_from(_parse_json(raw), required, raw)
+
+
+@dataclass
+class StillJudgement:
+    scores: dict[str, float]
+    total: float
+    blocking: list[str]
+    fixes: list[str]
+    raw: str = ""
+
+    @property
+    def ok(self) -> bool:
+        return not self.blocking
+
+
+STILL_KEYS = ("identity", "distinction", "interaction", "aesthetics", "anatomy", "wardrobe", "motif")
+
+
+def judge_still(
+    settings: Settings,
+    project: Project,
+    still,
+    image: Path,
+    refs: list[Path],
+    ledger: BudgetLedger | None = None,
+) -> StillJudgement:
+    blank = blank_image_issue(image)
+    if blank:
+        return StillJudgement({}, 0.0, [blank], [])
+    if not _enabled(settings):
+        return StillJudgement({k: 10.0 for k in STILL_KEYS}, 10.0, [], [])
+    if ledger is not None:
+        ledger.ensure_can_afford(settings.fal_vlm_endpoint)
+    cmap = project.character_map()
+    names = [cmap[c].name for c in still.characters if c in cmap]
+    prompt = (
+        "You are a demanding art director scoring ONE finished hero image of two fictional adult characters. "
+        f"Image 1 is the candidate. Images 2 and 3 are identity references for {' and '.join(names)} in order. "
+        f"Intended motif: {still.motif}. Blocking: {still.blocking}. Wardrobe: {still.wardrobe_state}. "
+        "Reply with ONLY JSON: {\"scores\": {identity, distinction, interaction, aesthetics, anatomy, wardrobe, motif} "
+        "each 0-10 (identity = faces/species match the references; distinction = the two look clearly different; "
+        "interaction = believable eye contact and touch, no stiff posing; aesthetics = lighting, composition, "
+        "skin/fur/fabric realism; anatomy = hands, limbs, proportions; wardrobe = outfits match references; "
+        "motif = the intended dynamic is clearly expressed), "
+        "\"blocking\": [short strings for deal-breakers: collage/split frame, merged or duplicated faces, "
+        "wrong character count, broken hands or limbs, minor-looking figure, text/watermark], "
+        "\"fixes\": [up to 4 short, concrete edit instructions to improve the image]}."
+    )
+    raw = _judge(settings, [image, *refs], prompt)
+    if ledger is not None:
+        ledger.charge(model=settings.fal_vlm_endpoint, panel_id=f"{still.id}_judge")
+    data = _parse_json(raw)
+    scores = {k: float(v) for k, v in (data.get("scores") or {}).items() if k in STILL_KEYS}
+    total = sum(scores.values()) / max(1, len(scores)) if scores else 0.0
+    return StillJudgement(
+        scores=scores,
+        total=round(total, 2),
+        blocking=[str(b) for b in data.get("blocking", []) if b],
+        fixes=[str(f) for f in data.get("fixes", []) if f],
+        raw=raw,
+    )

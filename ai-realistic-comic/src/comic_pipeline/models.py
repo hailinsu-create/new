@@ -47,6 +47,23 @@ class Panel(BaseModel):
     negative: str = "cartoon, anime, illustration, deformed face, extra fingers"
 
 
+class Still(BaseModel):
+    """A single refined hero image with two characters."""
+
+    id: str
+    title: str = ""
+    characters: list[str] = Field(default_factory=list)
+    setting: str = ""
+    camera: str = "85mm portrait lens, medium shot, shallow depth of field"
+    lighting: str = ""
+    blocking: str = ""  # who stands/sits where, gaze, touch
+    wardrobe_state: str = ""  # what is worn and how (always covered)
+    motif: str = ""  # the specific theme/dynamic this image is about
+    mood: str = ""
+    negative: str = ""
+    image_size: str = "portrait_4_3"
+
+
 class Episode(BaseModel):
     title: str
     genre: Genre
@@ -109,3 +126,8 @@ def save_episode(path: Path, episode: Episode) -> None:
         yaml.safe_dump(episode.model_dump(), allow_unicode=True, sort_keys=False),
         encoding="utf-8",
     )
+
+
+def load_still(path: Path) -> Still:
+    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    return Still.model_validate(data)

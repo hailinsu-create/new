@@ -78,6 +78,15 @@ class FalProvider:
                 "num_images": 1,
             }
 
+        return self.call(model, arguments, out_path)
+
+    def call(self, model: str, arguments: dict, out_path: Path) -> str:
+        """Run any fal image endpoint and write the first returned image to out_path."""
+        import fal_client
+
+        self.ready()
+        os.environ["FAL_KEY"] = self.settings.fal_key.strip()
+
         def _on_update(update) -> None:  # noqa: ANN001
             if isinstance(update, fal_client.InProgress) and update.logs:
                 for log in update.logs:
@@ -91,7 +100,7 @@ class FalProvider:
             with_logs=True,
             on_queue_update=_on_update,
         )
-        images = result.get("images") or []
+        images = result.get("images") or ([result["image"]] if result.get("image") else [])
         if not images:
             raise RuntimeError(f"fal returned no images: {result}")
         url = images[0]["url"] if isinstance(images[0], dict) else images[0]

@@ -58,3 +58,26 @@ def test_qa_result_parsing() -> None:
     assert not res.ok
     assert "collage" in res.hint()
     assert _result_from({"single_frame": True, "issues": []}, ["single_frame"], "").ok
+
+
+def test_still_lint_and_prompt(tmp_path: Path) -> None:
+    from comic_pipeline.compliance import lint_still
+    from comic_pipeline.models import Still
+    from comic_pipeline.still import build_still_prompt
+
+    proj = Project(
+        name="t",
+        characters=[
+            Character(id="a", name="A", age_look="adult woman, late 20s"),
+            Character(id="b", name="B", age_look="adult man, 30s"),
+        ],
+    )
+    settings = Settings(comic_mock=False, image_provider="fal")
+    ok = Still(id="s", characters=["a", "b"], motif="playful silk tension", blocking="she holds a thread")
+    assert lint_still(ok, proj, settings).ok
+    prompt, neg = build_still_prompt(proj, ok)
+    assert "Image 1 is A." in prompt and "Image 2 is B." in prompt and "collage" in neg
+
+    assert not lint_still(ok.model_copy(update={"motif": "non-consensual scene"}), proj, settings).ok
+    assert not lint_still(ok.model_copy(update={"wardrobe_state": "completely naked"}), proj, settings).ok
+    assert not lint_still(ok.model_copy(update={"characters": ["a"]}), proj, settings).ok

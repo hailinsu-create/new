@@ -28,3 +28,8 @@ class MockProvider:
         out_path.parent.mkdir(parents=True, exist_ok=True)
         img.save(out_path)
         return "mock"
+
+    def call(self, model: str, arguments: dict, out_path: Path) -> str:
+        return self.generate(
+            out_path=out_path, prompt=str(arguments.get("prompt", "")), negative="", refs=[]
+        )

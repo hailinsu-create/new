@@ -9,6 +9,7 @@ COST_T2I_USD = 0.025
 COST_PULID_USD = 0.0333
 COST_SEEDREAM_USD = 0.03
 COST_QA_USD = 0.005
+COST_UPSCALE_USD = 0.02  # conservative guess; fal bills aura-sr by output size
 
 
 @dataclass
@@ -29,6 +30,8 @@ class BudgetLedger:
         return cls(limit_usd=limit_usd)
 
     def estimate(self, model: str) -> float:
+        if "aura-sr" in model.lower() or "upscale" in model.lower():
+            return COST_UPSCALE_USD
         if "any-llm" in model.lower():
             return COST_QA_USD
         if "seedream" in model.lower():
