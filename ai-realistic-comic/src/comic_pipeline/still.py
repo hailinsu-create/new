@@ -38,7 +38,7 @@ def still_refs(project_dir: Path, project: Project, still: Still) -> list[Path]:
 def build_still_prompt(project: Project, still: Still) -> tuple[str, str]:
     cmap = project.character_map()
     chars = [cmap[c] for c in still.characters]
-    labels = " ".join(f"Image {i} is {c.name}." for i, c in enumerate(chars, 1))
+    labels = " ".join(f"Image {i} is {c.label}." for i, c in enumerate(chars, 1))
     style = STYLIZED_ANCHOR if project.render_style == "stylized" else f"{GENRE_STYLE[project.genre]}; {PHOTO_FINISH}"
     parts = [
         labels,
@@ -50,12 +50,18 @@ def build_still_prompt(project: Project, still: Still) -> tuple[str, str]:
         f"wardrobe state (always covered): {still.wardrobe_state}" if still.wardrobe_state else "",
         f"motif: {still.motif}" if still.motif else "",
         f"mood: {still.mood}" if still.mood else "",
-        " | ".join(c.prompt_block() for c in chars),
+        " | ".join(c.prompt_block(neutral=True) for c in chars),
         IDENTITY_RULE,
     ]
     negative = still.negative or (
         "anime, cartoon, collage, split screen, twins, merged faces, extra fingers, deformed hands, "
         "text, watermark, minor, child"
+        + (
+            ""
+            if project.render_style == "stylized"
+            else ", illustration, painting, 3D render, CGI, concept art, differently colored skin, "
+            "hair or eye color different from the references, props not in the references"
+        )
     )
     return ", ".join(p for p in parts if p), negative
 
@@ -117,8 +123,8 @@ def make_still(
         refined = out_dir / "refined.png"
         fix_prompt = (
             "Image 1 is the base image: keep its composition, pose, lighting and both characters' identities. "
-            f"Image 2 is {project.character_map()[still.characters[0]].name}, Image 3 is "
-            f"{project.character_map()[still.characters[1]].name}. "
+            f"Image 2 is {project.character_map()[still.characters[0]].label}, Image 3 is "
+            f"{project.character_map()[still.characters[1]].label}. "
             f"Apply these improvements only: {'; '.join(best.fixes)}. {IDENTITY_RULE}."
         )
         provider.call(

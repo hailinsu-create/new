@@ -19,21 +19,28 @@ class Character(BaseModel):
     signature_props: str = ""
     notes: str = ""
     reference_images: list[str] = Field(default_factory=list)
+    alias: str = ""  # neutral prompt label used instead of the mythic name, to avoid pulling toward famous depictions
     variant_of: str = ""  # id of the base character when this card is an alternate form
     form: str = ""  # e.g. "human" or "serpent"
     tags: list[str] = Field(default_factory=list)
 
-    def prompt_block(self) -> str:
+    @property
+    def label(self) -> str:
+        return self.alias or self.name
+
+    def prompt_block(self, neutral: bool = False) -> str:
+        """neutral=True drops id, props and notes so mythic names/props cannot pull toward famous depictions."""
+        neutral = neutral and bool(self.alias)
         parts = [
-            f"Character {self.name} (id={self.id})",
+            f"Character {self.label}" if neutral else f"Character {self.label} (id={self.id})",
             f"age look: {self.age_look}" if self.age_look else "",
             f"face: {self.face}" if self.face else "",
             f"hair: {self.hair}" if self.hair else "",
             f"wardrobe (LOCKED unless panel says costume change): {self.wardrobe}"
             if self.wardrobe
             else "",
-            f"signature props: {self.signature_props}" if self.signature_props else "",
-            f"notes: {self.notes}" if self.notes else "",
+            f"signature props: {self.signature_props}" if self.signature_props and not neutral else "",
+            f"notes: {self.notes}" if self.notes and not neutral else "",
         ]
         return "; ".join(p for p in parts if p)
 

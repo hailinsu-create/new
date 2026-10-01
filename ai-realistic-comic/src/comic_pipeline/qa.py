@@ -187,7 +187,7 @@ class StillJudgement:
         return not self.blocking
 
 
-STILL_KEYS = ("identity", "distinction", "interaction", "aesthetics", "anatomy", "wardrobe", "motif")
+STILL_KEYS = ("identity", "distinction", "interaction", "aesthetics", "anatomy", "wardrobe", "motif", "photoreal")
 
 
 def judge_still(
@@ -215,9 +215,11 @@ def judge_still(
         "each 0-10 (identity = faces/species match the references; distinction = the two look clearly different; "
         "interaction = believable eye contact and touch, no stiff posing; aesthetics = lighting, composition, "
         "skin/fur/fabric realism; anatomy = hands, limbs, proportions; wardrobe = outfits match references; "
-        "motif = the intended dynamic is clearly expressed), "
+        "motif = the intended dynamic is clearly expressed; photoreal = looks like a live-action photograph, 0 if it looks "
+        "like an illustration, painting, 3D render or game CG), "
         "\"blocking\": [short strings for deal-breakers: collage/split frame, merged or duplicated faces, "
-        "wrong character count, broken hands or limbs, minor-looking figure, text/watermark], "
+        "wrong character count, broken hands or limbs, minor-looking figure, text/watermark, "
+        "illustration/3D look instead of photographic, skin/hair/eye colors or held props contradicting the references], "
         "\"fixes\": [up to 4 short, concrete edit instructions to improve the image]}."
     )
     raw = _judge(settings, [image, *refs], prompt)
