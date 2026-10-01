@@ -265,6 +265,12 @@ def still_cmd(
         raise typer.Exit(code=1)
     ledger.save(out_dir / "budget.json")
     typer.echo(f"still -> {final} | spent ${ledger.spent_usd:.4f}/${ledger.limit_usd:.4f}")
+    try:
+        data = json.loads((out_dir / "still.json").read_text(encoding="utf-8"))
+        if data.get("needs_review"):
+            typer.echo(f"WARN  unresolved deal-breakers, review by eye: {'; '.join(data.get('final_blocking', []))}")
+    except (OSError, ValueError):
+        pass
 
 
 @app.command("fix-ref")

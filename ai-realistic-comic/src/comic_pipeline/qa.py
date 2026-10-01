@@ -44,7 +44,7 @@ def _parse_json(text: str) -> dict:
     return json.loads(match.group(0))
 
 
-def _judge(settings: Settings, images: list[Path], prompt: str) -> str:
+def _judge(settings: Settings, images: list[Path], prompt: str, model: str | None = None, reasoning: bool = False) -> str:
     import fal_client
 
     os.environ["FAL_KEY"] = settings.fal_key.strip()
@@ -52,10 +52,11 @@ def _judge(settings: Settings, images: list[Path], prompt: str) -> str:
     result = fal_client.subscribe(
         settings.fal_vlm_endpoint,
         arguments={
-            "model": settings.fal_vlm_model,
+            "model": model or settings.fal_vlm_model,
             "prompt": prompt,
             "image_urls": urls,
             "temperature": 0,
+            "reasoning": reasoning,
         },
     )
     if result.get("error"):
@@ -181,10 +182,182 @@ class StillJudgement:
     blocking: list[str]
     fixes: list[str]
     raw: str = ""
+    anatomy_warnings: list[str] = field(default_factory=list)
+    anatomy_counts: dict = field(default_factory=dict)
 
     @property
     def ok(self) -> bool:
         return not self.blocking
+
+
+@dataclass
+class AnatomyAudit:
+    ok: bool
+    issues: list[str] = field(default_factory=list)
+    counts: dict = field(default_factory=dict)
+    skipped: bool = False
+    warnings: list[str] = field(default_factory=list)
+
+
+def _soft(defect: str) -> bool:
+    """Occlusion/cropping often makes a finger or foot look 'missing'; keep those as repair hints, not blockers."""
+    d = defect.lower()
+    if "extra" in d or "fused" in d or "duplicate" in d or "merged" in d or "impossible" in d:
+        return False
+    return "missing" in d or "short" in d or "cropped" in d or "occlu" in d or "hidden" in d
+
+
+def _int(v) -> int | None:
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def audit_anatomy(
+    settings: Settings,
+    image: Path,
+    expected_people: int,
+    ledger: BudgetLedger | None = None,
+    tag: str = "audit",
+    nonhuman: str = "",
+) -> AnatomyAudit:
+    """Counting-based anatomy gate: people, arms, hands, legs on the full frame, then fingers per hand on
+    overlapping crops. A holistic 0-10 score lets extra hands slip through; counts do not."""
+    if not _enabled(settings):
+        return AnatomyAudit(True, skipped=True)
+    full_prompt = (
+        "You are a forensic anatomy checker for a generated image. Do NOT judge beauty. COUNT what is literally visible, "
+        "trace every limb back to a torso, and prefer reporting a defect over assuming it is fine. "
+        'Reply with ONLY JSON: {"people": int, "arms": int, "hands": int, "legs": int, "feet": int, '
+        '"orphan_limbs": int (arms, hands or legs that connect to no body or to the wrong body), '
+        '"defects": [short strings: extra/fused/missing limbs, hand merged into fabric or hair, impossible joint bends, '
+        'limbs passing through each other, duplicated body parts, wrong head count]}. '
+        "Count only parts that are visible; do not count hidden ones."
+        + (f" Intended non-human anatomy that is NOT a defect: {nonhuman}." if nonhuman else "")
+    )
+    h_prompt = (
+        "Count the fingers on EVERY visible hand in this crop of a generated image, one by one, thumb included. "
+        'Reply with ONLY JSON: {"hands": [{"fingers": int, "malformed": bool, "note": "short"}], '
+        '"defects": [short strings for extra/missing/fused/bent-wrong fingers or extra hands]}. '
+        "If no hand is visible reply {\"hands\": [], \"defects\": []}."
+    )
+    with Image.open(image) as im:
+        im = im.convert("RGB")
+        w, h = im.size
+        tiles = []
+        for name, box in (("top", (0, 0, w, int(h * 0.58))), ("bottom", (0, int(h * 0.42), w, h))):
+            tp = image.with_name(f"_tile_{tag}_{name}.png")
+            im.crop(box).save(tp)
+            tiles.append(tp)
+    issues: list[str] = []
+    warnings: list[str] = []
+    counts: dict = {}
+    try:
+        if ledger is not None:
+            ledger.ensure_can_afford(settings.fal_vlm_endpoint)
+        data = _parse_json(_judge(settings, [image], full_prompt))
+        if ledger is not None:
+            ledger.charge(model=settings.fal_vlm_endpoint, panel_id=f"{tag}_anatomy_full")
+        counts = {k: _int(data.get(k)) for k in ("people", "arms", "hands", "legs", "feet", "orphan_limbs")}
+        people = counts["people"]
+        if people is not None and people != expected_people:
+            issues.append(f"anatomy: {people} people visible, expected {expected_people}")
+        for key, per in (("arms", 2), ("hands", 2), ("legs", 2), ("feet", 2)):
+            val = counts.get(key)
+            if val is not None and val > per * expected_people:
+                issues.append(f"anatomy: {val} visible {key} for {expected_people} people (max {per * expected_people})")
+        if counts.get("orphan_limbs"):
+            issues.append(f"anatomy: {counts['orphan_limbs']} limb(s) not attached to the right body")
+        for d in data.get("defects", []):
+            d = str(d)
+            if not d:
+                continue
+            low = d.lower()
+            if any(w in low for w in ("leg", "feet", "foot")) and ("missing" in low or "cropped" in low):
+                continue
+            (warnings if _soft(d) else issues).append(f"anatomy: {d}")
+        total_hands = 0
+        for tp in tiles:
+            if ledger is not None:
+                ledger.ensure_can_afford(settings.fal_vlm_endpoint)
+            hd = _parse_json(_judge(settings, [tp], h_prompt))
+            if ledger is not None:
+                ledger.charge(model=settings.fal_vlm_endpoint, panel_id=f"{tag}_anatomy_{tp.stem[-6:]}")
+            for hand in hd.get("hands", []):
+                f = _int(hand.get("fingers"))
+                total_hands += 1
+                note = f"anatomy: a hand with {f} fingers ({hand.get('note', '')})".replace(" ()", "")
+                if hand.get("malformed") or (f is not None and (f > 5 or f <= 3)):
+                    issues.append(note)
+                elif f == 4:
+                    warnings.append(note)
+            for d in hd.get("defects", []):
+                if d:
+                    (warnings if _soft(str(d)) else issues).append(f"anatomy: {d}")
+        counts["hand_checks"] = total_hands
+    finally:
+        for tp in tiles:
+            tp.unlink(missing_ok=True)
+    def dedupe(items: list[str]) -> list[str]:
+        out: list[str] = []
+        for i in items:
+            if i not in out:
+                out.append(i)
+        return out
+
+    issues = dedupe(issues)
+    return AnatomyAudit(not issues, issues, counts, warnings=[w for w in dedupe(warnings) if w not in issues])
+
+
+def strict_limb_check(
+    settings: Settings,
+    image: Path,
+    expected_people: int,
+    ledger: BudgetLedger | None = None,
+    tag: str = "strict",
+    nonhuman: str = "",
+) -> AnatomyAudit:
+    """Second opinion by a stronger reasoning model that must enumerate each arm back to its shoulder.
+    Run once on the shortlisted image only (it costs about 6x a flash call)."""
+    if not _enabled(settings) or not settings.comic_strict_audit:
+        return AnatomyAudit(True, skipped=True)
+    prompt = (
+        "Enumerate EVERY arm visible in this image, one list entry per arm, tracing each from its shoulder to its hand. "
+        "Ignore what the scene is supposed to depict; report only what is actually drawn. Be suspicious: arms that "
+        "emerge from the wrong place, hands with no arm, doubled hands and merged fingers are common generation errors. "
+        'Reply ONLY JSON: {"arms": [{"belongs_to": "which person", "shoulder_visible": bool, "hand_position": "short", '
+        '"fingers_visible": int}], "unattached_or_extra_limbs": int, "malformed_hands": int, "verdict": "short"}.'
+        + (f" Intended non-human anatomy that is NOT a defect: {nonhuman}." if nonhuman else "")
+    )
+    if ledger is not None:
+        ledger.ensure_can_afford(settings.fal_strict_model)
+    data = None
+    for attempt in (1, 2):
+        try:
+            data = _parse_json(_judge(settings, [image], prompt, model=settings.fal_strict_model, reasoning=True))
+        except ValueError:
+            data = None
+        if ledger is not None:
+            ledger.charge(model=settings.fal_strict_model, panel_id=f"{tag}_strict{attempt}")
+        if data is not None:
+            break
+        if ledger is not None:
+            try:
+                ledger.ensure_can_afford(settings.fal_strict_model)
+            except RuntimeError:
+                break
+    if data is None:
+        return AnatomyAudit(True, skipped=True, counts={"strict_error": "reasoning model returned no JSON twice"})
+    arms = data.get("arms") or []
+    issues = []
+    if len(arms) > 2 * expected_people:
+        issues.append(f"anatomy: strict check enumerated {len(arms)} arms for {expected_people} people")
+    if _int(data.get("unattached_or_extra_limbs")):
+        issues.append(f"anatomy: strict check found {data['unattached_or_extra_limbs']} unattached/extra limb(s)")
+    if _int(data.get("malformed_hands")):
+        issues.append(f"anatomy: strict check found {data['malformed_hands']} malformed hand(s)")
+    return AnatomyAudit(not issues, issues, {"strict_arms": len(arms), "verdict": data.get("verdict", "")})
 
 
 STILL_KEYS = ("identity", "distinction", "interaction", "aesthetics", "anatomy", "wardrobe", "motif", "photoreal")

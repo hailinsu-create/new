@@ -24,7 +24,10 @@ class Settings(BaseSettings):
     comic_ref_mode: str = "edit"
 
     # Single refined still: candidates -> judge -> targeted edit pass -> upscale.
+    comic_strict_audit: bool = True
+    fal_strict_model: str = "google/gemini-2.5-pro"
     comic_still_candidates: int = 2
+    comic_still_max_candidates: int = 4  # extra candidates only while none passes the anatomy/blocking gate
     comic_still_min_score: float = 7.5
     comic_still_budget_usd: float = 0.40
     fal_upscale_model: str = "fal-ai/aura-sr"

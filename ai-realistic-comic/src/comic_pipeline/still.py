@@ -10,11 +10,19 @@ from comic_pipeline.config import Settings
 from comic_pipeline.models import Project, Still
 from comic_pipeline.prompts.genres import GENRE_STYLE, STYLIZED_ANCHOR
 from comic_pipeline.providers import get_image_provider
-from comic_pipeline.qa import StillJudgement, judge_still
+from comic_pipeline.qa import StillJudgement, audit_anatomy, judge_still, strict_limb_check
 
 PHOTO_FINISH = (
     "photorealistic live-action cinematic still, natural skin micro-texture, fine fur detail, "
     "realistic fabric weave, subtle film grain, accurate hands, expressive believable eyes"
+)
+ANATOMY_RULE = (
+    "anatomy: each person has exactly two arms and two hands with five fingers per hand, two legs, one head; "
+    "every hand and arm clearly belongs to one body; natural relaxed hands, no extra or fused fingers"
+)
+ANATOMY_NEGATIVE = (
+    "extra fingers, extra hands, extra arms, extra legs, fused fingers, missing fingers, malformed hands, "
+    "disconnected limbs, duplicated body parts"
 )
 IDENTITY_RULE = (
     "keep each character's face, species and outfit exactly as in their reference image; the two characters "
@@ -51,6 +59,7 @@ def build_still_prompt(project: Project, still: Still) -> tuple[str, str]:
         f"motif: {still.motif}" if still.motif else "",
         f"mood: {still.mood}" if still.mood else "",
         " | ".join(c.prompt_block(neutral=True) for c in chars),
+        ANATOMY_RULE,
         IDENTITY_RULE,
     ]
     negative = still.negative or (
@@ -63,7 +72,26 @@ def build_still_prompt(project: Project, still: Still) -> tuple[str, str]:
             "hair or eye color different from the references, props not in the references"
         )
     )
+    if ANATOMY_NEGATIVE.split(",")[0] not in negative:
+        negative = f"{negative}, {ANATOMY_NEGATIVE}"
     return ", ".join(p for p in parts if p), negative
+
+
+def nonhuman_note(project: Project, still: Still) -> str:
+    cmap = project.character_map()
+    notes = [
+        f"{cmap[c].label} is in {cmap[c].form} form (its lower body may be non-human, as in its reference)"
+        for c in still.characters
+        if cmap[c].form and cmap[c].form.lower() != "human"
+    ]
+    return "; ".join(notes)
+
+
+def _repair_fixes(audit_issues: list[str], warnings: list[str]) -> list[str]:
+    fixes = []
+    for text in [*audit_issues, *warnings]:
+        fixes.append("Repair: " + text.removeprefix("anatomy: ") + "; each person must have exactly two arms and two hands with five fingers each")
+    return fixes
 
 
 def _edit_args(settings: Settings, provider, prompt: str, negative: str, images: list[Path], size: str) -> dict:
@@ -103,40 +131,112 @@ def make_still(
     best_path: Path | None = None
     best: StillJudgement | None = None
 
-    for i in range(1, settings.comic_still_candidates + 1):
+    nonhuman = nonhuman_note(project, still)
+
+    def evaluate(path: Path, tag: str) -> StillJudgement:
+        judged = judge_still(settings, project, still, path, refs, ledger)
+        audit = audit_anatomy(settings, path, len(still.characters), ledger, tag=tag, nonhuman=nonhuman)
+        blocking = [*judged.blocking, *audit.issues]
+        if judged.scores.get("anatomy", 10.0) < 6:
+            blocking.append("anatomy score below 6")
+        judged.blocking = list(dict.fromkeys(blocking))
+        judged.fixes = [*_repair_fixes(audit.issues, audit.warnings), *judged.fixes][:6]
+        judged.anatomy_warnings = audit.warnings
+        judged.anatomy_counts = audit.counts
+        return judged
+
+    for i in range(1, settings.comic_still_max_candidates + 1):
+        if i > settings.comic_still_candidates and best is not None and best.ok:
+            break
         cand = out_dir / f"candidate_{i}.png"
-        ledger.ensure_can_afford(edit_model)
+        try:
+            ledger.ensure_can_afford(edit_model)
+        except RuntimeError:
+            if best is None:
+                raise
+            report["stopped"] = "budget exhausted before another candidate"
+            break
         provider.call(edit_model, _edit_args(settings, provider, prompt, negative, refs, still.image_size), cand)
         ledger.charge(model=edit_model, panel_id=f"{still.id}_cand{i}")
-        judged = judge_still(settings, project, still, cand, refs, ledger)
+        judged = evaluate(cand, f"{still.id}_c{i}")
         report["candidates"].append(
-            {"file": cand.name, "total": judged.total, "scores": judged.scores, "blocking": judged.blocking}
+            {
+                "file": cand.name,
+                "total": judged.total,
+                "scores": judged.scores,
+                "blocking": judged.blocking,
+                "anatomy_counts": judged.anatomy_counts,
+                "anatomy_warnings": judged.anatomy_warnings,
+            }
         )
         if best is None or (judged.ok and not best.ok) or (judged.ok == best.ok and judged.total > best.total):
             best_path, best = cand, judged
 
     assert best_path is not None and best is not None
 
-    needs_refine = (not best.ok) or best.total < settings.comic_still_min_score
-    if needs_refine and best.fixes:
+    def refine(base_path: Path, base: StillJudgement) -> tuple[Path, StillJudgement] | None:
+        if not base.fixes:
+            return None
         ledger.ensure_can_afford(edit_model)
         refined = out_dir / "refined.png"
         fix_prompt = (
             "Image 1 is the base image: keep its composition, pose, lighting and both characters' identities. "
             f"Image 2 is {project.character_map()[still.characters[0]].label}, Image 3 is "
             f"{project.character_map()[still.characters[1]].label}. "
-            f"Apply these improvements only: {'; '.join(best.fixes)}. {IDENTITY_RULE}."
+            f"Apply these improvements only: {'; '.join(base.fixes)}. {ANATOMY_RULE}. {IDENTITY_RULE}."
         )
         provider.call(
             edit_model,
-            _edit_args(settings, provider, fix_prompt, negative, [best_path, *refs], still.image_size),
+            _edit_args(settings, provider, fix_prompt, negative, [base_path, *refs], still.image_size),
             refined,
         )
         ledger.charge(model=edit_model, panel_id=f"{still.id}_refine")
-        rj = judge_still(settings, project, still, refined, refs, ledger)
-        report["refine"] = {"fixes": best.fixes, "total": rj.total, "scores": rj.scores, "blocking": rj.blocking}
-        if (rj.ok and not best.ok) or (rj.ok == best.ok and rj.total >= best.total):
-            best_path, best = refined, rj
+        rj = evaluate(refined, f"{still.id}_r")
+        report["refine"] = {
+            "fixes": base.fixes,
+            "total": rj.total,
+            "scores": rj.scores,
+            "blocking": rj.blocking,
+            "anatomy_counts": rj.anatomy_counts,
+        }
+        return refined, rj
+
+    def pick(cur: tuple[Path, StillJudgement], new: tuple[Path, StillJudgement]) -> tuple[Path, StillJudgement]:
+        (_, a), (_, b) = cur, new
+        return new if (b.ok and not a.ok) or (b.ok == a.ok and b.total >= a.total) else cur
+
+    refined_done = False
+    if (not best.ok) or best.total < settings.comic_still_min_score:
+        out = refine(best_path, best)
+        if out:
+            refined_done = True
+            best_path, best = pick((best_path, best), out)
+
+    def strict(path: Path, judged: StillJudgement, tag: str) -> None:
+        audit = strict_limb_check(settings, path, len(still.characters), ledger, tag=tag, nonhuman=nonhuman)
+        report.setdefault("strict", {})[path.name] = {"ok": audit.ok, "issues": audit.issues, **audit.counts}
+        if not audit.ok:
+            judged.blocking = list(dict.fromkeys([*judged.blocking, *audit.issues]))
+            judged.fixes = [*_repair_fixes(audit.issues, []), *judged.fixes][:6]
+
+    if best.ok:
+        try:
+            strict(best_path, best, f"{still.id}_final")
+        except RuntimeError as exc:
+            report["strict_skipped"] = str(exc)[:120]
+        if not best.ok and not refined_done:
+            try:
+                out = refine(best_path, best)
+            except RuntimeError as exc:
+                out, report["refine_skipped"] = None, str(exc)[:120]
+            if out:
+                refined_done = True
+                if out[1].ok:
+                    try:
+                        strict(out[0], out[1], f"{still.id}_refined")
+                    except RuntimeError as exc:
+                        report["strict_skipped"] = str(exc)[:120]
+                best_path, best = pick((best_path, best), out)
 
     final = out_dir / "final.png"
     upscaled = False
@@ -168,6 +268,7 @@ def make_still(
         winner=best_path.name,
         final_total=best.total,
         final_blocking=best.blocking,
+        needs_review=not best.ok,
         upscaled=upscaled,
         spent_usd=round(ledger.spent_usd, 4),
     )
