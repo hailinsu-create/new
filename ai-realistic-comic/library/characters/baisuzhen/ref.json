@@ -1,0 +1,15 @@
+{
+  "panel_id": "baisuzhen_ref",
+  "cache_key": "9a2c31bf82e3d0d0",
+  "prompt": "photorealistic studio lookbook photograph, seamless dark charcoal-grey with faint low mist backdrop, 85mm lens, sharp focus on face and costume, NOT anime, NOT illustration, NOT a 3D render, studio portrait for continuity lock, portrait look-sheet shot, solo lookbook photograph of ONLY 白素贞, full-length standing pose from head to bare feet, entire body and footwear fully in frame, small margin above the head and below the feet, dark charcoal-grey with faint low mist studio backdrop, identity lock sheet, single subject, no other characters, no scenery, emotion: neutral calm, Character 白素贞 (id=baisuzhen); age look: adult woman, late 20s, serene thousand-year white-snake spirit in human form, graceful and alluring; face: pale porcelain skin, elegant oval face, long phoenix-shaped eyes with pale gold irises and subtle vertical pupils, soft red lips, faint pearly scale shimmer along the temples and collarbone; human-looking; hair: glossy black hair in an elegant Song-dynasty updo with white jade hairpins and a silver snake-shaped comb, a few loose strands framing the face; wardrobe (LOCKED unless panel says costume change): LOCKED ink-black sheer silk gauze outer robe over a white silk inner dress, sliding off both shoulders, plunging V neckline, very high leg slits, opaque white lining over breasts and hips, bare midriff glimpsed through the gauze, silver-teal snake-scale embroidery faintly glowing, bare feet with a silver anklet; alluring and dangerous but covered; signature props: cream oil-paper umbrella; notes: Adult female snake spirit from the Legend of the White Snake (public-domain folklore). Dark gothic photoreal live-action, West Lake mist mood, serpent menace., highly detailed skin texture, realistic eyes, coherent anatomy, dark gothic cinematic mood, low-key chiaroscuro lighting with deep shadows, desaturated cold palette with one cold teal accent, subtle mist and grain, simpler composition, single clear subject, medium shot, fewer props, identity lock priority over cinematic complexity. Fix these problems from the previous attempt: clean_background; face_matches_card; wardrobe_matches_card",
+  "negative": "second person, crowd, twins, wrong gender, anime, cartoon, scenery, cave, extra cape or armor not in the card, deformed face, watermark, text overlay, identical twins, same face twice, merged faces, costume swap, sunny outdoor canyon, split screen, diptych, collage, modern clothes",
+  "refs": [],
+  "provider": "fal",
+  "model": "fal-ai/bytedance/seedream/v4/text-to-image",
+  "attempt": 2,
+  "qa": {
+    "ok": true,
+    "issues": [],
+    "skipped": false
+  }
+}

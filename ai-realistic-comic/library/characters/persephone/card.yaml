@@ -14,7 +14,12 @@ signature_props: a split pomegranate in one hand
 notes: Original design for the Greek goddess Persephone as dark queen of the underworld.
   Adult, dark gothic photoreal live-action, not a webcomic likeness.
 reference_images:
-- characters/persephone_ref.png
+- ref.png
 variant_of: ''
 form: ''
-tags: []
+tags:
+- greek
+- underworld
+- female
+- dark
+- v2

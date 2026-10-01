@@ -19,6 +19,8 @@ from comic_pipeline.image import (
 )
 from comic_pipeline.llm import plan_episode
 from comic_pipeline.qa import qa_panel, qa_reference
+from comic_pipeline.refine import edit_character_reference
+from comic_pipeline.library import archive_character, list_library, use_character
 from comic_pipeline.still import make_still
 from comic_pipeline.models import load_still, Character, Project, load_episode, load_project, save_episode, save_project
 
@@ -263,6 +265,88 @@ def still_cmd(
         raise typer.Exit(code=1)
     ledger.save(out_dir / "budget.json")
     typer.echo(f"still -> {final} | spent ${ledger.spent_usd:.4f}/${ledger.limit_usd:.4f}")
+
+
+@app.command("fix-ref")
+def fix_ref_cmd(
+    project: str = typer.Argument(...),
+    char_id: str = typer.Argument(...),
+    fix: str = typer.Option(..., help="What to change, in plain English"),
+    tries: int = typer.Option(2, help="Max edit attempts"),
+) -> None:
+    """Targeted edit of an existing look sheet (previous version is archived)."""
+    project_dir = _projects_root() / project
+    proj = load_project(project_dir)
+    char = proj.character_map()[char_id]
+    settings = get_settings()
+    budget_path = _output_root() / project / "budget.json"
+    ledger = BudgetLedger.load_or_new(budget_path, settings.comic_budget_usd)
+    base = project_dir / char.reference_images[0]
+    res = edit_character_reference(
+        project_dir=project_dir, project=proj, character=char, base_image=base,
+        instruction=fix, settings=settings, ledger=ledger, max_tries=tries,
+    )
+    ledger.save(budget_path)
+    save_project(project_dir, proj)
+    typer.echo(f"{char_id}: {'PASS' if res.ok else 'ACCEPTED WITH ISSUES: ' + res.hint()} | spent ${ledger.spent_usd:.4f}")
+
+
+@app.command("variant")
+def variant_cmd(
+    project: str = typer.Argument(...),
+    base_id: str = typer.Argument(..., help="Existing character to derive from"),
+    new_id: str = typer.Argument(...),
+    instruction: str = typer.Option(..., help="How the form differs"),
+    name: str = typer.Option(..., help="Display name of the new form"),
+    form: str = typer.Option("variant"),
+    wardrobe: str = typer.Option("", help="Override wardrobe text for the new card"),
+    tries: int = typer.Option(3),
+) -> None:
+    """Derive an alternate form (e.g. serpent body) from a base look sheet, keeping the same face."""
+    project_dir = _projects_root() / project
+    proj = load_project(project_dir)
+    base = proj.character_map()[base_id]
+    card = base.model_copy(
+        update={"id": new_id, "name": name, "variant_of": base_id, "form": form, "reference_images": [],
+                "wardrobe": wardrobe or base.wardrobe}
+    )
+    proj.characters.append(card)
+    settings = get_settings()
+    budget_path = _output_root() / project / "budget.json"
+    ledger = BudgetLedger.load_or_new(budget_path, settings.comic_budget_usd)
+    base_img = project_dir / base.reference_images[0]
+    res = edit_character_reference(
+        project_dir=project_dir, project=proj, character=card, base_image=base_img,
+        instruction=instruction, settings=settings, ledger=ledger, max_tries=tries,
+        keep_identity_from=None,
+    )
+    ledger.save(budget_path)
+    save_project(project_dir, proj)
+    typer.echo(f"{new_id}: {'PASS' if res.ok else 'ACCEPTED WITH ISSUES: ' + res.hint()} | spent ${ledger.spent_usd:.4f}")
+
+
+@app.command("archive")
+def archive_cmd(
+    project: str = typer.Argument(...),
+    char_id: str = typer.Argument(...),
+    tags: str = typer.Option("", help="Comma separated tags"),
+) -> None:
+    """Copy a character card + look sheet into the reusable library/."""
+    entry = archive_character(ROOT, _projects_root() / project, char_id, [t for t in tags.split(",") if t])
+    typer.echo(f"library/{entry['id']} v{entry['version']} sha={entry['ref_sha256'][:12]}")
+
+
+@app.command("use")
+def use_cmd(project: str = typer.Argument(...), char_id: str = typer.Argument(...)) -> None:
+    """Import a library character into a project."""
+    use_character(ROOT, _projects_root() / project, char_id)
+    typer.echo(f"imported {char_id} into {project}")
+
+
+@app.command("library")
+def library_cmd() -> None:
+    for e in list_library(ROOT):
+        typer.echo(f"{e['id']}\tv{e['version']}\t{e['name']}\tform={e.get('form') or '-'}\ttags={','.join(e.get('tags', []))}")
 
 
 @app.command("plan")

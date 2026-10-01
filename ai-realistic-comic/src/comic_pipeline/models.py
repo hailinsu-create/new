@@ -19,6 +19,9 @@ class Character(BaseModel):
     signature_props: str = ""
     notes: str = ""
     reference_images: list[str] = Field(default_factory=list)
+    variant_of: str = ""  # id of the base character when this card is an alternate form
+    form: str = ""  # e.g. "human" or "serpent"
+    tags: list[str] = Field(default_factory=list)
 
     def prompt_block(self) -> str:
         parts = [

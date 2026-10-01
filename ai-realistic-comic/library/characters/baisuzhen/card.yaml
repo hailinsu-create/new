@@ -16,7 +16,13 @@ signature_props: cream oil-paper umbrella
 notes: Adult female snake spirit from the Legend of the White Snake (public-domain
   folklore). Dark gothic photoreal live-action, West Lake mist mood, serpent menace.
 reference_images:
-- characters/baisuzhen_ref.png
+- ref.png
 variant_of: ''
 form: ''
-tags: []
+tags:
+- chinese
+- snake-spirit
+- female
+- human-form
+- dark
+- v2

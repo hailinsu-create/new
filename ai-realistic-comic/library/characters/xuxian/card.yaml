@@ -11,7 +11,12 @@ signature_props: a bamboo medicine box on a strap
 notes: Adult male lead from the Legend of the White Snake (public-domain folklore).
   Dark gothic photoreal live-action, wary but tender.
 reference_images:
-- characters/xuxian_ref.png
+- ref.png
 variant_of: ''
 form: ''
-tags: []
+tags:
+- chinese
+- male
+- human
+- dark
+- v2

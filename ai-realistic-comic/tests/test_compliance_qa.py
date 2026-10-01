@@ -81,3 +81,31 @@ def test_still_lint_and_prompt(tmp_path: Path) -> None:
     assert not lint_still(ok.model_copy(update={"motif": "non-consensual scene"}), proj, settings).ok
     assert not lint_still(ok.model_copy(update={"wardrobe_state": "completely naked"}), proj, settings).ok
     assert not lint_still(ok.model_copy(update={"characters": ["a"]}), proj, settings).ok
+
+
+def test_library_archive_and_use(tmp_path: Path) -> None:
+    import yaml
+
+    from comic_pipeline.library import archive_character, list_library, use_character
+
+    proj = tmp_path / "projects" / "p"
+    (proj / "characters").mkdir(parents=True)
+    (proj / "project.yaml").write_text("name: p\ngenre: fantasy\n", encoding="utf-8")
+    (proj / "characters" / "a.yaml").write_text(
+        yaml.safe_dump({"id": "a", "name": "A", "age_look": "adult", "reference_images": ["characters/a_ref.png"]}),
+        encoding="utf-8",
+    )
+    Image.new("RGB", (8, 8), (10, 20, 30)).save(proj / "characters" / "a_ref.png")
+
+    first = archive_character(tmp_path, proj, "a", ["t"])
+    assert first["version"] == 1 and archive_character(tmp_path, proj, "a")["version"] == 1
+    Image.new("RGB", (8, 8), (90, 20, 30)).save(proj / "characters" / "a_ref.png")
+    assert archive_character(tmp_path, proj, "a")["version"] == 2
+    assert [e["id"] for e in list_library(tmp_path)] == ["a"]
+
+    other = tmp_path / "projects" / "q"
+    (other / "characters").mkdir(parents=True)
+    (other / "project.yaml").write_text("name: q\ngenre: fantasy\n", encoding="utf-8")
+    card = use_character(tmp_path, other, "a")
+    assert card.reference_images == ["characters/a_ref.png"]
+    assert (other / "characters" / "a_ref.png").is_file()

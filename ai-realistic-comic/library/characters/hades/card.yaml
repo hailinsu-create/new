@@ -17,7 +17,12 @@ notes: 'Original design for the Greek god of the underworld. Adult, human-lookin
   likeness. Known sheet deviation: ears render slightly pointed and the soul-fire
   renders orange; treat ears as human and fire as pale blue in scenes.'
 reference_images:
-- characters/hades_ref.png
+- ref.png
 variant_of: ''
 form: ''
-tags: []
+tags:
+- greek
+- underworld
+- male
+- dark
+- v2
