@@ -118,3 +118,7 @@ export HF_ENDPOINT=https://hf-mirror.com
 before bootstrap / smoke (already defaulted in `autodl/bootstrap.sh`).
 
 Also set `HF_HUB_DISABLE_XET=1` so downloads do not hit `xethub.hf.co` (often 401 from AutoDL).
+
+## Disk size
+
+AutoDL system disks are often ~30GB. `Qwen/Qwen-Image-Edit-2511` needs ~50GB+ of HF cache. Prefer `LOCAL_STILL_MODEL=flux2-klein-4b` on small disks, or rent a larger data disk and keep `HF_HOME` on `/root/autodl-tmp`.
