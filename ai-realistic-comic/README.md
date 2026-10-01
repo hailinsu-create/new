@@ -10,7 +10,7 @@
 - 定妆 / 无参考：`fal-ai/flux/dev`
 - 有角色参考图：`fal-ai/flux-pulid`（锁脸）
 
-以后切 AutoDL/ComfyUI 只需改 `IMAGE_PROVIDER=comfy` + `COMFY_API_URL`（角色卡/分镜/定妆图不用动）。见 [docs/provider-switch.md](docs/provider-switch.md)。
+降成本：AutoDL 租卡用 `IMAGE_PROVIDER=local`（见 [docs/autodl.md](docs/autodl.md)）。角色卡/分镜/定妆图不用动。见 [docs/provider-switch.md](docs/provider-switch.md)。
 
 ```bash
 cd ai-realistic-comic
