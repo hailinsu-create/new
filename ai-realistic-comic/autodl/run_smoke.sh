@@ -8,6 +8,7 @@ export HF_HOME="${HF_HOME:-/root/autodl-tmp/hf}"
 export HUGGINGFACE_HUB_CACHE="${HUGGINGFACE_HUB_CACHE:-$HF_HOME/hub}"
 export TRANSFORMERS_CACHE="${TRANSFORMERS_CACHE:-$HF_HOME/transformers}"
 export HF_ENDPOINT="${HF_ENDPOINT:-https://hf-mirror.com}"
+export HF_HUB_DISABLE_XET="${HF_HUB_DISABLE_XET:-1}"
 export IMAGE_PROVIDER=local
 export LOCAL_STILL_MODEL="${LOCAL_STILL_MODEL:-qwen-image-edit-2511}"
 export LOCAL_CANDIDATES="${LOCAL_CANDIDATES:-1}"

@@ -116,3 +116,5 @@ export HF_ENDPOINT=https://hf-mirror.com
 ```
 
 before bootstrap / smoke (already defaulted in `autodl/bootstrap.sh`).
+
+Also set `HF_HUB_DISABLE_XET=1` so downloads do not hit `xethub.hf.co` (often 401 from AutoDL).
