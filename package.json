@@ -1,0 +1,22 @@
+{
+  "name": "live2d-character-research",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Research playground for self-hosting and building custom Live2D characters",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "check-model": "node scripts/check-model.mjs",
+    "fetch-core": "node scripts/fetch-cubism-core.mjs"
+  },
+  "dependencies": {
+    "pixi-live2d-display": "0.4.0",
+    "pixi.js": "^6.5.10"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2",
+    "vite": "^7.1.3"
+  }
+}

@@ -1,0 +1,20 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+.vite/
+public/live2dcubismcore.min.js
+models/local/**
+!models/local/.gitkeep
+public/models/local/**
+!public/models/local/.gitkeep
+
+# Cubism Wine install (local only)
+tools/cubism/wineprefix/
+tools/cubism/*.exe
+tools/cubism/install.log
+
+# Cubism working copies (large / regenerable)
+tools/cubism/wineprefix/
+characters/moxi/cubism/import/*.psd
+characters/moxi/cubism/rig/*.psd
