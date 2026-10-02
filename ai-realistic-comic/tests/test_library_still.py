@@ -40,6 +40,9 @@ def test_make_library_still_mock(tmp_path: Path) -> None:
     assert "round human ears" in prompt
     assert prompt.rfind("round human ears") > prompt.rfind("reference image")
     assert "frame lock:" in prompt
+    assert "neither looks at the camera" in prompt
+    assert "two separate" in prompt
+    assert prompt.rfind("POSE LOCK") > prompt.rfind("look sheets only")
     assert "red silk" in prompt
     assert "overrides look-sheet coverage" in prompt
     assert "do not copy clothing coverage" in prompt
@@ -77,6 +80,10 @@ def test_library_coil_uses_xianxia_anchor(tmp_path: Path) -> None:
     assert "tail tip override" in prompt
     assert "frame lock:" in prompt
     assert prompt.rfind("frame lock:") > prompt.rfind("tail tip override")
+    assert "neither looks at the camera" in prompt
+    assert "similar size" in prompt
+    assert "leans over him from the left" in prompt
+    assert "wide U-loop" in prompt
     assert "petal" in prompt
     assert "LOCKED unless panel" not in prompt
     assert "umbrella" not in prompt.lower()

@@ -44,6 +44,12 @@ IDENTITY_RULE = (
     "keep each character's face and species exactly as in their reference image; the two characters "
     "must look clearly different from each other; one single frame, not a collage"
 )
+POSE_OVER_IDENTITY = (
+    "identity: keep each face and species recognizable from the reference images, but those images are "
+    "look sheets only; do not copy their standing pose, a gaze into the camera, a solo portrait, or a "
+    "parasol hero shot. The frame lock below outranks face identity, wardrobe, and the reference "
+    "composition: two separate people, two readable silhouettes, one single frame, not a collage"
+)
 
 
 def still_refs(project_dir: Path, project: Project, still: Still) -> list[Path]:
@@ -107,12 +113,7 @@ def build_still_prompt(project: Project, still: Still) -> tuple[str, str]:
             else "keep each character's outfit exactly as in their reference image"
         ),
         anatomy_clause(project, still),
-        (
-            IDENTITY_RULE
-            + " Where the frame lock disagrees with a reference, obey the frame lock for ears, clothing coverage, pose, and tail tip."
-            if still.frame_lock
-            else IDENTITY_RULE
-        ),
+        POSE_OVER_IDENTITY if still.frame_lock else IDENTITY_RULE,
         TAIL_TIP_OVERRIDE if _has_serpent(project, still) else "",
         f"frame lock: {still.frame_lock}" if still.frame_lock else "",
     ]
