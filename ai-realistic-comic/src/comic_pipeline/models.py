@@ -72,6 +72,7 @@ class Still(BaseModel):
     lighting: str = ""
     blocking: str = ""  # who stands/sits where, gaze, touch
     wardrobe_state: str = ""  # what is worn or bared in this frame; overrides look-sheet coverage
+    frame_lock: str = ""  # last line; overrides reference pose, ears, clothing, or tail tip
     motif: str = ""  # the specific theme/dynamic this image is about
     mood: str = ""
     negative: str = ""

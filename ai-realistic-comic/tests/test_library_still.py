@@ -35,12 +35,18 @@ def test_make_library_still_mock(tmp_path: Path) -> None:
     assert "blue skin" in negative
     assert "breasts bare" in prompt
     assert "sideways across his lap" in prompt
+    assert "not kissing" in prompt
+    assert "bare foot" in prompt
     assert "round human ears" in prompt
+    assert prompt.rfind("round human ears") > prompt.rfind("reference image")
+    assert "frame lock:" in prompt
+    assert "red silk" in prompt
     assert "overrides look-sheet coverage" in prompt
     assert "do not copy clothing coverage" in prompt
     assert "fully covered" not in prompt
     assert "LOCKED unless panel" not in prompt
     assert "greaves" in negative
+    assert "bident" in negative
     assert "minor" in negative and "child" in negative
 
 
@@ -69,6 +75,9 @@ def test_library_coil_uses_xianxia_anchor(tmp_path: Path) -> None:
     assert "each person has exactly two arms" not in prompt
     assert "thick blunt rounded" in prompt
     assert "tail tip override" in prompt
+    assert "frame lock:" in prompt
+    assert prompt.rfind("frame lock:") > prompt.rfind("tail tip override")
+    assert "petal" in prompt
     assert "LOCKED unless panel" not in prompt
     assert "umbrella" not in prompt.lower()
     assert "inner bodice" not in prompt

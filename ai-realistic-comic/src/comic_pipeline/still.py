@@ -107,8 +107,14 @@ def build_still_prompt(project: Project, still: Still) -> tuple[str, str]:
             else "keep each character's outfit exactly as in their reference image"
         ),
         anatomy_clause(project, still),
-        IDENTITY_RULE,
+        (
+            IDENTITY_RULE
+            + " Where the frame lock disagrees with a reference, obey the frame lock for ears, clothing coverage, pose, and tail tip."
+            if still.frame_lock
+            else IDENTITY_RULE
+        ),
         TAIL_TIP_OVERRIDE if _has_serpent(project, still) else "",
+        f"frame lock: {still.frame_lock}" if still.frame_lock else "",
     ]
     negative = still.negative or (
         "anime, cartoon, collage, split screen, twins, merged faces, extra fingers, deformed hands, "
