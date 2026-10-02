@@ -1,0 +1,654 @@
+{
+  "date": "2026-09-16",
+  "generatedAt": "2026-09-16T08:41:11+08:00",
+  "marketSummary": "隔夜美股继续让路：标普500收7585.73点跌0.45%，纳斯达克综指跌0.78%，十年美债盘中摸到5.04%一线、创2007年7月以来高位，联邦基金期货把今晚议息加息25个基点的概率打到92.4%。油走另一条轨道：WTI十月合约结算涨4.38%报105.83美元，布伦特涨2.9%报108.75美元，柴油结算创纪录；亚洲早盘油价回吐约1%，美国能源部长仍称沙特东西管道“数天内”可能复运，API库存却意外增加714万桶。A股在周一地量后再缩：9月15日沪深京成交16253亿元，追平4月7日年内最低，上证收3864.28点跌0.54%。通信设备跌0.83%、电力跌0.97%、医疗器械跌1.50%，半导体逆势涨1.32%；公司债与十年国债ETF贴着高位微涨。事实止于此。推断是周三更像油价溢价对加息夜、地量对调仓，不是风险偏好修复。",
+  "facts": [
+    {
+      "id": "F01",
+      "title": "A股9月15日：上证3864.28点跌0.54%，深成指13287.97点跌0.72%，创业板指3247.92点跌1.15%，沪深300收4450.04点跌0.67%",
+      "sourceName": "新浪财经行情",
+      "sourceUrl": "https://finance.sina.com.cn/realstock/company/sh000001/nc.shtml",
+      "publishedAt": "2026-09-15T15:43:32+08:00",
+      "reliability": 0.9,
+      "direction": -1,
+      "magnitude": 2,
+      "affects": [
+        "全部",
+        "A股权益",
+        "sh515880",
+        "sh516370"
+      ],
+      "rationale": "宽基全线收阴，是A股权益篮子的直接价格锚，方向偏空。跌幅集中在成长端，不能单独覆盖债券微涨和半导体逆势。",
+      "evidenceType": "market",
+      "independenceGroup": "ashare_tape_20260915"
+    },
+    {
+      "id": "F02",
+      "title": "9月15日沪深京三市收盘成交16253亿元，较前一交易日再缩177亿元，追平2026年4月7日年内最低成交纪录",
+      "sourceName": "财联社",
+      "sourceUrl": "https://finance.eastmoney.com/a/202609163875402478.html",
+      "publishedAt": "2026-09-16T08:27:00+08:00",
+      "reliability": 0.86,
+      "direction": -1,
+      "magnitude": 3,
+      "affects": [
+        "全部",
+        "A股权益",
+        "sh515880",
+        "sh516370",
+        "sz300760"
+      ],
+      "rationale": "量能二次触底说明调仓摩擦上升、增量缺席，对需要换手才能修复的权益篮子偏空。报道同时称公募仓位仍高、调研热、下手少，故这是交易成本证据，不是仓位出清证据。",
+      "evidenceType": "event",
+      "independenceGroup": "ashare_volume_floor_20260915"
+    },
+    {
+      "id": "F03",
+      "title": "美股周二收跌：标普500报7585.73点跌0.45%，纳斯达克100报25981.57点跌0.78%，道琼斯报52093.11点跌0.63%",
+      "sourceName": "东方财富行情",
+      "sourceUrl": "https://quote.eastmoney.com/gb/zsSPX.html",
+      "publishedAt": "2026-09-16T08:32:00+08:00",
+      "reliability": 0.88,
+      "direction": -1,
+      "magnitude": 2,
+      "affects": [
+        "sz159577",
+        "sh513310",
+        "海外权益"
+      ],
+      "rationale": "这是跟踪美股大盘和成长的跨境篮子最直接的隔夜价格锚。纳指跌幅大于标普，说明压力仍在长久期成长，不能覆盖油气结算大涨。",
+      "evidenceType": "market",
+      "independenceGroup": "us_equity_close_20260915"
+    },
+    {
+      "id": "F04",
+      "title": "Trading Economics：周二常规交易标普500跌0.45%、纳斯达克综指跌0.78%，压力来自油价飙升和国债收益率上行，亏损面较广",
+      "sourceName": "Trading Economics",
+      "sourceUrl": "https://tradingeconomics.com/united-states/stock-market",
+      "publishedAt": "2026-09-16T08:00:00+08:00",
+      "reliability": 0.84,
+      "direction": -1,
+      "magnitude": 2,
+      "affects": [
+        "sz159577",
+        "海外权益"
+      ],
+      "rationale": "第三方对同一收盘的机制解释：油价和美债收益率同时抬升压制美股质量篮子。与行情接口相互独立，幅度仍是收阴而非崩盘。",
+      "evidenceType": "event",
+      "independenceGroup": "te_us_close_narrative_20260915"
+    },
+    {
+      "id": "F05",
+      "title": "Cboe波动率指数VIX9月15日报17.20，较前值回升约0.10点",
+      "sourceName": "Trading Economics",
+      "sourceUrl": "https://tradingeconomics.com/united-states/vix",
+      "publishedAt": "2026-09-15T16:00:00-04:00",
+      "reliability": 0.85,
+      "direction": -1,
+      "magnitude": 1,
+      "affects": [
+        "sz159577",
+        "海外权益"
+      ],
+      "rationale": "波动率在议息日前再抬一点，是风险偏好收缩的市场证据，对美股大盘篮子偏空。仍低于20，属于会议前再定价而非恐慌失控。",
+      "evidenceType": "market",
+      "independenceGroup": "vix_20260915"
+    },
+    {
+      "id": "F06",
+      "title": "央视新闻：美国10年期国债收益率15日凌晨升至5.045%，为2007年7月以来最高；30年期一度升至5.402%，为2007年6月以来高点",
+      "sourceName": "央视新闻",
+      "sourceUrl": "https://finance.eastmoney.com/a/202609163875142261.html",
+      "publishedAt": "2026-09-16T02:12:00+08:00",
+      "reliability": 0.9,
+      "direction": -1,
+      "magnitude": 3,
+      "affects": [
+        "sh511260",
+        "sh511030",
+        "sz159577",
+        "利率"
+      ],
+      "rationale": "美债长端创十余年高位，直接抬升全球折现率和中美利差压力，对长久期国债和信用债估值偏空。早间有所回落但仍在5%上方，幅度要对折。",
+      "evidenceType": "event",
+      "independenceGroup": "ust_10y_19y_high_20260915"
+    },
+    {
+      "id": "F07",
+      "title": "证券时报：10年期美债盘中最高5.041%，为2007年7月后最高；30年期报5.368%创2007年6月以来高位；2年期升至4.648%，为2024年7月以来峰值",
+      "sourceName": "证券时报",
+      "sourceUrl": "https://www.stcn.com/article/detail/4186546.html",
+      "publishedAt": "2026-09-15T23:26:00+08:00",
+      "reliability": 0.86,
+      "direction": -1,
+      "magnitude": 3,
+      "affects": [
+        "sh511260",
+        "sh511030",
+        "利率"
+      ],
+      "rationale": "曲线短长端同步抬升，说明这不是单纯期限溢价，而是加息定价和通胀溢价一起动，对国内利率债的外部约束偏空。国内期货当日仍收红，故不能覆盖本地价格。",
+      "evidenceType": "event",
+      "independenceGroup": "stcn_ust_curve_20260915"
+    },
+    {
+      "id": "F08",
+      "title": "CME美联储观察：9月维持利率不变概率7.6%，累计加息25个基点概率92.4%；到10月累计加息25个基点52%、累计50个基点44%",
+      "sourceName": "财联社",
+      "sourceUrl": "https://finance.eastmoney.com/a/202609163875170523.html",
+      "publishedAt": "2026-09-16T06:17:00+08:00",
+      "reliability": 0.88,
+      "direction": -1,
+      "magnitude": 3,
+      "affects": [
+        "sz159577",
+        "sh511260",
+        "sh513310",
+        "利率"
+      ],
+      "rationale": "今晚议息几乎被定价成加息25个基点，对美股、半导体估值和长久期债券都是硬约束。10月路径仍分叉，所以这是本次会议证据，不是全年路径证据。",
+      "evidenceType": "event",
+      "independenceGroup": "fedwatch_924_sept_20260916"
+    },
+    {
+      "id": "F09",
+      "title": "国际原油期货结算价大幅收涨：WTI十月合约涨4.38%报105.83美元/桶，布伦特十一月合约涨2.9%报108.75美元/桶；美国柴油期货结算价升至每加仑5.26美元之上并创纪录新高",
+      "sourceName": "财联社",
+      "sourceUrl": "https://finance.eastmoney.com/a/202609163875144919.html",
+      "publishedAt": "2026-09-16T02:33:00+08:00",
+      "reliability": 0.87,
+      "direction": 1,
+      "magnitude": 3,
+      "affects": [
+        "sz159518",
+        "原油",
+        "油气",
+        "能源"
+      ],
+      "rationale": "这是油气篮子最硬的隔夜价格锚，方向偏多。A股相关ETF已在日盘先跌，开盘映射存在缺口；柴油创纪录说明压力在成品油端，不等于原油溢价能无限延续。",
+      "evidenceType": "event",
+      "independenceGroup": "wti_brent_settle_20260915"
+    },
+    {
+      "id": "F10",
+      "title": "9月11日国务院常务会议研究算力网建设：完善算力基础设施，加强算力资源监测调度和骨干光纤网络建设，推动算电协同、绿电直连和源网荷储落地",
+      "sourceName": "中国政府网",
+      "sourceUrl": "https://www.gov.cn/yaowen/liebiao/202609/content_7080787.htm",
+      "publishedAt": "2026-09-11T19:48:00+08:00",
+      "reliability": 0.93,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sh515880",
+        "sh516370",
+        "通信",
+        "AI算力"
+      ],
+      "rationale": "这是算力与电力公用的中期政策正方，对通信光纤和算电协同偏多。会议在9月11日，属于仍有效的结构事实，覆盖不了这两日价格已经先跌。",
+      "evidenceType": "structural",
+      "independenceGroup": "guochanghui_suanliwang_20260911"
+    },
+    {
+      "id": "F11",
+      "title": "美国能源部长赖特称他认为沙特东西管道将很快恢复运行，预计重新开放将在数天内完成",
+      "sourceName": "财联社",
+      "sourceUrl": "https://finance.eastmoney.com/a/202609153875126744.html",
+      "publishedAt": "2026-09-15T23:51:00+08:00",
+      "reliability": 0.82,
+      "direction": -1,
+      "magnitude": 2,
+      "affects": [
+        "sz159518",
+        "原油",
+        "油气"
+      ],
+      "rationale": "复运时间表是油价溢价的主要空头证据。这是官员判断而非已复运事实，只能压概率、不能覆盖延布停装和结算大涨。",
+      "evidenceType": "event",
+      "independenceGroup": "wright_pipeline_days_20260915"
+    },
+    {
+      "id": "F12",
+      "title": "美国至9月11日当周API原油库存增加714.4万桶，预期减少175万桶，前值减少32.7万桶",
+      "sourceName": "财联社",
+      "sourceUrl": "https://finance.eastmoney.com/a/202609163875153181.html",
+      "publishedAt": "2026-09-16T04:54:00+08:00",
+      "reliability": 0.86,
+      "direction": -1,
+      "magnitude": 2,
+      "affects": [
+        "sz159518",
+        "原油"
+      ],
+      "rationale": "库存意外大幅增加是供给溢价的对冲证据，对油价偏空。API是行业口径、且滞后于霍尔木兹当日扰动，不能单独覆盖结算价大涨。",
+      "evidenceType": "event",
+      "independenceGroup": "api_crude_7144k_20260911w"
+    },
+    {
+      "id": "F13",
+      "title": "Trading Economics：周三亚洲时段WTI报约104.87美元/桶跌0.81%，布伦特报约107.88美元/桶跌0.80%，油价仍接近阶段高位",
+      "sourceName": "Trading Economics",
+      "sourceUrl": "https://tradingeconomics.com/commodity/crude-oil",
+      "publishedAt": "2026-09-16T08:30:00+08:00",
+      "reliability": 0.83,
+      "direction": -1,
+      "magnitude": 1,
+      "affects": [
+        "sz159518",
+        "原油",
+        "能源"
+      ],
+      "rationale": "结算大涨之后的早盘回吐，说明溢价夜间已经部分兑现，对开盘映射要防高开低走。价格仍在高位，回吐不是趋势反转证据。",
+      "evidenceType": "market",
+      "independenceGroup": "asia_oil_giveback_20260916"
+    },
+    {
+      "id": "F14",
+      "title": "中国人民银行公开市场业务交易公告〔2026〕第180号：9月15日7天期逆回购中标量0亿元，同时开展5970亿元隔夜逆回购",
+      "sourceName": "中国人民银行",
+      "sourceUrl": "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/2026091509034484309/index.html",
+      "publishedAt": "2026-09-15T09:20:30+08:00",
+      "reliability": 0.95,
+      "direction": 0,
+      "magnitude": 2,
+      "affects": [
+        "sh511260",
+        "sh511030",
+        "利率"
+      ],
+      "rationale": "税期继续只给隔夜、不给七天，流动性护短不护长。对信用债和利率债不是崩盘信号，也不是可以加久期的许可，方向记中性、约束偏空。",
+      "evidenceType": "event",
+      "independenceGroup": "pboc_omo_5970_20260915"
+    },
+    {
+      "id": "F15",
+      "title": "9月15日国债期货收盘：30年期主力涨0.15%，10年期主力涨0.08%，5年期主力涨0.06%，2年期主力涨0.02%",
+      "sourceName": "东方财富Choice",
+      "sourceUrl": "https://bond.eastmoney.com/a/202609153874661891.html",
+      "publishedAt": "2026-09-15T15:22:00+08:00",
+      "reliability": 0.88,
+      "direction": 1,
+      "magnitude": 1,
+      "affects": [
+        "sh511260",
+        "利率"
+      ],
+      "rationale": "本地利率债期货全线收红，是十年国债ETF最直接的国内价格证据，方向偏多。涨幅很小，覆盖不了美债长端创高的外部冲击。",
+      "evidenceType": "market",
+      "independenceGroup": "cgb_futures_20260915"
+    },
+    {
+      "id": "F16",
+      "title": "十年国债ETF（511260）9月15日收135.920元、涨0.046%，开盘135.886、最高135.929、最低135.882，成交约2623万份",
+      "sourceName": "新浪财经行情",
+      "sourceUrl": "https://finance.sina.com.cn/realstock/company/sh511260/nc.shtml",
+      "publishedAt": "2026-09-15T15:34:59+08:00",
+      "reliability": 0.9,
+      "direction": 1,
+      "magnitude": 1,
+      "affects": [
+        "sh511260"
+      ],
+      "rationale": "场内价格贴着前收微涨，与国债期货同向。这是直接命中该券的价格事实，幅度太小，不能当成利率下行交易已经启动。",
+      "evidenceType": "market",
+      "independenceGroup": "etf_511260_px_20260915"
+    },
+    {
+      "id": "F17",
+      "title": "公司债ETF（511030）9月15日收108.429元、涨0.020%，开盘108.420、最高108.430、最低108.406，成交约1944万份",
+      "sourceName": "新浪财经行情",
+      "sourceUrl": "https://finance.sina.com.cn/realstock/company/sh511030/nc.shtml",
+      "publishedAt": "2026-09-15T15:00:03+08:00",
+      "reliability": 0.9,
+      "direction": 1,
+      "magnitude": 1,
+      "affects": [
+        "sh511030",
+        "公司债",
+        "信用债"
+      ],
+      "rationale": "高等级信用ETF继续贴着高位微涨，是公司债篮子的直接价格锚，方向略多。几乎没有波动，说明它仍是现金管理工具，不是进攻仓。",
+      "evidenceType": "market",
+      "independenceGroup": "etf_511030_px_20260915"
+    },
+    {
+      "id": "F18",
+      "title": "澎湃新闻：迈瑞医疗2026年半年报营收177.47亿元同比增6.00%，归母净利润47.97亿元；二季度营收同比增10.45%；国际业务同比增13.67%，国内收入同比降1.61%但降幅收窄",
+      "sourceName": "澎湃新闻",
+      "sourceUrl": "https://www.thepaper.cn/newsDetail_forward_34025161",
+      "publishedAt": "2026-09-07T20:03:00+08:00",
+      "reliability": 0.82,
+      "direction": 0,
+      "magnitude": 2,
+      "affects": [
+        "sz300760"
+      ],
+      "rationale": "中报确认国际补国内、二季度加速，是器械龙头的基本面锚。国内仍负增长，所以这是修复证据不是景气反转证据，方向记中性。",
+      "evidenceType": "structural",
+      "independenceGroup": "mindray_h1_2026_thepaper"
+    },
+    {
+      "id": "F19",
+      "title": "通信ETF国泰（515880）9月15日收0.653元、跌0.61%，开盘0.651、最高0.666、最低0.646，成交约37.73亿份、金额约24.76亿元",
+      "sourceName": "新浪财经行情",
+      "sourceUrl": "https://finance.sina.com.cn/realstock/company/sh515880/nc.shtml",
+      "publishedAt": "2026-09-15T15:34:59+08:00",
+      "reliability": 0.9,
+      "direction": -1,
+      "magnitude": 2,
+      "affects": [
+        "sh515880",
+        "通信",
+        "光通信"
+      ],
+      "rationale": "通信主线ETF连续第二日收阴，是光通信/算力篮子的直接价格锚。盘中曾上摸0.666说明仍有反抽，收盘吐回说明买盘接不住。",
+      "evidenceType": "market",
+      "independenceGroup": "etf_515880_px_20260915"
+    },
+    {
+      "id": "F20",
+      "title": "同花顺行业：9月15日通信设备跌0.83%，电力跌0.97%，医疗器械跌1.50%，化学原料跌1.83%，油气开采及服务跌1.79%；半导体涨1.32%，风电设备涨4.08%",
+      "sourceName": "同花顺",
+      "sourceUrl": "https://q.10jqka.com.cn/thshy/",
+      "publishedAt": "2026-09-15T15:00:00+08:00",
+      "reliability": 0.84,
+      "direction": -1,
+      "magnitude": 2,
+      "affects": [
+        "sh515880",
+        "sh516370",
+        "sz300760",
+        "sz002068",
+        "sz159518",
+        "通信",
+        "化工",
+        "油气"
+      ],
+      "rationale": "行业相对强度显示缩量日里通信、电力、器械、化工、油气同步走弱，只有半导体和风电设备反向。对多数权益篮子偏空，半导体要单独记账。",
+      "evidenceType": "market",
+      "independenceGroup": "jqk_industry_20260915"
+    },
+    {
+      "id": "F21",
+      "title": "中金公司：第27届光博会超4000家企业参展、观众近19万人同比增32%；部分高速光芯片订单排期已延伸至2028年，光模块订单能见度覆盖2027年及以后",
+      "sourceName": "证券时报",
+      "sourceUrl": "https://www.stcn.com/article/detail/4186715.html",
+      "publishedAt": "2026-09-16T07:51:00+08:00",
+      "reliability": 0.84,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sh515880",
+        "光通信",
+        "AI算力",
+        "通信"
+      ],
+      "rationale": "这是光通信中期景气的卖方调研证据，方向偏多。它覆盖的是2027–2028交付，覆盖不了ETF已经连跌的价格和缩量。",
+      "evidenceType": "event",
+      "independenceGroup": "cicc_cioe_2027_orders"
+    },
+    {
+      "id": "F22",
+      "title": "工信部、国家发改委印发《电子信息制造业发展“十五五”规划》：到2030年规模以上企业营业收入突破30万亿元，产业研发投入强度达到3.5%，并点名集成电路、先进计算等长板",
+      "sourceName": "东方财富证券",
+      "sourceUrl": "https://finance.eastmoney.com/a/202609153874448784.html",
+      "publishedAt": "2026-09-15T10:15:00+08:00",
+      "reliability": 0.88,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sh515880",
+        "sh513310",
+        "通信",
+        "A股科技",
+        "AI算力"
+      ],
+      "rationale": "产业规划是中期政策正方，利好通信和半导体设备资本开支叙事。规划到2030，不能覆盖隔夜美股成长股继续收阴。",
+      "evidenceType": "structural",
+      "independenceGroup": "miit_ndrc_electronics_15th"
+    },
+    {
+      "id": "F23",
+      "title": "英伟达CEO黄仁勋周二在Salesforce活动称“我们不需要新法律，也不需要新监管规则”，并称安全与速度可兼得；扎克伯格同日主张靠独立评估人员保障模型安全",
+      "sourceName": "环球市场播报",
+      "sourceUrl": "https://finance.sina.com.cn/stock/usstock/c/2026-09-16/doc-iniryqvh3075556.shtml",
+      "publishedAt": "2026-09-16T08:24:00+08:00",
+      "reliability": 0.84,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sh515880",
+        "sh513310",
+        "sz159577",
+        "AI算力"
+      ],
+      "rationale": "算力链最核心供应商公开反对新监管，短期对AI资本开支叙事偏多。这是嘴炮，覆盖不了美股已经按折现率下跌的价格。",
+      "evidenceType": "event",
+      "independenceGroup": "huang_no_new_ai_law_20260915"
+    },
+    {
+      "id": "F24",
+      "title": "凯雷全球研究主管Jason Thomas称，AI数据中心项目融资依赖财务赞助方投资级信用、而非项目自身现金流，令人想起2005–2007年次贷做法；并认为AI投资潮未来放缓的可能性高于进一步加速",
+      "sourceName": "环球市场播报",
+      "sourceUrl": "https://finance.sina.com.cn/stock/usstock/c/2026-09-16/doc-iniryqva6518223.shtml",
+      "publishedAt": "2026-09-16T08:30:00+08:00",
+      "reliability": 0.8,
+      "direction": -1,
+      "magnitude": 2,
+      "affects": [
+        "sh515880",
+        "sh513310",
+        "sz159577",
+        "AI算力"
+      ],
+      "rationale": "这是算力资本开支的信用约束证据，对AI估值和光通信订单兑现偏空。他同时承认目前尚未走到失控，故是尾部风险而非即期崩盘。",
+      "evidenceType": "event",
+      "independenceGroup": "carlyle_dc_financing_warning"
+    },
+    {
+      "id": "F25",
+      "title": "中韩半导体ETF（513310）9月15日收4.655元、涨0.52%，开盘4.678、最高4.785、最低4.643，成交约24.08亿份、金额约113.13亿元",
+      "sourceName": "新浪财经行情",
+      "sourceUrl": "https://finance.sina.com.cn/realstock/company/sh513310/nc.shtml",
+      "publishedAt": "2026-09-15T15:34:59+08:00",
+      "reliability": 0.9,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sh513310"
+      ],
+      "rationale": "该ETF在美股半导体前一日大跌后放量收红，是中韩半导体篮子的直接价格锚，方向偏多。高开回落说明反弹并不干净，不能覆盖纳指隔夜再跌。",
+      "evidenceType": "market",
+      "independenceGroup": "etf_513310_px_20260915"
+    },
+    {
+      "id": "F26",
+      "title": "韩联社援引业内消息：SK海力士工会重新投票以57.08%赞成通过修订版薪资及集体谈判协议，利润分成现金占比由40%上调至50%、股权占比由60%下调至50%",
+      "sourceName": "环球市场播报",
+      "sourceUrl": "https://finance.sina.com.cn/stock/usstock/c/2026-09-16/doc-iniryquy7910889.shtml",
+      "publishedAt": "2026-09-16T08:21:00+08:00",
+      "reliability": 0.8,
+      "direction": 1,
+      "magnitude": 1,
+      "affects": [
+        "sh513310"
+      ],
+      "rationale": "韩国存储龙头劳资不确定性落地，对中韩半导体篮子偏多。协议提高现金分成，是成本项而非需求项，幅度有限。",
+      "evidenceType": "event",
+      "independenceGroup": "skhynix_union_revote_20260916"
+    },
+    {
+      "id": "F27",
+      "title": "港股创新药ETF（513120）9月15日收1.269元、跌1.09%，开盘1.277、最高1.289、最低1.264，成交约31.42亿份、金额约39.94亿元",
+      "sourceName": "新浪财经行情",
+      "sourceUrl": "https://finance.sina.com.cn/realstock/company/sh513120/nc.shtml",
+      "publishedAt": "2026-09-15T15:34:59+08:00",
+      "reliability": 0.9,
+      "direction": -1,
+      "magnitude": 2,
+      "affects": [
+        "sh513120"
+      ],
+      "rationale": "周一事件阳线后的次日回吐，是该ETF的直接价格锚。成交仍大，说明不是无量阴跌，更像事件溢价兑现。",
+      "evidenceType": "market",
+      "independenceGroup": "etf_513120_px_20260915"
+    },
+    {
+      "id": "F28",
+      "title": "上海证券报：国家药监局称今年创新药对外授权交易总额突破1200亿美元、同比增36%；今年已有59个创新药、51个创新医疗器械获批上市",
+      "sourceName": "上海证券报",
+      "sourceUrl": "https://finance.eastmoney.com/a/202609163875142755.html",
+      "publishedAt": "2026-09-16T07:06:00+08:00",
+      "reliability": 0.86,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sh513120",
+        "sz300760",
+        "港股权益"
+      ],
+      "rationale": "出海金额和获批数量是创新药与器械的中期正方。它解释不了港股创新药ETF次日回吐，也不能把器械获批自动翻译成龙头股趋势。",
+      "evidenceType": "event",
+      "independenceGroup": "nmpa_licenseout_1200bn_2026"
+    },
+    {
+      "id": "F29",
+      "title": "恒生指数9月15日收24667.24点，较前收24917.60点跌1.00%，全日最低24657.01点",
+      "sourceName": "东方财富行情",
+      "sourceUrl": "https://quote.eastmoney.com/gb/zsHSI.html",
+      "publishedAt": "2026-09-15T16:10:00+08:00",
+      "reliability": 0.88,
+      "direction": -1,
+      "magnitude": 2,
+      "affects": [
+        "sh513120",
+        "港股权益"
+      ],
+      "rationale": "港股基准同步收跌，对港股权益篮子偏空。创新药ETF跌幅与恒指接近，说明昨日超额并未在次日延续。",
+      "evidenceType": "market",
+      "independenceGroup": "hsi_close_20260915"
+    },
+    {
+      "id": "F30",
+      "title": "电力ETF汇添富（516370）9月15日收0.927元、跌0.43%，开盘0.931、最高0.935、最低0.920，成交约735万份",
+      "sourceName": "新浪财经行情",
+      "sourceUrl": "https://finance.sina.com.cn/realstock/company/sh516370/nc.shtml",
+      "publishedAt": "2026-09-15T15:00:01+08:00",
+      "reliability": 0.9,
+      "direction": -1,
+      "magnitude": 1,
+      "affects": [
+        "sh516370"
+      ],
+      "rationale": "电力公用ETF跟随宽基微跌，是该券的直接价格锚。缩量日里它没有体现防御溢价，少跌不是该涨。",
+      "evidenceType": "market",
+      "independenceGroup": "etf_516370_px_20260915"
+    },
+    {
+      "id": "F31",
+      "title": "同花顺行业：9月15日风电设备涨4.08%，列行业涨幅前列；电力板块跌0.97%",
+      "sourceName": "同花顺",
+      "sourceUrl": "https://q.10jqka.com.cn/thshy/",
+      "publishedAt": "2026-09-15T15:00:00+08:00",
+      "reliability": 0.84,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sh516370"
+      ],
+      "rationale": "风电设备脉冲是电力链条里唯一的正方向，对电力公用指数有限正贡献。电力板块本身仍跌，说明这是设备行情不是公用事业重估。",
+      "evidenceType": "market",
+      "independenceGroup": "jqk_wind_power_20260915"
+    },
+    {
+      "id": "F32",
+      "title": "黑猫股份（002068）9月15日收9.220元、跌9.16%，开盘9.800、最高9.800、最低9.180，成交约8455万股、金额约8.03亿元",
+      "sourceName": "新浪财经行情",
+      "sourceUrl": "https://finance.sina.com.cn/realstock/company/sz002068/nc.shtml",
+      "publishedAt": "2026-09-15T16:29:15+08:00",
+      "reliability": 0.9,
+      "direction": -1,
+      "magnitude": 3,
+      "affects": [
+        "sz002068",
+        "炭黑"
+      ],
+      "rationale": "周一大涨后的次日深回撤，是该股的直接价格锚，方向偏空。现货暴涨与股价暴跌同时出现，说明市场在交易利润不确定性而不是单价。",
+      "evidenceType": "market",
+      "independenceGroup": "eq_002068_px_20260915"
+    },
+    {
+      "id": "F33",
+      "title": "财联社：截至9月14日山东主流N330炭黑报价11500–12000元/吨，较9月初大涨3650元/吨、涨幅45%，单价与单周涨幅均创行业历史新高，主因煤焦油货源紧缺",
+      "sourceName": "财联社",
+      "sourceUrl": "https://finance.eastmoney.com/a/202609163875401832.html",
+      "publishedAt": "2026-09-16T08:22:00+08:00",
+      "reliability": 0.82,
+      "direction": 1,
+      "magnitude": 3,
+      "affects": [
+        "sz002068",
+        "炭黑",
+        "化工",
+        "新材料"
+      ],
+      "rationale": "现货创历史新高是炭黑板块的中期正方。公司此前已提示顺价不等于利润，且股价次日大跌，故这是商品证据，不是盈利证据。",
+      "evidenceType": "event",
+      "independenceGroup": "n330_record_high_20260914"
+    },
+    {
+      "id": "F34",
+      "title": "国内商品夜盘9月15日多数上涨，化工品居前：大商所乙二醇涨4.48%，上期能源低硫燃料油涨3.00%；焦煤跌1.39%",
+      "sourceName": "财联社",
+      "sourceUrl": "https://futures.eastmoney.com/a/202609153875101838.html",
+      "publishedAt": "2026-09-15T23:02:00+08:00",
+      "reliability": 0.85,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sz002068",
+        "sz159518",
+        "化工",
+        "能源",
+        "原油"
+      ],
+      "rationale": "夜盘化工和燃料油走强，对成本顺价链条和油气映射偏多。焦煤回落说明上游脉冲并不整齐，不能把夜盘涨幅直接兑成次日股票连板。",
+      "evidenceType": "market",
+      "independenceGroup": "china_night_session_20260915"
+    },
+    {
+      "id": "F35",
+      "title": "迈瑞医疗（300760）9月15日收160.300元、涨0.12%，开盘159.850、最高161.270、最低159.370，成交约412万股、金额约6.61亿元",
+      "sourceName": "新浪财经行情",
+      "sourceUrl": "https://finance.sina.com.cn/realstock/company/sz300760/nc.shtml",
+      "publishedAt": "2026-09-15T16:29:15+08:00",
+      "reliability": 0.9,
+      "direction": 1,
+      "magnitude": 1,
+      "affects": [
+        "sz300760"
+      ],
+      "rationale": "器械龙头在医疗器械板块下跌的交易日微涨，是该股的直接价格锚，方向略多。幅度远小于板块跌幅的反向，更像抗跌不是新趋势。",
+      "evidenceType": "market",
+      "independenceGroup": "eq_300760_px_20260915"
+    },
+    {
+      "id": "F36",
+      "title": "美国50ETF（159577）9月15日收1.633元、平收，开盘1.636、最高1.643、最低1.631，成交约2076万份；标普油气ETF（159518）收1.336元、跌1.33%，开盘1.333、最高1.342、最低1.321，成交约2.71亿份",
+      "sourceName": "新浪财经行情",
+      "sourceUrl": "https://finance.sina.com.cn/realstock/company/sz159577/nc.shtml",
+      "publishedAt": "2026-09-15T16:29:45+08:00",
+      "reliability": 0.9,
+      "direction": -1,
+      "magnitude": 2,
+      "affects": [
+        "sz159577",
+        "sz159518",
+        "海外权益",
+        "油气"
+      ],
+      "rationale": "跨境ETF在A股日盘先定价：美股篮子平收、油气篮子先跌。隔夜美股再跌、油价大涨，意味着两者开盘映射方向相反，日盘价格不能当隔夜结论。",
+      "evidenceType": "market",
+      "independenceGroup": "etf_159577_159518_px_20260915"
+    }
+  ]
+}
