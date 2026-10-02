@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>Ambush Loop — 触控 HUD 线框</title>
+<style>
+  :root {
+    --bg: #12110e;
+    --asphalt: #1a1814;
+    --panel: #1e1c16;
+    --olive: #c4b45a;
+    --olive-dim: #8a7a3a;
+    --brass: #9a7a3a;
+    --text: #e8e0c8;
+    --muted: #8a8474;
+    --danger: #c44a38;
+    --ok: #6a8a48;
+    --chip: #2a261c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #0b0a08;
+    color: var(--text);
+    font-family: "IBM Plex Sans", "Noto Sans SC", "Source Han Sans SC", sans-serif;
+    padding: 24px 28px 48px;
+  }
+  h1 { font-size: 22px; font-weight: 650; color: var(--olive); margin: 0 0 6px; letter-spacing: 0.04em; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 22px; }
+  .board {
+    width: 1240px;
+    height: 700px;
+    background: var(--asphalt);
+    border: 1px solid #3a3424;
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+    margin: 0 0 36px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+  }
+  .cap {
+    font-size: 13px;
+    color: var(--olive);
+    margin: 0 0 8px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .note { font-size: 12px; color: var(--muted); margin: -28px 0 28px; max-width: 1240px; }
+  .map {
+    position: absolute; inset: 48px 12px 108px 12px;
+    background:
+      linear-gradient(rgba(80,90,50,0.08) 1px, transparent 1px) 0 0 / 32px 32px,
+      linear-gradient(90deg, rgba(80,90,50,0.08) 1px, transparent 1px) 0 0 / 32px 32px,
+      #16140f;
+    border: 1px solid #2c281c;
+  }
+  .top {
+    position: absolute; left: 0; right: 0; top: 0; height: 48px;
+    background: #14120e;
+    border-bottom: 1px solid #3a3424;
+    display: flex; align-items: center; padding: 0 14px; gap: 10px;
+    font-size: 13px;
+  }
+  .brand { color: var(--olive); font-weight: 700; letter-spacing: 0.12em; }
+  .phase { margin-left: auto; color: #d8c86a; }
+  .left {
+    position: absolute; left: 12px; top: 62px; width: 220px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .card {
+    background: #1a1812ee; border: 1px solid #5a4a28; border-radius: 6px;
+    padding: 8px 10px; font-size: 12px; height: 88px;
+  }
+  .card b { color: var(--olive); }
+  .mini {
+    position: absolute; right: 12px; top: 58px; width: 184px; height: 104px;
+    background: #10100cee; border: 1px solid #6a5a30; border-radius: 4px;
+    font-size: 11px; color: var(--muted); padding: 8px;
+  }
+  .portraits {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    bottom: 164px; display: flex; gap: 8px;
+  }
+  .port {
+    width: 104px; height: 96px; background: #18160fee;
+    border: 1px solid #8a7a40; border-radius: 6px;
+    font-size: 12px; padding: 8px; text-align: center;
+  }
+  .port.sel { border-width: 2px; color: var(--olive); }
+  .skills {
+    position: absolute; right: 16px; bottom: 168px;
+    display: flex; gap: 6px;
+  }
+  .sk {
+    width: 54px; height: 62px; background: #14120c;
+    border: 1px solid #6a5a30; border-radius: 4px;
+    font-size: 10px; text-align: center; padding-top: 6px; color: #d0c8a0;
+  }
+  .bar {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 156px;
+    background: #0d0c0ae0; border-top: 3px solid #9e803c;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 0 8px; flex-wrap: nowrap;
+  }
+  .btn {
+    min-width: 70px; height: 56px; background: #1c1a14;
+    border: 1px solid #6a5a32; border-radius: 10px;
+    font-size: 13px; color: var(--text);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .btn.alarm { border-color: #c44a38; color: #f0c0b0; min-width: 88px; background: #2a1410; }
+  .callout {
+    position: absolute; background: #c44a38; color: #fff;
+    font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 3px;
+    white-space: nowrap; z-index: 4;
+  }
+  .callout::after {
+    content: ""; position: absolute; left: 12px; top: 100%;
+    border: 6px solid transparent; border-top-color: #c44a38;
+  }
+  .callout.ok { background: var(--ok); }
+  .callout.ok::after { border-top-color: var(--ok); }
+  .ghost {
+    position: absolute; border: 1px dashed #c44a38; pointer-events: none; z-index: 3;
+  }
+  .chip {
+    height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid #6a5a32;
+    background: #1c1a14; display: flex; align-items: center; font-size: 13px;
+  }
+  .cta {
+    height: 64px; min-width: 128px; border-radius: 12px; border: 2px solid #c44a38;
+    background: #2a1410; color: #f2c8bc; display: flex; align-items: center;
+    justify-content: center; font-size: 16px; font-weight: 700;
+  }
+  .hot {
+    position: absolute; border: 2px solid #d8c86a; background: #d8c86a22;
+    border-radius: 8px; font-size: 13px; color: #f0e6a8;
+    display: flex; align-items: center; justify-content: center; font-weight: 700;
+  }
+  .zone {
+    position: absolute; border: 2px dashed; border-radius: 12px; opacity: 0.85;
+    display: flex; align-items: flex-end; justify-content: center;
+    font-size: 12px; font-weight: 700; padding-bottom: 8px;
+  }
+  .radial {
+    position: absolute; width: 220px; height: 220px; border-radius: 50%;
+    border: 1px dashed #8a7a40; background: #14120ccc;
+  }
+  .radial .wedge {
+    position: absolute; width: 64px; height: 48px; background: #1c1a14;
+    border: 1px solid #8a7a40; border-radius: 10px; font-size: 12px;
+    display: flex; align-items: center; justify-content: center;
+  }
+</style>
+</head>
+<body>
+  <h1>Ambush Loop · 触控 HUD 线框（制作人用）</h1>
+  <div class="sub">对照 v0.5.0 现状 chrome 叠层 vs 手机默认 / 情境动作 / 警报简栏 / 拇指热区。文字与按钮名与仓库一致。</div>
+
+  <div class="cap">A · 现状叠层（1280×720 虚拟屏）</div>
+  <div class="board" id="a">
+    <div class="top">
+      <span class="brand">AMBUSH LOOP · 第 1 世</span>
+      <span>波 1/2</span>
+      <span class="phase">阶段 · 搜刮潜行</span>
+    </div>
+    <div class="map"></div>
+    <div class="left">
+      <div class="card"><b>灰狼</b><br/>步枪手 · 刀<br/>HP 100<br/>未部署</div>
+      <div class="card"><b>铁砧</b><br/>机枪手 · 刀<br/>HP 100<br/>未部署</div>
+      <div class="card"><b>夜枭</b><br/>侦察兵 · 刀<br/>HP 100<br/>未部署</div>
+    </div>
+    <div class="mini">小地图 184×104</div>
+    <div class="portraits">
+      <div class="port sel">1 灰狼<br/>匍</div>
+      <div class="port">2 铁砧</div>
+      <div class="port">3 夜枭</div>
+    </div>
+    <div class="skills">
+      <div class="sk">C<br/>匍匐</div>
+      <div class="sk">Q<br/>割喉</div>
+      <div class="sk">W<br/>诱饵</div>
+      <div class="sk">Z<br/>包扎</div>
+      <div class="sk">Z<br/>捆绑</div>
+    </div>
+    <div class="bar">
+      <div class="btn">开火</div>
+      <div class="btn">绊索</div>
+      <div class="btn">雷点</div>
+      <div class="btn">背包</div>
+      <div class="btn">诱饵</div>
+      <div class="btn">匍匐</div>
+      <div class="btn">割喉</div>
+      <div class="btn">口哨</div>
+      <div class="btn">捆绑</div>
+      <div class="btn">递装</div>
+      <div class="btn">↺</div>
+      <div class="btn">↻</div>
+      <div class="btn">收回</div>
+      <div class="btn alarm">需枪</div>
+    </div>
+    <div class="callout" style="left: 18px; top: 54px;">左轨三卡 220×142×3</div>
+    <div class="callout" style="right: 12px; top: 168px;">小地图</div>
+    <div class="callout" style="left: 430px; top: 430px;">底栏肖像 + 技能条 又占一层</div>
+    <div class="callout" style="left: 280px; top: 520px;">SETUP 行 16 键 · 78×56 · 合计约 1354px &gt; 1280</div>
+  </div>
+  <p class="note">地图可见带大约只剩顶栏下沿到肖像顶（约 110→448px）。左卡、肖像、技能条、触控底栏是四套身份/指令 UI。H 拖尸在 <code>apply_touch_command("haul")</code> 里，底栏却没有键。</p>
+
+  <div class="cap">B · 手机默认（简配夜袭）</div>
+  <div class="board" id="b">
+    <div class="top" style="height:44px;">
+      <span class="brand">AMBUSH LOOP</span>
+      <span>院子 · 搜刮潜行</span>
+      <span class="phase">波 1/2</span>
+    </div>
+    <div class="map" style="inset: 48px 8px 92px 8px;"></div>
+    <div class="hot" style="left: 520px; top: 300px; width: 120px; height: 44px;">开匣</div>
+    <div class="portraits" style="bottom: 12px; left: 16px; transform: none;">
+      <div class="port sel" style="height: 72px; width: 96px;">灰狼 · 握</div>
+      <div class="port" style="height: 72px; width: 72px; opacity: 0.7;">铁砧</div>
+      <div class="port" style="height: 72px; width: 72px; opacity: 0.7;">夜枭</div>
+    </div>
+    <div class="chip" style="position:absolute; left: 320px; bottom: 22px;">匍匐 开</div>
+    <div class="chip" style="position:absolute; left: 400px; bottom: 22px;">包</div>
+    <div class="cta" style="position:absolute; right: 16px; bottom: 14px;">需枪</div>
+  </div>
+  <p class="note">常驻：三肖像（选中放大）+ 匍匐粘滞 + 包 + 警报 CTA。世界动词全部改成靠近才出现的黄热区。左轨、小地图、C/Q/W/Z 条、16 键底栏全部撤掉。</p>
+
+  <div class="cap">C · 情境动作（靠近才给 1–2 个大热区）</div>
+  <div class="board" id="c">
+    <div class="top"><span class="brand">情境 · 复用 C2ContextCursor 的 Mode</span><span class="phase">点目标，不点技能条</span></div>
+    <div class="map"></div>
+    <div class="hot" style="left: 340px; top: 240px; width: 132px; height: 52px;">割喉</div>
+    <div class="hot" style="left: 480px; top: 240px; width: 132px; height: 52px;">口哨</div>
+    <div style="position:absolute; left: 390px; top: 310px; font-size:12px; color:#c4b45a;">岗哨黄锥 · Mode.KNIFE</div>
+    <div class="hot" style="left: 700px; top: 380px; width: 132px; height: 52px;">开匣</div>
+    <div style="position:absolute; left: 720px; top: 440px; font-size:12px; color:#c4b45a;">Mode.CRATE</div>
+    <div class="hot" style="left: 180px; top: 420px; width: 132px; height: 52px;">拖尸</div>
+    <div style="position:absolute; left: 200px; top: 480px; font-size:12px; color:#c4b45a;">Mode.CORPSE · 补上缺失的 H</div>
+    <div class="portraits" style="bottom: 12px; left: 16px; transform:none;">
+      <div class="port sel" style="height:72px;width:96px;">灰狼</div>
+      <div class="port" style="height:72px;width:72px;opacity:.7;">铁砧</div>
+      <div class="port" style="height:72px;width:72px;opacity:.7;">夜枭</div>
+    </div>
+    <div class="cta" style="position:absolute; right:16px; bottom:14px;">拉警报</div>
+  </div>
+  <p class="note">热区跟在选中干员身边或目标锚点，不跟鼠标（现状 <code>context_cursor.gd</code> 跟鼠标，手指会挡住）。正面岗哨只出口哨，背后才出割喉——面向检查仍在，只是不再按 Q。</p>
+
+  <div class="cap">D · 警报中零微操</div>
+  <div class="board" id="d">
+    <div class="top"><span class="brand">警报中 · 第 1/2 波</span><span class="phase">自动开火 · 自动手雷</span></div>
+    <div class="map" style="inset: 48px 8px 80px 8px;"></div>
+    <div style="position:absolute; left:0; right:0; bottom:0; height:72px; background:#0d0c0ae8; border-top:3px solid #9e803c; display:flex; align-items:center; justify-content:center; gap:16px;">
+      <div class="chip" style="height:48px; min-width:96px; justify-content:center;">暂停</div>
+      <div class="chip" style="height:48px; min-width:96px; justify-content:center;">1× / 2×</div>
+      <div class="chip" style="height:48px; min-width:120px; justify-content:center; color:#d8c86a;">下一波 主路 4.2s</div>
+      <div class="chip" style="height:48px; min-width:96px; justify-content:center; border-color:#c44a38; color:#f0c0b0;">中止</div>
+    </div>
+  </div>
+  <p class="note">从现有 WATCH 行拿掉：自动雷、终局、复盘、静音、日志、菜单。这些进已有暂停层。走位仍然锁。复杂度全部留在 SCOUT。</p>
+
+  <div class="cap">E · 拇指热区（横屏手机）</div>
+  <div class="board" id="e">
+    <div class="top"><span class="brand">安全区 + 拇指</span><span class="phase">orientation 已锁横屏</span></div>
+    <div class="map" style="inset: 48px 8px 8px 8px;"></div>
+    <div class="zone" style="left:0; bottom:0; width:280px; height:140px; border-color:#6a8a48; color:#8cba60;">左拇指 · 肖像切换</div>
+    <div class="zone" style="right:0; bottom:0; width:280px; height:140px; border-color:#c44a38; color:#e08070;">右拇指 · 警报 CTA</div>
+    <div class="zone" style="left:300px; right:300px; bottom:0; height:88px; border-color:#c4b45a; color:#d8c86a;">中下 · 匍匐 / 包 · 勿再堆 16 键</div>
+    <div class="zone" style="right:0; top:48px; width:200px; height:120px; border-color:#5a6a88; color:#8aa0c8;">刘海/圆角 · 禁放小地图点按</div>
+    <div class="zone" style="left:0; top:48px; width:160px; height:220px; border-color:#5a6a88; color:#8aa0c8;">左缘 · 勿再放三张大卡</div>
+  </div>
+  <p class="note"><code>touch_hud._apply_safe_area()</code> 已读 DisplayServer safe area。问题不是没做安全区，是把指令全塞进底 156px，再在它上面叠肖像和技能条。</p>
+
+  <div class="cap">F · 长按肖像 = 技能轮（C/Q/W/Z 的触屏替代）</div>
+  <div class="board" id="f">
+    <div class="top"><span class="brand">灰狼 技能轮</span><span class="phase">短按选人 · 长按出轮 · 松手确认</span></div>
+    <div class="map"></div>
+    <div class="radial" style="left: 90px; bottom: 70px;">
+      <div class="wedge" style="left: 78px; top: 8px;">C 匍匐</div>
+      <div class="wedge" style="right: 8px; top: 78px;">Q 割喉</div>
+      <div class="wedge" style="left: 78px; bottom: 8px;">Z 包扎</div>
+      <div class="wedge" style="left: 8px; top: 78px;">W 诱饵</div>
+    </div>
+    <div class="portraits" style="bottom: 12px; left: 16px; transform:none;">
+      <div class="port sel" style="height:72px;width:96px;">灰狼</div>
+      <div class="port" style="height:72px;width:72px;opacity:.7;">铁砧</div>
+      <div class="port" style="height:72px;width:72px;opacity:.7;">夜枭</div>
+    </div>
+    <div class="cta" style="position:absolute; right:16px; bottom:14px;">拉警报</div>
+  </div>
+  <p class="note">轮面按 <code>C2Skills.for_role</code>：灰狼 匍匐/割喉/诱饵/包扎/捆绑；铁砧把 Q 换成埋雷；夜枭把 Q 换成望远镜。世界物动词仍走情境热区，轮只承载「对着空气也能放」的技能。</p>
+</body>
+</html>

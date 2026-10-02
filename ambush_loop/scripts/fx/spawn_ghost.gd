@@ -34,9 +34,9 @@ func route_color() -> Color:
 		"flank":
 			return Color(0.95, 0.55, 0.16)
 		"sneak":
-			return Color(0.38, 0.78, 0.52)
+			return Color(0.42, 0.48, 0.28)
 		"echo":
-			return Color(0.42, 0.82, 0.96)
+			return Color(0.70, 0.58, 0.32)
 		"alt":
 			return Color(0.72, 0.55, 0.95)
 		_:
@@ -86,6 +86,9 @@ func _draw() -> void:
 		Vector2(0, -7), Vector2(5, 0), Vector2(0, 7), Vector2(-5, 0)
 	])
 	draw_colored_polygon(diamond, Color(col.r, col.g, col.b, 0.95))
+	var gs = get_node_or_null("/root/GameSettings")
+	if gs != null and gs.has_method("want_touch_controls") and bool(gs.want_touch_controls()):
+		return
 	var tick := "主"
 	match route:
 		"flank":

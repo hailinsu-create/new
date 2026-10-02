@@ -75,7 +75,7 @@ func reset_fuse() -> void:
 	_shimmer_t = 0.0
 	_set_fuse_hot(false)
 	if visual:
-		visual.color = Color(0.98, 0.48, 0.08, 0.98)
+		visual.color = Color(0.62, 0.28, 0.10, 0.98)
 		visual.modulate = Color.WHITE
 		visual.scale = Vector2.ONE
 	if blast:

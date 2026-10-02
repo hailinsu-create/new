@@ -1,0 +1,46 @@
+class_name RaidLoc
+extends RefCounted
+
+## Chinese copy keys for raid HUD. One table so later locales can swap.
+
+const KEYS := {
+	"alarm": "拉警报",
+	"alarm_need_gun": "至少先拾一把枪 — 再按一次才强拉警报",
+	"sweep": "打扫战场",
+	"extract": "撤离封锁",
+	"next_wave": "下一波警报",
+	"search": "开匣中…",
+	"pass": "走近队友再递装（T）",
+	"haul": "走近尸体再拖（H）",
+	"crate_ping": "先开这匣",
+	"restore_facing": "朝向已恢复，枪要重搜",
+	"wave_leak": "第%d波漏网",
+	"no_hp_star": "无人受伤",
+	"loot_then_hold": "先搜匣再埋伏",
+	"crouch": "匍匐（C）",
+	"knife": "割喉（Q）",
+	"whistle": "口哨（W）",
+	"bind": "捆绑（Z）",
+	"spotted": "岗哨看见了",
+	"quiet_yard": "无声院子",
+	"sprint": "双击奔跑",
+	"portraits": "点肖像选人",
+	"binoculars": "望远镜（Q）",
+	"sprint_hint": "双击奔跑",
+	"shift_walk": "Shift 慢走",
+	"examine": "悬停匣看型号",
+	"shadow_hide": "阴影里蹲下",
+	"f2_cam": "F2 镜头回中",
+	"pass_range": "走近再递装",
+	"ko_loot": "割喉掉弹",
+	"quiet_nade": "无声院子+雷",
+	"phase_scout": "搜刮潜行",
+}
+
+
+static func t(key: String) -> String:
+	return str(KEYS.get(key, key))
+
+
+static func has(key: String) -> bool:
+	return KEYS.has(key)

@@ -2,6 +2,8 @@ extends CanvasModulate
 
 ## Unified night grade plus cheap ground key-light discs. Presentation only.
 
+const Ww2Pal := preload("res://scripts/art/ww2_palette.gd")
+
 var atmosphere_id: String = "yard"
 var keys: Node2D = null
 
@@ -16,21 +18,7 @@ func setup(id: String) -> void:
 
 
 func _grade_color(id: String) -> Color:
-	var saving := _is_power_saving()
-	var mild := 0.12 if saving else 0.0
-	match id:
-		"warehouse":
-			return Color(0.86 + mild, 0.72 + mild * 0.5, 0.50, 1.0)
-		"pump":
-			return Color(0.66 + mild, 0.84, 0.74, 1.0)
-		"railcut":
-			return Color(0.68 + mild, 0.78, 0.86, 1.0)
-		"depot":
-			return Color(0.92, 0.68 + mild * 0.4, 0.42, 1.0)
-		"radio":
-			return Color(0.52 + mild, 0.82, 0.96, 1.0)
-		_:
-			return Color(0.70 + mild, 0.80, 0.66, 1.0)
+	return Ww2Pal.night_grade(id, _is_power_saving())
 
 
 func _ensure_keys() -> void:

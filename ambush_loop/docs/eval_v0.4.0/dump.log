@@ -1,0 +1,114 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+ERROR: Required Vulkan instance extension VK_KHR_surface not found.
+   at: _initialize_instance_extensions (drivers/vulkan/rendering_context_driver_vulkan.cpp:494)
+ERROR: Condition "err != OK" is true. Returning: err
+   at: initialize (drivers/vulkan/rendering_context_driver_vulkan.cpp:915)
+WARNING: Your video card drivers seem not to support the required Vulkan version, switching to OpenGL 3.
+     at: DisplayServerX11 (platform/linuxbsd/x11/display_server_x11.cpp:7124)
+WARNING: Could not set V-Sync mode, as changing V-Sync mode is not supported by the graphics driver.
+     at: set_use_vsync (platform/linuxbsd/x11/gl_manager_x11.cpp:372)
+OpenGL API 4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.1 - Compatibility - Using Device: Mesa - llvmpipe (LLVM 20.1.2, 256 bits)
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5204:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5727:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+ERROR: Condition "status < 0" is true. Returning: ERR_CANT_OPEN
+   at: init_output_device (drivers/alsa/audio_driver_alsa.cpp:97)
+WARNING: All audio drivers failed, falling back to the dummy driver.
+     at: initialize (servers/audio/audio_server.cpp:258)
+
+DUMP_HEAD display=X11 size=(1280, 720) ver=0.4.0
+DUMP_TITLE tagline=v0.4.0 · COMMANDOS/WW2 · 搜刮埋伏 · 多波打扫 · 横屏
+DUMP_SAVE 01_title err=0 1280x720
+DUMP_SAVE 02_howto err=0 1280x720
+DUMP_SAVE 03_journal_empty err=0 1280x720
+DUMP_SAVE 04_pause_version err=0 1280x720
+DUMP_SAVE 05_mission_select err=0 1280x720
+DUMP_SAVE 06_briefing_yard err=0 1280x720
+DUMP_BRIEF night=第 1 / 6 夜  ·  初阵 code=行动·院子
+DUMP_SAVE 07_tut_yard err=0 1280x720
+DUMP_HUD tag=yard_scout_knives level=yard phase=scout t=0.0 tick=0 chip=阶段 · 搜刮埋伏  波次 1/2 cinema=警报中  ·  第1/2波  ·  初阵  ·  1×  ·  t=0.0s  ·  敌0 待0 员3 flash=先开这匣 board=本夜枪  Kar98k · MG42 · 98K瞄准镜 · M1911 · 汤姆逊 · 卢格 beat=交叉封锁 · 侧翼从东廊随后到 status=布置杀局 intel=漏网记忆：0   |   灰狼:0弹·见敌即打  铁砧:0弹·见敌即打  夜枭:0弹·见敌即打 list=○  已部署≥1 / ○  射界覆盖主路 / ○  侧翼 card= alarm=需枪
+DUMP_GUNS tag=yard_knives 灰狼=knife ammo=0 | 铁砧=knife ammo=0 | 夜枭=knife ammo=0
+DUMP_STASH tag=yard n=9 kar98k@(6, 12)[Kar98k] mg42@(26, 12)[MG42] kar98k_zf@(29, 16)[98K瞄准镜] grenade@(11, 16)[手雷] mine@(10, 13)[地雷] ammo@(23, 13)[弹药] m1911@(8, 13)[M1911] thompson@(17, 12)[汤姆逊] luger@(21, 17)[卢格]
+DUMP_SAVE 08_scout_yard_knives err=0 1280x720
+DUMP_TOUCH_ALARM 需枪
+DUMP_SAVE 08b_touch_yard_needgun err=0 1280x720
+DUMP_HUD tag=yard_alarm_gate level=yard phase=scout t=0.0 tick=0 chip=阶段 · 搜刮埋伏  波次 1/2 cinema=警报中  ·  第1/2波  ·  初阵  ·  1×  ·  t=0.0s  ·  敌0 待0 员3 flash=至少先拾一把枪 — 再按一次才强拉警报 board=本夜枪  Kar98k · MG42 · 98K瞄准镜 · M1911 · 汤姆逊 · 卢格 beat=交叉封锁 · 侧翼从东廊随后到 status=至少先拾一把枪 — 再按一次才强拉警报 intel=漏网记忆：0   |   灰狼:0弹·见敌即打  铁砧:0弹·见敌即打  夜枭:0弹·见敌即打 list=○  已部署≥1 / ○  射界覆盖主路 / ○  侧翼 card= alarm=强拉警报
+DUMP_ALARM_CTA 强拉警报 warned=true phase=scout
+DUMP_SAVE 09_scout_alarm_gate err=0 1280x720
+DUMP_HUD tag=yard_crate_search level=yard phase=scout t=0.0 tick=0 chip=阶段 · 搜刮埋伏  波次 1/2 cinema=警报中  ·  第1/2波  ·  初阵  ·  1×  ·  t=0.0s  ·  敌0 待0 员3 flash=至少先拾一把枪 — 再按一次才强拉警报 board=本夜枪  Kar98k · MG42 · 98K瞄准镜 · M1911 · 汤姆逊 · 卢格 beat=交叉封锁 · 侧翼从东廊随后到 status=已选择 灰狼 — 灰狼 · 中距补漏。开局只有刀，去找步枪/手枪。刀  雷0 手雷0 饵0 包0/6 intel=漏网记忆：0   |   灰狼:0弹·见敌即打  铁砧:0弹·见敌即打  夜枭:0弹·见敌即打 list=○  已部署≥1 / ○  射界覆盖主路 / ○  侧翼 card= alarm=强拉警报
+DUMP_SEARCH weapon=knife searching=true progress=0.84354916666667
+DUMP_SAVE 10_scout_crate_search err=0 1280x720
+DUMP_GUNS tag=yard_after_rifle 灰狼=kar98k ammo=7 | 铁砧=knife ammo=0 | 夜枭=knife ammo=0
+DUMP_HUD tag=yard_after_rifle level=yard phase=scout t=0.0 tick=0 chip=阶段 · 搜刮埋伏  波次 1/2 cinema=警报中  ·  第1/2波  ·  初阵  ·  1×  ·  t=0.0s  ·  敌0 待0 员3 flash=装备Kar98k  包1/6 board=本夜枪  MG42 · 98K瞄准镜 · M1911 · 汤姆逊 · 卢格 beat=交叉封锁 · 侧翼从东廊随后到 status=灰狼 装备Kar98k  包1/6 intel=漏网记忆：0   |   灰狼:7弹·见敌即打  铁砧:0弹·见敌即打  夜枭:0弹·见敌即打 list=○  已部署≥1 / ✓  射界覆盖主路 / ○  侧翼 card= alarm=拉警报
+DUMP_SAVE 11_scout_yard_kar98k err=0 1280x720
+DUMP_HUD tag=yard_mg42_cell level=yard phase=scout t=0.0 tick=0 chip=阶段 · 搜刮埋伏  波次 1/2 cinema=警报中  ·  第1/2波  ·  初阵  ·  1×  ·  t=0.0s  ·  敌0 待0 员3 flash=装备Kar98k  包1/6 board=本夜枪  MG42 · 98K瞄准镜 · M1911 · 汤姆逊 · 卢格 beat=交叉封锁 · 侧翼从东廊随后到 status=灰狼 开匣中… intel=漏网记忆：0   |   灰狼:7弹·见敌即打  铁砧:0弹·见敌即打  夜枭:0弹·见敌即打 list=○  已部署≥1 / ○  射界覆盖主路 / ✓  侧翼 card= alarm=拉警报
+DUMP_SAVE 12_scout_yard_mg42 err=0 1280x720
+DUMP_HUD tag=yard_luger_cell level=yard phase=scout t=0.0 tick=0 chip=阶段 · 搜刮埋伏  波次 1/2 cinema=警报中  ·  第1/2波  ·  初阵  ·  1×  ·  t=0.0s  ·  敌0 待0 员3 flash=装备Kar98k  包1/6 board=本夜枪  MG42 · 98K瞄准镜 · M1911 · 汤姆逊 · 卢格 beat=交叉封锁 · 侧翼从东廊随后到 status=灰狼 开匣中… intel=漏网记忆：0   |   灰狼:7弹·见敌即打  铁砧:0弹·见敌即打  夜枭:0弹·见敌即打 list=○  已部署≥1 / ✓  射界覆盖主路 / ○  侧翼 card= alarm=拉警报
+DUMP_SAVE 13_scout_yard_luger_cell err=0 1280x720
+DUMP_BACKPACK open=true occ=3
+DUMP_SAVE 13b_backpack_open err=0 1280x720
+DUMP_NADE_MARK true
+DUMP_SAVE 13c_nade_mark err=0 1280x720
+DUMP_KNIFE_LEAK ok=true reason=escape tick=929 wave=0
+DUMP_HUD tag=yard_fail_knife level=yard phase=fail t=15.5 tick=929 chip=阶段 · 失败 cinema=警报中  ·  第1/2波  ·  初阵  ·  2×  ·  t=15.5s  ·  敌0 待0 员3 flash=逃逸！主路巡卫从南闸漏出 board=本夜枪  Kar98k · MG42 · 98K瞄准镜 · M1911 · 汤姆逊 · 卢格 beat= status=逃逸 — 穿梭或打开时间轴复盘；点击事件定位 intel=漏网记忆：1   |   灰狼:0弹  铁砧:0弹  夜枭:0弹   ·   第1世 · 逃逸 · 15.5s · 主路巡卫从南闸漏出 list= card=第1波漏网：主路 · 敌1 · 0.0s出发 · 主路南闸 / 改一处就能赢：先搜匣拿到枪再拉警报。刀强拉会漏网。 / 带着情报穿梭回去 alarm=警报中
+DUMP_SAVE 14_fail_yard_knife err=0 1280x720
+DUMP_SAVE 15_fail_yard_dossier err=0 1280x720
+DUMP_GUNS tag=yard_ref 灰狼=rifle ammo=7 | 铁砧=mg ammo=12 | 夜枭=scout ammo=6
+DUMP_HUD tag=yard_ref_scout level=yard phase=scout t=0.0 tick=0 chip=阶段 · 搜刮埋伏  波次 1/2 cinema=警报中  ·  第1/2波  ·  初阵  ·  1×  ·  t=0.0s  ·  敌0 待0 员3 flash=先开这匣 board=本夜枪  Kar98k · MG42 · 98K瞄准镜 · M1911 · 汤姆逊 · 卢格 beat=交叉封锁 · 侧翼从东廊随后到 status=已选择 灰狼 — 灰狼 · 中距补漏。开局只有刀，去找步枪/手枪。步枪 弹7/14  雷1 手雷1 包3/6 intel=漏网记忆：0   |   灰狼:7弹·见敌即打  铁砧:12弹·见敌即打  夜枭:6弹·见敌即打 list=✓  已部署≥1 / ✓  射界覆盖主路 / ✓  侧翼 card= alarm=拉警报
+DUMP_SAVE 16_scout_yard_ref err=0 1280x720
+DUMP_HUD tag=yard_alert_w1 level=yard phase=alert t=1.4 tick=85 chip=警报 第1/2波  2×  t=1.4s  敌2 待0 员3 cinema=警报中  ·  第1/2波  ·  初阵  ·  2×  ·  t=1.4s  ·  敌2 待0 员3 flash=先开这匣 board=本夜枪  Kar98k · MG42 · 98K瞄准镜 · M1911 · 汤姆逊 · 卢格 beat= status=警报 · 第1波 — 埋伏开火。逃逸或全灭失败。中止(X)留情报。 intel=漏网记忆：0   |   灰狼:7弹  铁砧:12弹  夜枭:6弹 list= card= alarm=警报中
+DUMP_SAVE 17_alert_yard_w1 err=0 1280x720
+DUMP_SWEEP_W1 ok=true phase=sweep tick=1056 loot=2
+DUMP_HUD tag=yard_sweep_w1 level=yard phase=sweep t=17.6 tick=1056 chip=打扫战场  空格拉第2波 cinema=警报中  ·  第1/2波  ·  初阵  ·  2×  ·  t=17.6s  ·  敌0 待0 员2 flash=打扫战场 · 空格下一波 board=本夜枪  Kar98k · MG42 · 98K瞄准镜 · M1911 · 汤姆逊 · 卢格 beat= status=本波已清。搜刮掉落，空格拉下一波警报。 intel=漏网记忆：0   |   灰狼:亡  铁砧:12弹  夜枭:5弹 list= card= alarm=下一波警报
+DUMP_SAVE 18_sweep_yard_w1 err=0 1280x720
+DUMP_VACUUM n=2
+DUMP_HUD tag=yard_alert_w2 level=yard phase=alert t=1.0 tick=62 chip=警报 第2/2波  2×  t=1.0s  敌1 待0 员2 cinema=警报中  ·  第2/2波  ·  初阵  ·  2×  ·  t=1.0s  ·  敌1 待0 员2 flash=打扫战场 · 空格下一波 board=本夜枪  Kar98k · MG42 · 98K瞄准镜 · M1911 · 汤姆逊 · 卢格 beat= status=警报 · 第2波 intel=漏网记忆：0   |   灰狼:亡  铁砧:15弹  夜枭:7弹 list= card= alarm=警报中
+DUMP_SAVE 19_alert_yard_w2 err=0 1280x720
+DUMP_YARD_WIN ok=true phase=win tick=227
+DUMP_HUD tag=yard_win level=yard phase=win t=3.8 tick=227 chip=阶段 · 封锁成功 cinema=封锁成功  ·  初阵  ·  t=3.8s flash=零逃逸 · 撤离封锁 board=本夜枪  Kar98k · MG42 · 98K瞄准镜 · M1911 · 汤姆逊 · 卢格 beat= status=计划奏效 intel=漏网记忆：0   |   灰狼:亡  铁砧:10弹  夜枭:7弹 list= card=任务完成。 / +解锁下一关 · 「深仓」 / 本关用了 1 世。 / 终局摘要：零逃逸，封锁成功；第一枪是灰狼；连击×2。 / 第一枪是灰狼 → 敌1 / 打中了：交叉封锁第一枪 / 院子已静。仓道的夜班还不知道外圈断了。 / 初阵✓  下一夜：深仓 /  / —— 关键事件 —— / 3.6s  铁砧 开火 → 敌3 / 3.8s  敌3 还击 → 队员2 / 3.8s  铁砧 开火 → 敌3 / 3.8s  敌3 被击毙 / 3.8s  终局：win alarm=撤离封锁
+DUMP_SAVE 20_win_yard err=0 1280x720
+DUMP_HANDOFF from=yard to=warehouse
+DUMP_SAVE 21_handoff_yard_warehouse err=0 1280x720
+DUMP_STASH tag=warehouse n=8 kar98k@(11, 7)[Kar98k] bar@(16, 13)[BAR] springfield@(29, 16)[春田] grenade@(27, 13)[手雷] mine@(10, 13)[地雷] ammo@(23, 6)[弹药] decoy@(22, 9)[诱饵] mp40@(14, 16)[MP40]
+DUMP_HUD tag=warehouse_empty level=warehouse phase=scout t=0.0 tick=0 chip=阶段 · 搜刮埋伏  波次 1/2 cinema=警报中  ·  第1/2波  ·  深仓  ·  1×  ·  t=0.0s  ·  敌0 待0 员3 flash= board=本夜枪  Kar98k · BAR · 春田 · MP40 beat=入伏再打 · 油桶靠近才炸 · 别站爆心 status=计划奏效 intel=漏网记忆：0   |   灰狼:0弹·见敌即打  铁砧:0弹·见敌即打  夜枭:0弹·见敌即打 list=○  已部署≥1 / ○  射界覆盖主路 / ○  侧翼 card= alarm=需枪
+DUMP_SAVE 22_scout_warehouse_empty err=0 1280x720
+DUMP_SAVE 23_scout_warehouse_mp40 err=0 1280x720
+DUMP_WAREHOUSE_WIN ok=true tick=876
+DUMP_STASH tag=pump n=7 m1_garand@(10, 12)[M1加兰德] bar@(22, 13)[BAR] springfield@(29, 16)[春田] grenade@(16, 8)[手雷] mine@(9, 12)[地雷] ammo@(23, 16)[弹药] thompson@(14, 16)[汤姆逊]
+DUMP_HUD tag=pump_empty level=pump phase=scout t=0.0 tick=0 chip=阶段 · 搜刮埋伏  波次 1/2 cinema=警报中  ·  第1/2波  ·  闸站  ·  1×  ·  t=0.0s  ·  敌0 待0 员3 flash= board=本夜枪  M1加兰德 · BAR · 春田 · 汤姆逊 beat=决策格 · 锁门改线 · 紫线要罩住 status=计划奏效 intel=漏网记忆：0   |   灰狼:0弹·见敌即打  铁砧:0弹·见敌即打  夜枭:0弹·见敌即打 list=○  已部署≥1 / ○  射界覆盖主路 / ○  侧翼 card= alarm=需枪
+DUMP_SAVE 24_scout_pump_empty err=0 1280x720
+DUMP_PUMP_WIN ok=true tick=722
+DUMP_STASH tag=railcut n=7 kar98k@(11, 10)[Kar98k] mg42@(32, 13)[MG42] kar98k_zf@(29, 16)[98K瞄准镜] grenade@(16, 17)[手雷] mine@(10, 11)[地雷] ammo@(22, 16)[弹药] mg42@(18, 16)[MG42]
+DUMP_HUD tag=railcut_empty level=railcut phase=scout t=0.0 tick=0 chip=阶段 · 搜刮埋伏  波次 1/2 cinema=警报中  ·  第1/2波  ·  信号  ·  1×  ·  t=0.0s  ·  敌0 待0 员3 flash= board=本夜枪  Kar98k · MG42 · 98K瞄准镜 · MG42 beat=东廊延迟 3.8s · 铁砧等住 status=计划奏效 intel=漏网记忆：0   |   灰狼:0弹·见敌即打  铁砧:0弹·见敌即打  夜枭:0弹·见敌即打 list=○  已部署≥1 / ✓  射界覆盖主路 / ○  侧翼 card= alarm=需枪
+DUMP_SAVE 25_scout_railcut_empty err=0 1280x720
+DUMP_SAVE 26_scout_railcut_mg42 err=0 1280x720
+DUMP_RAILCUT_WIN ok=true tick=602
+DUMP_STASH tag=depot n=8 m1_garand@(13, 16)[M1加兰德] bar@(32, 13)[BAR] springfield@(29, 16)[春田] grenade@(15, 15)[手雷] mine@(7, 12)[地雷] bar@(22, 16)[BAR] decoy@(6, 8)[诱饵] thompson@(16, 16)[汤姆逊]
+DUMP_HUD tag=depot_empty level=depot phase=scout t=0.0 tick=0 chip=阶段 · 搜刮埋伏  波次 1/2 cinema=警报中  ·  第1/2波  ·  油库  ·  1×  ·  t=0.0s  ·  敌0 待0 员3 flash= board=本夜枪  M1加兰德 · BAR · 春田 · BAR · 汤姆逊 beat=西暗道 2.2s · 绊索抽中 status=计划奏效 intel=漏网记忆：0   |   灰狼:0弹·见敌即打  铁砧:0弹·见敌即打  夜枭:0弹·见敌即打 list=○  已部署≥1 / ○  射界覆盖主路 / ○  侧翼 / ✓  暗道 card= alarm=需枪
+DUMP_SAVE 27_scout_depot_empty err=0 1280x720
+DUMP_SAVE 28_scout_depot_thompson err=0 1280x720
+DUMP_DEPOT_WIN ok=true tick=391
+DUMP_SAVE 29_handoff_depot_radio err=0 1280x720
+DUMP_STASH tag=radio n=9 kar98k@(13, 16)[Kar98k] mg42@(24, 16)[MG42] springfield@(32, 13)[春田] grenade@(15, 15)[手雷] mine@(7, 12)[地雷] decoy@(22, 6)[诱饵] ammo@(29, 16)[弹药] springfield@(18, 16)[春田] luger@(10, 16)[卢格]
+DUMP_HUD tag=radio_empty level=radio phase=scout t=0.0 tick=0 chip=阶段 · 搜刮埋伏  波次 1/3 cinema=警报中  ·  第1/3波  ·  终夜  ·  1×  ·  t=0.0s  ·  敌0 待0 员3 flash= board=本夜枪  Kar98k · MG42 · 春田 · 春田 · 卢格 beat=灯塔回波 5.2s · 绊索封暗道 status=计划奏效 intel=漏网记忆：0   |   灰狼:0弹·见敌即打  铁砧:0弹·见敌即打  夜枭:0弹·见敌即打 list=○  已部署≥1 / ○  射界覆盖主路 / ○  侧翼 / ✓  暗道 / ○  回波 card= alarm=需枪
+DUMP_SAVE 30_scout_radio_empty err=0 1280x720
+DUMP_SAVE 31_scout_radio_springfield err=0 1280x720
+DUMP_RADIO_WIN ok=true tick=448
+DUMP_HUD tag=radio_win level=radio phase=win t=7.5 tick=448 chip=阶段 · 封锁成功 cinema=封锁成功  ·  终夜  ·  t=7.5s flash=零逃逸 · 撤离封锁 board=本夜枪  Kar98k · MG42 · 春田 · 春田 · 卢格 beat= status=计划奏效 intel=漏网记忆：0   |   灰狼:8弹  铁砧:7弹  夜枭:5弹 list= card=全部关卡封锁完成。 / 院子 / 仓道 / 泵站 / 信号楼 / 油库 / 电台 / 本关用了 1 世。 / 终局摘要：零逃逸，封锁成功；第一枪是灰狼；绊索抽中敌3；连击×2。 / 第一枪是灰狼 → 敌1 / 打中了：5.2s 灯塔回波，绊索抽中 / 灯塔停转。北区补给链这一夜被切断。 / ★ 完美封锁：零逃逸 /  / —— 关键事件 —— / 7.3s  敌5 还击 → 队员2 / 7.3s  铁砧 开火 → 敌5 / 7.5s  铁砧 开火 → 敌5 / 7.5s  敌5 被击毙 / 7.5s  终局：win alarm=撤离封锁
+DUMP_SAVE 32_win_radio err=0 1280x720
+DUMP_CREDITS_OPEN
+DUMP_SAVE 33_credits err=0 1280x720
+DUMP_TITLE_AFTER tagline=v0.4.0 · 灯塔停转 · 北区补给链已切断 · 档案已归档
+DUMP_SAVE 34_title_after err=0 1280x720
+DUMP_SAVE 35_journal_stamped err=0 1280x720
+DUMP_SAVE 36_mission_select_cleared err=0 1280x720
+DUMP_SAVE 37_touch_radio_bars err=0 1280x720
+DUMP_OK eval_v0.4.0
+WARNING: 4 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)
+EXIT:0

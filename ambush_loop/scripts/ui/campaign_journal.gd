@@ -17,7 +17,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
 	var dim := ColorRect.new()
-	dim.color = Color(0.012, 0.020, 0.016, 0.88)
+	dim.color = Color(0.018, 0.016, 0.010, 0.88)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(dim)
@@ -138,7 +138,8 @@ func _refresh() -> void:
 				state = "可出击"
 		var beat := str(def.campaign_beat).strip_edges()
 		var mood := LevelDef.mood_tag(def.level_id)
-		lines.append("%s  %s  [%s]" % [mood, def.title, state])
+		var waves: int = int(def.wave_count()) if def.has_method("wave_count") else 1
+		lines.append("%s  %s  [%s]  %d波" % [mood, def.title, state, waves])
 		if beat != "":
 			lines.append(beat)
 		if _board:

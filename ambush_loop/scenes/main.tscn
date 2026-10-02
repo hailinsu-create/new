@@ -107,7 +107,7 @@ mouse_filter = 2
 clip_text = true
 theme_override_colors/font_color = Color(0.70, 0.74, 0.66, 0.9)
 theme_override_font_sizes/font_size = 12
-text = "布置 → 警报锁死 → 观看"
+text = "搜刮 → 拉警报 → 打扫"
 
 [node name="BottomBar" type="HBoxContainer" parent="HUD/Root"]
 layout_mode = 1
@@ -128,7 +128,7 @@ alignment = 1
 [node name="AlarmButton" type="Button" parent="HUD/Root/BottomBar"]
 custom_minimum_size = Vector2(180, 36)
 layout_mode = 2
-text = "拉响警报（空格）"
+text = "拉警报（空格）"
 
 [node name="ClearButton" type="Button" parent="HUD/Root/BottomBar"]
 custom_minimum_size = Vector2(120, 36)
@@ -138,7 +138,7 @@ text = "收回队员"
 [node name="ToolButton" type="Button" parent="HUD/Root/BottomBar"]
 custom_minimum_size = Vector2(160, 36)
 layout_mode = 2
-text = "工具: 部署队员"
+text = "工具: 走路/掩体"
 
 [node name="ResultPanel" type="PanelContainer" parent="HUD/Root"]
 visible = false

@@ -60,24 +60,41 @@ static func mount(body: Polygon2D, kind: String) -> void:
 	var cape := _poly(body, "Cape", _cape(kind), _cape_color(kind), -1)
 	cape.visible = kind == "sneak"
 	cape.show_behind_parent = true
+	var dirt := _poly(body, "SmockDirt", _smock_dirt(), Color(0.10, 0.08, 0.05, 0.70), -1)
+	dirt.visible = kind == "sneak"
+	dirt.show_behind_parent = true
 	_poly(body, "BootL", _boot_l(kind), _boot_color(kind, 0.78), 0)
 	_poly(body, "BootR", _boot_r(kind), _boot_color(kind, 0.92), 0)
+	_poly(body, "PutteeL", _puttee_l(kind), Color(0.28, 0.24, 0.16, 0.90), 0)
+	_poly(body, "PutteeR", _puttee_r(kind), Color(0.30, 0.26, 0.16, 0.90), 0)
 	_poly(body, "ShoulderL", _shoulder_l(kind), _shade(kind, 0.70), 0)
 	_poly(body, "ShoulderR", _shoulder_r(kind), _shade(kind, 0.90), 0)
 	_poly(body, "TorsoShade", _torso(kind), _shade(kind, 0.62), 0)
+	var bag := _poly(body, "BreadBag", _breadbag(kind), Color(0.28, 0.22, 0.12, 0.90), 1)
+	bag.visible = kind == "flank"
 	_poly(body, "LegL", _leg_l(kind), _shade(kind, 0.52), 0)
 	_poly(body, "LegR", _leg_r(kind), _shade(kind, 0.68), 0)
 	_poly(body, "Head", _head(kind), _head_color(kind), 1)
 	_poly(body, "Visor", _visor(kind), _visor_color(kind), 2)
 	var helm := _poly(body, "KitHelm", _helm(kind), _helm_color(kind), 2)
 	helm.visible = kind != "sneak"
+	var brim := _poly(body, "HelmBrim", _helm_brim(kind), _helm_color(kind).darkened(0.12), 3)
+	brim.visible = kind != "sneak"
 	_poly(body, "Weapon", weapon_poly(kind), weapon_color(kind), 3)
-	var moon := _poly(body, "MoonFill", _moon_fill(kind), Color(0.92, 0.78, 0.58, 0.28 if not saving else 0.12), 3)
+	var band := _poly(body, "Armband", _armband(kind), Color(0.62, 0.14, 0.10, 0.96), 2)
+	band.visible = kind != "sneak"
+	var moon := _poly(body, "MoonFill", _moon_fill(kind), Color(0.82, 0.74, 0.52, 0.22 if not saving else 0.10), 3)
 	moon.visible = not saving
-	var mast := _poly(body, "EchoMast", _echo_mast_poly(), Color(0.55, 0.88, 0.98, 0.95), 4)
+	var mast := _poly(body, "EchoMast", _echo_mast_poly(), Color(0.28, 0.26, 0.20, 0.95), 4)
 	mast.visible = kind == "echo"
-	var tip := _poly(body, "MastTip", _mast_tip_poly(), Color(0.72, 0.96, 1.0, 0.95), 5)
+	var tip := _poly(body, "MastTip", _mast_tip_poly(), Color(0.62, 0.48, 0.22, 0.95), 5)
 	tip.visible = kind == "echo"
+	var pack := _poly(body, "RadioPack", _radio_pack_poly(), Color(0.22, 0.20, 0.14, 0.94), 2)
+	pack.visible = kind == "echo"
+	var pack_strap := _poly(body, "RadioStrap", PackedVector2Array([
+		Vector2(-3.2, -10.0), Vector2(-1.6, -10.2), Vector2(2.4, 2.0), Vector2(0.8, 2.4)
+	]), Color(0.18, 0.14, 0.08, 0.90), 3)
+	pack_strap.visible = kind == "echo"
 	_sight(body, kind)
 
 
@@ -118,6 +135,9 @@ static func pose_parts(body: Polygon2D, kind: String, pose: Dictionary) -> void:
 	_shift(body, "Head", Vector2(sway * 0.22, -absf(stride) * 0.28))
 	_shift(body, "Visor", Vector2(sway * 0.22, -absf(stride) * 0.28))
 	_shift(body, "KitHelm", Vector2(sway * 0.18, -absf(stride) * 0.24))
+	_shift(body, "HelmBrim", Vector2(sway * 0.18, -absf(stride) * 0.24))
+	_shift(body, "PutteeL", Vector2(-sway * 0.5, stride * 0.9))
+	_shift(body, "PutteeR", Vector2(sway * 0.5, -stride * 0.9))
 	_shift(body, "ShoulderL", Vector2(-stride * 0.35, recoil * 4.0))
 	_shift(body, "ShoulderR", Vector2(stride * 0.35, recoil * 4.0))
 	var weap := body.get_node_or_null("Weapon") as Polygon2D
@@ -131,6 +151,12 @@ static func pose_parts(body: Polygon2D, kind: String, pose: Dictionary) -> void:
 	elif cape:
 		cape.rotation = 0.0
 		cape.position = Vector2.ZERO
+	var dirt := body.get_node_or_null("SmockDirt") as Polygon2D
+	if dirt:
+		dirt.visible = kind == "sneak" and alive
+		if cape:
+			dirt.rotation = cape.rotation
+			dirt.position = cape.position + Vector2(0, 0.6)
 	var moon := body.get_node_or_null("MoonFill") as Polygon2D
 	if moon:
 		moon.visible = alive and not saving
@@ -142,6 +168,14 @@ static func pose_parts(body: Polygon2D, kind: String, pose: Dictionary) -> void:
 	if tip:
 		tip.visible = kind == "echo" and alive
 		tip.position = Vector2(sway * 0.12, -absf(stride) * 0.2)
+	var pack := body.get_node_or_null("RadioPack") as Polygon2D
+	if pack:
+		pack.visible = kind == "echo" and alive
+		pack.position = Vector2(sway * 0.18, absf(stride) * 0.12)
+	var strap := body.get_node_or_null("RadioStrap") as Polygon2D
+	if strap:
+		strap.visible = kind == "echo" and alive
+		strap.position = Vector2(sway * 0.14, absf(stride) * 0.10)
 
 
 static func _patrol_body() -> PackedVector2Array:
@@ -208,6 +242,12 @@ static func _mast_tip_poly() -> PackedVector2Array:
 	return PackedVector2Array([
 		Vector2(-2.6, -36.0), Vector2(2.6, -36.0),
 		Vector2(1.6, -41.0), Vector2(-1.6, -41.0)
+	])
+
+
+static func _radio_pack_poly() -> PackedVector2Array:
+	return PackedVector2Array([
+		Vector2(3.2, -4.0), Vector2(9.4, -4.4), Vector2(9.0, 6.2), Vector2(2.8, 5.6)
 	])
 
 
@@ -392,12 +432,87 @@ static func _boot_r(kind: String) -> PackedVector2Array:
 			])
 
 
+static func _breadbag(kind: String) -> PackedVector2Array:
+	if kind != "flank":
+		return PackedVector2Array([Vector2.ZERO, Vector2(1, 0), Vector2(0, 1)])
+	return PackedVector2Array([
+		Vector2(4.2, 1.2), Vector2(8.4, 1.6), Vector2(8.0, 6.8), Vector2(3.8, 6.2)
+	])
+
+
+static func _armband(kind: String) -> PackedVector2Array:
+	match kind:
+		"flank":
+			return PackedVector2Array([
+				Vector2(-7.8, -3.2), Vector2(-3.0, -2.8),
+				Vector2(-3.2, 0.6), Vector2(-7.4, 0.2)
+			])
+		"echo":
+			return PackedVector2Array([
+				Vector2(-6.8, -3.6), Vector2(-2.6, -3.2),
+				Vector2(-2.8, 0.4), Vector2(-6.4, 0.0)
+			])
+		_:
+			return PackedVector2Array([
+				Vector2(-8.6, -3.4), Vector2(-3.4, -2.8),
+				Vector2(-3.6, 0.8), Vector2(-8.2, 0.2)
+			])
+
+
+static func _puttee_l(kind: String) -> PackedVector2Array:
+	match kind:
+		"flank":
+			return PackedVector2Array([
+				Vector2(-6.8, 12.0), Vector2(-2.6, 12.2), Vector2(-2.8, 14.8), Vector2(-7.0, 14.6)
+			])
+		"sneak":
+			return PackedVector2Array([
+				Vector2(-8.6, 8.0), Vector2(-4.0, 8.2), Vector2(-4.4, 10.2), Vector2(-8.8, 9.8)
+			])
+		_:
+			return PackedVector2Array([
+				Vector2(-6.2, 11.6), Vector2(-2.2, 11.8), Vector2(-2.4, 14.2), Vector2(-6.4, 14.0)
+			])
+
+
+static func _puttee_r(kind: String) -> PackedVector2Array:
+	match kind:
+		"flank":
+			return PackedVector2Array([
+				Vector2(2.6, 12.2), Vector2(6.8, 11.8), Vector2(7.0, 14.4), Vector2(2.8, 14.8)
+			])
+		"sneak":
+			return PackedVector2Array([
+				Vector2(4.0, 8.2), Vector2(8.6, 8.0), Vector2(8.8, 9.8), Vector2(4.4, 10.2)
+			])
+		_:
+			return PackedVector2Array([
+				Vector2(2.2, 11.8), Vector2(6.2, 11.6), Vector2(6.4, 14.0), Vector2(2.4, 14.2)
+			])
+
+
+static func _helm_brim(kind: String) -> PackedVector2Array:
+	match kind:
+		"flank":
+			return PackedVector2Array([
+				Vector2(-4.6, -15.8), Vector2(4.6, -15.8), Vector2(5.2, -14.4), Vector2(-5.2, -14.4)
+			])
+		"echo":
+			return PackedVector2Array([
+				Vector2(-5.0, -15.4), Vector2(5.0, -15.4), Vector2(5.6, -14.0), Vector2(-5.6, -14.0)
+			])
+		_:
+			return PackedVector2Array([
+				Vector2(-6.6, -14.4), Vector2(6.6, -14.4), Vector2(7.4, -12.8), Vector2(-7.4, -12.8)
+			])
+
+
 static func _helm(kind: String) -> PackedVector2Array:
 	match kind:
 		"flank":
 			return PackedVector2Array([
-				Vector2(-3.2, -19.0), Vector2(3.2, -19.0),
-				Vector2(2.8, -15.0), Vector2(-2.8, -15.0)
+				Vector2(-3.6, -19.4), Vector2(3.6, -19.4),
+				Vector2(4.2, -15.4), Vector2(-4.2, -15.4)
 			])
 		"sneak":
 			return PackedVector2Array([
@@ -406,13 +521,13 @@ static func _helm(kind: String) -> PackedVector2Array:
 			])
 		"echo":
 			return PackedVector2Array([
-				Vector2(-3.6, -18.8), Vector2(3.6, -18.8),
-				Vector2(3.2, -14.6), Vector2(-3.2, -14.6)
+				Vector2(-4.0, -19.2), Vector2(4.0, -19.2),
+				Vector2(4.6, -14.8), Vector2(-4.6, -14.8)
 			])
 		_:
 			return PackedVector2Array([
-				Vector2(-5.2, -17.6), Vector2(5.2, -17.6),
-				Vector2(4.6, -13.4), Vector2(-4.6, -13.4)
+				Vector2(-5.6, -18.2), Vector2(5.6, -18.2),
+				Vector2(6.2, -13.6), Vector2(-6.2, -13.6)
 			])
 
 
@@ -421,7 +536,14 @@ static func _cape(kind: String) -> PackedVector2Array:
 		return PackedVector2Array([Vector2.ZERO, Vector2(1, 0), Vector2(0, 1)])
 	return PackedVector2Array([
 		Vector2(-5.4, -6.8), Vector2(5.4, -6.8),
-		Vector2(13.0, 5.2), Vector2(0.0, 9.2), Vector2(-13.0, 5.2)
+		Vector2(14.2, 4.4), Vector2(6.0, 8.6), Vector2(0.0, 10.4),
+		Vector2(-6.0, 8.6), Vector2(-14.2, 4.4)
+	])
+
+
+static func _smock_dirt() -> PackedVector2Array:
+	return PackedVector2Array([
+		Vector2(-8.0, 5.0), Vector2(8.0, 5.0), Vector2(10.0, 8.2), Vector2(0.0, 10.4), Vector2(-10.0, 8.2)
 	])
 
 
@@ -466,7 +588,7 @@ static func _sight(body: Polygon2D, kind: String) -> void:
 		"echo":
 			tip = -24.8
 			ln.width = 1.35
-			ln.default_color = Color(0.40, 0.82, 0.96, 0.90)
+			ln.default_color = Color(0.28, 0.24, 0.16, 0.90)
 		_:
 			tip = -27.4
 			ln.width = 1.65
@@ -481,7 +603,7 @@ static func _sight(body: Polygon2D, kind: String) -> void:
 	bead.polygon = PackedVector2Array([
 		Vector2(-1.05, tip + 0.4), Vector2(1.05, tip + 0.4), Vector2(0.0, tip - 2.3)
 	])
-	bead.color = Color(0.55, 0.92, 1.0, 0.95) if kind == "echo" else Color(1.0, 0.70, 0.28, 0.95)
+	bead.color = Color(0.72, 0.58, 0.28, 0.95) if kind == "echo" else Color(0.82, 0.62, 0.28, 0.95)
 
 
 static func _poly(body: Polygon2D, nam: String, pts: PackedVector2Array, col: Color, z: int) -> Polygon2D:
@@ -518,19 +640,22 @@ static func _saving() -> bool:
 
 static func _shade(kind: String, k: float) -> Color:
 	var c := _base(kind)
-	return Color(c.r * k, c.g * k, c.b * k, 0.94)
+	var out := Color(c.r * k, c.g * k, c.b * k, 0.94)
+	if _saving():
+		out = Color(out.r * 0.88, out.g * 0.92, out.b * 0.90, out.a)
+	return out
 
 
 static func _base(kind: String) -> Color:
 	match kind:
 		"flank":
-			return Color(0.92, 0.40, 0.10)
+			return Color(0.46, 0.30, 0.16)
 		"sneak":
-			return Color(0.14, 0.18, 0.16)
+			return Color(0.16, 0.18, 0.14)
 		"echo":
-			return Color(0.28, 0.46, 0.52)
+			return Color(0.28, 0.32, 0.30)
 		_:
-			return Color(0.84, 0.16, 0.12)
+			return Color(0.36, 0.34, 0.28)
 
 
 static func _head_color(kind: String) -> Color:
@@ -548,13 +673,13 @@ static func _head_color(kind: String) -> Color:
 static func _visor_color(kind: String) -> Color:
 	match kind:
 		"flank":
-			return Color(0.18, 0.08, 0.04, 0.90)
+			return Color(0.16, 0.10, 0.06, 0.90)
 		"sneak":
-			return Color(0.28, 0.52, 0.38, 0.85)
+			return Color(0.18, 0.22, 0.16, 0.85)
 		"echo":
-			return Color(0.42, 0.92, 1.0, 0.95)
+			return Color(0.22, 0.24, 0.20, 0.92)
 		_:
-			return Color(0.12, 0.04, 0.04, 0.92)
+			return Color(0.12, 0.08, 0.06, 0.92)
 
 
 static func _helm_color(kind: String) -> Color:
@@ -575,7 +700,7 @@ static func _boot_color(kind: String, k: float) -> Color:
 		"flank":
 			c = Color(0.16, 0.08, 0.04, 0.95)
 		"sneak":
-			c = Color(0.08, 0.10, 0.09, 0.92)
+			c = Color(0.08, 0.08, 0.06, 0.92)
 	return Color(c.r * k, c.g * k, c.b * k, c.a)
 
 

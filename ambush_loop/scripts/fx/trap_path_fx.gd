@@ -3,7 +3,7 @@ extends Node2D
 ## SETUP dashed pulse along the second-layer trap route. Overlay only.
 
 var pts: PackedVector2Array = PackedVector2Array()
-var col: Color = Color(1.0, 0.72, 0.38, 0.92)
+var col: Color = Color(0.72, 0.52, 0.24, 0.92)
 var tag: String = ""
 var tag_at: Vector2 = Vector2.ZERO
 var _t: float = 0.0
@@ -126,6 +126,24 @@ func _draw() -> void:
 	])
 	draw_colored_polygon(arrow, Color(draw_col.r, draw_col.g, draw_col.b, 0.95))
 	draw_circle(pts[0], 4.0, Color(draw_col.r, draw_col.g, draw_col.b, 0.55))
+	# Boot prints along the trap so the second-layer route reads as a walk, not tape.
+	var boot_n := 8 if not _is_power_saving() else 4
+	for i in boot_n:
+		var bp := _point_along(fmod(0.08 + float(i) / float(boot_n) + _pip * 0.04, 1.0))
+		var nxt := _point_along(fmod(0.08 + float(i) / float(boot_n) + 0.04, 1.0))
+		var ang := (nxt - bp).angle() + PI * 0.5
+		var boot_left := (i % 2) == 0
+		var off := Vector2(cos(ang), sin(ang)) * (3.2 if boot_left else -3.2)
+		var p := bp + off
+		draw_colored_polygon(
+			PackedVector2Array([
+				p + Vector2(-2.4, -3.2).rotated(ang),
+				p + Vector2(2.4, -3.2).rotated(ang),
+				p + Vector2(2.0, 3.4).rotated(ang),
+				p + Vector2(-2.0, 3.4).rotated(ang),
+			]),
+			Color(0.16, 0.12, 0.08, 0.38)
+		)
 	var pip := _point_along(_pip)
 	var glow := 0.55 + 0.45 * (0.5 + 0.5 * sin(_t * 7.0))
 	draw_circle(pip, 7.0, Color(draw_col.r, draw_col.g, draw_col.b, 0.18 + 0.10 * glow))

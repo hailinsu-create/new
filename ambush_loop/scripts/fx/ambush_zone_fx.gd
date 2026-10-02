@@ -6,7 +6,7 @@ extends Node2D
 var zone: Rect2 = Rect2()
 var _t: float = 0.0
 var _tag: Label = null
-var _tint: Color = Color(0.95, 0.86, 0.28)
+var _tint: Color = Color(0.72, 0.58, 0.28)
 var hot: bool = false
 
 
@@ -17,7 +17,7 @@ func set_hot(on: bool) -> void:
 	queue_redraw()
 
 
-func setup(r: Rect2, tag_text: String = "伏击区", tint: Color = Color(0.95, 0.86, 0.28)) -> void:
+func setup(r: Rect2, tag_text: String = "伏击区", tint: Color = Color(0.72, 0.58, 0.28)) -> void:
 	zone = r
 	_tint = tint
 	z_index = 1

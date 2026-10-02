@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
-  <rect width="128" height="128" rx="16" fill="#101612"/>
-  <rect x="10" y="14" width="108" height="100" rx="8" fill="#1a2218"/>
-  <rect x="10" y="14" width="108" height="28" fill="#24301c"/>
+  <rect width="128" height="128" rx="16" fill="#12110c"/>
+  <rect x="10" y="14" width="108" height="100" rx="8" fill="#1c1a12"/>
+  <rect x="10" y="14" width="108" height="28" fill="#2a2416"/>
   <circle cx="98" cy="28" r="10" fill="#c6d47a" fill-opacity="0.35"/>
   <path d="M18 46 L54 58 L90 50 L110 62" fill="none" stroke="#e24a38" stroke-width="4" stroke-linecap="round"/>
-  <path d="M18 38 L48 42 L78 70 L110 78" fill="none" stroke="#f08a2a" stroke-width="3" stroke-linecap="round"/>
+  <path d="M18 38 L48 42 L78 70 L110 78" fill="none" stroke="#b06a28" stroke-width="3" stroke-linecap="round"/>
   <rect x="86" y="86" width="22" height="16" rx="3" fill="#c6d47a"/>
-  <polygon points="40,86 52,70 64,86 58,90 46,90" fill="#6a9a72"/>
-  <rect x="48" y="62" width="4" height="16" fill="#2a3228"/>
+  <polygon points="40,86 52,70 64,86 58,90 46,90" fill="#6a5a32"/>
+  <rect x="48" y="62" width="4" height="16" fill="#2a2418"/>
 </svg>

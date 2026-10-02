@@ -142,7 +142,7 @@ func _draw_yard() -> void:
 	var sz := _map_size()
 	_draw_top_haze(Color(0.55, 0.68, 0.52, 0.10), 5)
 	_draw_horizon(Color(0.18, 0.24, 0.16, 0.10))
-	_draw_starfield(22, Color(0.88, 0.94, 0.72, 1.0))
+	_draw_starfield(22, Color(0.86, 0.82, 0.66, 1.0))
 	_draw_clouds(3, Color(0.22, 0.28, 0.18, 0.10))
 	_draw_distant_lights([
 		Vector2(sz.x * 0.12, 22.0),
@@ -155,12 +155,12 @@ func _draw_yard() -> void:
 	# Open courtyard: cool moon wash from the NE, never purple.
 	var moon := Vector2(sz.x * 0.82, 58.0)
 	var breathe := 0.5 + 0.5 * sin(_t * 0.55)
-	draw_circle(moon, 48.0 + breathe * 5.0, Color(0.82, 0.88, 0.72, 0.12 + 0.04 * breathe))
-	draw_circle(moon, 22.0 + breathe * 2.0, Color(0.86, 0.92, 0.74, 0.20 + 0.05 * breathe))
-	draw_circle(moon, 14.0, Color(0.92, 0.95, 0.82, 0.58 + 0.08 * breathe))
-	draw_circle(moon, 7.0, Color(0.98, 0.98, 0.90, 0.88))
+	draw_circle(moon, 48.0 + breathe * 5.0, Color(0.78, 0.74, 0.54, 0.12 + 0.04 * breathe))
+	draw_circle(moon, 22.0 + breathe * 2.0, Color(0.84, 0.80, 0.60, 0.20 + 0.05 * breathe))
+	draw_circle(moon, 14.0, Color(0.90, 0.86, 0.68, 0.58 + 0.08 * breathe))
+	draw_circle(moon, 7.0, Color(0.96, 0.92, 0.78, 0.88))
 	# Soft ground wash toward the yard interior.
-	draw_rect(Rect2(sz.x * 0.55, 0.0, sz.x * 0.45, 160.0), Color(0.72, 0.78, 0.58, 0.05 + 0.02 * breathe))
+	draw_rect(Rect2(sz.x * 0.55, 0.0, sz.x * 0.45, 160.0), Color(0.62, 0.56, 0.38, 0.05 + 0.02 * breathe))
 	# Window flicker — standard tier only; 省电 keeps a static warm pool.
 	var win := Vector2(33.5 * AmbushGrid.TILE, 6.5 * AmbushGrid.TILE)
 	var wa := 0.10 + 0.04 * (0.5 + 0.5 * sin(_t * 1.7))
@@ -203,7 +203,7 @@ func _draw_warehouse() -> void:
 		flicker = 0.72 + 0.28 * abs(sin(_t * 1.15))
 		if fmod(_t * 4.7, 1.0) > 0.84:
 			flicker = 0.18 + 0.22 * abs(sin(_t * 37.0))
-	draw_rect(Rect2(0.0, 0.0, sz.x, 110.0), Color(0.62, 0.40, 0.08, (0.14 + 0.04 * pulse) * flicker))
+	draw_rect(Rect2(0.0, 0.0, sz.x, 110.0), Color(0.58, 0.36, 0.08, (0.16 + 0.04 * pulse) * flicker))
 	var lamps := [
 		Vector2(13.5 * AmbushGrid.TILE, 5.4 * AmbushGrid.TILE),
 		Vector2(24.5 * AmbushGrid.TILE, 5.4 * AmbushGrid.TILE),
@@ -243,7 +243,7 @@ func _draw_pump() -> void:
 		Vector2(sz.x * 0.82, 21.0),
 	], Color(0.42, 0.92, 0.72, 0.50))
 	_draw_contrast_wash(Color(0.02, 0.08, 0.08, 0.22), Color(0.04, 0.10, 0.09, 0.05))
-	draw_rect(Rect2(0.0, 0.0, sz.x, 70.0), Color(0.10, 0.28, 0.24, 0.10))
+	draw_rect(Rect2(0.0, 0.0, sz.x, 70.0), Color(0.12, 0.12, 0.08, 0.10))
 	# Humming vent stripes over the machinery block.
 	var origin := Vector2(17.5 * AmbushGrid.TILE, 11.0 * AmbushGrid.TILE)
 	var phase := fmod(_t * 22.0, 14.0)
@@ -252,7 +252,7 @@ func _draw_pump() -> void:
 		var y := origin.y - 20.0 + float(i) * 7.0 + phase * 0.15
 		draw_rect(
 			Rect2(origin.x - 40.0, y, 88.0, 2.5),
-			Color(0.35, 0.92, 0.72, 0.08 + 0.04 * sin(_t * 4.0 + float(i)))
+			Color(0.42, 0.40, 0.24, 0.08 + 0.04 * sin(_t * 4.0 + float(i)))
 		)
 	# Steam wisps — standard tier only; 省电 keeps static vents.
 	if not _is_power_saving():
@@ -260,14 +260,14 @@ func _draw_pump() -> void:
 			var wx := origin.x - 18.0 + float(i) * 16.0 + sin(_t * 1.4 + float(i)) * 6.0
 			var wy := origin.y - 28.0 - fmod(_t * 18.0 + float(i) * 11.0, 36.0)
 			var wa := 0.10 + 0.06 * sin(_t * 2.2 + float(i))
-			draw_circle(Vector2(wx, wy), 7.0 + float(i % 2) * 3.0, Color(0.72, 0.92, 0.82, wa))
+			draw_circle(Vector2(wx, wy), 7.0 + float(i % 2) * 3.0, Color(0.62, 0.58, 0.42, wa))
 		# steam puff — a slower periodic bloom off the main vent.
 		var cycle := fmod(_t, 1.85)
 		if cycle < 0.62:
 			var puff := sin(cycle / 0.62 * PI)
 			var py := origin.y - 34.0 - puff * 22.0
-			draw_circle(origin + Vector2(6.0, py - origin.y), 10.0 + puff * 8.0, Color(0.78, 0.94, 0.86, 0.10 + 0.12 * puff))
-			draw_circle(origin + Vector2(-8.0, py - origin.y + 8.0), 7.0 + puff * 5.0, Color(0.70, 0.90, 0.82, 0.08 + 0.08 * puff))
+			draw_circle(origin + Vector2(6.0, py - origin.y), 10.0 + puff * 8.0, Color(0.70, 0.66, 0.50, 0.10 + 0.12 * puff))
+			draw_circle(origin + Vector2(-8.0, py - origin.y + 8.0), 7.0 + puff * 5.0, Color(0.62, 0.58, 0.42, 0.08 + 0.08 * puff))
 	# Puddle speculars on the south approach.
 	var puddle := Vector2(13.5 * AmbushGrid.TILE, 15.5 * AmbushGrid.TILE)
 	var shine := 0.08 + 0.05 * (0.5 + 0.5 * sin(_t * 2.4))
@@ -283,14 +283,14 @@ func _draw_pump() -> void:
 		for i in 7:
 			var rx := origin.x - 50.0 + float(i) * 18.0 + sin(_t + float(i)) * 4.0
 			var ry := origin.y - 10.0 + fmod(_t * 70.0 + float(i) * 13.0, 64.0)
-			draw_line(Vector2(rx, ry), Vector2(rx + 1.5, ry + 8.0), Color(0.55, 0.82, 0.78, 0.12), 1.1, true)
+			draw_line(Vector2(rx, ry), Vector2(rx + 1.5, ry + 8.0), Color(0.48, 0.44, 0.28, 0.12), 1.1, true)
 
 
 func _draw_railcut() -> void:
 	var sz := _map_size()
 	_draw_top_haze(Color(0.42, 0.52, 0.62, 0.10), 5)
 	_draw_horizon(Color(0.16, 0.20, 0.28, 0.10))
-	_draw_starfield(18, Color(0.82, 0.88, 0.95, 1.0))
+	_draw_starfield(18, Color(0.84, 0.80, 0.68, 1.0))
 	_draw_clouds(2, Color(0.18, 0.22, 0.28, 0.10))
 	_draw_distant_lights([
 		Vector2(sz.x * 0.15, 19.0),
@@ -326,7 +326,7 @@ func _draw_railcut() -> void:
 	# Rail glint — a traveling specular on the west corridor steel.
 	if not _is_power_saving():
 		var gx := 12.2 * AmbushGrid.TILE + fmod(_t * 42.0, 3.0 * AmbushGrid.TILE)
-		draw_rect(Rect2(gx, 5.2 * AmbushGrid.TILE, 18.0, 3.0), Color(0.82, 0.88, 0.95, 0.10 + 0.06 * sin(_t * 6.0)))
+		draw_rect(Rect2(gx, 5.2 * AmbushGrid.TILE, 18.0, 3.0), Color(0.72, 0.68, 0.48, 0.10 + 0.06 * sin(_t * 6.0)))
 		# Spark ticks off the signal mast.
 		for i in 3:
 			var sx := 21.5 * AmbushGrid.TILE + sin(_t * 4.0 + float(i)) * 10.0
@@ -383,14 +383,14 @@ func _draw_radio() -> void:
 	var sz := _map_size()
 	_draw_top_haze(Color(0.12, 0.40, 0.58, 0.14), 6)
 	_draw_horizon(Color(0.06, 0.22, 0.34, 0.12))
-	_draw_starfield(22, Color(0.55, 0.92, 1.0, 1.0))
+	_draw_starfield(22, Color(0.86, 0.84, 0.70, 1.0))
 	_draw_clouds(2, Color(0.08, 0.20, 0.30, 0.10))
 	_draw_distant_lights([
 		Vector2(sz.x * 0.14, 20.0),
 		Vector2(sz.x * 0.38, 17.0),
 		Vector2(sz.x * 0.61, 21.0),
 		Vector2(sz.x * 0.86, 18.0),
-	], Color(0.42, 0.90, 1.0, 0.58))
+	], Color(0.78, 0.72, 0.42, 0.58))
 	_draw_contrast_wash(Color(0.01, 0.06, 0.12, 0.26), Color(0.04, 0.14, 0.20, 0.06))
 	# Phosphor night over the dish hall.
 	var pulse := 0.5 + 0.5 * sin(_t * 1.05)
@@ -408,13 +408,13 @@ func _draw_radio() -> void:
 	for i in steps:
 		var a := ang - half + (half * 2.0) * (float(i) / float(maxi(steps - 1, 1)))
 		pts.append(lantern + Vector2(cos(a), sin(a)) * reach)
-	draw_colored_polygon(pts, Color(0.32, 0.86, 1.0, 0.09 if _is_power_saving() else 0.14))
-	draw_circle(lantern, 16.0, Color(0.42, 0.90, 1.0, 0.20 + 0.10 * pulse))
-	draw_circle(lantern, 7.0, Color(0.78, 0.96, 1.0, 0.40 + 0.18 * pulse))
+	draw_colored_polygon(pts, Color(0.78, 0.74, 0.48, 0.09 if _is_power_saving() else 0.14))
+	draw_circle(lantern, 16.0, Color(0.82, 0.76, 0.48, 0.20 + 0.10 * pulse))
+	draw_circle(lantern, 7.0, Color(0.92, 0.88, 0.62, 0.40 + 0.18 * pulse))
 	# Echo hall phosphor underglow down x=24 — cooler cyan vs depot orange sodium.
 	draw_rect(
 		Rect2(23.55 * AmbushGrid.TILE, 5.0 * AmbushGrid.TILE, 1.9 * AmbushGrid.TILE, 12.0 * AmbushGrid.TILE),
-		Color(0.22, 0.78, 0.98, 0.08 + 0.05 * pulse)
+		Color(0.62, 0.52, 0.28, 0.08 + 0.05 * pulse)
 	)
 	# Morse blink on the hut window — standard tier only.
 	var hut := Vector2(26.4 * AmbushGrid.TILE, 9.2 * AmbushGrid.TILE)
@@ -422,19 +422,19 @@ func _draw_radio() -> void:
 	if not _is_power_saving():
 		var cycle := fmod(_t * 1.8, 1.0)
 		morse = 1.0 if cycle < 0.18 or (cycle > 0.32 and cycle < 0.44) or (cycle > 0.70 and cycle < 0.82) else 0.18
-	draw_rect(Rect2(hut.x - 8.0, hut.y - 6.0, 16.0, 10.0), Color(0.45, 0.92, 1.0, 0.18 + 0.40 * morse))
-	draw_circle(hut, 6.0, Color(0.62, 0.95, 1.0, 0.12 + 0.22 * morse))
+	draw_rect(Rect2(hut.x - 8.0, hut.y - 6.0, 16.0, 10.0), Color(0.82, 0.68, 0.32, 0.18 + 0.40 * morse))
+	draw_circle(hut, 6.0, Color(0.88, 0.74, 0.38, 0.12 + 0.22 * morse))
 	# Antenna tip spark.
 	if not _is_power_saving():
 		var spark := 0.5 + 0.5 * sin(_t * 6.4)
-		draw_circle(Vector2(10.4 * AmbushGrid.TILE, 7.6 * AmbushGrid.TILE), 4.0 + spark * 2.0, Color(0.62, 0.95, 1.0, 0.10 + 0.16 * spark))
-		draw_circle(lantern, 5.0 + spark * 3.0, Color(0.70, 0.96, 1.0, 0.12 + 0.18 * spark))
+		draw_circle(Vector2(10.4 * AmbushGrid.TILE, 7.6 * AmbushGrid.TILE), 4.0 + spark * 2.0, Color(0.82, 0.70, 0.36, 0.10 + 0.16 * spark))
+		draw_circle(lantern, 5.0 + spark * 3.0, Color(0.88, 0.76, 0.42, 0.12 + 0.18 * spark))
 		# Phosphor motes drifting through the dish hall.
 		for i in 12:
 			var mx := 24.0 * AmbushGrid.TILE + sin(_t * 0.55 + float(i) * 0.9) * 12.0
 			var my := 5.3 * AmbushGrid.TILE + fmod(_t * 22.0 + float(i) * 27.0, 11.2 * AmbushGrid.TILE)
-			draw_circle(Vector2(mx, my), 1.9, Color(0.48, 0.92, 1.0, 0.14 + 0.12 * pulse * (0.5 + 0.5 * sin(_t * 3.0 + float(i)))))
+			draw_circle(Vector2(mx, my), 1.9, Color(0.72, 0.64, 0.38, 0.14 + 0.12 * pulse * (0.5 + 0.5 * sin(_t * 3.0 + float(i)))))
 		for i in 5:
 			var dx := 26.2 * AmbushGrid.TILE + float(i) * 14.0 + sin(_t * 0.7 + float(i)) * 8.0
 			var dy := 8.8 * AmbushGrid.TILE + cos(_t * 0.9 + float(i)) * 16.0
-			draw_circle(Vector2(dx, dy), 1.6, Color(0.55, 0.90, 1.0, 0.10 + 0.10 * pulse))
+			draw_circle(Vector2(dx, dy), 1.6, Color(0.70, 0.60, 0.34, 0.10 + 0.10 * pulse))

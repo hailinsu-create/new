@@ -3,13 +3,67 @@ extends Node2D
 ## Ambush Loop — Commandos-style ambush prep + time-loop coordinator.
 ## SETUP → Alarm freezes PlanState → WATCHING (SimClock) → FAIL/WIN/REPLAY.
 
-enum Phase { SETUP, WATCHING, FAILED, WON, REPLAY }
-enum Tool { DEPLOY, TRIPWIRE }
+enum Phase { SETUP, WATCHING, FAILED, WON, REPLAY, SWEEP }
+enum Tool { DEPLOY, TRIPWIRE, GRENADE, DECOY }
 
 const MAX_TRIPWIRES := 1
 const TRIPWIRE_ROUTE_DIST := 24.0
 const SNAPSHOT_EVERY := 6
 const COVER_LONGPRESS_MS := 400
+const TOUCH_PAN_SLOP := 22.0
+const TOUCH_SPRINT_MS := 280
+const FOLLOW_DEST_PAD_R := 56.0
+const FOLLOW_DEST_PAD_DEG := 22.0
+const FOLLOW_FRIEND_PAD_R := 28.0
+const FOLLOW_FRIEND_PAD_DEG := 14.0
+const FOLLOW_MAX_DETOUR := 6
+const FOLLOW_LOCAL_DETOUR := 3
+const FOLLOW_KEEP_DEST := 3
+const FOLLOW_TWIST_DEG := 5.0
+const FOLLOW_SLOT_DEPTH := 2
+const FOLLOW_WEST_SLOT_DEPTH := 1
+const FOLLOW_WEST_SECOND_DEPTH := 2
+const FOLLOW_WEST_FIRST_SIDE := 6
+const FOLLOW_WEST_SECOND_SIDE := 4
+const FOLLOW_WEST_SPAN_MAX := 6
+const FOLLOW_ARC_FAR_CAP := 20.0
+## South-corridor y=13 cell south rim. 16px past y=13 center is cell y=14.
+const FOLLOW_ARC_Y13_CAP := 15.0
+const FOLLOW_ARC_END_PAD := 12.0
+const FOLLOW_DEST_BLEND := 0.24
+const FOLLOW_ARC_BLEND := 0.30
+const FOLLOW_ARC_DEG := 12.0
+const FOLLOW_ARC_SLIDE_DEG := 40.0
+const FOLLOW_SLOT_MIX := 0.42
+const FOLLOW_SLOT_INSET := 11.0
+const FOLLOW_WEST_SLOT_INSET := 24.0
+const FOLLOW_WEST_SLOT_EXTRA := 52.0
+## On-ring extra used to be SLOT_EXTRA+8 (~60) plus 12–28px extra back, which
+## shoved #2 through the west wall. Dest-cell extra stays; ring extra is smaller.
+const FOLLOW_WEST_RING_EXTRA := 44.0
+const FOLLOW_WEST_RING_BACK := 8.0
+## West follow frames by pan/crop, not world zoom. Floor ≥0.85; keep ~1.0 so
+## the courtyard is not a postage stamp and bodies stay readable.
+const FOLLOW_CAM_WEST_ZOOM := 1.0
+const FOLLOW_CAM_WEST_CONE := 108.0
+const FOLLOW_CAM_WEST_PAN := 0.62
+const FOLLOW_CAM_FILE_ZOOM := 1.0
+const FOLLOW_WEST_OBS_SCALE := 1.0
+const FOLLOW_WEST_BODY_SCALE := 1.0
+## v0.5.39: full-size rings no longer need the 0.16-era courtyard shove
+## (76 radial / 52 side / 46 east → 154px off the bodies). Keep a modest
+## along-file stagger so three 1.0 rings still read as three, but park
+## them on the west file instead of sliding a 280px soap bubble into
+## the crate courtyard. Zoom / body stay ~1.0.
+## v0.6 Engine: fill is LOS-clipped + faded and does not inherit this
+## offset. Outline stagger stays; kit_range gameplay stays.
+const FOLLOW_WEST_OBS_OFFSET := 48.0
+const FOLLOW_WEST_OBS_SIDE := 28.0
+const FOLLOW_WEST_OBS_SLOT := 12.0
+const FOLLOW_WEST_OBS_COURTYARD := 18.0
+const FOLLOW_WEST_OBS_LEAD_MUL := 0.62
+const FOLLOW_WEST_CONE_FADE := 0.46
+const FLANK_WRAP_MIN_PTS := 4
 const PROGRESS_PATH := "user://ambush_loop.cfg"
 const LEVEL_ORDER := ["yard", "warehouse", "pump", "railcut", "depot", "radio"]
 const SfxBusScript := preload("res://scripts/sfx/sfx_bus.gd")
@@ -26,6 +80,15 @@ const NightGradeScript := preload("res://scripts/fx/night_grade.gd")
 const TrapPathFxScript := preload("res://scripts/fx/trap_path_fx.gd")
 const NightHandoffScript := preload("res://scripts/ui/night_handoff.gd")
 const SpawnGhostScript := preload("res://scripts/fx/spawn_ghost.gd")
+const WeaponCatalogScript := preload("res://scripts/raid/weapon_catalog.gd")
+const RaidPathfinderScript := preload("res://scripts/raid/pathfinder.gd")
+const RaidDirectorScript := preload("res://scripts/raid/raid_director.gd")
+const RaidStashScript := preload("res://scripts/raid/stash.gd")
+const RaidGrenadeScript := preload("res://scripts/raid/grenade.gd")
+const RaidMineScript := preload("res://scripts/raid/landmine.gd")
+const RaidDecoyScript := preload("res://scripts/raid/decoy.gd")
+const BackpackPanelScript := preload("res://scripts/ui/backpack_panel.gd")
+const C2DirectorScript := preload("res://scripts/c2/c2_director.gd")
 
 var grid: AmbushGrid = AmbushGrid.new()
 var phase: Phase = Phase.SETUP
@@ -50,7 +113,19 @@ var selected: OperatorUnit = null
 var enemies: Array[EnemyRunner] = []
 var tripwires: Array[Tripwire] = []
 var loot_piles: Array[LootPickup] = []
+var raid_stashes: Array = []
+var raid_grenades: Array = []
+var raid_mines: Array = []
+var raid_decoys: Array = []
+var raid = RaidDirectorScript.new()
 var barrels: Array = []
+var _alarm_warned_no_gun: bool = false
+var _alarm_pulled_unarmed: bool = false
+var _night_hp_lost: bool = false
+var _night_timer: float = 0.0
+var _wave_fail_index: int = 0
+var _hold_move_acc: float = 0.0
+var _foot_acc: float = 0.0
 var frozen_plan: PlanState = PlanState.new()
 var replay_return_phase: Phase = Phase.SETUP
 
@@ -129,6 +204,7 @@ var role_card_buttons: Array[Button] = []
 var role_cards: Array = []
 var plan_readout: Label = null
 var phase_chip: Label = null
+var stash_board: Label = null
 var route_legend: Control = null
 var _alarm_vignette: ColorRect = null
 var _watch_letterbox: Control = null
@@ -170,6 +246,8 @@ var plan_restore_hint: String = ""
 var sfx_muted: bool = false
 var pause_overlay: PauseOverlay = null
 var tutorial_overlay: TutorialOverlay = null
+var backpack_panel = null
+var bag_button: Button = null
 var credits_overlay: CreditsOverlay = null
 var night_handoff = null
 var _menu_paused_sim: bool = false
@@ -197,6 +275,7 @@ var _cam_pan: Vector2 = Vector2.ZERO
 var _cam_zoom: float = 1.0
 var _cam_punch: Vector2 = Vector2.ZERO
 var _cam_zoom_punch: float = 1.0
+var _cam_squad_zoom: float = 1.0
 var _stinger_tween: Tween = null
 var _win_stinger_tween: Tween = null
 var _sig_wash: ColorRect = null
@@ -216,6 +295,41 @@ var _touch_preview_slot: CoverSlot = null
 var _pending_setup_touch: bool = false
 var _pending_touch_world: Vector2 = Vector2.ZERO
 var _touch_dragged: bool = false
+var _touch_panning: bool = false
+var _touch_start_screen: Vector2 = Vector2.ZERO
+var _sprint_hold_armed: bool = false
+var _last_touch_gesture: String = ""
+var _pending_flank = null
+var _follow_dest: Dictionary = {}
+var _follow_lock: Dictionary = {}
+var _follow_flip_count: int = 0
+var _follow_settle_drops: int = 0
+var _follow_arrive_world: Vector2 = Vector2.ZERO
+var _follow_arrive_on: bool = false
+var _follow_back_world: Vector2 = Vector2.ZERO
+var _follow_back_on: bool = false
+var _follow_face_deg: float = 0.0
+var _follow_face_on: bool = false
+var _follow_twist_span: float = 0.0
+var _follow_dest_world: Dictionary = {}
+var _follow_blend_from: Dictionary = {}
+var _follow_blend_to: Dictionary = {}
+var _follow_blend_t: Dictionary = {}
+var _follow_blend_dur: Dictionary = {}
+var _follow_blend_arc: Dictionary = {}
+var _follow_blend_pivot: Dictionary = {}
+var _follow_blend_hits: int = 0
+var _follow_arc_hits: int = 0
+var _follow_body_arc_hits: int = 0
+var _follow_ring_hold: bool = false
+var _follow_dest_marks: Dictionary = {}
+var _follow_file: Line2D = null
+var _last_loot_chip: String = ""
+var _stealth_avoid_cache: Dictionary = {}
+var _stealth_avoid_msec: int = 0
+var _move_ghost: Line2D = null
+var c2 = null
+var _c2_sprint_next: bool = false
 
 
 func _ready() -> void:
@@ -240,7 +354,17 @@ func _ready() -> void:
 	_bind_settings()
 	_ensure_presentation_fx()
 	_ensure_touch_hud()
+	_ensure_c2()
 	_load_level(_resolve_start_level(), false, false)
+
+
+func _ensure_c2() -> void:
+	if c2 != null and is_instance_valid(c2):
+		return
+	c2 = C2DirectorScript.new()
+	c2.name = "C2"
+	add_child(c2)
+	c2.bind(self)
 
 
 func _resolve_optional_hud() -> void:
@@ -303,9 +427,11 @@ func _resolve_optional_hud() -> void:
 	if mode_button == null:
 		mode_button = _make_hud_btn("ModeButton", "开火: 见敌即打 (F)", extra)
 	if pack_button == null:
-		pack_button = _make_hud_btn("PackButton", "弹包 (G)", extra)
+		pack_button = _make_hud_btn("PackButton", "弹包", extra)
 	if door_button == null:
 		door_button = _make_hud_btn("DoorButton", "门: 畅通 (B)", extra)
+	bag_button = _make_hud_btn("BagButton", "背包 (I)", extra)
+	bag_button.pressed.connect(_toggle_backpack)
 
 	extra_bar = extra
 	mute_button = _make_hud_btn("MuteButton", "音效 M", extra)
@@ -487,6 +613,23 @@ func _build_role_card_hud(root: Control) -> void:
 	phase_chip.add_theme_constant_override("shadow_offset_y", 1)
 	phase_chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(phase_chip)
+	stash_board = Label.new()
+	stash_board.name = "StashBoard"
+	stash_board.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	stash_board.offset_left = 12.0
+	stash_board.offset_right = -12.0
+	stash_board.offset_top = -88.0
+	stash_board.offset_bottom = -68.0
+	stash_board.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	stash_board.add_theme_font_size_override("font_size", 13)
+	stash_board.add_theme_font_override("font", NightOps.ui_font_bold())
+	stash_board.add_theme_color_override("font_color", Color(0.90, 0.82, 0.48))
+	stash_board.add_theme_color_override("font_shadow_color", Color(0.02, 0.03, 0.02, 0.9))
+	stash_board.add_theme_constant_override("shadow_offset_x", 1)
+	stash_board.add_theme_constant_override("shadow_offset_y", 1)
+	stash_board.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stash_board.text = ""
+	root.add_child(stash_board)
 	route_legend = HBoxContainer.new()
 	route_legend.name = "RouteLegend"
 	route_legend.set_anchors_preset(Control.PRESET_TOP_WIDE)
@@ -537,6 +680,15 @@ func _build_modals() -> void:
 	night_handoff = NightHandoffScript.new()
 	add_child(night_handoff)
 	night_handoff.finished.connect(_on_night_handoff_finished)
+	backpack_panel = BackpackPanelScript.new()
+	backpack_panel.name = "BackpackPanel"
+	add_child(backpack_panel)
+	backpack_panel.equip_requested.connect(_on_pack_equip)
+	backpack_panel.pass_requested.connect(_on_pack_pass)
+	backpack_panel.drop_requested.connect(_on_pack_drop)
+	backpack_panel.closed.connect(func() -> void:
+		_update_hud()
+	)
 
 
 func _gs():
@@ -567,6 +719,8 @@ func _modal_blocks_input() -> bool:
 		return true
 	if night_handoff and night_handoff.is_open():
 		return true
+	if backpack_panel and backpack_panel.has_method("is_open") and backpack_panel.is_open():
+		return false
 	return false
 
 
@@ -614,7 +768,7 @@ func _toggle_pause_menu() -> void:
 	if pause_overlay.is_open():
 		pause_overlay.dismiss()
 		return
-	pause_overlay.present(phase == Phase.SETUP, true)
+	pause_overlay.present(_is_command_phase(), true)
 	if phase == Phase.WATCHING and not sim.paused:
 		sim.paused = true
 		_menu_paused_sim = true
@@ -708,10 +862,9 @@ func _apply_phone_chrome(on: bool) -> void:
 		root.offset_left = pad.x
 		root.offset_top = pad.y
 		root.offset_right = -pad.z
-		if on:
-			root.offset_bottom = -pad.w - 150.0
-		else:
-			root.offset_bottom = -pad.w
+		## Portraits live on TouchHud now. Don't compress Root — that used to
+		## shove the C2 strip into the courtyard.
+		root.offset_bottom = -pad.w
 	if plan_readout:
 		plan_readout.visible = not on
 	if route_legend:
@@ -725,6 +878,36 @@ func _apply_phone_chrome(on: bool) -> void:
 	_pin_role_cards(on)
 	_layout_checklist()
 	_sync_desktop_bars(not on)
+	if c2 and c2.has_method("layout_chrome"):
+		c2.layout_chrome(on)
+	_fold_phone_north_hud(on)
+
+
+func _fold_phone_north_hud(on: bool) -> void:
+	## Phone: keep the north courtyard free. Chrome stays in the title band.
+	var top := get_node_or_null("HUD/Root/TopBar") as Control
+	if top:
+		top.offset_bottom = 48.0 if on else 110.0
+	if title_label:
+		title_label.add_theme_font_size_override("font_size", 18 if on else 26)
+	if status_label:
+		status_label.visible = not on
+	if level_label:
+		level_label.visible = not on
+	if spawn_teach_label and on:
+		spawn_teach_label.visible = false
+	if route_legend and on:
+		route_legend.visible = false
+	if flash_label:
+		if on:
+			flash_label.offset_top = 4.0
+			flash_label.offset_bottom = 26.0
+			flash_label.add_theme_font_size_override("font_size", 14)
+		else:
+			flash_label.offset_top = 72.0
+			flash_label.offset_bottom = 104.0
+			flash_label.add_theme_font_size_override("font_size", 18)
+	_apply_phone_world_ink()
 
 
 func _result_overlay_active() -> bool:
@@ -802,9 +985,10 @@ func _pin_role_cards(touch: bool) -> void:
 
 func _apply_result_rail() -> void:
 	## Fail/win: hide the left rail so the three-line card is not bitten.
+	## Phone simplified rail: portraits are identity; left cards stay off.
 	if role_box == null or not is_instance_valid(role_box):
 		return
-	role_box.visible = not _result_overlay_active()
+	role_box.visible = (not _want_touch()) and not _result_overlay_active()
 
 
 func _safe_area_pad() -> Vector4:
@@ -833,16 +1017,21 @@ func _refresh_touch_hud() -> void:
 			phase_name = "WON"
 		Phase.REPLAY:
 			phase_name = "REPLAY"
+		Phase.SWEEP:
+			phase_name = "SWEEP"
 		_:
 			phase_name = "SETUP"
 	var paused := phase == Phase.WATCHING and sim.paused
 	var hi := phase == Phase.WATCHING and sim.speed >= 1.5
 	var has_pack := level != null and bool(level.has_ammo_pack)
 	var has_door := level != null and level.door_cell.x >= 0
+	_refresh_alarm_cta()
 	touch_hud.refresh_phase(
 		phase_name, paused, hi, sfx_muted, _event_log_open and event_log != null and event_log.visible,
 		has_pack, has_door
 	)
+	if touch_hud.has_method("set_alarm_cta") and alarm_button:
+		touch_hud.set_alarm_cta(str(alarm_button.text))
 	if touch_hud.has_method("set_next_wave"):
 		var show_wave := phase == Phase.WATCHING
 		var chip := ""
@@ -920,6 +1109,71 @@ func apply_touch_command(cmd: String) -> void:
 				_sfx("ui")
 				_announce_plan_edit()
 				_refresh_killzone_preview()
+		"nade":
+			_place_nade_mark()
+		"nade_watch":
+			_toggle_auto_grenade()
+		"bag":
+			_toggle_backpack()
+		"decoy":
+			_throw_decoy_at(_throw_ahead(90.0))
+		"pass":
+			_transfer_selected_to_nearest()
+		"haul":
+			_toggle_haul_corpse()
+		"crouch":
+			if c2:
+				c2.use_skill("crouch")
+		"knife":
+			if c2:
+				c2.use_skill("knife")
+		"whistle":
+			if c2:
+				c2.use_skill("whistle")
+		"binoc":
+			if c2:
+				c2.use_skill("binoculars")
+		"bind":
+			if c2:
+				c2.use_skill("bind")
+	_update_hud()
+
+
+func apply_context_action(cmd: String, world: Vector2 = Vector2.ZERO) -> void:
+	## Phone hotspot verbs. Same sim as the keyboard / apply_touch_command path.
+	if _modal_blocks_input() or not _is_command_phase():
+		return
+	match cmd:
+		"crate", "loot":
+			if world != Vector2.ZERO:
+				_command_move_selected(world)
+			else:
+				_try_pickup_near_selected()
+		"haul":
+			if selected and world != Vector2.ZERO and selected.global_position.distance_to(world) > 36.0:
+				_command_move_selected(world)
+			else:
+				_toggle_haul_corpse()
+		"cover":
+			var slot = _nearest_slot(world if world != Vector2.ZERO else (selected.global_position if selected else Vector2.ZERO), 40.0)
+			if slot:
+				_deploy_selected_to(slot, true)
+		"knife":
+			if c2:
+				c2.use_skill("knife")
+		"flank":
+			_start_flank_approach(world)
+		"whistle":
+			if c2:
+				c2.use_skill("whistle")
+		"bind":
+			if c2:
+				c2.use_skill("bind")
+		"aid":
+			if c2:
+				c2.use_skill("aid")
+		_:
+			apply_touch_command(cmd)
 	_update_hud()
 
 
@@ -991,6 +1245,8 @@ func _sfx_every_shot(op: OperatorUnit = null) -> void:
 func fire_cue_for(op: OperatorUnit = null) -> String:
 	if op == null:
 		return "fire"
+	if op.weapon_id != "" and WeaponCatalogScript.is_firearm(str(op.weapon_id)):
+		return WeaponCatalogScript.sfx_cue(str(op.weapon_id))
 	match op.role:
 		OperatorUnit.Role.MG:
 			return "fire_mg"
@@ -1026,6 +1282,7 @@ func _refresh_mute_button() -> void:
 
 func _update_observation_rings() -> void:
 	var show := phase == Phase.SETUP
+	_apply_west_obs_scale()
 	for op in operators:
 		if is_instance_valid(op):
 			op.set_observation_ring(show)
@@ -1260,16 +1517,16 @@ func _setup_world_layers() -> void:
 
 
 func _apply_watch_layers() -> void:
-	var dim_routes := phase != Phase.SETUP
+	var dim_routes := not _is_command_phase()
 	if routes_draw:
 		routes_draw.modulate = Color(1, 1, 1, 0.32) if dim_routes else Color.WHITE
 	if killzone_draw:
 		killzone_draw.modulate = Color.WHITE
-		killzone_draw.visible = phase == Phase.SETUP
+		killzone_draw.visible = _is_command_phase()
 	if decision_marker and is_instance_valid(decision_marker):
-		decision_marker.visible = phase == Phase.SETUP
+		decision_marker.visible = _is_command_phase()
 	if barrel_hint and is_instance_valid(barrel_hint):
-		barrel_hint.visible = phase == Phase.SETUP
+		barrel_hint.visible = _is_command_phase()
 	if trap_callout and is_instance_valid(trap_callout):
 		if phase != Phase.SETUP:
 			trap_callout.visible = false
@@ -1297,14 +1554,21 @@ func _apply_watch_layers() -> void:
 	if sfx and sfx.has_method("set_watch_bed"):
 		sfx.set_watch_bed(phase == Phase.WATCHING)
 	_ensure_watch_cinema()
-	var cinema := phase == Phase.WATCHING
+	var cinema := phase == Phase.WATCHING or phase == Phase.WON
 	if _watch_letterbox:
 		_watch_letterbox.visible = cinema
 		var banner := _watch_letterbox.get_node_or_null("WatchBanner") as Label
 		if banner:
 			var spd := "暂停" if sim.paused else ("2×" if sim.speed >= 1.5 else "1×")
 			var night := LevelDef.mood_tag(level.level_id) if level else "初阵"
-			banner.text = "锁死观战  ·  %s  ·  %s  ·  t=%.1fs  ·  %s" % [night, spd, sim.time_sec(), watch_census_text()]
+			if phase == Phase.WON:
+				banner.text = "封锁成功  ·  %s  ·  t=%.1fs" % [night, sim.time_sec()]
+			else:
+				var w := wave_index() + 1
+				var tot := maxi(wave_total(), 1)
+				banner.text = "警报中  ·  第%d/%d波  ·  %s  ·  %s  ·  t=%.1fs  ·  %s" % [
+					w, tot, night, spd, sim.time_sec(), watch_census_text()
+				]
 		_refresh_watch_metronome()
 		_refresh_watch_clock()
 	if _watch_vignette:
@@ -1364,7 +1628,7 @@ func _refresh_watch_metronome() -> void:
 		if pip == null:
 			continue
 		var hot := i == beat and not sim.paused
-		pip.color = Color(0.92, 0.88, 0.42, 0.95) if hot else Color(0.62, 0.72, 0.38, 0.28)
+		pip.color = Color(0.78, 0.62, 0.28, 0.95) if hot else Color(0.42, 0.36, 0.20, 0.28)
 
 
 func _ensure_watch_clock() -> void:
@@ -1436,10 +1700,12 @@ func _ensure_game_camera() -> void:
 func _apply_cam() -> void:
 	_ensure_game_camera()
 	_cam_zoom = clampf(_cam_zoom, 0.72, 1.65)
-	var max_pan := 220.0 * _cam_zoom
+	_cam_squad_zoom = clampf(_cam_squad_zoom, FOLLOW_CAM_WEST_ZOOM, 1.0)
+	## Pan/crop budget so west trio + cone stay framed at ~1.0 zoom.
+	var max_pan := 380.0 * _cam_zoom
 	_cam_pan.x = clampf(_cam_pan.x, -max_pan, max_pan)
 	_cam_pan.y = clampf(_cam_pan.y, -max_pan, max_pan)
-	var z := _cam_zoom * _cam_zoom_punch
+	var z := _cam_zoom * _cam_zoom_punch * _cam_squad_zoom
 	_game_cam.zoom = Vector2(z, z)
 	_game_cam.offset = _cam_pan + _cam_punch
 
@@ -1449,6 +1715,7 @@ func _reset_cam_view() -> void:
 	_cam_zoom = 1.0
 	_cam_punch = Vector2.ZERO
 	_cam_zoom_punch = 1.0
+	_cam_squad_zoom = 1.0
 	if _stinger_tween != null:
 		_stinger_tween.kill()
 		_stinger_tween = null
@@ -1547,7 +1814,7 @@ func _dock_setup_help() -> void:
 	help_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	help_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	help_label.add_theme_font_size_override("font_size", 12)
-	help_label.add_theme_color_override("font_color", Color(0.70, 0.74, 0.66, 0.90))
+	help_label.add_theme_color_override("font_color", Color(0.70, 0.64, 0.46, 0.90))
 
 
 func _ensure_tut_plate(root: Control) -> void:
@@ -1610,7 +1877,7 @@ func _ensure_watch_cinema() -> void:
 		var banner := Label.new()
 		banner.name = "WatchBanner"
 		banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		banner.text = "锁死观战"
+		banner.text = "警报中"
 		banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		banner.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		banner.set_anchors_preset(Control.PRESET_TOP_WIDE)
@@ -2197,6 +2464,7 @@ func _make_slot(id: int, text: String, pos: Vector2) -> CoverSlot:
 	tag.position = Vector2(-40, 16)
 	tag.add_theme_font_size_override("font_size", 11)
 	tag.add_theme_color_override("font_color", Color(0.65, 0.85, 0.7))
+	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tag.z_index = 2
 	s.add_child(tag)
 	s.setup(id, text, 0.0, cover_kit_for_level())
@@ -2272,6 +2540,7 @@ func _make_operator(id: int, pname: String) -> OperatorUnit:
 	tag.add_theme_color_override("font_shadow_color", Color(0.02, 0.03, 0.03, 0.9))
 	tag.add_theme_constant_override("shadow_offset_x", 1)
 	tag.add_theme_constant_override("shadow_offset_y", 1)
+	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	op.add_child(tag)
 	var glyph := Polygon2D.new()
 	glyph.name = "RoleGlyph"
@@ -2293,7 +2562,7 @@ func _draw_fixed_routes() -> void:
 		"main": Color(0.9, 0.4, 0.35, 0.35),
 		"flank": Color(0.95, 0.55, 0.2, 0.3),
 		"sneak": Color(0.55, 0.72, 0.38, 0.32),
-		"echo": Color(0.42, 0.78, 0.92, 0.42),
+		"echo": Color(0.62, 0.52, 0.28, 0.42),
 	}
 	var labels := {
 		"main": "主路·巡卫",
@@ -2328,6 +2597,8 @@ func _add_route_line(points: PackedVector2Array, color: Color, label: String) ->
 		t.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.02, 0.92))
 		t.add_theme_constant_override("shadow_offset_x", 1)
 		t.add_theme_constant_override("shadow_offset_y", 1)
+		t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		t.set_meta("route_ink", true)
 		routes_draw.add_child(t)
 
 
@@ -2469,7 +2740,7 @@ func _build_decision_marker() -> void:
 	pulse.name = "PulseRing"
 	pulse.width = 2.5
 	pulse.closed = true
-	pulse.default_color = Color(0.22, 0.92, 0.78, 0.92)
+	pulse.default_color = Color(0.62, 0.50, 0.24, 0.92)
 	pulse.z_index = 3
 	var pts := PackedVector2Array()
 	for i in 18:
@@ -2546,9 +2817,13 @@ func _layout_checklist() -> void:
 	checklist_strip.anchor_bottom = 0.0
 	# Beside the route timeline, under the phase chip — never over the left cards.
 	checklist_strip.offset_left = -520.0
-	checklist_strip.offset_top = 38.0 + maxf(0.0, pad.y - 4.0)
+	if _want_touch():
+		checklist_strip.offset_top = 8.0 + maxf(0.0, pad.y - 4.0)
+		checklist_strip.offset_bottom = 36.0 + maxf(0.0, pad.y - 4.0)
+	else:
+		checklist_strip.offset_top = 38.0 + maxf(0.0, pad.y - 4.0)
+		checklist_strip.offset_bottom = 72.0 + maxf(0.0, pad.y - 4.0)
 	checklist_strip.offset_right = -maxf(8.0, pad.z)
-	checklist_strip.offset_bottom = 72.0 + maxf(0.0, pad.y - 4.0)
 	checklist_strip.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	checklist_strip.grow_vertical = Control.GROW_DIRECTION_END
 
@@ -2807,7 +3082,7 @@ func _paint_check_chip(lab: Label, title: String, ok: bool, started: bool) -> vo
 		return
 	var mark := "✓" if ok else ("·" if started else "○")
 	lab.text = "%s%s" % [mark, title] if _checklist_use_touch_layout() else "%s  %s" % [mark, title]
-	lab.add_theme_font_size_override("font_size", 14 if _checklist_use_touch_layout() else 13)
+	lab.add_theme_font_size_override("font_size", 12 if _checklist_use_touch_layout() else 13)
 	var col := Color(0.42, 0.78, 0.40)
 	if ok:
 		col = Color(0.42, 0.78, 0.40)
@@ -2890,9 +3165,10 @@ func _leak_result_line() -> String:
 	if level != null and level.has_method("delay_for_actor"):
 		delay = float(level.delay_for_actor(lid))
 	var road := str(PayoffCopy.leak_road_name(level, route, false))
+	var wave_n := _wave_fail_index if _wave_fail_index > 0 else (wave_index() + 1)
 	if road != "" and road != _route_zh_short(route):
-		return "漏网：%s · 敌%d · %.1fs出发 · %s" % [_route_zh_short(route), lid, delay, road]
-	return "漏网：%s · 敌%d · %.1fs出发" % [_route_zh_short(route), lid, delay]
+		return "第%d波漏网：%s · 敌%d · %.1fs出发 · %s" % [wave_n, _route_zh_short(route), lid, delay, road]
+	return "第%d波漏网：%s · 敌%d · %.1fs出发" % [wave_n, _route_zh_short(route), lid, delay]
 
 
 func leak_advice_text() -> String:
@@ -2988,7 +3264,7 @@ func _refresh_door_visual(animate: bool = false) -> void:
 				_door_tween.parallel().tween_property(panel, "rotation", target_rot, 0.18)
 			if handle:
 				_door_tween.parallel().tween_property(handle, "rotation", target_rot, 0.18)
-			var flash := Color(1.7, 1.45, 0.55, 1.0) if door_locked else Color(1.45, 1.55, 0.85, 1.0)
+			var flash := Color(1.7, 1.45, 0.55, 1.0) if door_locked else Color(1.35, 1.20, 0.70, 1.0)
 			leaf.modulate = flash
 			_door_tween.parallel().tween_property(leaf, "modulate", Color.WHITE, 0.28)
 			if pad:
@@ -3031,6 +3307,14 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 	battle_log.clear()
 	pending_spawns.clear()
 	all_spawns_done = false
+	if raid:
+		raid.reset()
+	_alarm_warned_no_gun = false
+	_alarm_pulled_unarmed = false
+	_clear_flash()
+	_night_hp_lost = false
+	_night_timer = 0.0
+	_wave_fail_index = 0
 	_watch_first_fire = false
 	_watch_first_return = false
 	_kill_combo = 0
@@ -3044,6 +3328,8 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 	_clear_enemies()
 	_clear_tripwires()
 	_clear_loot()
+	_clear_raid_throwables()
+	_clear_stashes()
 	_clear_return_fx()
 	_clear_tracer_pool()
 	if not keep_intel:
@@ -3055,9 +3341,13 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 		leak_advice_shown = ""
 	if restore_plan and not last_plan.deployments.is_empty():
 		_restore_last_plan()
+		_wipe_squad_inventory()
 	else:
 		_clear_deployments()
+		_wipe_squad_inventory()
+		_place_squad_insert()
 		door_locked = last_plan.door_locked if restore_plan else false
+	_spawn_level_stashes()
 	if level != null and level.door_cell.x >= 0:
 		grid.set_door_state(level.door_cell, door_locked)
 	_redraw_ghosts()
@@ -3136,11 +3426,14 @@ func _start_setup(keep_intel: bool, restore_plan: bool) -> void:
 	_update_event_log()
 	_build_spawn_ghosts()
 	_build_plan_ghosts()
+	_ensure_c2()
+	if c2:
+		c2.begin_scout()
 	_update_hud()
 
 
 func _on_clear_pressed() -> void:
-	if phase != Phase.SETUP:
+	if not _is_command_phase():
 		return
 	_clear_deployments()
 	status_label.text = "已收回部署（记忆与绊索保留）"
@@ -3154,12 +3447,12 @@ func _clear_deployments() -> void:
 		slot.occupied_by = null
 		slot.set_highlight(false)
 	for op in operators:
-		op.has_ammo_pack = false
 		op.fire_mode = OperatorUnit.FireMode.ENGAGE_ON_SIGHT
 		op.reset_loadout()
 		op.slot = null
-		op.visible = false
-		op.position = Vector2(-1000, -1000)
+		op.visible = true
+		op.unlock_plan()
+	_place_squad_insert()
 	selected = operators[0] if operators.size() > 0 else null
 	_refresh_selection_visual()
 	_refresh_mode_pack_buttons()
@@ -3228,9 +3521,9 @@ func _restore_last_plan() -> void:
 	_plan_diff_guard = false
 	_build_plan_ghosts()
 	var summary := _plan_summary_text(last_plan)
-	plan_restore_hint = "已恢复上轮计划：%s" % summary
-	status_label.text = "已恢复上轮计划"
-	_flash("已恢复上轮计划", Color(0.7, 0.92, 0.75))
+	plan_restore_hint = "朝向已恢复，枪要重搜 · %s" % summary
+	status_label.text = "朝向已恢复，枪要重搜"
+	_flash("朝向已恢复，枪要重搜", Color(0.7, 0.92, 0.75))
 
 
 func _compass_deg(deg: float) -> String:
@@ -3374,11 +3667,30 @@ func _clear_return_fx() -> void:
 
 
 func _toggle_tool() -> void:
-	if phase != Phase.SETUP:
+	if not _is_command_phase():
 		return
-	tool = Tool.TRIPWIRE if tool == Tool.DEPLOY else Tool.DEPLOY
-	tool_button.text = "工具: 部署队员" if tool == Tool.DEPLOY else "工具: 绊索(后勤)"
-	status_label.text = "部署到掩体位，A/D 调整射界" if tool == Tool.DEPLOY else "在路线线段附近放绊索（最多1）"
+	match tool:
+		Tool.DEPLOY:
+			tool = Tool.TRIPWIRE
+		Tool.TRIPWIRE:
+			tool = Tool.GRENADE
+		Tool.GRENADE:
+			tool = Tool.DECOY
+		_:
+			tool = Tool.DEPLOY
+	match tool:
+		Tool.TRIPWIRE:
+			tool_button.text = "工具: 地雷"
+			status_label.text = "点地埋雷（消耗背包地雷；无雷时仍可铺一条绊索）"
+		Tool.GRENADE:
+			tool_button.text = "工具: 雷点"
+			status_label.text = "点地设雷点，警报中敌人走进圈才自动丢"
+		Tool.DECOY:
+			tool_button.text = "工具: 诱饵"
+			status_label.text = "点地丢诱饵，短暂停住附近敌人"
+		_:
+			tool_button.text = "工具: 走路/掩体"
+			status_label.text = "点地走路，点掩体上垫，走近匣/尸体拾取"
 	_update_tripwire_ghost()
 	_update_hud()
 
@@ -3393,6 +3705,24 @@ func _unhandled_input(event: InputEvent) -> void:
 		_toggle_mute()
 		if pause_overlay and pause_overlay.is_open():
 			pause_overlay._refresh_audio()
+		get_viewport().set_input_as_handled()
+		return
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_MIDDLE:
+		get_viewport().set_input_as_handled()
+		return
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			_cam_zoom *= 1.08
+			_apply_cam()
+			get_viewport().set_input_as_handled()
+			return
+		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_cam_zoom *= 0.92
+			_apply_cam()
+			get_viewport().set_input_as_handled()
+			return
+	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_I:
+		_toggle_backpack()
 		get_viewport().set_input_as_handled()
 		return
 	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_ESCAPE:
@@ -3444,6 +3774,8 @@ func _unhandled_input(event: InputEvent) -> void:
 					_on_abort_pressed()
 				KEY_J:
 					_on_skip_to_outcome_pressed()
+				KEY_G:
+					pass
 				KEY_EQUAL, KEY_KP_ADD:
 					sim.set_speed(2.0)
 					if speed_button:
@@ -3455,14 +3787,17 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		return
 
-	if phase != Phase.SETUP:
+	if not _is_command_phase():
 		return
 
 	if event.is_action_pressed("sound_alarm"):
 		_on_alarm_pressed()
 		get_viewport().set_input_as_handled()
 		return
-	if event is InputEventKey and event.pressed and not event.echo:
+	if event is InputEventKey and event.pressed:
+		## Hold A/D (key echo) keeps 拧射界 turning so dests ride the slot ring.
+		if event.echo and event.physical_keycode != KEY_A and event.physical_keycode != KEY_D:
+			return
 		match event.physical_keycode:
 			KEY_1:
 				_select_op(0)
@@ -3470,24 +3805,37 @@ func _unhandled_input(event: InputEvent) -> void:
 				_select_op(1)
 			KEY_3:
 				_select_op(2)
-			KEY_A, KEY_Q:
+			KEY_A:
 				if selected and selected.visible:
 					selected.rotate_by(-15.0)
 					_announce_plan_edit()
 					_refresh_killzone_preview()
-			KEY_D, KEY_E:
+			KEY_C, KEY_Q, KEY_W, KEY_Z, KEY_K, KEY_F1, KEY_F2, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8:
+				if event.echo:
+					pass
+				elif c2 and c2.handle_key(event.physical_keycode):
+					pass
+			KEY_D:
 				if selected and selected.visible:
 					selected.rotate_by(15.0)
 					_announce_plan_edit()
 					_refresh_killzone_preview()
+			KEY_E:
+				_try_pickup_near_selected()
 			KEY_F:
 				_on_mode_pressed()
 			KEY_G:
-				_on_pack_pressed()
+				_place_nade_mark()
 			KEY_B:
 				_on_door_pressed()
+			KEY_V:
+				_throw_decoy_at_cursor()
 			KEY_TAB:
 				_toggle_tool()
+			KEY_T:
+				_transfer_selected_to_nearest()
+			KEY_H:
+				_toggle_haul_corpse()
 		get_viewport().set_input_as_handled()
 		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
@@ -3530,6 +3878,8 @@ func _handle_touch_gestures(event: InputEvent) -> bool:
 				_facing_touch = -1
 				_pending_setup_touch = false
 				_cover_hold_slot = null
+				_sprint_hold_armed = false
+				_touch_panning = false
 				var span: Dictionary = _touch_span()
 				_pinch_start_dist = float(span["dist"])
 				_pinch_start_zoom = _cam_zoom
@@ -3537,15 +3887,24 @@ func _handle_touch_gestures(event: InputEvent) -> bool:
 				return true
 			if _modal_blocks_input():
 				return true
-			if phase == Phase.SETUP:
+			var hovered := get_viewport().gui_get_hovered_control()
+			if hovered != null and hovered is BaseButton:
+				_touch_ate_click = true
+				return true
+			if _is_command_phase() or phase == Phase.WATCHING:
 				var world := _screen_to_world(st.position)
 				_touch_preview_slot = null
-				_pending_setup_touch = true
+				_pending_setup_touch = _is_command_phase()
 				_pending_touch_world = world
+				_touch_start_screen = st.position
 				_touch_dragged = false
-				_cover_hold_slot = _nearest_slot(world, 32.0)
+				_touch_panning = false
+				_sprint_hold_armed = false
+				_last_touch_gesture = ""
+				var hold_r := 16.0 if _want_touch() else 32.0
+				_cover_hold_slot = _nearest_slot(world, hold_r) if _is_command_phase() else null
 				_cover_hold_msec = Time.get_ticks_msec()
-				if selected and selected.visible and world.distance_to(selected.global_position) <= 44.0:
+				if _is_command_phase() and selected and selected.visible and world.distance_to(selected.global_position) <= 44.0:
 					_facing_touch = st.index
 				_touch_ate_click = true
 			return true
@@ -3553,11 +3912,33 @@ func _handle_touch_gestures(event: InputEvent) -> bool:
 		if _facing_touch == st.index:
 			_facing_touch = -1
 		_pinch_start_dist = 0.0
-		if phase == Phase.SETUP and _pending_setup_touch:
-			if not _touch_dragged and _touch_preview_slot == null:
+		if _pending_setup_touch and _is_command_phase():
+			if _touch_panning:
+				_last_touch_gesture = "pan"
+			elif _touch_preview_slot != null:
+				_last_touch_gesture = "cover"
+			elif _sprint_hold_armed or (
+				_want_touch()
+				and _cover_hold_slot == null
+				and Time.get_ticks_msec() - _cover_hold_msec >= TOUCH_SPRINT_MS
+			):
+				_c2_sprint_next = true
+				_last_touch_gesture = "sprint"
+				_handle_setup_click(_pending_touch_world)
+			else:
+				_last_touch_gesture = "tap"
 				_handle_setup_click(_pending_touch_world)
 			_pending_setup_touch = false
 			_cover_hold_slot = null
+			_sprint_hold_armed = false
+			_touch_panning = false
+		elif _touch_panning:
+			_last_touch_gesture = "pan"
+			_touch_panning = false
+		return true
+	if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_MIDDLE):
+		_cam_pan -= event.relative / maxf(_cam_zoom, 0.01)
+		_apply_cam()
 		return true
 	if event is InputEventScreenDrag:
 		var sd := event as InputEventScreenDrag
@@ -3573,9 +3954,9 @@ func _handle_touch_gestures(event: InputEvent) -> bool:
 			_cam_pan -= mid_delta / maxf(_cam_zoom, 0.01)
 			_apply_cam()
 			return true
-		if phase == Phase.SETUP:
+		if _is_command_phase():
 			_pending_touch_world = _screen_to_world(sd.position)
-		if phase == Phase.SETUP and sd.index == _facing_touch and selected and selected.visible and not selected.locked:
+		if _is_command_phase() and sd.index == _facing_touch and selected and selected.visible and not selected.locked:
 			var world2 := _screen_to_world(sd.position)
 			var v := world2 - selected.global_position
 			if v.length() > 10.0:
@@ -3584,18 +3965,26 @@ func _handle_touch_gestures(event: InputEvent) -> bool:
 				_refresh_killzone_preview()
 				_touch_dragged = true
 				_cover_hold_slot = null
+				_sprint_hold_armed = false
+				_last_touch_gesture = "face"
 			return true
 		if phase == Phase.SETUP and tool == Tool.TRIPWIRE:
 			_touch_dragged = true
 			_cover_hold_slot = null
+			_sprint_hold_armed = false
 			_update_tripwire_ghost()
 			return true
-		if (phase == Phase.SETUP or phase == Phase.WATCHING) and sd.relative.length() >= 8.0:
+		var total := sd.position.distance_to(_touch_start_screen)
+		if _touch_panning or total >= TOUCH_PAN_SLOP:
+			_touch_panning = true
 			_touch_dragged = true
 			_cover_hold_slot = null
-			_cam_pan -= sd.relative / maxf(_cam_zoom, 0.01)
-			_apply_cam()
-			return true
+			_sprint_hold_armed = false
+			if _is_command_phase() or phase == Phase.WATCHING:
+				_cam_pan -= sd.relative / maxf(_cam_zoom, 0.01)
+				_apply_cam()
+				_last_touch_gesture = "pan"
+				return true
 		return false
 	return false
 
@@ -3606,18 +3995,22 @@ func _select_op(idx: int) -> void:
 	if idx < 0 or idx >= operators.size():
 		return
 	selected = operators[idx]
+	_follow_arrive_on = false
+	_follow_ring_hold = false
+	_follow_lock.clear()
 	_refresh_selection_visual()
 	_update_role_cards()
-	if phase == Phase.SETUP:
+	if _is_command_phase():
 		_sfx("ui")
-	if phase != Phase.SETUP:
+	if not _is_command_phase():
 		return
 	tool = Tool.DEPLOY
-	tool_button.text = "工具: 部署队员"
+	tool_button.text = "工具: 走路/掩体"
 	_refresh_mode_pack_buttons()
 	status_label.text = "已选择 %s — %s" % [selected.display_name, selected.kit_blurb()]
 	_update_cover_previews()
 	_refresh_killzone_preview()
+	_refresh_backpack_if_open()
 	_update_hud()
 
 
@@ -3636,29 +4029,49 @@ func _refresh_mode_pack_buttons() -> void:
 	if pack_button:
 		pack_button.visible = level != null and level.has_ammo_pack
 		if selected and selected.has_ammo_pack:
-			pack_button.text = "弹包: %s (G)" % selected.display_name
+			pack_button.text = "弹包: %s" % selected.display_name
 		else:
-			pack_button.text = "弹包分配 (G)"
+			pack_button.text = "弹包分配"
 
 
 func _handle_setup_click(world_pos: Vector2) -> void:
 	if tool == Tool.TRIPWIRE:
-		_try_place_tripwire(world_pos)
+		_try_place_inventory_mine(world_pos)
 		return
-	var slot := _nearest_slot(world_pos, 28.0)
+	if tool == Tool.GRENADE:
+		_place_nade_mark(world_pos)
+		return
+	if tool == Tool.DECOY:
+		_throw_decoy_at(world_pos)
+		return
+	if c2:
+		var c2hit: Dictionary = c2.handle_click(world_pos)
+		if bool(c2hit.get("handled", false)):
+			return
+		## Long-press sprint is already latched; double-click ORs in.
+		_c2_sprint_next = _c2_sprint_next or bool(c2hit.get("sprint", false))
+	## Phone: portraits pick people. Tapping a stacked teammate must not steal
+	## the walk (西院挤人误触). Desktop keeps body-select.
+	if not _want_touch():
+		for op in operators:
+			if op.visible and op.alive and op.global_position.distance_to(world_pos) <= 32.0:
+				selected = op
+				_refresh_selection_visual()
+				_refresh_mode_pack_buttons()
+				status_label.text = "已选择 %s — %s" % [op.display_name, op.kit_blurb()]
+				_update_cover_previews()
+				_refresh_killzone_preview()
+				_update_hud()
+				return
+	var slot_r := 8.0 if _want_touch() else 28.0
+	var slot := _nearest_slot(world_pos, slot_r)
+	if slot and _want_touch() and grid:
+		if grid.world_to_cell(world_pos) != grid.world_to_cell(slot.global_position):
+			slot = null
 	if slot:
 		_deploy_selected_to(slot, true)
 		return
-	for op in operators:
-		if op.visible and op.global_position.distance_to(world_pos) <= 20.0:
-			selected = op
-			_refresh_selection_visual()
-			_refresh_mode_pack_buttons()
-			status_label.text = "已选择 %s — %s" % [op.display_name, op.kit_blurb()]
-			_update_cover_previews()
-			_refresh_killzone_preview()
-			_update_hud()
-			return
+	_command_move_selected(world_pos)
 
 
 func _nearest_slot(world_pos: Vector2, max_dist: float) -> CoverSlot:
@@ -3698,12 +4111,17 @@ func _deploy_selected_to(slot: CoverSlot, announce: bool = true) -> void:
 	slot.set_highlight(true)
 	selected.slot = slot
 	selected.visible = true
+	selected.stop_move()
 	selected.global_position = slot.global_position
 	var face := float(slot.get_meta("default_face"))
-	selected.reset_loadout()
+	if not selected.alive:
+		selected.reset_loadout()
 	# Re-click or pad-to-pad move keeps the aim the player already set.
 	# First drop onto a pad still uses the authored default face.
-	if had_cover:
+	# Player double-tap (announce) faces the next authored route. Smoke uses announce=false.
+	if same_pad and announce:
+		selected.set_facing(_facing_toward_wave_route())
+	elif had_cover:
 		selected.set_facing(keep_deg)
 	else:
 		selected.set_facing(face)
@@ -3790,7 +4208,7 @@ func _make_tripwire(pos: Vector2) -> Tripwire:
 	var wire := Line2D.new()
 	wire.name = "Wire"
 	wire.width = 1.4
-	wire.default_color = Color(0.62, 0.98, 0.55, 0.92)
+	wire.default_color = Color(0.42, 0.36, 0.18, 0.92)
 	wire.points = PackedVector2Array([Vector2(-12, 0), Vector2(12, 0)])
 	t.add_child(wire)
 	var peg_a := Polygon2D.new()
@@ -3917,7 +4335,7 @@ func _build_echo_callout() -> void:
 	if not level.route_cells.has("echo"):
 		return
 	var pos := grid.cell_to_world_center(Vector2i(24, 12)) + Vector2(8, -22)
-	echo_callout = _make_map_callout("EchoCallout", "回波 5.2s", pos, Color(0.55, 0.90, 1.0))
+	echo_callout = _make_map_callout("EchoCallout", "回波 5.2s", pos, Color(0.72, 0.58, 0.28))
 
 
 func echo_callout_visible() -> bool:
@@ -3970,7 +4388,7 @@ func _build_trap_path() -> void:
 	if route == "sneak":
 		col = Color(0.68, 0.42, 0.92, 0.90)
 	elif route == "echo":
-		col = Color(0.55, 0.90, 1.0, 0.90)
+		col = Color(0.70, 0.56, 0.28, 0.90)
 	elif route == "alt":
 		col = Color(0.78, 0.55, 1.0, 0.90)
 	var fx: Node2D = TrapPathFxScript.new()
@@ -4018,7 +4436,14 @@ func _build_spawn_ghosts() -> void:
 	world.add_child(host)
 	spawn_ghost_host = host
 	var occupied: Dictionary = {}
-	for spec in level.spawn_schedule:
+	var specs: Array = []
+	if raid != null and level.has_method("spawns_for_wave"):
+		specs.append_array(raid.current_spawns(level))
+		if not raid.is_last_wave(level):
+			specs.append_array(level.spawns_for_wave(raid.wave_index + 1))
+	if specs.is_empty():
+		specs = level.spawn_schedule
+	for spec in specs:
 		var route := str(spec.get("route", "main"))
 		var cells: Array = level.route_cells.get(route, [])
 		if cells.is_empty():
@@ -4037,7 +4462,8 @@ func _build_spawn_ghosts() -> void:
 		)
 		g.position = pos + Vector2(-28.0, -12.0 + float(stack) * 16.0)
 		host.add_child(g)
-	host.visible = phase == Phase.SETUP
+	host.visible = phase == Phase.SETUP or phase == Phase.SWEEP
+	_apply_phone_world_ink()
 
 
 func setup_spawn_ghosts_visible() -> bool:
@@ -4123,11 +4549,11 @@ func _intel_flash_color(route: String) -> Color:
 		"sneak":
 			return Color(0.68, 0.32, 0.92)
 		"echo":
-			return Color(0.42, 0.82, 0.96)
+			return Color(0.70, 0.58, 0.32)
 		"main":
 			return Color(0.95, 0.28, 0.22)
 		_:
-			return Color(0.55, 0.85, 1.0)
+			return Color(0.62, 0.54, 0.32)
 
 
 func _refresh_spawn_teach() -> void:
@@ -4139,7 +4565,7 @@ func _refresh_spawn_teach() -> void:
 		text = str(level.beat_text).strip_edges()
 		if text == "" and not level.spawn_teaching.is_empty():
 			text = str(level.spawn_teaching[0]).strip_edges()
-	spawn_teach_label.visible = text != ""
+	spawn_teach_label.visible = text != "" and not _want_touch()
 	spawn_teach_label.text = text
 	_refresh_intel_chip()
 
@@ -4161,7 +4587,7 @@ func _ensure_intel_chip() -> void:
 	lab.clip_text = true
 	lab.add_theme_font_size_override("font_size", 13)
 	lab.add_theme_font_override("font", NightOps.ui_font_bold())
-	lab.add_theme_color_override("font_color", Color(0.55, 0.88, 1.0))
+	lab.add_theme_color_override("font_color", Color(0.78, 0.70, 0.48))
 	lab.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.02, 0.92))
 	lab.add_theme_constant_override("shadow_offset_x", 1)
 	lab.add_theme_constant_override("shadow_offset_y", 1)
@@ -4187,14 +4613,45 @@ func _refresh_intel_chip() -> void:
 			line = _clip_chip_line(leak_advice_shown, 28)
 		elif plan_restore_hint != "":
 			line = _clip_chip_line(plan_restore_hint, 28)
-	intel_chip.visible = line != "" and phase == Phase.SETUP
+		else:
+			var named := PackedStringArray()
+			for k in named_crate_ids():
+				named.append(WeaponCatalogScript.display_name(k))
+			var named_bit := ("  " + "·".join(named)) if not named.is_empty() else ""
+			var sentry_bit := ""
+			if c2:
+				sentry_bit = " 岗%d" % int(c2.sentry_count())
+			if _want_touch():
+				line = _clip_chip_line("匣%d 枪%s%s" % [
+					stash_count(),
+					"有" if squad_has_firearm() else "无",
+					sentry_bit,
+				], 22)
+			else:
+				line = _clip_chip_line("匣%d 枪%s%s%s  %s" % [
+					stash_count(),
+					"有" if squad_has_firearm() else "无",
+					named_bit,
+					sentry_bit,
+					_raid_clock_text(),
+				], 48)
+	elif phase == Phase.SWEEP:
+		line = _clip_chip_line("掉落%d  空格%s" % [living_loot_count(), "撤离" if raid and raid.is_last_wave(level) else "下一波"], 32)
+	intel_chip.visible = line != "" and (phase == Phase.SETUP or phase == Phase.SWEEP)
 	intel_chip.text = line
 	if _want_touch():
-		intel_chip.offset_top = 142.0
-		intel_chip.offset_bottom = 164.0
+		## Folded into the title band so the north wall stays tappable.
+		intel_chip.offset_left = 12.0
+		intel_chip.offset_top = 32.0
+		intel_chip.offset_right = -280.0
+		intel_chip.offset_bottom = 50.0
+		intel_chip.add_theme_font_size_override("font_size", 12)
 	else:
+		intel_chip.offset_left = 220.0
 		intel_chip.offset_top = 146.0
+		intel_chip.offset_right = -16.0
 		intel_chip.offset_bottom = 168.0
+		intel_chip.add_theme_font_size_override("font_size", 13)
 
 
 func intel_chip_text() -> String:
@@ -4364,7 +4821,7 @@ func _play_hold_pack(op_index: int) -> void:
 
 
 func _on_mode_pressed() -> void:
-	if phase != Phase.SETUP or selected == null or not selected.visible:
+	if not _is_command_phase() or selected == null or not selected.visible:
 		return
 	selected.cycle_fire_mode()
 	_refresh_mode_pack_buttons()
@@ -4377,7 +4834,7 @@ func _on_mode_pressed() -> void:
 
 
 func _on_pack_pressed() -> void:
-	if phase != Phase.SETUP or level == null or not level.has_ammo_pack:
+	if not _is_command_phase() or level == null or not level.has_ammo_pack:
 		return
 	if selected == null or not selected.visible:
 		status_label.text = "先部署并选中一名队员再分配弹包"
@@ -4406,7 +4863,7 @@ func _on_pack_pressed() -> void:
 
 
 func _on_door_pressed() -> void:
-	if phase != Phase.SETUP or level == null or level.door_cell.x < 0:
+	if not _is_command_phase() or level == null or level.door_cell.x < 0:
 		return
 	door_locked = not door_locked
 	_door_taught = true
@@ -4458,22 +4915,44 @@ func alarm_leak_warning() -> String:
 	return "漏网还没罩住 — 拉警报会穿梭"
 
 
+func raid_force_alarm() -> void:
+	## Headless / skip-gate: treat the soft firearm warning as already shown.
+	_alarm_warned_no_gun = true
+	_on_alarm_pressed()
+
+
 func _on_alarm_pressed() -> void:
+	if phase == Phase.SWEEP:
+		_on_sweep_commit()
+		return
 	if phase != Phase.SETUP:
 		return
-	if _deployed_count() < 1:
-		status_label.text = "至少部署一名队员到掩体"
+	if _living_ops() < 1:
+		status_label.text = "没有能作战的队员"
 		return
+	if not squad_has_firearm():
+		if not _alarm_warned_no_gun:
+			_alarm_warned_no_gun = true
+			var warn := "至少先拾一把枪 — 再按一次才强拉警报"
+			_flash(warn, Color(1.0, 0.62, 0.28))
+			if status_label:
+				status_label.text = warn
+			_sfx("ui")
+			_refresh_alarm_cta()
+			return
 	var leak_warn := alarm_leak_warning()
 	if leak_warn != "":
 		_flash(leak_warn, Color(1.0, 0.55, 0.28))
 		if status_label:
 			status_label.text = leak_warn
+	_alarm_pulled_unarmed = not squad_has_firearm()
 	_capture_plan()
 	frozen_plan = last_plan.duplicate_plan()
 	run_id += 1
 	var this_run := run_id
 	phase = Phase.WATCHING
+	if c2:
+		c2.begin_alert()
 	leak_advice_shown = ""
 	_clear_intel_path_ghost()
 	sim.reset()
@@ -4522,7 +5001,7 @@ func _on_alarm_pressed() -> void:
 	if speed_button:
 		speed_button.disabled = false
 	_wave_tension_id = -1
-	status_label.text = "方案锁死 — 暂停/变速/跳到终局仅改变观看。跑掉或全灭均失败。中止(X)留情报。"
+	status_label.text = "警报 · 第%d波 — 埋伏开火。逃逸或全灭失败。中止(X)留情报。" % (raid.wave_index + 1 if raid else 1)
 	_fade_trap_callout()
 	_fade_second_callout()
 	_fade_echo_callout()
@@ -4534,15 +5013,15 @@ func _on_alarm_pressed() -> void:
 
 func _queue_spawns(_this_run: int) -> void:
 	_clear_enemies()
-	_clear_loot()
 	pending_spawns.clear()
 	all_spawns_done = false
-	for spec in level.spawn_schedule:
+	var specs: Array = raid.current_spawns(level) if raid else level.spawn_schedule
+	for spec in specs:
 		pending_spawns.append({
 			"id": int(spec["id"]),
 			"route": str(spec["route"]),
 			"delay": float(spec["delay"]),
-			"loot": int(spec["loot"]),
+			"loot": int(spec.get("loot", 0)),
 			"kit": str(spec.get("kit", "")),
 			"teaching_note": str(spec.get("teaching_note", "")),
 			"spawned": false,
@@ -4671,8 +5150,8 @@ func _make_enemy(id: int) -> EnemyRunner:
 	return e
 
 
-func _spawn_loot_at(pos: Vector2, amount: int) -> void:
-	if amount <= 0:
+func _spawn_loot_at(pos: Vector2, amount: int, kind: String = "ammo") -> void:
+	if amount <= 0 and kind == "ammo":
 		return
 	var loot := LootPickup.new()
 	var visual := Polygon2D.new()
@@ -4690,7 +5169,7 @@ func _spawn_loot_at(pos: Vector2, amount: int) -> void:
 	loot.add_child(tag)
 	entities.add_child(loot)
 	loot.global_position = pos
-	loot.setup(amount)
+	loot.setup(amount, kind)
 	loot_piles.append(loot)
 
 
@@ -4699,6 +5178,7 @@ func _on_return_fired(from: EnemyRunner, to: OperatorUnit) -> void:
 	if phase == Phase.WATCHING or pending_result != "":
 		battle_log.add_event(sim.tick, "return_fire", from.label_id, to.op_id, from.global_position)
 	_sfx("return_fire")
+	_night_hp_lost = true
 	if not _watch_first_return:
 		_watch_first_return = true
 	_spawn_watch_tracer(from.global_position, to.global_position, Color(1.0, 0.58, 0.22, 0.94), 2.4)
@@ -4706,11 +5186,28 @@ func _on_return_fired(from: EnemyRunner, to: OperatorUnit) -> void:
 
 
 func _process(delta: float) -> void:
-	if phase == Phase.SETUP:
+	if phase == Phase.SETUP or phase == Phase.WATCHING or phase == Phase.SWEEP:
+		_night_timer += delta
+	if _is_command_phase():
 		_tick_cover_long_press()
+		_tick_touch_hold()
 		_tick_cover_hold_ring()
 		_update_cover_previews()
 		_update_tripwire_ghost()
+		_tick_hold_to_move(delta)
+		_tick_command_moves(delta)
+		_tick_squad_follow(delta)
+		_tick_pending_flank()
+		_tick_command_pickups(delta)
+		_tick_raid_grenades(delta)
+		_tick_raid_decoys(delta)
+		_tick_footsteps(delta)
+		if c2:
+			c2.tick(delta)
+		hud_tick += delta
+		if hud_tick >= 0.20:
+			hud_tick = 0.0
+			_update_hud()
 		return
 	if phase != Phase.WATCHING:
 		return
@@ -4800,7 +5297,7 @@ func _sim_tick() -> void:
 	# 6) Operator fire — priority: shortest remaining path to escape, then stable ID
 	if phase == Phase.WATCHING:
 		for op in operators:
-			if not op.visible or not op.locked or not op.alive:
+			if not op.visible or not op.alive:
 				continue
 			var best: EnemyRunner = null
 			var best_escape := INF
@@ -4849,13 +5346,12 @@ func _sim_tick() -> void:
 				_finish_sim_tick()
 				return
 
-	# 8) Loot: nearest + LOS + stable op_id
+	# 8) Loot stays on the ground during ALERT. Sweep/scout walk-collect.
 	if phase == Phase.WATCHING:
-		for loot in loot_piles.duplicate():
-			if not is_instance_valid(loot) or loot.collected:
-				continue
-			_try_assign_loot(loot)
-		loot_piles = loot_piles.filter(func(l: LootPickup) -> bool: return is_instance_valid(l) and not l.collected)
+		_tick_auto_grenades(SimClock.TICK_DT)
+		_tick_raid_mines()
+		_tick_raid_grenades(SimClock.TICK_DT)
+		_tick_raid_decoys(SimClock.TICK_DT)
 
 	_finish_sim_tick()
 
@@ -4942,18 +5438,20 @@ func _aim_world() -> Vector2:
 
 func _update_tripwire_ghost() -> void:
 	_ensure_tripwire_ghost()
-	if phase != Phase.SETUP or tool != Tool.TRIPWIRE:
+	if (phase != Phase.SETUP and phase != Phase.SWEEP) or tool != Tool.TRIPWIRE:
 		tripwire_ghost.visible = false
 		return
 	tripwire_ghost.visible = true
 	var pos := _aim_world()
 	tripwire_ghost.global_position = pos
-	var ok := _near_any_route_segment(pos, TRIPWIRE_ROUTE_DIST)
+	var inv_mine := selected != null and int(selected.mines) > 0
+	var ok := inv_mine or _near_any_route_segment(pos, TRIPWIRE_ROUTE_DIST)
 	var vis := tripwire_ghost.get_node_or_null("Visual") as Polygon2D
 	if vis:
 		vis.color = Color(0.42, 0.95, 0.52, 0.88) if ok else Color(0.92, 0.22, 0.2, 0.85)
 	var tag := tripwire_ghost.get_node_or_null("Tag") as Label
 	if tag:
+		tag.text = "埋雷" if inv_mine else "绊索"
 		tag.add_theme_color_override("font_color", Color(0.5, 0.95, 0.5) if ok else Color(0.95, 0.4, 0.3))
 
 
@@ -5022,18 +5520,25 @@ func _try_assign_loot(loot: LootPickup) -> void:
 		return a.op_id < b.op_id
 	)
 	for op in candidates:
-		var amount := loot.ammo_amount
-		var gained := op.receive_ammo(amount)
-		if gained > 0:
-			var loot_pos := loot.global_position
-			loot.collect()
-			CombatFxScript.loot_spark(entities, loot_pos)
-			CombatFxScript.loot_streak(entities, loot_pos, op.global_position)
-			battle_log.add_event(sim.tick, "loot", op.op_id, -1, loot_pos, {"amount": gained})
-			status_label.text = "%s 搜刮 +%d弹" % [op.display_name, gained]
-			_sfx("loot")
-			_update_event_log()
-			return
+		var item: Dictionary = {"kind": loot.kind, "amount": loot.ammo_amount}
+		if op.has_method("pack_can_fit") and not op.pack_can_fit(str(item.get("kind", "ammo")), int(item.get("amount", 1))):
+			continue
+		var loot_pos := loot.global_position
+		var taken := loot.collect_item()
+		if taken.is_empty():
+			continue
+		var rec: Dictionary = op.receive_item(str(item.get("kind", "ammo")), int(item.get("amount", 1)))
+		if not bool(rec.get("ok", false)) and bool(rec.get("full", false)):
+			_spawn_loot_at(loot_pos, int(item.get("amount", 1)), str(item.get("kind", "ammo")))
+			continue
+		CombatFxScript.loot_spark(entities, loot_pos)
+		CombatFxScript.loot_streak(entities, loot_pos, op.global_position)
+		battle_log.add_event(sim.tick, "loot", op.op_id, -1, loot_pos, item)
+		status_label.text = "%s 搜刮 %s" % [op.display_name, str(rec.get("text", ""))]
+		_sfx("loot")
+		_update_event_log()
+		_update_role_cards()
+		return
 
 
 func _resolve_escapes() -> void:
@@ -5072,6 +5577,7 @@ func _on_enemy_escaped(enemy: EnemyRunner, path: PackedVector2Array) -> void:
 		route = "alt"
 	var lid := int(enemy.label_id)
 	fail_reason = "escape"
+	_wave_fail_index = wave_index() + 1
 	phase = Phase.FAILED
 	var hint := _escape_route_hint(enemy)
 	battle_log.add_event(
@@ -5098,7 +5604,10 @@ func _on_enemy_died(enemy: EnemyRunner) -> void:
 		return
 	if phase == Phase.WATCHING or pending_result != "":
 		battle_log.add_event(sim.tick, "kill", enemy.label_id)
-	_spawn_loot_at(enemy.global_position, enemy.loot_ammo)
+	var drop_kit := "echo" if enemy.echo_kit else ""
+	var night := str(level.level_id) if level else ""
+	var drop: Dictionary = WeaponCatalogScript.enemy_drop_for(int(enemy.loot_ammo), drop_kit, night, int(enemy.label_id))
+	_spawn_loot_at(enemy.global_position, int(drop.get("amount", 2)), str(drop.get("kind", "ammo")))
 	if phase == Phase.WATCHING:
 		_kill_edge_flash()
 		if _last_kill_tick >= 0 and sim.tick - _last_kill_tick <= PayoffCopy.combo_window_ticks():
@@ -5119,6 +5628,7 @@ func _on_enemy_died(enemy: EnemyRunner) -> void:
 		if enemy.has_method("_kind_rim_color"):
 			stain_tint = enemy._kind_rim_color()
 		CombatFxScript.death_stain(entities, enemy.global_position, stain_tint)
+		CombatFxScript.drag_smear(entities, enemy.global_position, enemy._last_move_dir, stain_tint)
 		CombatFxScript.kill_stamp(entities, enemy.global_position, enemy.label_id, stain_tint.lightened(0.35))
 	_update_event_log()
 	if phase == Phase.WATCHING:
@@ -5244,7 +5754,7 @@ func _on_op_fired_shot(op: OperatorUnit, target_pos: Vector2) -> void:
 				col = Color(1.0, 0.88, 0.40, 0.96)
 				w = 2.95
 			OperatorUnit.Role.SCOUT:
-				col = Color(0.88, 0.98, 1.0, 0.92)
+				col = Color(0.88, 0.82, 0.58, 0.92)
 				w = 1.85
 		for i in operators.size():
 			if operators[i] == op and i < role_cards.size():
@@ -5342,7 +5852,10 @@ func _exit_tree() -> void:
 
 func _on_op_ammo_empty(op: OperatorUnit) -> void:
 	_flash("%s 空弹" % op.display_name, Color(0.9, 0.55, 0.2))
-	_sfx("empty")
+	if op != null and str(op.weapon_id) == "m1_garand":
+		_sfx("fire_ping")
+	else:
+		_sfx("empty")
 	_operator_bark(op, "empty")
 
 
@@ -5364,13 +5877,74 @@ func _on_op_ammo_repacked(op: OperatorUnit) -> void:
 	_update_role_cards()
 
 
+func _clear_flash() -> void:
+	if _flash_tween != null:
+		_flash_tween.kill()
+		_flash_tween = null
+	if flash_label:
+		flash_label.text = ""
+		flash_label.modulate.a = 0.0
+	if has_node("HUD/Root"):
+		var plate := $HUD/Root.get_node_or_null("FlashPlate") as ColorRect
+		if plate:
+			plate.modulate.a = 0.0
+
+
+func cinema_banner_text() -> String:
+	if _watch_letterbox == null or not is_instance_valid(_watch_letterbox):
+		return ""
+	var banner := _watch_letterbox.get_node_or_null("WatchBanner") as Label
+	if banner == null:
+		return ""
+	return str(banner.text)
+
+
+func flash_text() -> String:
+	if flash_label == null or float(flash_label.modulate.a) < 0.08:
+		return ""
+	return str(flash_label.text)
+
+
+func last_loot_chip_text() -> String:
+	return _last_loot_chip
+
+
+func _spawn_loot_chip(at: Vector2, kind: String) -> void:
+	## World-space "拿到X" so phone players see the crate pay off, not only HUD.
+	var zh := kind
+	if WeaponCatalogScript:
+		zh = str(WeaponCatalogScript.tag_zh(kind))
+	_last_loot_chip = "拿到%s" % zh
+	if entities == null:
+		return
+	var lab := Label.new()
+	lab.name = "LootChip"
+	lab.text = _last_loot_chip
+	lab.add_theme_font_size_override("font_size", 13)
+	lab.add_theme_color_override("font_color", Color(0.96, 0.86, 0.42))
+	lab.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.02, 0.90))
+	lab.add_theme_constant_override("shadow_offset_x", 1)
+	lab.add_theme_constant_override("shadow_offset_y", 1)
+	lab.z_index = 12
+	lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	entities.add_child(lab)
+	lab.global_position = at + Vector2(-22, -28)
+	var tw := lab.create_tween()
+	tw.tween_property(lab, "position:y", lab.position.y - 18.0, 0.85)
+	tw.parallel().tween_property(lab, "modulate:a", 0.0, 0.85)
+	tw.tween_callback(lab.queue_free)
+
+
 func _flash(text: String, color: Color) -> void:
 	if flash_label == null:
 		return
 	if _flash_tween != null:
 		_flash_tween.kill()
 	text = _clip_chip_line(text, 28)
-	if phase == Phase.WATCHING:
+	if _want_touch():
+		flash_label.offset_top = 4.0
+		flash_label.offset_bottom = 26.0
+	elif phase == Phase.WATCHING:
 		flash_label.offset_top = 118.0
 		flash_label.offset_bottom = 152.0
 	else:
@@ -5400,6 +5974,8 @@ func _flash(text: String, color: Color) -> void:
 func _fix_one_line() -> String:
 	if fail_reason != "escape":
 		return ""
+	if _alarm_pulled_unarmed:
+		return "改一处就能赢：先搜匣拿到枪再拉警报。刀强拉会漏网。"
 	if level != null:
 		var authored := str(level.fix_one).strip_edges()
 		if authored != "":
@@ -5609,6 +6185,10 @@ func _show_win_result() -> void:
 		var star := ""
 		if not _mission_had_escape:
 			star = "\n★ 完美封锁：零逃逸"
+		if not _night_hp_lost:
+			star += "\n★ 无人受伤"
+		if c2 != null and bool(c2.quiet_yard):
+			star += "\n★ 无声院子：岗哨已割"
 		var hook := str(PayoffCopy.highlight_result_line(level, battle_log, true))
 		var hook_block := ("\n%s" % hook) if hook != "" else ""
 		var beat := ""
@@ -5629,6 +6209,8 @@ func _show_win_result() -> void:
 		var last_star := ""
 		if not _mission_had_escape:
 			last_star = "\n★ 完美封锁：零逃逸"
+		if not _night_hp_lost:
+			last_star += "\n★ 无人受伤"
 		var last_hook := str(PayoffCopy.highlight_result_line(level, battle_log, true))
 		var last_hook_block := ("\n%s" % last_hook) if last_hook != "" else ""
 		var last_beat := ""
@@ -5866,13 +6448,7 @@ func _check_win() -> void:
 	if _living_ops() == 0:
 		_fail_squad_wipe()
 		return
-	phase = Phase.WON
-	battle_log.mark_terminal(sim.tick, "win")
-	_flash("零逃逸", Color(0.45, 0.9, 0.45))
-	_sfx("win")
-	_win_stinger()
-	_camera_punch()
-	pending_result = "win"
+	_enter_sweep()
 
 
 func _first_shot_line() -> String:
@@ -6023,18 +6599,18 @@ func _refresh_watch_timeline() -> void:
 	_ensure_watch_timeline()
 	if watch_timeline == null:
 		return
-	var show := (phase == Phase.WATCHING or phase == Phase.SETUP) and level != null
 	var touch := _want_touch()
-	watch_timeline.offset_top = 72.0 if touch else 76.0
-	watch_timeline.offset_bottom = 116.0 if touch else 120.0
+	## Phone SCOUT: hide the timeline so it does not cover the north wall.
+	var show := level != null and (phase == Phase.WATCHING or (phase == Phase.SETUP and not touch))
+	if touch:
+		watch_timeline.offset_top = 44.0
+		watch_timeline.offset_bottom = 80.0
+	else:
+		watch_timeline.offset_top = 76.0
+		watch_timeline.offset_bottom = 120.0
 	watch_timeline.visible = show
-	if not show:
-		watch_timeline.set("preview_upcoming", 0)
-		if watch_timeline.has_method("set_live"):
-			watch_timeline.set_live(false)
-		return
 	var marks: Array = []
-	if level.has_method("route_spawn_marks"):
+	if level != null and level.has_method("route_spawn_marks"):
 		marks = level.route_spawn_marks()
 	watch_timeline.set("marks", marks)
 	watch_timeline.set("payoff_marks", PayoffCopy.timeline_marks(battle_log) if phase == Phase.WATCHING else [])
@@ -6154,7 +6730,7 @@ func _on_continue_pressed() -> void:
 				intel_label.text = "情报已记录 · %s" % intel_line
 				intel_label.visible = false
 			_refresh_intel_chip()
-			_flash("情报已记录", Color(0.55, 0.85, 1.0))
+			_flash("情报已记录", Color(0.78, 0.68, 0.40))
 	elif phase == Phase.WON:
 		if level_index + 1 < LEVEL_ORDER.size():
 			var from_id := str(LEVEL_ORDER[level_index])
@@ -6290,12 +6866,12 @@ func _event_tint(ev: Dictionary) -> Color:
 	match typ:
 		"spawn":
 			if str(ev.get("payload", {}).get("kit", "")) == "echo":
-				return Color(0.55, 0.90, 1.0)
+				return Color(0.70, 0.58, 0.32)
 			match route:
 				"flank":
 					return Color(0.95, 0.62, 0.22)
 				"sneak":
-					return Color(0.42, 0.82, 0.62)
+					return Color(0.42, 0.48, 0.28)
 				_:
 					return Color(0.92, 0.40, 0.32)
 		"fire":
@@ -6567,7 +7143,7 @@ func result_cta_buried_by_bars() -> bool:
 
 func _update_hud() -> void:
 	var lv_title := level.title if level else "AMBUSH LOOP"
-	title_label.text = "AMBUSH LOOP  ·  第 %d 世" % loop_index
+	title_label.text = "AMBUSH LOOP  ·  第 %d 世  ·  波 %d/%d" % [loop_index, wave_index() + 1, wave_total()]
 	if level_label:
 		level_label.text = lv_title
 	if tut_label and level:
@@ -6577,7 +7153,7 @@ func _update_hud() -> void:
 	if help_label:
 		# One-line in the bottom-left chrome. Hidden while watching so the
 		# letterbox and escape mouth stay clear. Never a paragraph over the map.
-		help_label.visible = phase == Phase.SETUP and not _want_touch()
+		help_label.visible = _is_command_phase() and not _want_touch()
 	_refresh_spawn_teach()
 	# Short dump string only. Painted advice lives on intel_chip under the timeline.
 	var intel_txt := "漏网记忆：%d   |   %s" % [intel.records.size(), _ammo_summary()]
@@ -6600,12 +7176,15 @@ func _update_hud() -> void:
 		op.tag_emphasis = phase == Phase.WATCHING and op.alive and op.slot != null
 		if op.has_method("_refresh_tag"):
 			op._refresh_tag()
+	_refresh_alarm_cta()
 	var dep := _deployed_count()
 	if phase == Phase.SETUP:
-		help_label.text = "点掩体 %d/3 · A/D射界 · 空格警报" % dep
+		help_label.text = "点地走 双击跑 C匍 Q技能 W哨 I包 G雷点 上掩体%d/3 · 空格%s" % [dep, alarm_button.text if alarm_button else "警报"]
 	elif phase == Phase.WATCHING:
 		var spd := "暂停" if sim.paused else ("2×" if sim.speed >= 1.5 else "1×")
-		help_label.text = "锁死 t=%.1fs %s" % [sim.time_sec(), spd]
+		help_label.text = "警报 t=%.1fs %s  自动火力/自动手雷 · 走位等打扫" % [sim.time_sec(), spd]
+	elif phase == Phase.SWEEP:
+		help_label.text = "打扫：搜尸换枪 包扎(Z) · 空格%s" % ("撤离" if raid and raid.is_last_wave(level) else "下一波")
 	elif phase == Phase.FAILED:
 		help_label.text = "失败：%s" % fail_reason
 	elif phase == Phase.WON:
@@ -6614,14 +7193,20 @@ func _update_hud() -> void:
 		help_label.text = "复盘 t=%.1fs / %.1fs" % [
 			float(replay.scrub_tick) / 60.0, float(replay.max_tick()) / 60.0
 		]
+	_refresh_stash_board()
 	_refresh_door_visual()
 	_refresh_mode_pack_buttons()
+	_refresh_backpack_if_open()
 	_update_role_cards()
+	if c2:
+		c2.refresh_hud()
 	_update_observation_rings()
 	if phase != Phase.SETUP:
 		_update_cover_previews()
 	_apply_watch_layers()
+	_ensure_touch_hud()
 	_refresh_touch_hud()
+	_apply_phone_world_ink()
 
 
 func _pending_unspawned() -> int:
@@ -6711,23 +7296,31 @@ func watch_census_text() -> String:
 func _refresh_phase_chip() -> void:
 	if phase_chip == null:
 		return
+	var total: int = raid.wave_count(level) if raid else 1
+	var w: int = raid.wave_index if raid else 0
 	match phase:
 		Phase.SETUP:
-			phase_chip.text = "阶段 · 布置杀局"
+			phase_chip.text = "阶段 · 搜刮潜行  波次 %d/%d" % [w + 1, total]
 			phase_chip.add_theme_color_override("font_color", Color(0.82, 0.90, 0.52))
 		Phase.WATCHING:
 			var spd := "暂停" if sim.paused else ("2×" if sim.speed >= 1.5 else "1×")
-			phase_chip.text = "锁死观战  %s  t=%.1fs  %s" % [spd, sim.time_sec(), watch_census_text()]
+			phase_chip.text = "警报 第%d/%d波  %s  t=%.1fs  %s" % [w + 1, total, spd, sim.time_sec(), watch_census_text()]
 			phase_chip.add_theme_color_override("font_color", Color(1.0, 0.22, 0.14))
+		Phase.SWEEP:
+			if raid and raid.is_last_wave(level):
+				phase_chip.text = "打扫战场  最后一波 · 空格撤离"
+			else:
+				phase_chip.text = "打扫战场  空格拉第%d波" % [w + 2]
+			phase_chip.add_theme_color_override("font_color", Color(0.95, 0.82, 0.38))
 		Phase.FAILED:
-			phase_chip.text = "阶段 · 失败穿梭"
+			phase_chip.text = "阶段 · 失败"
 			phase_chip.add_theme_color_override("font_color", Color(1.0, 0.42, 0.28))
 		Phase.WON:
 			phase_chip.text = "阶段 · 封锁成功"
 			phase_chip.add_theme_color_override("font_color", Color(0.55, 0.92, 0.48))
 		Phase.REPLAY:
 			phase_chip.text = "阶段 · 只读复盘"
-			phase_chip.add_theme_color_override("font_color", Color(0.72, 0.85, 0.95))
+			phase_chip.add_theme_color_override("font_color", Color(0.78, 0.70, 0.48))
 		_:
 			phase_chip.text = ""
 
@@ -6735,7 +7328,7 @@ func _refresh_phase_chip() -> void:
 func _refresh_route_legend() -> void:
 	if route_legend == null:
 		return
-	var show := phase == Phase.SETUP and level != null
+	var show := phase == Phase.SETUP and level != null and not _want_touch()
 	route_legend.visible = show
 	if not show:
 		return
@@ -6745,15 +7338,15 @@ func _refresh_route_legend() -> void:
 	if level.route_cells.has("flank"):
 		chips.append({"id": "flank", "icon": "侧", "label": _route_chip_label("flank", "侧翼"), "color": Color(0.95, 0.55, 0.16)})
 	if level.route_cells.has("sneak"):
-		chips.append({"id": "sneak", "icon": "暗", "label": _route_chip_label("sneak", "暗道"), "color": Color(0.38, 0.78, 0.52)})
+		chips.append({"id": "sneak", "icon": "暗", "label": _route_chip_label("sneak", "暗道"), "color": Color(0.42, 0.48, 0.28)})
 	if level.route_cells.has("echo"):
-		chips.append({"id": "echo", "icon": "回", "label": _route_chip_label("echo", "回波"), "color": Color(0.42, 0.82, 0.96)})
+		chips.append({"id": "echo", "icon": "回", "label": _route_chip_label("echo", "回波"), "color": Color(0.70, 0.58, 0.32)})
 	if level.level_id == "pump" and not level.alternate_route_cells.is_empty():
 		chips.append({"id": "alt", "icon": "门", "label": "备用", "color": Color(0.72, 0.55, 0.28)})
 	if level.has_method("second_trap_text") and str(level.second_trap_text()).strip_edges() != "":
 		var tcol := Color(1.0, 0.72, 0.38)
 		if str(level.level_id) == "radio":
-			tcol = Color(0.55, 0.90, 1.0)
+			tcol = Color(0.70, 0.58, 0.32)
 		chips.append({"id": "trap2", "icon": "二", "label": "第二层", "color": tcol})
 	_fill_route_chips(chips)
 
@@ -6908,7 +7501,7 @@ func _update_role_cards() -> void:
 		if level != null and level.has_method("role_why_for"):
 			why0 = str(level.role_why_for(selected.role))
 		var why_bit := ("\n%s" % why0) if why0 != "" else ""
-		plan_readout.text = "选中 %s（未部署）\n%s%s" % [selected.display_name, selected.kit_blurb(), why_bit]
+		plan_readout.text = "选中 %s\n%s%s" % [selected.display_name, selected.kit_blurb(), why_bit]
 	else:
 		var why1 := ""
 		if level != null and level.has_method("role_why_for"):
@@ -6920,3 +7513,4905 @@ func _update_role_cards() -> void:
 			_compass_deg(selected.facing_deg),
 			why_line,
 		]
+
+
+func _is_command_phase() -> bool:
+	return phase == Phase.SETUP or phase == Phase.SWEEP
+
+
+func phase_id() -> String:
+	match phase:
+		Phase.SETUP:
+			return "scout"
+		Phase.WATCHING:
+			return "alert"
+		Phase.SWEEP:
+			return "sweep"
+		Phase.FAILED:
+			return "fail"
+		Phase.WON:
+			return "win"
+		Phase.REPLAY:
+			return "replay"
+		_:
+			return ""
+
+
+func wave_index() -> int:
+	return raid.wave_index if raid else 0
+
+
+func wave_total() -> int:
+	return raid.wave_count(level) if raid else 1
+
+
+func _wipe_squad_inventory() -> void:
+	for op in operators:
+		if op:
+			op.wipe_inventory()
+			op.reset_loadout()
+
+
+func _place_squad_insert() -> void:
+	if level == null or grid == null:
+		return
+	for i in operators.size():
+		var op: OperatorUnit = operators[i]
+		if op.slot != null:
+			continue
+		var cell: Vector2i = level.insert_cell_for(i)
+		if grid.is_blocked(cell.x, cell.y):
+			cell = RaidPathfinderScript.nearest_open(grid, cell)
+		op.visible = true
+		op.alive = true
+		op.slot = null
+		op.unlock_plan()
+		op.stop_move()
+		op.global_position = grid.cell_to_world_center(cell)
+		op.set_facing(0.0 if i == 0 else (90.0 if i == 1 else 180.0))
+
+
+func _clear_stashes() -> void:
+	for s in raid_stashes:
+		if s != null and is_instance_valid(s):
+			s.queue_free()
+	raid_stashes.clear()
+	for n in get_tree().get_nodes_in_group("stash"):
+		if is_instance_valid(n):
+			n.queue_free()
+
+
+func _clear_raid_throwables() -> void:
+	for g in raid_grenades:
+		if g != null and is_instance_valid(g):
+			g.queue_free()
+	raid_grenades.clear()
+	for m in raid_mines:
+		if m != null and is_instance_valid(m):
+			m.queue_free()
+	raid_mines.clear()
+	for d in raid_decoys:
+		if d != null and is_instance_valid(d):
+			d.queue_free()
+	raid_decoys.clear()
+
+
+func _spawn_level_stashes() -> void:
+	_clear_stashes()
+	if level == null or grid == null:
+		return
+	var gs = get_node_or_null("/root/GameSettings")
+	var lean := gs != null and bool(gs.get("few_crates"))
+	var used: Dictionary = {}
+	for spec in level.stashes:
+		if not spec is Dictionary:
+			continue
+		var authored := str(spec.get("kind", ""))
+		if lean and authored in ["ammo", "pistol"]:
+			continue
+		var cell: Vector2i = spec.get("cell", Vector2i.ZERO)
+		if grid.is_blocked(cell.x, cell.y):
+			cell = RaidPathfinderScript.nearest_open(grid, cell)
+		if cell.x < 0:
+			continue
+		var key := "%d,%d" % [cell.x, cell.y]
+		if used.has(key):
+			cell = RaidPathfinderScript.nearest_open(grid, Vector2i(cell.x + 1, cell.y))
+			key = "%d,%d" % [cell.x, cell.y]
+			if cell.x < 0 or used.has(key):
+				continue
+		used[key] = true
+		var kind := WeaponCatalogScript.resolve_crate_kind(authored, str(level.level_id), raid_stashes.size())
+		var amount := int(spec.get("amount", 1))
+		if WeaponCatalogScript.is_firearm(kind):
+			var d: Dictionary = WeaponCatalogScript.def(kind)
+			var mx := int(d.get("max_ammo", amount))
+			if mx > 0:
+				amount = clampi(amount, 1, mx)
+		var st = RaidStashScript.new()
+		st.name = "Stash"
+		entities.add_child(st)
+		st.global_position = grid.cell_to_world_center(cell)
+		st.setup(kind, amount, cell)
+		raid_stashes.append(st)
+	_ping_first_crate()
+	_cap_stashes()
+	_refresh_stash_board()
+
+
+func _command_move_selected(world_pos: Vector2) -> void:
+	if selected == null:
+		return
+	var sprint := _c2_sprint_next
+	_c2_sprint_next = false
+	_command_move_op(selected, world_pos, sprint)
+
+
+func _command_move_op(op: OperatorUnit, world_pos: Vector2, sprint: bool = false) -> bool:
+	if op == null or not op.visible or not op.alive or op.locked:
+		return false
+	var from_c := op.grid_cell()
+	var to_c := grid.world_to_cell(world_pos)
+	var stash_c := _stash_cell_near(to_c, 0 if _want_touch() else 1)
+	if stash_c.x >= 0:
+		to_c = stash_c
+	elif _cell_taken(to_c, op):
+		to_c = _open_cell_near(to_c, op)
+	var cells: Array[Vector2i] = RaidPathfinderScript.find_path(grid, from_c, to_c)
+	if cells.is_empty():
+		if op == selected and status_label:
+			status_label.text = "走不过去"
+		return false
+	if op.slot:
+		op.slot.occupied_by = null
+		op.slot.set_highlight(false)
+		op.slot = null
+	var pts := PackedVector2Array()
+	pts.append(op.global_position)
+	for c in cells:
+		pts.append(grid.cell_to_world_center(c))
+	op.set_move_path(pts)
+	if op == selected and Input.is_key_pressed(KEY_SHIFT):
+		if op.has_method("set_sprint"):
+			op.set_sprint(false)
+		if op.stance != 1:
+			op.move_speed = op.base_move_speed * 0.72
+	elif sprint and op.has_method("set_sprint"):
+		op.set_sprint(true)
+	_paint_move_for(op, pts)
+	return true
+
+
+func _apply_move_cells(op: OperatorUnit, cells: Array[Vector2i], sprint: bool = false) -> bool:
+	if op == null or cells.is_empty():
+		return false
+	if op.slot:
+		op.slot.occupied_by = null
+		op.slot.set_highlight(false)
+		op.slot = null
+	var pts := PackedVector2Array()
+	pts.append(op.global_position)
+	for c in cells:
+		pts.append(grid.cell_to_world_center(c))
+	op.set_move_path(pts)
+	if sprint and op.has_method("set_sprint"):
+		op.set_sprint(true)
+	_paint_move_for(op, pts)
+	return true
+
+
+func _apply_follow_cells(op: OperatorUnit, cells: Array[Vector2i], last_world: Vector2 = Vector2.INF) -> bool:
+	## Followers keep walking. Do not snap back to the current cell center
+	## (that is the one-cell hitch when dest hops). last_world is the blended
+	## dest so a 1-cell hop slides instead of jumping a whole tile.
+	if op == null or cells.is_empty() or grid == null:
+		return false
+	if op.slot:
+		op.slot.occupied_by = null
+		op.slot.set_highlight(false)
+		op.slot = null
+	var cur: Vector2i = op.grid_cell()
+	var pts := PackedVector2Array()
+	pts.append(op.global_position)
+	var last: Vector2 = op.global_position
+	for c in cells:
+		if c == cur:
+			continue
+		var w: Vector2 = grid.cell_to_world_center(c)
+		if w.distance_squared_to(last) < 36.0:
+			continue
+		pts.append(w)
+		last = w
+	if last_world != Vector2.INF:
+		if pts.size() >= 2:
+			pts[pts.size() - 1] = last_world
+		elif last_world.distance_squared_to(op.global_position) >= 16.0:
+			pts.append(last_world)
+	if pts.size() < 2:
+		return false
+	if op.is_moving() and op.move_path.size() > 1:
+		var old_end: Vector2 = op.move_path[op.move_path.size() - 1]
+		var new_end: Vector2 = pts[pts.size() - 1]
+		if old_end.distance_to(new_end) < 40.0:
+			return _follow_nudge_path_end(op, new_end)
+	op.set_move_path(pts)
+	return true
+
+
+func _paint_move_for(op: OperatorUnit, pts: PackedVector2Array) -> void:
+	if op != selected:
+		return
+	_draw_move_ghost(pts)
+	_fade_move_ghost()
+	if c2 and pts.size() > 0:
+		c2.plant_dest(pts[pts.size() - 1], op)
+	if status_label:
+		status_label.text = "%s %s" % [op.display_name, "奔跑" if op.sprinting else "移动"]
+	_sfx("ui")
+
+
+func _draw_move_ghost(pts: PackedVector2Array) -> void:
+	if _move_ghost == null or not is_instance_valid(_move_ghost):
+		_move_ghost = Line2D.new()
+		_move_ghost.name = "MoveGhost"
+		_move_ghost.width = 2.0
+		_move_ghost.default_color = Color(0.72, 0.88, 0.42, 0.55)
+		_move_ghost.z_index = 2
+		$World.add_child(_move_ghost)
+	_move_ghost.points = pts
+	_move_ghost.visible = pts.size() > 1
+	_move_ghost.modulate.a = 1.0
+	var dots := $World.get_node_or_null("MoveDots") as Node2D
+	if dots == null:
+		dots = Node2D.new()
+		dots.name = "MoveDots"
+		dots.z_index = 3
+		$World.add_child(dots)
+	for c in dots.get_children():
+		c.queue_free()
+	var step := 2
+	var i := step
+	while i < pts.size():
+		var d := Polygon2D.new()
+		d.polygon = PackedVector2Array([Vector2(-2, -2), Vector2(2, -2), Vector2(2, 2), Vector2(-2, 2)])
+		d.color = Color(0.82, 0.88, 0.42, 0.7)
+		d.position = pts[i]
+		dots.add_child(d)
+		i += step
+
+
+func _fade_move_ghost() -> void:
+	if _move_ghost == null or not is_instance_valid(_move_ghost):
+		return
+	var tw := _move_ghost.create_tween()
+	tw.tween_interval(0.28)
+	tw.tween_property(_move_ghost, "modulate:a", 0.22, 0.90)
+
+
+func _tick_touch_hold() -> void:
+	if not _pending_setup_touch or _touch_panning or not _want_touch():
+		return
+	if _cover_hold_slot != null:
+		return
+	if Time.get_ticks_msec() - _cover_hold_msec < TOUCH_SPRINT_MS:
+		return
+	if _sprint_hold_armed:
+		return
+	_sprint_hold_armed = true
+	_last_touch_gesture = "sprint_arm"
+	if c2 and selected:
+		c2.plant_dest(_pending_touch_world, selected)
+	if touch_hud and touch_hud.has_method("set_hint"):
+		touch_hud.set_hint("松手奔跑")
+
+
+func flank_dest_world(sentry, op: Node = null) -> Vector2:
+	if sentry == null or not is_instance_valid(sentry) or grid == null:
+		return Vector2.ZERO
+	var cell: Vector2i = _flank_dest_cell(sentry, op)
+	if cell.x < 0:
+		var rad := deg_to_rad(float(sentry.facing_deg))
+		return sentry.global_position + Vector2(-cos(rad), -sin(rad)) * 40.0
+	return grid.cell_to_world_center(cell)
+
+
+func _flank_back_delta(facing_deg: float) -> Vector2i:
+	var rad := deg_to_rad(facing_deg)
+	var fx := cos(rad)
+	var fy := sin(rad)
+	if absf(fx) >= absf(fy):
+		return Vector2i(-1 if fx >= 0.0 else 1, 0)
+	return Vector2i(0, -1 if fy >= 0.0 else 1)
+
+
+func _flank_dest_cell(sentry, op: Node = null) -> Vector2i:
+	var miss := Vector2i(-1, -1)
+	if sentry == null or not is_instance_valid(sentry) or grid == null:
+		return miss
+	var sc: Vector2i = grid.world_to_cell(sentry.global_position)
+	var back: Vector2i = _flank_back_delta(float(sentry.facing_deg))
+	var perp := Vector2i(-back.y, back.x)
+	var lead: Node = op if op else selected
+	var from_c: Vector2i = sc
+	if lead != null and lead.has_method("grid_cell"):
+		from_c = lead.call("grid_cell") as Vector2i
+	var cands: Array[Vector2i] = [
+		sc + back,
+		sc + back * 2,
+		sc + back + perp,
+		sc + back - perp,
+		sc + back * 2 + perp,
+		sc + back * 2 - perp,
+		sc + back * 3,
+	]
+	var best := miss
+	var best_score := 99999
+	for cell in cands:
+		if cell == sc or cell == from_c:
+			continue
+		if not RaidPathfinderScript.walkable(grid, cell):
+			continue
+		if _cell_is_operable(cell):
+			continue
+		var world: Vector2 = grid.cell_to_world_center(cell)
+		if _sentry_blocks_stealth(world, lead):
+			continue
+		var rel := Vector2i(cell.x - sc.x, cell.y - sc.y)
+		var along: int = rel.x * back.x + rel.y * back.y
+		if along <= 0:
+			continue
+		var perp_d: int = absi(rel.x * perp.x + rel.y * perp.y)
+		var manh: int = absi(rel.x) + absi(rel.y)
+		var score: int = manh * 8 + perp_d * 18
+		if sentry.has_method("in_backstab") and bool(sentry.in_backstab(world)):
+			score -= 10
+		if score < best_score:
+			best_score = score
+			best = cell
+	return best
+
+
+func _flank_side_close(from_c: Vector2i, sc: Vector2i, facing_deg: float) -> bool:
+	var back: Vector2i = _flank_back_delta(facing_deg)
+	var perp := Vector2i(-back.y, back.x)
+	var rel := Vector2i(from_c.x - sc.x, from_c.y - sc.y)
+	var along: int = rel.x * back.x + rel.y * back.y
+	var perp_d: int = absi(rel.x * perp.x + rel.y * perp.y)
+	var cheb: int = maxi(absi(rel.x), absi(rel.y))
+	return cheb <= 3 and perp_d >= 1 and along < 2
+
+
+func _flank_body_avoid(sc: Vector2i, dest: Vector2i, from_c: Vector2i) -> Dictionary:
+	var avoid := {}
+	avoid[sc] = true
+	for dx in range(-1, 2):
+		for dy in range(-1, 2):
+			var n := Vector2i(sc.x + dx, sc.y + dy)
+			if n == dest or n == from_c:
+				continue
+			avoid[n] = true
+	return avoid
+
+
+func _flank_body_hits(path: Array[Vector2i], sc: Vector2i, dest: Vector2i) -> int:
+	var n := 0
+	for i in range(1, path.size()):
+		var c: Vector2i = path[i]
+		if c == dest:
+			continue
+		if maxi(absi(c.x - sc.x), absi(c.y - sc.y)) <= 1:
+			n += 1
+	return n
+
+
+func _flank_path_wraps(path: Array[Vector2i], sc: Vector2i, dest: Vector2i, op: Node) -> bool:
+	if not _flank_path_complete(path, dest, op):
+		return false
+	if path.size() < FLANK_WRAP_MIN_PTS:
+		return false
+	if _flank_body_hits(path, sc, dest) > 0:
+		return false
+	var clearance := false
+	for c in path:
+		if c == sc:
+			return false
+		if maxi(absi(c.x - sc.x), absi(c.y - sc.y)) >= 2:
+			clearance = true
+	return clearance
+
+
+func _start_flank_approach(world: Vector2) -> void:
+	if selected == null or c2 == null:
+		return
+	var sent = _sentry_at(world, 48.0)
+	if sent == null:
+		sent = _nearest_sentry(selected.global_position, 140.0)
+	if sent == null:
+		if status_label:
+			status_label.text = "附近没有岗哨"
+		return
+	var dest: Vector2 = flank_dest_world(sent, selected)
+	_pending_flank = sent
+	var cells: Array[Vector2i] = flank_path_cells(sent, selected)
+	if cells.size() < 2:
+		cells = stealth_path_cells(selected.grid_cell(), grid.world_to_cell(dest), selected)
+	if cells.size() >= 2:
+		_apply_move_cells(selected, cells, false)
+	else:
+		_command_move_selected(dest)
+	if touch_hud and touch_hud.has_method("set_hint"):
+		touch_hud.set_hint("绕到背后")
+	elif status_label:
+		status_label.text = "绕到背后"
+
+
+func flank_path_cells(sentry, op: Node) -> Array[Vector2i]:
+	## Side/close 绕背 wraps the sentry body. Never a 2-cell stub on the hip.
+	var empty: Array[Vector2i] = []
+	if sentry == null or not is_instance_valid(sentry) or op == null or grid == null:
+		return empty
+	var dest: Vector2 = flank_dest_world(sentry, op)
+	var from_c: Vector2i = op.grid_cell() if op.has_method("grid_cell") else grid.world_to_cell(op.global_position)
+	var to_c: Vector2i = grid.world_to_cell(dest)
+	var sc: Vector2i = grid.world_to_cell(sentry.global_position)
+	var cone_avoid: Dictionary = _stealth_blocked_cells(op)
+	cone_avoid[sc] = true
+	if to_c == sc or cone_avoid.has(to_c):
+		to_c = _flank_dest_cell(sentry, op)
+		if to_c.x < 0 or to_c == sc or cone_avoid.has(to_c):
+			to_c = _open_cell_outside_cone(to_c if to_c.x >= 0 else sc, op)
+		if to_c.x < 0 or to_c == sc:
+			return empty
+	if from_c == to_c:
+		return [from_c]
+	var side: bool = _flank_side_close(from_c, sc, float(sentry.facing_deg))
+	var body: Dictionary = _flank_body_avoid(sc, to_c, from_c)
+	var avoid: Dictionary = cone_avoid.duplicate()
+	if side:
+		for key in body.keys():
+			avoid[key] = true
+	var soft: Dictionary = _flank_rim_soft(cone_avoid)
+	if side:
+		for key in body.keys():
+			if key != to_c:
+				soft[key] = maxi(int(soft.get(key, 0)), 18)
+	var path: Array[Vector2i] = RaidPathfinderScript.find_path_avoiding(grid, from_c, to_c, avoid, soft)
+	if side:
+		if _flank_path_wraps(path, sc, to_c, op):
+			return path
+		var wrapped: Array[Vector2i] = _flank_wrap_via_path(from_c, to_c, sc, op, avoid, soft)
+		if _flank_path_wraps(wrapped, sc, to_c, op):
+			return wrapped
+		var soft2: Dictionary = soft.duplicate()
+		for key in body.keys():
+			if key != to_c:
+				soft2[key] = maxi(int(soft2.get(key, 0)), 28)
+		var p2: Array[Vector2i] = RaidPathfinderScript.find_path_avoiding(grid, from_c, to_c, cone_avoid, soft2)
+		if _flank_path_wraps(p2, sc, to_c, op):
+			return p2
+		var wrapped2: Array[Vector2i] = _flank_wrap_via_path(from_c, to_c, sc, op, cone_avoid, soft2)
+		if _flank_path_wraps(wrapped2, sc, to_c, op):
+			return wrapped2
+		if wrapped.size() >= FLANK_WRAP_MIN_PTS and _flank_path_complete(wrapped, to_c, op):
+			return wrapped
+		return empty
+	if _flank_path_complete(path, to_c, op):
+		return path
+	var vias: Array[Vector2i] = [
+		Vector2i(sc.x, sc.y - 3), Vector2i(sc.x, sc.y + 3),
+		Vector2i(sc.x - 2, sc.y - 3), Vector2i(sc.x - 2, sc.y + 3),
+		Vector2i(sc.x + 2, sc.y - 3), Vector2i(sc.x + 2, sc.y + 3),
+		Vector2i(sc.x - 3, sc.y - 1), Vector2i(sc.x - 3, sc.y + 1),
+		Vector2i(sc.x + 3, sc.y - 1), Vector2i(sc.x + 3, sc.y + 1),
+		Vector2i(sc.x - 3, sc.y), Vector2i(sc.x + 3, sc.y),
+	]
+	var best: Array[Vector2i] = []
+	var best_n := 999
+	for via in vias:
+		if via == from_c or via == to_c:
+			continue
+		if not RaidPathfinderScript.walkable(grid, via) or avoid.has(via):
+			continue
+		var a: Array[Vector2i] = RaidPathfinderScript.find_path_avoiding(grid, from_c, via, avoid, soft)
+		var b: Array[Vector2i] = RaidPathfinderScript.find_path_avoiding(grid, via, to_c, avoid, soft)
+		if not _flank_path_complete(a, via, op) or not _flank_path_complete(b, to_c, op):
+			continue
+		var merged: Array[Vector2i] = a.duplicate()
+		for i in range(1, b.size()):
+			merged.append(b[i])
+		if merged.size() < 2 or merged.size() >= best_n:
+			continue
+		if _path_hits_cone(merged, op):
+			continue
+		best_n = merged.size()
+		best = merged
+	if best.size() >= 2:
+		return best
+	if path.size() >= 2 and not _path_hits_cone(path, op):
+		return path
+	return empty
+
+
+func _flank_rim_soft(avoid: Dictionary) -> Dictionary:
+	var soft := {}
+	for key in avoid.keys():
+		var cell: Vector2i = key
+		for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var n: Vector2i = cell + d
+			if not avoid.has(n) and RaidPathfinderScript.walkable(grid, n):
+				soft[n] = maxi(int(soft.get(n, 0)), 10)
+		for d2 in [Vector2i(1, 1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(-1, -1)]:
+			var n2: Vector2i = cell + d2
+			if not avoid.has(n2) and RaidPathfinderScript.walkable(grid, n2):
+				soft[n2] = maxi(int(soft.get(n2, 0)), 6)
+	return soft
+
+
+func _flank_wrap_via_path(
+	from_c: Vector2i,
+	to_c: Vector2i,
+	sc: Vector2i,
+	op: Node,
+	avoid: Dictionary,
+	soft: Dictionary
+) -> Array[Vector2i]:
+	var empty: Array[Vector2i] = []
+	var back: Vector2i = Vector2i(to_c.x - sc.x, to_c.y - sc.y)
+	if back.x != 0:
+		back = Vector2i(1 if back.x > 0 else -1, 0)
+	elif back.y != 0:
+		back = Vector2i(0, 1 if back.y > 0 else -1)
+	var perp := Vector2i(-back.y, back.x)
+	var from_perp: int = (from_c.x - sc.x) * perp.x + (from_c.y - sc.y) * perp.y
+	var sign := 1 if from_perp >= 0 else -1
+	var vias: Array[Vector2i] = []
+	for r in [2, 3]:
+		for dx in range(-r, r + 1):
+			for dy in range(-r, r + 1):
+				if maxi(absi(dx), absi(dy)) != r:
+					continue
+				var via := Vector2i(sc.x + dx, sc.y + dy)
+				var vp: int = dx * perp.x + dy * perp.y
+				if vp * sign < 0:
+					continue
+				vias.append(via)
+	for r2 in [2, 3]:
+		vias.append(Vector2i(sc.x + perp.x * r2 * sign, sc.y + perp.y * r2 * sign) + back)
+		vias.append(Vector2i(sc.x + perp.x * r2 * sign, sc.y + perp.y * r2 * sign))
+	var best: Array[Vector2i] = empty
+	var best_n := 999
+	for via in vias:
+		if via == from_c or via == to_c:
+			continue
+		if not RaidPathfinderScript.walkable(grid, via) or avoid.has(via):
+			continue
+		var a: Array[Vector2i] = RaidPathfinderScript.find_path_avoiding(grid, from_c, via, avoid, soft)
+		var b: Array[Vector2i] = RaidPathfinderScript.find_path_avoiding(grid, via, to_c, avoid, soft)
+		if a.size() < 2 or b.size() < 2:
+			continue
+		if _path_hits_cone(a, op) or _path_hits_cone(b, op):
+			continue
+		var merged: Array[Vector2i] = a.duplicate()
+		for i in range(1, b.size()):
+			merged.append(b[i])
+		if not _flank_path_wraps(merged, sc, to_c, op):
+			continue
+		if merged.size() >= best_n:
+			continue
+		best_n = merged.size()
+		best = merged
+	return best
+
+
+func _flank_path_complete(path: Array[Vector2i], dest: Vector2i, op: Node) -> bool:
+	if path.size() < 2:
+		return false
+	if path[path.size() - 1] != dest:
+		return false
+	if _path_hits_cone(path, op):
+		return false
+	for i in range(1, path.size()):
+		var d: int = absi(path[i].x - path[i - 1].x) + absi(path[i].y - path[i - 1].y)
+		if d != 1:
+			return false
+	return true
+
+
+func flank_guide_dump(sentry, op: Node = null) -> Dictionary:
+	var lead: Node = op if op else selected
+	var cells: Array[Vector2i] = flank_path_cells(sentry, lead)
+	var dest: Vector2 = flank_dest_world(sentry, lead) if sentry else Vector2.ZERO
+	var dest_c: Vector2i = grid.world_to_cell(dest) if grid else Vector2i(-1, -1)
+	var sc: Vector2i = grid.world_to_cell(sentry.global_position) if sentry and grid else Vector2i(-1, -1)
+	var from_c: Vector2i = lead.grid_cell() if lead and lead.has_method("grid_cell") else Vector2i(-1, -1)
+	var cone := 0
+	var gaps := 0
+	for c in cells:
+		if _sentry_blocks_stealth(grid.cell_to_world_center(c), lead):
+			cone += 1
+	for i in range(1, cells.size()):
+		if absi(cells[i].x - cells[i - 1].x) + absi(cells[i].y - cells[i - 1].y) != 1:
+			gaps += 1
+	var side := false
+	if sentry:
+		side = _flank_side_close(from_c, sc, float(sentry.facing_deg))
+	var body: int = _flank_body_hits(cells, sc, dest_c)
+	var wrap: bool = _flank_path_wraps(cells, sc, dest_c, lead)
+	var complete := cells.size() >= 2 and cells[cells.size() - 1] == dest_c and cone == 0 and gaps == 0
+	if side:
+		complete = complete and wrap and cells.size() >= FLANK_WRAP_MIN_PTS and body == 0
+	return {
+		"pts": cells.size(),
+		"cells": cells,
+		"dest": dest_c,
+		"from": from_c,
+		"sentry": sc,
+		"complete": complete,
+		"cone": cone,
+		"gaps": gaps,
+		"wrap": wrap,
+		"side": side,
+		"body": body,
+	}
+
+
+func _sentry_at(world: Vector2, max_d: float):
+	if c2 == null:
+		return null
+	var best = null
+	var best_d := max_d
+	for s in c2.sentries:
+		if s == null or not is_instance_valid(s) or bool(s.is_down()):
+			continue
+		var d: float = s.global_position.distance_to(world)
+		if d < best_d:
+			best_d = d
+			best = s
+	return best
+
+
+func _nearest_sentry(world: Vector2, max_d: float):
+	return _sentry_at(world, max_d)
+
+
+func _tick_pending_flank() -> void:
+	if _pending_flank == null:
+		return
+	if not is_instance_valid(_pending_flank) or selected == null:
+		_pending_flank = null
+		return
+	if selected.is_moving():
+		return
+	if _pending_flank.has_method("in_backstab") and bool(_pending_flank.in_backstab(selected.global_position)):
+		if c2:
+			c2.use_skill("knife")
+	_pending_flank = null
+
+
+func toggle_follow(idx: int) -> void:
+	if idx < 0 or idx >= operators.size():
+		return
+	var op: OperatorUnit = operators[idx]
+	if op == null or not op.alive:
+		return
+	op.follow_lead = not bool(op.follow_lead)
+	if not op.follow_lead:
+		op.stop_move()
+		var drop_id := int(op.op_id)
+		_follow_dest.erase(drop_id)
+		_follow_lock.erase(drop_id)
+		_follow_dest_world.erase(drop_id)
+		_follow_blend_from.erase(drop_id)
+		_follow_blend_to.erase(drop_id)
+		_follow_blend_t.erase(drop_id)
+		_follow_blend_dur.erase(drop_id)
+		_follow_blend_arc.erase(drop_id)
+		_follow_blend_pivot.erase(drop_id)
+		_clear_follow_dest_mark(drop_id)
+	var any_follow := false
+	for other in operators:
+		if other != null and bool(other.follow_lead):
+			any_follow = true
+			break
+	if not any_follow:
+		_follow_arrive_on = false
+		_follow_back_on = false
+		_follow_face_on = false
+		_follow_ring_hold = false
+	if touch_hud and touch_hud.has_method("set_hint"):
+		touch_hud.set_hint("%s %s" % [op.display_name, "跟上" if op.follow_lead else "待命"])
+	_update_hud()
+
+
+func _tick_squad_follow(delta: float = 0.05) -> void:
+	if selected == null or not selected.visible or not selected.alive:
+		_clear_follow_dest_marks()
+		return
+	_apply_west_obs_scale()
+	var twisting := _follow_consume_facing_twist()
+	if twisting:
+		_follow_ring_hold = true
+	if selected.is_moving():
+		_follow_ring_hold = false
+	var followers: Array = []
+	for op in operators:
+		if op == null or op == selected or not op.alive or not op.visible:
+			continue
+		if not bool(op.follow_lead):
+			continue
+		followers.append(op)
+	## Front of the file first so later followers can queue behind them.
+	for op in followers:
+		var oid: int = int(op.op_id)
+		var prev: Vector2i = _follow_dest.get(oid, Vector2i(-99, -99))
+		var want: Vector2i = _follow_anchor_cell(selected, op)
+		if want.x < 0 and _stealth_blocks(op.global_position, op):
+			want = _open_cell_outside_cone(op.grid_cell(), op, _follow_reserved(op))
+		if want.x < 0:
+			continue
+		if selected.is_moving():
+			var locked: Vector2i = _follow_lock.get(oid, Vector2i(-99, -99))
+			if locked.x >= 0 and _follow_settle_ok(locked, op):
+				want = locked
+			else:
+				if prev.x >= 0 and prev != want:
+					_follow_flip_count += 1
+				_follow_lock[oid] = want
+		elif twisting:
+			## Lead only twisted 射界: file turns with the cone.
+			if prev.x >= 0 and prev != want:
+				_follow_flip_count += 1
+			_follow_lock[oid] = want
+		elif _follow_ring_hold:
+			## After ↻ release: dest cell stays discrete; bodies stay on the ring.
+			if prev.x >= 0:
+				want = prev
+				_follow_lock[oid] = prev
+		else:
+			var locked2: Vector2i = _follow_lock.get(oid, Vector2i(-99, -99))
+			var hold: Vector2i = locked2 if locked2.x >= 0 else prev
+			if prev.x >= 0 and op.grid_cell() == prev:
+				## Landed: freeze the cell. No second drop after stop.
+				want = prev
+				_follow_lock[oid] = prev
+			elif hold.x >= 0 and _follow_settle_ok(hold, op):
+				want = hold
+			elif prev.x >= 0 and prev != want:
+				_follow_flip_count += 1
+				_follow_settle_drops += 1
+		var hop := prev.x >= 0 and prev != want
+		var hop_cd := 0
+		var lead_w: Vector2 = _follow_lead_world(selected)
+		var ring_w: Vector2 = _follow_snag_walkable(_follow_ring_world(selected, op), lead_w)
+		var mixed_w: Vector2 = _follow_snag_walkable(_follow_slot_world(selected, op, want), lead_w)
+		var ring_hold := _follow_ring_hold and not selected.is_moving()
+		var arc_live := twisting or (
+			bool(_follow_blend_arc.get(oid, false)) and float(_follow_blend_t.get(oid, 1.0)) < 0.999
+		)
+		if hop:
+			hop_cd = maxi(absi(prev.x - want.x), absi(prev.y - want.y))
+			## Any ↻ twist rides the slot ring. Do not wait for ~90°.
+			arc_live = twisting
+			_follow_start_dest_blend(oid, prev, want, ring_w if twisting else mixed_w, twisting)
+		elif twisting:
+			## Same dest cell: dest world still polar-slides around the lead.
+			arc_live = true
+			_follow_start_dest_blend(oid, want, want, ring_w, true)
+		_follow_dest[oid] = want
+		var dest_target: Vector2 = ring_w if (arc_live or ring_hold) else mixed_w
+		var dest_w: Vector2 = _follow_advance_dest_blend(oid, want, delta, dest_target)
+		var blending := float(_follow_blend_t.get(oid, 1.0)) < 0.999
+		var slide_need := dest_w.distance_to(op.global_position) > 6.0
+		## Twist: follower bodies ride the facing-slot ring. Skip grid walks.
+		if arc_live:
+			if _follow_set_arc_slide(op, dest_w):
+				continue
+			if slide_need and _follow_set_slide(op, dest_w):
+				continue
+		## Stopped twist: stay on the ring half-cell. Do not snap to dest centers.
+		if ring_hold:
+			if dest_w.distance_to(op.global_position) > 8.0:
+				if op.is_moving():
+					_follow_nudge_path_end(op, dest_w)
+				elif not _follow_set_arc_slide(op, dest_w):
+					_follow_set_slide(op, dest_w)
+			elif op.is_moving():
+				op.stop_move()
+			continue
+		if op.grid_cell() == want and not blending:
+			if slide_need:
+				_follow_set_slide(op, dest_w)
+			else:
+				_follow_lock[oid] = want
+			continue
+		if op.is_moving() and not hop:
+			if blending or slide_need:
+				_follow_nudge_path_end(op, dest_w)
+			continue
+		if hop and hop_cd <= 2:
+			if _follow_set_arc_slide(op, dest_w):
+				continue
+			if op.is_moving() and _follow_nudge_path_end(op, dest_w):
+				continue
+			if slide_need:
+				_follow_set_slide(op, dest_w)
+				continue
+		if op.grid_cell() == want:
+			if slide_need:
+				_follow_set_slide(op, dest_w)
+			else:
+				_follow_lock[oid] = want
+			continue
+		## West half-cell stand: skip a 1-cell grid hop, slide to dest world.
+		if hop_cd <= 1 and _follow_west_cluster() and slide_need:
+			if _follow_set_slide(op, dest_w):
+				continue
+		var cells: Array[Vector2i] = stealth_path_cells(op.grid_cell(), want, op)
+		if cells.size() < 2 or _follow_next_blocked(cells, op):
+			var bypass: Array[Vector2i] = _follow_local_bypass(op.grid_cell(), want, op)
+			if bypass.size() >= 2:
+				cells = bypass
+		if cells.size() < 2:
+			if slide_need:
+				_follow_set_slide(op, dest_w)
+			continue
+		if _follow_next_blocked(cells, op):
+			continue
+		_apply_follow_cells(op, cells, dest_w)
+	_sync_follow_dest_marks()
+	_sync_follow_file_line()
+
+
+func _follow_start_dest_blend(
+	oid: int, prev: Vector2i, want: Vector2i, to_w: Vector2 = Vector2.INF, use_arc: bool = false
+) -> void:
+	if grid == null or want.x < 0:
+		return
+	var from_w: Vector2
+	if _follow_dest_world.has(oid):
+		from_w = _follow_dest_world[oid]
+	else:
+		from_w = grid.cell_to_world_center(prev)
+	_follow_blend_from[oid] = from_w
+	if to_w == Vector2.INF:
+		to_w = grid.cell_to_world_center(want)
+	_follow_blend_to[oid] = to_w
+	_follow_blend_t[oid] = 0.0
+	_follow_blend_arc[oid] = use_arc
+	_follow_blend_dur[oid] = FOLLOW_ARC_BLEND if use_arc else FOLLOW_DEST_BLEND
+	var pivot: Vector2 = _follow_lead_world(selected) if selected else from_w
+	_follow_blend_pivot[oid] = pivot
+	var cd := maxi(absi(prev.x - want.x), absi(prev.y - want.y))
+	if cd <= 3:
+		_follow_blend_hits += 1
+	if use_arc:
+		_follow_arc_hits += 1
+
+
+func _follow_advance_dest_blend(oid: int, want: Vector2i, delta: float, mixed_w: Vector2 = Vector2.INF) -> Vector2:
+	var cell_w: Vector2 = grid.cell_to_world_center(want) if grid != null else Vector2.ZERO
+	var target: Vector2 = mixed_w if mixed_w != Vector2.INF else cell_w
+	var t := float(_follow_blend_t.get(oid, 1.0))
+	var dt := minf(maxf(delta, 0.0), 0.05)
+	if t >= 1.0:
+		var cur: Vector2 = _follow_dest_world.get(oid, target)
+		var w_idle: Vector2 = cur.lerp(target, 1.0 - exp(-dt * 14.0))
+		if w_idle.distance_squared_to(target) < 1.0:
+			w_idle = target
+		var idle_pivot: Vector2 = _follow_lead_world(selected) if selected else Vector2.INF
+		w_idle = _follow_snag_walkable(w_idle, idle_pivot)
+		_follow_dest_world[oid] = w_idle
+		return w_idle
+	var dur := float(_follow_blend_dur.get(oid, FOLLOW_DEST_BLEND))
+	t = minf(1.0, t + dt / maxf(dur, 0.08))
+	_follow_blend_t[oid] = t
+	_follow_blend_to[oid] = target
+	var from_w: Vector2 = _follow_blend_from.get(oid, target)
+	var u := t * t * (3.0 - 2.0 * t)
+	var w: Vector2
+	var pivot: Vector2 = _follow_lead_world(selected) if selected else _follow_blend_pivot.get(oid, from_w)
+	if bool(_follow_blend_arc.get(oid, false)):
+		_follow_blend_pivot[oid] = pivot
+		w = _follow_arc_lerp(from_w, target, pivot, u)
+	else:
+		w = from_w.lerp(target, u)
+	w = _follow_snag_walkable(w, pivot)
+	_follow_dest_world[oid] = w
+	return w
+
+
+func _follow_world_ok(world: Vector2) -> bool:
+	if grid == null:
+		return true
+	var cell: Vector2i = grid.world_to_cell(world)
+	if not RaidPathfinderScript.walkable(grid, cell):
+		return false
+	if _cell_is_operable(cell):
+		return false
+	return true
+
+
+func _follow_clamp_walkable(world: Vector2, fallback: Vector2) -> Vector2:
+	## Pull an unwalkable dest/ring sample back toward a walkable fallback
+	## (usually the dest cell center). Polar snag around the lead wraps the
+	## courtyard when #2's extra punches the south wall.
+	if _follow_world_ok(world):
+		return world
+	if not _follow_world_ok(fallback):
+		return world
+	var lo: Vector2 = fallback
+	var hi: Vector2 = world
+	for _i in 14:
+		var mid: Vector2 = lo.lerp(hi, 0.5)
+		if _follow_world_ok(mid):
+			lo = mid
+		else:
+			hi = mid
+	return lo
+
+
+func _follow_polar(pivot: Vector2, ang: float, r: float) -> Vector2:
+	return pivot + Vector2(cos(ang), sin(ang)) * r
+
+
+func _follow_snag_score(cand: Vector2, pivot: Vector2, want_ang: float, want_r: float, world: Vector2) -> float:
+	if not _follow_world_ok(cand):
+		return 1.0e12
+	var cr := cand.distance_to(pivot)
+	var ca := (cand - pivot).angle() if cr >= 4.0 else want_ang
+	var d_ang := absf(wrapf(ca - want_ang, -PI, PI))
+	var d_r := absf(cr - want_r)
+	var inward := maxf(0.0, want_r - cr)
+	var dist := cand.distance_to(world)
+	## Stay on the polar circle; go around a cluster instead of popping
+	## onto the near face (flat wall-slide) or punching through to the far face.
+	## Same-axis with the blocked sample is a crate-face slide — pay extra.
+	## Nearby same-axis is the corridor gap (1 cell), not a wrap: keep cheap.
+	var wall := 0.0
+	if absf(cand.x - world.x) < 3.2 or absf(cand.y - world.y) < 3.2:
+		wall = 18.0 + inward * 0.35
+		if dist < 48.0:
+			wall *= 0.22
+	## Same-radius wraps around a crate block exit east of the south corridor.
+	var wrap := 0.0
+	if dist > 40.0:
+		wrap = (dist - 40.0) * 1.15 + d_ang * 70.0
+	return d_r * 0.95 + inward * 1.35 + d_ang * minf(want_r, maxf(cr, 12.0)) * 0.18 + dist * 0.28 + wall + wrap
+
+
+func _follow_snag_walkable(world: Vector2, pivot: Vector2 = Vector2.INF) -> Vector2:
+	## Keep dest/arc samples on walkable floor. Score same-radius around
+	## against outward so multi-crate clamps stay bowed, not a near-face slide.
+	if grid == null:
+		return world
+	if _follow_world_ok(world):
+		return world
+	var want_ang := 0.0
+	var want_r := 0.0
+	if pivot != Vector2.INF and pivot.distance_squared_to(world) >= 16.0:
+		var rel: Vector2 = world - pivot
+		want_ang = rel.angle()
+		want_r = rel.length()
+		var best: Vector2 = world
+		var best_s := 1.0e12
+		var have := false
+		for dr in [6.0, 10.0, 14.0, 18.0, 24.0, 32.0, 40.0, 48.0, 64.0, 80.0, 96.0, 112.0, 128.0]:
+			var cand: Vector2 = _follow_polar(pivot, want_ang, want_r + dr)
+			var s := _follow_snag_score(cand, pivot, want_ang, want_r, world)
+			if s < best_s:
+				best_s = s
+				best = cand
+				have = true
+		for step in range(4, 130, 4):
+			for sgn in [1, -1]:
+				var a2 := want_ang + deg_to_rad(float(step * sgn))
+				for rr in [want_r, want_r + 12.0, want_r + 24.0, want_r + 40.0, maxf(want_r, 20.0) + 56.0]:
+					var around: Vector2 = _follow_polar(pivot, a2, maxf(rr, 12.0))
+					var s2 := _follow_snag_score(around, pivot, want_ang, want_r, world)
+					if s2 < best_s:
+						best_s = s2
+						best = around
+						have = true
+		for dr2 in [8.0, 16.0, 24.0, 32.0]:
+			var inn: Vector2 = _follow_polar(pivot, want_ang, maxf(want_r - dr2, 12.0))
+			var s3 := _follow_snag_score(inn, pivot, want_ang, want_r, world)
+			if s3 < best_s:
+				best_s = s3
+				best = inn
+				have = true
+		## 1–2 cell neighbors: the south corridor gap beats a same-radius
+		## wrap that exits east around the far crate block.
+		var home: Vector2i = grid.world_to_cell(world)
+		for r_n in range(1, 3):
+			for dx in range(-r_n, r_n + 1):
+				for dy in range(-r_n, r_n + 1):
+					if maxi(absi(dx), absi(dy)) != r_n:
+						continue
+					var nc := Vector2i(home.x + dx, home.y + dy)
+					if not RaidPathfinderScript.walkable(grid, nc):
+						continue
+					if _cell_is_operable(nc):
+						continue
+					var nw: Vector2 = grid.cell_to_world_center(nc)
+					var s_n := _follow_snag_score(nw, pivot, want_ang, want_r, world)
+					if s_n < best_s:
+						best_s = s_n
+						best = nw
+						have = true
+		if have:
+			return best
+	var cell: Vector2i = grid.world_to_cell(world)
+	var best_c := Vector2i(-1, -1)
+	var best_d := 1.0e12
+	for r2 in range(1, 8):
+		for dx in range(-r2, r2 + 1):
+			for dy in range(-r2, r2 + 1):
+				if maxi(absi(dx), absi(dy)) != r2:
+					continue
+				var n := Vector2i(cell.x + dx, cell.y + dy)
+				if not RaidPathfinderScript.walkable(grid, n):
+					continue
+				if _cell_is_operable(n):
+					continue
+				var cw: Vector2 = grid.cell_to_world_center(n)
+				var s4 := float(absi(dx) + absi(dy))
+				if pivot != Vector2.INF and want_r >= 8.0:
+					s4 = _follow_snag_score(cw, pivot, want_ang, want_r, world)
+				if s4 < best_d:
+					best_d = s4
+					best_c = n
+		if best_c.x >= 0 and r2 >= 2:
+			break
+	if best_c.x < 0:
+		return world
+	var c: Vector2 = grid.cell_to_world_center(best_c)
+	if pivot != Vector2.INF and pivot.distance_squared_to(c) >= 16.0:
+		var restore_r := maxf(want_r, 12.0) if want_r >= 8.0 else maxf((world - pivot).length(), 12.0)
+		var polar: Vector2 = pivot + (c - pivot).normalized() * restore_r
+		if _follow_world_ok(polar):
+			return polar
+		var off: Vector2 = polar - c
+		if off.length() > 16.0:
+			off = off.normalized() * 16.0
+		var placed: Vector2 = c + off
+		if _follow_world_ok(placed):
+			return placed
+		var rim: Vector2 = _follow_polar(pivot, want_ang if want_r >= 8.0 else (world - pivot).angle(), (c - pivot).length())
+		if _follow_world_ok(rim):
+			return rim
+	var rel2: Vector2 = world - c
+	if rel2.length() > 12.0:
+		rel2 = rel2.normalized() * 12.0
+	return c + rel2
+
+
+func _follow_arc_lerp_raw(from_w: Vector2, to_w: Vector2, pivot: Vector2, t: float) -> Vector2:
+	## Polar lerp around the lead, unsagged. Used to measure roundness.
+	var a: Vector2 = from_w - pivot
+	var b: Vector2 = to_w - pivot
+	var ra := a.length()
+	var rb := b.length()
+	if ra < 10.0 or rb < 10.0:
+		return from_w.lerp(to_w, t)
+	var ang := lerp_angle(a.angle(), b.angle(), t)
+	var r := lerpf(ra, rb, t)
+	return pivot + Vector2(cos(ang), sin(ang)) * r
+
+
+func _follow_arc_lerp(from_w: Vector2, to_w: Vector2, pivot: Vector2, t: float) -> Vector2:
+	## Polar lerp around the lead so ↻ dests ride the slot ring, including 15°.
+	return _follow_snag_walkable(_follow_arc_lerp_raw(from_w, to_w, pivot, t), pivot)
+
+
+func _follow_arc_points(from_w: Vector2, to_w: Vector2, pivot: Vector2, steps: int = 11) -> PackedVector2Array:
+	var raw: PackedVector2Array = _follow_arc_points_raw(from_w, to_w, pivot, steps)
+	var pts := PackedVector2Array()
+	for p in raw:
+		pts.append(_follow_snag_walkable(p, pivot))
+	return _follow_restore_arc_bow(pts, raw, pivot)
+
+
+func _follow_restore_arc_bow(pts: PackedVector2Array, raw: PackedVector2Array, pivot: Vector2) -> PackedVector2Array:
+	## Pull flattened (inward / axis-run) samples back toward the raw polar
+	## so crate-cluster snags stay bowed instead of sliding the near wall.
+	if pts.size() < 3 or raw.size() != pts.size():
+		return pts
+	var from_w: Vector2 = raw[0]
+	var to_w: Vector2 = raw[raw.size() - 1]
+	var ra := from_w.distance_to(pivot)
+	var rb := to_w.distance_to(pivot)
+	var ang_a := (from_w - pivot).angle() if ra >= 4.0 else 0.0
+	var ang_b := (to_w - pivot).angle() if rb >= 4.0 else ang_a
+	for i in range(1, pts.size() - 1):
+		var t := float(i) / float(pts.size() - 1)
+		var want_r := lerpf(ra, rb, t)
+		var want_ang := lerp_angle(ang_a, ang_b, t)
+		var polar_p: Vector2 = _follow_polar(pivot, want_ang, maxf(want_r, 12.0))
+		if _follow_world_ok(polar_p):
+			pts[i] = polar_p
+			continue
+		var lifted: Vector2 = _follow_snag_walkable(polar_p, pivot)
+		var snag_p: Vector2 = pts[i]
+		if _follow_world_ok(lifted) and lifted.distance_to(pivot) + 1.5 >= snag_p.distance_to(pivot):
+			pts[i] = lifted
+			continue
+		var raw_p: Vector2 = raw[i]
+		var raw_r := raw_p.distance_to(pivot)
+		var snag_r := snag_p.distance_to(pivot)
+		if raw_r > 12.0 and snag_r + 4.0 < raw_r:
+			var ang := (snag_p - pivot).angle() if snag_p.distance_squared_to(pivot) >= 16.0 else (raw_p - pivot).angle()
+			var lift_r: Vector2 = _follow_snag_walkable(_follow_polar(pivot, ang, raw_r), pivot)
+			if lift_r.distance_to(pivot) > snag_r + 3.0 and _follow_world_ok(lift_r):
+				pts[i] = lift_r
+				continue
+			var mid: Vector2 = snag_p.lerp(raw_p, 0.72)
+			if _follow_world_ok(mid):
+				pts[i] = mid
+	## Break axis-aligned runs by putting the sample back on the polar bow.
+	var axis_run := 0
+	for i in range(1, pts.size()):
+		var d: Vector2 = pts[i] - pts[i - 1]
+		if absf(d.x) < 2.6 or absf(d.y) < 2.6:
+			axis_run += 1
+			if axis_run >= 1 and i > 0 and i < pts.size() - 1:
+				var t2 := float(i) / float(pts.size() - 1)
+				var polar2: Vector2 = _follow_polar(pivot, lerp_angle(ang_a, ang_b, t2), maxf(lerpf(ra, rb, t2), 12.0))
+				var lift2: Vector2 = _follow_lift_off_axis(pts[i], pts[i - 1], pts[i + 1], polar2, pivot)
+				if _follow_world_ok(lift2):
+					var same_axis := _follow_same_axis(lift2, pts[i - 1]) and _follow_same_axis(lift2, pts[i + 1])
+					if not same_axis or lift2.distance_to(pts[i]) > 6.0:
+						pts[i] = lift2
+						axis_run = 0
+		else:
+			axis_run = 0
+	return _follow_cap_far_side(
+		_follow_bow_axis_pairs(
+			_follow_bow_wall_runs(_follow_break_axis_runs(pts, raw, pivot), raw, pivot), raw, pivot
+		),
+		raw,
+		pivot
+	)
+
+
+func _follow_lift_off_axis(p: Vector2, prev: Vector2, nxt: Vector2, polar: Vector2, pivot: Vector2) -> Vector2:
+	## Push a wall-slide sample toward the polar so the string bows, not flats.
+	if _follow_world_ok(polar) and (not _follow_same_axis(prev, polar) or not _follow_same_axis(polar, nxt)):
+		return polar
+	var snag_p: Vector2 = _follow_snag_walkable(polar, pivot)
+	if _follow_world_ok(snag_p) and not _follow_same_axis(prev, snag_p):
+		return snag_p
+	var axis_h := absf(p.y - prev.y) < 2.6 or absf(p.y - nxt.y) < 2.6
+	var toward: Vector2 = polar - p
+	if toward.length() < 4.0:
+		toward = (p - pivot)
+	if toward.length() < 4.0:
+		toward = Vector2(0, 1) if axis_h else Vector2(1, 0)
+	toward = toward.normalized()
+	var perp := Vector2(-toward.y, toward.x)
+	for mag in [10.0, 18.0, 28.0, 40.0, 56.0, 72.0]:
+		for dir in [toward, perp, -perp]:
+			var cand: Vector2 = p + dir * mag
+			if not _follow_world_ok(cand):
+				continue
+			if _follow_same_axis(prev, cand) and _follow_same_axis(cand, nxt):
+				continue
+			return _follow_snag_walkable(cand, pivot)
+	return p
+
+
+func _follow_break_axis_runs(pts: PackedVector2Array, raw: PackedVector2Array, pivot: Vector2) -> PackedVector2Array:
+	## Nudge the middle of a 2+ axis-aligned run off the wall so crate
+	## faces do not flatten a whole polar sample string.
+	if pts.size() < 4:
+		return pts
+	var run_start := 0
+	for i in range(1, pts.size() + 1):
+		var aligned := false
+		if i < pts.size():
+			var d: Vector2 = pts[i] - pts[i - 1]
+			aligned = absf(d.x) < 2.6 or absf(d.y) < 2.6
+		if aligned:
+			continue
+		var run_len := (i - 1) - run_start
+		if run_len >= 2:
+			var mid := run_start + int(run_len / 2)
+			if mid > 0 and mid < pts.size() - 1:
+				var raw_p: Vector2 = raw[mid] if mid < raw.size() else pts[mid]
+				var polar_p: Vector2 = _follow_polar(
+					pivot,
+					(raw_p - pivot).angle() if raw_p.distance_squared_to(pivot) >= 16.0 else 0.0,
+					maxf(raw_p.distance_to(pivot), 12.0)
+				)
+				var lifted: Vector2 = _follow_lift_off_axis(pts[mid], pts[mid - 1], pts[mid + 1], polar_p, pivot)
+				if _follow_world_ok(lifted) and not (_follow_same_axis(pts[mid - 1], lifted) and _follow_same_axis(lifted, pts[mid + 1])):
+					pts[mid] = lifted
+				else:
+					var axis_h := absf(pts[mini(i - 1, pts.size() - 1)].y - pts[run_start].y) < 2.6
+					var bumped: Vector2 = pts[mid].lerp(raw_p, 0.78)
+					if _follow_world_ok(bumped) and not _follow_same_axis(pts[mid], bumped):
+						pts[mid] = bumped
+					else:
+						var picked := false
+						for mag in [14.0, 22.0, 32.0, 44.0, 58.0, 72.0]:
+							var n1: Vector2 = pts[mid] + (Vector2(0, mag) if axis_h else Vector2(mag, 0))
+							var n2: Vector2 = pts[mid] + (Vector2(0, -mag) if axis_h else Vector2(-mag, 0))
+							var a_ok := _follow_world_ok(n1)
+							var b_ok := _follow_world_ok(n2)
+							var pick: Vector2 = n1
+							if a_ok and b_ok:
+								pick = n1 if n1.distance_to(raw_p) <= n2.distance_to(raw_p) else n2
+							elif a_ok:
+								pick = n1
+							elif b_ok:
+								pick = n2
+							else:
+								continue
+							if _follow_world_ok(pick) and not _follow_same_axis(pts[mid - 1], pick):
+								pts[mid] = _follow_snag_walkable(pick, pivot)
+								picked = true
+								break
+						if not picked:
+							var lift: Vector2 = _follow_snag_walkable(raw_p, pivot)
+							if _follow_world_ok(lift):
+								pts[mid] = lift
+				## Also bow the neighbors of a 3+ run so a leftover 2-seg wall dies.
+				if run_len >= 3:
+					for nb in [mid - 1, mid + 1]:
+						if nb <= 0 or nb >= pts.size() - 1:
+							continue
+						var nb_raw: Vector2 = raw[nb] if nb < raw.size() else pts[nb]
+						var nb_polar: Vector2 = _follow_polar(
+							pivot,
+							(nb_raw - pivot).angle() if nb_raw.distance_squared_to(pivot) >= 16.0 else 0.0,
+							maxf(nb_raw.distance_to(pivot), 12.0)
+						)
+						var nb_lift: Vector2 = _follow_lift_off_axis(pts[nb], pts[nb - 1], pts[nb + 1], nb_polar, pivot)
+						if _follow_world_ok(nb_lift) and not _follow_same_axis(pts[nb - 1], nb_lift):
+							pts[nb] = nb_lift
+		run_start = i
+	return pts
+
+
+func _follow_bow_wall_runs(pts: PackedVector2Array, raw: PackedVector2Array, pivot: Vector2) -> PackedVector2Array:
+	## Last pass: any interior sample still sharing an axis with both
+	## neighbors is a crate-face slide — bow it toward the polar.
+	if pts.size() < 4 or raw.size() != pts.size():
+		return pts
+	for i in range(1, pts.size() - 1):
+		if not (_follow_same_axis(pts[i - 1], pts[i]) and _follow_same_axis(pts[i], pts[i + 1])):
+			continue
+		var raw_p: Vector2 = raw[i]
+		var polar_p: Vector2 = _follow_polar(
+			pivot,
+			(raw_p - pivot).angle() if raw_p.distance_squared_to(pivot) >= 16.0 else 0.0,
+			maxf(raw_p.distance_to(pivot), 12.0)
+		)
+		var lifted: Vector2 = _follow_lift_off_axis(pts[i], pts[i - 1], pts[i + 1], polar_p, pivot)
+		if _follow_world_ok(lifted) and not (_follow_same_axis(pts[i - 1], lifted) and _follow_same_axis(lifted, pts[i + 1])):
+			pts[i] = lifted
+	return pts
+
+
+func _follow_bow_axis_pairs(pts: PackedVector2Array, raw: PackedVector2Array, pivot: Vector2) -> PackedVector2Array:
+	## Leftover 1-segment wall: two consecutive samples share an axis.
+	## Nudge the interior point off-axis so the string bows, still walkable.
+	if pts.size() < 3:
+		return pts
+	for _pass in 4:
+		var changed := false
+		for i in range(1, pts.size()):
+			if not _follow_same_axis(pts[i - 1], pts[i]):
+				continue
+			var idx := i
+			if i >= pts.size() - 1:
+				idx = i - 1
+			if idx <= 0 or idx >= pts.size() - 1:
+				continue
+			var other: Vector2 = pts[i - 1] if idx == i else pts[i]
+			var raw_p: Vector2 = raw[idx] if idx < raw.size() else pts[idx]
+			var lifted: Vector2 = _follow_nudge_off_axis(pts[idx], other, pivot, raw_p)
+			if not _follow_world_ok(lifted):
+				continue
+			if _follow_same_axis(lifted, other):
+				continue
+			if pts[idx].distance_squared_to(lifted) < 4.0:
+				continue
+			pts[idx] = lifted
+			changed = true
+		if not changed:
+			break
+	return pts
+
+
+func _follow_nudge_off_axis(p: Vector2, other: Vector2, pivot: Vector2, raw_p: Vector2) -> Vector2:
+	## Local in-cell bow only. Polar / long lifts teleport around a crate
+	## cluster and the chord then clips the boxes. Coincident samples share
+	## both axes — those need a diagonal step.
+	var share_x := absf(p.x - other.x) < 2.6
+	var share_y := absf(p.y - other.y) < 2.6
+	var dirs: Array[Vector2] = []
+	if share_x and share_y:
+		dirs = [
+			Vector2(1.0, 1.0), Vector2(1.0, -1.0),
+			Vector2(-1.0, 1.0), Vector2(-1.0, -1.0)
+		]
+	elif share_y:
+		dirs = [Vector2(0.0, 1.0), Vector2(0.0, -1.0)]
+	else:
+		dirs = [Vector2(1.0, 0.0), Vector2(-1.0, 0.0)]
+	var toward: Vector2 = pivot - p
+	var away: Vector2 = -toward
+	dirs.sort_custom(func(a: Vector2, b: Vector2) -> bool:
+		return a.dot(toward) > b.dot(toward)
+	)
+	var polar: Vector2 = _follow_polar(
+		pivot,
+		(raw_p - pivot).angle() if raw_p.distance_squared_to(pivot) >= 16.0 else away.angle(),
+		maxf(raw_p.distance_to(pivot), p.distance_to(pivot))
+	)
+	if _follow_world_ok(polar) and not _follow_same_axis(polar, other) and polar.distance_to(p) <= 16.0:
+		return polar
+	for mag in [6.0, 8.0, 10.0, 12.0, 14.0, 18.0, 22.0]:
+		for d in dirs:
+			var cand: Vector2 = p + d.normalized() * mag
+			if cand.distance_to(p) > 24.0:
+				continue
+			if _follow_world_ok(cand) and not _follow_same_axis(cand, other):
+				return cand
+	return p
+
+
+func _follow_cap_far_side(pts: PackedVector2Array, raw: PackedVector2Array, pivot: Vector2) -> PackedVector2Array:
+	## Polar mid-samples punch through the far crate and snag east around the
+	## south corridor. Pull that overshoot back toward the chord, keep a short
+	## bow (~20px), stay walkable. A mostly-walkable chord (south gap) also
+	## shrinks corner samples whose projection clips a crate; a blocked chord
+	## keeps the around-path (large crate-cluster bows).
+	if pts.size() < 3 or raw.size() != pts.size():
+		return pts
+	var from_w: Vector2 = raw[0]
+	var to_w: Vector2 = raw[raw.size() - 1]
+	var chord: Vector2 = to_w - from_w
+	if chord.length_squared() < 256.0:
+		return pts
+	var nrm := Vector2(-chord.y, chord.x).normalized()
+	if (pivot - from_w).dot(nrm) < 0.0:
+		nrm = -nrm
+	var min_x := minf(from_w.x, to_w.x) - FOLLOW_ARC_END_PAD
+	var max_x := maxf(from_w.x, to_w.x) + FOLLOW_ARC_END_PAD
+	var corridor_n := 0
+	var interior := pts.size() - 2
+	var corridor_at: PackedByteArray = PackedByteArray()
+	corridor_at.resize(pts.size())
+	for i in range(1, pts.size() - 1):
+		var p0: Vector2 = pts[i]
+		var t0 := clampf((p0 - from_w).dot(chord) / chord.length_squared(), 0.0, 1.0)
+		var proj0: Vector2 = from_w + chord * t0
+		var ok := _follow_world_ok(proj0) or _follow_world_ok(proj0 + nrm * 10.0)
+		corridor_at[i] = 1 if ok else 0
+		if ok:
+			corridor_n += 1
+	var corridor_arc := interior > 0 and corridor_n * 2 >= interior
+	var south_gap := _follow_south_gap_arc(from_w, to_w)
+	for i in range(1, pts.size() - 1):
+		var p: Vector2 = pts[i]
+		var t := clampf((p - from_w).dot(chord) / chord.length_squared(), 0.0, 1.0)
+		var proj: Vector2 = from_w + chord * t
+		var side := (p - proj).dot(nrm)
+		var want: Vector2 = p
+		var changed := false
+		var cap := FOLLOW_ARC_FAR_CAP
+		if south_gap:
+			## Whole y=13 gap: 20px south of the chord is cell y=14 (open
+			## east of the south crates, including mid-corridor x≈21). Hold
+			## every sample on the y=13 rim (~15px). Taper the east end so
+			## the ammo crate at (23,13) does not shove a leftover into
+			## y=14. Far-cap constant stays 20 so large crate-cluster bows
+			## and settle-on-ring hops are not flattened.
+			cap = minf(cap, FOLLOW_ARC_Y13_CAP)
+		if corridor_arc:
+			if t > 0.70:
+				cap = minf(cap, 14.0)
+			if t > 0.84:
+				cap = minf(cap, 12.0)
+		var may_cap := corridor_at[i] == 1 or corridor_arc
+		if may_cap and side < -cap:
+			want = p + nrm * (-side - cap)
+			changed = true
+		if want.x > max_x:
+			want.x = max_x
+			changed = true
+		elif want.x < min_x:
+			want.x = min_x
+			changed = true
+		if not changed:
+			continue
+		if _follow_world_ok(want):
+			want = _follow_cap_keep_off_axis(pts, i, want, nrm)
+			if _follow_world_ok(want):
+				var side2 := (want - proj).dot(nrm)
+				if may_cap and side2 < -cap:
+					var pulled: Vector2 = want + nrm * (-side2 - cap)
+					if _follow_world_ok(pulled):
+						want = pulled
+				pts[i] = want
+				continue
+		var snag: Vector2 = _follow_snag_walkable(want, pivot)
+		if not _follow_world_ok(snag):
+			continue
+		var new_side := (snag - proj).dot(nrm)
+		var old_far := maxf(0.0, -side)
+		var new_far := maxf(0.0, -new_side)
+		var old_east := maxf(0.0, p.x - max_x)
+		var new_east := maxf(0.0, snag.x - max_x)
+		if new_far + 3.0 < old_far or new_east + 3.0 < old_east:
+			if may_cap and new_far > cap:
+				var pulled2: Vector2 = snag + nrm * (new_far - cap)
+				if _follow_world_ok(pulled2):
+					snag = pulled2
+			pts[i] = snag
+	if corridor_arc:
+		pts = _follow_cap_y13_east(pts, raw, nrm)
+		pts = _follow_cap_stagger_off_axis(pts, raw, nrm)
+	return pts
+
+
+func _follow_cap_keep_off_axis(pts: PackedVector2Array, i: int, want: Vector2, nrm: Vector2) -> Vector2:
+	## A hard far-cap can park consecutive samples on one y (or x). Jog
+	## toward the pivot so the string stays bowed instead of a wall-slide.
+	## Never jog away from the pivot — that grew the south-corridor far
+	## bow from 20px back to ~24px.
+	if i <= 0 or i >= pts.size() - 1:
+		return want
+	var prev: Vector2 = pts[i - 1]
+	var nxt: Vector2 = pts[i + 1]
+	if not _follow_same_axis(prev, want) and not _follow_same_axis(want, nxt):
+		if i % 2 == 0:
+			return want
+	for mag in [6.0, 10.0, 4.0, 8.0]:
+		var jog: Vector2 = want + nrm * mag
+		if not _follow_world_ok(jog):
+			continue
+		if _follow_same_axis(prev, jog) or _follow_same_axis(jog, nxt):
+			continue
+		return jog
+	return want
+
+
+func _follow_south_gap_arc(from_w: Vector2, to_w: Vector2) -> bool:
+	## Yard south-corridor chord along y=13 spanning the south crate row.
+	if grid == null:
+		return false
+	var a: Vector2i = grid.world_to_cell(from_w)
+	var b: Vector2i = grid.world_to_cell(to_w)
+	if a.y != 13 or b.y != 13:
+		return false
+	if maxi(a.x, b.x) - mini(a.x, b.x) < 6:
+		return false
+	var mid_x := int((a.x + b.x) / 2)
+	return mid_x >= 16 and mid_x <= 24
+
+
+func _follow_cap_y13_east(
+	pts: PackedVector2Array, raw: PackedVector2Array, nrm: Vector2
+) -> PackedVector2Array:
+	## South-corridor samples that dipped into y=14 (open cell past the
+	## south crates, including mid-gap x≈21) pull back into the y=13 gap.
+	## (23,13) is the ammo crate, so same-x y=13 is inoperable — slide in x.
+	## Other corridor hops (west dests / settle-on-ring) keep the east-only
+	## gate so y=14 stand cells are not yanked into y=13.
+	if grid == null or pts.size() < 3 or raw.size() != pts.size():
+		return pts
+	var from_w: Vector2 = raw[0]
+	var to_w: Vector2 = raw[raw.size() - 1]
+	var south_gap := _follow_south_gap_arc(from_w, to_w)
+	var east_x := maxf(from_w.x, to_w.x) - 48.0
+	var y_lim := float(14 * 32 - 2)
+	var chord: Vector2 = to_w - from_w
+	var max_x := maxf(from_w.x, to_w.x) + FOLLOW_ARC_END_PAD
+	for i in range(1, pts.size() - 1):
+		var p: Vector2 = pts[i]
+		if not south_gap and p.x < east_x:
+			continue
+		if grid.world_to_cell(p).y < 14:
+			continue
+		var want: Vector2 = _follow_y13_slide(p, y_lim, nrm, max_x, from_w, chord)
+		if want == p:
+			continue
+		want = _follow_cap_keep_off_axis(pts, i, want, nrm)
+		if _follow_same_axis(pts[i - 1], want) or _follow_same_axis(want, pts[i + 1]):
+			var perp := Vector2(-nrm.y, nrm.x)
+			for mag in [8.0, -8.0, 12.0, -12.0, 16.0, -16.0, 20.0, -20.0]:
+				var jog: Vector2 = want + perp * mag
+				if jog.x > max_x:
+					continue
+				if not _follow_world_ok(jog) or grid.world_to_cell(jog).y >= 14:
+					continue
+				if _follow_same_axis(pts[i - 1], jog) or _follow_same_axis(jog, pts[i + 1]):
+					continue
+				want = jog
+				break
+		if not _follow_world_ok(want) or grid.world_to_cell(want).y >= 14:
+			continue
+		if want.x > max_x:
+			continue
+		if not south_gap:
+			if _follow_same_axis(pts[i - 1], want) or _follow_same_axis(want, pts[i + 1]):
+				continue
+		pts[i] = want
+	return pts
+
+
+func _follow_y13_slide(
+	p: Vector2, y_lim: float, nrm: Vector2, max_x: float, from_w: Vector2, chord: Vector2
+) -> Vector2:
+	var want: Vector2 = p
+	want.y = minf(want.y, y_lim)
+	if _follow_world_ok(want) and grid.world_to_cell(want).y < 14:
+		return want
+	if chord.length_squared() >= 16.0:
+		var t := clampf((p - from_w).dot(chord) / chord.length_squared(), 0.0, 1.0)
+		var proj: Vector2 = from_w + chord * t
+		var along: Vector2 = proj + nrm * 8.0
+		if _follow_world_ok(along) and grid.world_to_cell(along).y < 14:
+			return along
+	for dx in [24.0, -24.0, 32.0, -32.0, 16.0, -16.0, 40.0, -40.0, 8.0, -8.0]:
+		for dy in [0.0, -6.0, -10.0, 4.0]:
+			var cand: Vector2 = Vector2(p.x + dx, y_lim + dy)
+			if cand.x > max_x:
+				continue
+			if not _follow_world_ok(cand):
+				continue
+			if grid.world_to_cell(cand).y >= 14:
+				continue
+			return cand
+	return p
+
+
+func _follow_cap_stagger_off_axis(
+	pts: PackedVector2Array, raw: PackedVector2Array, nrm: Vector2
+) -> PackedVector2Array:
+	## After the far cap, consecutive samples can share a y (or x). Jog
+	## toward the pivot only so axis_run dies without growing the far bow.
+	if pts.size() < 3 or raw.size() != pts.size():
+		return pts
+	var from_w: Vector2 = raw[0]
+	var to_w: Vector2 = raw[raw.size() - 1]
+	var chord: Vector2 = to_w - from_w
+	if chord.length_squared() < 256.0:
+		return pts
+	for i in range(1, pts.size() - 1):
+		if i % 2 == 0:
+			continue
+		var cur: Vector2 = pts[i]
+		var t0 := clampf((cur - from_w).dot(chord) / chord.length_squared(), 0.0, 1.0)
+		var proj0: Vector2 = from_w + chord * t0
+		var jog0: Vector2 = cur + nrm * 6.0
+		if not _follow_world_ok(jog0):
+			continue
+		var new_far0 := maxf(0.0, -(jog0 - proj0).dot(nrm))
+		var old_far0 := maxf(0.0, -(cur - proj0).dot(nrm))
+		if new_far0 > old_far0 + 0.5 or new_far0 > FOLLOW_ARC_FAR_CAP + 0.5:
+			continue
+		if _follow_same_axis(pts[i - 1], jog0) or _follow_same_axis(jog0, pts[i + 1]):
+			continue
+		pts[i] = jog0
+	for _pass in 3:
+		var changed := false
+		for i in range(1, pts.size() - 1):
+			var prev: Vector2 = pts[i - 1]
+			var cur: Vector2 = pts[i]
+			var nxt: Vector2 = pts[i + 1]
+			if not _follow_same_axis(prev, cur) and not _follow_same_axis(cur, nxt):
+				continue
+			var t := clampf((cur - from_w).dot(chord) / chord.length_squared(), 0.0, 1.0)
+			var proj: Vector2 = from_w + chord * t
+			var old_far := maxf(0.0, -(cur - proj).dot(nrm))
+			for mag in [6.0, 10.0, 4.0, 8.0]:
+				var jog: Vector2 = cur + nrm * mag
+				if not _follow_world_ok(jog):
+					continue
+				if _follow_same_axis(prev, jog) or _follow_same_axis(jog, nxt):
+					continue
+				var new_far := maxf(0.0, -(jog - proj).dot(nrm))
+				if new_far > old_far + 0.5 or new_far > FOLLOW_ARC_FAR_CAP + 0.5:
+					continue
+				pts[i] = jog
+				changed = true
+				break
+		if not changed:
+			break
+	return pts
+
+
+func _follow_same_axis(a: Vector2, b: Vector2) -> bool:
+	return absf(a.x - b.x) < 2.6 or absf(a.y - b.y) < 2.6
+
+
+func _follow_arc_points_raw(from_w: Vector2, to_w: Vector2, pivot: Vector2, steps: int = 11) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	var n := maxi(steps, 3)
+	for i in n + 1:
+		var tt := float(i) / float(n)
+		var u := tt * tt * (3.0 - 2.0 * tt)
+		pts.append(_follow_arc_lerp_raw(from_w, to_w, pivot, u))
+	return pts
+
+
+func follow_arc_sample_points(from_w: Vector2, to_w: Vector2, pivot: Vector2, steps: int = 7) -> PackedVector2Array:
+	return _follow_arc_points(from_w, to_w, pivot, steps)
+
+
+func follow_arc_sample_raw(from_w: Vector2, to_w: Vector2, pivot: Vector2, steps: int = 7) -> PackedVector2Array:
+	return _follow_arc_points_raw(from_w, to_w, pivot, steps)
+
+
+func _follow_set_arc_slide(op: OperatorUnit, dest_w: Vector2) -> bool:
+	if op == null or selected == null:
+		return false
+	var pivot: Vector2 = _follow_lead_world(selected)
+	var from_w: Vector2 = op.global_position
+	var dist := from_w.distance_to(dest_w)
+	if dist < 8.0:
+		return _follow_set_slide(op, dest_w)
+	## Always rebuild the polar path from the body. Nudging the last point
+	## flattened 15° hops into a chord / grid walk.
+	var steps := 11 if dist > 40.0 else 7
+	var arc: PackedVector2Array = _follow_arc_points(from_w, dest_w, pivot, steps)
+	var pts := PackedVector2Array()
+	pts.append(from_w)
+	var min_sep := 8.0
+	for p in arc:
+		if pts.is_empty() or p.distance_squared_to(pts[pts.size() - 1]) >= min_sep * min_sep:
+			pts.append(p)
+	if pts.size() < 2:
+		return _follow_set_slide(op, dest_w)
+	if dest_w.distance_squared_to(pts[pts.size() - 1]) > 4.0:
+		pts[pts.size() - 1] = dest_w
+	if op.slot:
+		op.slot.occupied_by = null
+		op.slot.set_highlight(false)
+		op.slot = null
+	op.set_move_path(pts)
+	_follow_body_arc_hits += 1
+	var length := 0.0
+	for i in range(1, pts.size()):
+		length += pts[i - 1].distance_to(pts[i])
+	var want_spd := length / maxf(FOLLOW_ARC_BLEND, 0.08)
+	op.move_speed = clampf(want_spd, op.base_move_speed, op.base_move_speed * 3.2)
+	return true
+
+
+func _follow_nudge_path_end(op: OperatorUnit, dest_w: Vector2) -> bool:
+	if op == null or not op.is_moving() or op.move_path.size() < 2:
+		return false
+	var p: PackedVector2Array = op.move_path
+	var last: Vector2 = p[p.size() - 1]
+	if last.distance_squared_to(dest_w) < 4.0:
+		return true
+	p[p.size() - 1] = dest_w
+	op.move_path = p
+	return true
+
+
+func _follow_set_slide(op: OperatorUnit, dest_w: Vector2) -> bool:
+	if op == null:
+		return false
+	if op.is_moving():
+		return _follow_nudge_path_end(op, dest_w)
+	if dest_w.distance_squared_to(op.global_position) < 16.0:
+		return false
+	if op.slot:
+		op.slot.occupied_by = null
+		op.slot.set_highlight(false)
+		op.slot = null
+	op.set_move_path(PackedVector2Array([op.global_position, dest_w]))
+	return true
+
+
+func follow_dest_world_of(oid: int) -> Vector2:
+	if _follow_dest_world.has(oid):
+		return _follow_dest_world[oid]
+	if grid != null and _follow_dest.has(oid):
+		return grid.cell_to_world_center(_follow_dest[oid])
+	return Vector2.ZERO
+
+
+func follow_dest_blend_hits() -> int:
+	return _follow_blend_hits
+
+
+func follow_dest_blend_active() -> int:
+	var n := 0
+	for k in _follow_blend_t.keys():
+		if float(_follow_blend_t[k]) < 0.999:
+			n += 1
+	return n
+
+
+func follow_dest_blend_frac(oid: int) -> float:
+	return float(_follow_blend_t.get(oid, 1.0))
+
+
+func follow_dest_arc_hits() -> int:
+	return _follow_arc_hits
+
+
+func follow_dest_arc_active() -> int:
+	var n := 0
+	for k in _follow_blend_arc.keys():
+		if bool(_follow_blend_arc[k]) and float(_follow_blend_t.get(k, 1.0)) < 0.999:
+			n += 1
+	return n
+
+
+func follow_dest_arc_bow(oid: int) -> float:
+	if not bool(_follow_blend_arc.get(oid, false)):
+		return 0.0
+	var from_w: Vector2 = _follow_blend_from.get(oid, Vector2.ZERO)
+	var to_w: Vector2 = _follow_blend_to.get(oid, Vector2.ZERO)
+	var now_w: Vector2 = _follow_dest_world.get(oid, to_w)
+	var ab: Vector2 = to_w - from_w
+	if ab.length_squared() < 16.0:
+		return 0.0
+	var t_line := (now_w - from_w).dot(ab) / ab.length_squared()
+	var proj: Vector2 = from_w + ab * t_line
+	return now_w.distance_to(proj)
+
+
+func follow_dest_world_min_spacing() -> float:
+	var worlds: Array[Vector2] = []
+	if selected:
+		worlds.append(selected.global_position)
+	for op in operators:
+		if op == null or op == selected or not bool(op.follow_lead) or not op.alive:
+			continue
+		var w: Vector2 = follow_dest_world_of(int(op.op_id))
+		if w.length_squared() < 1.0:
+			w = op.global_position
+		worlds.append(w)
+	if worlds.size() < 2:
+		return 999.0
+	var best := 9999.0
+	for i in worlds.size():
+		for j in range(i + 1, worlds.size()):
+			best = minf(best, worlds[i].distance_to(worlds[j]))
+	return best
+
+
+func follow_cluster_body_scale() -> float:
+	var s := 1.0
+	var any := false
+	for op in operators:
+		if op == null or not op.has_method("cluster_visual_scale"):
+			continue
+		any = true
+		s = minf(s, float(op.cluster_visual_scale()))
+	return s if any else 1.0
+
+
+func follow_cam_squad_zoom() -> float:
+	return _cam_squad_zoom
+
+
+func follow_cam_world_span() -> Vector2:
+	## World pixels visible at the current follow zoom. ~1280x720 at 1.0;
+	## ~3200x1800 at the old 0.40 postage-stamp zoom.
+	var vp := Vector2(1280.0, 720.0)
+	if get_viewport() != null:
+		vp = get_viewport().get_visible_rect().size
+	var z := maxf(_cam_zoom * _cam_zoom_punch * _cam_squad_zoom, 0.01)
+	return vp / z
+
+
+func follow_cam_pan() -> Vector2:
+	return _cam_pan
+
+
+func follow_body_arc_hits() -> int:
+	return _follow_body_arc_hits
+
+
+func follow_body_world_min_spacing() -> float:
+	var worlds: Array[Vector2] = []
+	if selected:
+		worlds.append(selected.global_position)
+	for op in operators:
+		if op == null or op == selected or not bool(op.follow_lead) or not op.alive:
+			continue
+		worlds.append(op.global_position)
+	if worlds.size() < 2:
+		return 999.0
+	var best := 9999.0
+	for i in worlds.size():
+		for j in range(i + 1, worlds.size()):
+			best = minf(best, worlds[i].distance_to(worlds[j]))
+	return best
+
+
+func follow_body_min_cell_inset() -> float:
+	if grid == null:
+		return 0.0
+	var best := 9999.0
+	var any := false
+	for op in operators:
+		if op == null or op == selected or not bool(op.follow_lead) or not op.alive:
+			continue
+		var oid := int(op.op_id)
+		if not _follow_dest.has(oid):
+			continue
+		var dest: Vector2i = _follow_dest[oid]
+		if dest.x < 0:
+			continue
+		var center: Vector2 = grid.cell_to_world_center(dest)
+		var d := op.global_position.distance_to(center)
+		best = minf(best, d)
+		any = true
+	return best if any else 0.0
+
+
+func follow_arc_axis_run(pts: PackedVector2Array) -> int:
+	var axis_run := 0
+	var max_axis := 0
+	for i in range(1, pts.size()):
+		var d: Vector2 = pts[i] - pts[i - 1]
+		if absf(d.x) < 2.6 or absf(d.y) < 2.6:
+			axis_run += 1
+			max_axis = maxi(max_axis, axis_run)
+		else:
+			axis_run = 0
+	return max_axis
+
+
+func follow_arc_east_overshoot(pts: PackedVector2Array, from_w: Vector2, to_w: Vector2) -> float:
+	## How far samples run past the east end of a south-corridor chord.
+	if pts.is_empty():
+		return 0.0
+	var cap := maxf(from_w.x, to_w.x)
+	var over := 0.0
+	for p in pts:
+		over = maxf(over, p.x - cap)
+	return over
+
+
+func follow_arc_far_overshoot(pts: PackedVector2Array, from_w: Vector2, to_w: Vector2, pivot: Vector2) -> float:
+	## Far-side distance past the chord, opposite the pivot. South-corridor
+	## east-exit wraps sit on this side of the y=13 gap.
+	var chord: Vector2 = to_w - from_w
+	if chord.length_squared() < 256.0 or pts.size() < 3:
+		return 0.0
+	var nrm := Vector2(-chord.y, chord.x).normalized()
+	if (pivot - from_w).dot(nrm) < 0.0:
+		nrm = -nrm
+	var far := 0.0
+	for i in range(1, pts.size() - 1):
+		var p: Vector2 = pts[i]
+		var t := clampf((p - from_w).dot(chord) / chord.length_squared(), 0.0, 1.0)
+		var proj: Vector2 = from_w + chord * t
+		far = maxf(far, maxf(0.0, -(p - proj).dot(nrm)))
+	return far
+
+
+func follow_arc_y14_east(pts: PackedVector2Array, _from_w: Vector2, _to_w: Vector2) -> int:
+	## Full south-corridor path samples in y>=14. The y=13 gap is the chord;
+	## y=14 at x>=21 (mid and east) is the open cell past the south crates.
+	if grid == null or pts.is_empty():
+		return 0
+	var n := 0
+	for p in pts:
+		var c: Vector2i = grid.world_to_cell(p)
+		if c.y >= 14:
+			n += 1
+	return n
+
+
+func follow_arc_y14_mid(pts: PackedVector2Array, _from_w: Vector2, _to_w: Vector2) -> int:
+	## Mid-corridor (x≈21) bow samples that sat in the open y=14 cell.
+	if grid == null or pts.is_empty():
+		return 0
+	var n := 0
+	for p in pts:
+		var c: Vector2i = grid.world_to_cell(p)
+		if c.x >= 20 and c.x <= 22 and c.y >= 14:
+			n += 1
+	return n
+
+
+func follow_arc_chord_bow(pts: PackedVector2Array, from_w: Vector2, to_w: Vector2) -> float:
+	var chord: Vector2 = to_w - from_w
+	if chord.length_squared() < 16.0 or pts.size() < 3:
+		return 0.0
+	var bow := 0.0
+	for i in range(1, pts.size() - 1):
+		var p: Vector2 = pts[i]
+		var t_line := (p - from_w).dot(chord) / chord.length_squared()
+		var proj: Vector2 = from_w + chord * t_line
+		bow = maxf(bow, p.distance_to(proj))
+	return bow
+
+
+func follow_arc_blocked_hits() -> int:
+	var n := 0
+	if grid == null:
+		return 0
+	for op in operators:
+		if op == null or not bool(op.follow_lead) or not op.alive:
+			continue
+		if op.is_moving():
+			for p in op.move_path:
+				var c: Vector2i = grid.world_to_cell(p)
+				if not RaidPathfinderScript.walkable(grid, c) or _cell_is_operable(c):
+					n += 1
+		var w: Vector2 = follow_dest_world_of(int(op.op_id))
+		if w.length_squared() >= 1.0:
+			var dc: Vector2i = grid.world_to_cell(w)
+			if not RaidPathfinderScript.walkable(grid, dc) or _cell_is_operable(dc):
+				n += 1
+	return n
+
+
+func follow_dest_ring_angle(oid: int) -> float:
+	if selected == null:
+		return 0.0
+	var w: Vector2 = follow_dest_world_of(oid)
+	var pivot: Vector2 = _follow_lead_world(selected)
+	var rel: Vector2 = w - pivot
+	if rel.length_squared() < 4.0:
+		return 0.0
+	return rel.angle()
+
+
+func _sync_follow_dest_marks() -> void:
+	var world := get_node_or_null("World") as Node
+	if world == null:
+		return
+	var live := {}
+	for op in operators:
+		if op == null or op == selected or not bool(op.follow_lead) or not op.alive or not op.visible:
+			continue
+		var oid := int(op.op_id)
+		var dest_w: Vector2 = follow_dest_world_of(oid)
+		if dest_w.length_squared() < 1.0:
+			continue
+		live[oid] = true
+		var flag: Node2D = _follow_dest_marks.get(oid)
+		if flag == null or not is_instance_valid(flag):
+			flag = _make_follow_dest_mark(op)
+			flag.name = "FollowDest_%s" % oid
+			world.add_child(flag)
+			_follow_dest_marks[oid] = flag
+		flag.global_position = dest_w
+		flag.visible = dest_w.distance_to(op.global_position) > 10.0
+	var drop: Array = []
+	for k in _follow_dest_marks.keys():
+		if not live.has(k):
+			drop.append(k)
+	for k2 in drop:
+		_clear_follow_dest_mark(int(k2))
+	_sync_follow_file_line()
+
+
+func _sync_follow_file_line() -> void:
+	## Visual file through west dests. Dest cells stay span 6; the tape is
+	## why three bodies read as one squad at 1.0 zoom (no postage stamp).
+	var world := get_node_or_null("World") as Node
+	if world == null:
+		return
+	if _follow_file == null or not is_instance_valid(_follow_file):
+		_follow_file = Line2D.new()
+		_follow_file.name = "FollowFile"
+		_follow_file.width = 2.0
+		_follow_file.default_color = Color(0.86, 0.76, 0.36, 0.62)
+		_follow_file.z_index = 5
+		_follow_file.show_behind_parent = false
+		_follow_file.joint_mode = Line2D.LINE_JOINT_ROUND
+		_follow_file.begin_cap_mode = Line2D.LINE_CAP_ROUND
+		_follow_file.end_cap_mode = Line2D.LINE_CAP_ROUND
+		world.add_child(_follow_file)
+	var pts := PackedVector2Array()
+	if _follow_west_cluster() and selected != null and _is_command_phase():
+		var worlds: Array[Vector2] = [_follow_lead_world(selected)]
+		for op in operators:
+			if op == null or op == selected or not bool(op.follow_lead) or not op.alive:
+				continue
+			var w: Vector2 = follow_dest_world_of(int(op.op_id))
+			if w.length_squared() < 1.0:
+				w = op.global_position
+			worlds.append(w)
+		worlds.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.y < b.y)
+		for w2 in worlds:
+			pts.append(w2)
+	_follow_file.points = pts
+	_follow_file.visible = pts.size() >= 3
+
+
+func follow_file_point_count() -> int:
+	if _follow_file == null or not is_instance_valid(_follow_file) or not _follow_file.visible:
+		return 0
+	return _follow_file.points.size()
+
+
+func follow_file_length() -> float:
+	if _follow_file == null or not is_instance_valid(_follow_file) or not _follow_file.visible:
+		return 0.0
+	var pts: PackedVector2Array = _follow_file.points
+	if pts.size() < 2:
+		return 0.0
+	var n := 0.0
+	for i in range(1, pts.size()):
+		n += pts[i - 1].distance_to(pts[i])
+	return n
+
+
+func _make_follow_dest_mark(op: OperatorUnit) -> Node2D:
+	var n := Node2D.new()
+	n.z_index = 6
+	var col := Color(0.92, 0.82, 0.28, 0.85)
+	if op != null:
+		var kit: Color = OperatorUnit.role_kit_color(int(op.role))
+		col = Color(kit.r, kit.g, kit.b, 0.85)
+	var boot := Polygon2D.new()
+	boot.polygon = PackedVector2Array([
+		Vector2(0, -10), Vector2(7, -2), Vector2(5, 9), Vector2(-5, 9), Vector2(-7, -2)
+	])
+	boot.color = Color(col.r, col.g, col.b, 0.42)
+	n.add_child(boot)
+	var a := Line2D.new()
+	a.width = 2.0
+	a.default_color = col
+	a.points = PackedVector2Array([Vector2(-8, -8), Vector2(8, 8)])
+	n.add_child(a)
+	var b := Line2D.new()
+	b.width = 2.0
+	b.default_color = col
+	b.points = PackedVector2Array([Vector2(8, -8), Vector2(-8, 8)])
+	n.add_child(b)
+	var ring := Line2D.new()
+	ring.width = 1.2
+	ring.default_color = Color(col.r, col.g, col.b, 0.4)
+	ring.closed = true
+	var loop := PackedVector2Array()
+	for i in 10:
+		var r := float(i) / 10.0 * TAU
+		loop.append(Vector2(cos(r), sin(r)) * 12.0)
+	ring.points = loop
+	n.add_child(ring)
+	return n
+
+
+func _clear_follow_dest_mark(oid: int) -> void:
+	if not _follow_dest_marks.has(oid):
+		return
+	var flag: Node2D = _follow_dest_marks[oid]
+	_follow_dest_marks.erase(oid)
+	if flag != null and is_instance_valid(flag):
+		flag.queue_free()
+
+
+func _clear_follow_dest_marks() -> void:
+	var keys: Array = _follow_dest_marks.keys()
+	for k in keys:
+		_clear_follow_dest_mark(int(k))
+	if _follow_file != null and is_instance_valid(_follow_file):
+		_follow_file.visible = false
+		_follow_file.points = PackedVector2Array()
+
+
+func follow_cone_visual_fade() -> float:
+	var s := 1.0
+	var any := false
+	for op in operators:
+		if op == null or not op.has_method("cone_visual_fade"):
+			continue
+		any = true
+		s = minf(s, float(op.cone_visual_fade()))
+	return s if any else 1.0
+
+
+func follow_obs_visual_scale() -> float:
+	var s := 1.0
+	var any := false
+	for op in operators:
+		if op == null or not op.has_method("observation_visual_scale"):
+			continue
+		any = true
+		s = minf(s, float(op.observation_visual_scale()))
+	return s if any else 1.0
+
+
+func follow_obs_visual_radius() -> float:
+	for op in operators:
+		if op == null or not op.has_method("observation_visual_radius"):
+			continue
+		if op.has_method("observation_ring_visible") and not bool(op.observation_ring_visible()):
+			continue
+		return float(op.observation_visual_radius())
+	return 0.0
+
+
+func follow_obs_kit_range() -> float:
+	for op in operators:
+		if op == null or not op.has_method("observation_kit_range"):
+			continue
+		if op.has_method("observation_ring_visible") and not bool(op.observation_ring_visible()):
+			continue
+		return float(op.observation_kit_range())
+	return 0.0
+
+
+func follow_obs_fill_alpha() -> float:
+	var a := 0.0
+	var any := false
+	for op in operators:
+		if op == null or not op.has_method("observation_fill_alpha"):
+			continue
+		any = true
+		a = maxf(a, float(op.observation_fill_alpha()))
+	return a if any else 0.0
+
+
+func follow_obs_fill_courtyard() -> int:
+	## 1 if any observation fill still paints the yard crate island (19,10).
+	if grid == null:
+		return 0
+	var world: Vector2 = grid.cell_to_world_center(Vector2i(19, 10))
+	for op in operators:
+		if op == null or not op.has_method("observation_fill_covers_world"):
+			continue
+		if op.has_method("observation_ring_visible") and not bool(op.observation_ring_visible()):
+			continue
+		if bool(op.observation_fill_covers_world(world)):
+			return 1
+	return 0
+
+
+func follow_obs_world_offset() -> float:
+	var m := 0.0
+	var any := false
+	for op in operators:
+		if op == null or not op.has_method("obs_world_offset"):
+			continue
+		any = true
+		m = maxf(m, float(op.obs_world_offset().length()))
+	return m if any else 0.0
+
+
+func follow_obs_ring_min_spacing() -> float:
+	## World distance between observation-ring centers (body + visual offset).
+	var worlds: Array[Vector2] = []
+	for op in operators:
+		if op == null or not op.alive or not op.visible:
+			continue
+		if not bool(op.follow_lead) and op != selected:
+			continue
+		var w: Vector2 = op.global_position
+		if op.has_method("obs_world_offset"):
+			w += op.obs_world_offset()
+		worlds.append(w)
+	if worlds.size() < 2:
+		return 0.0
+	var best := 9999.0
+	for i in worlds.size():
+		for j in range(i + 1, worlds.size()):
+			best = minf(best, worlds[i].distance_to(worlds[j]))
+	return 0.0 if best > 9000.0 else best
+
+
+func follow_obs_west_hug() -> int:
+	## Rings whose visual offset still slides toward the west wall (–X).
+	var n := 0
+	for op in operators:
+		if op == null or not op.has_method("obs_world_offset"):
+			continue
+		if not bool(op.follow_lead) and op != selected:
+			continue
+		if float(op.obs_world_offset().x) < -8.0:
+			n += 1
+	return n
+
+
+func follow_west_ring_extra() -> float:
+	return FOLLOW_WEST_RING_EXTRA
+
+
+func follow_west_obs_courtyard() -> float:
+	return FOLLOW_WEST_OBS_COURTYARD
+
+
+func follow_ring_west_min_x() -> float:
+	## Smallest on-ring world x among the west file. Cell 5 west edge is 160.
+	if selected == null:
+		return 9999.0
+	var best := 9999.0
+	var any := false
+	for op in operators:
+		if op == null or op == selected or not bool(op.follow_lead) or not op.alive:
+			continue
+		var w: Vector2 = _follow_snag_walkable(_follow_ring_world(selected, op), _follow_lead_world(selected))
+		best = minf(best, w.x)
+		any = true
+	return best if any else 9999.0
+
+
+func _follow_west_cluster() -> bool:
+	if selected == null or not selected.alive or not selected.visible:
+		return false
+	if not _follow_in_west(selected.grid_cell()):
+		return false
+	var n := 1
+	for op in operators:
+		if op == null or op == selected or not op.alive or not op.visible:
+			continue
+		if bool(op.follow_lead):
+			n += 1
+	return n >= 3
+
+
+func _apply_west_obs_scale() -> void:
+	var west := _follow_west_cluster()
+	var s := FOLLOW_WEST_OBS_SCALE if west else 1.0
+	var body_s := FOLLOW_WEST_BODY_SCALE if west else 1.0
+	var cone_s := FOLLOW_WEST_CONE_FADE if west else 1.0
+	for op in operators:
+		if op != null and op.has_method("set_obs_visual_scale"):
+			op.set_obs_visual_scale(s)
+		if op != null and op.has_method("set_cluster_visual_scale"):
+			op.set_cluster_visual_scale(body_s)
+		if op != null and op.has_method("set_cone_visual_fade"):
+			op.set_cone_visual_fade(cone_s)
+	_apply_west_obs_offset(west)
+
+
+func _apply_west_obs_offset(west: bool) -> void:
+	## Visual observation-ring stagger. Dest cells stay; rings slide off the
+	## cluster centroid so the west trio + yellow cone read as three bodies.
+	## v0.5.39: dest cells (6,6)/(5,16) span 6. #1 stays six along-file
+	## (dx=1). #2 stays off the south wall. Dest world clamps onto walkable
+	## floor so the south wall does not wrap a courtyard detour. Follow
+	## camera stays ~1.0 (floor ≥0.85) and pans/crops the trio + cone.
+	## Bodies and observation rings are full-size (~1.0). Courtyard /
+	## along-file ring offset is the modest 1.0-scale stagger, not the
+	## 0.16-era 154px courtyard shove.
+	var centroid := Vector2.ZERO
+	var n := 0
+	if west and selected != null:
+		centroid += selected.global_position
+		n += 1
+		for op0 in operators:
+			if op0 == null or op0 == selected or not op0.alive or not op0.visible:
+				continue
+			if bool(op0.follow_lead):
+				centroid += op0.global_position
+				n += 1
+		if n > 0:
+			centroid /= float(n)
+	for op in operators:
+		if op == null or not op.has_method("set_obs_world_offset"):
+			continue
+		if not west or selected == null or n <= 0:
+			op.set_obs_world_offset(Vector2.ZERO)
+			continue
+		var away: Vector2 = op.global_position - centroid
+		var back1: Vector2 = _follow_facing_back(selected)
+		var side1 := Vector2(-back1.y, back1.x)
+		var st1 := float(_follow_slot_sign(selected, op))
+		if away.length_squared() < 16.0:
+			if op == selected:
+				away = Vector2(1.0, 0.0)
+			else:
+				away = back1 * 0.35 + side1 * st1
+		if away.length_squared() < 0.01:
+			op.set_obs_world_offset(Vector2.ZERO)
+			continue
+		var off: Vector2
+		if op == selected:
+			## Lead ring slides into the courtyard, not onto the west wall.
+			off = away.normalized() * (FOLLOW_WEST_OBS_OFFSET * FOLLOW_WEST_OBS_LEAD_MUL)
+			off.x += FOLLOW_WEST_OBS_COURTYARD
+		else:
+			var slot_i := _follow_slot_index(selected, op)
+			off = away.normalized() * FOLLOW_WEST_OBS_OFFSET
+			off += side1 * st1 * FOLLOW_WEST_OBS_SIDE
+			off += side1 * st1 * float(maxi(slot_i, 0)) * FOLLOW_WEST_OBS_SLOT
+			off.x += FOLLOW_WEST_OBS_COURTYARD
+		op.set_obs_world_offset(off)
+
+
+func _follow_slot_depth_for(lead: OperatorUnit, follower: OperatorUnit) -> int:
+	if lead == null or follower == null or grid == null:
+		return FOLLOW_SLOT_DEPTH
+	if _follow_in_west(follower.grid_cell()) and _follow_in_west(_follow_lead_cell(lead)):
+		if _follow_slot_index(lead, follower) >= 1:
+			return FOLLOW_WEST_SECOND_DEPTH
+		return FOLLOW_WEST_SLOT_DEPTH
+	return FOLLOW_SLOT_DEPTH
+
+
+func _follow_west_along_alley(lead: OperatorUnit) -> bool:
+	## West alley is a north-south file. Span-6 side stagger only when the
+	## lead faces east/west so "along-file" is up the alley, not out the
+	## courtyard into the crate block.
+	if lead == null:
+		return false
+	var back: Vector2 = _follow_facing_back(lead)
+	return absf(back.x) >= absf(back.y)
+
+
+func _follow_slot_side_cells(lead: OperatorUnit, follower: OperatorUnit) -> int:
+	## First west follower stands 6 cells along-file so the trio dests
+	## leave the span-5 mash without hugging the west wall. Second stays
+	## 4 the other way at (5,16). Dest world clamps onto walkable floor
+	## so a 4-south stand does not wrap a courtyard detour.
+	if lead == null or follower == null or grid == null:
+		return 1
+	if not (_follow_in_west(follower.grid_cell()) and _follow_in_west(_follow_lead_cell(lead))):
+		return 1
+	if not _follow_west_along_alley(lead):
+		return 1
+	var slot := _follow_slot_index(lead, follower)
+	if _follow_count(lead) >= 2 and slot == 0:
+		return FOLLOW_WEST_FIRST_SIDE
+	if slot >= 1:
+		return FOLLOW_WEST_SECOND_SIDE
+	return 1
+
+
+func _follow_slot_index(lead: OperatorUnit, follower: OperatorUnit) -> int:
+	var i := 0
+	for op in operators:
+		if op == null or op == lead or not bool(op.follow_lead) or not op.alive:
+			continue
+		if op == follower:
+			return i
+		i += 1
+	return i
+
+
+func _follow_count(lead: OperatorUnit) -> int:
+	var n := 0
+	for op in operators:
+		if op == null or op == lead or not bool(op.follow_lead) or not op.alive:
+			continue
+		n += 1
+	return n
+
+
+func _follow_consume_facing_twist() -> bool:
+	if selected == null:
+		return false
+	var now := float(selected.facing_deg)
+	var twist := false
+	_follow_twist_span = 0.0
+	if not selected.is_moving() and _follow_face_on:
+		## One ↻ tap is 15° (MG 8°). Dest cells follow the cone, not the 45° cardinal.
+		var span := absf(OperatorUnit.angle_diff_deg(_follow_face_deg, now))
+		if span >= FOLLOW_TWIST_DEG:
+			twist = true
+			_follow_twist_span = span
+			_follow_lock.clear()
+			_follow_back_on = false
+	_follow_face_deg = now
+	_follow_face_on = true
+	return twist
+
+
+func _follow_reserved(except_op: OperatorUnit) -> Dictionary:
+	var d := {}
+	if selected:
+		d[selected.grid_cell()] = true
+	for op in operators:
+		if op == null or op == except_op or not op.alive or not op.visible:
+			continue
+		d[op.grid_cell()] = true
+		if bool(op.follow_lead) and _follow_dest.has(int(op.op_id)):
+			d[_follow_dest[int(op.op_id)]] = true
+	return d
+
+
+func _follow_lead_world(lead: OperatorUnit) -> Vector2:
+	## Formation sits on the arrival cell. Keep that world after the lead
+	## stops so dest does not drop one more tile off the 射界.
+	if lead != null and lead.is_moving() and lead.move_path.size() > 0:
+		var last: Vector2 = lead.move_path[lead.move_path.size() - 1]
+		if _follow_arrive_on and grid != null:
+			var old_c: Vector2i = grid.world_to_cell(_follow_arrive_world)
+			var new_c: Vector2i = grid.world_to_cell(last)
+			if old_c != new_c:
+				_follow_lock.clear()
+				_follow_back_on = false
+		if not _follow_back_on:
+			var march: Vector2 = last - lead.global_position
+			if march.length() >= 12.0:
+				_follow_back_world = -march.normalized()
+				_follow_back_on = true
+		_follow_arrive_world = last
+		_follow_arrive_on = true
+		return last
+	if _follow_arrive_on:
+		return _follow_arrive_world
+	return lead.global_position if lead else Vector2.ZERO
+
+
+func _follow_settle_ok(cell: Vector2i, op: OperatorUnit) -> bool:
+	if cell.x < 0 or grid == null:
+		return false
+	if not RaidPathfinderScript.walkable(grid, cell):
+		return false
+	if selected != null and cell == selected.grid_cell():
+		return false
+	if selected != null and cell == _follow_lead_cell(selected):
+		return false
+	if _sentry_blocks_dest(grid.cell_to_world_center(cell)):
+		return false
+	if _cell_is_operable(cell):
+		return false
+	if selected != null and not selected.is_moving():
+		if _friendly_cone_blocks(grid.cell_to_world_center(cell), op):
+			return false
+	return true
+
+
+func _follow_lead_cell(lead: OperatorUnit) -> Vector2i:
+	if grid == null or lead == null:
+		return Vector2i(-1, -1)
+	return grid.world_to_cell(_follow_lead_world(lead))
+
+
+func _follow_facing_back(lead: OperatorUnit) -> Vector2:
+	## March lock keeps the file behind the walk after a last-step detour.
+	## Twisting 射界 clears that lock so the file turns with the cone.
+	if _follow_back_on and _follow_back_world.length_squared() > 0.01:
+		return _follow_back_world.normalized()
+	var rad := deg_to_rad(lead.facing_deg if lead else 0.0)
+	var back := Vector2(-cos(rad), -sin(rad))
+	if back.length_squared() < 0.01:
+		return Vector2(0, -1)
+	return back.normalized()
+
+
+func _follow_axis_cell(v: Vector2) -> Vector2i:
+	## Fallback 4-way. Live dests come from `_follow_ideal_world` interpolation.
+	if v.length_squared() < 0.0001:
+		return Vector2i(0, -1)
+	if absf(v.x) >= absf(v.y):
+		return Vector2i(1 if v.x > 0.0 else -1, 0)
+	return Vector2i(0, 1 if v.y > 0.0 else -1)
+
+
+func _follow_slot_sign(lead: OperatorUnit, follower: OperatorUnit) -> int:
+	var slot := _follow_slot_index(lead, follower)
+	if _follow_count(lead) < 2 and slot == 0:
+		return 0
+	return 1 if slot % 2 == 0 else -1
+
+
+func _follow_ideal_world(lead: OperatorUnit, follower: OperatorUnit, depth: int = -1) -> Vector2:
+	if depth < 0:
+		depth = _follow_slot_depth_for(lead, follower)
+	var back: Vector2 = _follow_facing_back(lead)
+	var side := Vector2(-back.y, back.x)
+	var st := _follow_slot_sign(lead, follower)
+	var side_n := _follow_slot_side_cells(lead, follower)
+	return _follow_lead_world(lead) + back * float(depth * 32) + side * float(st * side_n * 32)
+
+
+func _follow_ring_world(lead: OperatorUnit, follower: OperatorUnit) -> Vector2:
+	## Continuous facing-slot point. Dest cells stay discrete; this world
+	## rides the ring as ↻ turns so follower bodies do not hop cell-to-cell.
+	var w: Vector2 = _follow_ideal_world(lead, follower)
+	if lead == null or follower == null:
+		return w
+	var lead_c: Vector2i = _follow_lead_cell(lead)
+	if not _follow_in_west(lead_c):
+		return w
+	var back: Vector2 = _follow_facing_back(lead)
+	var side := Vector2(-back.y, back.x)
+	var st := float(_follow_slot_sign(lead, follower))
+	if absf(st) > 0.01:
+		## Side stagger only. Extra back used to hug the west wall; keep it
+		## small so the ring stays inside cell x=5. Dest cells stay.
+		w += side * st * FOLLOW_WEST_RING_EXTRA
+		var slot_i := _follow_slot_index(lead, follower)
+		w += back * (FOLLOW_WEST_RING_BACK + float(maxi(slot_i, 0)) * 4.0)
+		if grid != null:
+			var cell_w: Vector2 = grid.cell_to_world_center(grid.world_to_cell(w))
+			w = _follow_clamp_walkable(w, cell_w)
+	return w
+
+
+func _follow_slot_world(lead: OperatorUnit, follower: OperatorUnit, cell: Vector2i) -> Vector2:
+	## Dest sits toward the continuous facing slot, clamped inside the dest
+	## cell. A 15–20° twist slides inside the cell instead of teleporting.
+	## West trio: push toward the back/side corner plus half a cell of extra
+	## side stagger so the three bodies overlap less.
+	if grid == null or cell.x < 0:
+		return Vector2.ZERO
+	var center: Vector2 = grid.cell_to_world_center(cell)
+	if lead == null or follower == null:
+		return center
+	var west := _follow_in_west(cell)
+	var inset := FOLLOW_WEST_SLOT_INSET if west else FOLLOW_SLOT_INSET
+	var extra := FOLLOW_WEST_SLOT_EXTRA if west else 0.0
+	var mixed: Vector2
+	if west:
+		var back: Vector2 = _follow_facing_back(lead)
+		var side := Vector2(-back.y, back.x)
+		var st := float(_follow_slot_sign(lead, follower))
+		var away: Vector2 = back * 0.92 + side * st * 1.20
+		if away.length_squared() < 0.01:
+			mixed = center
+		else:
+			mixed = center + away.normalized() * inset
+		if absf(st) > 0.01:
+			mixed += side * st * extra
+	else:
+		var ideal: Vector2 = _follow_ideal_world(lead, follower)
+		mixed = center.lerp(ideal, FOLLOW_SLOT_MIX)
+	var lim := inset + extra
+	var off: Vector2 = mixed - center
+	if off.length() > lim:
+		mixed = center + off.normalized() * lim
+	## Pull back onto walkable floor (south wall at y=18, west wall at x=4)
+	## instead of polar-snagging around the courtyard (22-cell wrap).
+	mixed = _follow_clamp_walkable(mixed, center)
+	return _follow_snag_walkable(mixed, _follow_lead_world(lead))
+
+
+func follow_slot_world_of(oid: int) -> Vector2:
+	if selected == null or grid == null:
+		return follow_dest_world_of(oid)
+	for op in operators:
+		if op == null or int(op.op_id) != oid:
+			continue
+		var cell: Vector2i = _follow_dest.get(oid, op.grid_cell())
+		return _follow_slot_world(selected, op, cell)
+	return follow_dest_world_of(oid)
+
+
+func follow_ring_world_of(oid: int) -> Vector2:
+	if selected == null:
+		return follow_dest_world_of(oid)
+	for op in operators:
+		if op == null or int(op.op_id) != oid:
+			continue
+		return _follow_snag_walkable(_follow_ring_world(selected, op), _follow_lead_world(selected))
+	return follow_dest_world_of(oid)
+
+
+func follow_ring_hold_active() -> bool:
+	return _follow_ring_hold
+
+
+func follow_ideal_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i:
+	if grid == null or lead == null or follower == null:
+		return Vector2i(-1, -1)
+	return grid.world_to_cell(_follow_ideal_world(lead, follower))
+
+
+func follow_dest_rear_ok(cell: Vector2i, lead: OperatorUnit) -> bool:
+	if grid == null or lead == null or cell.x < 0:
+		return false
+	var back: Vector2 = _follow_facing_back(lead)
+	var side := Vector2(-back.y, back.x)
+	var rel: Vector2 = grid.cell_to_world_center(cell) - _follow_lead_world(lead)
+	var b := rel.dot(back)
+	var s := absf(rel.dot(side))
+	if b < 20.0:
+		return false
+	## West along-file 6-cell stand (1 back + 6 side) still counts as rear.
+	## Tighter wedge elsewhere so the file does not drift onto the hip.
+	var pad := 168.0 if _follow_in_west(cell) or _follow_in_west(_follow_lead_cell(lead)) else 20.0
+	return s <= b + pad
+
+
+func _follow_anchor_cell(lead: OperatorUnit, follower: OperatorUnit) -> Vector2i:
+	var reserved := _follow_reserved(follower)
+	var slot := _follow_slot_index(lead, follower)
+	var from: Vector2i = follower.grid_cell()
+	var in_cone := _stealth_blocks(follower.global_position, follower)
+	var back: Vector2 = _follow_facing_back(lead)
+	var side := Vector2(-back.y, back.x)
+	var lead_w: Vector2 = _follow_lead_world(lead)
+	var lead_c: Vector2i = grid.world_to_cell(lead_w)
+	var back_c: Vector2i = _follow_axis_cell(back)
+	var side_c: Vector2i = Vector2i(-back_c.y, back_c.x)
+	var sign_i := 1 if slot % 2 == 0 else -1
+	var slot_st := _follow_slot_sign(lead, follower)
+	var slot_depth := _follow_slot_depth_for(lead, follower)
+	var west_file := _follow_in_west(from) and _follow_in_west(lead_c)
+	var ideal_w: Vector2 = _follow_ideal_world(lead, follower, slot_depth)
+	var ideal_c: Vector2i = grid.world_to_cell(ideal_w)
+	var seen := {}
+	var cands: Array[Vector2i] = []
+	## Continuous facing interpolation first. Axis-snapped cells are fallback
+	## so a 15–20° twist already moves dests — do not wait for the 45° cardinal.
+	_follow_push_cand(ideal_c, follower, reserved, seen, cands)
+	## Straight behind first, then 1-cell left/right stagger. Hip / side-rear last.
+	## Two followers share a rear pair (left/right of the back cell) so the
+	## west alley does not stretch into a north-south queue.
+	## West alley uses depth 1 so the file sits a cell tighter and blocks less.
+	var depths: Array[int] = []
+	if west_file:
+		for dw in [1, 2, 3, 4, 5, 6]:
+			depths.append(int(dw))
+	else:
+		for dw2 in [2, 3, 4, 5]:
+			depths.append(int(dw2))
+	var staggers: Array[int] = []
+	var stagger_src: Array = [0, 1, -1]
+	if _follow_count(lead) >= 2:
+		if slot == 0 and west_file and _follow_west_along_alley(lead):
+			stagger_src = [6, 5, 4, 3, 2, 1, -1, 0, -2]
+		elif slot == 0:
+			stagger_src = [1, -1, 0]
+		else:
+			stagger_src = [4, 3, 2, 1, -1, 0, -2]
+	elif slot > 0:
+		stagger_src = [1, -1, 0, 2, -2]
+	for st0 in stagger_src:
+		staggers.append(int(st0))
+	for depth in depths:
+		for st in staggers:
+			var world_c: Vector2i = grid.world_to_cell(
+				lead_w + back * float(depth * 32) + side * float(st * sign_i * 32)
+			)
+			_follow_push_cand(world_c, follower, reserved, seen, cands)
+			_follow_push_cand(lead_c + back_c * depth + side_c * (st * sign_i), follower, reserved, seen, cands)
+	if west_file:
+		for depth_w in [1, 2, 3, 4, 5, 6]:
+			for st_w in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6]:
+				var ww: Vector2i = grid.world_to_cell(
+					lead_w + back * float(depth_w * 32) + side * float(st_w * 32)
+				)
+				if ww.x <= 10:
+					_follow_push_cand(ww, follower, reserved, seen, cands)
+				var wc: Vector2i = lead_c + back_c * depth_w + side_c * st_w
+				if wc.x <= 10:
+					_follow_push_cand(wc, follower, reserved, seen, cands)
+	var step := Vector2i(
+		0 if from.x == lead_c.x else (1 if lead_c.x > from.x else -1),
+		0 if from.y == lead_c.y else (1 if lead_c.y > from.y else -1)
+	)
+	var walk := from
+	for _i in 12:
+		if step.x != 0:
+			walk = Vector2i(walk.x + step.x, walk.y)
+			_follow_push_cand(walk, follower, reserved, seen, cands)
+		if step.y != 0:
+			walk = Vector2i(walk.x, walk.y + step.y)
+			_follow_push_cand(walk, follower, reserved, seen, cands)
+		if walk == lead_c:
+			break
+	for r in range(1, 7):
+		for dx in range(-r, r + 1):
+			for dy in range(-r, r + 1):
+				if maxi(absi(dx), absi(dy)) != r:
+					continue
+				_follow_push_cand(Vector2i(lead_c.x + dx, lead_c.y + dy), follower, reserved, seen, cands)
+	for r in range(0, 4):
+		for dx in range(-r, r + 1):
+			for dy in range(-r, r + 1):
+				_follow_push_cand(Vector2i(from.x + dx, from.y + dy), follower, reserved, seen, cands)
+	if in_cone:
+		var exit_c: Vector2i = _open_cell_outside_cone(from, follower, reserved)
+		if exit_c.x >= 0:
+			_follow_push_cand(exit_c, follower, reserved, seen, cands)
+	var best := Vector2i(-1, -1)
+	var best_score := 999999
+	var from_lead: int = absi(from.x - lead_c.x) + absi(from.y - lead_c.y)
+	for cell in cands:
+		var path: Array[Vector2i] = stealth_path_cells(from, cell, follower)
+		if cell != from and path.size() < 2:
+			continue
+		var plen: int = path.size() if path.size() >= 2 else 1
+		var manh: int = absi(from.x - cell.x) + absi(from.y - cell.y)
+		var detour: int = maxi(0, plen - manh - 1)
+		if detour > FOLLOW_MAX_DETOUR:
+			continue
+		if _follow_path_leaves_west(path, from, cell) and lead_c.x <= 12:
+			continue
+		var to_lead: int = absi(cell.x - lead_c.x) + absi(cell.y - lead_c.y)
+		var rel: Vector2 = grid.cell_to_world_center(cell) - lead_w
+		var back_m := rel.dot(back)
+		var side_m := absf(rel.dot(side))
+		var min_lead := 1 if west_file else 2
+		if west_file:
+			if back_m < 12.0 or side_m > back_m + 28.0:
+				min_lead = 2
+		elif _follow_in_west(from) and _follow_in_west(lead_c):
+			if back_m < 16.0 or side_m > back_m + 24.0:
+				min_lead = 3
+		if to_lead < min_lead:
+			continue
+		var cheb_lead := maxi(absi(cell.x - lead_c.x), absi(cell.y - lead_c.y))
+		if cheb_lead < 1:
+			continue
+		if cheb_lead < 2 and not west_file:
+			continue
+		var dist_i := grid.cell_to_world_center(cell).distance_to(ideal_w)
+		var score: int = to_lead * 3 + detour * 18 + plen + int(round(dist_i / 8.0)) * 6
+		if cell == ideal_c:
+			score -= 36
+		score += int(round(absf(back_m - float(slot_depth * 32)) / 16.0)) * 4
+		score += (4 - _follow_open_sides(cell)) * 5
+		if back_m < 16.0:
+			score += 88
+		elif back_m < 48.0 and not west_file:
+			score += 28
+		if back_m < -8.0:
+			score += 70
+		if side_m > back_m + 16.0:
+			score += 52
+		if _follow_count(lead) >= 2:
+			## Pair files left/right of the back cell instead of one on
+			## the spine and the other stretched down the alley.
+			## West first follower wants 6 along-file cells; second stands 4
+			## the other way at (5,16). Dest world clamps onto walkable floor.
+			## Only when facing along the alley (east/west).
+			var alley := west_file and _follow_west_along_alley(lead)
+			var want_side := FOLLOW_WEST_FIRST_SIDE if alley and slot == 0 else (FOLLOW_WEST_SECOND_SIDE if alley else 1)
+			score += absi(int(round(side_m / 32.0)) - want_side) * 8
+		elif slot == 0:
+			score += int(round(maxi(0.0, side_m - 20.0) / 32.0)) * 10
+		else:
+			score += absi(int(round(side_m / 32.0)) - 1) * 6
+		if back_m >= 56.0 and back_m <= 160.0 and not west_file:
+			score -= 16
+		if _follow_on_lead_path(cell):
+			score += 48
+		if slot > 0 and to_lead < 2 + slot:
+			score += 20
+		if from.x <= 12 and lead_c.x <= 12 and cell.x > 12:
+			score += 80
+		## Long wraps only. A 2–3 cell local detour toward an east lead is allowed.
+		if from.x <= 8 and lead_c.x <= 10 and cell.x > 10 and detour >= 4:
+			score += 80
+		if lead_c.x >= from.x + 3 and cell.x > from.x:
+			score -= 16
+		if in_cone and to_lead < from_lead:
+			score -= 24
+		if west_file:
+			if cheb_lead > FOLLOW_WEST_SPAN_MAX:
+				continue
+			if cell.x == lead_c.x:
+				score += 48
+			var alley2 := _follow_west_along_alley(lead)
+			if alley2 and slot == 0:
+				## First follower: 6 along-file (dx stays 1). Do not hug
+				## the west wall or sit in the old span-5 pocket.
+				if cheb_lead <= 1:
+					score += 48
+				if absi(cell.x - lead_c.x) >= 2:
+					score += 36
+				if cheb_lead == 6 and absi(cell.x - lead_c.x) == 1:
+					score -= 56
+				if cheb_lead == 5 and absi(cell.x - lead_c.x) == 1:
+					score += 18
+				if cheb_lead == 4 and absi(cell.x - lead_c.x) == 1:
+					score += 18
+				if back_m >= 20.0 and back_m <= 48.0 and side_m >= 176.0 and side_m <= 208.0:
+					score -= 52
+				elif side_m >= 176.0 and side_m <= 208.0:
+					score -= 22
+				if back_m > 48.0:
+					score += int(round((back_m - 48.0) / 16.0)) * 16
+				if cheb_lead >= 7:
+					score += 22
+			elif alley2:
+				## Second follower: opposite stagger, 2 back + 4 along-file
+				## → (5,16). Dest world clamps onto walkable floor so the
+				## south wall does not wrap a 22-cell courtyard detour.
+				if side_m > 144.0:
+					score += int(round((side_m - 144.0) / 16.0)) * 12
+				if back_m >= 48.0 and back_m <= 80.0 and side_m >= 112.0 and side_m <= 144.0:
+					score -= 56
+				elif back_m >= 48.0 and back_m <= 80.0:
+					score -= 24
+				if cheb_lead == 4:
+					score -= 36
+				if cheb_lead == 4 and absi(cell.x - lead_c.x) == 2:
+					score -= 40
+				if cheb_lead <= 1:
+					score += 40
+				if cheb_lead >= 6:
+					score += 22
+				if back_m < 40.0:
+					score += 28
+				if back_m > 88.0:
+					score += int(round((back_m - 88.0) / 16.0)) * 16
+		if score < best_score:
+			best_score = score
+			best = cell
+	if best.x >= 0:
+		return best
+	return _open_cell_outside_cone(from, follower, reserved)
+
+
+func _follow_push_cand(
+	cell: Vector2i,
+	op: OperatorUnit,
+	reserved: Dictionary,
+	seen: Dictionary,
+	cands: Array[Vector2i]
+) -> void:
+	if seen.has(cell):
+		return
+	if not _follow_cell_ok(cell, op, reserved):
+		return
+	seen[cell] = true
+	cands.append(cell)
+
+
+func _follow_path_leaves_west(path: Array[Vector2i], from: Vector2i, to: Vector2i) -> bool:
+	if from.x > 12 or to.x > 12:
+		return false
+	for c in path:
+		if c.x > 12:
+			return true
+	return false
+
+
+func _follow_west_stay_path(from: Vector2i, to: Vector2i, op: Node) -> Array[Vector2i]:
+	## West-alley A* that never steps x>12. Cone avoid stays; courtyard
+	## wraps around the crate cluster do not.
+	var empty: Array[Vector2i] = []
+	if grid == null:
+		return empty
+	var avoid: Dictionary = _stealth_blocked_cells(op).duplicate()
+	for y in range(AmbushGrid.ROWS):
+		for x in range(13, AmbushGrid.COLS):
+			avoid[Vector2i(x, y)] = true
+	var path: Array[Vector2i] = RaidPathfinderScript.find_path_avoiding(grid, from, to, avoid, {})
+	if path.size() >= 2 and not _path_hits_cone(path, op):
+		return path
+	return empty
+
+
+func _follow_prefer_west_path(
+	from: Vector2i, to: Vector2i, op: Node, path: Array[Vector2i]
+) -> Array[Vector2i]:
+	if op == null or not bool(op.get("follow_lead")):
+		return path
+	if not _follow_in_west(from) or not _follow_in_west(to):
+		return path
+	if selected != null and not _follow_in_west(_follow_lead_cell(selected)):
+		return path
+	var plen: int = path.size() if path.size() >= 2 else 1
+	var manh: int = absi(from.x - to.x) + absi(from.y - to.y)
+	var detour: int = maxi(0, plen - manh - 1)
+	var wrap := _follow_path_leaves_west(path, from, to)
+	if path.size() >= 2 and not wrap and detour <= FOLLOW_MAX_DETOUR:
+		return path
+	var stay: Array[Vector2i] = _follow_west_stay_path(from, to, op)
+	if stay.size() < 2:
+		return path
+	var stay_detour: int = maxi(0, stay.size() - manh - 1)
+	if stay_detour <= FOLLOW_MAX_DETOUR and not _follow_path_leaves_west(stay, from, to):
+		return stay
+	return path
+
+
+func _follow_in_west(cell: Vector2i) -> bool:
+	return cell.x <= 10
+
+
+func _follow_open_sides(cell: Vector2i) -> int:
+	if grid == null:
+		return 4
+	var n := 0
+	for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		var c: Vector2i = cell + d
+		if RaidPathfinderScript.walkable(grid, c):
+			n += 1
+	return n
+
+
+func _follow_gap_ok(a: Vector2i, b: Vector2i, west: bool) -> bool:
+	var md := absi(a.x - b.x) + absi(a.y - b.y)
+	var cd := maxi(absi(a.x - b.x), absi(a.y - b.y))
+	## Same cell is never legal. Trio dests stay at least 2 Chebyshev
+	## apart so the first follower leaving the pocket does not re-mash
+	## with the lead or the second.
+	if md < 1 or cd < 1:
+		return false
+	if cd < 2:
+		return false
+	if west:
+		return true
+	if md < 2:
+		return false
+	return true
+
+
+func _follow_next_blocked(cells: Array[Vector2i], op: OperatorUnit) -> bool:
+	if cells.size() < 2:
+		return false
+	return _ally_occupies(cells[1], op)
+
+
+func _ally_occupies(cell: Vector2i, except_op: OperatorUnit) -> bool:
+	for op in operators:
+		if op == null or op == except_op or not op.alive or not op.visible:
+			continue
+		if op.grid_cell() == cell:
+			return true
+	return false
+
+
+func _follow_local_bypass(from: Vector2i, dest: Vector2i, op: OperatorUnit) -> Array[Vector2i]:
+	## 2–3 cell sidestep around an ally or cone corner. Do not idle-wait.
+	var empty: Array[Vector2i] = []
+	if grid == null or from == dest:
+		return empty
+	var lead_c: Vector2i = selected.grid_cell() if selected else dest
+	var start_in := _stealth_blocks(grid.cell_to_world_center(from), op)
+	var dirs: Array[Vector2i] = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
+	var came := {}
+	var dist := {}
+	dist[from] = 0
+	var open: Array[Vector2i] = [from]
+	var best := Vector2i(-1, -1)
+	var best_score := 999999
+	var qi := 0
+	var from_lead := absi(from.x - lead_c.x) + absi(from.y - lead_c.y)
+	var from_dest := absi(from.x - dest.x) + absi(from.y - dest.y)
+	while qi < open.size():
+		var cur: Vector2i = open[qi]
+		qi += 1
+		var steps: int = int(dist[cur])
+		if steps >= 1 and _follow_bypass_land_ok(cur, op):
+			var to_lead := absi(cur.x - lead_c.x) + absi(cur.y - lead_c.y)
+			var to_dest := absi(cur.x - dest.x) + absi(cur.y - dest.y)
+			var progressed := to_lead < from_lead or to_dest < from_dest
+			var score: int = steps * 10 + to_lead * 8 + to_dest
+			if not progressed:
+				score += 28
+			if _follow_in_west(from) and _follow_in_west(lead_c) and cur.x > 12:
+				score += 80
+			if score < best_score:
+				best_score = score
+				best = cur
+		if steps >= FOLLOW_LOCAL_DETOUR:
+			continue
+		for d in dirs:
+			var n: Vector2i = cur + d
+			if dist.has(n):
+				continue
+			if not _follow_bypass_step_ok(n, op, start_in, dest):
+				continue
+			dist[n] = steps + 1
+			came[n] = cur
+			open.append(n)
+	if best.x < 0:
+		return empty
+	return _follow_rebuild_bypass(came, best, from)
+
+
+func _follow_bypass_land_ok(cell: Vector2i, op: OperatorUnit) -> bool:
+	if not RaidPathfinderScript.walkable(grid, cell):
+		return false
+	if selected != null and cell == selected.grid_cell():
+		return false
+	if _ally_occupies(cell, op):
+		return false
+	if _cell_is_operable(cell):
+		return false
+	if _follow_hugs_cone(cell, op):
+		return false
+	return true
+
+
+func _follow_bypass_step_ok(n: Vector2i, op: OperatorUnit, start_in: bool, dest: Vector2i) -> bool:
+	if not RaidPathfinderScript.walkable(grid, n):
+		return false
+	if selected != null and n == selected.grid_cell():
+		return false
+	if n != dest and _ally_occupies(n, op):
+		return false
+	if _cell_is_operable(n):
+		return false
+	var w: Vector2 = grid.cell_to_world_center(n)
+	if _stealth_blocks(w, op) and not start_in:
+		return false
+	return true
+
+
+func _follow_rebuild_bypass(came: Dictionary, cur: Vector2i, origin: Vector2i) -> Array[Vector2i]:
+	var path: Array[Vector2i] = [cur]
+	var guard := 0
+	while came.has(cur) and guard < 8:
+		guard += 1
+		cur = came[cur]
+		path.append(cur)
+	path.reverse()
+	if path.is_empty() or path[0] != origin:
+		path.insert(0, origin)
+	return path
+
+
+func _best_follow_cell(want: Vector2i, op: OperatorUnit, reserved: Dictionary) -> Vector2i:
+	if _follow_cell_ok(want, op, reserved):
+		return want
+	var hug_fb := Vector2i(-1, -1)
+	for r in range(1, 7):
+		for dx in range(-r, r + 1):
+			for dy in range(-r, r + 1):
+				if maxi(absi(dx), absi(dy)) != r:
+					continue
+				var n := Vector2i(want.x + dx, want.y + dy)
+				if not _follow_cell_open(n, op, reserved):
+					continue
+				if not _follow_hugs_cone(n, op):
+					return n
+				if hug_fb.x < 0:
+					hug_fb = n
+	return hug_fb
+
+
+func _follow_on_lead_path(cell: Vector2i) -> bool:
+	if selected == null or not selected.is_moving() or grid == null:
+		return false
+	## Cells behind the arrival slot are the formation, not a blockage.
+	if follow_dest_rear_ok(cell, selected):
+		return false
+	for p in selected.move_path:
+		if grid.world_to_cell(p) == cell:
+			return true
+	return false
+
+
+func _follow_keep_ok(cell: Vector2i, op: OperatorUnit) -> bool:
+	## While the lead is walking, keep a dest even if they pass through it.
+	if not RaidPathfinderScript.walkable(grid, cell):
+		return false
+	if _cell_is_operable(cell):
+		return false
+	if selected != null and cell == _follow_lead_cell(selected):
+		return false
+	if selected != null and _follow_count(selected) >= 2:
+		var lc2: Vector2i = _follow_lead_cell(selected)
+		if (_follow_in_west(cell) or _follow_in_west(lc2)) and maxi(absi(cell.x - lc2.x), absi(cell.y - lc2.y)) < 2:
+			return false
+	if _follow_hugs_cone(cell, op):
+		return false
+	for other in operators:
+		if other == null or other == op or not other.alive or not bool(other.follow_lead):
+			continue
+		if not _follow_dest.has(int(other.op_id)):
+			continue
+		var d: Vector2i = _follow_dest[int(other.op_id)]
+		var west2 := _follow_in_west(cell) or _follow_in_west(d)
+		if not _follow_gap_ok(cell, d, west2):
+			return false
+	return true
+
+
+func _follow_cell_ok(cell: Vector2i, op: OperatorUnit, reserved: Dictionary) -> bool:
+	if not _follow_cell_open(cell, op, reserved):
+		return false
+	if selected != null:
+		var end_c: Vector2i = _follow_lead_cell(selected)
+		if cell == end_c:
+			return false
+		if cell == selected.grid_cell() and not selected.is_moving():
+			return false
+	if _follow_hugs_cone(cell, op):
+		return false
+	if not _follow_spread_ok(cell, op):
+		return false
+	return true
+
+
+func _follow_spread_ok(cell: Vector2i, op: OperatorUnit) -> bool:
+	if selected != null:
+		var lc: Vector2i = _follow_lead_cell(selected)
+		var west := _follow_in_west(cell) or _follow_in_west(lc)
+		if not _follow_gap_ok(cell, lc, west):
+			return false
+		## West trio: dests leave the 1-cell pocket under the cone.
+		if west and _follow_count(selected) >= 2:
+			var cd := maxi(absi(cell.x - lc.x), absi(cell.y - lc.y))
+			if cd < 2:
+				return false
+	for other in operators:
+		if other == null or other == op or not other.alive or not bool(other.follow_lead):
+			continue
+		if not _follow_dest.has(int(other.op_id)):
+			continue
+		var d: Vector2i = _follow_dest[int(other.op_id)]
+		var west2 := _follow_in_west(cell) or _follow_in_west(d)
+		if not _follow_gap_ok(cell, d, west2):
+			return false
+	return true
+
+
+func _cell_is_operable(cell: Vector2i) -> bool:
+	if grid == null:
+		return false
+	for st in raid_stashes:
+		if st == null or not is_instance_valid(st) or bool(st.collected):
+			continue
+		if st.get("cell") != null and st.cell == cell:
+			return true
+		if grid.world_to_cell(st.global_position) == cell:
+			return true
+	for slot in cover_slots:
+		if slot == null or not is_instance_valid(slot):
+			continue
+		if grid.world_to_cell(slot.global_position) == cell:
+			return true
+	return false
+
+
+func follow_min_spacing() -> float:
+	var worlds: Array[Vector2] = []
+	for op in operators:
+		if op == null or not op.alive or not op.visible:
+			continue
+		worlds.append(op.global_position)
+	if worlds.size() < 2:
+		return 999.0
+	var best := 9999.0
+	for i in worlds.size():
+		for j in range(i + 1, worlds.size()):
+			best = minf(best, worlds[i].distance_to(worlds[j]))
+	return best
+
+
+func follow_dest_min_spacing() -> float:
+	var cells: Array[Vector2i] = []
+	if selected:
+		cells.append(selected.grid_cell())
+	for op in operators:
+		if op == null or op == selected or not bool(op.follow_lead) or not op.alive:
+			continue
+		if _follow_dest.has(int(op.op_id)):
+			cells.append(_follow_dest[int(op.op_id)])
+		else:
+			cells.append(op.grid_cell())
+	if cells.size() < 2:
+		return 999.0
+	var best := 9999.0
+	for i in cells.size():
+		for j in range(i + 1, cells.size()):
+			var a: Vector2 = grid.cell_to_world_center(cells[i])
+			var b: Vector2 = grid.cell_to_world_center(cells[j])
+			best = minf(best, a.distance_to(b))
+	return best
+
+
+func stealth_path_cells(from: Vector2i, to: Vector2i, op: Node) -> Array[Vector2i]:
+	if grid == null:
+		return []
+	var avoid: Dictionary = _stealth_blocked_cells(op)
+	if avoid.has(to):
+		to = _open_cell_outside_cone(to, op)
+		if to.x < 0:
+			return []
+	var following := op != null and bool(op.get("follow_lead"))
+	if avoid.has(from):
+		## Already inside a cone: walk out past the rim. Do not freeze on yellow.
+		var exit_c: Vector2i = to if not avoid.has(to) else _open_cell_outside_cone(from, op)
+		if exit_c.x < 0:
+			exit_c = to
+		var bail: Array[Vector2i] = RaidPathfinderScript.find_path(grid, from, exit_c)
+		if bail.size() >= 2:
+			var out: Array[Vector2i] = []
+			for c in bail:
+				out.append(c)
+				if c == from:
+					continue
+				if following:
+					if not _follow_hugs_cone(c, op) and not avoid.has(c):
+						break
+				elif not avoid.has(c):
+					break
+			if out.size() >= 2:
+				return out
+	var soft := {}
+	for key in avoid.keys():
+		var cell: Vector2i = key
+		for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var n: Vector2i = cell + d
+			if not avoid.has(n) and RaidPathfinderScript.walkable(grid, n):
+				soft[n] = maxi(int(soft.get(n, 0)), 12)
+		for d2 in [Vector2i(1, 1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(-1, -1)]:
+			var n2: Vector2i = cell + d2
+			if not avoid.has(n2) and RaidPathfinderScript.walkable(grid, n2):
+				soft[n2] = maxi(int(soft.get(n2, 0)), 8)
+		for d3 in [Vector2i(2, 0), Vector2i(-2, 0), Vector2i(0, 2), Vector2i(0, -2)]:
+			var n3: Vector2i = cell + d3
+			if not avoid.has(n3) and RaidPathfinderScript.walkable(grid, n3):
+				soft[n3] = maxi(int(soft.get(n3, 0)), 4)
+	if following:
+		for other in operators:
+			if other == null or other == op or not other.alive or not other.visible:
+				continue
+			var oc: Vector2i = other.grid_cell()
+			if oc != from and oc != to:
+				soft[oc] = maxi(int(soft.get(oc, 0)), 14)
+			if bool(other.follow_lead) and _follow_dest.has(int(other.op_id)):
+				var dc: Vector2i = _follow_dest[int(other.op_id)]
+				if dc != from and dc != to:
+					soft[dc] = maxi(int(soft.get(dc, 0)), 10)
+	var path: Array[Vector2i] = RaidPathfinderScript.find_path_avoiding(grid, from, to, avoid, soft)
+	if path.size() >= 2 and not _path_hits_cone(path, op):
+		if following:
+			path = _trim_follow_dest_margin(path, op)
+		return _follow_prefer_west_path(from, to, op, path)
+	var trimmed: Array[Vector2i] = _trim_path_before_cone(RaidPathfinderScript.find_path(grid, from, to), op)
+	if following:
+		trimmed = _trim_follow_dest_margin(trimmed, op)
+	return _follow_prefer_west_path(from, to, op, trimmed)
+
+
+func _stealth_blocked_cells(op: Node) -> Dictionary:
+	var key := op.get_instance_id() if op else 0
+	var now := Time.get_ticks_msec()
+	## Lead-moving changes whether the friendly cone is hard-avoided.
+	if selected == null or not selected.is_moving():
+		if now - _stealth_avoid_msec < 80 and _stealth_avoid_cache.has(key):
+			return _stealth_avoid_cache[key]
+	var avoid := {}
+	if grid == null:
+		return avoid
+	for y in range(AmbushGrid.ROWS):
+		for x in range(AmbushGrid.COLS):
+			if grid.is_blocked(x, y):
+				continue
+			var cell := Vector2i(x, y)
+			if _stealth_blocks(grid.cell_to_world_center(cell), op):
+				avoid[cell] = true
+	_stealth_avoid_cache[key] = avoid
+	_stealth_avoid_msec = now
+	return avoid
+
+
+func _open_cell_outside_cone(cell: Vector2i, op: Node, reserved = null) -> Vector2i:
+	var block: Dictionary = reserved if reserved is Dictionary else {}
+	if _follow_cell_open(cell, op, block) and not _follow_hugs_cone(cell, op):
+		return cell
+	var hug_fb := Vector2i(-1, -1)
+	for r in range(1, 9):
+		for dx in range(-r, r + 1):
+			for dy in range(-r, r + 1):
+				if maxi(absi(dx), absi(dy)) != r:
+					continue
+				var n := Vector2i(cell.x + dx, cell.y + dy)
+				if not _follow_cell_open(n, op, block):
+					continue
+				if not _follow_hugs_cone(n, op):
+					return n
+				if hug_fb.x < 0:
+					hug_fb = n
+	return hug_fb
+
+
+func _follow_cell_open(cell: Vector2i, op: Node, block: Dictionary) -> bool:
+	if not RaidPathfinderScript.walkable(grid, cell):
+		return false
+	if selected != null and op != selected and cell == selected.grid_cell():
+		return false
+	if _cone_blocks_dest(grid.cell_to_world_center(cell), op):
+		return false
+	if _cell_taken(cell, op as OperatorUnit, block):
+		return false
+	if _cell_is_operable(cell):
+		return false
+	return true
+
+
+func _follow_hugs_cone(cell: Vector2i, op: Node) -> bool:
+	if grid == null:
+		return false
+	if _cone_blocks_dest(grid.cell_to_world_center(cell), op):
+		return true
+	for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		var n: Vector2i = cell + d
+		if _painted_cone_cell(n, op):
+			return true
+	return false
+
+
+func _painted_cone_cell(cell: Vector2i, op: Node) -> bool:
+	if grid == null or not RaidPathfinderScript.walkable(grid, cell):
+		return false
+	var world: Vector2 = grid.cell_to_world_center(cell)
+	if _sentry_painted_at(world, 8.0, 4.0):
+		return true
+	if op != null and bool(op.get("follow_lead")):
+		if selected != null and selected.is_moving():
+			return false
+		return _friendly_painted_at(world, 8.0, 6.0)
+	return false
+
+
+func _trim_follow_dest_margin(cells: Array[Vector2i], op: Node) -> Array[Vector2i]:
+	var out: Array[Vector2i] = cells.duplicate()
+	while out.size() >= 2:
+		var last: Vector2i = out[out.size() - 1]
+		if not _follow_hugs_cone(last, op):
+			break
+		out.remove_at(out.size() - 1)
+	return out
+
+
+func _path_hits_cone(cells: Array[Vector2i], op: Node) -> bool:
+	for c in cells:
+		if _stealth_blocks(grid.cell_to_world_center(c), op):
+			return true
+	return false
+
+
+func _trim_path_before_cone(cells: Array[Vector2i], op: Node) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	for c in cells:
+		var w: Vector2 = grid.cell_to_world_center(c)
+		if _stealth_blocks(w, op):
+			break
+		out.append(c)
+	return out
+
+
+func _sentry_sees_world(world: Vector2, op: Node) -> bool:
+	return _sentry_blocks_stealth(world, op)
+
+
+func _stealth_blocks(world: Vector2, op: Node) -> bool:
+	if _sentry_blocks_stealth(world, op):
+		return true
+	if op != null and bool(op.get("follow_lead")):
+		## Moving lead: path to the arrival slot. Stopping at the rim every
+		## tile is the one-cell hitch.
+		if selected != null and selected.is_moving():
+			return false
+		return _friendly_cone_blocks(world, op)
+	return false
+
+
+func _cone_blocks_dest(world: Vector2, op: Node) -> bool:
+	## Destinations never sit in a cone, even if the follower is currently hidden.
+	if _sentry_blocks_dest(world):
+		return true
+	if op != null and bool(op.get("follow_lead")):
+		## While the lead is walking, dest sits at the arrival slot (ahead of
+		## the current cone). Do not bounce dest off the moving yellow.
+		if selected != null and selected.is_moving():
+			return false
+		return _friendly_cone_blocks(world, op)
+	return false
+
+
+func _sentry_blocks_dest(world: Vector2) -> bool:
+	if c2 == null:
+		return false
+	for s in c2.sentries:
+		if s == null or not is_instance_valid(s) or bool(s.is_down()):
+			continue
+		if s.has_method("in_painted_sector") and bool(s.in_painted_sector(world, FOLLOW_DEST_PAD_R, FOLLOW_DEST_PAD_DEG)):
+			return true
+		if s.has_method("blocks_stealth_world") and bool(s.blocks_stealth_world(world, FOLLOW_DEST_PAD_R, FOLLOW_DEST_PAD_DEG)):
+			return true
+		if s.has_method("sees_world_padded") and bool(s.sees_world_padded(world, FOLLOW_DEST_PAD_R, FOLLOW_DEST_PAD_DEG)):
+			return true
+	return false
+
+
+func _sentry_painted_at(world: Vector2, extra_r: float, extra_deg: float) -> bool:
+	if c2 == null:
+		return false
+	for s in c2.sentries:
+		if s == null or not is_instance_valid(s) or bool(s.is_down()):
+			continue
+		if s.has_method("in_painted_sector") and bool(s.in_painted_sector(world, extra_r, extra_deg)):
+			return true
+	return false
+
+
+func _friendly_painted_at(world: Vector2, extra_r: float, extra_deg: float) -> bool:
+	if selected == null or not selected.alive:
+		return false
+	var to_v := world - selected.global_position
+	var dist := to_v.length()
+	if dist < 12.0:
+		return false
+	if dist > float(selected.range_px) + extra_r:
+		return false
+	var ang := rad_to_deg(atan2(to_v.y, to_v.x))
+	var half := float(selected.half_angle_deg) + extra_deg
+	if selected.has_method("angle_diff_deg"):
+		return absf(selected.angle_diff_deg(selected.facing_deg, ang)) <= half
+	var d := absf(selected.facing_deg - ang)
+	while d > 180.0:
+		d = absf(d - 360.0)
+	return d <= half
+
+
+func _friendly_cone_blocks(world: Vector2, op: Node) -> bool:
+	## Followers stay out of the selected operator's yellow 射界. Other
+	## followers' cones do not block each other (that froze the squad).
+	if selected == null or selected == op or not selected.alive:
+		return false
+	if _friendly_painted_at(world, FOLLOW_FRIEND_PAD_R, FOLLOW_FRIEND_PAD_DEG):
+		return true
+	if selected.has_method("in_fire_sector") and bool(selected.in_fire_sector(world, FOLLOW_FRIEND_PAD_DEG, FOLLOW_FRIEND_PAD_R)):
+		return true
+	return false
+
+
+func _sentry_blocks_stealth(world: Vector2, op: Node) -> bool:
+	if c2 == null:
+		return false
+	if op != null and op.get("hidden_in_shadow") != null and bool(op.hidden_in_shadow):
+		return false
+	for s in c2.sentries:
+		if s == null or not is_instance_valid(s) or bool(s.is_down()):
+			continue
+		if s.has_method("blocks_stealth_world"):
+			if bool(s.blocks_stealth_world(world)):
+				return true
+		elif s.has_method("sees_world") and bool(s.sees_world(world)):
+			return true
+	return false
+
+
+func dump_touch_feel() -> Dictionary:
+	_apply_phone_world_ink()
+	var caps := PackedStringArray()
+	var cmds := PackedStringArray()
+	if c2 and c2.prompt and c2.prompt.has_method("visible_captions"):
+		caps = c2.prompt.visible_captions()
+		if c2.prompt.has_method("visible_cmds"):
+			cmds = c2.prompt.visible_cmds()
+	var follows: PackedStringArray = PackedStringArray()
+	for op in operators:
+		if op and bool(op.follow_lead):
+			follows.append(str(op.display_name))
+	var ink: Dictionary = dump_world_ink()
+	return {
+		"intel_y": intel_chip.offset_top if intel_chip else -1.0,
+		"intel_bot": intel_chip.offset_bottom if intel_chip else -1.0,
+		"teach": spawn_teach_label != null and spawn_teach_label.visible,
+		"legend": route_legend != null and route_legend.visible,
+		"timeline": watch_timeline != null and watch_timeline.visible,
+		"timeline_top": watch_timeline.offset_top if watch_timeline else -1.0,
+		"check_top": checklist_strip.offset_top if checklist_strip else -1.0,
+		"check_bot": checklist_strip.offset_bottom if checklist_strip else -1.0,
+		"hotspots": caps,
+		"cmds": cmds,
+		"gesture": _last_touch_gesture,
+		"sprint_armed": _sprint_hold_armed,
+		"panning": _touch_panning,
+		"follow": follows,
+		"pan_slop": TOUCH_PAN_SLOP,
+		"sprint_ms": TOUCH_SPRINT_MS,
+		"north_labels": int(ink.get("north_visible", 0)),
+		"spawn_tags": int(ink.get("spawn_visible", 0)),
+		"route_tags": int(ink.get("route_visible", 0)),
+		"mouse_eat": int(ink.get("mouse_eat", 0)),
+		"cover_tags": int(ink.get("cover_visible", 0)),
+		"crate_tags": int(ink.get("crate_visible", 0)),
+		"west_hits": int(c2.prompt.hotspot_hits_west_operable()) if c2 and c2.prompt and c2.prompt.has_method("hotspot_hits_west_operable") else -1,
+		"follow_dest_spread": follow_dest_min_spacing() if has_method("follow_dest_min_spacing") else -1.0,
+		"follow_spread": follow_min_spacing() if has_method("follow_min_spacing") else -1.0,
+		"facing_tags": int(ink.get("facing_visible", 0)),
+		"follow_cone_hits": follow_cone_hits() if has_method("follow_cone_hits") else -1,
+		"follow_rim_hits": follow_rim_hits() if has_method("follow_rim_hits") else -1,
+		"follow_max_detour": follow_max_detour() if has_method("follow_max_detour") else -1,
+		"follow_idle": follow_idle_waits() if has_method("follow_idle_waits") else -1,
+		"follow_cheb": follow_min_chebyshev() if has_method("follow_min_chebyshev") else -1,
+		"follow_flips": follow_dest_flips() if has_method("follow_dest_flips") else -1,
+		"follow_settle_drops": follow_settle_drops() if has_method("follow_settle_drops") else -1,
+		"follow_side_rear": follow_side_rear_hits() if has_method("follow_side_rear_hits") else -1,
+		"follow_rear_ok": follow_rear_ok_count() if has_method("follow_rear_ok_count") else -1,
+		"follow_west_queue": follow_west_queue_hits() if has_method("follow_west_queue_hits") else -1,
+		"follow_blend": follow_dest_blend_hits() if has_method("follow_dest_blend_hits") else -1,
+		"follow_blend_on": follow_dest_blend_active() if has_method("follow_dest_blend_active") else -1,
+		"follow_arc": follow_dest_arc_hits() if has_method("follow_dest_arc_hits") else -1,
+		"follow_arc_on": follow_dest_arc_active() if has_method("follow_dest_arc_active") else -1,
+		"obs_scale": follow_obs_visual_scale() if has_method("follow_obs_visual_scale") else 1.0,
+		"obs_r": follow_obs_visual_radius() if has_method("follow_obs_visual_radius") else 0.0,
+		"obs_kit": follow_obs_kit_range() if has_method("follow_obs_kit_range") else 0.0,
+		"obs_fill_a": follow_obs_fill_alpha() if has_method("follow_obs_fill_alpha") else 0.0,
+		"obs_fill_court": follow_obs_fill_courtyard() if has_method("follow_obs_fill_courtyard") else 0,
+		"file_pts": follow_file_point_count() if has_method("follow_file_point_count") else 0,
+		"file_len": follow_file_length() if has_method("follow_file_length") else 0.0,
+		"obs_off": follow_obs_world_offset() if has_method("follow_obs_world_offset") else 0.0,
+		"obs_ring_spread": follow_obs_ring_min_spacing() if has_method("follow_obs_ring_min_spacing") else 0.0,
+		"ring_extra": follow_west_ring_extra() if has_method("follow_west_ring_extra") else 0.0,
+		"obs_courtyard": follow_west_obs_courtyard() if has_method("follow_west_obs_courtyard") else 0.0,
+		"ring_west_x": follow_ring_west_min_x() if has_method("follow_ring_west_min_x") else 9999.0,
+		"cam_squad_zoom": _cam_squad_zoom,
+		"cam_world_span": follow_cam_world_span() if has_method("follow_cam_world_span") else Vector2(1280, 720),
+		"cam_pan": _cam_pan,
+		"cluster_scale": follow_cluster_body_scale() if has_method("follow_cluster_body_scale") else 1.0,
+		"cone_fade": follow_cone_visual_fade() if has_method("follow_cone_visual_fade") else 1.0,
+		"dest_world_spread": follow_dest_world_min_spacing() if has_method("follow_dest_world_min_spacing") else -1.0,
+		"arc_blocked": follow_arc_blocked_hits() if has_method("follow_arc_blocked_hits") else -1,
+		"body_arc": follow_body_arc_hits() if has_method("follow_body_arc_hits") else -1,
+		"body_spread": follow_body_world_min_spacing() if has_method("follow_body_world_min_spacing") else -1.0,
+		"body_inset": follow_body_min_cell_inset() if has_method("follow_body_min_cell_inset") else -1.0,
+		"ring_hold": 1 if _follow_ring_hold else 0,
+		"setup_cmds": touch_hud.setup_visible_cmds() if touch_hud and touch_hud.has_method("setup_visible_cmds") else PackedStringArray(),
+		"compact_font": int(touch_hud.setup_bar_metrics().get("font", -1)) if touch_hud and touch_hud.has_method("setup_bar_metrics") else -1,
+		"compact_need": float(touch_hud.setup_bar_metrics().get("need_w", -1.0)) if touch_hud and touch_hud.has_method("setup_bar_metrics") else -1.0,
+		"compact_stacked": 1 if (touch_hud and touch_hud.has_method("setup_bar_metrics") and bool(touch_hud.setup_bar_metrics().get("stacked", false))) else 0,
+	}
+
+
+func dump_world_ink() -> Dictionary:
+	var north_vis := 0
+	var spawn_vis := 0
+	var route_vis := 0
+	var cover_vis := 0
+	var crate_vis := 0
+	var mouse_eat := 0
+	var facing_vis := 0
+	var world := get_node_or_null("World") as Node
+	if world == null:
+		return {
+			"north_visible": 0, "spawn_visible": 0, "route_visible": 0, "mouse_eat": 0,
+			"cover_visible": 0, "crate_visible": 0, "facing_visible": 0,
+		}
+	var xf: Transform2D = get_viewport().get_canvas_transform()
+	var stack: Array = [world]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		for c in n.get_children():
+			stack.append(c)
+		if not (n is Label):
+			continue
+		var lab := n as Label
+		if lab.mouse_filter != Control.MOUSE_FILTER_IGNORE:
+			mouse_eat += 1
+		var parent_n := lab.get_parent()
+		var is_crate := lab.name == "Tag" and parent_n != null and parent_n.has_method("set_search_progress")
+		var txt := str(lab.text)
+		var shown := lab.is_visible_in_tree() and lab.modulate.a >= 0.08
+		if lab.name == "FacingCap" or lab.name == "FaceChip" or txt == "射界" or txt.begins_with("射界朝"):
+			if shown:
+				facing_vis += 1
+		if not lab.visible or lab.modulate.a < 0.08:
+			continue
+		if is_crate:
+			crate_vis += 1
+		var wp: Vector2 = parent_n.global_position if parent_n is Node2D else lab.global_position
+		var screen: Vector2 = xf * wp if parent_n is Node2D else lab.global_position
+		var cell_y := grid.world_to_cell(wp).y if grid else 99
+		if screen.y < 148.0 or cell_y <= 6:
+			north_vis += 1
+		var p_name := str(parent_n.name) if parent_n else ""
+		if p_name.begins_with("SpawnGhost") or txt.begins_with("敌"):
+			spawn_vis += 1
+		if bool(lab.get_meta("route_ink", false)) or txt.find("·巡") >= 0 or txt.find("·奔袭") >= 0:
+			route_vis += 1
+		if txt.ends_with("掩体"):
+			cover_vis += 1
+	return {
+		"north_visible": north_vis,
+		"spawn_visible": spawn_vis,
+		"route_visible": route_vis,
+		"mouse_eat": mouse_eat,
+		"cover_visible": cover_vis,
+		"crate_visible": crate_vis,
+		"facing_visible": facing_vis,
+	}
+
+
+func _apply_phone_world_ink() -> void:
+	var world := get_node_or_null("World") as Node
+	if world == null:
+		return
+	var phone := _want_touch()
+	var xf: Transform2D = get_viewport().get_canvas_transform()
+	var stack: Array = [world]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		for c in n.get_children():
+			stack.append(c)
+		if n is Label:
+			_ink_world_label(n as Label, phone, xf)
+
+
+func _ink_world_label(lab: Label, phone: bool, xf: Transform2D) -> void:
+	lab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var p := lab.get_parent()
+	if p != null and str(p.name).begins_with("Cfx"):
+		return
+	if not phone:
+		if lab.has_meta("ink_saved"):
+			lab.visible = bool(lab.get_meta("ink_vis", true))
+			lab.modulate.a = float(lab.get_meta("ink_a", 1.0))
+			lab.remove_meta("ink_saved")
+		if p is OperatorUnit and (p as OperatorUnit).tag_plate:
+			(p as OperatorUnit).tag_plate.visible = true
+		return
+	if not lab.has_meta("ink_saved"):
+		lab.set_meta("ink_saved", true)
+		lab.set_meta("ink_vis", lab.visible)
+		lab.set_meta("ink_a", lab.modulate.a)
+	var txt := str(lab.text)
+	var p_name := str(p.name) if p else ""
+	var wp: Vector2 = p.global_position if p is Node2D else lab.global_position
+	var screen: Vector2 = xf * wp if p is Node2D else lab.global_position
+	var cell_y := grid.world_to_cell(wp).y if grid else 99
+	var hide := false
+	if p_name.begins_with("SpawnGhost") or txt.begins_with("敌"):
+		hide = true
+	if bool(lab.get_meta("route_ink", false)):
+		hide = true
+	if txt.find("侧翼") >= 0 or txt.find("主路") >= 0 or txt.find("暗道") >= 0 or txt.find("·巡") >= 0 or txt.find("·奔袭") >= 0:
+		hide = true
+	if txt.ends_with("掩体") or txt.find("伏击区") >= 0 or txt.find("第二层") >= 0 or txt.find("橙线") >= 0:
+		hide = true
+	if txt == "岗哨" or txt == "观察环":
+		hide = true
+	if lab.name == "Tag" and p is OperatorUnit:
+		hide = true
+	if lab.name == "FaceChip" or lab.name == "FacingCap":
+		hide = true
+	if txt == "射界" or txt.begins_with("射界朝"):
+		hide = true
+	if p_name == "CompassRose":
+		hide = true
+	if lab.name == "Tag" and p != null and p.has_method("set_search_progress"):
+		if float(p.get("search_progress")) <= 0.02:
+			hide = true
+	if screen.y < 148.0 or cell_y <= 6:
+		hide = true
+	lab.visible = (not hide) and bool(lab.get_meta("ink_vis", true))
+	if p is OperatorUnit and (p as OperatorUnit).tag_plate:
+		(p as OperatorUnit).tag_plate.visible = lab.visible
+	if lab.visible:
+		lab.modulate.a = minf(float(lab.get_meta("ink_a", 1.0)), 0.62)
+
+
+func yard_touch_loop_cells() -> Array[Vector2i]:
+	return [
+		Vector2i(6, 16),
+		Vector2i(6, 8),
+		Vector2i(18, 6),
+		Vector2i(32, 8),
+		Vector2i(32, 16),
+		Vector2i(18, 17),
+		Vector2i(6, 16),
+	]
+
+
+func simulate_touch_tap(world: Vector2) -> void:
+	var xf: Transform2D = get_viewport().get_canvas_transform()
+	var screen: Vector2 = xf * world
+	_touches.clear()
+	var press := InputEventScreenTouch.new()
+	press.index = 0
+	press.pressed = true
+	press.position = screen
+	_unhandled_input(press)
+	var rel := InputEventScreenTouch.new()
+	rel.index = 0
+	rel.pressed = false
+	rel.position = screen
+	_unhandled_input(rel)
+
+
+func simulate_hotspot(caption: String) -> bool:
+	if c2 == null or c2.prompt == null:
+		return false
+	if c2.prompt.has_method("refresh_now"):
+		c2.prompt.refresh_now()
+	if c2.prompt.has_method("fire_caption"):
+		return bool(c2.prompt.fire_caption(caption))
+	return false
+
+
+func simulate_hud_tap(screen: Vector2) -> void:
+	var vp := get_viewport()
+	if vp == null:
+		return
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	press.position = screen
+	press.global_position = screen
+	vp.push_input(press, true)
+	var rel := InputEventMouseButton.new()
+	rel.button_index = MOUSE_BUTTON_LEFT
+	rel.pressed = false
+	rel.position = screen
+	rel.global_position = screen
+	vp.push_input(rel, true)
+
+
+func simulate_follow_badge(idx: int) -> bool:
+	if idx < 0 or idx >= operators.size():
+		return false
+	if c2 != null and c2.portraits != null and c2.portraits.has_signal("follow_toggled"):
+		c2.portraits.follow_toggled.emit(idx)
+	else:
+		toggle_follow(idx)
+	return bool(operators[idx].follow_lead)
+
+
+func simulate_follow_badge_tap(idx: int) -> bool:
+	if idx < 0 or idx >= operators.size():
+		return false
+	if c2 == null or c2.portraits == null or not c2.portraits.has_method("follow_hit_rect"):
+		return simulate_follow_badge(idx)
+	var r: Rect2 = c2.portraits.follow_hit_rect(idx)
+	if r.size.x < 2.0 or r.size.y < 2.0:
+		return false
+	if c2.portraits.has_method("dispatch_tap"):
+		c2.portraits.dispatch_tap(r.get_center())
+	else:
+		simulate_hud_tap(r.get_center())
+	return bool(operators[idx].follow_lead)
+
+
+func simulate_portrait_body_tap(idx: int) -> bool:
+	if idx < 0 or idx >= operators.size():
+		return false
+	if c2 == null or c2.portraits == null or not c2.portraits.has_method("portrait_body_rect"):
+		return false
+	var r: Rect2 = c2.portraits.portrait_body_rect(idx)
+	if r.size.x < 2.0 or r.size.y < 2.0:
+		return false
+	if c2.portraits.has_method("dispatch_tap"):
+		c2.portraits.dispatch_tap(r.get_center())
+	else:
+		simulate_hud_tap(r.get_center())
+	return selected == operators[idx]
+
+
+func west_stash():
+	var best = null
+	var best_x := 99
+	for st in raid_stashes:
+		if st == null or not is_instance_valid(st) or bool(st.collected):
+			continue
+		var cell: Vector2i = st.cell if st.get("cell") != null else grid.world_to_cell(st.global_position)
+		if cell.x <= 12 and cell.x < best_x:
+			best_x = cell.x
+			best = st
+	return best
+
+
+func follow_cone_hits() -> int:
+	var n := 0
+	for op in operators:
+		if op == null or not bool(op.follow_lead) or not op.alive:
+			continue
+		if _follow_dest.has(int(op.op_id)):
+			var cell: Vector2i = _follow_dest[int(op.op_id)]
+			if _cone_blocks_dest(grid.cell_to_world_center(cell), op):
+				n += 1
+		elif _cone_blocks_dest(op.global_position, op):
+			n += 1
+	return n
+
+
+func follow_operable_hits() -> int:
+	var n := 0
+	for op in operators:
+		if op == null or not bool(op.follow_lead) or not op.alive:
+			continue
+		if _follow_dest.has(int(op.op_id)) and _cell_is_operable(_follow_dest[int(op.op_id)]):
+			n += 1
+	return n
+
+
+func follow_rim_hits() -> int:
+	var n := 0
+	for op in operators:
+		if op == null or not bool(op.follow_lead) or not op.alive:
+			continue
+		if _follow_dest.has(int(op.op_id)):
+			if _follow_hugs_cone(_follow_dest[int(op.op_id)], op):
+				n += 1
+		elif _follow_hugs_cone(op.grid_cell(), op):
+			n += 1
+	return n
+
+
+func follow_max_detour() -> int:
+	var worst := 0
+	for op in operators:
+		if op == null or not bool(op.follow_lead) or not op.alive:
+			continue
+		if not _follow_dest.has(int(op.op_id)):
+			continue
+		var dest: Vector2i = _follow_dest[int(op.op_id)]
+		var from_c: Vector2i = op.grid_cell()
+		if dest == from_c:
+			continue
+		var path: Array[Vector2i] = stealth_path_cells(from_c, dest, op)
+		var manh: int = absi(from_c.x - dest.x) + absi(from_c.y - dest.y)
+		var plen: int = path.size()
+		var detour: int = maxi(0, plen - manh - 1)
+		if detour > worst:
+			worst = detour
+	return worst
+
+
+func follow_idle_waits() -> int:
+	var n := 0
+	for op in operators:
+		if op == null or not bool(op.follow_lead) or not op.alive:
+			continue
+		if not _follow_dest.has(int(op.op_id)):
+			continue
+		if _follow_dest[int(op.op_id)] == op.grid_cell():
+			continue
+		if op.is_moving():
+			continue
+		n += 1
+	return n
+
+
+func follow_dest_flips() -> int:
+	return _follow_flip_count
+
+
+func reset_follow_dest_flips() -> void:
+	_follow_flip_count = 0
+	_follow_settle_drops = 0
+	_follow_blend_hits = 0
+	_follow_arc_hits = 0
+	_follow_body_arc_hits = 0
+	_follow_ring_hold = false
+	_follow_lock.clear()
+	_follow_dest_world.clear()
+	_follow_blend_from.clear()
+	_follow_blend_to.clear()
+	_follow_blend_t.clear()
+	_follow_blend_dur.clear()
+	_follow_blend_arc.clear()
+	_follow_blend_pivot.clear()
+	_follow_arrive_on = false
+	_follow_back_on = false
+	_follow_back_world = Vector2.ZERO
+	_follow_face_on = false
+	_follow_face_deg = 0.0
+	_follow_twist_span = 0.0
+	_clear_follow_dest_marks()
+	_apply_west_obs_scale()
+
+
+func follow_settle_drops() -> int:
+	return _follow_settle_drops
+
+
+func follow_side_rear_hits() -> int:
+	var n := 0
+	if selected == null:
+		return 0
+	for op in operators:
+		if op == null or op == selected or not bool(op.follow_lead) or not op.alive:
+			continue
+		if not _follow_dest.has(int(op.op_id)):
+			continue
+		if not follow_dest_rear_ok(_follow_dest[int(op.op_id)], selected):
+			n += 1
+	return n
+
+
+func follow_rear_ok_count() -> int:
+	var n := 0
+	if selected == null:
+		return 0
+	for op in operators:
+		if op == null or op == selected or not bool(op.follow_lead) or not op.alive:
+			continue
+		if not _follow_dest.has(int(op.op_id)):
+			continue
+		if follow_dest_rear_ok(_follow_dest[int(op.op_id)], selected):
+			n += 1
+	return n
+
+
+func follow_west_queue_hits() -> int:
+	## Dest sits in the west alley column (same x as the lead) or is not
+	## behind the 射界 / march. Zero means rear file / 1-cell stagger.
+	var n := 0
+	if selected == null or grid == null:
+		return 0
+	var lead_c: Vector2i = _follow_lead_cell(selected)
+	if not _follow_in_west(lead_c):
+		return 0
+	for op in operators:
+		if op == null or op == selected or not bool(op.follow_lead) or not op.alive:
+			continue
+		if not _follow_dest.has(int(op.op_id)):
+			continue
+		var dest: Vector2i = _follow_dest[int(op.op_id)]
+		if dest.x < 0:
+			continue
+		if dest.x == lead_c.x:
+			n += 1
+			continue
+		if not follow_dest_rear_ok(dest, selected):
+			n += 1
+			continue
+		if absi(dest.y - lead_c.y) > 6 and absi(dest.x - lead_c.x) <= 1:
+			n += 1
+	return n
+
+
+func follow_west_lead_span() -> int:
+	## Max Chebyshev from the lead to a follow dest. v0.5.38 west file is ≤6:
+	## first follower is 6 along-file, second 2 back / 4 the other way.
+	if selected == null or grid == null:
+		return 99
+	var lead_c: Vector2i = _follow_lead_cell(selected)
+	var worst := 0
+	for op in operators:
+		if op == null or op == selected or not bool(op.follow_lead) or not op.alive:
+			continue
+		if not _follow_dest.has(int(op.op_id)):
+			continue
+		var dest: Vector2i = _follow_dest[int(op.op_id)]
+		var cd := maxi(absi(dest.x - lead_c.x), absi(dest.y - lead_c.y))
+		if cd > worst:
+			worst = cd
+	return worst
+
+
+func follow_min_chebyshev() -> int:
+	var cells: Array[Vector2i] = []
+	if selected:
+		cells.append(selected.grid_cell())
+	for op in operators:
+		if op == null or op == selected or not bool(op.follow_lead) or not op.alive:
+			continue
+		if _follow_dest.has(int(op.op_id)):
+			cells.append(_follow_dest[int(op.op_id)])
+		else:
+			cells.append(op.grid_cell())
+	if cells.size() < 2:
+		return 99
+	var best := 99
+	for i in cells.size():
+		for j in range(i + 1, cells.size()):
+			var c := maxi(absi(cells[i].x - cells[j].x), absi(cells[i].y - cells[j].y))
+			best = mini(best, c)
+	return best
+
+
+func _tick_command_moves(delta: float) -> void:
+	for op in operators:
+		if op == null or not op.visible or not op.alive:
+			continue
+		var moving := op.tick_move(delta)
+		if not moving:
+			_snap_op_to_cover_if_clicked(op)
+		_tick_haul_follow(op)
+	if selected and not selected.is_moving() and _move_ghost:
+		_move_ghost.visible = false
+	_follow_selected_cam(delta)
+
+
+func _snap_op_to_cover_if_clicked(op: OperatorUnit) -> void:
+	## Only mount a pad if the operator stopped on that pad's cell (clicked it / walked onto it).
+	## Walking past a nearby cover no longer auto-snaps.
+	if op.slot != null:
+		return
+	var slot := _nearest_slot(op.global_position, 8.0)
+	if slot == null or (slot.occupied_by != null and slot.occupied_by != op):
+		return
+	var dest := op.grid_cell()
+	var pad := grid.world_to_cell(slot.global_position)
+	if dest != pad:
+		return
+	var prev: OperatorUnit = selected
+	selected = op
+	_deploy_selected_to(slot, false)
+	selected = prev
+	_refresh_selection_visual()
+
+
+func _facing_toward_wave_route() -> float:
+	if level == null or grid == null:
+		return selected.facing_deg if selected else 90.0
+	var specs: Array = raid.current_spawns(level) if raid else level.spawn_schedule
+	if specs.is_empty():
+		return selected.facing_deg if selected else 90.0
+	var route := str(specs[0].get("route", "main"))
+	var cells: Array = level.route_cells.get(route, [])
+	if cells.size() < 2 or selected == null:
+		return selected.facing_deg if selected else 90.0
+	var a: Vector2 = grid.cell_to_world_center(cells[0])
+	var b: Vector2 = grid.cell_to_world_center(cells[mini(1, cells.size() - 1)])
+	var v: Vector2 = b - selected.global_position
+	if v.length_squared() < 4.0:
+		v = b - a
+	return rad_to_deg(atan2(v.y, v.x))
+
+
+func _follow_selected_cam(delta: float) -> void:
+	if c2 != null and c2.get("cam_follow") != null and not bool(c2.cam_follow):
+		return
+	if selected == null or not selected.visible:
+		return
+	var focus: Vector2 = selected.global_position
+	var n := 1
+	var moving := selected.is_moving()
+	for op in operators:
+		if op == null or op == selected or not op.alive or not op.visible:
+			continue
+		if not bool(op.follow_lead):
+			continue
+		focus += op.global_position
+		n += 1
+		if op.is_moving():
+			moving = true
+	var west := _follow_in_west(selected.grid_cell())
+	var cluster := west and n >= 3
+	_apply_west_obs_scale()
+	## Do not shrink the world to fit the file. Keep ~1.0 zoom and pan.
+	var want_z := 1.0
+	if cluster:
+		want_z = FOLLOW_CAM_WEST_ZOOM
+	elif moving and west and n >= 2:
+		want_z = FOLLOW_CAM_WEST_ZOOM
+	elif moving and n >= 3:
+		want_z = FOLLOW_CAM_FILE_ZOOM
+	_cam_squad_zoom = lerpf(_cam_squad_zoom, want_z, 1.0 - exp(-delta * 3.8))
+	var framing := moving or cluster or absf(_cam_squad_zoom - want_z) > 0.008
+	if not framing:
+		return
+	if cluster:
+		var rad := deg_to_rad(float(selected.facing_deg))
+		focus += selected.global_position + Vector2(cos(rad), sin(rad)) * FOLLOW_CAM_WEST_CONE
+		n += 1
+	if moving or cluster:
+		focus /= float(n)
+		var center := Vector2(640, 360)
+		var want: Vector2 = (focus - center) * FOLLOW_CAM_WEST_PAN
+		_cam_pan = _cam_pan.lerp(want, 1.0 - exp(-delta * 4.2))
+	_apply_cam()
+
+
+func _snap_op_to_cover_if_near(op: OperatorUnit) -> void:
+	_snap_op_to_cover_if_clicked(op)
+
+
+func _tick_command_pickups(delta: float = 0.016) -> void:
+	_tick_crate_search(delta)
+	_try_pickup_near_selected()
+	for loot in loot_piles.duplicate():
+		if not is_instance_valid(loot) or loot.collected:
+			continue
+		_try_assign_loot(loot)
+	loot_piles = loot_piles.filter(func(l: LootPickup) -> bool: return is_instance_valid(l) and not l.collected)
+
+
+func _nearest_stash_for(op: OperatorUnit) -> Node2D:
+	if op == null or not op.alive or not op.visible:
+		return null
+	var oc := op.grid_cell()
+	var best: Node2D = null
+	var best_d := 22.0
+	for st in raid_stashes:
+		if st == null or not is_instance_valid(st) or st.collected:
+			continue
+		if st.cell != oc:
+			continue
+		var d := op.global_position.distance_to(st.global_position)
+		if d <= best_d:
+			best_d = d
+			best = st
+	return best
+
+
+func _complete_stash_search(op: OperatorUnit) -> bool:
+	if op == null or not op.is_searching():
+		return false
+	var st: Node2D = op.search_stash
+	op.cancel_search()
+	if st == null or not is_instance_valid(st) or bool(st.collected):
+		return false
+	var kind := str(st.kind)
+	var amount := int(st.amount)
+	if op.has_method("pack_can_fit") and not op.pack_can_fit(kind, amount):
+		status_label.text = "%s 背包满" % op.display_name
+		_flash("背包满 · 丢掉或递给队友", Color(0.95, 0.62, 0.32))
+		return false
+	var item: Dictionary = st.take()
+	if item.is_empty():
+		return false
+	var rec: Dictionary = op.receive_item(str(item.get("kind", "ammo")), int(item.get("amount", 1)))
+	if not bool(rec.get("ok", false)) and bool(rec.get("full", false)):
+		_spawn_loot_at(op.global_position + Vector2(18, 10), int(item.get("amount", 1)), str(item.get("kind", "ammo")))
+		status_label.text = "%s 背包满，掉在脚下" % op.display_name
+		_flash("背包满", Color(0.95, 0.62, 0.32))
+		_update_role_cards()
+		_update_hud()
+		return true
+	status_label.text = "%s %s" % [op.display_name, str(rec.get("text", "拾取"))]
+	_sfx("crate_lid")
+	_sfx(_pickup_cue(str(item.get("kind", "ammo"))))
+	_operator_bark(op, "crate")
+	_flash(str(rec.get("text", "拾取")), Color(0.95, 0.82, 0.35))
+	_spawn_loot_chip(op.global_position, str(item.get("kind", "ammo")))
+	_update_role_cards()
+	_update_hud()
+	return true
+
+
+func _tick_crate_search(delta: float) -> void:
+	for op in operators:
+		if op == null or not op.alive or not op.visible:
+			continue
+		if op.is_moving():
+			op.cancel_search()
+			continue
+		var st := _nearest_stash_for(op)
+		if st == null:
+			op.cancel_search()
+			continue
+		if not op.is_searching() or op.search_stash != st:
+			op.begin_search(st)
+			status_label.text = "%s 开匣中…" % op.display_name
+		if op.tick_search(delta):
+			_complete_stash_search(op)
+	raid_stashes = raid_stashes.filter(func(s) -> bool: return s != null and is_instance_valid(s) and not s.collected)
+
+
+func _try_pickup_near_selected() -> void:
+	## Starts a 0.4s crate channel if standing still on a stash. Completes via _tick_crate_search.
+	for op in operators:
+		if op == null or not op.alive or not op.visible or op.is_moving():
+			continue
+		var st := _nearest_stash_for(op)
+		if st == null:
+			continue
+		if not op.is_searching() or op.search_stash != st:
+			op.begin_search(st)
+
+
+func raid_advance_search(seconds: float) -> int:
+	## Headless helper: fast-forward crate channels without waiting real time.
+	var n := 0
+	var guard := 0
+	var remain := maxf(seconds, 0.0)
+	while remain > 0.0 and guard < 12:
+		guard += 1
+		var step := minf(remain, 0.4)
+		remain -= step
+		_tick_crate_search(step)
+		n += 1
+	raid_stashes = raid_stashes.filter(func(s) -> bool: return s != null and is_instance_valid(s) and not s.collected)
+	return n
+
+
+func _try_place_inventory_mine(world_pos: Vector2) -> void:
+	if selected == null or not selected.alive:
+		return
+	if selected.mines <= 0:
+		_try_place_tripwire(world_pos)
+		return
+	if selected.global_position.distance_to(world_pos) > 64.0:
+		status_label.text = "走近再埋"
+		return
+	if selected.has_method("consume_mine"):
+		if not selected.consume_mine():
+			_try_place_tripwire(world_pos)
+			return
+	else:
+		selected.mines -= 1
+	var mine = RaidMineScript.new()
+	entities.add_child(mine)
+	mine.global_position = world_pos
+	raid_mines.append(mine)
+	status_label.text = "%s 埋雷 剩余%d" % [selected.display_name, selected.mines]
+	_sfx("trip")
+	_operator_bark(selected, "mine_ready")
+	_update_hud()
+
+
+func _throw_grenade_at_cursor() -> void:
+	_throw_grenade_at(get_global_mouse_position())
+
+
+func _throw_grenade_at(world_pos: Vector2) -> void:
+	_throw_grenade_from(selected, world_pos)
+
+
+func _throw_grenade_from(op: OperatorUnit, world_pos: Vector2) -> bool:
+	if op == null or not op.alive or not op.visible:
+		return false
+	if op.grenades <= 0:
+		if op == selected:
+			status_label.text = "没有手雷"
+		return false
+	var d: Dictionary = WeaponCatalogScript.def("grenade")
+	var max_r := float(d.get("throw_range", 160.0))
+	var dest := world_pos
+	if op.global_position.distance_to(dest) > max_r:
+		dest = op.global_position + (dest - op.global_position).limit_length(max_r)
+	if op.has_method("consume_grenade"):
+		if not op.consume_grenade():
+			return false
+	else:
+		op.grenades -= 1
+	op.grenade_cd = float(d.get("auto_cd", 3.6))
+	var g = RaidGrenadeScript.new()
+	entities.add_child(g)
+	var night := str(level.level_id) if level else ""
+	var gvar := WeaponCatalogScript.grenade_variant_for(str(op.weapon_id), night)
+	g.setup(op.global_position, dest, float(d.get("fuse", 0.55)), float(d.get("radius", 78.0)), float(d.get("damage", 78.0)), gvar)
+	g.detonated.connect(_on_grenade_boom)
+	raid_grenades.append(g)
+	if op == selected:
+		status_label.text = "%s 丢手雷 剩余%d" % [op.display_name, op.grenades]
+	_sfx("ui")
+	_update_hud()
+	return true
+
+
+func _place_nade_mark(world_pos: Vector2 = Vector2(INF, INF)) -> void:
+	if selected == null or not selected.alive or not selected.visible:
+		return
+	if selected.grenades <= 0:
+		status_label.text = "没有手雷"
+		return
+	if selected.has_nade_mark and not world_pos.is_finite():
+		selected.clear_nade_mark()
+		status_label.text = "雷点已撤"
+		_flash("雷点已撤", Color(0.72, 0.70, 0.52))
+		_update_hud()
+		return
+	var dest := world_pos if world_pos.is_finite() else _throw_ahead(110.0)
+	var d: Dictionary = WeaponCatalogScript.def("grenade")
+	var max_r := float(d.get("throw_range", 160.0))
+	if selected.global_position.distance_to(dest) > max_r:
+		dest = selected.global_position + (dest - selected.global_position).limit_length(max_r)
+	selected.set_nade_mark(dest)
+	status_label.text = "%s 雷点 · 警报自动丢" % selected.display_name
+	_flash("雷点已设 · 警报自动丢", Color(0.95, 0.72, 0.32))
+	_sfx("ui")
+	_update_hud()
+
+
+func _toggle_auto_grenade() -> void:
+	if selected == null:
+		return
+	selected.auto_grenade = not selected.auto_grenade
+	var on := selected.auto_grenade
+	status_label.text = "%s 自动手雷 %s" % [selected.display_name, "开" if on else "关"]
+	_flash(status_label.text, Color(0.95, 0.72, 0.32) if on else Color(0.62, 0.58, 0.48))
+	_update_hud()
+
+
+func _grenade_ff_hit(op: OperatorUnit, dest: Vector2, radius: float) -> bool:
+	var mul := 0.55
+	var d: Dictionary = WeaponCatalogScript.def("grenade")
+	mul = float(d.get("ff_radius_mul", 0.55))
+	for other in operators:
+		if other == null or other == op or not other.alive or not other.visible:
+			continue
+		if other.global_position.distance_to(dest) <= radius * mul:
+			return true
+	return false
+
+
+func _auto_grenade_dest(op: OperatorUnit) -> Vector2:
+	var d: Dictionary = WeaponCatalogScript.def("grenade")
+	var max_r := float(d.get("throw_range", 160.0))
+	var radius := float(d.get("radius", 78.0))
+	var half := float(d.get("cone_half_deg", 52.0))
+	if op.has_nade_mark:
+		var n := 0
+		for e in enemies:
+			if e != null and e.alive and e.active and e.global_position.distance_to(op.nade_mark) <= radius:
+				n += 1
+		if n > 0 and not _grenade_ff_hit(op, op.nade_mark, radius):
+			return op.nade_mark
+		return Vector2(INF, INF)
+	var best: EnemyRunner = null
+	var best_n := 0
+	for e in enemies:
+		if e == null or not e.alive or not e.active:
+			continue
+		var dist := op.global_position.distance_to(e.global_position)
+		if dist > max_r:
+			continue
+		if op.has_method("in_throw_cone") and not op.in_throw_cone(e.global_position, half):
+			continue
+		var cluster := 0
+		for o in enemies:
+			if o != null and o.alive and o.global_position.distance_to(e.global_position) <= radius * 0.7:
+				cluster += 1
+		if cluster > best_n:
+			best_n = cluster
+			best = e
+	if best == null:
+		return Vector2(INF, INF)
+	if _grenade_ff_hit(op, best.global_position, radius):
+		return Vector2(INF, INF)
+	return best.global_position
+
+
+func _tick_auto_grenades(_dt: float) -> void:
+	if phase != Phase.WATCHING:
+		return
+	for op in operators:
+		if op == null or not op.alive or not op.visible:
+			continue
+		if not bool(op.auto_grenade):
+			continue
+		if op.grenades <= 0 or op.grenade_cd > 0.0:
+			continue
+		var dest := _auto_grenade_dest(op)
+		if not dest.is_finite():
+			continue
+		if _throw_grenade_from(op, dest):
+			_operator_bark(op, "mine_ready")
+
+
+func _toggle_backpack() -> void:
+	if backpack_panel == null:
+		return
+	if backpack_panel.is_open():
+		backpack_panel.dismiss()
+		return
+	if selected == null:
+		return
+	backpack_panel.present(selected)
+
+
+func _refresh_backpack_if_open() -> void:
+	if backpack_panel != null and backpack_panel.is_open() and selected != null:
+		backpack_panel.refresh(selected)
+
+
+func _on_pack_equip(kind: String) -> void:
+	if selected == null:
+		return
+	var rec: Dictionary = selected.equip_from_pack(kind)
+	status_label.text = str(rec.get("text", ""))
+	if bool(rec.get("ok", false)):
+		_sfx("loot")
+		_flash(str(rec.get("text", "")), Color(0.82, 0.92, 0.45))
+	_refresh_backpack_if_open()
+	_update_role_cards()
+	_update_hud()
+
+
+func _on_pack_pass(kind: String) -> void:
+	if selected == null:
+		return
+	var best: OperatorUnit = null
+	var best_d := 56.0
+	for op in operators:
+		if op == null or op == selected or not op.visible or not op.alive:
+			continue
+		var d := selected.global_position.distance_to(op.global_position)
+		if d <= best_d:
+			best_d = d
+			best = op
+	if best == null:
+		status_label.text = "走近队友再递装"
+		return
+	var rec: Dictionary = selected.transfer_to(best, kind)
+	status_label.text = str(rec.get("text", "递装"))
+	if bool(rec.get("ok", false)):
+		_sfx("loot")
+		_flash(str(rec.get("text", "")), Color(0.82, 0.92, 0.45))
+	_refresh_backpack_if_open()
+	_update_role_cards()
+	_update_hud()
+
+
+func _on_pack_drop(kind: String) -> void:
+	if selected == null:
+		return
+	var rec: Dictionary = selected.drop_from_pack(kind)
+	if not bool(rec.get("ok", false)):
+		status_label.text = str(rec.get("text", "丢不掉"))
+		return
+	_spawn_loot_at(selected.global_position + Vector2(16, 12), int(rec.get("amount", 1)), str(rec.get("kind", kind)))
+	status_label.text = str(rec.get("text", "丢掉"))
+	_sfx("ui")
+	_refresh_backpack_if_open()
+	_update_role_cards()
+	_update_hud()
+
+
+func _on_grenade_boom(pos: Vector2, radius: float, damage: float) -> void:
+	_sfx("barrel")
+	_shake_for_explosion(pos)
+	if entities:
+		CombatFxScript.grenade_scorch(entities, pos)
+	for e in enemies:
+		if e != null and is_instance_valid(e) and e.alive:
+			if e.global_position.distance_to(pos) <= radius:
+				e.apply_fire(damage, selected)
+	for op in operators:
+		if op != null and op.alive and op.global_position.distance_to(pos) <= radius * 0.55:
+			op.take_damage(damage * 0.35, pos)
+			_night_hp_lost = true
+	if phase == Phase.WATCHING:
+		_check_win()
+
+
+func _throw_decoy_at_cursor() -> void:
+	_throw_decoy_at(get_global_mouse_position())
+
+
+func _throw_decoy_at(world_pos: Vector2) -> void:
+	if selected == null or not selected.alive:
+		return
+	if selected.decoys <= 0:
+		status_label.text = "没有诱饵"
+		return
+	if selected.has_method("consume_decoy"):
+		if not selected.consume_decoy():
+			return
+	else:
+		selected.decoys -= 1
+	var d = RaidDecoyScript.new()
+	entities.add_child(d)
+	d.global_position = world_pos
+	d.setup()
+	raid_decoys.append(d)
+	status_label.text = "%s 诱饵" % selected.display_name
+	_sfx("ui")
+
+
+func _tick_raid_grenades(dt: float) -> void:
+	for g in raid_grenades.duplicate():
+		if g == null or not is_instance_valid(g):
+			continue
+		g.sim_step(dt)
+	raid_grenades = raid_grenades.filter(func(n) -> bool: return n != null and is_instance_valid(n) and not n.spent())
+
+
+func _tick_raid_mines() -> void:
+	for m in raid_mines:
+		if m != null and is_instance_valid(m) and m.has_method("sim_check"):
+			var victim: EnemyRunner = m.sim_check(enemies)
+			if victim != null:
+				battle_log.add_event(sim.tick, "mine", victim.label_id, -1, m.global_position)
+				_sfx("trip")
+				_announce_payoff("trip", {"enemy_id": victim.label_id}, m.global_position)
+	raid_mines = raid_mines.filter(func(n) -> bool: return n != null and is_instance_valid(n) and not bool(n.spent))
+
+
+func _tick_raid_decoys(dt: float) -> void:
+	for d in raid_decoys:
+		if d != null and is_instance_valid(d) and d.has_method("sim_step"):
+			d.sim_step(dt, enemies)
+	raid_decoys = raid_decoys.filter(func(n) -> bool: return n != null and is_instance_valid(n) and not bool(n.spent))
+
+
+func _enter_sweep() -> void:
+	phase = Phase.SWEEP
+	if raid:
+		raid.mark_wave_cleared()
+	for op in operators:
+		if op:
+			op.unlock_plan()
+			op.stop_move()
+			if op.alive and op.visible:
+				op.hp = minf(op.hp + 10.0, OperatorUnit.MAX_HP)
+				op._update_hp_bar()
+				op._refresh_tag()
+	alarm_button.disabled = false
+	clear_button.disabled = false
+	tool_button.disabled = false
+	if pause_button:
+		pause_button.disabled = true
+	if speed_button:
+		speed_button.disabled = true
+	_set_watch_view_buttons(false)
+	_refresh_alarm_cta()
+	var last: bool = raid != null and raid.is_last_wave(level)
+	if last:
+		_flash("打扫战场 · 空格撤离封锁", Color(0.85, 0.92, 0.45))
+		status_label.text = "最后一波已清。走近尸体搜刮，空格撤离。"
+	else:
+		_flash("打扫战场 · 空格下一波", Color(0.95, 0.82, 0.38))
+		status_label.text = "本波已清。搜刮掉落，空格拉下一波警报。"
+	_sfx("ui")
+	if selected:
+		_operator_bark(selected, "sweep")
+	_build_spawn_ghosts()
+	_sfx("tension")
+	if c2:
+		c2.begin_sweep()
+	_update_hud()
+
+
+func _on_sweep_commit() -> void:
+	if phase != Phase.SWEEP:
+		return
+	if raid != null and raid.is_last_wave(level):
+		_extract_win()
+		return
+	_begin_next_wave()
+
+
+func _begin_next_wave() -> void:
+	if raid:
+		raid.advance_wave()
+	run_id += 1
+	var this_run := run_id
+	phase = Phase.WATCHING
+	sim.reset()
+	_watch_first_fire = false
+	_watch_first_return = false
+	_kill_combo = 0
+	pending_result = ""
+	fail_reason = ""
+	_sfx("alarm" if (raid != null and raid.wave_index <= 0) else "alarm_stinger")
+	_alarm_edge_flash()
+	alarm_button.disabled = true
+	clear_button.disabled = true
+	if pause_button:
+		pause_button.disabled = false
+	if speed_button:
+		speed_button.disabled = false
+	for op in operators:
+		if op.visible and op.alive:
+			op.lock_plan()
+			if op.fire_mode == OperatorUnit.FireMode.HOLD_FOR_AMBUSH:
+				op.arm_ambush()
+	_queue_spawns(this_run)
+	_set_watch_view_buttons(true)
+	status_label.text = "警报 · 第%d波" % (raid.wave_index + 1 if raid else 1)
+	_update_hud()
+
+
+func _extract_win() -> void:
+	phase = Phase.WON
+	battle_log.mark_terminal(sim.tick, "win")
+	_ensure_watch_cinema()
+	if _watch_letterbox:
+		_watch_letterbox.visible = true
+	_flash("零逃逸 · 撤离封锁", Color(0.45, 0.9, 0.45))
+	_sfx("win")
+	_win_stinger()
+	_camera_punch()
+	pending_result = "win"
+	_flush_pending_result()
+
+
+func _refresh_alarm_cta() -> void:
+	if alarm_button == null:
+		return
+	match phase:
+		Phase.SETUP:
+			if squad_has_firearm():
+				alarm_button.text = "拉警报"
+			elif _alarm_warned_no_gun:
+				alarm_button.text = "强拉警报"
+			else:
+				alarm_button.text = "需枪"
+			alarm_button.disabled = _living_ops() < 1
+		Phase.SWEEP:
+			if raid and raid.is_last_wave(level):
+				alarm_button.text = "撤离封锁"
+			else:
+				alarm_button.text = "下一波警报"
+			alarm_button.disabled = false
+		Phase.WATCHING:
+			alarm_button.text = "警报中"
+			alarm_button.disabled = true
+		_:
+			alarm_button.disabled = true
+
+
+func raid_prepare_ref(slots: Array, facings: Array, extra: Dictionary = {}) -> void:
+	## Smoke/reference: grant role firearms, optional mines, snap to covers.
+	if operators.size() < 3:
+		return
+	operators[0].receive_item("rifle", 7)
+	operators[1].receive_item("mg", 12)
+	operators[2].receive_item("scout", 6)
+	var g := int(extra.get("grenades", 1))
+	var m := int(extra.get("mines", 1))
+	for op in operators:
+		if g > 0:
+			op.receive_item("grenade", g)
+		if m > 0:
+			op.receive_item("mine", m)
+	for i in slots.size():
+		_select_op(i)
+		_deploy_selected_to(cover_slots[int(slots[i])])
+		selected.set_facing(float(facings[i]))
+	_select_op(0)
+	_update_hud()
+
+
+func _ping_first_crate() -> void:
+	if raid_stashes.is_empty():
+		return
+	var best = null
+	for st in raid_stashes:
+		if st == null or not is_instance_valid(st):
+			continue
+		if WeaponCatalogScript.is_firearm(str(st.kind)):
+			best = st
+			break
+	if best == null:
+		best = raid_stashes[0]
+	CombatFxScript.select_ping(best, best.global_position, WeaponCatalogScript.color(str(best.kind)))
+	if level != null and str(level.level_id) == "yard" and not _want_touch():
+		_flash("先开这匣", Color(0.95, 0.82, 0.38))
+
+
+func _raid_clock_text() -> String:
+	var s := int(_night_timer)
+	return "%d:%02d" % [int(s / 60.0), s % 60]
+
+
+func _tick_hold_to_move(delta: float) -> void:
+	var gs = get_node_or_null("/root/GameSettings")
+	if gs == null or not bool(gs.get("hold_to_move")):
+		return
+	if selected == null or not selected.alive or selected.locked:
+		return
+	if not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		return
+	_hold_move_acc += delta
+	if _hold_move_acc < 0.28:
+		return
+	_hold_move_acc = 0.0
+	_command_move_selected(get_global_mouse_position())
+
+
+func _tick_footsteps(delta: float) -> void:
+	var loud := 0.0
+	for op in operators:
+		if op == null or not op.visible or not op.alive:
+			continue
+		if op.is_moving():
+			loud = maxf(loud, op.noise_if_sprinting())
+	if loud >= 0.18:
+		_foot_acc += delta
+		var gap := 0.28 if loud >= 0.7 else (0.48 if loud >= 0.3 else 0.62)
+		if _foot_acc >= gap:
+			_foot_acc = 0.0
+			_sfx("foot")
+			if c2:
+				var pos := Vector2.ZERO
+				for op in operators:
+					if op and op.visible and op.is_moving():
+						pos = op.global_position
+						break
+				if pos != Vector2.ZERO:
+					c2._spawn_ring(pos, 28.0 + loud * 40.0, Color(0.72, 0.68, 0.32, 0.28))
+	else:
+		_foot_acc = 0.0
+
+
+func _cap_stashes() -> void:
+	## Perf: never keep more than 12 live crate nodes.
+	while raid_stashes.size() > 12:
+		var extra = raid_stashes.pop_back()
+		if extra != null and is_instance_valid(extra):
+			extra.queue_free()
+
+
+func _pickup_cue(kind: String) -> String:
+	match kind:
+		"grenade", "mine":
+			return "trip"
+		"decoy":
+			return "ui"
+		"mg", "rifle", "scout", "pistol", "shotgun":
+			return "loot"
+		_:
+			return "loot"
+
+
+func raid_grant_and_pickup(op_index: int, kind: String, amount: int = 1) -> bool:
+	if op_index < 0 or op_index >= operators.size():
+		return false
+	var rec: Dictionary = operators[op_index].receive_item(kind, amount)
+	return bool(rec.get("ok", false))
+
+
+func squad_has_firearm() -> bool:
+	for op in operators:
+		if op == null or not op.visible or not op.alive:
+			continue
+		if WeaponCatalogScript.is_firearm(str(op.weapon_id)):
+			return true
+	return false
+
+
+func raid_transfer(from_index: int, to_index: int, kind: String = "auto") -> Dictionary:
+	if from_index < 0 or from_index >= operators.size() or to_index < 0 or to_index >= operators.size():
+		return {"ok": false, "text": "索引"}
+	var rec: Dictionary = operators[from_index].transfer_to(operators[to_index], kind)
+	_update_role_cards()
+	_update_hud()
+	return rec
+
+
+func _transfer_selected_to_nearest() -> void:
+	if selected == null or not selected.alive:
+		return
+	var best: OperatorUnit = null
+	var best_d := 64.0
+	for op in operators:
+		if op == null or op == selected or not op.visible or not op.alive:
+			continue
+		var d := selected.global_position.distance_to(op.global_position)
+		if d <= best_d:
+			best_d = d
+			best = op
+	if best == null:
+		status_label.text = "走近队友再递装（T）"
+		if c2:
+			c2._spawn_ring(selected.global_position, 64.0, Color(0.42, 0.72, 0.48, 0.4))
+		return
+	var rec: Dictionary = selected.transfer_to(best, "auto")
+	status_label.text = str(rec.get("text", "递装"))
+	if bool(rec.get("ok", false)):
+		_sfx("loot")
+		_flash(str(rec.get("text", "递装")), Color(0.82, 0.92, 0.45))
+	_update_role_cards()
+	_update_hud()
+
+
+func _throw_ahead(max_r: float) -> Vector2:
+	if selected == null:
+		return get_global_mouse_position()
+	var rad := deg_to_rad(selected.facing_deg)
+	return selected.global_position + Vector2(cos(rad), sin(rad)) * minf(max_r, 110.0)
+
+
+func _toggle_haul_corpse() -> void:
+	if selected == null or not selected.alive or not selected.visible:
+		return
+	if selected.has_method("is_hauling") and selected.is_hauling():
+		_drop_hauled(selected)
+		return
+	var best: LootPickup = null
+	var best_d := 36.0
+	for loot in loot_piles:
+		if loot == null or not is_instance_valid(loot) or loot.collected:
+			continue
+		var d := selected.global_position.distance_to(loot.global_position)
+		if d <= best_d:
+			best_d = d
+			best = loot
+	if best == null:
+		status_label.text = "走近尸体再拖（H）"
+		return
+	selected.haul_loot(best)
+	status_label.text = "%s 拖尸" % selected.display_name
+	_sfx("body_drop")
+
+
+func _drop_hauled(op: OperatorUnit) -> void:
+	if op == null or not op.has_method("drop_hauled"):
+		return
+	op.drop_hauled()
+	status_label.text = "%s 放下尸体" % op.display_name
+	_sfx("ui")
+
+
+func _tick_haul_follow(op: OperatorUnit) -> void:
+	if op == null or not op.has_method("is_hauling") or not op.is_hauling():
+		return
+	op.sync_hauled()
+
+
+func command_move_to_cell(op_index: int, cell: Vector2i) -> bool:
+	if op_index < 0 or op_index >= operators.size():
+		return false
+	_select_op(op_index)
+	_command_move_selected(grid.cell_to_world_center(cell))
+	return selected != null and selected.is_moving()
+
+
+func _stash_cell_near(cell: Vector2i, radius: int = 1) -> Vector2i:
+	var best := Vector2i(-1, -1)
+	var best_d := 99
+	for st in raid_stashes:
+		if st == null or not is_instance_valid(st) or bool(st.collected):
+			continue
+		var c: Vector2i = st.cell
+		var d: int = maxi(absi(c.x - cell.x), absi(c.y - cell.y))
+		if d <= radius and d < best_d:
+			best_d = d
+			best = c
+	return best
+
+
+func named_crate_ids() -> PackedStringArray:
+	var out := PackedStringArray()
+	for st in raid_stashes:
+		if st == null or not is_instance_valid(st) or bool(st.collected):
+			continue
+		var k := str(st.kind)
+		if WeaponCatalogScript.is_firearm(k) and not WeaponCatalogScript.is_class_firearm(k):
+			out.append(k)
+	return out
+
+
+func _refresh_stash_board() -> void:
+	if stash_board == null:
+		return
+	## Names live on crate tags + intel chip. Keep the label for dumps, off the chrome.
+	var names: PackedStringArray = PackedStringArray()
+	for k in named_crate_ids():
+		names.append(WeaponCatalogScript.display_name(k))
+	if names.is_empty():
+		stash_board.text = "本夜匣  先走近木箱开盖"
+	else:
+		stash_board.text = "本夜枪  %s" % " · ".join(names)
+	stash_board.visible = false
+
+
+func stash_count() -> int:
+	var n := 0
+	for s in raid_stashes:
+		if s != null and is_instance_valid(s) and not s.collected:
+			n += 1
+	return n
+
+
+func living_loot_count() -> int:
+	var n := 0
+	for l in loot_piles:
+		if l != null and is_instance_valid(l) and not l.collected:
+			n += 1
+	return n
+
+
+func _cell_taken(cell: Vector2i, except_op: OperatorUnit = null, reserved = null) -> bool:
+	if reserved is Dictionary and reserved.has(cell):
+		return true
+	for op in operators:
+		if op == null or op == except_op or not op.visible or not op.alive:
+			continue
+		if op.grid_cell() == cell:
+			return true
+		if bool(op.follow_lead) and _follow_dest.get(int(op.op_id), Vector2i(-99, -99)) == cell:
+			return true
+	return false
+
+
+func _open_cell_near(cell: Vector2i, except_op: OperatorUnit = null, reserved = null, max_r: int = 5) -> Vector2i:
+	var block: Dictionary = reserved if reserved is Dictionary else {}
+	var open: Vector2i = RaidPathfinderScript.nearest_open(grid, cell)
+	if not _cell_taken(open, except_op, block):
+		return open
+	for r in range(1, maxi(1, max_r) + 1):
+		for dx in range(-r, r + 1):
+			for dy in range(-r, r + 1):
+				var n := Vector2i(cell.x + dx, cell.y + dy)
+				if RaidPathfinderScript.walkable(grid, n) and not _cell_taken(n, except_op, block):
+					return n
+	return open
+
+
+func raid_vacuum_loot() -> int:
+	## Sweep helper: assign remaining piles to nearest living operators.
+	var n := 0
+	for loot in loot_piles.duplicate():
+		if loot == null or not is_instance_valid(loot) or loot.collected:
+			continue
+		var best: OperatorUnit = null
+		var best_d := INF
+		for op in operators:
+			if op == null or not op.visible or not op.alive:
+				continue
+			var d := op.global_position.distance_to(loot.global_position)
+			if d < best_d:
+				best_d = d
+				best = op
+		if best == null:
+			continue
+		var item := {"kind": loot.kind, "amount": loot.ammo_amount}
+		loot.collect_item()
+		best.receive_item(str(item.get("kind", "ammo")), int(item.get("amount", 1)))
+		n += 1
+	loot_piles = loot_piles.filter(func(l: LootPickup) -> bool: return is_instance_valid(l) and not l.collected)
+	_update_hud()
+	return n
+

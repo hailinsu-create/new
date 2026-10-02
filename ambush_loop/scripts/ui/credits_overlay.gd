@@ -14,7 +14,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
 	var dim := ColorRect.new()
-	dim.color = Color(0.012, 0.020, 0.016, 0.92)
+	dim.color = Color(0.016, 0.014, 0.010, 0.92)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(dim)
@@ -42,7 +42,7 @@ func _ready() -> void:
 	word.add_theme_color_override("font_color", NightOps.OLIVE_HI)
 	box.add_child(word)
 	var tag := Label.new()
-	tag.text = "北区补给链 · 第三夜 · 灯塔停转"
+	tag.text = "北区补给链 · 第三夜 · 灯塔停转 · 点选单兵 · 岗哨黄锥"
 	tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	tag.add_theme_color_override("font_color", NightOps.OLIVE_DIM)
 	box.add_child(tag)
