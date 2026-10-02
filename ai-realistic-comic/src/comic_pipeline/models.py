@@ -73,6 +73,7 @@ class Still(BaseModel):
     blocking: str = ""  # who stands/sits where, gaze, touch
     wardrobe_state: str = ""  # what is worn or bared in this frame; overrides look-sheet coverage
     frame_lock: str = ""  # last line; overrides reference pose, ears, clothing, or tail tip
+    pose_refs: list[str] = Field(default_factory=list)  # two-person fal stills, one per character slot; replaces costume cards
     motif: str = ""  # the specific theme/dynamic this image is about
     mood: str = ""
     negative: str = ""

@@ -50,6 +50,11 @@ POSE_OVER_IDENTITY = (
     "parasol hero shot. The frame lock below outranks face identity, wardrobe, and the reference "
     "composition: two separate people, two readable silhouettes, one single frame, not a collage"
 )
+POSE_FROM_REFS = (
+    "identity: the reference images already show both people in the target two-person pose. "
+    "Copy that seated interaction and framing. Do not restage them as solo portraits or as two people "
+    "looking at the camera. The frame lock still wins on round human ears, fish-tail bans, and this frame's exposure."
+)
 
 
 def still_refs(project_dir: Path, project: Project, still: Still) -> list[Path]:
@@ -86,7 +91,13 @@ def _props_blocked(props: str, negative: str) -> bool:
 def build_still_prompt(project: Project, still: Still) -> tuple[str, str]:
     cmap = project.character_map()
     chars = [cmap[c] for c in still.characters]
-    labels = " ".join(f"Image {i} is {c.label}." for i, c in enumerate(chars, 1))
+    who = " ".join(f"Image {i} is {c.label}." for i, c in enumerate(chars, 1))
+    labels = (
+        "Image 1 and Image 2 are two-person pose references of this same pair, not solo costume cards. "
+        "Copy their seated interaction, who faces whom, and how their bodies overlap. " + who
+        if still.pose_refs
+        else who
+    )
     style = STYLIZED_ANCHOR if project.render_style == "stylized" else f"{GENRE_STYLE[project.genre]}; {PHOTO_FINISH}"
     parts = [
         labels,
@@ -113,7 +124,13 @@ def build_still_prompt(project: Project, still: Still) -> tuple[str, str]:
             else "keep each character's outfit exactly as in their reference image"
         ),
         anatomy_clause(project, still),
-        POSE_OVER_IDENTITY if still.frame_lock else IDENTITY_RULE,
+        (
+            POSE_FROM_REFS
+            if still.pose_refs
+            else POSE_OVER_IDENTITY
+            if still.frame_lock
+            else IDENTITY_RULE
+        ),
         TAIL_TIP_OVERRIDE if _has_serpent(project, still) else "",
         f"frame lock: {still.frame_lock}" if still.frame_lock else "",
     ]
@@ -469,11 +486,13 @@ def make_library_still(
     chars_dir = work / "characters"
     chars_dir.mkdir(parents=True, exist_ok=True)
     chars: list[Character] = []
-    for cid in still.characters:
+    use_pose = len(still.pose_refs) == len(still.characters)
+    for i, cid in enumerate(still.characters):
         cdir = root / "library" / "characters" / cid
         char = Character.model_validate(yaml.safe_load((cdir / "card.yaml").read_text(encoding="utf-8")))
         char = char.model_copy(update={"reference_images": [f"characters/{cid}_ref.png"]})
-        shutil.copy2(cdir / "ref.png", chars_dir / f"{cid}_ref.png")
+        src = (still_dir / still.pose_refs[i]) if use_pose else (cdir / "ref.png")
+        shutil.copy2(src, chars_dir / f"{cid}_ref.png")
         (chars_dir / f"{cid}.yaml").write_text(
             yaml.safe_dump(char.model_dump(), allow_unicode=True, sort_keys=False), encoding="utf-8"
         )

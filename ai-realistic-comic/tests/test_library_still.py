@@ -42,7 +42,12 @@ def test_make_library_still_mock(tmp_path: Path) -> None:
     assert "frame lock:" in prompt
     assert "neither looks at the camera" in prompt
     assert "two separate" in prompt
-    assert prompt.rfind("POSE LOCK") > prompt.rfind("look sheets only")
+    assert "two-person pose references" in prompt
+    assert prompt.rfind("POSE LOCK") > prompt.rfind("two-person pose references")
+    assert still.ref_crop == 1
+    pose_a = root / "library" / "stills" / "hades-persephone-throne" / "approved.jpg"
+    copied = out / "_project" / "characters" / "persephone_ref.png"
+    assert copied.stat().st_size == pose_a.stat().st_size
     assert "red silk" in prompt
     assert "overrides look-sheet coverage" in prompt
     assert "do not copy clothing coverage" in prompt
@@ -89,6 +94,12 @@ def test_library_coil_uses_xianxia_anchor(tmp_path: Path) -> None:
     assert "umbrella" not in prompt.lower()
     assert "inner bodice" not in prompt
     assert still.ref_crop == 1
+    assert "two-person pose references" in prompt
+    pose_b = root / "library" / "stills" / "baisuzhen-xuxian-coil" / "pose-fal-b.jpg"
+    copied_b = out / "_project" / "characters" / "xuxian_ref.png"
+    assert copied_b.stat().st_size == pose_b.stat().st_size
+    card = root / "library" / "characters" / "xuxian" / "ref.png"
+    assert copied_b.stat().st_size != card.stat().st_size
     assert "caudal fin" in negative
     assert "mermaid" in negative
     assert "flattened tail tip" in negative
