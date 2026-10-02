@@ -36,3 +36,10 @@ If login fails, run `bash .cursor/grok/run.sh login` and give the user the devic
 Allowed Cursor-side actions: write the prompt file, invoke `run.sh`, relay output, git commit/push/PR plumbing after Grok finished. Everything else is Grok's job.
 
 Pinned profile (already inside `run.sh`): model `grok-4.6`, effort `xhigh`, Fast via `x-grok-service-tier: priority`.
+
+
+## Other quota CLIs (explicit opt-in)
+
+Cursor云开发 also installs **agy**, **opencode** (OpenCode Go models), and **kimi** via `.cursor/quota-clis/install-all.sh`. Use them only when the user asks for that quota/CLI. Recipes: `.cursor/quota-clis/CALL-RECIPES.md`.
+
+**Never** install or invoke Codex / ChatGPT / OpenAI GPT CLIs.

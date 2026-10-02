@@ -49,6 +49,7 @@ DENY_TOOLS = {
 
 ALLOW_SHELL_MARKERS = (
     ".cursor/grok/",
+    ".cursor/quota-clis/",
     "run.sh",
     "/.grok/bin/grok",
     "grok login",
@@ -59,6 +60,23 @@ ALLOW_SHELL_MARKERS = (
     ".grok-cursor-router",
     "force-grok-cli.py",
     ".cursor/hooks/",
+    # Other quota CLIs (NOT Codex/GPT) — explicit user/agent invocations
+    "/.local/bin/agy",
+    "agy -p",
+    "agy --",
+    "agy models",
+    "antigravity.google/cli/install",
+    "/.opencode/bin/opencode",
+    "opencode run",
+    "opencode auth",
+    "opencode models",
+    "opencode.ai/install",
+    "/.kimi-code/bin/kimi",
+    "kimi -p",
+    "kimi -c",
+    "code.kimi.com/kimi-code/install",
+    "code.kimi.ai/kimi-code/install",
+    "install-all.sh",
 )
 
 
@@ -114,10 +132,36 @@ def shell_allowed(cmd: str) -> bool:
         return False
     if stripped.startswith("grok") or stripped.startswith("~/.grok") or stripped.startswith("$HOME/.grok"):
         return True
+    if (
+        stripped.startswith("agy")
+        or stripped.startswith("~/.local/bin/agy")
+        or stripped.startswith("$HOME/.local/bin/agy")
+    ):
+        return True
+    if (
+        stripped.startswith("opencode")
+        or stripped.startswith("~/.opencode/bin/opencode")
+        or stripped.startswith("$HOME/.opencode/bin/opencode")
+    ):
+        # Refuse OpenAI/Codex-shaped opencode invocations if any sneak in via args
+        lowered0 = stripped.lower()
+        if "codex" in lowered0 or "chatgpt" in lowered0:
+            return False
+        return True
+    if (
+        stripped.startswith("kimi")
+        or stripped.startswith("~/.kimi-code/bin/kimi")
+        or stripped.startswith("$HOME/.kimi-code/bin/kimi")
+    ):
+        return True
     if stripped.startswith("git") or stripped.startswith("gh "):
         return True
-    lowered = cmd
-    return any(marker in lowered for marker in ALLOW_SHELL_MARKERS)
+    # Hard-deny GPT/Codex CLIs even if somehow on PATH
+    lowered = cmd.lower()
+    for banned in ("codex ", "npx codex", "openai ", "chatgpt", "@openai/codex"):
+        if banned in lowered:
+            return False
+    return any(marker in cmd for marker in ALLOW_SHELL_MARKERS)
 
 
 def mcp_allowed(name: str, data: dict) -> bool:
@@ -146,10 +190,13 @@ def main() -> None:
                 "continue": True,
                 "permission": "allow",
                 "additional_context": (
-                    "HARD REQUIREMENT: implement nothing with Cursor. "
-                    "Hand every user task to grok.com CLI Extra High Fast: "
+                    "HARD REQUIREMENT: implement nothing with Cursor-billed tools. "
+                    "Default: hand the task to grok.com CLI Extra High Fast via "
                     "bash .cursor/grok/run.sh run --file /tmp/grok-prompt.txt. "
-                    "If grok CLI is already running this turn, do the work and do not recurse."
+                    "When the user explicitly asks for another quota CLI, call it instead: "
+                    "agy -p '...', opencode run -m opencode-go/... --auto, or kimi -p '...'. "
+                    "Never install or invoke Codex/ChatGPT/OpenAI GPT CLIs. "
+                    "If a quota CLI is already running this turn, do the work and do not recurse."
                 ),
             }
         )
