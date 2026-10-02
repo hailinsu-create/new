@@ -33,6 +33,9 @@ def test_make_library_still_mock(tmp_path: Path) -> None:
     assert "high fantasy" in prompt
     assert "Avoid:" not in prompt
     assert "blue skin" in negative
+    assert "breasts bare" in prompt
+    assert "overrides look-sheet coverage" in prompt
+    assert "fully covered" not in prompt
 
 
 def test_library_coil_uses_xianxia_anchor(tmp_path: Path) -> None:

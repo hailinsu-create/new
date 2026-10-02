@@ -67,7 +67,7 @@ class Still(BaseModel):
     camera: str = "85mm portrait lens, medium shot, shallow depth of field"
     lighting: str = ""
     blocking: str = ""  # who stands/sits where, gaze, touch
-    wardrobe_state: str = ""  # what is worn and how (always covered)
+    wardrobe_state: str = ""  # what is worn or bared in this frame; overrides look-sheet coverage
     motif: str = ""  # the specific theme/dynamic this image is about
     mood: str = ""
     negative: str = ""

@@ -25,7 +25,7 @@ ANATOMY_NEGATIVE = (
     "disconnected limbs, duplicated body parts"
 )
 IDENTITY_RULE = (
-    "keep each character's face, species and outfit exactly as in their reference image; the two characters "
+    "keep each character's face and species exactly as in their reference image; the two characters "
     "must look clearly different from each other; one single frame, not a collage"
 )
 
@@ -55,10 +55,15 @@ def build_still_prompt(project: Project, still: Still) -> tuple[str, str]:
         f"setting: {still.setting}" if still.setting else "",
         f"lighting: {still.lighting}" if still.lighting else "",
         f"blocking: {still.blocking}" if still.blocking else "",
-        f"wardrobe state (always covered): {still.wardrobe_state}" if still.wardrobe_state else "",
         f"motif: {still.motif}" if still.motif else "",
         f"mood: {still.mood}" if still.mood else "",
         " | ".join(c.prompt_block(neutral=True) for c in chars),
+        (
+            "wardrobe state (this frame overrides look-sheet coverage, opaque linings, and any 'covered' line above): "
+            f"{still.wardrobe_state}"
+            if still.wardrobe_state
+            else "keep each character's outfit exactly as in their reference image"
+        ),
         ANATOMY_RULE,
         IDENTITY_RULE,
     ]
