@@ -20,6 +20,15 @@ ANATOMY_RULE = (
     "anatomy: each person has exactly two arms and two hands with five fingers per hand, two legs, one head; "
     "every hand and arm clearly belongs to one body; natural relaxed hands, no extra or fused fingers"
 )
+SERPENT_ANATOMY = (
+    "anatomy: the human has exactly two arms, two hands with five fingers each, two legs, and one head; "
+    "the serpent-form woman has two arms, two hands, one head, and no legs and no feet; "
+    "her lower body is one long snake tail of overlapping serpentine scales and belly scutes that tapers "
+    "to a blunt scaled tip; not a fish tail, not a mermaid, no fins, no caudal fin, no fluke"
+)
+FISH_TAIL_NEGATIVE = (
+    "fish tail, mermaid, mermaid tail, fins, fin, caudal fin, fluke, fish scales, dolphin tail, whale tail"
+)
 ANATOMY_NEGATIVE = (
     "extra fingers, extra hands, extra arms, extra legs, fused fingers, missing fingers, malformed hands, "
     "disconnected limbs, duplicated body parts"
@@ -43,6 +52,15 @@ def still_refs(project_dir: Path, project: Project, still: Still) -> list[Path]:
     return refs
 
 
+def _has_serpent(project: Project, still: Still) -> bool:
+    cmap = project.character_map()
+    return any((cmap[c].form or "").lower() == "serpent" for c in still.characters if c in cmap)
+
+
+def anatomy_clause(project: Project, still: Still) -> str:
+    return SERPENT_ANATOMY if _has_serpent(project, still) else ANATOMY_RULE
+
+
 def build_still_prompt(project: Project, still: Still) -> tuple[str, str]:
     cmap = project.character_map()
     chars = [cmap[c] for c in still.characters]
@@ -64,7 +82,7 @@ def build_still_prompt(project: Project, still: Still) -> tuple[str, str]:
             if still.wardrobe_state
             else "keep each character's outfit exactly as in their reference image"
         ),
-        ANATOMY_RULE,
+        anatomy_clause(project, still),
         IDENTITY_RULE,
     ]
     negative = still.negative or (
@@ -79,6 +97,8 @@ def build_still_prompt(project: Project, still: Still) -> tuple[str, str]:
     )
     if ANATOMY_NEGATIVE.split(",")[0] not in negative:
         negative = f"{negative}, {ANATOMY_NEGATIVE}"
+    if _has_serpent(project, still) and "caudal fin" not in negative:
+        negative = f"{negative}, {FISH_TAIL_NEGATIVE}"
     return ", ".join(p for p in parts if p), negative
 
 
@@ -289,7 +309,7 @@ def make_still(
             "Image 1 is the base image: keep its composition, pose, lighting and both characters' identities. "
             f"Image 2 is {project.character_map()[still.characters[0]].label}, Image 3 is "
             f"{project.character_map()[still.characters[1]].label}. "
-            f"Apply these improvements only: {'; '.join(base.fixes)}. {ANATOMY_RULE}. {IDENTITY_RULE}."
+            f"Apply these improvements only: {'; '.join(base.fixes)}. {anatomy_clause(project, still)}. {IDENTITY_RULE}."
         )
         _still_edit(
             settings,

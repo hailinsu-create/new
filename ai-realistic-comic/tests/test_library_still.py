@@ -53,11 +53,17 @@ def test_library_coil_uses_xianxia_anchor(tmp_path: Path) -> None:
     proj = load_project(out / "_project")
     assert proj.genre == "xianxia"
     still = load_still(root / "library" / "stills" / "baisuzhen-xuxian-coil" / "still.yaml")
-    prompt, _ = build_still_prompt(proj, still)
+    prompt, negative = build_still_prompt(proj, still)
     assert "xianxia" in prompt
     assert "weathered armor" not in prompt
     assert "West Lake" in prompt
     assert "pearl-white" in prompt
+    assert "snake tail" in prompt
+    assert "no legs" in prompt
+    assert "each person has exactly two arms" not in prompt
+    assert "caudal fin" in negative
+    assert "mermaid" in negative
+    assert "minor" in negative and "child" in negative
 
 
 def test_local_prompt_appends_avoid(tmp_path: Path) -> None:
