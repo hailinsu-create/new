@@ -9,12 +9,7 @@ comic archive <project> <id> --tags a,b     # snapshot (version bumps when the s
 comic use <other-project> <id>              # import into another project
 ```
 
-Primary look sheets for the two approved stills are the fal two-person pose samples (`ref.png`). The old solo costume sheets are `legacy/costume-ref.png` (faces only):
-
-- persephone ← `stills/hades-persephone-throne/approved.jpg`
-- hades ← `stills/hades-persephone-throne/pose-fal-b.jpg`
-- baisuzhen_snake ← `stills/baisuzhen-xuxian-coil/approved.jpg`
-- xuxian ← `stills/baisuzhen-xuxian-coil/pose-fal-b.jpg`
+The only approved 样张 are the five files in `samples/approved/`. Fal two-person crops that were briefly copied onto `ref.png` are wrong and now live in `characters/<id>/legacy/fal_pose_mislabel/`. They are not canonical. Makeup prompts are `characters/{baisuzhen_snake,xuxian,persephone,hades}/makeup_prompt.md`. A new `ref.png` is written only after the local Qwen makeup run. Older solo costume sheets remain in `legacy/costume-ref.png`.
 
 Known deviations of the legacy costume sheets (documented, not hidden):
 - 哈迪斯: pointed ears and orange soul-fire in the render; no weapon on the sheet (the bident is added in scene prompts).
@@ -27,4 +22,4 @@ Known deviations of the legacy costume sheets (documented, not hidden):
 `still.yaml` + `approved.jpg` for each user-approved two-character still (recipe: nano-banana-pro, see `docs/still-mode.md`).
 Copy a `still.yaml` into a project's `stills/` folder and adjust it, or start from `templates/still.template.yaml`.
 
-Library state: hades v4, persephone v3, baisuzhen v2, baisuzhen_snake v3, xuxian v3. v4/v3 on the four pose sheets are the fal stills; baisuzhen human form stays v2.
+Library state: hades, persephone, baisuzhen_snake, and xuxian are waiting on new makeup sheets. The fal-pose files previously indexed as those versions were demoted. baisuzhen human form stays v2.

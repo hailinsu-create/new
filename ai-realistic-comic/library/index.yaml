@@ -26,7 +26,6 @@
   - serpent-form
   - dark
   - v2
-  - fal-pose
   version: 3
   ref_sha256: c30b8ea945aac2c60ecfea6fc79c4846c7e1e63bd0ce33e4ec7a0a62f0602854
   source_project: legend-white-snake
@@ -43,7 +42,6 @@
   - male
   - dark
   - v2
-  - fal-pose
   version: 4
   ref_sha256: 94c3b55aa6d826a5e5b296e3c24504a67362bbcb821b81be6edd4903befa2ab0
   source_project: myth-hades-persephone
@@ -60,7 +58,6 @@
   - female
   - dark
   - v2
-  - fal-pose
   version: 3
   ref_sha256: a1eb02ff4ad37b14ef97e751ddd9253e6923a18d91417965828734fd6196457c
   source_project: myth-hades-persephone
@@ -77,7 +74,6 @@
   - human
   - dark
   - v2
-  - fal-pose
   version: 3
   ref_sha256: e22e4d291848d8830e1a11091e68d464a9a1334d9652bacccdec98a4593677fd
   source_project: legend-white-snake

@@ -12,10 +12,11 @@ wardrobe: LOCKED black leather and charcoal robe hanging open from the shoulders
   black fur-trimmed cloak clasped with an obsidian brooch at one shoulder
 signature_props: 'obsidian bident with exactly two prongs (the look sheet shows no
   weapon: add it in scene prompts); faint pale-blue soul-fire in the free hand'
-notes: 'Original design for the Greek god of the underworld. Adult, human-looking,
-  grey eyes (NOT blue), dark gothic photoreal live-action, not an animation or webcomic
-  likeness. Known sheet deviation: ears render slightly pointed and the soul-fire
-  renders orange; treat ears as human and fire as pale blue in scenes.'
+notes: 'Original design for the Greek god of the underworld. Adult, dark gothic
+  photoreal live-action, not an animation or webcomic likeness. Approved samples
+  show pointed ears, a thin black circlet, bare chest, a black fur-collared cloak,
+  leather trousers, and bare feet. No weapon on those samples. Makeup prompt lives
+  in makeup_prompt.md.'
 reference_images:
 - ref.png
 alias: the tall pale dark-haired man with a short grey-flecked beard and a thin black
@@ -28,4 +29,3 @@ tags:
 - male
 - dark
 - v2
-- fal-pose
