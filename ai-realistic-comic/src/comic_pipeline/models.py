@@ -71,6 +71,8 @@ class Still(BaseModel):
     motif: str = ""  # the specific theme/dynamic this image is about
     mood: str = ""
     negative: str = ""
+    # Library renders have no project.yaml; this selects the style anchor (xianxia | fantasy | scifi).
+    genre: str = ""
     image_size: str = "portrait_4_3"
     edit_model: str = ""  # per-still override, e.g. fal-ai/gpt-image-1.5/edit (follows framing/pose text far better than seedream)
     ref_crop: float = 0.0  # keep only this top fraction of each full-body look sheet (e.g. 0.5 = head to waist); full-body refs make the edit model reproduce legs and bare feet

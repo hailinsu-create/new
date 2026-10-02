@@ -169,8 +169,10 @@ def _still_edit(
     """Route a still edit to fal or local GPU without changing prompt/ref assets."""
     backend = settings.resolved_provider()
     if backend == "local":
+        # Match the fal still call, which appends the negative list into the prompt text.
+        sent = f"{prompt} Avoid: {negative}." if negative else prompt
         args = {
-            "prompt": prompt,
+            "prompt": sent,
             "negative": negative,
             "images": images,
             "size": size,
@@ -419,9 +421,10 @@ def make_library_still(
             yaml.safe_dump(char.model_dump(), allow_unicode=True, sort_keys=False), encoding="utf-8"
         )
         chars.append(char)
-    project = Project(name=still_id, genre="fantasy", characters=chars, render_style="photoreal")
+    genre = still.genre if still.genre in {"xianxia", "fantasy", "scifi"} else "fantasy"
+    project = Project(name=still_id, genre=genre, characters=chars, render_style="photoreal")
     (work / "project.yaml").write_text(
-        yaml.safe_dump({"name": still_id, "genre": "fantasy", "render_style": "photoreal"}, allow_unicode=True),
+        yaml.safe_dump({"name": still_id, "genre": genre, "render_style": "photoreal"}, allow_unicode=True),
         encoding="utf-8",
     )
     return make_still(
