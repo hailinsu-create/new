@@ -69,6 +69,8 @@ class Settings(BaseSettings):
     local_width: int = 960
     local_seed: int = 1
     local_candidates: int = 1  # keep low on rented GPU to save clock time
+    # model = enable_model_cpu_offload; sequential = enable_sequential_cpu_offload (lower VRAM)
+    local_offload: str = "model"
 
     # AutoDL automation (Pro API + SSH). Token: 控制台 → 账号 → 设置 → 开发者Token
     autodl_token: str = ""

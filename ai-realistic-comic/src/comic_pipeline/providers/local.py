@@ -135,7 +135,28 @@ class LocalProvider:
                 "Use qwen-image-edit-2511 or flux2-klein-4b (or their HF ids)."
             )
         if torch.cuda.is_available():
-            pipe.enable_model_cpu_offload()
+            offload = (self.settings.local_offload or "model").strip().lower()
+            if offload in ("sequential", "seq"):
+                pipe.enable_sequential_cpu_offload()
+            else:
+                pipe.enable_model_cpu_offload()
+            # Best-effort VRAM helpers (supported ops vary by pipeline).
+            for fn_name in ("enable_attention_slicing", "enable_vae_slicing", "enable_vae_tiling"):
+                fn = getattr(pipe, fn_name, None)
+                if callable(fn):
+                    try:
+                        fn()
+                    except Exception:
+                        pass
+            vae = getattr(pipe, "vae", None)
+            if vae is not None:
+                for fn_name in ("enable_tiling", "enable_slicing"):
+                    fn = getattr(vae, fn_name, None)
+                    if callable(fn):
+                        try:
+                            fn()
+                        except Exception:
+                            pass
         else:
             pipe.to("cpu")
         self._pipe, self._pipe_id = pipe, model_id
