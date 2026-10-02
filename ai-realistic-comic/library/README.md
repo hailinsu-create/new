@@ -22,4 +22,4 @@ Known deviations of the legacy costume sheets (documented, not hidden):
 `still.yaml` + `approved.jpg` for each user-approved two-character still (recipe: nano-banana-pro, see `docs/still-mode.md`).
 Copy a `still.yaml` into a project's `stills/` folder and adjust it, or start from `templates/still.template.yaml`.
 
-Library state: hades, persephone, baisuzhen_snake, and xuxian are waiting on new makeup sheets. The fal-pose files previously indexed as those versions were demoted. baisuzhen human form stays v2.
+Library state: hades, persephone, baisuzhen_snake, and xuxian `ref.png` files are the F34 Qwen makeup sheets (896×1200, Bai composited 1792×1200). The fal-pose files previously indexed as those versions stay in `legacy/fal_pose_mislabel/`. baisuzhen human form stays v2.
