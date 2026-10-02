@@ -1,0 +1,28 @@
+{
+  "id": "daily-20260914-30th-celebration-eve-checklist",
+  "title": "发售前夜先分三套日历：18元全闪包、加J不退G、特典窗口并不齐开",
+  "column": "简中观察",
+  "digest": "周三「30周年庆典」开卖。官网建议零售价18元/包、每包6张全闪；标准赛加J不退G；特典三弹兑换窗并不从16号一起开。先看清单再决定开不开、兑不兑。",
+  "slug": "30th-celebration-eve-checklist",
+  "publish_date": "2026-09-14",
+  "timezone": "Asia/Shanghai",
+  "source_url": "https://www.pokemon.cn/tcg/product/22237.html",
+  "related_titles": [
+    "简中PTCG城市赛第四赛季开赛前夜：中选不是入场券，核销才是",
+    "简中PTCG｜明耀之星第2期：入门挑战锁了五种属性"
+  ],
+  "cover": {
+    "file": "cover-final-900x383.png",
+    "selected": "a",
+    "candidates": {
+      "a": "cover-candidate-a.png",
+      "b": "cover-candidate-b.png",
+      "c": "cover-candidate-c.png"
+    },
+    "notes": "cover-notes.md",
+    "width": 900,
+    "height": 383
+  },
+  "conclusion_card": "conclusion-card-1080x1440.png",
+  "verified_on": "2026-09-13"
+}
