@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from PIL import Image
@@ -24,7 +25,13 @@ SERPENT_ANATOMY = (
     "anatomy: the human has exactly two arms, two hands with five fingers each, two legs, and one head; "
     "the serpent-form woman has two arms, two hands, one head, and no legs and no feet; "
     "her lower body is one long snake tail of overlapping serpentine scales and belly scutes that tapers "
-    "to a blunt scaled tip; not a fish tail, not a mermaid, no fins, no caudal fin, no fluke"
+    "to a thick blunt rounded scaled tip, not a thin flattened tip; not a fish tail, not a mermaid, "
+    "no fins, no caudal fin, no fluke"
+)
+TAIL_TIP_OVERRIDE = (
+    "tail tip override: copy the overlapping snake scales from her reference, but redraw any thin or "
+    "flattened look-sheet tip as a thick blunt rounded snake tip of the same scales; no fins, no caudal fin, "
+    "no fluke, no mermaid tail"
 )
 FISH_TAIL_NEGATIVE = (
     "fish tail, mermaid, mermaid tail, fins, fin, caudal fin, fluke, fish scales, dolphin tail, whale tail"
@@ -61,6 +68,15 @@ def anatomy_clause(project: Project, still: Still) -> str:
     return SERPENT_ANATOMY if _has_serpent(project, still) else ANATOMY_RULE
 
 
+def _props_blocked(props: str, negative: str) -> bool:
+    """True when a long prop word is already named in the still's Avoid list."""
+    if not props or not negative:
+        return False
+    neg = negative.lower()
+    words = [w for w in re.split(r"[^a-z0-9]+", props.lower()) if len(w) >= 6]
+    return any(w in neg for w in words)
+
+
 def build_still_prompt(project: Project, still: Still) -> tuple[str, str]:
     cmap = project.character_map()
     chars = [cmap[c] for c in still.characters]
@@ -75,15 +91,24 @@ def build_still_prompt(project: Project, still: Still) -> tuple[str, str]:
         f"blocking: {still.blocking}" if still.blocking else "",
         f"motif: {still.motif}" if still.motif else "",
         f"mood: {still.mood}" if still.mood else "",
-        " | ".join(c.prompt_block(neutral=True) for c in chars),
+        " | ".join(
+            c.prompt_block(
+                neutral=True,
+                drop_wardrobe=bool(still.wardrobe_state),
+                drop_props=_props_blocked(c.signature_props, still.negative),
+            )
+            for c in chars
+        ),
         (
-            "wardrobe state (this frame overrides look-sheet coverage, opaque linings, and any 'covered' line above): "
+            "wardrobe state (this frame overrides look-sheet coverage, opaque linings, skirts, greaves, "
+            "and any covered wardrobe line above; do not copy clothing coverage from the reference images): "
             f"{still.wardrobe_state}"
             if still.wardrobe_state
             else "keep each character's outfit exactly as in their reference image"
         ),
         anatomy_clause(project, still),
         IDENTITY_RULE,
+        TAIL_TIP_OVERRIDE if _has_serpent(project, still) else "",
     ]
     negative = still.negative or (
         "anime, cartoon, collage, split screen, twins, merged faces, extra fingers, deformed hands, "
