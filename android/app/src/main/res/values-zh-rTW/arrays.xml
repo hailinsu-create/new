@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="mock_generic">
+        <item>微信訊息堆著也不必慌。先看完眼前這一句，再決定要不要跳進下一陣熱鬧。</item>
+        <item>短影音像流水。刷得開心便刷，覺得空了就停；停也是一種本事。</item>
+        <item>購物車亮著，說明你還在挑。挑本身沒錯，結不結帳，聽心裡那一下就好。</item>
+        <item>備忘錄寫得密，是把明天拆成可走的路。一條一條過。</item>
+        <item>配對畫面乾等最磨人。勝負都是過客，手別僵著就行。</item>
+        <item>瀏覽器分頁開得多，心也容易散。先關掉用不上的那幾扇窗。</item>
+        <item>地圖在算路，你也在算今天還剩多少力氣。近路遠路，到了就好。</item>
+    </string-array>
+    <string-array name="mock_shorts">
+        <item>短影音一則接一則，像夜裡不停的潮。潮有漲有落，你也可以隨時上岸。</item>
+        <item>刷到會心一笑就夠了。別跟推薦演算法較勁，它不知道你幾點該睡。</item>
+        <item>燈下指尖還在滑。滑著滑著若覺得空，不是你的錯，是內容太淺。</item>
+    </string-array>
+    <string-array name="mock_chat">
+        <item>置頂群在閃，多半有人等回覆。回得慢不丟人，回得清楚比回得快更體面。</item>
+        <item>紅點不是聖旨。你看完螢幕上的字，再決定要不要把自己扔進那陣吵鬧裡。</item>
+        <item>聊天室裡熱鬧，外面還有你自己。先安頓好呼吸，再點開那一串訊息。</item>
+    </string-array>
+    <string-array name="mock_cart">
+        <item>結帳頁最容易心軟。喜歡就買，猶豫就晾著。</item>
+        <item>湊單像做加減法。加的是物件，減的不該是清醒。</item>
+        <item>購物車滿了，不代表今天必須清空。</item>
+    </string-array>
+    <string-array name="mock_ranked">
+        <item>配對的光一閃一閃。這一局輸贏都會過去。</item>
+        <item>段位是數字，手感是此刻。打得明白，比打得焦躁強。</item>
+        <item>排隊的時候最容易胡思亂想。盯著載入，當作一次小小的靜坐。</item>
+    </string-array>
+    <string-array name="mock_notes">
+        <item>備忘錄寫得密，是把亂七八糟的事攤成一條條能走的路。很好。</item>
+        <item>提醒設了，不等於壓力到帳。到點做一件，做完勾掉。</item>
+        <item>列出待辦的人，已經贏過只在心裡打轉的人。</item>
+    </string-array>
+</resources>
