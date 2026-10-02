@@ -47,6 +47,7 @@ negative: anime, cartoon, collage, split screen, twins, merged faces, illustrati
   her feet, oil-paper umbrella, parasol, parasol in her hand, standing center, standing Bai,
   solo heroine, Xu Xian tiny, corner inset, both facing camera, looking at camera, looking at
   viewer, single-person silhouette, poster pose
+# Same pixels as library/characters/baisuzhen_snake/ref.png and xuxian/ref.png.
 pose_refs:
 - approved.jpg
 - pose-fal-b.jpg

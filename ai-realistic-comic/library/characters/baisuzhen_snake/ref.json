@@ -1,14 +1,11 @@
 {
-  "panel_id": "baisuzhen_snake_ref",
-  "model": "fal-ai/bytedance/seedream/v4/edit",
-  "prompt": "Image 1 is the current look sheet of this character: keep exactly the same person (face, makeup, hair style), the same camera distance, full-length framing and the same backdrop. Apply ONLY these changes: transform ONLY the lower body into a lamia/naga serpent body: from the hips down there are no legs, instead one long powerful pearl-white snake tail with a teal gradient and glowing silver-teal belly scutes, coiled on the dark floor, tail tip fully in frame; the upper body, face, hair, makeup, umbrella and the black-white gauze costume stay exactly the same; the transition at the waist is smooth with scales emerging beneath the gauze skirt. Also fix: face_matches_card. Character card: Character 白素贞(蛇形) (id=baisuzhen_snake); age look: adult woman, late 20s, serene thousand-year white-snake spirit in human form, graceful and alluring; face: pale porcelain skin, elegant oval face, long phoenix-shaped eyes with pale gold irises and subtle vertical pupils, soft red lips, faint pearly scale shimmer along the temples and collarbone; human-looking; hair: glossy black hair in an elegant Song-dynasty updo with white jade hairpins and a silver snake-shaped comb, a few loose strands framing the face; wardrobe (LOCKED unless panel says costume change): LOCKED ink-black sheer silk gauze top over a white silk inner bodice with plunging V neckline, off both shoulders, opaque lining, silver-teal snake-scale embroidery; below the hips the body is a single long serpent tail instead of legs, pearl-white scales fading to teal with faint glowing silver-teal belly scutes, the tail coiled on the floor with the tip visible; no legs, no feet; signature props: cream oil-paper umbrella; notes: Adult female snake spirit from the Legend of the White Snake (public-domain folklore). Dark gothic photoreal live-action, West Lake mist mood, serpent menace.. dark gothic cinematic mood, low-key chiaroscuro lighting with deep shadows, desaturated cold palette with one cold teal accent, subtle mist and grain, photorealistic, single subject, plain backdrop, no text.",
-  "instruction": "transform ONLY the lower body into a lamia/naga serpent body: from the hips down there are no legs, instead one long powerful pearl-white snake tail with a teal gradient and glowing silver-teal belly scutes, coiled on the dark floor, tail tip fully in frame; the upper body, face, hair, makeup, umbrella and the black-white gauze costume stay exactly the same; the transition at the waist is smooth with scales emerging beneath the gauze skirt",
-  "base": "baisuzhen_ref.png",
-  "attempt": 2,
-  "provider": "fal",
-  "qa": {
-    "ok": true,
-    "issues": [],
-    "skipped": false
-  }
+  "role": "primary-pose-ref",
+  "source": "library/stills/baisuzhen-xuxian-coil/approved.jpg",
+  "label": "coil approved.jpg, fal left lean pose",
+  "size": [
+    1792,
+    2400
+  ],
+  "archived_at": "2026-10-02T16:29:07+00:00",
+  "legacy_costume": "legacy/costume-ref.png"
 }

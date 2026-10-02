@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from PIL import Image
+
 from comic_pipeline.budget import BudgetLedger
 from comic_pipeline.config import Settings
 from comic_pipeline.still import _still_edit, make_library_still, still_refs, build_still_prompt
@@ -99,11 +101,34 @@ def test_library_coil_uses_xianxia_anchor(tmp_path: Path) -> None:
     copied_b = out / "_project" / "characters" / "xuxian_ref.png"
     assert copied_b.stat().st_size == pose_b.stat().st_size
     card = root / "library" / "characters" / "xuxian" / "ref.png"
-    assert copied_b.stat().st_size != card.stat().st_size
+    legacy = root / "library" / "characters" / "xuxian" / "legacy" / "costume-ref.png"
+    assert Image.open(card).size == Image.open(pose_b).size
+    assert copied_b.stat().st_size != legacy.stat().st_size
     assert "caudal fin" in negative
     assert "mermaid" in negative
     assert "flattened tail tip" in negative
     assert "minor" in negative and "child" in negative
+
+
+def test_fal_pose_sheets_are_library_defaults() -> None:
+    root = Path(__file__).resolve().parents[1]
+    pairs = [
+        ("persephone", "hades-persephone-throne/approved.jpg"),
+        ("hades", "hades-persephone-throne/pose-fal-b.jpg"),
+        ("baisuzhen_snake", "baisuzhen-xuxian-coil/approved.jpg"),
+        ("xuxian", "baisuzhen-xuxian-coil/pose-fal-b.jpg"),
+    ]
+    for cid, rel in pairs:
+        cdir = root / "library" / "characters" / cid
+        src = root / "library" / "stills" / rel
+        assert Image.open(cdir / "ref.png").size == Image.open(src).size
+        legacy = cdir / "legacy" / "costume-ref.png"
+        assert legacy.is_file()
+        assert (cdir / "legacy" / "README.txt").is_file()
+        assert Image.open(legacy).size != Image.open(cdir / "ref.png").size
+        card = (cdir / "card.yaml").read_text(encoding="utf-8")
+        assert "reference_images:\n- ref.png" in card
+        assert "fal-pose" in card
 
 
 def test_local_prompt_appends_avoid(tmp_path: Path) -> None:

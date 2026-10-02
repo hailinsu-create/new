@@ -1,20 +1,11 @@
 {
-  "panel_id": "xuxian_ref",
-  "cache_key": "7f89a304fe9a84bd",
-  "prompt": "photorealistic studio lookbook photograph, seamless dark charcoal-grey with faint low mist backdrop, 85mm lens, sharp focus on face and costume, NOT anime, NOT illustration, NOT a 3D render, studio portrait for continuity lock, portrait look-sheet shot, solo lookbook photograph of ONLY 许仙, full-length standing pose from head to bare feet, entire body and footwear fully in frame, small margin above the head and below the feet, dark charcoal-grey with faint low mist studio backdrop, identity lock sheet, single subject, no other characters, no scenery, emotion: neutral calm, Character 许仙 (id=xuxian); age look: adult man, late 20s, gentle and sincere young physician-scholar; face: soft handsome face, clear warm brown eyes, slim straight nose, light stubble-free skin, kind earnest expression with a shy smile; human; hair: black hair in a neat scholar's topknot with a dark-blue cloth headband; wardrobe (LOCKED unless panel says costume change): LOCKED dark indigo long gown worn loosely open at the chest showing bare collarbone and upper chest, bare forearms, black sash, small herb pouch at the belt, simple cloth shoes; signature props: a bamboo medicine box on a strap; notes: Adult male lead from the Legend of the White Snake (public-domain folklore). Dark gothic photoreal live-action, wary but tender., highly detailed skin texture, realistic eyes, coherent anatomy, dark gothic cinematic mood, low-key chiaroscuro lighting with deep shadows, desaturated cold palette with one cold teal accent, subtle mist and grain, simpler composition, single clear subject, medium shot, fewer props, identity lock priority over cinematic complexity. Fix these problems from the previous attempt: clean_background; face_matches_card",
-  "negative": "second person, crowd, twins, wrong gender, anime, cartoon, scenery, cave, extra cape or armor not in the card, deformed face, watermark, text overlay, identical twins, same face twice, merged faces, costume swap, sunny outdoor canyon, split screen, diptych, collage, modern clothes",
-  "refs": [],
-  "provider": "fal",
-  "model": "fal-ai/bytedance/seedream/v4/text-to-image",
-  "attempt": 3,
-  "qa": {
-    "ok": false,
-    "issues": [
-      "clean_background",
-      "face_matches_card",
-      "failed check: clean_background",
-      "failed check: face_matches_card"
-    ],
-    "skipped": false
-  }
+  "role": "primary-pose-ref",
+  "source": "library/stills/baisuzhen-xuxian-coil/pose-fal-b.jpg",
+  "label": "coil pose-fal-b.jpg, still-white-snake-v2",
+  "size": [
+    1050,
+    1400
+  ],
+  "archived_at": "2026-10-02T16:29:07+00:00",
+  "legacy_costume": "legacy/costume-ref.png"
 }

@@ -48,6 +48,7 @@ negative: anime, cartoon, collage, split screen, twins, merged faces, blue skin,
   lap, single dominant figure, one person only, boots, greaves, knee armor, opaque bodice,
   covered breasts, leather trousers covering the thighs, illustration, painting, 3D render, CGI,
   concept art, extra fingers, deformed hands, text, watermark, minor, child
+# Same pixels as library/characters/persephone/ref.png and hades/ref.png.
 pose_refs:
 - approved.jpg
 - pose-fal-b.jpg
