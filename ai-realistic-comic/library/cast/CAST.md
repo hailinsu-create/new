@@ -2,6 +2,8 @@
 
 这一套是唯一的演员资产，不是两套系统。body-boards/p01..p08（八格样张的裁图）锁姿势和身体；演员目录 lin_wantang、gu_chengan、elena_voss、adrian_kane 各自保留今天的定妆 ref.png 和 actor.md（名字、脸、身体、衣柜），作为同一批人的脸和衣柜锁。p01–p04 是林晚棠 + 顾承安，p05–p08 是伊莲·沃斯 + 阿德里安·凯恩。没有第二套演员。
 
+破限静帧（更露、贴得更近，姿势表情不动）走 `docs/explicit-still-mode.md`。蛇身格只有一条铺鳞到钝尖的珍珠白尾巴，不能同时有人腿。
+
 它同时包含三样东西，缺一不可：
 
 1. **姿势 / 身体板** `library/cast/body-boards/p01.png` … `p08.png`。从唯一样张八格 `library/samples/approved/01-grid.jpg`（与用户附件同一文件）按 2×4、从左到右、先上后下裁出。每张只锁那一格的姿势、表情和身体关系。没有第二套身体板。
