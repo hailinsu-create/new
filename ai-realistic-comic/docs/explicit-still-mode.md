@@ -2,7 +2,17 @@
 
 这是同一套演员上的一种出图模式，不是新演员，也不是第二套身体板。演员锁仍以 `library/cast/CAST.md` 为准。以后同类静帧必须按本文件，不能改走 `docs/still-mode.md` 里的 fal nano-banana 配方。
 
-生成请求只能走本文件和 `autodl/run_explicit8.py`。监督 bot（漫监）对这条流程只做管理：监督、纠偏、续指令，卡住才短报。不得绕过工作流自己出图、改提示词或改规则。出图和规则变更都由这条工作流执行。开机仍要用户另行授权。打分和收留线以 `docs/still-score.md` 为准。
+生成请求只能走本文件和 `autodl/run_explicit8.py`。监督 bot（漫监）对这条流程只做管理：监督、纠偏、续指令，卡住才短报。不得绕过工作流自己出图、改提示词或改规则，也不得自己去跑 agy 或 Qwen。出图和规则变更都由这条工作流执行。开机仍要用户另行授权。打分和收留线以 `docs/still-score.md` 为准。
+
+正在跑的白蛇传 6 套先出完。不要停、不要重启、不要改那个进程，不要关 F34。下面的两段式排在那 6 套之后，由同一个入口执行。
+
+## 两段式
+
+1. 第一段是 `agy`（Antigravity CLI）的 `generate_image`。参考图按绝对路径放进 `reference_images`：身体板锁姿势和表情，定妆 `ref.png` 锁脸和衣着。这一段只求像，不加大尺度。背后是 Gemini 图像模型（`gemini-3-pro-image` 或 `gemini-3.1-flash-image`，用已经登录的那个，不另换）。硬门和八项仍是 `docs/still-score.md`。均分不到 9 或硬门没过，只在 agy 里重出。
+2. 过了的那张才进第二段。第二段是现有本地 Qwen-Image-Edit（F34，896×1200，40 步，seed 1，`true_cfg_scale` 4），只加大暴露和身体接触。脸、姿势、蛇尾规则不改。再打分。不到 9 只重跑这一段。脸跑了退回第一段，不在这一段里硬修。
+3. 没有登录好的 `agy` 就停在第一段之前。脚本只看本机有没有 `agy` 和 `~/.gemini/antigravity-cli`，不执行登录，不开机。缺的是登录，由监督 bot 去问用户。
+
+当前这台机器没有 `agy`。第一段还没开始。缺的是登录。
 
 新神话姿势锁见 `library/stills/myth-poses/POSE.md`。m01–m04 已出过一版，目检未收，见下文。
 

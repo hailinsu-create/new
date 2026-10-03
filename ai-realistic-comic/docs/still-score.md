@@ -32,7 +32,7 @@
 
 收留线是 9。硬门没过，或八项均分低于 9，都不算完成。`autodl/run_explicit8.py` 只重出这一张，提示词不动，seed 从当前值起每次加 1，直到硬门全过且均分不低于 9。不得另开一条生成指令来补这张。
 
-视觉打分模型固定为 `opencode-go/deepseek-v4-flash-vision-exp`，推理档 `max`。不要换模型。
+视觉打分模型固定为 `opencode-go/deepseek-v4-flash-vision-exp`，推理档 `max`。不要换模型。两段式的两段都用这一条：第一段 agy 只求像，第二段 Qwen 只加大暴露和身体接触。脸跑了退回第一段。详见 `docs/explicit-still-mode.md`。
 
 这次只把规则写进工作流。低于 9 的旧图这次不回溯重跑。p03–p08 的提示词不改。以后可以逐步收紧，不另起架构。
 

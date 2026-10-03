@@ -25,8 +25,36 @@ KEEP_MEAN = 9.0
 
 SCORE_PROMPT = """按 docs/still-score.md 给第二张图打分。第一张图是满分基准 anchor-10，八项固定 10。地上那只脚是许仙（顾承安）的，不扣。和基准一样的圆钝连体尾尖不算 H2。白蛇自己的人腿或人脚才算 H3；人身格的人腿是对的，雨桥没有蛇尾。伊莲不许尖耳或绿眼。阿德里安保留尖耳，不拿武器。别人长尖耳算 H4。
 只输出一个 JSON 对象，不要改文件：
-{"scene":"六个字内","gates":[],"identity":0,"distinction":0,"interaction":0,"aesthetics":0,"anatomy":0,"wardrobe":0,"motif":0,"photoreal":0,"mean":0,"note":"一句"}
-gates 只填失败的门，例如 ["H2"]。没有失败就是 []。mean 是八项等权均分。"""
+{"scene":"六个字内","gates":[],"face_drift":false,"identity":0,"distinction":0,"interaction":0,"aesthetics":0,"anatomy":0,"wardrobe":0,"motif":0,"photoreal":0,"mean":0,"note":"一句"}
+gates 只填失败的门，例如 ["H2"]。没有失败就是 []。face_drift 只有脸不像定妆时才是 true。mean 是八项等权均分。"""
+
+
+def agy_block_reason(binary: str | None, config_dir: Path | None) -> str | None:
+    """Stop before stage 1 when Antigravity is not already logged in.
+
+    This only looks at the binary and a local config directory. It does not
+    run `agy login` and it does not start a GPU.
+    """
+    if not binary:
+        return (
+            "缺的是登录：本机没有 agy（Antigravity CLI）。"
+            "第一段还没开始。不要自行登录，不要开机。监督 bot（漫监）去问用户。"
+        )
+    if config_dir is None or not config_dir.is_dir():
+        return (
+            "缺的是登录：agy 在，但没有已登录的 Antigravity 配置。"
+            "第一段还没开始。不要自行登录，不要开机。监督 bot（漫监）去问用户。"
+        )
+    return None
+
+
+def stage2_action(item: dict) -> str:
+    """keep, reshoot the explicit edit only, or go back to stage 1."""
+    if item.get("face_drift"):
+        return "back"
+    if accepted(item):
+        return "keep"
+    return "reshoot"
 
 
 def accepted(item: dict) -> bool:
@@ -175,7 +203,116 @@ def _render_until_kept(provider, panel: dict, dest: Path, seed: int) -> None:
         seed += 1
 
 
+def _agy_prompt(panel: dict) -> str:
+    refs = "\n".join(f"- {path}" for path in panel["refs"])
+    return (
+        "Use generate_image. Pass every reference image below by absolute path "
+        "in reference_images. Do not increase nudity or sexual contact. "
+        "Match the faces and costumes on the makeup refs, and the pose and "
+        "expression on the body board. Snake-tail rules still apply: one "
+        "pearl-white scaled tail to a blunt connected tip, not a fish, not a "
+        "snake head, and Bai herself has no human legs or feet. "
+        "Gu Cheng'an's own foot is allowed. Stage 1 is likeness only because "
+        "the Gemini image model (gemini-3-pro-image or gemini-3.1-flash-image) "
+        "refuses explicit prompts. End with a line IMAGE_PATH: <absolute path>.\n"
+        f"{refs}"
+    )
+
+
+def _stage2_edit_prompt(panel: dict) -> str:
+    return (
+        f"{panel['prompt']}\n"
+        "Edit only to increase exposure and body contact. "
+        "Do not change the faces, the pose, the expression, or the snake-tail rules. "
+        f"Avoid: {panel['negative']}."
+    )
+
+
+def _ensure_agy() -> None:
+    reason = agy_block_reason(
+        shutil.which("agy"),
+        Path.home() / ".gemini" / "antigravity-cli",
+    )
+    if reason:
+        raise SystemExit(reason)
+
+
+def _run_agy_stage(panel: dict, dest: Path) -> None:
+    """Likeness passes stay inside agy. This function is not called until login exists."""
+    attempt = 1
+    while True:
+        print(f"==== AGY {panel['id']} try={attempt} likeness ====", flush=True)
+        cmd = ["agy", "--print", _agy_prompt(panel)]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
+        if result.returncode != 0:
+            raise SystemExit(f"agy stage 1 failed: {result.stderr[-400:]}")
+        text = result.stdout
+        marker = "IMAGE_PATH:"
+        if marker not in text:
+            raise SystemExit("agy did not return IMAGE_PATH")
+        image = Path(text.split(marker, 1)[1].strip().splitlines()[0].strip())
+        if not image.is_file():
+            raise SystemExit(f"agy image missing {image}")
+        dest.write_bytes(image.read_bytes())
+        item = score_still(dest)
+        gates = " ".join(item.get("gates") or []) or "-"
+        print(
+            f"SCORE {panel['id']} stage=1 try={attempt} mean={item.get('mean')} gates={gates}",
+            flush=True,
+        )
+        if accepted(item):
+            print(f"KEEP {panel['id']} stage=1", flush=True)
+            return
+        print(f"RESHOOT {panel['id']} stage=1 inside agy", flush=True)
+        attempt += 1
+
+
+def _run_qwen_stage(provider, panel: dict, likeness: Path, dest: Path, seed: int) -> str:
+    """Return keep, or back when the face drifted. Under 9 reshoots this stage only."""
+    attempt = 1
+    while True:
+        print(
+            f"==== QWEN {panel['id']} stage=2 try={attempt} seed={seed} ====",
+            flush=True,
+        )
+        provider.call(
+            "qwen-image-edit-2511",
+            {
+                "prompt": _stage2_edit_prompt(panel),
+                "negative": panel["negative"],
+                "images": [likeness, *panel["refs"]],
+                "width": panel["width"],
+                "height": panel["height"],
+                "steps": 40,
+                "seed": seed,
+                "true_cfg_scale": 4.0,
+            },
+            dest,
+        )
+        item = score_still(dest)
+        action = stage2_action(item)
+        gates = " ".join(item.get("gates") or []) or "-"
+        print(
+            f"SCORE {panel['id']} stage=2 try={attempt} mean={item.get('mean')} gates={gates} action={action}",
+            flush=True,
+        )
+        if action == "keep":
+            print(f"KEEP {panel['id']} stage=2", flush=True)
+            return "keep"
+        if action == "back":
+            print(f"FACE {panel['id']} back to stage 1", flush=True)
+            return "back"
+        failed = dest.with_name(f"{panel['id']}.stage2-below9-try{attempt}{dest.suffix}")
+        dest.replace(failed)
+        print(f"RESHOOT {panel['id']} stage=2 only, next seed={seed + 1}", flush=True)
+        attempt += 1
+        seed += 1
+
+
 def main() -> None:
+    # Two-stage entry. The in-flight white-snake six use the already copied
+    # renderer and are not started from here.
+    _ensure_agy()
     panels = _load_panels()
     only = require_subset(os.environ.get("EXPLICIT_ONLY", ""), {panel["id"] for panel in panels})
     os.environ.setdefault("HF_HUB_OFFLINE", "1")
@@ -201,8 +338,14 @@ def main() -> None:
         for ref in panel["refs"]:
             if not ref.is_file():
                 raise SystemExit(f"missing ref {ref}")
+        likeness = out_root / f"{panel['id']}.stage1.png"
         dest = out_root / f"{panel['id']}.png"
-        _render_until_kept(provider, panel, dest, int(os.environ.get("EXPLICIT_SEED", "1")))
+        seed = int(os.environ.get("EXPLICIT_SEED", "1"))
+        while True:
+            _run_agy_stage(panel, likeness)
+            if _run_qwen_stage(provider, panel, likeness, dest, seed) == "keep":
+                break
+            print(f"FACE {panel['id']} stage 2 drifted, restart stage 1", flush=True)
     print("ALL_OK", flush=True)
 
 
