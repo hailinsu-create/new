@@ -1,4 +1,4 @@
-"""Eight explicit stills. Pose from body boards, faces from cast refs. Offline Qwen cache."""
+"""Explicit stills p01-p08 plus myth poses m01-m04. Same offline Qwen cache."""
 from __future__ import annotations
 
 import os
@@ -6,12 +6,15 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PROMPTS = ROOT / "library" / "stills" / "explicit-8" / "prompts.md"
+PROMPT_FILES = (
+    ROOT / "library" / "stills" / "explicit-8" / "prompts.md",
+    ROOT / "library" / "stills" / "myth-poses" / "prompts.md",
+)
 
 
 def _blocks(text: str) -> list[dict]:
     out = []
-    for m in re.finditer(r"<!-- (P\d\d)_START -->(.*?)<!-- \1_END -->", text, re.S):
+    for m in re.finditer(r"<!-- ([PM]\d\d)_START -->(.*?)<!-- \1_END -->", text, re.S):
         body = m.group(2)
         gen = re.search(r"<!-- GEN_START -->(.*?)<!-- GEN_END -->", body, re.S)
         neg = re.search(r"<!-- NEG_START -->(.*?)<!-- NEG_END -->", body, re.S)
@@ -37,8 +40,19 @@ def _blocks(text: str) -> list[dict]:
                 "height": height,
             }
         )
-    if len(out) != 8:
-        raise SystemExit(f"expected 8 panels, got {len(out)}")
+    return out
+
+
+def _load_panels() -> list[dict]:
+    out = []
+    for path in PROMPT_FILES:
+        if not path.is_file():
+            raise SystemExit(f"missing prompts {path}")
+        out.extend(_blocks(path.read_text(encoding="utf-8")))
+    ids = [panel["id"] for panel in out]
+    expected = [f"p{n:02d}" for n in range(1, 9)] + [f"m{n:02d}" for n in range(1, 5)]
+    if ids != expected:
+        raise SystemExit(f"expected {expected}, got {ids}")
     return out
 
 
@@ -61,7 +75,7 @@ def main() -> None:
     out_root = Path(os.environ.get("EXPLICIT_OUT", "/root/autodl-tmp/out/explicit-8"))
     out_root.mkdir(parents=True, exist_ok=True)
     only = {x.strip() for x in os.environ.get("EXPLICIT_ONLY", "").split(",") if x.strip()}
-    for panel in _blocks(PROMPTS.read_text(encoding="utf-8")):
+    for panel in _load_panels():
         if only and panel["id"] not in only:
             continue
         for ref in panel["refs"]:
