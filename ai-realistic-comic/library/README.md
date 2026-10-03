@@ -11,6 +11,8 @@ comic use <other-project> <id>              # import into another project
 
 The only approved 样张 are the five files in `samples/approved/`. Fal two-person crops that were briefly copied onto `ref.png` are wrong and now live in `characters/<id>/legacy/fal_pose_mislabel/`. They are not canonical. Makeup prompts are `characters/{baisuzhen_snake,xuxian,persephone,hades}/makeup_prompt.md`. A new `ref.png` is written only after the local Qwen makeup run. Older solo costume sheets remain in `legacy/costume-ref.png`.
 
+**Cast lock:** read [`cast/CAST.md`](cast/CAST.md) before using any character sheet — the four standing actors (林晚棠 / 顾承安 / 伊莲·沃斯 / 阿德里安·凯恩) and their face/body rules live there, and faces must not drift.
+
 Known deviations of the legacy costume sheets (documented, not hidden):
 - 哈迪斯: pointed ears and orange soul-fire in the render; no weapon on the sheet (the bident is added in scene prompts).
 - 珀耳塞福涅: eye color drifts orange; dress slit is high.

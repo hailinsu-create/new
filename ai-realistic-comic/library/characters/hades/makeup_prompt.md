@@ -1,5 +1,7 @@
 # Hades / 哈迪斯 — makeup sheet
 
+> **Cast lock 演员锁定：** 哈迪斯由固定演员阿德里安·凯恩（adrian_kane）出演，脸和身体必须匹配 `ai-realistic-comic/library/cast/adrian_kane/actor.md` 与 `ref.png`，不得漂移（this role is played by the standing actor Adrian Kane; face and body must match the cast actor.md and ref.png, do not drift）。
+
 Adult man. The approved stills show pointed ears. Lock that.
 
 ## Face 脸

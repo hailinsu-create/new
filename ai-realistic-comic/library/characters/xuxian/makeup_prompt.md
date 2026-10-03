@@ -1,5 +1,7 @@
 # 许仙 / Xu Xian — makeup sheet
 
+> **Cast lock 演员锁定：** 许仙由固定演员顾承安（gu_chengan）出演，脸和身体必须匹配 `ai-realistic-comic/library/cast/gu_chengan/actor.md` 与 `ref.png`，不得漂移（this role is played by the standing actor Gu Cheng'an; face and body must match the cast actor.md and ref.png, do not drift）。
+
 Adult man. Human. Two legs. No tail.
 
 ## Face 脸

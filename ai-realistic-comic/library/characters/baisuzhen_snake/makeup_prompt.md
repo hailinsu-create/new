@@ -1,5 +1,7 @@
 # 白素贞 / Bai Suzhen — makeup sheet
 
+> **Cast lock 演员锁定：** 白素贞由固定演员林晚棠（lin_wantang）出演，脸和身体必须匹配 `ai-realistic-comic/library/cast/lin_wantang/actor.md` 与 `ref.png`，不得漂移（this role is played by the standing actor Lin Wantang; face and body must match the cast actor.md and ref.png, do not drift）。
+
 Same adult woman in two bodies. Do not invent a second face.
 
 ## Face 脸

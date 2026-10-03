@@ -1,5 +1,7 @@
 # Persephone / 珀耳塞福涅 — makeup sheet
 
+> **Cast lock 演员锁定：** 珀耳塞福涅由固定演员伊莲·沃斯（elena_voss）出演，脸和身体必须匹配 `ai-realistic-comic/library/cast/elena_voss/actor.md` 与 `ref.png`，不得漂移（this role is played by the standing actor Elena Voss; face and body must match the cast actor.md and ref.png, do not drift）。
+
 Adult woman. Human ears. Two legs.
 
 ## Face 脸
