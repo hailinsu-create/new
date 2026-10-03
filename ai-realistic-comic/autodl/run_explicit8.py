@@ -82,6 +82,18 @@ def _blocks(text: str) -> list[dict]:
     return out
 
 
+def require_subset(raw: str, known: set[str]) -> set[str]:
+    only = {item.strip().lower() for item in raw.split(",") if item.strip()}
+    if not only:
+        raise SystemExit(
+            "EXPLICIT_ONLY is required. Refusing to render p01-p08 and m01-m04 together."
+        )
+    unknown = sorted(only - known)
+    if unknown:
+        raise SystemExit(f"unknown EXPLICIT_ONLY: {', '.join(unknown)}")
+    return only
+
+
 def _load_panels() -> list[dict]:
     out = []
     for path in PROMPT_FILES:
@@ -164,6 +176,8 @@ def _render_until_kept(provider, panel: dict, dest: Path, seed: int) -> None:
 
 
 def main() -> None:
+    panels = _load_panels()
+    only = require_subset(os.environ.get("EXPLICIT_ONLY", ""), {panel["id"] for panel in panels})
     os.environ.setdefault("HF_HUB_OFFLINE", "1")
     os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
     os.environ.setdefault("DIFFUSERS_OFFLINE", "1")
@@ -181,9 +195,8 @@ def main() -> None:
     provider = LocalProvider(settings)
     out_root = Path(os.environ.get("EXPLICIT_OUT", "/root/autodl-tmp/out/explicit-8"))
     out_root.mkdir(parents=True, exist_ok=True)
-    only = {x.strip() for x in os.environ.get("EXPLICIT_ONLY", "").split(",") if x.strip()}
-    for panel in _load_panels():
-        if only and panel["id"] not in only:
+    for panel in panels:
+        if panel["id"] not in only:
             continue
         for ref in panel["refs"]:
             if not ref.is_file():
