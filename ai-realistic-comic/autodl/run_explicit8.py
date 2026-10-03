@@ -1,8 +1,16 @@
-"""Explicit stills p01-p08 plus myth poses m01-m04. Same offline Qwen cache."""
+"""Explicit stills p01-p08 plus myth poses m01-m04. Same offline Qwen cache.
+
+A frame is finished only after the vision score in docs/still-score.md passes.
+Hard-gate failures and means under 9 stay inside this script: the same panel is
+rendered again. Callers do not start a second generation command.
+"""
 from __future__ import annotations
 
+import json
 import os
 import re
+import shutil
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -10,6 +18,37 @@ PROMPT_FILES = (
     ROOT / "library" / "stills" / "explicit-8" / "prompts.md",
     ROOT / "library" / "stills" / "myth-poses" / "prompts.md",
 )
+ANCHOR = ROOT / "library" / "stills" / "explicit-8" / "anchor-10.jpg"
+RUBRIC = ROOT / "docs" / "still-score.md"
+VISION_MODEL = "opencode-go/deepseek-v4-flash-vision-exp"
+KEEP_MEAN = 9.0
+
+SCORE_PROMPT = """按 docs/still-score.md 给第二张图打分。第一张图是满分基准 anchor-10，八项固定 10。地上那只脚是许仙（顾承安）的，不扣。和基准一样的圆钝连体尾尖不算 H2。白蛇自己的人腿或人脚才算 H3；人身格的人腿是对的，雨桥没有蛇尾。伊莲不许尖耳或绿眼。阿德里安保留尖耳，不拿武器。别人长尖耳算 H4。
+只输出一个 JSON 对象，不要改文件：
+{"scene":"六个字内","gates":[],"identity":0,"distinction":0,"interaction":0,"aesthetics":0,"anatomy":0,"wardrobe":0,"motif":0,"photoreal":0,"mean":0,"note":"一句"}
+gates 只填失败的门，例如 ["H2"]。没有失败就是 []。mean 是八项等权均分。"""
+
+
+def accepted(item: dict) -> bool:
+    gates = item.get("gates") or []
+    try:
+        mean = float(item.get("mean"))
+    except (TypeError, ValueError):
+        return False
+    return not gates and mean >= KEEP_MEAN
+
+
+def parse_score(text: str) -> dict:
+    start = text.find("{")
+    end = text.rfind("}")
+    if start < 0 or end <= start:
+        raise SystemExit("score json missing")
+    data = json.loads(text[start : end + 1])
+    if isinstance(data.get("items"), list) and data["items"]:
+        data = data["items"][0]
+    if not isinstance(data, dict):
+        raise SystemExit("score json was not an object")
+    return data
 
 
 def _blocks(text: str) -> list[dict]:
@@ -56,6 +95,74 @@ def _load_panels() -> list[dict]:
     return out
 
 
+def score_still(image: Path) -> dict:
+    if not ANCHOR.is_file():
+        raise SystemExit(f"missing anchor {ANCHOR}")
+    if not RUBRIC.is_file():
+        raise SystemExit(f"missing rubric {RUBRIC}")
+    if shutil.which("opencode") is None:
+        raise SystemExit("opencode is required for still-score; do not keep an unscored frame")
+    cmd = [
+        "opencode",
+        "run",
+        "--pure",
+        "--auto",
+        "-m",
+        VISION_MODEL,
+        "--variant",
+        "max",
+        "--dir",
+        "/tmp",
+        SCORE_PROMPT,
+        "-f",
+        str(ANCHOR),
+        "-f",
+        str(image),
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
+    if result.returncode != 0:
+        raise SystemExit(f"vision score failed: {result.stderr[-500:]}")
+    return parse_score(result.stdout)
+
+
+def _render_until_kept(provider, panel: dict, dest: Path, seed: int) -> None:
+    attempt = 1
+    while True:
+        print(
+            f"==== STILL {panel['id']} try={attempt} seed={seed} {panel['width']}x{panel['height']} refs={len(panel['refs'])} ====",
+            flush=True,
+        )
+        provider.call(
+            "qwen-image-edit-2511",
+            {
+                "prompt": f"{panel['prompt']} Avoid: {panel['negative']}.",
+                "negative": panel["negative"],
+                "images": panel["refs"],
+                "width": panel["width"],
+                "height": panel["height"],
+                "steps": 40,
+                "seed": seed,
+                "true_cfg_scale": float(os.environ.get("EXPLICIT_CFG", "4")),
+            },
+            dest,
+        )
+        print(f"wrote {dest} {dest.stat().st_size}", flush=True)
+        item = score_still(dest)
+        gates = " ".join(item.get("gates") or []) or "-"
+        print(
+            f"SCORE {panel['id']} try={attempt} mean={item.get('mean')} gates={gates} note={item.get('note', '')}",
+            flush=True,
+        )
+        if accepted(item):
+            print(f"KEEP {panel['id']} mean={item.get('mean')}", flush=True)
+            return
+        failed = dest.with_name(f"{panel['id']}.below9-try{attempt}{dest.suffix}")
+        dest.replace(failed)
+        print(f"RESHOOT {panel['id']} below 9 or hard gate, next seed={seed + 1}", flush=True)
+        attempt += 1
+        seed += 1
+
+
 def main() -> None:
     os.environ.setdefault("HF_HUB_OFFLINE", "1")
     os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
@@ -82,25 +189,7 @@ def main() -> None:
             if not ref.is_file():
                 raise SystemExit(f"missing ref {ref}")
         dest = out_root / f"{panel['id']}.png"
-        print(
-            f"==== STILL {panel['id']} {panel['width']}x{panel['height']} refs={len(panel['refs'])} ====",
-            flush=True,
-        )
-        provider.call(
-            "qwen-image-edit-2511",
-            {
-                "prompt": f"{panel['prompt']} Avoid: {panel['negative']}.",
-                "negative": panel["negative"],
-                "images": panel["refs"],
-                "width": panel["width"],
-                "height": panel["height"],
-                "steps": 40,
-                "seed": int(os.environ.get("EXPLICIT_SEED", "1")),
-                "true_cfg_scale": float(os.environ.get("EXPLICIT_CFG", "4")),
-            },
-            dest,
-        )
-        print(f"wrote {dest} {dest.stat().st_size}", flush=True)
+        _render_until_kept(provider, panel, dest, int(os.environ.get("EXPLICIT_SEED", "1")))
     print("ALL_OK", flush=True)
 
 
