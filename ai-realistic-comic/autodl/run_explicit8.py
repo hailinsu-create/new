@@ -60,9 +60,9 @@ def main() -> None:
     provider = LocalProvider(settings)
     out_root = Path(os.environ.get("EXPLICIT_OUT", "/root/autodl-tmp/out/explicit-8"))
     out_root.mkdir(parents=True, exist_ok=True)
-    only = os.environ.get("EXPLICIT_ONLY", "").strip()
+    only = {x.strip() for x in os.environ.get("EXPLICIT_ONLY", "").split(",") if x.strip()}
     for panel in _blocks(PROMPTS.read_text(encoding="utf-8")):
-        if only and panel["id"] != only:
+        if only and panel["id"] not in only:
             continue
         for ref in panel["refs"]:
             if not ref.is_file():
@@ -81,7 +81,8 @@ def main() -> None:
                 "width": panel["width"],
                 "height": panel["height"],
                 "steps": 40,
-                "seed": 1,
+                "seed": int(os.environ.get("EXPLICIT_SEED", "1")),
+                "true_cfg_scale": float(os.environ.get("EXPLICIT_CFG", "4")),
             },
             dest,
         )

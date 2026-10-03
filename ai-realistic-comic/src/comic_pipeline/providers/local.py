@@ -103,8 +103,8 @@ class LocalProvider:
             # Qwen edit + FLUX.2 klein both take image= or image=list
             kwargs["image"] = pil if (len(pil) > 1 or is_flux_klein) else pil[0]
         if is_qwen:
-            kwargs.setdefault("true_cfg_scale", 4.0)
-            kwargs.setdefault("guidance_scale", 1.0)
+            kwargs["true_cfg_scale"] = float(arguments.get("true_cfg_scale") or 4.0)
+            kwargs["guidance_scale"] = float(arguments.get("guidance_scale") or 1.0)
         else:
             kwargs.setdefault("guidance_scale", float(arguments.get("guidance_scale") or 4.0))
 
