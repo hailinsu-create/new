@@ -3,8 +3,8 @@ from pathlib import Path
 
 
 def _load():
-    path = Path(__file__).resolve().parents[1] / "autodl" / "run_explicit8.py"
-    spec = importlib.util.spec_from_file_location("run_explicit8", path)
+    path = Path(__file__).resolve().parents[1] / "autodl" / "run_explicit_two_stage.py"
+    spec = importlib.util.spec_from_file_location("run_explicit_two_stage", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -30,6 +30,25 @@ def test_unset_explicit_only_refuses_the_full_set():
     else:
         raise AssertionError("empty EXPLICIT_ONLY should refuse")
     assert mod.require_subset("p01, m02", {"p01", "m02"}) == {"p01", "m02"}
+
+
+def test_agy_stops_before_stage_one_without_login(tmp_path):
+    mod = _load()
+    missing = mod.agy_block_reason(None, tmp_path)
+    assert missing and "缺的是登录" in missing
+    assert "不要自行登录" in missing
+    logged_out = mod.agy_block_reason("agy", tmp_path / "nope")
+    assert logged_out and "缺的是登录" in logged_out
+    ready = tmp_path / "antigravity-cli"
+    ready.mkdir()
+    assert mod.agy_block_reason("agy", ready) is None
+
+
+def test_face_drift_returns_to_stage_one():
+    mod = _load()
+    assert mod.stage2_action({"gates": [], "mean": 9.2, "face_drift": True}) == "back"
+    assert mod.stage2_action({"gates": [], "mean": 9.2, "face_drift": False}) == "keep"
+    assert mod.stage2_action({"gates": [], "mean": 8.9, "face_drift": False}) == "reshoot"
 
 
 def test_parse_score_reads_one_object():

@@ -1,8 +1,16 @@
-# 破限静帧模式 / Explicit still mode
+# 两段式静帧（新工作流，未启用）
 
-这是同一套演员上的一种出图模式，不是新演员，也不是第二套身体板。演员锁仍以 `library/cast/CAST.md` 为准。以后同类静帧必须按本文件，不能改走 `docs/still-mode.md` 里的 fal nano-banana 配方。
+这是现有破限静帧的复制品，不是正在跑的那条。正在用的仍是 `docs/explicit-still-mode.md`、`docs/still-score.md`、`autodl/run_explicit8.py` 和 `library/cast/CAST.md`。白蛇传 6 套继续走那条，不要停、不要改那个进程、不要关 F34。
 
-生成请求只能走本文件和 `autodl/run_explicit8.py`。监督 bot（漫监）对这条流程只做管理：监督、纠偏、续指令，卡住才短报。不得绕过工作流自己出图、改提示词或改规则。出图和规则变更都由这条工作流执行。开机仍要用户另行授权。打分和收留线以 `docs/still-score.md` 为准。
+本文件和 `autodl/run_explicit_two_stage.py`、`docs/still-score-two-stage.md` 只在那 6 套出完之后才用。演员锁仍以 `library/cast/CAST.md` 为准。监督 bot（漫监）只做管理：监督、纠偏、续指令，卡住才短报。不得绕过工作流自己出图、改提示词或改规则，也不得自己去跑 agy 或 Qwen。
+
+## 两段式
+
+1. 第一段是 `agy`（Antigravity CLI）的 `generate_image`。参考图按绝对路径放进 `reference_images`：身体板锁姿势和表情，定妆 `ref.png` 锁脸和衣着。这一段只求像，不加大尺度。背后是 Gemini 图像模型（`gemini-3-pro-image` 或 `gemini-3.1-flash-image`，用已经登录的那个，不另换）。硬门和八项仍是 `docs/still-score-two-stage.md`。均分不到 9 或硬门没过，只在 agy 里重出。
+2. 过了的那张才进第二段。第二段是现有本地 Qwen-Image-Edit（F34，896×1200，40 步，seed 1，`true_cfg_scale` 4），只加大暴露和身体接触。脸、姿势、蛇尾规则不改。再打分。不到 9 只重跑这一段。脸跑了退回第一段，不在这一段里硬修。
+3. 没有登录好的 `agy` 就停在第一段之前。脚本只看本机有没有 `agy` 和 `~/.gemini/antigravity-cli`，不执行登录，不开机。缺的是登录，由监督 bot 去问用户。
+
+当前这台机器没有 `agy`。第一段还没开始。缺的是登录。
 
 新神话姿势锁见 `library/stills/myth-poses/POSE.md`。m01–m04 已出过一版，目检未收，见下文。
 
@@ -25,7 +33,7 @@
 
 ## 禁令
 
-出图后由 `autodl/run_explicit8.py` 调用 `opencode-go/deepseek-v4-flash-vision-exp`（推理档 max）按 `docs/still-score.md` 打分。硬门没过，或八项均分低于 9，脚本只重出这一张，直到硬门全过且均分不低于 9。监督 bot 不得改由自己的一条生成指令来补。下面任何一条出现，这张就不算完成：
+出图后由 `autodl/run_explicit_two_stage.py` 调用 `opencode-go/deepseek-v4-flash-vision-exp`（推理档 max）按 `docs/still-score-two-stage.md` 打分。硬门没过，或八项均分低于 9，脚本只重出这一张，直到硬门全过且均分不低于 9。监督 bot 不得改由自己的一条生成指令来补。下面任何一条出现，这张就不算完成：
 
 - H1 鱼尾、鱼鳍、尾鳍。
 - H2 尾尖是蛇头（眼、嘴、第二张脸）、断开的珍珠球，或切断的断尖。和满分基准一样的圆钝连体尾尖不算。
@@ -48,19 +56,19 @@
 - m03：在车上，但是坐着，不是站着靠栏挤压。不算过。
 - m04：石地喂籽，但女的长了尖耳。不算过。
 - p03–p08 是用户说过效果不错的那批。不要改它们的提示词去重跑。它们不证明蛇尾合格。
-- 上面是更早那几份文件的记录。新的收留仍是 `docs/still-score.md`：第 10 张亭中盘蛇是满分基准，许仙（顾承安）自己的脚不扣，硬门没过或均分低于 9 不算完成。这和出图后的目视是同一条，不是另一次检查。
+- 上面是更早那几份文件的记录。新的收留仍是 `docs/still-score-two-stage.md`：第 10 张亭中盘蛇是满分基准，许仙（顾承安）自己的脚不扣，硬门没过或均分低于 9 不算完成。这和出图后的目视是同一条，不是另一次检查。
 
 ## 出图
 
-- 出图、打分、不达标重出，都在 `autodl/run_explicit8.py` 里完成。文件落盘不算收。均分低于 9 或硬门没过，脚本只重出这一张。
+- 出图、打分、不达标重出，都在 `autodl/run_explicit_two_stage.py` 里完成。文件落盘不算收。第一段没过只在 agy 里重出。第二段没过只重跑 Qwen。脸跑了退回第一段。
 - 这次不跑图。p03–p08 的提示词不改，也不为这次重跑。
 - 只在 AutoDL F34 `xaxna66hqt-c5c9c7fc`（西北B / west-E，RTX 5090 D）上跑本地 Qwen。不要开、不要删旧的 G09 `sa4eaxgcuq-26e36fc9`。开机要用户另行授权。
 - 模型 `Qwen/Qwen-Image-Edit-2511`，用机上缓存，离线，不要重下权重。896×1200，40 步，seed 1，`true_cfg_scale` 4。重出时只把这一张的 seed 加 1，其余参数不动。
-- 入口 `autodl/run_explicit8.py`。脚本连读两份 prompts，再用 `docs/still-score.md` 的视觉模型做目视。已知缺陷、硬门或均分低于 9，都是没完成。
+- 入口 `autodl/run_explicit_two_stage.py`。脚本连读两份 prompts，再用 `docs/still-score-two-stage.md` 的视觉模型做目视。已知缺陷、硬门或均分低于 9，都是没完成。没有登录好的 agy 时入口直接停住，不登录，不开机。
 - 必须设置 `EXPLICIT_ONLY`。未设置时脚本退出，不会把 p01–p08 和 m01–m04 一起重跑。p03–p08 的提示词不改，也不为写规则而重跑。
 - p01–p08 参考顺序仍是该格身体板在前，再跟两位演员的定妆。m01–m04 没有新身体板，参考图只有两位演员的定妆，姿势写在提示词里。
-- 只跑 p01、p02：`EXPLICIT_ONLY=p01,p02 python autodl/run_explicit8.py`
-- 只跑 m01–m04：`EXPLICIT_ONLY=m01,m02,m03,m04 EXPLICIT_OUT=/root/autodl-tmp/out/myth-poses python autodl/run_explicit8.py`
+- 只跑 p01、p02：`EXPLICIT_ONLY=p01,p02 python autodl/run_explicit_two_stage.py`
+- 只跑 m01–m04：`EXPLICIT_ONLY=m01,m02,m03,m04 EXPLICIT_OUT=/root/autodl-tmp/out/myth-poses python autodl/run_explicit_two_stage.py`
 - 跑完关机，数据盘留下，权重缓存不删。不要空开着 GPU 计费。
 
-再出同类静帧时照这个锁，包括一条不断的圆钝鳞尾、白蛇自己没有人腿人脚、鳞到尖、尾尖不是头。fal 静帧模式不能代替这一条。监督 bot 也不能代替 `autodl/run_explicit8.py`。
+再出同类静帧时照这个锁，包括一条不断的圆钝鳞尾、白蛇自己没有人腿人脚、鳞到尖、尾尖不是头。fal 静帧模式不能代替这一条。监督 bot 也不能代替 `autodl/run_explicit_two_stage.py`。现在不要跑这个入口。
