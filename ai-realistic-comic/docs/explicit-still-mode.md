@@ -2,6 +2,8 @@
 
 这是同一套演员上的一种出图模式，不是新演员，也不是第二套身体板。演员锁仍以 `library/cast/CAST.md` 为准。以后同类静帧必须按本文件，不能改走 `docs/still-mode.md` 里的 fal nano-banana 配方。
 
+新神话姿势锁（尚未出图）见 `library/stills/myth-poses/POSE.md`。
+
 ## 资产锁
 
 - 姿势和表情只锁 `library/cast/body-boards/p01.png`–`p08.png`（八格样张裁图）。
