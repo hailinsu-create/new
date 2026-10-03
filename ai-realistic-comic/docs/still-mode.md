@@ -2,7 +2,7 @@
 
 **Cast lock:** any future Asian woman / Asian man / Western woman / Western man shots must use the four standing actors in `library/cast/CAST.md` (林晚棠 / 顾承安 / 伊莲·沃斯 / 阿德里安·凯恩) so identity does not drift.
 
-破限静帧是另一条本地 Qwen 模式，见 `explicit-still-mode.md`。不要把这类图送进下面的 fal nano-banana 流程。
+破限静帧是另一条本地 Qwen 模式，见 `explicit-still-mode.md`。不要把这类图送进下面的 fal nano-banana 流程。出图后先目检，犯了已知问题的不算完成；没目检过的文件不算收。
 
 **Approved recipe (locked in by the user after review):** `fal-ai/nano-banana-pro/edit` is the default model for stills
 (`FAL_STILL_MODEL`, 2K output at about $0.15 per image, so `COMIC_STILL_BUDGET_USD` defaults to $0.80 and at most

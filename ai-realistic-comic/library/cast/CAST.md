@@ -2,7 +2,7 @@
 
 这一套是唯一的演员资产，不是两套系统。body-boards/p01..p08（八格样张的裁图）锁姿势和身体；演员目录 lin_wantang、gu_chengan、elena_voss、adrian_kane 各自保留今天的定妆 ref.png 和 actor.md（名字、脸、身体、衣柜），作为同一批人的脸和衣柜锁。p01–p04 是林晚棠 + 顾承安，p05–p08 是伊莲·沃斯 + 阿德里安·凯恩。没有第二套演员。
 
-破限静帧（更露、贴得更近，姿势表情不动）走 `docs/explicit-still-mode.md`。蛇身格只有一条铺鳞到钝尖的珍珠白尾巴，不能同时有人腿。
+破限静帧（更露、贴得更近，姿势表情不动）走 `docs/explicit-still-mode.md`。出图后先目检，犯了已知问题的不算完成。蛇身格只有一条铺鳞到圆钝尾尖的珍珠白尾巴，尾尖是鳞尾不是头，不能同时有人腿或人脚，男的脚也不要。只有阿德里安有尖耳；伊莲是人耳，眼睛是琥珀褐不是绿。阿德里安不要武器。
 
 它同时包含三样东西，缺一不可：
 
@@ -15,7 +15,7 @@
 **中文：** 今后镜头里出现的任何亚洲女性都是林晚棠（lin_wantang），任何亚洲男性都是顾承安（gu_chengan），任何西方女性都是伊莲·沃斯（elena_voss），任何西方男性都是阿德里安·凯恩（adrian_kane）。身份不得漂移。
 **English:** Any future Asian woman on camera is 林晚棠 Lin Wantang (lin_wantang); any future Asian man is 顾承安 Gu Cheng'an (gu_chengan); any future Western woman is 伊莲·沃斯 Elena Voss (elena_voss); any future Western man is 阿德里安·凯恩 Adrian Kane (adrian_kane). Identity must not drift.
 
-`library/samples/approved/` 里的五个文件仍然只是剧情样张。Fal crops、`qwen_poselock_*`、`qwen_fishtail_*`、`library_pose_dingzhuang` 都不是这套资产。
+`library/samples/approved/` 里用户最初那五张是唯一的样张。p01–p08 的姿势、表情和蛇尾按它们复刻。身体板是八格样张的裁图，锁姿势和表情；定妆 ref 锁同一批人的脸和衣着。不要拆成两套。Fal crops、`qwen_poselock_*`、`qwen_fishtail_*`、`library_pose_dingzhuang`，以及还没目检通过的静帧，都不是样张。
 
 ## 四位演员 / The four standing actors
 
