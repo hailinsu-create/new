@@ -2,7 +2,7 @@
 
 这是同一套演员上的一种出图模式，不是新演员，也不是第二套身体板。演员锁仍以 `library/cast/CAST.md` 为准。以后同类静帧必须按本文件，不能改走 `docs/still-mode.md` 里的 fal nano-banana 配方。
 
-生成请求只能走本文件和 `autodl/run_explicit8.py`。监督 bot 不得越过工作流，另开一条生成指令。开机仍要用户另行授权。打分和收留线以 `docs/still-score.md` 为准。
+生成请求只能走本文件和 `autodl/run_explicit8.py`。监督 bot（漫监）对这条流程只做管理：监督、纠偏、续指令，卡住才短报。不得绕过工作流自己出图、改提示词或改规则。出图和规则变更都由这条工作流执行。开机仍要用户另行授权。打分和收留线以 `docs/still-score.md` 为准。
 
 新神话姿势锁见 `library/stills/myth-poses/POSE.md`。m01–m04 已出过一版，目检未收，见下文。
 
