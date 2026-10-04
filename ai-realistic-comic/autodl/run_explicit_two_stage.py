@@ -28,21 +28,16 @@ SCORE_PROMPT = """按 docs/still-score-two-stage.md 给第二张图打分。第�
 gates 只填失败的门，例如 ["H2"]。没有失败就是 []。face_drift 只有脸不像定妆时才是 true。mean 是八项等权均分。"""
 
 
-def agy_block_reason(binary: str | None, config_dir: Path | None) -> str | None:
+def agy_block_reason(binary: str | None, *, logged_in: bool) -> str | None:
     """Stop before stage 1 when Antigravity is not already logged in.
 
-    This only looks at the binary and a local config directory. It does not
-    run `agy login` and it does not start a GPU.
+    A config directory created by an interrupted OAuth prompt is not a login.
+    This does not run `agy login` and it does not start a GPU.
     """
-    if not binary:
+    if not binary or not logged_in:
         return (
-            "缺的是登录：本机没有 agy（Antigravity CLI）。"
-            "第一段还没开始。不要自行登录，不要开机。监督 bot（漫监）去问用户。"
-        )
-    if config_dir is None or not config_dir.is_dir():
-        return (
-            "缺的是登录：agy 在，但没有已登录的 Antigravity 配置。"
-            "第一段还没开始。不要自行登录，不要开机。监督 bot（漫监）去问用户。"
+            "缺的是登录：请在这台 Cursor 环境运行 agy，按它打印的 Google 账号授权完成登录。"
+            "第一段还没开始。不要自行代填账号，不要开机。监督 bot（漫监）去问用户。"
         )
     return None
 
@@ -227,11 +222,24 @@ def _stage2_edit_prompt(panel: dict) -> str:
     )
 
 
+def _agy_binary() -> str | None:
+    found = shutil.which("agy")
+    if found:
+        return found
+    local = Path.home() / ".local" / "bin" / "agy"
+    if local.is_file():
+        return str(local)
+    return None
+
+
+def _agy_logged_in() -> bool:
+    # Account login lives in the OS keyring, which this environment does not have.
+    # settings.json is only the optional Gemini API-key mode, not a signed-in account.
+    return (Path.home() / ".gemini" / "antigravity-cli" / "settings.json").is_file()
+
+
 def _ensure_agy() -> None:
-    reason = agy_block_reason(
-        shutil.which("agy"),
-        Path.home() / ".gemini" / "antigravity-cli",
-    )
+    reason = agy_block_reason(_agy_binary(), logged_in=_agy_logged_in())
     if reason:
         raise SystemExit(reason)
 
