@@ -41,7 +41,7 @@
 
 只用 F34 `xaxna66hqt-c5c9c7fc`（西北B）。禁止开 G09 `sa4eaxgcuq-26e36fc9`，禁止新建实例。F34 上若已有出片 worker，本脚本退出，不杀那个进程。开机要用户授权；状态不是 `running` 时脚本不开机。
 
-和出片共用同一套 F34 登录，不另要令牌。出片交出的 `/tmp/f34-asset-reuse.json`（或 `/tmp/f34-asset-reuse.env`）到了本机就直接 SSH。没有这份文件时，才读 `AUTODL_TOKEN` 或 `/tmp/autodl_token_live.txt`。口令不写入仓库。
+和出片共用同一套 F34 登录，不另要令牌。自测是 `python autodl/run_cast_body_two_stage.py --login-check`。口令读 `AUTODL_SSH_PASSWORD`，或本机 `/tmp/cast-ssh.env`。SSH 通了再核对 F34 上的 `/root/autodl-tmp/.cast-ssh.env`。口令不写入仓库。
 
 关机保留数据盘。关机之后立刻读 AutoDL 钱包 `assets`（厘）并写进当轮报告。1000 厘 = ¥1。低于 ¥5 只警报，不充值。
 

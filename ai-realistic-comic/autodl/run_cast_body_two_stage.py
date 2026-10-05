@@ -23,6 +23,8 @@ VISION_MODEL = "opencode-go/deepseek-v4-flash-vision-exp"
 TOKEN_FILE = Path("/tmp/autodl_token_live.txt")
 REUSE_JSON = Path("/tmp/f34-asset-reuse.json")
 REUSE_ENV = Path("/tmp/f34-asset-reuse.env")
+CAST_SSH_ENV = Path("/tmp/cast-ssh.env")
+REMOTE_CAST_SSH = "/root/autodl-tmp/.cast-ssh.env"
 YUAN_PER_LI = 1000
 
 
@@ -36,7 +38,8 @@ def _unquote(value: str) -> str:
     return parts[0] if parts else ""
 
 
-def parse_reuse_env(text: str) -> dict:
+def parse_cast_env(text: str) -> dict:
+    """Read either the film handoff names or the F34 .cast-ssh.env names."""
     env = {}
     for line in text.splitlines():
         line = line.strip()
@@ -44,14 +47,25 @@ def parse_reuse_env(text: str) -> dict:
             continue
         key, value = line.split("=", 1)
         env[key.strip()] = _unquote(value)
+
+    def pick(*keys: str) -> str:
+        for key in keys:
+            if env.get(key):
+                return env[key]
+        return ""
+
     return {
-        "instance_uuid": env.get("F34_INSTANCE_UUID") or tpl.F34_UUID,
-        "ssh_host": env.get("F34_SSH_HOST") or "",
-        "ssh_port": env.get("F34_SSH_PORT") or "",
-        "ssh_user": env.get("F34_SSH_USER") or "root",
-        "ssh_password": env.get("F34_SSH_PASSWORD") or "",
-        "website_token": env.get("F34_WEBSITE_TOKEN") or "",
+        "instance_uuid": pick("F34_INSTANCE_UUID") or tpl.F34_UUID,
+        "ssh_host": pick("AUTODL_SSH_HOST", "F34_SSH_HOST"),
+        "ssh_port": pick("AUTODL_SSH_PORT", "F34_SSH_PORT"),
+        "ssh_user": pick("AUTODL_SSH_USER", "F34_SSH_USER") or "root",
+        "ssh_password": pick("AUTODL_SSH_PASSWORD", "F34_SSH_PASSWORD"),
+        "website_token": pick("AUTODL_WEBSITE_TOKEN", "F34_WEBSITE_TOKEN"),
     }
+
+
+def parse_reuse_env(text: str) -> dict:
+    return parse_cast_env(text)
 
 
 def reuse_config() -> dict:
@@ -59,7 +73,9 @@ def reuse_config() -> dict:
     if REUSE_JSON.is_file():
         data = json.loads(REUSE_JSON.read_text(encoding="utf-8"))
     elif REUSE_ENV.is_file():
-        data = parse_reuse_env(REUSE_ENV.read_text(encoding="utf-8"))
+        data = parse_cast_env(REUSE_ENV.read_text(encoding="utf-8"))
+    elif CAST_SSH_ENV.is_file():
+        data = parse_cast_env(CAST_SSH_ENV.read_text(encoding="utf-8"))
     else:
         return {}
     if data.get("instance_uuid") not in (None, "", tpl.F34_UUID):
@@ -534,11 +550,17 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Cast body template pipeline on F34")
     parser.add_argument("--only", default="lin_wantang:front", help="actor:view comma list")
     parser.add_argument("--doctor", action="store_true", help="Check F34 and balance, do not render")
+    parser.add_argument("--login-check", action="store_true", help="SSH once with the shared password and stop")
     parser.add_argument("--shutdown", action="store_true", help="Power off F34 after the run and print balance")
     args = parser.parse_args()
     item = direct_endpoint()
     token = ""
     if item is None:
+        if args.login_check:
+            raise SystemExit(
+                "共享口令还没到本机。自测只读 AUTODL_SSH_PASSWORD，或本机 /tmp/cast-ssh.env。"
+                "F34 上的 /root/autodl-tmp/.cast-ssh.env 要等这条 SSH 通了再读。不要另要令牌。"
+            )
         token = load_token()
         item = f34_instance(token)
     print(
@@ -556,6 +578,15 @@ def main() -> None:
             print(balance_line(wallet_assets_li(token)), flush=True)
         else:
             print("autodl_balance_li unread no_token", flush=True)
+        return
+    if args.login_check:
+        client = connect(item)
+        try:
+            mode = ssh_exec(client, f"stat -c '%a %U %s' {REMOTE_CAST_SSH}").strip()
+            print(f"cast_ssh_env {mode}", flush=True)
+            print("资产登录已通", flush=True)
+        finally:
+            client.close()
         return
     client = connect(item)
     try:

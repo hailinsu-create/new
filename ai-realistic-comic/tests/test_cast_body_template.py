@@ -130,6 +130,21 @@ def test_reuse_env_parses_film_handoff():
     assert cfg["ssh_port"] == "35239"
     assert cfg["ssh_password"] == "abc def"
     assert cfg["website_token"] == "eyJreuse"
+    remote = runner.parse_cast_env(
+        "\n".join(
+            [
+                "AUTODL_SSH_HOST=connect.weste.seetacloud.com",
+                "AUTODL_SSH_PORT=35239",
+                "AUTODL_SSH_USER=root",
+                "AUTODL_SSH_PASSWORD=from-f34",
+            ]
+        )
+    )
+    assert remote["ssh_host"] == "connect.weste.seetacloud.com"
+    assert remote["ssh_password"] == "from-f34"
+    assert "--login-check" in (
+        Path(__file__).resolve().parents[1] / "autodl" / "run_cast_body_two_stage.py"
+    ).read_text(encoding="utf-8")
 
 
 def test_gpu_block_is_per_line():
