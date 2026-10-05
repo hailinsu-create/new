@@ -185,7 +185,7 @@ def connect(item: dict):
         raise SystemExit("只连接 F34")
     if item.get("status") != "running":
         raise SystemExit(
-            f"F34 状态是 {item.get('status')}。开机要用户授权。这条流水线不开机。"
+            f"F34 状态是 {item.get('status')}。未在跑，不连接。去衣才开机，穿衣和打分不开机。"
         )
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -253,19 +253,20 @@ def gpu_block_reason(text: str) -> str | None:
 
 
 def score_image(image: Path, actor: str, view: str, stage: str) -> dict:
-    """Codex CLI scores. The rubric stays in the Codex entry. No second scorer."""
+    """Codex CLI scores with the fixed SCORE_PREFIX. No second scorer."""
     makeup = ROOT / "library" / "cast" / actor / "ref.png"
     if not makeup.is_file():
         raise SystemExit(f"missing makeup ref {makeup}")
-    entry = ROOT / tpl.CODEX_SCORE_ENTRY
-    if not entry.is_file():
-        raise SystemExit(tpl.CODEX_SCORE_ENTRY_MISSING)
     binary = codex_binary()
-    binary = tpl.require_codex_cli(binary, logged_in=bool(binary) and codex_logged_in(binary))
-    cmd = tpl.codex_exec_argv(binary, str(image.parent), [str(makeup), str(image)])
+    logged = bool(binary) and codex_logged_in(binary)
+    images = [str(makeup), str(image)]
+    cmd = tpl.score_exec_argv(binary, logged_in=logged, cwd=str(image.parent), images=images)
+    prompt = tpl.score_call(actor, view, stage, images)
+    if not prompt.startswith(tpl.SCORE_PREFIX):
+        raise SystemExit("SCORE_PREFIX_DRIFT 打分前缀被改写。禁止换路。")
     result = subprocess.run(
         cmd,
-        input=tpl.score_call(actor, view, stage),
+        input=prompt,
         capture_output=True,
         text=True,
         timeout=900,
@@ -859,12 +860,81 @@ def parse_only(raw: str) -> list[tuple[str, str]]:
     return out
 
 
+def post_f34(token: str, action: str) -> dict:
+    """power_on or power_off for F34 only. Keep the data disk. Never touch G09."""
+    import httpx
+
+    if action not in ("power_on", "power_off"):
+        raise SystemExit("F34 只允许 power_on 或 power_off。不释放数据盘，不新建实例。")
+    response = httpx.post(
+        f"https://www.autodl.com/api/v1/instance/{action}",
+        headers={"Authorization": token, "Content-Type": "application/json"},
+        json={"instance_uuid": tpl.F34_UUID},
+        timeout=60,
+    )
+    try:
+        body = response.json()
+    except ValueError as exc:
+        raise SystemExit(f"F34 {action} 非 JSON HTTP {response.status_code}") from exc
+    if not isinstance(body, dict):
+        raise SystemExit(f"F34 {action} 响应不是对象")
+    return body
+
+
+def f34_power_for_work(token: str, status: str, *, has_work: bool, hold_off: bool) -> str:
+    """Boot F34 only for a real undress batch. hold_off means the user said 先别开."""
+    if not tpl.f34_should_power_on(has_work=has_work, hold_off=hold_off):
+        print("F34_HOLD 不开机", flush=True)
+        return "hold"
+    if status == "running":
+        print("F34_ALREADY_ON", flush=True)
+        return "running"
+    if not token:
+        raise SystemExit("F34 有去衣任务要开机，但没有令牌。不开 G09，不新建实例。")
+    body = post_f34(token, "power_on")
+    print(
+        f"F34_POWER_ON {tpl.F34_UUID} code={body.get('code')} msg={body.get('msg')}",
+        flush=True,
+    )
+    return "on"
+
+
+def wait_f34_running(token: str, timeout_s: int = 600) -> dict:
+    """Poll only after this batch powered F34 on. Give up and let the hook shut it down."""
+    deadline = time.time() + timeout_s
+    last = None
+    while time.time() < deadline:
+        last = f34_instance(token)
+        if last.get("status") == "running":
+            return last
+        time.sleep(15)
+    status = None if last is None else last.get("status")
+    raise SystemExit(f"F34 开机后状态仍是 {status}。关机留盘，不空转。")
+
+
+def f34_shutdown_hook(token: str, *, finished: bool, paused: bool, keep_on: bool) -> str:
+    """Power off and keep the disk when the batch finishes or pauses."""
+    if not tpl.f34_should_power_off(finished=finished, paused=paused, keep_on=keep_on):
+        print("F34_KEEP_ON 用户当次说别关", flush=True)
+        return "keep"
+    if not token:
+        raise SystemExit("F34 要关机留盘，但没有令牌。禁止空转。")
+    body = post_f34(token, "power_off")
+    print(
+        f"F34_POWER_OFF {tpl.F34_UUID} 关机留盘 code={body.get('code')} msg={body.get('msg')}",
+        flush=True,
+    )
+    return "off"
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Cast body template pipeline on F34")
     parser.add_argument("--only", default="lin_wantang:front", help="actor:view comma list")
     parser.add_argument("--doctor", action="store_true", help="Check F34 and balance, do not render")
     parser.add_argument("--login-check", action="store_true", help="SSH once with the shared password and stop")
     parser.add_argument("--shutdown", action="store_true", help="Power off F34 after the run and print balance")
+    parser.add_argument("--keep-on", action="store_true", help="用户当次明确说别关")
+    parser.add_argument("--hold-off", action="store_true", help="用户当次明确说先别开")
     args = parser.parse_args()
     if os.environ.get("CAST_ASK_FILM_PROXY") or tpl.film_proxy_allowed():
         raise SystemExit(tpl.self_run_line())
@@ -879,54 +949,80 @@ def main() -> None:
             )
         token = load_token()
         item = f34_instance(token)
+    if not token:
+        try:
+            token = load_token()
+        except SystemExit:
+            token = ""
+    if token:
+        item = f34_instance(token)
     print(
         f"f34 status={item.get('status')} port={item.get('ssh_port')} host={item.get('proxy_host')}",
         flush=True,
     )
-    if args.doctor:
-        if item.get("status") == "running":
+    print(tpl.F34_POWER_RULE, flush=True)
+    used_f34 = False
+    paused = Path(tpl.STOP_LOCAL).is_file()
+    try:
+        if args.doctor:
+            if item.get("status") == "running":
+                used_f34 = True
+                client = connect(item)
+                try:
+                    print(ssh_exec(client, "nvidia-smi --query-gpu=memory.used,utilization.gpu --format=csv,noheader; ps -eo args | awk '/python/ && !/awk/ {print}'"), flush=True)
+                finally:
+                    client.close()
+            if token:
+                print(balance_line(wallet_assets_li(token)), flush=True)
+            else:
+                print("autodl_balance_li unread no_token", flush=True)
+            return
+        if args.login_check:
+            if item.get("status") == "running":
+                used_f34 = True
             client = connect(item)
             try:
-                print(ssh_exec(client, "nvidia-smi --query-gpu=memory.used,utilization.gpu --format=csv,noheader; ps -eo args | awk '/python/ && !/awk/ {print}'"), flush=True)
+                mode = ssh_exec(client, f"stat -c '%a %U %s' {REMOTE_CAST_SSH}").strip()
+                print(f"cast_ssh_env {mode}", flush=True)
+                print("资产登录已通", flush=True)
+                print(tpl.self_run_line(), flush=True)
             finally:
                 client.close()
-        if token:
-            print(balance_line(wallet_assets_li(token)), flush=True)
-        else:
-            print("autodl_balance_li unread no_token", flush=True)
-        return
-    if args.login_check:
+            return
+        boot = f34_power_for_work(
+            token,
+            str(item.get("status") or ""),
+            has_work=True,
+            hold_off=args.hold_off,
+        )
+        if boot == "hold":
+            print("F34_HOLD_OFF 先别开。不去衣，不开机。", flush=True)
+            return
+        used_f34 = True
+        if boot == "on":
+            item = wait_f34_running(token)
+        print(tpl.self_run_line(), flush=True)
         client = connect(item)
         try:
-            mode = ssh_exec(client, f"stat -c '%a %U %s' {REMOTE_CAST_SSH}").strip()
-            print(f"cast_ssh_env {mode}", flush=True)
-            print("资产登录已通", flush=True)
-            print(tpl.self_run_line(), flush=True)
+            ensure_worker(client)
+            print("NODE 工作流做好 女锁脸=2026-10-06-front 男演员不动 出片不代跑", flush=True)
+            remote = Remote(client)
+            for actor, view in parse_only(args.only):
+                if user_stop_requested(client):
+                    paused = True
+                    raise SystemExit(f"{actor} {view} 用户叫停。关机留盘，不去衣。")
+                run_view(client, remote, actor, view)
         finally:
             client.close()
-        return
-    print(tpl.self_run_line(), flush=True)
-    client = connect(item)
-    try:
-        ensure_worker(client)
-        print("NODE 工作流做好 女锁脸=2026-10-06-front 男演员不动 出片不代跑", flush=True)
-        remote = Remote(client)
-        for actor, view in parse_only(args.only):
-            run_view(client, remote, actor, view)
     finally:
-        client.close()
-    if args.shutdown:
-        if not token:
-            raise SystemExit("关机需要 AUTODL_TOKEN。没有令牌就不要关机。")
-        import httpx
-
-        httpx.post(
-            "https://www.autodl.com/api/v1/instance/power_off",
-            headers={"Authorization": token, "Content-Type": "application/json"},
-            json={"instance_uuid": tpl.F34_UUID},
-            timeout=60,
-        )
-        print(balance_line(wallet_assets_li(token)), flush=True)
+        paused = paused or Path(tpl.STOP_LOCAL).is_file()
+        if used_f34 or args.shutdown:
+            f34_shutdown_hook(
+                token,
+                finished=not paused,
+                paused=paused,
+                keep_on=args.keep_on and not args.shutdown,
+            )
 
 
 if __name__ == "__main__":

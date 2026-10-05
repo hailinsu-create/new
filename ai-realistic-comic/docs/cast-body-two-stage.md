@@ -15,7 +15,11 @@
 
 去衣只用 F34。穿衣过门之前禁止开机去衣。
 
-打分只走 Codex CLI。门禁文案、八项定义和硬门规则只维护在 `docs/codex-cast-score.md`，由 Codex CLI 执行。脚本把定妆 `ref.png` 和待打分图用两个 `-i` 送入，标准输入只点名这份入口、演员、视图和阶段。脚本不自写替代标准，不调用 OpenCode vision。没有 `codex` 打印 `CODEX_CLI_MISSING` 并退出。未登录打印 `CODEX_CLI_LOGGED_OUT` 并退出。入口文件缺失打印 `CODEX_SCORE_ENTRY_MISSING` 并退出。
+打分 = Codex CLI + 固定标准前缀 `SCORE_PREFIX`（`autodl/cast_body_template.py`）。前缀含八项、硬门和 JSON schema，同一次运行里字节不变。`score_call` 只在末尾追加定妆路径、待打分图路径和一句任务。没有 `codex` 或未登录就 `SystemExit`，禁止改走 OpenCode vision。
+
+## F34 开关机
+
+F34 干活才开机。当前批次做完或暂停，`f34_shutdown_hook` 立刻 `power_off` 关机留盘，不释放实例。禁止空转，禁止为等下一步挂着机。用户当次说别关用 `--keep-on`，说先别开用 `--hold-off`。穿衣和打分不开机。不开 G09，不新建实例。
 
 ## 九张去衣模板
 
@@ -85,7 +89,7 @@
 
 ## 机器
 
-只用 F34 `xaxna66hqt-c5c9c7fc`（西北B）。禁止开 G09 `sa4eaxgcuq-26e36fc9`，禁止新建实例。F34 上若已有出片 worker，本脚本退出，不杀那个进程。开机要用户授权；状态不是 `running` 时脚本不开机。
+只用 F34 `xaxna66hqt-c5c9c7fc`（西北B）。禁止开 G09 `sa4eaxgcuq-26e36fc9`，禁止新建实例。F34 上若已有出片 worker，本脚本退出，不杀那个进程。干活才开机；批次做完或暂停立刻关机留盘。用户当次说别关或先别开才例外。
 
 和出片共用同一套 F34 登录，不另要令牌。自测是 `python autodl/run_cast_body_two_stage.py --login-check`。口令读 `AUTODL_SSH_PASSWORD`，或本机 `/tmp/cast-ssh.env`，或两边都能挂到的 `/cursor/stores/user/cast-ssh.env`。出片机的 `/tmp/cast-ssh.env` 资产机读不到。环境变量里的旧口令会挡住文件，先取消再读。SSH 通了再核对 F34 上的 `/root/autodl-tmp/.cast-ssh.env`。口令不写入仓库。
 

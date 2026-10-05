@@ -140,9 +140,10 @@ CODEX_LOGGED_OUT = (
     "codex login status 未登录。禁止改走其他图像入口，禁止锁脸直出，禁止用 F34 画穿衣底板。"
 )
 CODEX_SCORE_ENTRY = "docs/codex-cast-score.md"
-CODEX_SCORE_ENTRY_MISSING = (
-    "CODEX_SCORE_ENTRY_MISSING 打分标准只在 Codex CLI 入口。"
-    "docs/codex-cast-score.md 不在。禁止改走 OpenCode vision，禁止在脚本里另写一套八项或硬门。"
+F34_POWER_RULE = (
+    "F34 干活才开机。当前批次做完或暂停就立刻关机留盘。"
+    "禁止空转，禁止为等下一步挂着机。"
+    "除非用户当次明确说别关或先别开。"
 )
 
 
@@ -538,17 +539,88 @@ def accept_pass2(item: dict, actor: str, view: str, scale: float, seed: int) -> 
     return mean >= KEEP_MEAN
 
 
-def score_call(actor: str, view: str, stage: str) -> str:
-    """Pointer only. Gate text, the eight definitions, and hard rules stay in the Codex entry."""
+# Byte-stable scoring prefix. Do not format this per image.
+SCORE_PREFIX = (
+    "不要生成图像。不要改文件。不要改写本标准。第一张图是定妆锁脸。只给最后一张图打分。"
+    "这是一张成年身体模板，不是情节，也不是两个人。全身，头和双脚都在画面内，纯色背景，仅限成年人。\n"
+    "Eight equal scores from 0 to 10: identity, distinction, interaction, aesthetics, anatomy, wardrobe, motif, photoreal. "
+    "interaction means the pose is a stable turnaround, not a story pose. "
+    "mean is their equal average. gates is [] or H6 for a minor look, H4 for Elena's ears or green eyes or glasses or Adrian missing ears or holding a weapon, "
+    "H7 for malformed limbs, FEET if a foot is cut off.\n"
+    "只输出一个 JSON 对象：\n"
+    '{"gates":[],"period_hair":false,"period_makeup":false,"eyes_black_brown":false,'
+    '"identity":0,"distinction":0,"interaction":0,"aesthetics":0,"anatomy":0,"wardrobe":0,'
+    '"motif":0,"photoreal":0,"mean":0,"note":"一句"}\n'
+    "林晚棠、顾承安：Nude template for Lin or Gu. Identity is facial features, face shape, skin tone, and body type. "
+    "Costume hair and makeup must be gone: no hair bun, no hairpins, no forehead ornament, "
+    "no heavy eye makeup, no crimson lips. Hair is natural black-brown. Makeup is light or bare. "
+    "Eyes are normal black-brown. Do not deduct identity for that change. "
+    "Do deduct, and set period_hair or period_makeup true, if the bun, ornaments, heavy makeup, or red lips remain. "
+    "Set eyes_black_brown true only when the irises read black-brown. "
+    "Back view: do not fail identity because the face is hidden. Eyes may be unseen.\n"
+    "伊莲·沃斯：Keep Elena's soft brown wavy hair loosely pulled back, clear blue-grey eyes, and human ears. "
+    "No glasses. Do not give her pointed ears, green eyes, auburn hair, or amber eyes. "
+    "period_hair and period_makeup stay false. eyes_black_brown stays false because her eyes are blue-grey.\n"
+    "阿德里安·凯恩：Keep Adrian's dark hair, pale blue-grey eyes, and pointed ears. No weapon. "
+    "period_hair and period_makeup stay false. eyes_black_brown stays false.\n"
+    "阶段 clothed：This is a clothed full-body plate, not a nude. "
+    "The first image is the new frontal lock. Identity below 9 means the result face does not match that lock. "
+    "Do not accept the retired gold eyes, crimson lips, period bun, auburn hair, or amber eyes. "
+    "Wardrobe below 9 means the named everyday clothes are missing, or a period costume replaced them. "
+    "Nudity is a wardrobe failure on this stage. "
+    "The plate must clear every content score. Resolution is the only exemption.\n"
+    "阶段 pass1：Pass 1 may change only clothes, hair, and makeup on the clothed plate. "
+    "The makeup reference is the current lock face. "
+    "Identity below 9 means the face was redrawn: face shape, features, or skin tone moved. "
+    "Do not mark identity below 9 because the instructed hair or makeup changed. "
+    "Wardrobe below 9 means cloth remains on the chest, abdomen, hips, or legs. "
+    "Do not trade a locked face for leftover clothes. "
+    "Pass 1 must clear every content score. Resolution is the only exemption: "
+    "do not add a penalty, and do not waive a content score, only because the frame is small. "
+    "Pixel count is pass 2. Wrong face, pose, anatomy, wardrobe, likeness, or motif still scores below 9. "
+    "Nude pass requires every garment gone. If cloth remains on the chest, abdomen, hips, or legs, wardrobe is below 8.\n"
+    "阶段 pass2：Pass 2 is a same-seed light upscale. Content must stay the pass-1 plate. "
+    "Lower a score when the upscale changes the face, hair, makeup, pose, body, or anatomy. "
+    "Nude pass requires every garment gone. If cloth remains on the chest, abdomen, hips, or legs, wardrobe is below 8.\n"
+)
+
+
+def score_call(actor: str, view: str, stage: str, images: list[str]) -> str:
+    """Fixed prefix plus a short tail. The tail is the only text that changes per plate."""
     if stage not in ("clothed", "pass1", "pass2"):
         raise KeyError(stage)
     if view not in ("front", "side", "back"):
         raise KeyError(view)
-    return (
-        "按 Codex 打分入口给第二张图打分。"
-        f"入口文件是 {CODEX_SCORE_ENTRY}。门禁文案、八项定义和硬门只以该文件为准。"
-        "不要生成图像。不要改文件。不要在回复里重写或替换那份标准。"
-        f"Actor id: {actor}. View: {view}. Stage: {stage}. "
-        "第一张图是定妆锁脸。只给第二张打分。"
-        "只输出入口文件规定的那一个 JSON 对象。"
+    if len(images) != 2:
+        raise ValueError("score_call expects the lock image and the plate")
+    tail = (
+        f"Actor id: {actor}. View: {view}. Stage: {stage}.\n"
+        f"{images[0]}\n{images[1]}\n"
+        "只给最后一张打分。\n"
     )
+    return SCORE_PREFIX + tail
+
+
+def score_exec_argv(binary: str | None, *, logged_in: bool, cwd: str, images: list[str]) -> list[str]:
+    """Codex CLI only. A missing login raises before any other vision command exists."""
+    binary = require_codex_cli(binary, logged_in=logged_in)
+    argv = codex_exec_argv(binary, cwd, images)
+    joined = " ".join(argv).lower()
+    for banned in ("opencode", "deepseek-v4-flash-vision", "agy"):
+        if banned in joined:
+            raise SystemExit(f"CODEX_SCORE_FORBIDDEN {banned}")
+    return argv
+
+
+def f34_should_power_on(*, has_work: bool, hold_off: bool) -> bool:
+    """True only when this batch has F34 work and the user did not say 先别开."""
+    if hold_off or not has_work:
+        return False
+    return True
+
+
+def f34_should_power_off(*, finished: bool, paused: bool, keep_on: bool) -> bool:
+    """True when the batch finished or paused, unless the user said 别关 this time."""
+    if keep_on:
+        return False
+    return bool(finished or paused)

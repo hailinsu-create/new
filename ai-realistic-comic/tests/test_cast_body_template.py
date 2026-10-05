@@ -129,16 +129,16 @@ def test_prompts_only_change_look_and_clothes():
     assert "尖耳" in adrian
     assert "黑褐色" not in adrian
     assert "浅蓝灰" in adrian
-    entry = (
-        Path(__file__).resolve().parents[1] / "docs" / "codex-cast-score.md"
-    ).read_text(encoding="utf-8")
-    assert "face was redrawn" in entry
-    assert "instructed hair or makeup" in entry
-    assert "every content score" in entry
-    call = mod.score_call("lin_wantang", "front", "pass1")
-    assert call.count(mod.CODEX_SCORE_ENTRY) == 1
-    assert "face was redrawn" not in call
-    assert "every content score" not in call
+    images = ["/tmp/lock.png", "/tmp/plate.png"]
+    call = mod.score_call("lin_wantang", "front", "pass1", images)
+    assert call.startswith(mod.SCORE_PREFIX)
+    tail = call[len(mod.SCORE_PREFIX) :]
+    assert "face was redrawn" in mod.SCORE_PREFIX
+    assert "instructed hair or makeup" in mod.SCORE_PREFIX
+    assert "every content score" in mod.SCORE_PREFIX
+    assert "face was redrawn" not in tail
+    assert "every content score" not in tail
+    assert "/tmp/plate.png" in tail
     assert "opencode" not in call.lower()
     elena = mod.look_line("elena_voss")
     assert "蓝灰" in elena
@@ -173,19 +173,43 @@ def test_prompts_only_change_look_and_clothes():
     joined = " ".join(argv).lower()
     assert "agy" not in joined
     assert mod.clothed_seed_for("lin_wantang", "front", 0) == 1
-    assert "not a nude" in entry
-    assert "Nudity is a wardrobe failure" in entry
-    clothed_call = mod.score_call("lin_wantang", "front", "clothed")
-    assert "not a nude" not in clothed_call
-    assert "Nudity is a wardrobe failure" not in clothed_call
+    assert "not a nude" in mod.SCORE_PREFIX
+    assert "Nudity is a wardrobe failure" in mod.SCORE_PREFIX
+    clothed_call = mod.score_call("lin_wantang", "front", "clothed", images)
+    clothed_tail = clothed_call[len(mod.SCORE_PREFIX) :]
+    assert clothed_call.startswith(mod.SCORE_PREFIX)
+    assert clothed_call[: len(mod.SCORE_PREFIX)] == call[: len(mod.SCORE_PREFIX)]
+    assert "not a nude" not in clothed_tail
+    assert "Nudity is a wardrobe failure" not in clothed_tail
     up = mod.pass2_prompt("lin_wantang")
     assert up == "只放大。不改脸、身体、衣着、发型、妆。头和双脚仍留在画面内。"
     assert "补上" not in up
-    assert "light upscale" in entry
-    pass2_call = mod.score_call("lin_wantang", "front", "pass2")
-    assert "light upscale" not in pass2_call
-    assert "CODEX_SCORE_ENTRY_MISSING" in mod.CODEX_SCORE_ENTRY_MISSING
-    assert "OpenCode" in mod.CODEX_SCORE_ENTRY_MISSING
+    assert "light upscale" in mod.SCORE_PREFIX
+    pass2_call = mod.score_call("elena_voss", "back", "pass2", ["/tmp/elena-lock.png", "/tmp/elena-plate.png"])
+    assert pass2_call.startswith(mod.SCORE_PREFIX)
+    assert "light upscale" not in pass2_call[len(mod.SCORE_PREFIX) :]
+    assert pass2_call[: len(mod.SCORE_PREFIX)] == mod.SCORE_PREFIX
+    try:
+        mod.score_exec_argv("/home/ubuntu/.local/bin/codex", logged_in=False, cwd="/tmp", images=images)
+    except SystemExit as exc:
+        assert "CODEX_CLI_LOGGED_OUT" in str(exc)
+    else:
+        raise AssertionError("logged-out score path must SystemExit")
+    score_argv = mod.score_exec_argv("/home/ubuntu/.local/bin/codex", logged_in=True, cwd="/tmp", images=images)
+    score_joined = " ".join(score_argv).lower()
+    assert "opencode" not in score_joined
+    assert "deepseek-v4-flash-vision" not in score_joined
+    assert "agy" not in score_joined
+    assert score_argv.count("-i") == 2
+    assert mod.f34_should_power_on(has_work=True, hold_off=False) is True
+    assert mod.f34_should_power_on(has_work=False, hold_off=False) is False
+    assert mod.f34_should_power_on(has_work=True, hold_off=True) is False
+    assert mod.f34_should_power_off(finished=True, paused=False, keep_on=False) is True
+    assert mod.f34_should_power_off(finished=False, paused=True, keep_on=False) is True
+    assert mod.f34_should_power_off(finished=True, paused=False, keep_on=True) is False
+    assert mod.f34_should_power_off(finished=False, paused=False, keep_on=False) is False
+    assert "关机留盘" in mod.F34_POWER_RULE
+    assert "空转" in mod.F34_POWER_RULE
 
 
 def test_film_proxy_closes_after_the_one_run():
@@ -472,7 +496,8 @@ def test_runner_does_not_edit_explicit_still_files():
     assert "run_explicit_two_stage" not in text
     assert "explicit-still-two-stage" not in text
     assert "sa4eaxgcuq" not in text or "G09" in text
-    assert "power_on" not in text
+    assert "power_on" in text
+    assert "F34_UUID" in text or "tpl.F34_UUID" in text
     assert "body-clothed" in text
     assert "不拿定妆全身" in text
     assert "CLOTHED_TRY" in text
@@ -482,15 +507,23 @@ def test_runner_does_not_edit_explicit_still_files():
     assert "opencode" not in text.lower()
     assert "deepseek-v4-flash-vision" not in text
     assert "score_call" in text
-    assert "CODEX_SCORE_ENTRY_MISSING" in text
+    assert "score_exec_argv" in text
+    assert "SCORE_PREFIX" in text
+    assert "f34_shutdown_hook" in text
+    assert "f34_power_for_work" in text
+    assert "power_off" in text
+    assert "--keep-on" in text
+    assert "--hold-off" in text
+    assert "release" not in text.lower()
     assert "score_prompt" not in text
     template = (
         Path(__file__).resolve().parents[1] / "autodl" / "cast_body_template.py"
     ).read_text(encoding="utf-8")
+    assert "SCORE_PREFIX" in template
     assert "score_call" in template
     assert "score_prompt" not in template
-    assert "face was redrawn" not in template
-    assert "Eight equal scores" not in template
+    assert "face was redrawn" in template
+    assert "Eight equal scores" in template
     worker = (
         Path(__file__).resolve().parents[1] / "autodl" / "cast_body_worker.py"
     ).read_text(encoding="utf-8")
@@ -506,13 +539,18 @@ def test_runner_does_not_edit_explicit_still_files():
         assert "agy" not in page.lower(), name
         assert "Codex CLI" in page
     score_entry = (docs / "codex-cast-score.md").read_text(encoding="utf-8")
+    cast_doc = (docs / "cast-body-two-stage.md").read_text(encoding="utf-8")
     assert "Codex CLI" in score_entry
-    assert "codex-cast-score.md" in (docs / "cast-body-two-stage.md").read_text(encoding="utf-8")
-    assert "OpenCode vision" in score_entry
-    assert "禁止" in (docs / "cast-body-two-stage.md").read_text(encoding="utf-8")
+    assert "SCORE_PREFIX" in score_entry
+    assert "固定标准前缀" in cast_doc
+    assert "关机留盘" in cast_doc
+    assert "空转" in cast_doc
+    template_text = (
+        Path(__file__).resolve().parents[1] / "autodl" / "cast_body_template.py"
+    ).read_text(encoding="utf-8")
     for banned in ("face was redrawn", "Nudity is a wardrobe failure", "light upscale"):
         assert banned not in text
-        assert banned in score_entry
+        assert banned in template_text
     assert "2026-10-06-front" in text
     assert "donor_remote" in text
     assert "/root/miniconda3/bin/python" in text
