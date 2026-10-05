@@ -266,6 +266,10 @@ def test_gpu_block_is_per_line():
     assert "出片" in runner.gpu_block_reason(film)
     ours = "python -u /root/autodl-tmp/cast-asset/worker.py\n"
     assert runner.gpu_block_reason(ours) is None
+    ours_gpu = "9231, python, 21892 MiB\n9231 python -u /root/autodl-tmp/cast-asset/worker.py\n"
+    assert runner.gpu_block_reason(ours_gpu) is None
+    other = "9231, python, 21892 MiB\n9231 python /tmp/other.py\n"
+    assert runner.gpu_block_reason(other) is not None
 
 
 def test_runner_does_not_edit_explicit_still_files():

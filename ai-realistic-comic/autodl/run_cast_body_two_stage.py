@@ -215,20 +215,39 @@ def ssh_exec(client, command: str, timeout: int = 60) -> str:
     return out
 
 
+def _line_pid(line: str) -> str:
+    token = line.strip().split(",", 1)[0].split()
+    if token and token[0].isdigit():
+        return token[0]
+    return ""
+
+
 def gpu_block_reason(text: str) -> str | None:
     """Refuse to start when a non-cast worker already holds the GPU.
 
     Judge each line. A memory reading and an unrelated python process must
-    not combine into a false busy signal.
+    not combine into a false busy signal. nvidia-smi names the cast worker
+    only as python, so a MiB line is ours when that pid is cast-asset/worker.py.
     """
+    our_pids: set[str] = set()
+    gpu_python_pids: set[str] = set()
     for line in text.splitlines():
         lowered = line.lower()
-        if "cast_body_worker" in lowered or "cast-asset/worker.py" in lowered:
-            continue
         if "run_explicit" in lowered or "f34_lora_worker" in lowered:
             return "F34 上还有出片 worker。资产流水线不抢同一张卡。"
+        if "cast_body_worker" in lowered or "cast-asset/worker.py" in lowered:
+            pid = _line_pid(line)
+            if pid:
+                our_pids.add(pid)
+            continue
         if "mib" in lowered and "python" in lowered:
-            return "F34 GPU 上已有别的 python。资产流水线不抢同一张卡。"
+            pid = _line_pid(line)
+            if pid:
+                gpu_python_pids.add(pid)
+            else:
+                return "F34 GPU 上已有别的 python。资产流水线不抢同一张卡。"
+    if gpu_python_pids - our_pids:
+        return "F34 GPU 上已有别的 python。资产流水线不抢同一张卡。"
     return None
 
 
@@ -321,7 +340,7 @@ def ensure_worker(client) -> None:
     probe = ssh_exec(
         client,
         "nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv,noheader; "
-        "ps -eo args | awk '/python/ && !/awk/ {print}'",
+        "ps -eo pid,args | awk '/python/ && !/awk/ {print}'",
         timeout=40,
     )
     reason = gpu_block_reason(probe)
