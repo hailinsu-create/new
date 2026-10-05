@@ -325,13 +325,16 @@ def score_image(image: Path, actor: str, view: str, stage: str) -> dict:
     codex_detail = ""
     if binary and logged:
         cmd = tpl.score_exec_argv(binary, logged_in=True, cwd=str(image.parent), images=images)
-        result = subprocess.run(
-            cmd,
-            input=prompt,
-            capture_output=True,
-            text=True,
-            timeout=900,
-        )
+        try:
+            result = subprocess.run(
+                cmd,
+                input=prompt,
+                capture_output=True,
+                text=True,
+                timeout=900,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise SystemExit(f"SCORE_FAILED codex timeout {actor} {view} {stage}") from exc
         codex_detail = (result.stderr or result.stdout or "").strip()
         parsed = None
         if result.returncode == 0:
@@ -355,12 +358,15 @@ def score_image(image: Path, actor: str, view: str, stage: str) -> dict:
     Path("/tmp/cast-score").mkdir(parents=True, exist_ok=True)
     grok_cmd = tpl.grok_score_argv(fallback, images, prompt)
     print(f"SCORER_FALLBACK {tpl.GROK_SCORER}", flush=True)
-    grok = subprocess.run(
-        grok_cmd,
-        capture_output=True,
-        text=True,
-        timeout=900,
-    )
+    try:
+        grok = subprocess.run(
+            grok_cmd,
+            capture_output=True,
+            text=True,
+            timeout=900,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise SystemExit(f"SCORE_FAILED grok timeout {actor} {view} {stage}") from exc
     grok_text = f"{grok.stdout or ''}\n{texts_from_opencode(grok.stdout or '')}\n{grok.stderr or ''}"
     if grok.returncode != 0:
         detail = (grok.stderr or grok.stdout or "grok score missing").strip()
@@ -1219,6 +1225,12 @@ def run_until_pass2(client, remote: Remote, actor: str, view: str, steps: int, d
             text = str(exc)
             if "二采未过门" in text:
                 print(f"PASS2_RESPIN {actor} {view} seed={seed} {text[-160:]}", flush=True)
+                continue
+            if "SCORE_FAILED" in text:
+                print(
+                    f"SCORE_DEFERRED {actor} {view} seed={seed} 图已留下，打分失败不中断。{text[-160:]}",
+                    flush=True,
+                )
                 continue
             raise
         if isinstance(row, dict) and row.get("pass2"):

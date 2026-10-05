@@ -61,8 +61,8 @@ def test_nine_views_and_fixed_scale():
     assert 62 in mod.LIN_FRONT_SPENT and 78 in mod.LIN_FRONT_SPENT
     assert 83 in mod.LIN_FRONT_SPENT
     assert 84 in mod.LIN_FRONT_SPENT and 85 in mod.LIN_FRONT_SPENT
-    assert 91 in mod.LIN_FRONT_SPENT
-    assert 92 not in mod.LIN_FRONT_SPENT
+    assert 98 in mod.LIN_FRONT_SPENT
+    assert 99 not in mod.LIN_FRONT_SPENT
     assert mod.qwen_vae_frame(448, 592) == (448, 576)
     assert mod.PASS1_SIZE == (448, 592)
     assert mod.PASS1_STEPS == 8
@@ -79,7 +79,7 @@ def test_nine_views_and_fixed_scale():
 def test_void_seed_33_never_passes():
     mod = _load()
     assert mod.is_void("lin_wantang", "front", 0.85, 33)
-    assert mod.seed_for("lin_wantang", "front", 0) == 92
+    assert mod.seed_for("lin_wantang", "front", 0) == 99
     assert mod.LIN_FRONT_A_CHECK == (62, 70, 78)
     assert mod.B_PASS1_STEPS == 16
     score = _pass1_score()
@@ -376,13 +376,13 @@ def test_low_identity_or_anatomy_changes_seed_and_blocks_pass2():
     assert mod.identity_anatomy_or_wardrobe_below(_pass1_score(anatomy=8))
     assert mod.identity_anatomy_or_wardrobe_below(_pass1_score(wardrobe=2))
     assert not mod.identity_anatomy_or_wardrobe_below(_pass1_score())
-    assert mod.seed_for("lin_wantang", "front", 0) == 92
-    assert mod.seed_for("lin_wantang", "front", 1) == 92
-    assert mod.seed_for("lin_wantang", "front", 2) == 92
-    assert mod.advance_seed(33, "lin_wantang", "front") == 92
-    assert mod.advance_seed(62, "lin_wantang", "front") == 92
-    assert mod.advance_seed(83, "lin_wantang", "front") == 92
-    assert mod.advance_seed(91, "lin_wantang", "front") == 92
+    assert mod.seed_for("lin_wantang", "front", 0) == 99
+    assert mod.seed_for("lin_wantang", "front", 1) == 99
+    assert mod.seed_for("lin_wantang", "front", 2) == 99
+    assert mod.advance_seed(33, "lin_wantang", "front") == 99
+    assert mod.advance_seed(62, "lin_wantang", "front") == 99
+    assert mod.advance_seed(83, "lin_wantang", "front") == 99
+    assert mod.advance_seed(98, "lin_wantang", "front") == 99
     assert mod.parse_specified_seeds("62,70,78") == [62, 70, 78]
     assert mod.require_specified_seed(84, "lin_wantang", "front") == 84
     assert mod.require_specified_seed(62, "lin_wantang", "front") == 62
@@ -613,8 +613,8 @@ def test_score_log_names_the_item_under_nine_when_mean_is_nine():
     assert "seed `62`" in docs
     assert "33`–`61`" in docs
     assert "33`–`83`" in docs
-    assert "86`–`91`" in docs
-    assert "从 `92` 起" in docs
+    assert "86`–`97`" in docs
+    assert "从 `99` 起" in docs
 
 
 def test_fail_sidecar_json_lists_every_content_score():
@@ -755,6 +755,10 @@ def test_runner_does_not_edit_explicit_still_files():
     assert "content=locked" in text
     assert "没有改内容" in text
     assert "fetch failed" in text
+    until = text.split("def run_until_pass2", 1)[1].split("\ndef parse_only", 1)[0]
+    assert "SCORE_FAILED" in until
+    assert "SCORE_DEFERRED" in until
+    assert "TimeoutExpired" in text
 
 
 def test_fetch_retries_transient_oserror(tmp_path):
