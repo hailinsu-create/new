@@ -1,7 +1,7 @@
 """New two-stage still runner. Not the live white-snake workflow.
 
 The running six use autodl/run_explicit8.py. This copy is unused until that
-job finishes. Stage 1 is agy likeness. Stage 2 is local Qwen exposure only.
+job finishes. Stage 1 is Codex CLI likeness. Stage 2 is local Qwen exposure only.
 """
 from __future__ import annotations
 
@@ -28,16 +28,21 @@ SCORE_PROMPT = """按 docs/still-score-two-stage.md 给第二张图打分。第�
 gates 只填失败的门，例如 ["H2"]。没有失败就是 []。face_drift 只有脸不像定妆时才是 true。mean 是八项等权均分。"""
 
 
-def agy_block_reason(binary: str | None, *, logged_in: bool) -> str | None:
-    """Stop before stage 1 when Antigravity is not already logged in.
+def codex_block_reason(binary: str | None, *, logged_in: bool) -> str | None:
+    """Stop before stage 1 when Codex CLI is missing or not already logged in.
 
-    A config directory created by an interrupted OAuth prompt is not a login.
-    This does not run `agy login` and it does not start a GPU.
+    This does not run `codex login` and it does not start a GPU.
+    A missing binary does not open another image generator.
     """
-    if not binary or not logged_in:
+    if not binary:
         return (
-            "缺的是登录：请在这台 Cursor 环境运行 agy，按它打印的 Google 账号授权完成登录。"
-            "第一段还没开始。不要自行代填账号，不要开机。监督 bot（漫监）去问用户。"
+            "CODEX_CLI_MISSING 第一段只走 Codex CLI。"
+            "本机没有 codex。禁止改走其他图像入口。不要代填账号，不要开机。"
+        )
+    if not logged_in:
+        return (
+            "CODEX_CLI_LOGGED_OUT 第一段只走 Codex CLI。"
+            "codex login status 未登录。禁止改走其他图像入口。不要代填账号，不要开机。"
         )
     return None
 
@@ -197,19 +202,20 @@ def _render_until_kept(provider, panel: dict, dest: Path, seed: int) -> None:
         seed += 1
 
 
-def _agy_prompt(panel: dict) -> str:
+def _codex_prompt(panel: dict, dest: Path) -> str:
     refs = "\n".join(f"- {path}" for path in panel["refs"])
     return (
-        "Use generate_image. Pass every reference image below by absolute path "
-        "in reference_images. Do not increase nudity or sexual contact. "
+        "Use the image generation tool exactly once. "
+        "This stage is a non-explicit lock of pose, face, clothes, and body. "
+        "Do not increase nudity or sexual contact. "
         "Match the faces and costumes on the makeup refs, and the pose and "
         "expression on the body board. Snake-tail rules still apply: one "
         "pearl-white scaled tail to a blunt connected tip, not a fish, not a "
         "snake head, and Bai herself has no human legs or feet. "
-        "Gu Cheng'an's own foot is allowed. Stage 1 is likeness only because "
-        "the Gemini image model (gemini-3-pro-image or gemini-3.1-flash-image) "
-        "refuses explicit prompts. End with a line IMAGE_PATH: <absolute path>.\n"
-        f"{refs}"
+        "Gu Cheng'an's own foot is allowed. "
+        "Do not edit any git repository. Do not boot a GPU.\n"
+        f"Save the image only to {dest}.\n"
+        f"Reference images:\n{refs}"
     )
 
 
@@ -222,45 +228,75 @@ def _stage2_edit_prompt(panel: dict) -> str:
     )
 
 
-def _agy_binary() -> str | None:
-    found = shutil.which("agy")
+def _codex_binary() -> str | None:
+    found = shutil.which("codex")
     if found:
         return found
-    local = Path.home() / ".local" / "bin" / "agy"
+    local = Path.home() / ".local" / "bin" / "codex"
     if local.is_file():
         return str(local)
     return None
 
 
-def _agy_logged_in() -> bool:
-    # Account login lives in the OS keyring, which this environment does not have.
-    # settings.json is only the optional Gemini API-key mode, not a signed-in account.
-    return (Path.home() / ".gemini" / "antigravity-cli" / "settings.json").is_file()
+def _codex_logged_in() -> bool:
+    binary = _codex_binary()
+    if not binary:
+        return False
+    result = subprocess.run(
+        [binary, "login", "status"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    text = f"{result.stdout or ''}{result.stderr or ''}"
+    return result.returncode == 0 and "Logged in" in text
 
 
-def _ensure_agy() -> None:
-    reason = agy_block_reason(_agy_binary(), logged_in=_agy_logged_in())
+def _ensure_codex() -> str:
+    binary = _codex_binary()
+    reason = codex_block_reason(binary, logged_in=_codex_logged_in())
     if reason:
         raise SystemExit(reason)
+    return binary
 
 
-def _run_agy_stage(panel: dict, dest: Path) -> None:
-    """Likeness passes stay inside agy. This function is not called until login exists."""
+def _codex_exec(prompt: str, images: list[Path], cwd: Path) -> subprocess.CompletedProcess[str]:
+    binary = _ensure_codex()
+    cmd = [
+        binary,
+        "exec",
+        "--skip-git-repo-check",
+        "--ephemeral",
+        "--color",
+        "never",
+        "-C",
+        str(cwd),
+        "-s",
+        "workspace-write",
+    ]
+    for image in images:
+        cmd.extend(["-i", str(image)])
+    cmd.append("-")
+    return subprocess.run(
+        cmd,
+        input=prompt,
+        capture_output=True,
+        text=True,
+        timeout=900,
+    )
+
+
+def _run_codex_stage(panel: dict, dest: Path) -> None:
+    """Likeness passes stay inside Codex CLI. A missing binary exits."""
     attempt = 1
     while True:
-        print(f"==== AGY {panel['id']} try={attempt} likeness ====", flush=True)
-        cmd = ["agy", "--print", _agy_prompt(panel)]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
-        if result.returncode != 0:
-            raise SystemExit(f"agy stage 1 failed: {result.stderr[-400:]}")
-        text = result.stdout
-        marker = "IMAGE_PATH:"
-        if marker not in text:
-            raise SystemExit("agy did not return IMAGE_PATH")
-        image = Path(text.split(marker, 1)[1].strip().splitlines()[0].strip())
-        if not image.is_file():
-            raise SystemExit(f"agy image missing {image}")
-        dest.write_bytes(image.read_bytes())
+        print(f"==== CODEX {panel['id']} try={attempt} likeness ====", flush=True)
+        if dest.is_file():
+            dest.unlink()
+        result = _codex_exec(_codex_prompt(panel, dest), list(panel["refs"]), dest.parent)
+        if result.returncode != 0 or not dest.is_file():
+            detail = (result.stderr or result.stdout or "codex image missing").strip()
+            raise SystemExit(f"CODEX_CLI_FAILED {panel['id']} {detail[-500:]}")
         item = score_still(dest)
         gates = " ".join(item.get("gates") or []) or "-"
         print(
@@ -270,7 +306,7 @@ def _run_agy_stage(panel: dict, dest: Path) -> None:
         if accepted(item):
             print(f"KEEP {panel['id']} stage=1", flush=True)
             return
-        print(f"RESHOOT {panel['id']} stage=1 inside agy", flush=True)
+        print(f"RESHOOT {panel['id']} stage=1 inside Codex CLI", flush=True)
         attempt += 1
 
 
@@ -319,7 +355,7 @@ def _run_qwen_stage(provider, panel: dict, likeness: Path, dest: Path, seed: int
 def main() -> None:
     # Two-stage entry. The in-flight white-snake six use the already copied
     # renderer and are not started from here.
-    _ensure_agy()
+    _ensure_codex()
     panels = _load_panels()
     only = require_subset(os.environ.get("EXPLICIT_ONLY", ""), {panel["id"] for panel in panels})
     os.environ.setdefault("HF_HUB_OFFLINE", "1")
@@ -349,7 +385,7 @@ def main() -> None:
         dest = out_root / f"{panel['id']}.png"
         seed = int(os.environ.get("EXPLICIT_SEED", "1"))
         while True:
-            _run_agy_stage(panel, likeness)
+            _run_codex_stage(panel, likeness)
             if _run_qwen_stage(provider, panel, likeness, dest, seed) == "keep":
                 break
             print(f"FACE {panel['id']} stage 2 drifted, restart stage 1", flush=True)

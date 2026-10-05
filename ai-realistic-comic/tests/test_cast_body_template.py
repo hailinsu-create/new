@@ -144,6 +144,27 @@ def test_prompts_only_change_look_and_clothes():
     assert "发髻" in clothed
     assert "不要脱掉" in clothed
     assert mod.CLOTHED_SCALE == 0.0
+    assert mod.CLOTHED_ENTRY == "codex"
+    assert mod.UNDRESS_ENTRY == "f34"
+    try:
+        mod.require_codex_cli(None)
+    except SystemExit as exc:
+        assert "CODEX_CLI_MISSING" in str(exc)
+    else:
+        raise AssertionError("missing Codex CLI must SystemExit")
+    try:
+        mod.require_codex_cli("/home/ubuntu/.local/bin/codex", logged_in=False)
+    except SystemExit as exc:
+        assert "CODEX_CLI_LOGGED_OUT" in str(exc)
+    else:
+        raise AssertionError("logged-out Codex CLI must SystemExit")
+    argv = mod.codex_exec_argv("/home/ubuntu/.local/bin/codex", "/tmp/out", ["/tmp/ref.png"])
+    assert argv[:2] == ["/home/ubuntu/.local/bin/codex", "exec"]
+    assert argv.count("-i") == 1
+    assert "/tmp/ref.png" in argv
+    assert argv[-1] == "-"
+    joined = " ".join(argv).lower()
+    assert "agy" not in joined
     assert mod.clothed_seed_for("lin_wantang", "front", 0) == 1
     plate = mod.score_prompt("lin_wantang", "front", "clothed")
     assert "not a nude" in plate
@@ -442,6 +463,23 @@ def test_runner_does_not_edit_explicit_still_files():
     assert "body-clothed" in text
     assert "不拿定妆全身" in text
     assert "CLOTHED_TRY" in text
+    assert "require_codex_cli" in text
+    assert '"kind": "clothed"' not in text
+    assert "agy" not in text.lower()
+    worker = (
+        Path(__file__).resolve().parents[1] / "autodl" / "cast_body_worker.py"
+    ).read_text(encoding="utf-8")
+    assert 'kind == "clothed"' in worker
+    assert "CODEX_CLI_ONLY" in worker
+    docs = Path(__file__).resolve().parents[1] / "docs"
+    for name in (
+        "cast-body-two-stage.md",
+        "explicit-still-two-stage.md",
+        "still-score-two-stage.md",
+    ):
+        page = (docs / name).read_text(encoding="utf-8")
+        assert "agy" not in page.lower(), name
+        assert "Codex CLI" in page
     assert "2026-10-06-front" in text
     assert "donor_remote" in text
     assert "/root/miniconda3/bin/python" in text

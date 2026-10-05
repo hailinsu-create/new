@@ -32,13 +32,17 @@ def test_unset_explicit_only_refuses_the_full_set():
     assert mod.require_subset("p01, m02", {"p01", "m02"}) == {"p01", "m02"}
 
 
-def test_agy_stops_before_stage_one_without_login():
+def test_codex_stops_before_stage_one_without_cli():
     mod = _load()
-    missing = mod.agy_block_reason(None, logged_in=False)
-    assert missing and "缺的是登录" in missing
-    logged_out = mod.agy_block_reason("/home/ubuntu/.local/bin/agy", logged_in=False)
-    assert logged_out and "缺的是登录" in logged_out
-    assert mod.agy_block_reason("/home/ubuntu/.local/bin/agy", logged_in=True) is None
+    missing = mod.codex_block_reason(None, logged_in=False)
+    assert missing and "CODEX_CLI_MISSING" in missing
+    logged_out = mod.codex_block_reason("/home/ubuntu/.local/bin/codex", logged_in=False)
+    assert logged_out and "CODEX_CLI_LOGGED_OUT" in logged_out
+    assert mod.codex_block_reason("/home/ubuntu/.local/bin/codex", logged_in=True) is None
+    text = Path(__file__).resolve().parents[1].joinpath("autodl/run_explicit_two_stage.py").read_text(
+        encoding="utf-8"
+    )
+    assert "agy" not in text.lower()
 
 
 def test_face_drift_returns_to_stage_one():

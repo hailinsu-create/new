@@ -141,6 +141,10 @@ def noise_at_denoise(pipe, clean, width: int, height: int, steps: int, denoise: 
 
 def render(pipe, job: dict) -> dict:
     kind = job["kind"]
+    if kind == "clothed":
+        raise SystemExit(
+            "CODEX_CLI_ONLY 穿衣底板禁止 F34。缺 Codex CLI 就退出，不在这台机器上画穿衣底板。"
+        )
     scale = float(job["scale"])
     seed = int(job["seed"])
     width = int(job["width"])
@@ -154,7 +158,7 @@ def render(pipe, job: dict) -> dict:
         # Native lock face. Do not letterbox the headshot onto the body canvas.
         images.append(Image.open(face_path).convert("RGB"))
     src = Image.open(job["src"]).convert("RGB")
-    if kind in {"pass1", "clothed"}:
+    if kind == "pass1":
         src = letterbox(src, width, height)
     else:
         src = src.resize((width, height), Image.Resampling.LANCZOS)

@@ -2,8 +2,8 @@
 
 这条流水线给以后的出片提供可复用身体模板。它不是叙事构图，也不是艺术创作。入口和出片静帧分开：
 
-- 出片继续走 `docs/explicit-still-two-stage.md` 和 `autodl/run_explicit_two_stage.py`。这里不改那两个文件，也不共用它们的 job 文件。
-- 资产走 `autodl/run_cast_body_two_stage.py` 和 `autodl/cast_body_worker.py`。机器上的队列是 `/root/autodl-tmp/in/cast-asset-job.json`。
+- 出片第一段同样只走 Codex CLI，见 `docs/explicit-still-two-stage.md` 和 `autodl/run_explicit_two_stage.py`。资产脚本不共用出片的 job 文件。
+- 资产走 `autodl/run_cast_body_two_stage.py` 和 `autodl/cast_body_worker.py`。机器上的队列是 `/root/autodl-tmp/in/cast-asset-job.json`。穿衣底板不进这个队列。
 
 四人仍是林晚棠、顾承安、伊莲·沃斯、阿德里安·凯恩。林晚棠和伊莲的脸已换成 2026-10-06 记事正面锁脸：`library/cast/lin_wantang/ref.png`、`library/cast/elena_voss/ref.png`。旧女脸在 `archive/ref-retired-2026-10-05.png`，停用。男演员 ref 不动。侧脸和三视图还没有。`library/cast/mood/` 的五合一合成图只是气质标签板，不能当这四张 `ref.png`，也不能喂去衣。一采只改衣着、发型和妆，脸锁在**新的**穿衣底板上。一采过除分辨率外的全部要求。二采只用同一颗种子做轻放大；掉分只调 denoise 和步数，不大改内容。不写故事场景，不换构图。出片不代跑。
 
@@ -11,7 +11,9 @@
 
 四人各正、侧、背，共 12 张，都是底板。去衣只在这一张穿衣均分已经 ≥ 9 之后。男演员沿用原来的均分：顾承安侧面 8.75、顾承安背面 8.875 未到 9，先补再去衣；顾承安正面和阿德里安三向已过门。女演员表里的旧均分（林晚棠正侧背、伊莲正背）属于旧脸，整表作废。旧穿衣文件只当身体供体，不能直接去衣。女演员要先按新锁脸重做穿衣底板，八项都 ≥ 9 才算过门。本轮先跑林晚棠正面。
 
-穿衣重做：第一张是新 `ref.png`，第二张是旧穿衣供体。LoRA scale `0`，尺寸和步数仍是一采的 448×592、8 步、true_cfg 4。不过门就换下一颗种子。林晚棠正面穿衣种子从 `1` 起，和去衣黑名单 `33`–`61` 分开。去衣种子仍从 `62` 起。
+穿衣重做只走 Codex CLI。命令是 `/home/ubuntu/.local/bin/codex exec --skip-git-repo-check --ephemeral --color never -C <目录> -s workspace-write -i <新 ref.png> -`，提示词从标准输入送入。参考图只有该演员的新锁脸。模型用这条 CLI 自己的默认模型，脚本不另换。没有 `codex` 可执行文件就 `SystemExit`，打印 `CODEX_CLI_MISSING`。不许改走别的出图，不许锁脸直出，不许把穿衣底板交给 F34。F34 工人收到 `kind=clothed` 同样退出。不过门就在 Codex CLI 里重出。林晚棠正面穿衣种子从 `1` 起，只用于记录这次尝试，和去衣黑名单 `33`–`61` 分开。去衣种子仍从 `62` 起，而且只在穿衣过门之后。
+
+去衣只用 F34。穿衣过门之前禁止开机去衣。
 
 ## 九张去衣模板
 

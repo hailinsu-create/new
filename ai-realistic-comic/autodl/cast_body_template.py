@@ -121,6 +121,42 @@ LOCK_ID = "2026-10-06-front"
 # Clothed rebuild borrows the old plate as a body donor and turns the NSFW LoRA off.
 CLOTHED_SCALE = 0.0
 CLOTHED_LIN_FRONT_SEED = 1
+# Clothed plates have one generator. Undress has another. Neither may switch.
+CLOTHED_ENTRY = "codex"
+UNDRESS_ENTRY = "f34"
+CODEX_ARGV_HEAD = (
+    "exec",
+    "--skip-git-repo-check",
+    "--ephemeral",
+    "--color",
+    "never",
+)
+CODEX_MISSING = (
+    "CODEX_CLI_MISSING 穿衣底板只走 Codex CLI。"
+    "本机没有 codex。禁止改走其他图像入口，禁止锁脸直出，禁止用 F34 画穿衣底板。"
+)
+CODEX_LOGGED_OUT = (
+    "CODEX_CLI_LOGGED_OUT 穿衣底板只走 Codex CLI。"
+    "codex login status 未登录。禁止改走其他图像入口，禁止锁脸直出，禁止用 F34 画穿衣底板。"
+)
+
+
+def codex_exec_argv(binary: str, cwd: str, images: list[str]) -> list[str]:
+    """Codex CLI image call. Reference images are repeated `-i` paths. Prompt is stdin."""
+    cmd = [binary, *CODEX_ARGV_HEAD, "-C", str(cwd), "-s", "workspace-write"]
+    for image in images:
+        cmd.extend(["-i", str(image)])
+    cmd.append("-")
+    return cmd
+
+
+def require_codex_cli(binary: str | None, *, logged_in: bool = True) -> str:
+    """Hard stop. A missing or logged-out Codex CLI does not open another generator."""
+    if not binary:
+        raise SystemExit(CODEX_MISSING)
+    if not logged_in:
+        raise SystemExit(CODEX_LOGGED_OUT)
+    return binary
 
 # Nine nude turnarounds: only the clothed plates already at mean >= 9.
 NUDE_VIEWS = (

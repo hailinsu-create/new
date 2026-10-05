@@ -568,21 +568,36 @@ def store_clothed(actor: str, view: str, png: Path, record: dict) -> Path:
     return dest
 
 
+def codex_binary() -> str | None:
+    found = shutil.which("codex")
+    if found:
+        return found
+    local = Path.home() / ".local" / "bin" / "codex"
+    if local.is_file():
+        return str(local)
+    return None
+
+
+def codex_logged_in(binary: str) -> bool:
+    result = subprocess.run(
+        [binary, "login", "status"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    text = f"{result.stdout or ''}{result.stderr or ''}"
+    return result.returncode == 0 and "Logged in" in text
+
+
 def run_clothed_rebuild(client, remote: Remote, actor: str, view: str) -> Path:
-    """Walk seeds until the new-face clothed plate clears every content score."""
-    print(f"NODE 启动 {actor}:{view} 重做穿衣底板 lock={tpl.LOCK_ID}", flush=True)
+    """Codex CLI only. A missing or logged-out binary exits. F34 is not a clothed generator."""
+    del remote
+    binary = codex_binary()
+    binary = tpl.require_codex_cli(binary, logged_in=bool(binary) and codex_logged_in(binary))
+    print(f"NODE 启动 {actor}:{view} 重做穿衣底板 lock={tpl.LOCK_ID} entry=codex", flush=True)
     face_local = ROOT / "library" / "cast" / actor / "ref.png"
     if not face_local.is_file():
         raise SystemExit(f"missing lock ref {face_local}")
-    face_remote = f"/root/autodl-tmp/in/cast-{actor}-face.png"
-    donor = resolve_donor(client, actor, view)
-    prompt = Path(f"/tmp/cast-clothed-{actor}-{view}.txt")
-    prompt.write_text(tpl.clothed_prompt(actor, view), encoding="utf-8")
-    sftp = client.open_sftp()
-    sftp.put(str(face_local), face_remote)
-    sftp.put(str(prompt), f"/root/autodl-tmp/in/cast-{actor}-{view}-clothed.txt")
-    sftp.close()
-    width, height = tpl.PASS1_SIZE
     attempt = 0
     while True:
         if user_stop_requested(client):
@@ -590,28 +605,29 @@ def run_clothed_rebuild(client, remote: Remote, actor: str, view: str) -> Path:
         seed = tpl.clothed_seed_for(actor, view, attempt)
         attempt += 1
         print(
-            f"CLOTHED_TRY {actor} {view} scale={tpl.CLOTHED_SCALE} seed={seed}",
+            f"CLOTHED_TRY {actor} {view} scale={tpl.CLOTHED_SCALE} seed={seed} entry=codex",
             flush=True,
-        )
-        done = remote.render(
-            {
-                "kind": "clothed",
-                "scale": tpl.CLOTHED_SCALE,
-                "seed": seed,
-                "width": width,
-                "height": height,
-                "steps": tpl.PASS1_STEPS,
-                "true_cfg_scale": tpl.ASSET_TRUE_CFG,
-                "src": donor,
-                "face": face_remote,
-                "prompt": f"/root/autodl-tmp/in/cast-{actor}-{view}-clothed.txt",
-                "negative": tpl.negative_for(actor, "clothed"),
-                "dest": f"/root/autodl-tmp/out/cast-{actor}-{view}-clothed-new.png",
-            }
         )
         CLOTHED_ART.mkdir(parents=True, exist_ok=True)
         local = CLOTHED_ART / "_fail" / f"{actor}-{view}-clothed-seed{seed}.png"
-        remote.fetch(done["dest"], local)
+        if local.is_file():
+            local.unlink()
+        prompt = (
+            tpl.clothed_prompt(actor, view)
+            + f"用图像工具只出这一张，保存到 {local}。"
+            + "附上的图是新锁脸。不要改 git，不要开机，不要画第二张。"
+        )
+        cmd = tpl.codex_exec_argv(binary, str(local.parent), [str(face_local)])
+        result = subprocess.run(
+            cmd,
+            input=prompt,
+            capture_output=True,
+            text=True,
+            timeout=900,
+        )
+        if result.returncode != 0 or not local.is_file():
+            detail = (result.stderr or result.stdout or "codex image missing").strip()
+            raise SystemExit(f"CODEX_CLI_FAILED {actor} {view} seed={seed} {detail[-500:]}")
         score = score_image(local, actor, view, "clothed")
         passed = tpl.accept_clothed(score, actor, view, tpl.CLOTHED_SCALE, seed)
         emit_score(
@@ -622,9 +638,9 @@ def run_clothed_rebuild(client, remote: Remote, actor: str, view: str) -> Path:
             score,
             passed,
             seed,
-            f"scale={tpl.CLOTHED_SCALE} seed={seed}",
+            f"scale={tpl.CLOTHED_SCALE} seed={seed} entry=codex",
             scale=tpl.CLOTHED_SCALE,
-            seconds=done.get("seconds"),
+            seconds=None,
         )
         if not passed:
             if tpl.identity_anatomy_or_wardrobe_below(score):
@@ -645,7 +661,7 @@ def run_clothed_rebuild(client, remote: Remote, actor: str, view: str) -> Path:
             score,
             tpl.look_gates(actor, view, score),
             True,
-            seconds=done.get("seconds"),
+            seconds=None,
         )
         path = store_clothed(actor, view, local, record)
         print(

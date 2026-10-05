@@ -2,15 +2,15 @@
 
 这是现有破限静帧的复制品，不是正在跑的那条。正在用的仍是 `docs/explicit-still-mode.md`、`docs/still-score.md`、`autodl/run_explicit8.py` 和 `library/cast/CAST.md`。白蛇传 6 套继续走那条，不要停、不要改那个进程、不要关 F34。
 
-本文件和 `autodl/run_explicit_two_stage.py`、`docs/still-score-two-stage.md` 只在那 6 套出完之后才用。演员锁仍以 `library/cast/CAST.md` 为准。监督 bot（漫监）只做管理：监督、纠偏、续指令，卡住才短报。不得绕过工作流自己出图、改提示词或改规则，也不得自己去跑 agy 或 Qwen。
+本文件和 `autodl/run_explicit_two_stage.py`、`docs/still-score-two-stage.md` 只在那 6 套出完之后才用。演员锁仍以 `library/cast/CAST.md` 为准。监督 bot（漫监）只做管理：监督、纠偏、续指令，卡住才短报。不得绕过工作流自己出图、改提示词或改规则，也不得自己去跑 Codex CLI 或 Qwen。
 
 ## 两段式
 
-1. 第一段是 `agy`（Antigravity CLI）的 `generate_image`。参考图按绝对路径放进 `reference_images`：身体板锁姿势和表情，定妆 `ref.png` 锁脸和衣着。这一段只求像，不加大尺度。背后是 Gemini 图像模型（`gemini-3-pro-image` 或 `gemini-3.1-flash-image`，用已经登录的那个，不另换）。硬门和八项仍是 `docs/still-score-two-stage.md`。均分不到 9 或硬门没过，只在 agy 里重出。
+1. 第一段是 Codex CLI。命令是 `/home/ubuntu/.local/bin/codex exec --skip-git-repo-check --ephemeral --color never -C <目录> -s workspace-write -i <参考图> -`，提示词从标准输入送入。参考图用重复的 `-i`：身体板锁姿势和表情，定妆 `ref.png` 锁脸和衣着。这一段只求像，不加大尺度。模型用这条 CLI 的默认模型，不另换。硬门和八项仍是 `docs/still-score-two-stage.md`。均分不到 9 或硬门没过，只在 Codex CLI 里重出。
 2. 过了的那张才进第二段。第二段是现有本地 Qwen-Image-Edit（F34，896×1200，40 步，seed 1，`true_cfg_scale` 4），只加大暴露和身体接触。脸、姿势、蛇尾规则不改。再打分。不到 9 只重跑这一段。脸跑了退回第一段，不在这一段里硬修。
-3. 没有登录好的 `agy` 就停在第一段之前。脚本只看本机有没有 `agy` 和 `~/.gemini/antigravity-cli`，不执行登录，不开机。缺的是登录，由监督 bot 去问用户。
+3. 没有 `codex` 可执行文件就 `SystemExit`，打印 `CODEX_CLI_MISSING`。未登录打印 `CODEX_CLI_LOGGED_OUT`。两种情况都停在第一段之前，不执行登录，不开机，不改走别的出图。缺的是 Codex CLI 或它的登录，由监督 bot 去问用户。
 
-这台 Cursor 环境已安装 `agy` 1.2.16，路径 `~/.local/bin/agy`。还没有登录。第一段还没开始。缺的是登录。登录命令是 `agy`（或 `agy --print`）。它会打开 Google 账号授权（邮箱和个人资料），不指定某一个邮箱。不要代填账号，不要开机。
+这台环境的第一段二进制是 `/home/ubuntu/.local/bin/codex`。没有这只文件就失败退出。不要代填账号，不要开机。
 
 新神话姿势锁见 `library/stills/myth-poses/POSE.md`。m01–m04 已出过一版，目检未收，见下文。
 
@@ -60,11 +60,11 @@
 
 ## 出图
 
-- 出图、打分、不达标重出，都在 `autodl/run_explicit_two_stage.py` 里完成。文件落盘不算收。第一段没过只在 agy 里重出。第二段没过只重跑 Qwen。脸跑了退回第一段。
+- 出图、打分、不达标重出，都在 `autodl/run_explicit_two_stage.py` 里完成。文件落盘不算收。第一段没过只在 Codex CLI 里重出。第二段没过只重跑 Qwen。脸跑了退回第一段。
 - 这次不跑图。p03–p08 的提示词不改，也不为这次重跑。
 - 只在 AutoDL F34 `xaxna66hqt-c5c9c7fc`（西北B / west-E，RTX 5090 D）上跑本地 Qwen。不要开、不要删旧的 G09 `sa4eaxgcuq-26e36fc9`。开机要用户另行授权。
 - 模型 `Qwen/Qwen-Image-Edit-2511`，用机上缓存，离线，不要重下权重。896×1200，40 步，seed 1，`true_cfg_scale` 4。重出时只把这一张的 seed 加 1，其余参数不动。
-- 入口 `autodl/run_explicit_two_stage.py`。脚本连读两份 prompts，再用 `docs/still-score-two-stage.md` 的视觉模型做目视。已知缺陷、硬门或均分低于 9，都是没完成。没有登录好的 agy 时入口直接停住，不登录，不开机。
+- 入口 `autodl/run_explicit_two_stage.py`。脚本连读两份 prompts，再用 `docs/still-score-two-stage.md` 的视觉模型做目视。已知缺陷、硬门或均分低于 9，都是没完成。没有 Codex CLI 或未登录时入口直接停住，不登录，不开机，不改走别的出图。
 - 必须设置 `EXPLICIT_ONLY`。未设置时脚本退出，不会把 p01–p08 和 m01–m04 一起重跑。p03–p08 的提示词不改，也不为写规则而重跑。
 - p01–p08 参考顺序仍是该格身体板在前，再跟两位演员的定妆。m01–m04 没有新身体板，参考图只有两位演员的定妆，姿势写在提示词里。
 - 只跑 p01、p02：`EXPLICIT_ONLY=p01,p02 python autodl/run_explicit_two_stage.py`
