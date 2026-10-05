@@ -25,11 +25,11 @@ VOID_LIN_FRONT = ("lin_wantang", "front", 0.85, 33)
 # was 2. 52 mean was 8.75 with empty gates and look.
 # 53 mean 5.0, FEET, MAKEUP, identity 6, anatomy 3, wardrobe 9 (floating head).
 # 54 mean 4.4, FEET, identity 7, anatomy 2, wardrobe 5 (head only).
-# 55 mean 7.6, identity 9, anatomy 8, wardrobe 2 (full body, clothes on).
-# 56 mean 7.13, MAKEUP, identity 9, anatomy 8, wardrobe 1 (full body, clothes on).
-# Next seed is 57.
-LIN_FRONT_SEED = 57
-LIN_FRONT_SPENT = frozenset(range(33, 57))
+# 55-61 stay on the framed prompt: full body, identity about 9, wardrobe 1-4.
+# Means oscillate (7.6, 7.13, 7.75, 7.0, 7.4, 7.63, 6.75). That is not a drift.
+# Next unused seed is 62.
+LIN_FRONT_SEED = 62
+LIN_FRONT_SPENT = frozenset(range(33, 62))
 OTHER_SEED = 41
 # Local and remote files. Either one stops the pass-1 seed walk.
 STOP_LOCAL = "/tmp/cast-asset-stop"
@@ -187,6 +187,22 @@ def advance_seed(seed: int, actor: str, view: str) -> int:
     while is_void(actor, view, FIXED_SCALE, seed) or seed in blocked:
         seed += 1
     return seed
+
+
+def qwen_vae_frame(width: int, height: int) -> tuple[int, int]:
+    """Frame that diffusers 0.40 calculate_dimensions would feed the VAE.
+
+    448x592 rounds to 448x576. The image is resampled, not center-cropped.
+    Full-body seeds were produced on this path, so the round-off is not the
+    FEET cause. The worker does not override it.
+    """
+    import math
+
+    ratio = float(width) / float(height)
+    area = float(width) * float(height)
+    out_w = math.sqrt(area * ratio)
+    out_h = out_w / ratio
+    return int(round(out_w / 32) * 32), int(round(out_h / 32) * 32)
 
 
 def seed_for(actor: str, view: str, attempt: int) -> int:

@@ -346,9 +346,42 @@ def ensure_worker(client) -> None:
     reason = gpu_block_reason(probe)
     if reason:
         raise SystemExit(reason + "\n" + probe[-500:])
-    if "cast-asset/worker.py" in probe or "cast_body_worker.py" in probe:
+    local_worker = Path(__file__).with_name("cast_body_worker.py")
+    import hashlib
+
+    local_hash = hashlib.sha256(local_worker.read_bytes()).hexdigest()
+    remote_listed = ssh_exec(
+        client, f"sha256sum {tpl.WORKER_REMOTE} 2>/dev/null || true"
+    ).strip().split()
+    remote_hash = remote_listed[0] if remote_listed else ""
+    running = "cast-asset/worker.py" in probe or "cast_body_worker.py" in probe
+    if running and remote_hash == local_hash:
         print("worker_reuse", flush=True)
         return
+    if running:
+        busy = ssh_exec(
+            client,
+            f"if [ -f {tpl.JOB_REMOTE} ]; then echo busy; else echo idle; fi",
+        )
+        if "busy" in busy:
+            raise SystemExit("资产 worker 要换代码，但队列里还有任务。")
+        for line in probe.splitlines():
+            if "cast-asset/worker.py" not in line and "cast_body_worker.py" not in line:
+                continue
+            parts = line.split()
+            if parts and parts[0].isdigit():
+                ssh_exec(client, f"kill {parts[0]} || true")
+        print("worker_reload", flush=True)
+        for _ in range(20):
+            time.sleep(1)
+            still = ssh_exec(
+                client,
+                "ps -eo args | awk '/cast-asset\\/worker.py/ && !/awk/ {print}'",
+            )
+            if "cast-asset/worker.py" not in still:
+                break
+        else:
+            raise SystemExit("旧的资产 worker 没有退出，不启动第二个。")
     local_worker = Path(__file__).with_name("cast_body_worker.py")
     ssh_exec(
         client,

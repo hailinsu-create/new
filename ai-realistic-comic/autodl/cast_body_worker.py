@@ -66,11 +66,21 @@ def mem_line() -> str:
 
 
 def fuse_scale(pipe, scale: float) -> None:
+    """Bake the table scale once. Do not multiply it, and do not re-fuse every image.
+
+    set_adapters writes the weight. Fusing again at that same scale multiplies
+    it, so 0.85 was baked as 0.7225. Unfusing and refusing on every
+    seed does not make later seeds better. The same double scale was already
+    in effect when seeds 34-36 undressed, so this fix is not a new prompt.
+    """
     global _fused_scale
+    scale = float(scale)
+    if _fused_scale == scale:
+        return
     if _fused_scale is not None:
         pipe.unfuse_lora()
     pipe.set_adapters(["mcnl"], adapter_weights=[scale])
-    pipe.fuse_lora(lora_scale=scale)
+    pipe.fuse_lora(lora_scale=1.0)
     _fused_scale = scale
 
 
