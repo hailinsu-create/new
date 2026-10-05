@@ -1,3 +1,4 @@
+# 已停用，改用 two-stage
 """Explicit stills p01-p08 plus myth poses m01-m04. Same offline Qwen cache.
 
 A frame is finished only after the vision score in docs/still-score.md passes.

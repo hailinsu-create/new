@@ -1,3 +1,5 @@
+已停用，改用 two-stage
+
 # 破限静帧模式 / Explicit still mode
 
 这是同一套演员上的一种出图模式，不是新演员，也不是第二套身体板。演员锁仍以 `library/cast/CAST.md` 为准。以后同类静帧必须按本文件，不能改走 `docs/still-mode.md` 里的 fal nano-banana 配方。

@@ -13,7 +13,9 @@ def _load():
 def test_keep_line_is_nine_and_gates_block():
     mod = _load()
     assert mod.KEEP_MEAN == 9.0
-    assert mod.VISION_MODEL == "opencode-go/deepseek-v4-flash-vision-exp"
+    assert mod.local_explicit_allowed({"gates": [], "mean": 9})
+    assert not mod.local_explicit_allowed({"gates": ["H2"], "mean": 10})
+    assert not mod.local_explicit_allowed({"gates": [], "mean": 8.9})
     assert mod.accepted({"gates": [], "mean": 9})
     assert mod.accepted({"gates": [], "mean": 9.1})
     assert not mod.accepted({"gates": [], "mean": 8.9})
@@ -32,6 +34,29 @@ def test_unset_explicit_only_refuses_the_full_set():
     assert mod.require_subset("p01, m02", {"p01", "m02"}) == {"p01", "m02"}
 
 
+def test_codex_stops_before_stage_one_without_login():
+    mod = _load()
+    missing = mod.codex_block_reason(None, logged_in=False)
+    assert missing and "缺的是登录" in missing
+    logged_out = mod.codex_block_reason("/home/ubuntu/.local/bin/codex", logged_in=False)
+    assert logged_out and "缺的是登录" in logged_out
+    assert mod.codex_block_reason("/home/ubuntu/.local/bin/codex", logged_in=True) is None
+    prompt = mod._codex_prompt(
+        {
+            "prompt": "bare breasts sexual contact",
+            "negative": "child",
+            "refs": [Path("/tmp/board.png")],
+        },
+        Path("/tmp/out.png"),
+    )
+    assert "许仙" in prompt
+    assert "non-explicit" in prompt
+    assert "image generation tool exactly once" in prompt
+    assert "bare breasts" not in prompt
+    score = mod._codex_score_prompt(Path("/tmp/out.png"))
+    assert "Do not generate an image" in score
+
+
 def test_agy_stops_before_stage_one_without_login():
     mod = _load()
     missing = mod.agy_block_reason(None, logged_in=False)
@@ -41,11 +66,13 @@ def test_agy_stops_before_stage_one_without_login():
     assert mod.agy_block_reason("/home/ubuntu/.local/bin/agy", logged_in=True) is None
 
 
-def test_face_drift_returns_to_stage_one():
+def test_pass2_miss_does_not_reopen_pass1():
     mod = _load()
-    assert mod.stage2_action({"gates": [], "mean": 9.2, "face_drift": True}) == "back"
+    assert mod.stage2_action({"gates": [], "mean": 9.2, "face_drift": True}) == "reshoot"
     assert mod.stage2_action({"gates": [], "mean": 9.2, "face_drift": False}) == "keep"
     assert mod.stage2_action({"gates": [], "mean": 8.9, "face_drift": False}) == "reshoot"
+    assert mod.QWEN_PASS2_DENOISE == (0.35, 0.30, 0.25)
+    assert mod.QWEN_PASS2_STEPS == (40, 32, 24)
 
 
 def test_parse_score_reads_one_object():

@@ -1,16 +1,39 @@
-# 两段式静帧（新工作流，未启用）
+# 两段式静帧
 
-这是现有破限静帧的复制品，不是正在跑的那条。正在用的仍是 `docs/explicit-still-mode.md`、`docs/still-score.md`、`autodl/run_explicit8.py` 和 `library/cast/CAST.md`。白蛇传 6 套继续走那条，不要停、不要改那个进程、不要关 F34。
-
-本文件和 `autodl/run_explicit_two_stage.py`、`docs/still-score-two-stage.md` 只在那 6 套出完之后才用。演员锁仍以 `library/cast/CAST.md` 为准。监督 bot（漫监）只做管理：监督、纠偏、续指令，卡住才短报。不得绕过工作流自己出图、改提示词或改规则，也不得自己去跑 agy 或 Qwen。
+以后出图只走这条。`docs/explicit-still-mode.md` 和 `autodl/run_explicit8.py` 已停用。演员锁仍以 `library/cast/CAST.md` 为准。监督 bot（漫监）只做管理：监督、纠偏、续指令，卡住才短报。不得绕过工作流自己出图、改提示词或改规则。
 
 ## 两段式
 
-1. 第一段是 `agy`（Antigravity CLI）的 `generate_image`。参考图按绝对路径放进 `reference_images`：身体板锁姿势和表情，定妆 `ref.png` 锁脸和衣着。这一段只求像，不加大尺度。背后是 Gemini 图像模型（`gemini-3-pro-image` 或 `gemini-3.1-flash-image`，用已经登录的那个，不另换）。硬门和八项仍是 `docs/still-score-two-stage.md`。均分不到 9 或硬门没过，只在 agy 里重出。
-2. 过了的那张才进第二段。第二段是现有本地 Qwen-Image-Edit（F34，896×1200，40 步，seed 1，`true_cfg_scale` 4），只加大暴露和身体接触。脸、姿势、蛇尾规则不改。再打分。不到 9 只重跑这一段。脸跑了退回第一段，不在这一段里硬修。
-3. 没有登录好的 `agy` 就停在第一段之前。脚本只看本机有没有 `agy` 和 `~/.gemini/antigravity-cli`，不执行登录，不开机。缺的是登录，由监督 bot 去问用户。
+1. 第一段由 Codex CLI 生成姿势、脸、衣服和身体，只做非露骨锁定（`/home/ubuntu/.local/bin/codex exec`，参考图用 `-i` 附上）。身体板锁姿势和表情，定妆 `ref.png` 锁脸、衣服和身体。不加大尺度，不把破限提示词交给 Codex。许仙（顾承安）自己的脚不盖住，那只脚不是缺陷。不调用 agy。
+2. 打分也由 Codex 做，标准仍是 `docs/still-score-two-stage.md`。硬门没过或八项均分低于 9，只在 Codex 里重出这一张。这一分没过时，本地模型不得加大尺度。
+3. Codex 锁定图过 9 之后，Qwen 只喂这一张锁图。`write_explicit_edit_with_grok` 用 grok-4.7 xhigh 看这张图，指令只写要改的衣服和胸口接触，不贴整场提示词，不写“不要改姿势”。挂 `qwen-image-edit-plus-nsfw-lora`，文件在 F34 `/root/autodl-tmp/loras/qwen-image-edit-plus-nsfw-lora.safetensors`。LoRA 强度用去衣调参定下的 `QWEN_LORA_SCALE`；还没定下之前不填数。
+4. Qwen 分两采，同一种子、同一条提示、同一 LoRA 强度。一采定内容：448×600、16 步，脸、姿势、解剖、衣着或接触、硬门都要过；写实纹理和分辨率不挡一采。过了才进二采。二采只放大：把一采结果低去噪放到 896×1200，denoise 先 0.35、40 步，掉分只降到 0.30、再 0.25，步数只降不升。不改内容，不重写提示，不换种子，不重开一采。一采和二采各自记下渲染耗时。
+5. 没有登录好的 Codex 就停在第一段之前。脚本只看本机有没有 `codex` 以及 `codex login status` 是否已登录，不执行登录，不开机。缺的是登录，由监督 bot 去问用户。
 
-这台 Cursor 环境已安装 `agy` 1.2.16，路径 `~/.local/bin/agy`。还没有登录。第一段还没开始。缺的是登录。登录命令是 `agy`（或 `agy --print`）。它会打开 Google 账号授权（邮箱和个人资料），不指定某一个邮箱。不要代填账号，不要开机。
+出片四个节点都要当轮短报，并带上图和八项分：工作流做好、启动、一采结果、二采结果。一采是定内容的图，二采是只放大的图。没过门也报。做好和启动还没有新图时只报节点，不拿别的图充数。
+
+出片只使用自己的参数：一采 16 步定内容；二采从 40 步、denoise 0.35 往下降。接触强度写在一采指令里。二采不把 denoise 升到 0.45。资产档由资产流程自己定，出片不代跑资产。
+
+这台 Cursor 环境的第一段用 `/home/ubuntu/.local/bin/codex`。不要改正在用的 agy/Qwen 入口，不要代填账号，不要开机。
+
+四人穿衣身体参考在 `library/cast/<id>/body-clothed/front.png`、`side.png`、`back.png`。脸用定妆，身体和姿势不锁，衣服是短袖 T 恤加及膝运动短裤或长裤，简单、贴身、好去掉，站姿中性。Codex 按 9.0 门打分时必须附上该演员的定妆 ref。背面的身份按发型、发色、肤色、体型和定妆是否一致来认，不因为看不到脸扣分。过了才可以交给本地 Qwen 去掉这张图上的衣服，结果写入 `body-nude/`。去衣这一步 Qwen 只喂这张穿衣底图，不再额外喂穿衣定妆 ref，脸在打分时对定妆。底图按自身比例输出（宽 896），把头和双脚留在画面里。每张过门后拷到 `/opt/cursor/artifacts/body-nude/<id>-<view>.png`，并写一行 DONE_ONE（演员、视角、均分、硬门、路径），不等确认就继续下一张，中途不关机。指令由 `body_undress_rules` 约束：只点名这张图里实际穿着的那几件衣服并去掉，不要大段描述衣服的样子，锁脸、姿势和体型。林晚棠同时去掉古装盘发和发饰，换成自然散发，并去掉古装妆、眉间花钿、浓唇色和眼妆，换成素颜或极淡自然妆。顾承安同时去掉发髻和额前头巾或发带，换成自然的现代短发或散发；若有角色妆也同样去掉。五官、脸型和肤色仍锁定妆 ref。这两人的裸体身体打分时发型和妆容都不算身份扣分，身份按脸、肤色、体型认。伊莲和阿德里安发型和妆容不变。林晚棠这套是人形，不是蛇尾身体。这 9 张去衣一旦开机，9.0 门和硬门全部过了才关机并保留数据盘。关机之后立刻读 AutoDL 网站钱包 `assets`（单位厘），把余额数字写进当轮报告，漫画把这个数字转给额度 bot。关机流程不能跳过读余额。没过就重写指令继续重出，不设 3 次上限。同一张连续 15 次仍过不了，先不关机，报回卡在哪一张。林晚棠正面已过门并保留。去衣循环暂停在侧面，因为无 LoRA 的结果把胸、下体和皮肤磨平。F34 保持开机。数据盘上的适配器是 `ScottzillaSystems/qwen-image-edit-plus-nsfw-lora` 的 `qwen-image-edit-plus-nsfw-lora.safetensors`，放在 `/root/autodl-tmp/loras/`，基座是 `Qwen/Qwen-Image-Edit-2511`。diffusers 0.40 用 `load_lora_weights` 加载，这台机器没有 ComfyUI。身体去衣的 Qwen 改成两采，从这次 LoRA 调参开始用。一采约 448×600、16 步。一采只看构图、脸、身体结构、衣服是否去掉，以及硬门：身份、姿势、解剖、服装各自不低于 9，且硬门为空。照片感、美感和皮肤纹理不挡一采，留给二采。二采仍按完整八项均分 9.0 和硬门。一采的条件图按 448×600 的面积编码，不再用管线默认的约 1024² 把条件图编成 896×1184。权重是 BF16，transformer 约 39GB、文本编码器约 16GB，32GB 的 5090 放不下整模型。transformer 用 fp8 或 8bit 后常驻 GPU，VAE 一起留下，文本编码器不用时放在 CPU，LoRA 用 fuse_lora。一采条件图按 448×600 编码。改前 sequential offload、条件图约 896×1184、LoRA 未融合时，16 步约 155–165 秒，每步约 9.7–10.3 秒，显存约 12GB。二采用同一种子和同一条提示，把一采结果放大到 896×1200，denoise 从 0.35 只降到 0.30、0.25，只补轻度细节。二采掉分不重写提示，也不重开一采。一采和二采各自记渲染耗时。输入只喂穿衣底图。正面两采定参后按该强度、种子和去噪继续剩下 8 张。二采过门后写入 `library/cast/<id>/body-nude/<view>.png`，同目录 `scores.json` 记八项分、均分、硬门、种子、LoRA 强度、去噪和一采、二采耗时，并在 F34 数据盘留一份 `/root/autodl-tmp/assets/body-nude/`。无 LoRA 的已过门林晚棠正面另存 `front-smooth.png`。<!-- LORA_LOCK: pending -->
+
+## F34 SSH 与内存（2026-10-05）
+
+18:41（北京时间）之前 SSH 是通的：sequential offload 跑完林晚棠正面一采 8 次，主机内存约 56–58GiB，CPU 大约 1 核，GPU 显存约 12GiB、利用率约 20%–54%。18:40:06 仍是 cpu 89、内存 58424MiB、显存 12362MiB、利用率 44%。换成 group offload 的 worker 之后，18:41:36 的最后一条 GPU 样本变成显存 690MiB、利用率 0，CPU 1538，内存 60925MiB。从 18:42:16 起 GPU 样本消失，CPU 维持大约 1600%（16 核打满，峰值 2218），内存钉在 61442–61585MiB。cgroup 上限是 66571993088 字节（63488MiB），61585/63488 = 97%。到 19:54 仍是这个状态，内存 61599MiB，CPU 约 1600，GPU 样本仍为空。平台 `oom_killed` 一直是 false。
+
+根因是这两件事叠在一起：group offload 把容器内存顶到 cgroup 上限的 97%、CPU 打满 16 核，sshd 没能清掉启动中的连接；之后新连接要么 120 秒没有 banner，要么在约 25 秒后收到 `Exceeded MaxStartups`。端口映射没有整体故障，容器也没有被 cgroup 冻住。
+
+四种可能对过现场：
+
+- 主机内存顶满、CPU 打满，sshd 清不掉启动中的连接。这是 MaxStartups 一直满的原因。AutoPanel `/autopanel/v1/monitor` 从开机 15:20:55 到 19:22 有 964 个点，内存和 CPU 的台阶与上面的时间对齐。网站实例接口的 `cpu_usage_percent` 在 1577–1601 之间变动，`mem_usage_percent` 是 97，`mem_usage` 约 64571830272，和这条曲线是同一批数。`usage_info.valid` 为 false，`valid_at` 停在 2026-10-03，时间戳是旧的，不能拿来当采样时间。swap 计数和 dmesg 还没读到，所以不能把根因写成已经证实的 swap 抖动；能证实的是内存贴着 cgroup 上限并且 16 核持续打满。
+- paramiko 并发把 sshd MaxStartups 或代理限流打满。这是 SSH 这条路上直接读到的拒绝原因，而且现在还占着坑。15 次单连接探测里有 4 次在 TCP 成功后返回 `Exceeded MaxStartups`，分别是 19:30:43（25.1 秒）、19:34:30（8.9 秒）、19:50:51（19.8 秒）、19:52:38（6.5 秒）。另外 11 次是 120 秒 0 字节。诊断时本机已经没有 paramiko 或 ssh 进程，本地编排也停了二十分钟以上，默认 LoginGraceTime 解释不了坑还在。代理机自己的 22 端口 0.37 秒仍返回 `SSH-2.0-OpenSSH_8.9p1 Ubuntu-3ubuntu0.3`，未映射的 1 和 35240 约 0.3 秒 RST，所以不是整台代理在限流。和内存台阶放在一起：18:41 内存顶满、CPU 打满之后，sshd 没把启动中的连接清掉，MaxStartups 就一直满。本机编排器已经改成一条连接复用、banner 超时 120 秒。机器上的 MaxStartups 还没改成，因为没有 `SSH-2.0` banner，进不去。
+- `connect.weste.seetacloud.com` 的端口映射坏了。不成立。该主机解析到 116.172.94.204，35239 的 TCP 握手 0.3–0.6 秒成功，只是没有 banner。同一条代理上的 AutoPanel 静态页 1 秒内返回，容器里的 `/autopanel/v1/monitor` 约 3 秒返回 JSON。容器网络没有整体断开。
+- cgroup 内存限制把容器冻住。不成立。冻住时 CPU 应接近 0，这里是 16 核打满，而且 AutoPanel 的监控接口还在答。上限 62GiB 本身是压力来源，不是一次 freezer。
+
+19:24 到 19:52 只留一个连接尝试者，每轮 banner 等待 120 秒，共 15 次。35239 的 TCP 全部在 0.7 秒内成功。11 次 120 秒收齐 0 字节，4 次收到 `Exceeded MaxStartups`，一次都没有 `SSH-2.0`。因此没有执行 `pkill`，没有在机器上改 MaxStartups，没有改后的每步耗时。group offload 不再使用。下一步只走 8bit 或已有 fp8 权重，让 transformer 和 VAE 留在 GPU，文本编码器留在 CPU，并且拒绝再把 39GB 的 BF16 整份读进内存。改前每步 9.7–10.3 秒、显存约 12GB 仍然有效。这一段写的是 19:52 之前：当时没有改后的步时，也没有关机。
+
+授权重启后同一台 F34 于 2026-10-05 20:17:56+08 回到 running，数据盘仍是 107374182400 字节。sshd 已是 MaxStartups 100:30:200、MaxSessions 30。快照 `6f3ccc0b56e431dc6a0c2b2039706d7d26f22cb9` 的 transformer 五个分片都能打开，键数 483+468+466+474+42 等于 index 的 1933；text encoder 四个分片键数 459+131+122+17 等于 index 的 729；VAE 单文件 253806966 字节、194 个键，能打开。LoRA 文件 590058864 字节，打开后 1680 个键。torch 2.11.0+cu128，CUDA 12.8，能力 (12, 0)，架构列表含 sm_120。diffusers 0.40.0，bitsandbytes 0.50.2，peft 0.21.2。torchao 未安装。8bit 由 bitsandbytes 加载成功（`quant bitsandbytes-8bit 0.50.2`、`placement bitsandbytes-8bit`、`fuse_ok`），没有整份读入 39GB BF16。林晚棠正面一采 scale 0.85、seed 33、16 步：65.13 秒，4.07 秒/步。一采结束后 GPU 22252/32607 MiB，进程 VmHWM 26937936 KB。一采门已过。二采在 transformer 常驻时对 896×1200 编码 OOM；VAE 编码时先把 transformer 放到 CPU。LoRA 强度仍未写入。
 
 新神话姿势锁见 `library/stills/myth-poses/POSE.md`。m01–m04 已出过一版，目检未收，见下文。
 
@@ -33,7 +56,7 @@
 
 ## 禁令
 
-出图后由 `autodl/run_explicit_two_stage.py` 调用 `opencode-go/deepseek-v4-flash-vision-exp`（推理档 max）按 `docs/still-score-two-stage.md` 打分。硬门没过，或八项均分低于 9，脚本只重出这一张，直到硬门全过且均分不低于 9。监督 bot 不得改由自己的一条生成指令来补。下面任何一条出现，这张就不算完成：
+出图后由 `autodl/run_explicit_two_stage.py` 调用 Codex CLI 按 `docs/still-score-two-stage.md` 打分。硬门没过，或八项均分低于 9，第一段只在 Codex 里重出，本地模型不得加尺度。第二段只有 Codex 这一分过了才允许开始。监督 bot 不得改由自己的一条生成指令来补。下面任何一条出现，这张就不算完成：
 
 - H1 鱼尾、鱼鳍、尾鳍。
 - H2 尾尖是蛇头（眼、嘴、第二张脸）、断开的珍珠球，或切断的断尖。和满分基准一样的圆钝连体尾尖不算。
@@ -60,15 +83,15 @@
 
 ## 出图
 
-- 出图、打分、不达标重出，都在 `autodl/run_explicit_two_stage.py` 里完成。文件落盘不算收。第一段没过只在 agy 里重出。第二段没过只重跑 Qwen。脸跑了退回第一段。
+- 出图、打分、不达标重出，都在 `autodl/run_explicit_two_stage.py` 里完成。文件落盘不算收。第一段的生成和打分都在 Codex 里。这一分没过，本地模型不加尺度。过了之后必须先由 `write_explicit_edit_with_grok` 用 grok-4.7 xhigh 自己看锁定图，点出这张图里实际还合着的衣服再写加尺度指令，Qwen 不能跳过这一步，也不能改回笼统的一句。第二段没过 9 只降低 denoise 和步数重做二采，不重写提示，不换种子，不退回第一段。
 - 这次不跑图。p03–p08 的提示词不改，也不为这次重跑。
 - 只在 AutoDL F34 `xaxna66hqt-c5c9c7fc`（西北B / west-E，RTX 5090 D）上跑本地 Qwen。不要开、不要删旧的 G09 `sa4eaxgcuq-26e36fc9`。开机要用户另行授权。
-- 模型 `Qwen/Qwen-Image-Edit-2511`，用机上缓存，离线，不要重下权重。896×1200，40 步，seed 1，`true_cfg_scale` 4。重出时只把这一张的 seed 加 1，其余参数不动。
-- 入口 `autodl/run_explicit_two_stage.py`。脚本连读两份 prompts，再用 `docs/still-score-two-stage.md` 的视觉模型做目视。已知缺陷、硬门或均分低于 9，都是没完成。没有登录好的 agy 时入口直接停住，不登录，不开机。
+- 模型 `Qwen/Qwen-Image-Edit-2511`，用机上缓存，离线，不要重下权重。一采 448×600、16 步定内容。二采 896×1200，先 40 步、denoise 0.35，掉分只降到 0.30 再 0.25，步数只降不升。`true_cfg_scale` 4。同一张的种子和提示词不动，不重开一采。
+- 入口 `autodl/run_explicit_two_stage.py`。脚本连读两份 prompts，再由 Codex 按 `docs/still-score-two-stage.md` 做目视。已知缺陷、硬门或均分低于 9，都是没完成。Codex 这一分没过时不进入本地加尺度。没有登录好的 Codex 时入口直接停住，不登录，不开机。
 - 必须设置 `EXPLICIT_ONLY`。未设置时脚本退出，不会把 p01–p08 和 m01–m04 一起重跑。p03–p08 的提示词不改，也不为写规则而重跑。
 - p01–p08 参考顺序仍是该格身体板在前，再跟两位演员的定妆。m01–m04 没有新身体板，参考图只有两位演员的定妆，姿势写在提示词里。
 - 只跑 p01、p02：`EXPLICIT_ONLY=p01,p02 python autodl/run_explicit_two_stage.py`
 - 只跑 m01–m04：`EXPLICIT_ONLY=m01,m02,m03,m04 EXPLICIT_OUT=/root/autodl-tmp/out/myth-poses python autodl/run_explicit_two_stage.py`
-- 跑完关机，数据盘留下，权重缓存不删。不要空开着 GPU 计费。
+- 跑完关机，数据盘留下，权重缓存不删。不要空开着 GPU 计费。F34 每次关机之后立刻读 AutoDL 余额（`GET /api/v1/wallet/balance` 的 `assets`，单位厘），把余额数字写进当轮报告。漫画把这个数字转给额度 bot。关机流程不能跳过读余额。
 
 再出同类静帧时照这个锁，包括一条不断的圆钝鳞尾、白蛇自己没有人腿人脚、鳞到尖、尾尖不是头。fal 静帧模式不能代替这一条。监督 bot 也不能代替 `autodl/run_explicit_two_stage.py`。现在不要跑这个入口。
