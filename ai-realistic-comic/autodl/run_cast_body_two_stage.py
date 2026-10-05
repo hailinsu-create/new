@@ -353,10 +353,10 @@ def score_image(image: Path, actor: str, view: str, stage: str) -> dict:
             "GROK_FALLBACK_MISSING"
         )
     Path("/tmp/cast-score").mkdir(parents=True, exist_ok=True)
-    grok_cmd = tpl.grok_score_argv(fallback, images)
+    grok_cmd = tpl.grok_score_argv(fallback, images, prompt)
     print(f"SCORER_FALLBACK {tpl.GROK_SCORER}", flush=True)
     grok = subprocess.run(
-        grok_cmd + [prompt],
+        grok_cmd,
         capture_output=True,
         text=True,
         timeout=900,

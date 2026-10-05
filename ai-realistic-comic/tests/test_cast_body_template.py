@@ -290,7 +290,9 @@ def test_prompts_only_change_look_and_clothes():
     grok_argv = mod.grok_score_argv(
         "/home/ubuntu/.opencode/bin/opencode",
         ["/tmp/lock.png", "/tmp/eyes.jpg", "/tmp/plate.png"],
+        "score this",
     )
+    assert grok_argv.index("score this") < grok_argv.index("-f")
     assert "opencode-go/grok-4.7" in grok_argv
     assert "xhigh" in grok_argv
     assert grok_argv.count("-f") == 3

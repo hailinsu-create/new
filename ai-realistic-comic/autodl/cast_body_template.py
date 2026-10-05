@@ -570,8 +570,8 @@ def codex_should_fallback(returncode: int | None, detail: str) -> bool:
     return any(needle in lowered for needle in needles)
 
 
-def grok_score_argv(binary: str, images: list[str]) -> list[str]:
-    """Same rubric, grok 4.7 xhigh. This is the only fallback model."""
+def grok_score_argv(binary: str, images: list[str], prompt: str) -> list[str]:
+    """Same rubric, grok 4.7 xhigh. The prompt comes before the image flags."""
     cmd = [
         binary,
         "run",
@@ -585,6 +585,7 @@ def grok_score_argv(binary: str, images: list[str]) -> list[str]:
         "--auto",
         "--dir",
         "/tmp/cast-score",
+        prompt,
     ]
     for image in images:
         cmd.extend(["-f", str(image)])
