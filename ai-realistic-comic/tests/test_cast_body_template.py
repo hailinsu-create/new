@@ -613,7 +613,7 @@ def test_score_log_names_the_item_under_nine_when_mean_is_nine():
     assert "seed `62`" in docs
     assert "33`–`61`" in docs
     assert "33`–`83`" in docs
-    assert "86`–`97`" in docs
+    assert "86`–`98`" in docs
     assert "从 `99` 起" in docs
 
 
