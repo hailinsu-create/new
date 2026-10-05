@@ -111,6 +111,24 @@ def test_pass1_requires_every_content_score_except_resolution():
     )
     assert capped["identity"] == 7
     assert capped["wardrobe"] == 10
+    small = mod.resolve_eyes(
+        _pass1_score(eyes_geometry=False, eyes_structure=True, eyes_detail=False, identity=9),
+        137,
+    )
+    assert small["eyes_geometry"] is True
+    assert small["identity"] == 9
+    broken = mod.resolve_eyes(
+        _pass1_score(eyes_structure=False, eyes_detail=True, identity=9),
+        137,
+    )
+    assert broken["eyes_geometry"] is False
+    assert broken["identity"] == 7
+    large = mod.resolve_eyes(
+        _pass1_score(eyes_structure=True, eyes_detail=False, identity=9),
+        280,
+    )
+    assert large["eyes_geometry"] is False
+    assert large["identity"] == 7
     assert "EYES_GEOMETRY" in mod.look_gates(
         "lin_wantang", "front", _pass1_score(eyes_geometry=False)
     )
@@ -118,6 +136,25 @@ def test_pass1_requires_every_content_score_except_resolution():
     missing = _pass1_score()
     del missing["period_hair"]
     assert not mod.accept_pass1(missing, "lin_wantang", "front", 0.85, 34)
+
+
+def test_background_eaten_skips_the_scorer():
+    from PIL import Image
+
+    mod = _load()
+    gray = Image.new("RGB", (448, 592), (198, 198, 198))
+    gray_path = "/tmp/cast-gray-body.png"
+    gray.save(gray_path)
+    assert mod.torso_eaten_by_background(gray_path)
+    person = gray.copy()
+    for x in range(160, 300):
+        for y in range(30, 110):
+            person.putpixel((x, y), (36, 28, 24))
+        for y in range(180, 280):
+            person.putpixel((x, y), (214, 170, 148))
+    person_path = "/tmp/cast-person-body.png"
+    person.save(person_path)
+    assert not mod.torso_eaten_by_background(person_path)
 
 
 def test_pass2_uses_eight_way_mean_and_same_look_gate():
@@ -144,10 +181,20 @@ def test_prompts_only_change_look_and_clothes():
     assert front.count("胸腹髋腿只留皮肤，不要背心短裤内衣。") == 2
     assert "身体不动" not in front
     assert "只锁五官和肤色" in front
+    assert "第二张只有头" in front
+    assert "不要从第二张带衣服" in front
     assert "第二张图是锁脸" not in front
+    back = mod.pass1_prompt("lin_wantang", "back")
+    assert "第二张" not in back
+    assert "背面不喂锁脸" in back
+    assert mod.feeds_face("front") and mod.feeds_face("side")
+    assert not mod.feeds_face("back")
+    assert mod.ref_face_rel("lin_wantang") == "library/cast/lin_wantang/ref-face.png"
     assert "站姿" not in mod.face_lock_line("lin_wantang")
     assert "脸型" not in mod.face_lock_line("lin_wantang")
     assert "无情节的成年全身站姿模板" in mod.SCORE_PREFIX
+    assert "wardrobe 最高 6" in mod.SCORE_PREFIX
+    assert "below 200" in mod.SCORE_PREFIX
     assert "胸腹髋腿还有布则 motif<9" in mod.SCORE_PREFIX
     assert "至少给 9" not in mod.SCORE_PREFIX
     assert mod.KEEP_MEAN == 9.0
@@ -240,6 +287,20 @@ def test_prompts_only_change_look_and_clothes():
     assert "deepseek-v4-flash-vision" not in score_joined
     assert "agy" not in score_joined
     assert score_argv.count("-i") == 3
+    grok_argv = mod.grok_score_argv(
+        "/home/ubuntu/.opencode/bin/opencode",
+        ["/tmp/lock.png", "/tmp/eyes.jpg", "/tmp/plate.png"],
+    )
+    assert "opencode-go/grok-4.7" in grok_argv
+    assert "xhigh" in grok_argv
+    assert grok_argv.count("-f") == 3
+    assert "deepseek" not in " ".join(grok_argv).lower()
+    assert mod.codex_should_fallback(1, "usage limit")
+    assert mod.codex_should_fallback(None, "codex missing or logged out")
+    assert not mod.codex_should_fallback(0, "ok")
+    local = mod.local_background_score()
+    assert local["scorer"] == "local"
+    assert local["wardrobe"] <= 6
     assert mod.f34_should_power_on(has_work=True, hold_off=False) is True
     assert mod.f34_should_power_on(has_work=False, hold_off=False) is False
     assert mod.f34_should_power_on(has_work=True, hold_off=True) is False
@@ -372,6 +433,10 @@ def test_diagnosis_keeps_the_prompt_and_records_the_vae_roundoff():
     assert "无情节的成年全身站姿模板" in docs
     assert "eyes_geometry" in docs
     assert "已撤" in docs
+    assert "ref-face.png" in docs
+    assert "grok-4.7-xhigh" in docs
+    assert "背面不喂" in docs
+    assert "wardrobe 最高 6" in docs or "最高 6" in docs
     assert "不扫" in docs
     assert "指定籽" in docs
     assert "已退役" in docs
@@ -599,8 +664,10 @@ def test_runner_does_not_edit_explicit_still_files():
     assert "require_codex_cli" in text
     assert '"kind": "clothed"' not in text
     assert "agy" not in text.lower()
-    assert "opencode" not in text.lower()
+    assert "opencode-go/grok-4.7" not in text.lower() or "grok_score_argv" in text
     assert "deepseek-v4-flash-vision" not in text
+    assert "grok_binary" in text
+    assert "SCORER_FALLBACK" in text
     assert "score_call" in text
     assert "score_exec_argv" in text
     assert "SCORE_PREFIX" in text
@@ -664,7 +731,11 @@ def test_runner_does_not_edit_explicit_still_files():
     assert "PROBE_ONCE" in text
     assert "RESEARCH_DONE" in text
     assert "ref.png" in text
-    assert '"face"' not in text
+    assert "ref_face_rel" in text
+    assert "feeds_face" in text
+    assert "torso_eaten_by_background" in text
+    assert "grok_score_argv" in text
+    assert "SCORER_FALLBACK" in text
     assert "eye_crop" in text
     assert "SCORE_DEFERRED" in text
     assert "PASS1_NEW_SEED" not in text

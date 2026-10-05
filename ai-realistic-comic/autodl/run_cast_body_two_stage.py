@@ -14,6 +14,7 @@ import os
 import shutil
 import subprocess
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 import cast_body_template as tpl
@@ -253,12 +254,11 @@ def gpu_block_reason(text: str) -> str | None:
     return None
 
 
-def eye_crop(plate: Path, lock: Path) -> tuple[Path, Path]:
-    """Native head crop plus a lock resized to that height. Do not enlarge the plate."""
+def eye_crop(plate: Path, lock: Path) -> tuple[Path, Path, int]:
+    """Native head crop. The lock stays at its own resolution. Do not enlarge the plate."""
     from PIL import Image
 
     src = Image.open(plate).convert("RGB")
-    ref = Image.open(lock).convert("RGB")
     width, height = src.size
     # Head sits in the top quarter of these full-body plates.
     box = (
@@ -268,48 +268,111 @@ def eye_crop(plate: Path, lock: Path) -> tuple[Path, Path]:
         max(2, int(height * 0.24)),
     )
     crop = src.crop(box)
-    scale = crop.size[1] / max(1, ref.size[1])
-    ref = ref.resize(
-        (max(1, int(round(ref.size[0] * scale))), crop.size[1]),
-        Image.Resampling.LANCZOS,
-    )
     dest_dir = Path("/tmp/cast-eye-crops")
     dest_dir.mkdir(parents=True, exist_ok=True)
     crop_path = dest_dir / f"{plate.stem}.jpg"
-    lock_path = dest_dir / f"{plate.stem}-lock.jpg"
     crop.save(crop_path, quality=95)
-    ref.save(lock_path, quality=95)
-    return lock_path, crop_path
+    short_side = min(crop.size)
+    return lock, crop_path, short_side
+
+
+def grok_binary() -> str | None:
+    found = shutil.which("opencode")
+    if found:
+        return found
+    local = Path.home() / ".opencode" / "bin" / "opencode"
+    if local.is_file():
+        return str(local)
+    return None
+
+
+def texts_from_opencode(raw: str) -> str:
+    chunks: list[str] = []
+    for line in raw.splitlines():
+        piece = line.strip()
+        if not piece.startswith("{"):
+            continue
+        try:
+            event = json.loads(piece)
+        except json.JSONDecodeError:
+            continue
+        part = event.get("part") if isinstance(event.get("part"), dict) else {}
+        text = part.get("text") or event.get("text") or ""
+        if text:
+            chunks.append(str(text))
+    return "\n".join(chunks)
+
+
+def finish_score(parsed: dict, short_side: int, scorer: str) -> dict:
+    resolved = tpl.resolve_eyes(parsed, short_side)
+    resolved["scorer"] = scorer
+    return resolved
 
 
 def score_image(image: Path, actor: str, view: str, stage: str) -> dict:
-    """Codex CLI scores with the fixed SCORE_PREFIX. No second scorer."""
-    makeup = ROOT / "library" / "cast" / actor / "ref.png"
+    """Codex CLI first. Quota, logout, or a CLI error falls back to grok 4.7 xhigh."""
+    face = ROOT / tpl.ref_face_rel(actor)
+    makeup = face if face.is_file() else ROOT / "library" / "cast" / actor / "ref.png"
     if not makeup.is_file():
         raise SystemExit(f"missing makeup ref {makeup}")
-    binary = codex_binary()
-    logged = bool(binary) and codex_logged_in(binary)
-    lock_view, cropped = eye_crop(image, makeup)
+    lock_view, cropped, short_side = eye_crop(image, makeup)
     images = [str(lock_view), str(cropped), str(image)]
-    cmd = tpl.score_exec_argv(binary, logged_in=logged, cwd=str(image.parent), images=images)
-    prompt = tpl.score_call(actor, view, stage, images)
+    prompt = tpl.score_call(actor, view, stage, images, short_side=short_side)
     if not prompt.startswith(tpl.SCORE_PREFIX):
         raise SystemExit("SCORE_PREFIX_DRIFT 打分前缀被改写。禁止换路。")
-    result = subprocess.run(
-        cmd,
-        input=prompt,
+    binary = codex_binary()
+    logged = bool(binary) and codex_logged_in(binary)
+    codex_detail = ""
+    if binary and logged:
+        cmd = tpl.score_exec_argv(binary, logged_in=True, cwd=str(image.parent), images=images)
+        result = subprocess.run(
+            cmd,
+            input=prompt,
+            capture_output=True,
+            text=True,
+            timeout=900,
+        )
+        codex_detail = (result.stderr or result.stdout or "").strip()
+        parsed = None
+        if result.returncode == 0:
+            try:
+                parsed = tpl.parse_score(f"{result.stdout}\n{result.stderr}")
+            except ValueError as exc:
+                codex_detail = f"{codex_detail}\n{exc}"
+        if parsed is not None:
+            print(f"SCORER {tpl.CODEX_SCORER}", flush=True)
+            return finish_score(parsed, short_side, tpl.CODEX_SCORER)
+        if not tpl.codex_should_fallback(result.returncode, codex_detail) and result.returncode == 0:
+            codex_detail = f"{codex_detail}\nscore json missing"
+    else:
+        codex_detail = "codex missing or logged out"
+    fallback = grok_binary()
+    if not fallback:
+        raise SystemExit(
+            f"CODEX_CLI_FAILED score {actor} {view} {stage} {codex_detail[-300:]} "
+            "GROK_FALLBACK_MISSING"
+        )
+    Path("/tmp/cast-score").mkdir(parents=True, exist_ok=True)
+    grok_cmd = tpl.grok_score_argv(fallback, images)
+    print(f"SCORER_FALLBACK {tpl.GROK_SCORER}", flush=True)
+    grok = subprocess.run(
+        grok_cmd + [prompt],
         capture_output=True,
         text=True,
         timeout=900,
     )
-    if result.returncode != 0:
-        detail = (result.stderr or result.stdout or "codex score missing").strip()
-        raise SystemExit(f"CODEX_CLI_FAILED score {actor} {view} {stage} {detail[-500:]}")
+    grok_text = f"{grok.stdout or ''}\n{texts_from_opencode(grok.stdout or '')}\n{grok.stderr or ''}"
+    if grok.returncode != 0:
+        detail = (grok.stderr or grok.stdout or "grok score missing").strip()
+        raise SystemExit(
+            f"SCORE_FAILED codex {codex_detail[-200:]} grok {detail[-300:]}"
+        )
     try:
-        parsed = tpl.parse_score(f"{result.stdout}\n{result.stderr}")
+        parsed = tpl.parse_score(grok_text)
     except ValueError as exc:
-        raise SystemExit(f"CODEX_CLI_FAILED score json {actor} {view} {stage} {exc}") from exc
-    return tpl.cap_identity_for_eyes(parsed)
+        raise SystemExit(f"SCORE_FAILED grok json {actor} {view} {stage} {exc}") from exc
+    print(f"SCORER {tpl.GROK_SCORER}", flush=True)
+    return finish_score(parsed, short_side, tpl.GROK_SCORER)
 
 
 def clothed_candidates(actor: str, view: str) -> list[str]:
@@ -746,6 +809,9 @@ def run_pass2(client, remote: Remote, actor: str, view: str, seed: int, src_remo
             continue
         local2 = FAIL / f"{actor}-{view}-pass2-seed{seed}-d{denoise}.png"
         remote.fetch(done2["dest"], local2)
+        if tpl.torso_eaten_by_background(str(local2)):
+            print(f"LOCAL_FAIL {actor} {view} seed={seed} 二采头胸被背景吃掉，不送打分", flush=True)
+            continue
         score2 = score_image(local2, actor, view, "pass2")
         passed = tpl.accept_pass2(score2, actor, view, tpl.FIXED_SCALE, seed)
         emit_score(
@@ -828,7 +894,8 @@ def run_view(
     width, height = tpl.PASS1_SIZE
     pass1_steps = tpl.PASS1_STEPS if steps is None else int(steps)
     use_scale = tpl.FIXED_SCALE if scale is None else float(scale)
-    # One specified seed. A miss does not step to the next seed. Pass 1 does not send a second face.
+    # One specified seed. A miss does not step to the next seed.
+    # Front and side send the jaw-up crop. Back does not.
     if user_stop_requested(client):
         raise SystemExit(f"{actor} {view} 用户叫停。一采未过门，禁止二采。")
     seed = tpl.require_specified_seed(specified_seed, actor, view)
@@ -839,24 +906,63 @@ def run_view(
         flush=True,
     )
     remote_dest = f"/root/autodl-tmp/out/cast-{actor}-{view}-pass1-seed{seed}{suffix}.png"
-    done = remote.render(
-        {
-            "kind": "pass1",
-            "scale": use_scale,
-            "seed": seed,
-            "width": width,
-            "height": height,
-            "steps": pass1_steps,
-            "true_cfg_scale": tpl.ASSET_TRUE_CFG,
-            "src": src,
-            "prompt": f"/root/autodl-tmp/in/cast-{actor}-{view}-pass1.txt",
-            "negative": tpl.negative_for(actor),
-            "dest": remote_dest,
-        }
-    )
+    job = {
+        "kind": "pass1",
+        "scale": use_scale,
+        "seed": seed,
+        "width": width,
+        "height": height,
+        "steps": pass1_steps,
+        "true_cfg_scale": tpl.ASSET_TRUE_CFG,
+        "src": src,
+        "prompt": f"/root/autodl-tmp/in/cast-{actor}-{view}-pass1.txt",
+        "negative": tpl.negative_for(actor),
+        "dest": remote_dest,
+    }
+    if tpl.feeds_face(view):
+        face_local = ROOT / tpl.ref_face_rel(actor)
+        if not face_local.is_file():
+            raise SystemExit(f"missing face crop {face_local}")
+        face_remote = f"/root/autodl-tmp/in/cast-{actor}-ref-face.png"
+        face_up = client.open_sftp()
+        face_up.put(str(face_local), face_remote)
+        face_up.close()
+        job["face"] = face_remote
+        print(f"PASS1_FACE {face_local}", flush=True)
+    else:
+        print(f"PASS1_FACE back 不喂锁脸", flush=True)
+    done = remote.render(job)
     FAIL.mkdir(parents=True, exist_ok=True)
     local = FAIL / f"{actor}-{view}-pass1-seed{seed}{suffix}.png"
     remote.fetch(done["dest"], local)
+    if tpl.torso_eaten_by_background(str(local)):
+        print(f"LOCAL_FAIL {actor} {view} seed={seed} 头胸被背景吃掉，不送打分", flush=True)
+        score = tpl.local_background_score()
+        passed = False
+        emit_score(
+            local,
+            "PASS1",
+            actor,
+            view,
+            score,
+            passed,
+            seed,
+            f"scale={use_scale} seed={seed} steps={pass1_steps}",
+            scale=use_scale,
+            seconds=done.get("seconds"),
+        )
+        missed = {
+            "passed": False,
+            "seed": seed,
+            "score": score,
+            "path": str(local),
+            "steps": pass1_steps,
+            "wardrobe": score.get("wardrobe"),
+            "pass1_dest": remote_dest,
+        }
+        if on_miss == "return":
+            return missed
+        raise SystemExit(f"{actor} {view} seed={seed} 头胸被背景吃掉。禁止二采。")
     score = score_image(local, actor, view, "pass1")
     passed = tpl.accept_pass1(score, actor, view, use_scale, seed)
     emit_score(
@@ -1069,6 +1175,48 @@ def run_research(
     print("RESEARCH_DONE 一采研究批结束。禁止二采。", flush=True)
 
 
+def deadline_hit(deadline: datetime | None) -> bool:
+    if deadline is None:
+        return False
+    return datetime.now(timezone.utc) >= deadline
+
+
+def run_until_pass2(client, remote: Remote, actor: str, view: str, steps: int, deadline: datetime | None) -> dict:
+    """Pass 1, then the same seed at pass 2. A miss takes the next unspent seed."""
+    used: set[int] = set()
+    while True:
+        if deadline_hit(deadline):
+            raise SystemExit("DEADLINE 到点。关机留盘。")
+        if user_stop_requested(client):
+            raise SystemExit(f"{actor} {view} 用户叫停。一采未过门，禁止二采。")
+        seed = tpl.seed_for(actor, view, 0)
+        while seed in used or seed in tpl.spent_seeds(actor, view):
+            seed += 1
+        used.add(seed)
+        print(f"UNTIL_PASS2 {actor} {view} seed={seed} steps={steps}", flush=True)
+        try:
+            row = run_view(
+                client,
+                remote,
+                actor,
+                view,
+                seed,
+                steps=steps,
+                on_miss="return",
+                enter_pass2=True,
+                plate_tag=f"face-steps{steps}",
+            )
+        except SystemExit as exc:
+            text = str(exc)
+            if "二采未过门" in text:
+                print(f"PASS2_RESPIN {actor} {view} seed={seed} {text[-160:]}", flush=True)
+                continue
+            raise
+        if isinstance(row, dict) and row.get("pass2"):
+            return row
+        print(f"PASS1_RESPIN {actor} {view} seed={seed}", flush=True)
+
+
 def parse_only(raw: str) -> list[tuple[str, str]]:
     if not raw:
         return list(tpl.NUDE_VIEWS)
@@ -1160,6 +1308,8 @@ def main() -> None:
     parser.add_argument("--seed", default=None, help="指定一采籽，逗号分隔。未指定不跑")
     parser.add_argument("--research", action="store_true", help="一采研究批。禁止二采。")
     parser.add_argument("--steps", type=int, default=None, help="当次一采步数。研究批默认 16。")
+    parser.add_argument("--until-pass2", action="store_true", help="一采过门才二采，不过门换下一颗未花籽")
+    parser.add_argument("--deadline", default=None, help="ISO 时间，到点关机留盘")
     parser.add_argument("--probe-scale", type=float, default=None, help="只对籽 62 试一次这个 scale")
     args = parser.parse_args()
     if os.environ.get("CAST_ASK_FILM_PROXY") or tpl.film_proxy_allowed():
@@ -1215,10 +1365,18 @@ def main() -> None:
             finally:
                 client.close()
             return
-        seeds = tpl.parse_specified_seeds(args.seed)
-        for actor, view in parse_only(args.only):
-            for seed in seeds:
-                tpl.require_specified_seed(seed, actor, view)
+        deadline = None
+        if args.deadline:
+            deadline = datetime.fromisoformat(args.deadline)
+            if deadline.tzinfo is None:
+                deadline = deadline.replace(tzinfo=timezone.utc)
+        if args.until_pass2:
+            seeds = []
+        else:
+            seeds = tpl.parse_specified_seeds(args.seed)
+            for actor, view in parse_only(args.only):
+                for seed in seeds:
+                    tpl.require_specified_seed(seed, actor, view)
         boot = f34_power_for_work(
             token,
             str(item.get("status") or ""),
@@ -1241,7 +1399,10 @@ def main() -> None:
                 if user_stop_requested(client):
                     paused = True
                     raise SystemExit(f"{actor} {view} 用户叫停。关机留盘，不去衣。")
-                if args.research:
+                if args.until_pass2:
+                    steps = tpl.C_PASS1_STEPS if args.steps is None else int(args.steps)
+                    run_until_pass2(client, remote, actor, view, steps, deadline)
+                elif args.research:
                     steps = tpl.C_PASS1_STEPS if args.steps is None else int(args.steps)
                     run_research(client, remote, actor, view, seeds, steps, args.probe_scale)
                 else:

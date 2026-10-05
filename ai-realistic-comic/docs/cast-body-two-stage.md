@@ -5,7 +5,7 @@
 - 出片第一段同样只走 Codex CLI，见 `docs/explicit-still-two-stage.md` 和 `autodl/run_explicit_two_stage.py`。资产脚本不共用出片的 job 文件。
 - 资产走 `autodl/run_cast_body_two_stage.py` 和 `autodl/cast_body_worker.py`。机器上的队列是 `/root/autodl-tmp/in/cast-asset-job.json`。穿衣底板不进这个队列。
 
-四人仍是林晚棠、顾承安、伊莲·沃斯、阿德里安·凯恩。林晚棠和伊莲的脸已换成 2026-10-06 记事正面锁脸：`library/cast/lin_wantang/ref.png`、`library/cast/elena_voss/ref.png`。旧女脸在 `archive/ref-retired-2026-10-05.png`，停用。男演员 ref 不动。侧脸和三视图还没有。`library/cast/mood/` 的五合一合成图只是气质标签板，不能当这四张 `ref.png`，也不能喂去衣。一采锁脸只留五官和肤色，并去衣。一采不把 `ref.png` 当第二张条件图。「第二张图是锁脸」已撤。打分仍用这张锁脸，并另做头肩裁切比眼睛。发型妆随新锁脸，不在一采提示里另写改妆。第一张图仍是已经过门的穿衣底板。一采过除分辨率外的全部要求。二采只用同一颗种子做轻放大；掉分只调 denoise 和步数，不大改内容。不写故事场景，不换构图。出片不代跑。
+四人仍是林晚棠、顾承安、伊莲·沃斯、阿德里安·凯恩。林晚棠和伊莲的脸已换成 2026-10-06 记事正面锁脸：`library/cast/lin_wantang/ref.png`、`library/cast/elena_voss/ref.png`。旧女脸在 `archive/ref-retired-2026-10-05.png`，停用。男演员 ref 不动。侧脸和三视图还没有。`library/cast/mood/` 的五合一合成图只是气质标签板，不能当这四张 `ref.png`，也不能喂去衣。一采正面和侧面的第二张是本机从 `ref.png` 切出的下颌以上头图 `library/cast/<id>/ref-face.png`，不覆盖 `ref.png`。切图里不得有黑布、衣领或肩。背面不喂这张切图。第一张仍是已经过门的穿衣底板。正面和侧面的锁脸句是「第二张只有头，只锁五官和肤色，不要从第二张带衣服。」「第二张图是锁脸」已撤，整张带衣领的 `ref.png` 不再当条件图。打分对照优先用 `ref-face.png`。发型妆随新锁脸，不在一采提示里另写改妆。一采过除分辨率外的全部要求。二采只用同一颗种子做轻放大；掉分只调 denoise 和步数，不大改内容。不写故事场景，不换构图。出片不代跑。
 
 ## 十二张穿衣底板
 
@@ -19,7 +19,7 @@
 
 去衣只用 F34。穿衣过门之前禁止开机去衣。
 
-打分 = Codex CLI + 固定标准前缀 `SCORE_PREFIX`（`autodl/cast_body_template.py`）。前缀含八项、硬门和 JSON schema，同一次运行里字节不变。`score_call` 只在末尾追加定妆路径、待打分图路径和一句任务。没有 `codex` 或未登录就 `SystemExit`，禁止改走 OpenCode vision。
+打分优先走 Codex CLI + 固定标准前缀 `SCORE_PREFIX`（`autodl/cast_body_template.py`）。前缀含八项、硬门和 JSON schema，同一次运行里字节不变。`score_call` 只在末尾追加定妆路径、待打分图路径、眼睛裁切短边和一句任务。Codex 不可用时（没有二进制、未登录、额度用完、CLI 报错）自动改用 grok 4.7 xhigh，rubric 和九分阈值不变。入口是 `opencode run --model opencode-go/grok-4.7 --variant xhigh`。每张分数 JSON 写 `scorer`：`codex` 或 `grok-4.7-xhigh`。头胸被背景吃掉时不送打分，`scorer` 为 `local`。禁止改用 DeepSeek vision。
 
 ## 修订必推
 
@@ -51,11 +51,11 @@ F34 干活才开机。当前批次做完或暂停，`f34_shutdown_hook` 立刻 `
 | denoise | 无 | 0.20。掉分降到 0.15，再降到 0.12 |
 | true_cfg_scale | 4 | 4 |
 | LoRA scale | 0.85 | 0.85，同一颗种子 |
-| 提示 | 构图一句，含 `full body, head and both feet in frame, no bust/head crop`。锁脸：只锁五官和肤色。去衣结果态写两遍：胸腹髋腿只留皮肤，不要背心短裤内衣。三句并列，互不替换。一采不传第二张脸 | 只放大。头和双脚仍留在画面内 |
+| 提示 | 构图一句，含 `full body, head and both feet in frame, no bust/head crop`。正面和侧面：锁脸：第二张只有头，只锁五官和肤色，不要从第二张带衣服。背面不喂锁脸。去衣结果态写两遍：胸腹髋腿只留皮肤，不要背心短裤内衣。三句并列，互不替换 | 只放大。头和双脚仍留在画面内 |
 
 ## 两段，求快
 
-去衣固定 LoRA scale `0.85`。不扫 scale。一采输入只喂已经过门的新 `body-clothed` 底板。构图、锁脸、去衣分成三句，互不替换。构图只写全身入画：中文「头和双脚都留在画面内，不要裁成头肩」，加上独立硬句 `full body, head and both feet in frame, no bust/head crop`。锁脸只写「只锁五官和肤色」。不写「第二张图是锁脸」，不写「身体不动」，不写站姿，不把发型妆句接在锁脸上。去衣是结果态，同一句写两遍：胸腹髋腿只留皮肤，不要背心短裤内衣。「不要把去衣句再加长」已退役。不另加接触或情节。
+去衣固定 LoRA scale `0.85`。不扫 scale。一采输入只喂已经过门的新 `body-clothed` 底板。构图、锁脸、去衣分成三句，互不替换。构图只写全身入画：中文「头和双脚都留在画面内，不要裁成头肩」，加上独立硬句 `full body, head and both feet in frame, no bust/head crop`。正面和侧面锁脸写「第二张只有头，只锁五官和肤色，不要从第二张带衣服。」背面不喂锁脸，提示里不写「第二张」。不写「第二张图是锁脸」，不写「身体不动」，不写站姿，不把发型妆句接在锁脸上。去衣是结果态，同一句写两遍：胸腹髋腿只留皮肤，不要背心短裤内衣。「不要把去衣句再加长」已退役。不另加接触或情节。
 
 林晚棠正面 seed `33`–`83` 已花。其中 `33`–`61` 是更早的失败批，`62`–`83` 是旧提示一采，全部打过分，没有过门。规划 C 研究批十张都没过门，失败籽 `84`、`85` 也写入黑名单。盲递增不从 `86` 接着跑。下一验证只用指定籽。指定籽可以点名重跑，未过门不进二采，也不换成下一颗。本次指定 seed `62`、`70`、`78`。`scale 0.85 / seed 33` 作废。任一内容项低于 9 都不过门。用户放下停止文件 `/tmp/cast-asset-stop`（本机）或 `/root/autodl-tmp/in/cast-asset-stop`（F34）就停。用户叫停时一采未过门，禁止二采。
 
@@ -65,7 +65,15 @@ F34 干活才开机。当前批次做完或暂停，`f34_shutdown_hook` 立刻 `
 
 衣服会动但结果不对时走这条。scale 默认仍是 `0.85`，不扫区间。锁脸收成「只锁五官和肤色」。构图句、去衣结果态两遍、负向、`448×592`、true_cfg 4、LoRA 文件都不改。带黑圆领的整张 `ref.png` 不再作为第二张条件图。「第二张图是锁脸」已撤。不换籽当主策略，不重跑 `33`–`61`，不改二采，不改 letterbox，不开 G09，不新建实例。
 
-打分保留 `eyes_black_brown`，只表示虹膜颜色。新增 `eyes_geometry`：两眼大小接近、眼角高低一致、视线平行、两侧各有小高光、眼睑不糊。任一不满足就是假，不过门。颜色为真不能抵消。几何失败时 identity 最高 7。打分把结果裁成头肩，缩到和锁脸相近的尺度再比眼睛；全身图继续判衣着、姿势和脚。衣着门不放宽。
+打分保留 `eyes_black_brown`，只表示虹膜颜色。`eyes_structure` 只认大小眼、眼角高低、视线分开。`eyes_detail` 只认高光和眼睑。眼睛裁切短边低于 200 时，高光和眼睑不清不算失败，也不把 identity 压到 7；高光和眼睑留到二采大图再判。短边达到 200 时，结构或细节任一失败则 `eyes_geometry` 为假，identity 最高 7。颜色为真不能抵消结构失败。全身图继续判衣着、姿势和脚。正面没有乳点、没有肚脐、并且髋部有衣缝，wardrobe 最高 6。头胸被背景灰吃掉则本地失败，不送打分。衣着门其余口径不放宽。
+
+林晚棠 `ref-face.png` 从 `library/cast/lin_wantang/ref.png` 本机切出，下颌以上，无衣领无肩。侧视图用同一张。背面不喂。
+
+到二采过门为止时用 16 步、scale `0.85`。一采未过门禁止二采。不过门换下一颗未花籽。到点或做完都关机留盘。
+
+```bash
+python autodl/run_cast_body_two_stage.py --only lin_wantang:front,lin_wantang:side,lin_wantang:back --until-pass2 --steps 16 --deadline 2026-10-05T23:33:00+00:00
+```
 
 下一研究批仍是林晚棠正面一采，16 步，scale `0.85`，禁止二采。籽是对照 `62`、`70`、`78` 加 `86`–`92`。黑名单仍是 `33`–`85`，跑完再把本批失败籽写进去。某一张打分若因 Codex 额度失败，图留在 `_fail/`，研究批继续后面的籽，不因此关机。
 

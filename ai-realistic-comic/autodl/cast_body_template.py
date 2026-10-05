@@ -5,8 +5,8 @@ A female clothed plate is rebuilt from that lock until its mean is at least 9.
 Only then does pass 1 change clothes on that new plate.
 Pass 1 must clear every content score. Resolution stays on the low grid.
 The undress face stays locked to the new clothed plate. A framing sentence,
-a face-lock sentence, and a clothes sentence stay apart. The face lock names
-only features and skin tone. The lock image is the second input. The clothes
+a face-lock sentence, and a clothes sentence stay apart. Front and side pass 1
+send a jaw-up face crop as the second image. The back view does not. The clothes
 sentence is the nude result, written twice. Identity, anatomy, or wardrobe under 9
 does not open the next seed. The next check names its seeds. Spent seeds stay
 out of the walker. A named seed may be rendered again. Pass 2 is a same-seed
@@ -362,11 +362,25 @@ def look_line(actor: str) -> str:
     return _KEEP_LOOK[actor]
 
 
-def face_lock_line(actor: str) -> str:
-    """Lock features and skin tone. Do not point at a second image."""
+def feeds_face(view: str) -> bool:
+    """Front and side use the jaw-up crop. The back has no face to lock."""
+    if view not in ("front", "side", "back"):
+        raise KeyError(view)
+    return view != "back"
+
+
+def ref_face_rel(actor: str) -> str:
+    """Jaw-up crop. This file does not replace ref.png."""
+    return f"library/cast/{actor}/ref-face.png"
+
+
+def face_lock_line(actor: str, view: str = "front") -> str:
+    """Front and side name the head-only second image. Back does not."""
     if actor not in PERIOD_RELEASE and actor not in _KEEP_LOOK:
         raise KeyError(actor)
-    return "锁脸：只锁五官和肤色。"
+    if view == "back":
+        return "背面不喂锁脸。"
+    return "锁脸：第二张只有头，只锁五官和肤色，不要从第二张带衣服。"
 
 
 def wardrobe_clause(actor: str, view: str) -> str:
@@ -391,7 +405,7 @@ def frame_clause() -> str:
 
 def pass1_prompt(actor: str, view: str) -> str:
     """New clothed plate only. Frame, face lock, and clothes removal stay apart."""
-    return frame_clause() + face_lock_line(actor) + wardrobe_clause(actor, view)
+    return frame_clause() + face_lock_line(actor, view) + wardrobe_clause(actor, view)
 
 
 def clothed_prompt(actor: str, view: str) -> str:
@@ -494,6 +508,14 @@ def look_gates(actor: str, view: str, item: dict) -> list[str]:
     return gates
 
 
+EYE_DETAIL_MIN_SIDE = 200
+GROK_SCORER = "grok-4.7-xhigh"
+CODEX_SCORER = "codex"
+LOCAL_SCORER = "local"
+GROK_FALLBACK_MODEL = "opencode-go/grok-4.7"
+GROK_FALLBACK_VARIANT = "xhigh"
+
+
 def cap_identity_for_eyes(item: dict) -> dict:
     """A geometry miss caps identity at 7. Iris color does not offset it."""
     if item.get("eyes_geometry") is not False:
@@ -510,6 +532,125 @@ def cap_identity_for_eyes(item: dict) -> dict:
         return item
     item["mean"] = round(sum(values) / len(values), 4)
     return item
+
+
+def resolve_eyes(item: dict, short_side: int) -> dict:
+    """Catchlights and eyelids count only when the eye crop's short side is at least 200."""
+    structure_bad = item.get("eyes_structure") is False
+    if int(short_side) < EYE_DETAIL_MIN_SIDE:
+        item["eyes_geometry"] = not structure_bad
+    else:
+        detail_bad = item.get("eyes_detail") is False
+        legacy_bad = (
+            item.get("eyes_structure") is None
+            and item.get("eyes_detail") is None
+            and item.get("eyes_geometry") is False
+        )
+        item["eyes_geometry"] = not (structure_bad or detail_bad or legacy_bad)
+    if item["eyes_geometry"] is False:
+        return cap_identity_for_eyes(item)
+    return item
+
+
+def codex_should_fallback(returncode: int | None, detail: str) -> bool:
+    """Quota, logout, a missing binary, or a Codex CLI error opens the grok fallback."""
+    if returncode not in (0, None):
+        return True
+    lowered = (detail or "").lower()
+    needles = (
+        "usage limit",
+        "logged out",
+        "not logged",
+        "codex_cli_missing",
+        "codex_cli_logged_out",
+        "codex_cli_failed",
+        "quota",
+        "insufficient",
+    )
+    return any(needle in lowered for needle in needles)
+
+
+def grok_score_argv(binary: str, images: list[str]) -> list[str]:
+    """Same rubric, grok 4.7 xhigh. This is the only fallback model."""
+    cmd = [
+        binary,
+        "run",
+        "--model",
+        GROK_FALLBACK_MODEL,
+        "--variant",
+        GROK_FALLBACK_VARIANT,
+        "--pure",
+        "--format",
+        "json",
+        "--auto",
+        "--dir",
+        "/tmp/cast-score",
+    ]
+    for image in images:
+        cmd.extend(["-f", str(image)])
+    joined = " ".join(cmd).lower()
+    for banned in ("deepseek", "agy", "gpt-"):
+        if banned in joined:
+            raise SystemExit(f"GROK_SCORE_FORBIDDEN {banned}")
+    if GROK_FALLBACK_MODEL not in cmd or GROK_FALLBACK_VARIANT not in cmd:
+        raise SystemExit("GROK_SCORE_MODEL_DRIFT")
+    return cmd
+
+
+def local_background_score() -> dict:
+    """Head and chest matched the backdrop. Do not spend a scorer call."""
+    item = {key: 2 for key in EIGHT}
+    item.update(
+        {
+            "gates": [],
+            "period_hair": False,
+            "period_makeup": False,
+            "eyes_black_brown": False,
+            "eyes_structure": False,
+            "eyes_detail": False,
+            "eyes_geometry": False,
+            "mean": 2.0,
+            "note": "头胸被背景吃掉",
+            "scorer": LOCAL_SCORER,
+        }
+    )
+    return item
+
+
+def torso_eaten_by_background(path: str) -> bool:
+    """True when the head box and the chest box are the same flat gray as the corners."""
+    from PIL import Image
+
+    image = Image.open(path).convert("RGB")
+    width, height = image.size
+
+    def mean_box(box: tuple[int, int, int, int]) -> tuple[float, float, float]:
+        crop = image.crop(box).resize((1, 1), Image.Resampling.BOX)
+        pixels = [crop.getpixel((0, 0))]
+        count = 1
+        red = sum(pixel[0] for pixel in pixels) / count
+        green = sum(pixel[1] for pixel in pixels) / count
+        blue = sum(pixel[2] for pixel in pixels) / count
+        return red, green, blue
+
+    corners = (
+        (0, 0, min(16, width), min(16, height)),
+        (max(0, width - 16), 0, width, min(16, height)),
+        (0, max(0, height - 16), min(16, width), height),
+        (max(0, width - 16), max(0, height - 16), width, height),
+    )
+    background = [mean_box(box) for box in corners]
+    base = tuple(sum(channel) / len(background) for channel in zip(*background))
+
+    def eaten(box: tuple[int, int, int, int]) -> bool:
+        red, green, blue = mean_box(box)
+        chroma = max(red, green, blue) - min(red, green, blue)
+        distance = sum(abs(channel - origin) for channel, origin in zip((red, green, blue), base)) / 3
+        return distance < 14 and chroma < 18
+
+    head = (int(width * 0.32), int(height * 0.02), int(width * 0.68), max(2, int(height * 0.20)))
+    chest = (int(width * 0.35), int(height * 0.28), int(width * 0.65), max(3, int(height * 0.48)))
+    return eaten(head) and eaten(chest)
 
 
 def _score_ok(item: dict, keys: tuple[str, ...]) -> bool:
@@ -568,7 +709,7 @@ def score_log_line(
         f"mean={item.get('mean')} gates={item.get('gates')} look={look} "
         f"period_hair={item.get('period_hair')} period_makeup={item.get('period_makeup')} "
         f"eyes_black_brown={item.get('eyes_black_brown')} "
-        f"eyes_geometry={item.get('eyes_geometry')} passed={passed} "
+        f"eyes_geometry={item.get('eyes_geometry')} scorer={item.get('scorer')} passed={passed} "
         f"eight={format_eight(item)} below={below_nine(item)}"
     )
 
@@ -599,6 +740,7 @@ def attempt_record(
         "period_makeup": item.get("period_makeup"),
         "eyes_black_brown": item.get("eyes_black_brown"),
         "eyes_geometry": item.get("eyes_geometry"),
+        "scorer": item.get("scorer"),
         "eight": {key: item.get(key) for key in EIGHT},
         "below": below_nine(item),
         "score": item,
@@ -665,24 +807,29 @@ SCORE_PREFIX = (
     "mean is their equal average. gates is [] or H6 for a minor look, H4 for Elena's ears or green eyes or glasses or Adrian missing ears or holding a weapon, "
     "H7 for malformed limbs, FEET if a foot is cut off.\n"
     "只输出一个 JSON 对象：\n"
-    '{"gates":[],"period_hair":false,"period_makeup":false,"eyes_black_brown":false,"eyes_geometry":false,'
+    '{"gates":[],"period_hair":false,"period_makeup":false,"eyes_black_brown":false,'
+    '"eyes_structure":false,"eyes_detail":false,"eyes_geometry":false,'
     '"identity":0,"distinction":0,"interaction":0,"aesthetics":0,"anatomy":0,"wardrobe":0,'
     '"motif":0,"photoreal":0,"mean":0,"note":"一句"}\n'
     "eyes_black_brown is iris color only. "
-    "eyes_geometry is false when the eyes differ in size, the corners are uneven, the gaze is not parallel, "
-    "a catchlight is missing, or an eyelid is smeared. If eyes_geometry is false, identity is at most 7. "
-    "Iris color does not cancel that.\n"
+    "eyes_structure is false only when the eyes differ in size, the outer corners are uneven, or the gaze splits. "
+    "eyes_detail is false only when a catchlight is missing or an eyelid is smeared. "
+    "The tail gives eye_crop_short_side. "
+    "When that short side is below 200, eyes_geometry follows eyes_structure only. "
+    "Do not fail, and do not lower identity, for a missing catchlight or a soft eyelid on that small crop. "
+    "When the short side is 200 or more, eyes_geometry is false if eyes_structure or eyes_detail is false, "
+    "and identity is then at most 7. Iris color does not cancel a structural failure.\n"
     "林晚棠、顾承安：Nude template for Lin or Gu. Identity is facial features, face shape, skin tone, and body type. "
     "Costume hair and makeup must be gone: no hair bun, no hairpins, no forehead ornament, "
     "no heavy eye makeup, no crimson lips. Hair is natural black-brown. Makeup is light or bare. "
     "Eyes are normal black-brown. Do not deduct identity for that change. "
     "Do deduct, and set period_hair or period_makeup true, if the bun, ornaments, heavy makeup, or red lips remain. "
     "Set eyes_black_brown true only when the irises read black-brown. That flag is color only. "
-    "eyes_geometry is true only when both eyes are nearly the same size, the outer corners sit level, "
-    "the gaze is parallel, each iris has a small catchlight, and the eyelids are not smeared. "
-    "Any one miss sets eyes_geometry false. "
-    "If eyes_geometry is false, identity is at most 7. A true eyes_black_brown does not raise identity "
-    "and does not cancel the geometry failure. Compare eyes on the head crop against the lock. "
+    "Set eyes_structure false only for unequal size, uneven corners, or a split gaze. "
+    "Set eyes_detail false only for a missing catchlight or a smeared eyelid. "
+    "On a crop whose short side is below 200, eyes_geometry equals eyes_structure, and identity stays uncapped "
+    "when the structure holds. On a larger crop, either detail miss also sets eyes_geometry false and identity "
+    "is at most 7. A true eyes_black_brown does not cancel that. Compare eyes on the head crop against the lock. "
     "Do not judge eye shape from the tiny face in the full-body frame. "
     "Back view: do not fail identity because the face is hidden. Eyes may be unseen.\n"
     "伊莲·沃斯：Keep Elena's soft brown wavy hair loosely pulled back, clear blue-grey eyes, and human ears. "
@@ -706,6 +853,7 @@ SCORE_PREFIX = (
     "do not add a penalty, and do not waive a content score, only because the frame is small. "
     "Pixel count is pass 2. Wrong face, pose, anatomy, wardrobe, likeness, or motif still scores below 9. "
     "Nude pass requires every garment gone. If cloth remains on the chest, abdomen, hips, or legs, wardrobe is below 8. "
+    "正面没有乳点、没有肚脐、并且髋部有衣缝，是肉色连体，wardrobe 最高 6。不要因为看不见背心短裤就给到 9。 "
     "pass1 的 motif：无情节的成年全身站姿模板，纯色背景，与锁脸同一人；没有剧情互动不扣分；胸腹髋腿还有布则 motif<9。\n"
     "阶段 pass2：Pass 2 is a same-seed light upscale. Content must stay the pass-1 plate. "
     "Lower a score when the upscale changes the face, hair, makeup, pose, body, or anatomy. "
@@ -713,7 +861,13 @@ SCORE_PREFIX = (
 )
 
 
-def score_call(actor: str, view: str, stage: str, images: list[str]) -> str:
+def score_call(
+    actor: str,
+    view: str,
+    stage: str,
+    images: list[str],
+    short_side: int | None = None,
+) -> str:
     """Fixed prefix plus a short tail. The tail is the only text that changes per plate."""
     if stage not in ("clothed", "pass1", "pass2"):
         raise KeyError(stage)
@@ -721,8 +875,10 @@ def score_call(actor: str, view: str, stage: str, images: list[str]) -> str:
         raise KeyError(view)
     if len(images) != 3:
         raise ValueError("score_call expects the lock, the eye crop, and the full plate")
+    side_line = "" if short_side is None else f"eye_crop_short_side={int(short_side)}\n"
     tail = (
         f"Actor id: {actor}. View: {view}. Stage: {stage}.\n"
+        f"{side_line}"
         f"{images[0]}\n{images[1]}\n{images[2]}\n"
         "第二张只比眼睛。最后一张判衣着、姿势和脚。\n"
     )
