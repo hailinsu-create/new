@@ -30,6 +30,16 @@ def _pass1_score(**over):
     return item
 
 
+def test_twelve_clothed_plates_gate_nude():
+    mod = _load()
+    assert len(mod.CLOTHED_VIEWS) == 12
+    assert mod.clothed_passed("lin_wantang", "front")
+    assert not mod.clothed_passed("gu_chengan", "side")
+    assert not mod.clothed_passed("gu_chengan", "back")
+    assert not mod.clothed_passed("elena_voss", "side")
+    assert all(mod.clothed_passed(*pair) for pair in mod.NUDE_VIEWS)
+
+
 def test_nine_views_and_fixed_scale():
     mod = _load()
     assert len(mod.NUDE_VIEWS) == 9

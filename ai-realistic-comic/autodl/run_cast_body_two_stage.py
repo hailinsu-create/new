@@ -397,6 +397,11 @@ def store_pass2(client, actor: str, view: str, png: Path, record: dict) -> Path:
 
 
 def run_view(client, remote: Remote, actor: str, view: str) -> dict:
+    if not tpl.clothed_passed(actor, view):
+        mean = tpl.CLOTHED_MEAN.get((actor, view))
+        raise SystemExit(
+            f"{actor} {view} 穿衣底板均分 {mean}，未到 9。先补底板，不去衣。"
+        )
     src = resolve_clothed(client, actor, view)
     prompt1 = Path(f"/tmp/cast-pass1-{actor}-{view}.txt")
     prompt2 = Path(f"/tmp/cast-pass2-{actor}.txt")

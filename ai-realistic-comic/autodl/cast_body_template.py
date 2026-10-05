@@ -44,7 +44,25 @@ EIGHT = (
     "photoreal",
 )
 
-# Nine nude turnarounds. Gu is front only; Elena is front and back.
+# Twelve clothed turnarounds are the base plates. Means are the makeup-ref rescore.
+# A view is not undressed until its clothed mean is at least 9.
+CLOTHED_MEAN = {
+    ("lin_wantang", "front"): 9.125,
+    ("lin_wantang", "side"): 9.125,
+    ("lin_wantang", "back"): 9.0,
+    ("gu_chengan", "front"): 9.25,
+    ("gu_chengan", "side"): 8.75,
+    ("gu_chengan", "back"): 8.875,
+    ("elena_voss", "front"): 9.0,
+    ("elena_voss", "side"): 8.875,
+    ("elena_voss", "back"): 9.25,
+    ("adrian_kane", "front"): 9.25,
+    ("adrian_kane", "side"): 9.125,
+    ("adrian_kane", "back"): 9.125,
+}
+CLOTHED_VIEWS = tuple(CLOTHED_MEAN)
+
+# Nine nude turnarounds: only the clothed plates already at mean >= 9.
 NUDE_VIEWS = (
     ("lin_wantang", "front"),
     ("lin_wantang", "side"),
@@ -92,6 +110,15 @@ _KEEP_LOOK = {
 }
 
 STORY_BANS = ("月下", "木屋", "夜湖", "雨桥", "冥府", "王座", "白蛇", "蛇尾", "石榴", "相拥")
+
+
+def clothed_passed(actor: str, view: str) -> bool:
+    """True when this clothed plate already scored a mean of at least 9."""
+    try:
+        mean = float(CLOTHED_MEAN[(actor, view)])
+    except KeyError:
+        return False
+    return mean >= KEEP_MEAN
 
 
 def is_void(actor: str, view: str, scale: float, seed: int) -> bool:
