@@ -21,19 +21,64 @@ ART = Path("/opt/cursor/artifacts/body-nude")
 FAIL = ART / "_fail"
 VISION_MODEL = "opencode-go/deepseek-v4-flash-vision-exp"
 TOKEN_FILE = Path("/tmp/autodl_token_live.txt")
+REUSE_JSON = Path("/tmp/f34-asset-reuse.json")
+REUSE_ENV = Path("/tmp/f34-asset-reuse.env")
 YUAN_PER_LI = 1000
+
+
+def _unquote(value: str) -> str:
+    import shlex
+
+    value = value.strip()
+    if not value:
+        return ""
+    parts = shlex.split(value)
+    return parts[0] if parts else ""
+
+
+def parse_reuse_env(text: str) -> dict:
+    env = {}
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        env[key.strip()] = _unquote(value)
+    return {
+        "instance_uuid": env.get("F34_INSTANCE_UUID") or tpl.F34_UUID,
+        "ssh_host": env.get("F34_SSH_HOST") or "",
+        "ssh_port": env.get("F34_SSH_PORT") or "",
+        "ssh_user": env.get("F34_SSH_USER") or "root",
+        "ssh_password": env.get("F34_SSH_PASSWORD") or "",
+        "website_token": env.get("F34_WEBSITE_TOKEN") or "",
+    }
+
+
+def reuse_config() -> dict:
+    """Film-agent handoff. Same F34 login. Never a second token."""
+    if REUSE_JSON.is_file():
+        data = json.loads(REUSE_JSON.read_text(encoding="utf-8"))
+    elif REUSE_ENV.is_file():
+        data = parse_reuse_env(REUSE_ENV.read_text(encoding="utf-8"))
+    else:
+        return {}
+    if data.get("instance_uuid") not in (None, "", tpl.F34_UUID):
+        raise SystemExit("复用文件不是 F34。不连接 G09。")
+    return data
 
 
 def load_token() -> str:
     env = os.environ.get("AUTODL_TOKEN", "").strip()
     if env:
         return env
+    reused = (reuse_config().get("website_token") or "").strip()
+    if reused:
+        return reused
     if TOKEN_FILE.is_file():
         return TOKEN_FILE.read_text(encoding="utf-8").strip()
     raise SystemExit(
-        "缺少 AUTODL_TOKEN。本机没有 /tmp/autodl_token_live.txt。"
-        "已有 SSH 时改用 AUTODL_SSH_HOST、AUTODL_SSH_PORT、AUTODL_SSH_PASSWORD。"
-        "不要开 G09，不要新建实例。开机仍要用户授权。"
+        "缺少出片同一套登录。本机没有 /tmp/f34-asset-reuse.json。"
+        "不要另要令牌，不要开 G09，不要新建实例。"
     )
 
 
@@ -41,6 +86,9 @@ def ssh_password_from_disk() -> str:
     env = os.environ.get("AUTODL_SSH_PASSWORD", "").strip()
     if env:
         return env
+    reused = (reuse_config().get("ssh_password") or "").strip()
+    if reused:
+        return reused
     path = Path("/tmp/cast-recover/f34.ok")
     if path.is_file():
         return path.read_text(encoding="utf-8").strip()
@@ -48,9 +96,10 @@ def ssh_password_from_disk() -> str:
 
 
 def direct_endpoint() -> dict | None:
-    """Reuse a verified F34 SSH endpoint without calling the AutoDL API."""
-    host = os.environ.get("AUTODL_SSH_HOST", "connect.weste.seetacloud.com").strip()
-    port = os.environ.get("AUTODL_SSH_PORT", "35239").strip()
+    """Reuse the film agent's F34 SSH endpoint. Same password, no new token."""
+    reused = reuse_config()
+    host = (reused.get("ssh_host") or os.environ.get("AUTODL_SSH_HOST") or "connect.weste.seetacloud.com").strip()
+    port = str(reused.get("ssh_port") or os.environ.get("AUTODL_SSH_PORT") or "35239").strip()
     password = ssh_password_from_disk()
     if not password:
         return None

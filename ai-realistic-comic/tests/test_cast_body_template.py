@@ -96,6 +96,32 @@ def test_worker_refuses_full_bf16_and_uses_cast_queue():
     assert "lora-job.json" not in text
 
 
+def test_reuse_env_parses_film_handoff():
+    import sys
+
+    autodl = Path(__file__).resolve().parents[1] / "autodl"
+    sys.path.insert(0, str(autodl))
+    import run_cast_body_two_stage as runner
+
+    cfg = runner.parse_reuse_env(
+        "\n".join(
+            [
+                "F34_INSTANCE_UUID=xaxna66hqt-c5c9c7fc",
+                "F34_SSH_HOST=connect.weste.seetacloud.com",
+                "F34_SSH_PORT=35239",
+                "F34_SSH_USER=root",
+                "F34_SSH_PASSWORD='abc def'",
+                "F34_WEBSITE_TOKEN=eyJreuse",
+            ]
+        )
+    )
+    assert cfg["instance_uuid"] == "xaxna66hqt-c5c9c7fc"
+    assert cfg["ssh_host"] == "connect.weste.seetacloud.com"
+    assert cfg["ssh_port"] == "35239"
+    assert cfg["ssh_password"] == "abc def"
+    assert cfg["website_token"] == "eyJreuse"
+
+
 def test_gpu_block_is_per_line():
     import sys
 
