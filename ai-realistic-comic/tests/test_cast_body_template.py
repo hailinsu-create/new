@@ -61,7 +61,8 @@ def test_nine_views_and_fixed_scale():
     assert 62 in mod.LIN_FRONT_SPENT and 78 in mod.LIN_FRONT_SPENT
     assert 83 in mod.LIN_FRONT_SPENT
     assert 84 in mod.LIN_FRONT_SPENT and 85 in mod.LIN_FRONT_SPENT
-    assert 86 not in mod.LIN_FRONT_SPENT
+    assert 91 in mod.LIN_FRONT_SPENT
+    assert 92 not in mod.LIN_FRONT_SPENT
     assert mod.qwen_vae_frame(448, 592) == (448, 576)
     assert mod.PASS1_SIZE == (448, 592)
     assert mod.PASS1_STEPS == 8
@@ -78,7 +79,7 @@ def test_nine_views_and_fixed_scale():
 def test_void_seed_33_never_passes():
     mod = _load()
     assert mod.is_void("lin_wantang", "front", 0.85, 33)
-    assert mod.seed_for("lin_wantang", "front", 0) == 86
+    assert mod.seed_for("lin_wantang", "front", 0) == 92
     assert mod.LIN_FRONT_A_CHECK == (62, 70, 78)
     assert mod.B_PASS1_STEPS == 16
     score = _pass1_score()
@@ -375,13 +376,13 @@ def test_low_identity_or_anatomy_changes_seed_and_blocks_pass2():
     assert mod.identity_anatomy_or_wardrobe_below(_pass1_score(anatomy=8))
     assert mod.identity_anatomy_or_wardrobe_below(_pass1_score(wardrobe=2))
     assert not mod.identity_anatomy_or_wardrobe_below(_pass1_score())
-    assert mod.seed_for("lin_wantang", "front", 0) == 86
-    assert mod.seed_for("lin_wantang", "front", 1) == 86
-    assert mod.seed_for("lin_wantang", "front", 2) == 86
-    assert mod.advance_seed(33, "lin_wantang", "front") == 86
-    assert mod.advance_seed(62, "lin_wantang", "front") == 86
-    assert mod.advance_seed(83, "lin_wantang", "front") == 86
-    assert mod.advance_seed(85, "lin_wantang", "front") == 86
+    assert mod.seed_for("lin_wantang", "front", 0) == 92
+    assert mod.seed_for("lin_wantang", "front", 1) == 92
+    assert mod.seed_for("lin_wantang", "front", 2) == 92
+    assert mod.advance_seed(33, "lin_wantang", "front") == 92
+    assert mod.advance_seed(62, "lin_wantang", "front") == 92
+    assert mod.advance_seed(83, "lin_wantang", "front") == 92
+    assert mod.advance_seed(91, "lin_wantang", "front") == 92
     assert mod.parse_specified_seeds("62,70,78") == [62, 70, 78]
     assert mod.require_specified_seed(84, "lin_wantang", "front") == 84
     assert mod.require_specified_seed(62, "lin_wantang", "front") == 62
@@ -612,6 +613,8 @@ def test_score_log_names_the_item_under_nine_when_mean_is_nine():
     assert "seed `62`" in docs
     assert "33`–`61`" in docs
     assert "33`–`83`" in docs
+    assert "86`–`91`" in docs
+    assert "从 `92` 起" in docs
 
 
 def test_fail_sidecar_json_lists_every_content_score():
@@ -751,3 +754,57 @@ def test_runner_does_not_edit_explicit_still_files():
     assert "while True:" in text
     assert "content=locked" in text
     assert "没有改内容" in text
+    assert "fetch failed" in text
+
+
+def test_fetch_retries_transient_oserror(tmp_path):
+    import sys
+
+    autodl = Path(__file__).resolve().parents[1] / "autodl"
+    sys.path.insert(0, str(autodl))
+    import run_cast_body_two_stage as runner
+
+    calls = {"n": 0}
+
+    class FakeSftp:
+        def get(self, remote, local):
+            calls["n"] += 1
+            if calls["n"] < 3:
+                raise OSError("input/output error")
+            Path(local).write_bytes(b"ok")
+
+        def close(self):
+            return None
+
+    class FakeClient:
+        def open_sftp(self):
+            return FakeSftp()
+
+    remote = runner.Remote(FakeClient())
+    original = runner.time.sleep
+    runner.time.sleep = lambda *_a, **_k: None
+    try:
+        dest = tmp_path / "out.png"
+        remote.fetch("/root/autodl-tmp/out.png", dest)
+        assert calls["n"] == 3
+        assert dest.read_bytes() == b"ok"
+        calls["n"] = 0
+
+        class AlwaysFail:
+            def get(self, remote, local):
+                calls["n"] += 1
+                raise OSError("input/output error")
+
+            def close(self):
+                return None
+
+        remote.client = type("C", (), {"open_sftp": lambda self: AlwaysFail()})()
+        try:
+            remote.fetch("/root/autodl-tmp/missing.png", tmp_path / "missing.png")
+        except OSError as exc:
+            assert "fetch failed" in str(exc)
+        else:
+            raise AssertionError("expected fetch failure")
+        assert calls["n"] == 3
+    finally:
+        runner.time.sleep = original

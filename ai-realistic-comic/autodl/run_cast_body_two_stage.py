@@ -426,9 +426,18 @@ class Remote:
 
     def fetch(self, remote: str, local: Path) -> None:
         local.parent.mkdir(parents=True, exist_ok=True)
-        sftp = self.sftp()
-        sftp.get(remote, str(local))
-        sftp.close()
+        last_error: Exception | None = None
+        for _ in range(3):
+            sftp = self.sftp()
+            try:
+                sftp.get(remote, str(local))
+                sftp.close()
+                return
+            except OSError as exc:
+                last_error = exc
+                sftp.close()
+                time.sleep(2)
+        raise OSError(f"fetch failed {remote}") from last_error
 
 
 def ensure_worker(client) -> None:

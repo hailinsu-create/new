@@ -33,10 +33,11 @@ VOID_LIN_FRONT = ("lin_wantang", "front", 0.85, 33)
 # 55-61 stay on the framed prompt: full body, identity about 9, wardrobe 1-4.
 # Means oscillate (7.6, 7.13, 7.75, 7.0, 7.4, 7.63, 6.75). That is not a drift.
 # 62-83 are the 2026-10-06 pass-1 batch. All of them scored and none passed.
-# 84 and 85 failed the scheme C research batch. The walker stops at 86.
+# 84 and 85 failed the scheme C research batch.
+# 86-91 failed the jaw-crop pass-1 run. The walker stops at 92.
 # Named seeds may still be repeated. Void 33 may not.
 LIN_FRONT_SEED = 62
-LIN_FRONT_SPENT = frozenset(range(33, 86))
+LIN_FRONT_SPENT = frozenset(range(33, 92))
 LIN_FRONT_A_CHECK = (62, 70, 78)
 # Scheme B only, after that named check. The schedule table stays at 8.
 B_PASS1_STEPS = 16
