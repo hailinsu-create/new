@@ -166,13 +166,15 @@ def require_codex_cli(binary: str | None, *, logged_in: bool = True) -> str:
         raise SystemExit(CODEX_LOGGED_OUT)
     return binary
 
-# Nine nude turnarounds: only the clothed plates already at mean >= 9.
+# Nude turnarounds: clothed plates whose mean is at least 9.
+# Gu side and back stay out. Elena side entered after the 2026-10-06 plate.
 NUDE_VIEWS = (
     ("lin_wantang", "front"),
     ("lin_wantang", "side"),
     ("lin_wantang", "back"),
     ("gu_chengan", "front"),
     ("elena_voss", "front"),
+    ("elena_voss", "side"),
     ("elena_voss", "back"),
     ("adrian_kane", "front"),
     ("adrian_kane", "side"),

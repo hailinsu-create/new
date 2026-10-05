@@ -1,7 +1,8 @@
 """Cast-asset template pipeline. Serves later stills. Does not edit explicit-still files.
 
-Women use the 2026-10-06 frontal lock. Their old clothed plates are donors only.
-A female view rebuilds a clothed plate until the mean is at least 9, then undresses it.
+Women use the 2026-10-06 frontal lock. The six passing Codex clothed plates
+are the female slots of the twelve-plate archive. Male clothed means stay.
+A female view undresses only from that archived plate.
 Stage 2 is F34 Qwen-Image-Edit-2511, 8bit, VAE on CPU, fixed LoRA scale.
 Pass 1 is the low-res gate. Pass 2 repeats the same seed and only upscales.
 """

@@ -49,9 +49,11 @@ def test_twelve_clothed_plates_gate_nude():
 
 def test_nine_views_and_fixed_scale():
     mod = _load()
-    assert len(mod.NUDE_VIEWS) == 9
+    assert len(mod.NUDE_VIEWS) == 10
+    assert mod.NUDE_VIEWS[0] == ("lin_wantang", "front")
     assert ("gu_chengan", "side") not in mod.NUDE_VIEWS
-    assert ("elena_voss", "side") not in mod.NUDE_VIEWS
+    assert ("gu_chengan", "back") not in mod.NUDE_VIEWS
+    assert ("elena_voss", "side") in mod.NUDE_VIEWS
     assert mod.FIXED_SCALE == 0.85
     assert mod.LIN_FRONT_SEED == 62
     assert 33 in mod.LIN_FRONT_SPENT and 61 in mod.LIN_FRONT_SPENT
