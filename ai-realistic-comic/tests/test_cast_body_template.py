@@ -46,7 +46,7 @@ def test_nine_views_and_fixed_scale():
     assert ("gu_chengan", "side") not in mod.NUDE_VIEWS
     assert ("elena_voss", "side") not in mod.NUDE_VIEWS
     assert mod.FIXED_SCALE == 0.85
-    assert mod.LIN_FRONT_SEED == 47
+    assert mod.LIN_FRONT_SEED == 50
     assert mod.PASS1_SIZE == (448, 592)
     assert mod.PASS1_STEPS == 8
     assert mod.ASSET_SCHEDULE["pass1"]["steps"] == 8
@@ -62,7 +62,7 @@ def test_nine_views_and_fixed_scale():
 def test_void_seed_33_never_passes():
     mod = _load()
     assert mod.is_void("lin_wantang", "front", 0.85, 33)
-    assert mod.seed_for("lin_wantang", "front", 0) == 47
+    assert mod.seed_for("lin_wantang", "front", 0) == 50
     score = _pass1_score()
     assert not mod.accept_pass1(score, "lin_wantang", "front", 0.85, 33)
     assert mod.accept_pass1(score, "lin_wantang", "front", 0.85, 34)
@@ -98,16 +98,18 @@ def test_prompts_only_change_look_and_clothes():
     mod = _load()
     front = mod.pass1_prompt("lin_wantang", "front")
     text = front + mod.pass2_prompt("lin_wantang")
-    assert front.startswith("锁脸：")
+    assert front.startswith("构图：")
+    assert "头和双脚都留在画面内" in front
+    assert "不要裁成头肩" in front
     assert "去衣：" in front
-    assert front.index("锁脸：") < front.index("去衣：")
+    assert front.index("构图：") < front.index("锁脸：") < front.index("去衣：")
     assert front.count("去掉背心和短裤。") == 2
     assert "黑褐色" in text
     assert "发髻" in text
     for ban in mod.STORY_BANS + ("接触", "情节"):
         assert ban not in text
     adrian = mod.pass1_prompt("adrian_kane", "front")
-    assert adrian.startswith("锁脸：")
+    assert adrian.startswith("构图：")
     assert adrian.count("去掉T恤和短裤。") == 2
     assert "尖耳" in adrian
     assert "黑褐色" not in adrian
@@ -117,7 +119,7 @@ def test_prompts_only_change_look_and_clothes():
     assert "instructed hair or makeup" in guide
     assert "every content score" in guide
     up = mod.pass2_prompt("lin_wantang")
-    assert up == "只放大。不改脸、身体、衣着、发型、妆。"
+    assert up == "只放大。不改脸、身体、衣着、发型、妆。头和双脚仍留在画面内。"
     assert "补上" not in up
     assert "light upscale" in mod.score_prompt("lin_wantang", "front", "pass2")
 
@@ -167,9 +169,9 @@ def test_low_identity_or_anatomy_changes_seed_and_blocks_pass2():
     assert mod.identity_or_wardrobe_below(_pass1_score(wardrobe=3))
     assert mod.identity_or_wardrobe_below({})
     assert not mod.identity_or_wardrobe_below(_pass1_score())
-    assert mod.seed_for("lin_wantang", "front", 0) == 47
-    assert mod.seed_for("lin_wantang", "front", 1) == 48
-    assert mod.seed_for("lin_wantang", "front", 2) == 49
+    assert mod.seed_for("lin_wantang", "front", 0) == 50
+    assert mod.seed_for("lin_wantang", "front", 1) == 51
+    assert mod.seed_for("lin_wantang", "front", 2) == 52
 
 
 def test_worker_refuses_full_bf16_and_uses_cast_queue():
@@ -224,31 +226,45 @@ def test_reuse_env_parses_film_handoff():
     ).read_text(encoding="utf-8")
 
 
-def test_shared_store_supplies_password_when_local_tmp_is_missing(tmp_path, monkeypatch):
+def test_shared_store_supplies_password_when_local_tmp_is_missing():
+    import os
     import sys
+    import tempfile
 
     autodl = Path(__file__).resolve().parents[1] / "autodl"
     sys.path.insert(0, str(autodl))
     import run_cast_body_two_stage as runner
 
-    shared = tmp_path / "cast-ssh.env"
-    shared.write_text(
-        "\n".join(
-            [
-                "AUTODL_SSH_HOST=connect.weste.seetacloud.com",
-                "AUTODL_SSH_PORT=35239",
-                "AUTODL_SSH_USER=root",
-                "AUTODL_SSH_PASSWORD=from-store",
-            ]
-        ),
-        encoding="utf-8",
-    )
-    monkeypatch.setattr(runner, "REUSE_JSON", tmp_path / "missing.json")
-    monkeypatch.setattr(runner, "REUSE_ENV", tmp_path / "missing.env")
-    monkeypatch.setattr(runner, "CAST_SSH_ENV", tmp_path / "missing-cast.env")
-    monkeypatch.setattr(runner, "SHARED_CAST_SSH", shared)
-    monkeypatch.delenv("AUTODL_SSH_PASSWORD", raising=False)
-    assert runner.ssh_password_from_disk() == "from-store"
+    with tempfile.TemporaryDirectory() as raw:
+        tmp_path = Path(raw)
+        shared = tmp_path / "cast-ssh.env"
+        shared.write_text(
+            "\n".join(
+                [
+                    "AUTODL_SSH_HOST=connect.weste.seetacloud.com",
+                    "AUTODL_SSH_PORT=35239",
+                    "AUTODL_SSH_USER=root",
+                    "AUTODL_SSH_PASSWORD=from-store",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        saved = {
+            name: getattr(runner, name)
+            for name in ("REUSE_JSON", "REUSE_ENV", "CAST_SSH_ENV", "SHARED_CAST_SSH")
+        }
+        old_pw = os.environ.pop("AUTODL_SSH_PASSWORD", None)
+        try:
+            runner.REUSE_JSON = tmp_path / "missing.json"
+            runner.REUSE_ENV = tmp_path / "missing.env"
+            runner.CAST_SSH_ENV = tmp_path / "missing-cast.env"
+            runner.SHARED_CAST_SSH = shared
+            assert runner.ssh_password_from_disk() == "from-store"
+        finally:
+            for name, value in saved.items():
+                setattr(runner, name, value)
+            if old_pw is not None:
+                os.environ["AUTODL_SSH_PASSWORD"] = old_pw
 
 
 def test_gpu_block_is_per_line():

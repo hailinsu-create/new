@@ -16,8 +16,8 @@ KEEP_MEAN = 9.0
 FIXED_SCALE = 0.85
 # Seed 33 at this scale is the rejected Lin front pass 1. Never a pass.
 VOID_LIN_FRONT = ("lin_wantang", "front", 0.85, 33)
-# Seeds 34-46 already failed identity or wardrobe. Do not rerun them.
-LIN_FRONT_SEED = 47
+# Seeds 34-49 failed. 47-49 cropped to a head and hit FEET. Next seed is 50.
+LIN_FRONT_SEED = 50
 OTHER_SEED = 41
 PASS1_SEED_TRIES = 3
 # The one still-agent proxy is already spent. This pipeline does not grant another.
@@ -191,16 +191,21 @@ def wardrobe_clause(actor: str, view: str) -> str:
     return f"去衣：{once}{once}"
 
 
+def frame_clause() -> str:
+    """Framing clause. It does not redo the face lock or the clothes sentence."""
+    return "构图：保持这张图的全身取景。头和双脚都留在画面内，不要裁成头肩。"
+
+
 def pass1_prompt(actor: str, view: str) -> str:
-    """Clothed plate only. Face lock and clothes removal stay in separate clauses."""
-    return face_lock_line(actor) + wardrobe_clause(actor, view)
+    """Clothed plate only. Frame, face lock, and clothes removal stay apart."""
+    return frame_clause() + face_lock_line(actor) + wardrobe_clause(actor, view)
 
 
 def pass2_prompt(actor: str) -> str:
     """Same-seed light upscale. Retries must keep this text and change sampling only."""
     if actor not in _PERIOD_LOOK and actor not in _KEEP_LOOK:
         raise KeyError(actor)
-    return "只放大。不改脸、身体、衣着、发型、妆。"
+    return "只放大。不改脸、身体、衣着、发型、妆。头和双脚仍留在画面内。"
 
 
 def negative_for(actor: str) -> str:

@@ -75,6 +75,7 @@ def fuse_scale(pipe, scale: float) -> None:
 
 
 def letterbox(image: Image.Image, width: int, height: int) -> Image.Image:
+    """Fit the whole plate inside the frame. Do not center-crop the head or the feet."""
     image = image.convert("RGB")
     scale = min(width / image.width, height / image.height)
     resized = image.resize(
