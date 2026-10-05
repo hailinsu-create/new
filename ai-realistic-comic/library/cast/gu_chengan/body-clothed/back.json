@@ -1,12 +1,11 @@
 {
   "actor": "gu_chengan",
-  "entry": "codex",
   "view": "back",
   "stage": "clothed",
   "scale": 0.0,
-  "seed": 41,
+  "seed": 51,
   "passed": true,
-  "mean": 9.125,
+  "mean": 9.375,
   "gates": [],
   "look": [],
   "period_hair": false,
@@ -18,8 +17,8 @@
     "interaction": 10,
     "aesthetics": 9,
     "anatomy": 9,
-    "wardrobe": 9,
-    "motif": 9,
+    "wardrobe": 10,
+    "motif": 10,
     "photoreal": 9
   },
   "below": [],
@@ -33,11 +32,11 @@
     "interaction": 10,
     "aesthetics": 9,
     "anatomy": 9,
-    "wardrobe": 9,
-    "motif": 9,
+    "wardrobe": 10,
+    "motif": 10,
     "photoreal": 9,
-    "mean": 9.125,
-    "note": "成年背面全身模板，站姿稳定、头脚完整，日常服装与自然短发符合要求，背面未见面部及虹膜，不因此扣身份分。"
+    "mean": 9.375,
+    "note": "背面成年全身站姿稳定，头与双脚完整，日常衣装齐全，体型与肤色符合锁定参考，脸部及虹膜不可见不扣身份分。"
   },
   "seconds": null,
   "lock": "2026-10-06-front"

@@ -11,7 +11,7 @@
 
 十二个位置仍是四人各正、侧、背。2026-10-06 已用 Codex 过门的六张女人图替换女性位。阿德里安三向均分不动：正 9.25、侧 9.125、背 9.125。本仓库没有阿德里安穿衣 png。
 
-顾承安穿衣三向已用 Codex CLI 过门并入档。锁脸仍是 `library/cast/gu_chengan/ref.png`，没有换这张 ref。三张都去掉发套和发箍，衣服是 T恤和短裤。均分：正 9.2、侧 9.3、背 9.125。档案在 `library/cast/gu_chengan/body-clothed/`。这条穿衣不进 F34。再出时头、双手和双脚都完整入画，手不放进口袋。
+顾承安穿衣三向已用 Codex CLI 过门并入档。锁脸仍是 `library/cast/gu_chengan/ref.png`，没有换这张 ref。三张都去掉发套和发箍，衣服是 T恤和短裤。头、双手和双脚都完整入画，手不放进口袋。均分：正 9.3875、侧 9.3625、背 9.375。档案在 `library/cast/gu_chengan/body-clothed/`。这条穿衣不进 F34。
 
 女性位都在 `library/cast/<id>/body-clothed/<view>.png`，json 的 `lock` 是 `2026-10-06-front`，`entry` 是 `codex`，八项都 ≥ 9：林晚棠正 9.4125、侧 9.4、背 9.4，伊莲正 9.4625、侧 9.475、背 9.3875。去衣输入就是这张新底板。女性视图要这份 json 里 `passed` 且均分 ≥ 9 才去衣。
 
