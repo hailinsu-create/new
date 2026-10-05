@@ -444,6 +444,8 @@ def test_runner_does_not_edit_explicit_still_files():
     assert "CLOTHED_TRY" in text
     assert "2026-10-06-front" in text
     assert "donor_remote" in text
+    assert "/root/miniconda3/bin/python" in text
+    assert "nohup python -u" not in text
     assert "PASS1_NEW_SEED" in text
     assert "identity_anatomy_or_wardrobe_below" in text
     assert "pass2_allowed" in text

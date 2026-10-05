@@ -395,7 +395,7 @@ def ensure_worker(client) -> None:
     sftp.close()
     ssh_exec(
         client,
-        "nohup python -u /root/autodl-tmp/cast-asset/worker.py "
+        "nohup /root/miniconda3/bin/python -u /root/autodl-tmp/cast-asset/worker.py "
         "> /root/autodl-tmp/cast-asset/worker.log 2>&1 < /dev/null & echo $!",
     )
     deadline = time.time() + 600
