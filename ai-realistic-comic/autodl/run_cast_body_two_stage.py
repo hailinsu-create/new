@@ -21,7 +21,6 @@ ROOT = Path(__file__).resolve().parents[1]
 ART = Path("/opt/cursor/artifacts/body-nude")
 FAIL = ART / "_fail"
 CLOTHED_ART = Path("/opt/cursor/artifacts/body-clothed")
-VISION_MODEL = "opencode-go/deepseek-v4-flash-vision-exp"
 TOKEN_FILE = Path("/tmp/autodl_token_live.txt")
 REUSE_JSON = Path("/tmp/f34-asset-reuse.json")
 REUSE_ENV = Path("/tmp/f34-asset-reuse.env")
@@ -254,32 +253,30 @@ def gpu_block_reason(text: str) -> str | None:
 
 
 def score_image(image: Path, actor: str, view: str, stage: str) -> dict:
+    """Codex CLI scores. The rubric stays in the Codex entry. No second scorer."""
     makeup = ROOT / "library" / "cast" / actor / "ref.png"
     if not makeup.is_file():
         raise SystemExit(f"missing makeup ref {makeup}")
-    if shutil.which("opencode") is None:
-        raise SystemExit("opencode is required to score a cast template")
-    cmd = [
-        "opencode",
-        "run",
-        "--pure",
-        "--auto",
-        "-m",
-        VISION_MODEL,
-        "--variant",
-        "max",
-        "--dir",
-        "/tmp",
-        tpl.score_prompt(actor, view, stage),
-        "-f",
-        str(makeup),
-        "-f",
-        str(image),
-    ]
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
+    entry = ROOT / tpl.CODEX_SCORE_ENTRY
+    if not entry.is_file():
+        raise SystemExit(tpl.CODEX_SCORE_ENTRY_MISSING)
+    binary = codex_binary()
+    binary = tpl.require_codex_cli(binary, logged_in=bool(binary) and codex_logged_in(binary))
+    cmd = tpl.codex_exec_argv(binary, str(image.parent), [str(makeup), str(image)])
+    result = subprocess.run(
+        cmd,
+        input=tpl.score_call(actor, view, stage),
+        capture_output=True,
+        text=True,
+        timeout=900,
+    )
     if result.returncode != 0:
-        raise SystemExit(f"vision score failed: {(result.stderr or result.stdout)[-500:]}")
-    return tpl.parse_score(f"{result.stdout}\n{result.stderr}")
+        detail = (result.stderr or result.stdout or "codex score missing").strip()
+        raise SystemExit(f"CODEX_CLI_FAILED score {actor} {view} {stage} {detail[-500:]}")
+    try:
+        return tpl.parse_score(f"{result.stdout}\n{result.stderr}")
+    except ValueError as exc:
+        raise SystemExit(f"CODEX_CLI_FAILED score json {actor} {view} {stage} {exc}") from exc
 
 
 def clothed_candidates(actor: str, view: str) -> list[str]:

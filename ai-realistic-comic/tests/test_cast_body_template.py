@@ -129,10 +129,17 @@ def test_prompts_only_change_look_and_clothes():
     assert "尖耳" in adrian
     assert "黑褐色" not in adrian
     assert "浅蓝灰" in adrian
-    guide = mod.score_prompt("lin_wantang", "front", "pass1")
-    assert "face was redrawn" in guide
-    assert "instructed hair or makeup" in guide
-    assert "every content score" in guide
+    entry = (
+        Path(__file__).resolve().parents[1] / "docs" / "codex-cast-score.md"
+    ).read_text(encoding="utf-8")
+    assert "face was redrawn" in entry
+    assert "instructed hair or makeup" in entry
+    assert "every content score" in entry
+    call = mod.score_call("lin_wantang", "front", "pass1")
+    assert call.count(mod.CODEX_SCORE_ENTRY) == 1
+    assert "face was redrawn" not in call
+    assert "every content score" not in call
+    assert "opencode" not in call.lower()
     elena = mod.look_line("elena_voss")
     assert "蓝灰" in elena
     assert "琥珀" not in elena
@@ -166,13 +173,19 @@ def test_prompts_only_change_look_and_clothes():
     joined = " ".join(argv).lower()
     assert "agy" not in joined
     assert mod.clothed_seed_for("lin_wantang", "front", 0) == 1
-    plate = mod.score_prompt("lin_wantang", "front", "clothed")
-    assert "not a nude" in plate
-    assert "Nudity is a wardrobe failure" in plate
+    assert "not a nude" in entry
+    assert "Nudity is a wardrobe failure" in entry
+    clothed_call = mod.score_call("lin_wantang", "front", "clothed")
+    assert "not a nude" not in clothed_call
+    assert "Nudity is a wardrobe failure" not in clothed_call
     up = mod.pass2_prompt("lin_wantang")
     assert up == "只放大。不改脸、身体、衣着、发型、妆。头和双脚仍留在画面内。"
     assert "补上" not in up
-    assert "light upscale" in mod.score_prompt("lin_wantang", "front", "pass2")
+    assert "light upscale" in entry
+    pass2_call = mod.score_call("lin_wantang", "front", "pass2")
+    assert "light upscale" not in pass2_call
+    assert "CODEX_SCORE_ENTRY_MISSING" in mod.CODEX_SCORE_ENTRY_MISSING
+    assert "OpenCode" in mod.CODEX_SCORE_ENTRY_MISSING
 
 
 def test_film_proxy_closes_after_the_one_run():
@@ -466,6 +479,18 @@ def test_runner_does_not_edit_explicit_still_files():
     assert "require_codex_cli" in text
     assert '"kind": "clothed"' not in text
     assert "agy" not in text.lower()
+    assert "opencode" not in text.lower()
+    assert "deepseek-v4-flash-vision" not in text
+    assert "score_call" in text
+    assert "CODEX_SCORE_ENTRY_MISSING" in text
+    assert "score_prompt" not in text
+    template = (
+        Path(__file__).resolve().parents[1] / "autodl" / "cast_body_template.py"
+    ).read_text(encoding="utf-8")
+    assert "score_call" in template
+    assert "score_prompt" not in template
+    assert "face was redrawn" not in template
+    assert "Eight equal scores" not in template
     worker = (
         Path(__file__).resolve().parents[1] / "autodl" / "cast_body_worker.py"
     ).read_text(encoding="utf-8")
@@ -480,6 +505,14 @@ def test_runner_does_not_edit_explicit_still_files():
         page = (docs / name).read_text(encoding="utf-8")
         assert "agy" not in page.lower(), name
         assert "Codex CLI" in page
+    score_entry = (docs / "codex-cast-score.md").read_text(encoding="utf-8")
+    assert "Codex CLI" in score_entry
+    assert "codex-cast-score.md" in (docs / "cast-body-two-stage.md").read_text(encoding="utf-8")
+    assert "OpenCode vision" in score_entry
+    assert "禁止" in (docs / "cast-body-two-stage.md").read_text(encoding="utf-8")
+    for banned in ("face was redrawn", "Nudity is a wardrobe failure", "light upscale"):
+        assert banned not in text
+        assert banned in score_entry
     assert "2026-10-06-front" in text
     assert "donor_remote" in text
     assert "/root/miniconda3/bin/python" in text

@@ -15,6 +15,8 @@
 
 去衣只用 F34。穿衣过门之前禁止开机去衣。
 
+打分只走 Codex CLI。门禁文案、八项定义和硬门规则只维护在 `docs/codex-cast-score.md`，由 Codex CLI 执行。脚本把定妆 `ref.png` 和待打分图用两个 `-i` 送入，标准输入只点名这份入口、演员、视图和阶段。脚本不自写替代标准，不调用 OpenCode vision。没有 `codex` 打印 `CODEX_CLI_MISSING` 并退出。未登录打印 `CODEX_CLI_LOGGED_OUT` 并退出。入口文件缺失打印 `CODEX_SCORE_ENTRY_MISSING` 并退出。
+
 ## 九张去衣模板
 
 | 演员 | 视图 |

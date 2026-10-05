@@ -139,6 +139,11 @@ CODEX_LOGGED_OUT = (
     "CODEX_CLI_LOGGED_OUT 穿衣底板只走 Codex CLI。"
     "codex login status 未登录。禁止改走其他图像入口，禁止锁脸直出，禁止用 F34 画穿衣底板。"
 )
+CODEX_SCORE_ENTRY = "docs/codex-cast-score.md"
+CODEX_SCORE_ENTRY_MISSING = (
+    "CODEX_SCORE_ENTRY_MISSING 打分标准只在 Codex CLI 入口。"
+    "docs/codex-cast-score.md 不在。禁止改走 OpenCode vision，禁止在脚本里另写一套八项或硬门。"
+)
 
 
 def codex_exec_argv(binary: str, cwd: str, images: list[str]) -> list[str]:
@@ -179,6 +184,7 @@ GARMENTS = {
     ("lin_wantang", "back"): "T恤和短裤",
     ("gu_chengan", "front"): "T恤和短裤",
     ("elena_voss", "front"): "T恤和短裤",
+    ("elena_voss", "side"): "T恤和短裤",
     ("elena_voss", "back"): "T恤和短裤",
     ("adrian_kane", "front"): "T恤和短裤",
     ("adrian_kane", "side"): "T恤和短裤",
@@ -323,6 +329,11 @@ def clothed_prompt(actor: str, view: str) -> str:
         + look_line(actor)
         + f"衣服保持{garment}，不要脱掉。"
         + frame_clause()
+        + {
+            "front": "这一张是正面全身，面对镜头。",
+            "side": "这一张是左侧面全身。",
+            "back": "这一张是背面全身。",
+        }[view]
     )
 
 
@@ -527,74 +538,17 @@ def accept_pass2(item: dict, actor: str, view: str, scale: float, seed: int) -> 
     return mean >= KEEP_MEAN
 
 
-def score_prompt(actor: str, view: str, stage: str) -> str:
-    if actor in PERIOD_RELEASE:
-        look = (
-            "Nude template for Lin or Gu. Identity is facial features, face shape, skin tone, and body type. "
-            "Costume hair and makeup must be gone: no hair bun, no hairpins, no forehead ornament, "
-            "no heavy eye makeup, no crimson lips. Hair is natural black-brown. Makeup is light or bare. "
-            "Eyes are normal black-brown. Do not deduct identity for that change. "
-            "Do deduct, and set period_hair or period_makeup true, if the bun, ornaments, heavy makeup, or red lips remain. "
-            "Set eyes_black_brown true only when the irises read black-brown."
-        )
-    elif actor == "elena_voss":
-        look = (
-            "Keep Elena's soft brown wavy hair loosely pulled back, clear blue-grey eyes, and human ears. "
-            "No glasses. Do not give her pointed ears, green eyes, auburn hair, or amber eyes. "
-            "period_hair and period_makeup stay false. "
-            "eyes_black_brown stays false because her eyes are blue-grey."
-        )
-    else:
-        look = (
-            "Keep Adrian's dark hair, pale blue-grey eyes, and pointed ears. No weapon. "
-            "period_hair and period_makeup stay false. eyes_black_brown stays false."
-        )
-    if view == "back" and actor in PERIOD_RELEASE:
-        look += " Back view: do not fail identity because the face is hidden. Eyes may be unseen."
-    detail = ""
-    if stage == "clothed":
-        detail = (
-            " This is a clothed full-body plate, not a nude. "
-            "The first image is the new frontal lock. Identity below 9 means the result face does not match that lock. "
-            "Do not accept the retired gold eyes, crimson lips, period bun, auburn hair, or amber eyes. "
-            "Wardrobe below 9 means the named everyday clothes are missing, or a period costume replaced them. "
-            "Nudity is a wardrobe failure on this stage. "
-            "The plate must clear every content score. Resolution is the only exemption."
-        )
-    elif stage == "pass1":
-        detail = (
-            " Pass 1 may change only clothes, hair, and makeup on the clothed plate. "
-            "The makeup reference is the current lock face. "
-            "Identity below 9 means the face was redrawn: face shape, features, or skin tone moved. "
-            "Do not mark identity below 9 because the instructed hair or makeup changed. "
-            "Wardrobe below 9 means cloth remains on the chest, abdomen, hips, or legs. "
-            "Do not trade a locked face for leftover clothes. "
-            "Pass 1 must clear every content score. Resolution is the only exemption: "
-            "do not add a penalty, and do not waive a content score, only because the frame is small. "
-            "Pixel count is pass 2. Wrong face, pose, anatomy, wardrobe, likeness, or motif still scores below 9."
-        )
-    elif stage == "pass2":
-        detail = (
-            " Pass 2 is a same-seed light upscale. Content must stay the pass-1 plate. "
-            "Lower a score when the upscale changes the face, hair, makeup, pose, body, or anatomy."
-        )
+def score_call(actor: str, view: str, stage: str) -> str:
+    """Pointer only. Gate text, the eight definitions, and hard rules stay in the Codex entry."""
+    if stage not in ("clothed", "pass1", "pass2"):
+        raise KeyError(stage)
+    if view not in ("front", "side", "back"):
+        raise KeyError(view)
     return (
-        "Do not generate an image. Do not edit any file. Score only the second image. "
-        "The first image is this adult actor's makeup reference. "
-        "This is one adult body template, not a scene and not two people. "
-        f"Actor id: {actor}. View: {view}. {look}{detail} "
-        "Full body, head and both feet in frame, plain background, adult only. "
-        "Eight equal scores from 0 to 10: identity, distinction, interaction, aesthetics, anatomy, wardrobe, motif, photoreal. "
-        "interaction means the pose is a stable turnaround, not a story pose. "
-        "mean is their equal average. gates is [] or H6 for a minor look, H4 for Elena's ears or green eyes or glasses or Adrian missing ears or holding a weapon, "
-        "H7 for malformed limbs, FEET if a foot is cut off. "
-        + (
-            ""
-            if stage == "clothed"
-            else "Nude pass requires every garment gone. If cloth remains on the chest, abdomen, hips, or legs, wardrobe is below 8. "
-        )
-        + "Output one JSON object only: "
-        '{"gates":[],"period_hair":false,"period_makeup":false,"eyes_black_brown":false,'
-        '"identity":0,"distinction":0,"interaction":0,"aesthetics":0,"anatomy":0,"wardrobe":0,'
-        '"motif":0,"photoreal":0,"mean":0,"note":"一句"}'
+        "按 Codex 打分入口给第二张图打分。"
+        f"入口文件是 {CODEX_SCORE_ENTRY}。门禁文案、八项定义和硬门只以该文件为准。"
+        "不要生成图像。不要改文件。不要在回复里重写或替换那份标准。"
+        f"Actor id: {actor}. View: {view}. Stage: {stage}. "
+        "第一张图是定妆锁脸。只给第二张打分。"
+        "只输出入口文件规定的那一个 JSON 对象。"
     )
