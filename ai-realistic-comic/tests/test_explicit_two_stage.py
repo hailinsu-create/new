@@ -84,6 +84,8 @@ def test_codex_stops_before_stage_one_without_login():
     assert "OpenCode Go vision" in mod.SCORE_PREFIX
     assert "deepseek-v4-flash-vision" in mod.SCORE_PREFIX
     assert "禁止 agy" in mod.SCORE_PREFIX
+    assert "grok-4.7 xhigh" in mod.SCORE_PREFIX
+    assert "scorer" not in mod.SCORE_PREFIX
     assert str(mod.RUBRIC).endswith("docs/still-score-two-stage.md")
     rubric = mod.RUBRIC.read_text(encoding="utf-8")
     assert "由 Codex CLI" in rubric
@@ -129,7 +131,7 @@ def test_agy_is_forbidden_even_when_logged_in():
     assert "agy --print" not in source
     assert "opencode run" not in source
     assert '"opencode"' not in source
-    assert source.count("_score_with_codex(") >= 4
+    assert source.count("score_frame(") >= 4
     retired = Path(mod.__file__).resolve().parent / "run_explicit8.py"
     spec = importlib.util.spec_from_file_location("run_explicit8", retired)
     old = importlib.util.module_from_spec(spec)
@@ -302,3 +304,115 @@ def test_f34_powers_on_only_for_work_and_shuts_down_when_stopped():
     request_src = inspect.getsource(mod._f34_website_request)
     assert "Bearer" not in request_src
     assert "Authorization" in request_src
+
+
+def test_score_uses_codex_then_grok_with_the_same_prefix():
+    import inspect
+
+    mod = _load()
+    image = Path("/tmp/still-score-fallback.png")
+    image.write_bytes(b"not-a-real-png")
+    doc = (Path(__file__).resolve().parents[1] / "docs" / "explicit-still-two-stage.md").read_text(
+        encoding="utf-8"
+    )
+    rubric = mod.RUBRIC.read_text(encoding="utf-8")
+    for phrase in ("score_frame", "grok-4.7-xhigh", "scorer", "额度用完", "同一份"):
+        assert phrase in doc
+    assert "grok-4.7 xhigh" in rubric
+    assert mod.SCORER_CODEX == "codex"
+    assert mod.SCORER_GROK == "grok-4.7-xhigh"
+    assert mod.GROK_MODEL == "grok-4.7"
+    assert mod.GROK_EFFORT == "xhigh"
+    assert mod.codex_result_unavailable(1, "boom") == "CLI 报错"
+    assert mod.codex_result_unavailable(0, "usage limit reached") == "额度用完"
+    assert mod.codex_result_unavailable(0, "额度用完") == "额度用完"
+    assert mod.codex_result_unavailable(0, '{"mean": 9, "note": "额度"}') is None
+
+    class Result:
+        def __init__(self, code, out, err=""):
+            self.returncode = code
+            self.stdout = out
+            self.stderr = err
+
+    kept = mod.score_frame(
+        image,
+        codex=lambda path: {"gates": [], "mean": 9.4},
+        grok=lambda path: (_ for _ in ()).throw(AssertionError("grok ran")),
+    )
+    assert kept["scorer"] == "codex"
+    assert kept["mean"] == 9.4
+
+    fallen = mod.score_frame(
+        image,
+        codex=lambda path: (_ for _ in ()).throw(mod.CodexUnavailable("额度用完")),
+        grok=lambda path: {"gates": ["H2"], "mean": 8},
+    )
+    assert fallen["scorer"] == "grok-4.7-xhigh"
+    assert fallen["mean"] == 8
+
+    try:
+        mod.score_frame(
+            image,
+            codex=lambda path: (_ for _ in ()).throw(mod.CodexUnavailable("未登录")),
+            grok=lambda path: (_ for _ in ()).throw(SystemExit("grok failed")),
+        )
+    except SystemExit as exc:
+        assert "grok-4.7 xhigh" in str(exc)
+        assert "禁止 OpenCode" in str(exc)
+        assert "agy" in str(exc)
+        assert "不开机" in str(exc)
+    else:
+        raise AssertionError("both scorers failing must exit")
+
+    def quota(prompt, images):
+        assert prompt == mod._codex_score_prompt(image)
+        assert images == [mod.ANCHOR, image]
+        return Result(0, "You have hit your usage limit")
+
+    try:
+        mod._codex_score_once(image, run=quota, logged_in=True)
+    except mod.CodexUnavailable as exc:
+        assert "额度用完" in str(exc)
+    else:
+        raise AssertionError("quota text must be unavailable")
+
+    try:
+        mod._codex_score_once(
+            image,
+            run=lambda prompt, images: Result(1, "", "boom"),
+            logged_in=True,
+        )
+    except mod.CodexUnavailable as exc:
+        assert "CLI 报错" in str(exc)
+    else:
+        raise AssertionError("nonzero codex must be unavailable")
+
+    try:
+        mod._codex_score_once(
+            image,
+            run=lambda prompt, images: (_ for _ in ()).throw(AssertionError("must not run")),
+            logged_in=False,
+        )
+    except mod.CodexUnavailable as exc:
+        assert "未登录" in str(exc)
+    else:
+        raise AssertionError("login failure must be unavailable")
+
+    seen = []
+
+    def grok_run(prompt, images):
+        seen.append((prompt, list(images)))
+        return Result(0, '{"gates": [], "mean": 9}')
+
+    parsed = mod._grok_score_once(image, run=grok_run)
+    assert parsed["mean"] == 9
+    assert seen[0][0] == mod._codex_score_prompt(image)
+    assert seen[0][0].startswith(mod.SCORE_PREFIX)
+    assert seen[0][1] == [mod.ANCHOR, image]
+    command = inspect.getsource(mod._grok_command)
+    assert "GROK_MODEL" in command
+    assert "GROK_EFFORT" in command
+    assert "run.sh" not in command.split("return", 1)[1]
+    lock = inspect.getsource(mod._run_codex_image)
+    assert "score_frame" not in lock
+    assert "grok" not in lock

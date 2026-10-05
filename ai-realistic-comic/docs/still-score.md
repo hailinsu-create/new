@@ -1,6 +1,6 @@
 # 双人静帧打分
 
-已停用。出片打分改走 `docs/still-score-two-stage.md`，只许 Codex CLI。禁止 OpenCode Go vision。
+已停用。出片打分改走 `docs/still-score-two-stage.md`：Codex CLI 可用就用 Codex，不可用就用 grok-4.7 xhigh，标准和硬门相同。禁止 OpenCode Go vision。
 
 用户 2026-10-03 拍板的这一轮是收留标准。以后不要另换一套分数，也不要退回 7.5。
 

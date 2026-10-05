@@ -1,6 +1,6 @@
 # 两段式打分
 
-这是出片打分标准。`docs/still-score.md` 已停用。第一段、一采、二采的标准和门禁都由 Codex CLI 执行本文件的 H1–H7 和八项。禁止 OpenCode vision。缺 Codex 失败退出。
+这是出片打分标准。`docs/still-score.md` 已停用。第一段、一采、二采的标准和门禁都执行本文件的 H1–H7 和八项。Codex CLI 可用就由 Codex 执行；不可用就由 grok-4.7 xhigh 执行，rubric、9 分阈值和硬门不变。分数 JSON 记 `scorer`。禁止 OpenCode vision。两家都失败才退出。
 
 用户 2026-10-03 拍板的这一轮是收留标准。以后不要另换一套分数，也不要退回 7.5。
 
@@ -34,7 +34,7 @@
 
 收留线是 9。硬门没过，或八项均分低于 9，都不算完成。第一段锁定图只许 Codex CLI。禁止 agy。缺 Codex 失败退出，不许降级。一采定内容，写实纹理和分辨率不挡一采。二采只放大，提示词和种子不动，掉分只降 denoise 和步数，不退回一采。第二段仍是 F34。入口是 `autodl/run_explicit_two_stage.py`。不得另开一条生成指令来补这张。
 
-标准和门禁由 Codex CLI 看图执行。八项、硬门和 JSON 是固定前缀，每次只追加本张图和一句「只打这一张」。路径和登录见 `docs/explicit-still-two-stage.md` 的新 VM 检查表。第一段、一采、二采都走这一条。禁止 OpenCode Go vision、deepseek-v4-flash-vision、agy 和其它识图回退。Codex 未登录或不可用就失败退出，不许降级。一采定内容，二采只放大。F34 干活才开机，做完或暂停立刻关机留盘。固定前缀的常量名是 `SCORE_PREFIX`，关机入口是 `f34_shutdown_hook`，说明在 `docs/explicit-still-two-stage.md`。修订本标准等于改脚本、更新 `docs/explicit-still-two-stage.md`、推到 GitHub。文档与代码不一致算漂移，须立刻对齐。不得只留在本地。
+标准和门禁先由 Codex CLI 看图执行。Codex 不可用（额度用完、登录失败、CLI 报错）就自动改用 grok-4.7 xhigh。八项、硬门和 JSON 是同一份固定前缀 `SCORE_PREFIX`，每次只追加本张图和一句「只打这一张」。脚本在解析后写入 `scorer`（`codex` 或 `grok-4.7-xhigh`）。路径和登录见 `docs/explicit-still-two-stage.md`。第一段、一采、二采都走这一条。禁止 OpenCode Go vision、deepseek-v4-flash-vision、agy 和其它识图回退。两家都失败才退出。一采定内容，二采只放大。F34 干活才开机，做完或暂停立刻关机留盘。关机入口是 `f34_shutdown_hook`。修订本标准等于改脚本、更新 `docs/explicit-still-two-stage.md`、推到 GitHub。文档与代码不一致算漂移，须立刻对齐。不得只留在本地。
 
 这次只把规则写进工作流。低于 9 的旧图这次不回溯重跑。p03–p08 的提示词不改。以后可以逐步收紧，不另起架构。
 

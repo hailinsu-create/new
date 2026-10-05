@@ -4,7 +4,7 @@
 
 这是同一套演员上的一种出图模式，不是新演员，也不是第二套身体板。演员锁仍以 `library/cast/CAST.md` 为准。以后同类静帧必须按本文件，不能改走 `docs/still-mode.md` 里的 fal nano-banana 配方。
 
-已停用。出片走 `docs/explicit-still-two-stage.md` 和 `autodl/run_explicit_two_stage.py`。打分标准是 `docs/still-score-two-stage.md`，由 Codex CLI 执行。禁止 OpenCode vision。缺 Codex 失败退出。F34 干活才开机，做完或暂停立刻关机留盘。
+已停用。出片走 `docs/explicit-still-two-stage.md` 和 `autodl/run_explicit_two_stage.py`。打分标准是 `docs/still-score-two-stage.md`。Codex CLI 可用就用 Codex，不可用就用 grok-4.7 xhigh，标准和硬门相同。禁止 OpenCode vision。F34 干活才开机，做完或暂停立刻关机留盘。
 
 新神话姿势锁见 `library/stills/myth-poses/POSE.md`。m01–m04 已出过一版，目检未收，见下文。
 

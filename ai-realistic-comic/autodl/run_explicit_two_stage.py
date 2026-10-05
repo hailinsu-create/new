@@ -1,8 +1,8 @@
 """Two-stage still runner.
 
 Stage 1 lock images come only from Codex CLI. agy is forbidden.
-A missing Codex binary fails and exits. There is no fallback.
-Stage 2 is F34 Qwen, and only after that Codex score passes.
+A missing Codex binary fails and exits before that lock. There is no image fallback.
+Scoring tries Codex, then grok-4.7 xhigh with the same prefix. Stage 2 is F34 Qwen.
 """
 from __future__ import annotations
 
@@ -36,8 +36,9 @@ F34_LIST_URL = "https://www.autodl.com/api/v1/instance"
 F34_BALANCE_URL = "https://www.autodl.com/api/v1/wallet/balance"
 F34_STOP_PHASES = frozenset({"done", "paused", "idle", "wait"})
 
-# Fixed prefix. Do not interpolate paths or the frame under test.
-SCORE_PREFIX = """打分只许 Codex CLI 看图并执行本标准。禁止 OpenCode Go vision。禁止 deepseek-v4-flash-vision。禁止 agy。禁止其它识图回退。不要生成图，不要改文件。
+# Fixed prefix. Do not interpolate paths, the frame under test, or scorer.
+# Codex and the grok-4.7 xhigh fallback both receive these exact bytes.
+SCORE_PREFIX = """打分用同一份标准。Codex CLI 可用就由 Codex 看图执行。Codex 不可用时由 grok-4.7 xhigh 看图执行。禁止 OpenCode Go vision。禁止 deepseek-v4-flash-vision。禁止 agy。禁止其它识图回退。不要生成图，不要改文件。
 第一张附件是满分基准 anchor-10，八项固定 10。第一段、一采、二采用同一前缀。
 八项等权，各 0–10：身份、区分、互动、美感、解剖、服装、动机、摄影感。均分低于 9 不算过。
 H1 鱼尾、鱼鳍、尾鳍。
@@ -185,6 +186,12 @@ def _render_until_kept(provider, panel: dict, dest: Path, seed: int) -> None:
 
 GROK_MODEL = "grok-4.7"
 GROK_EFFORT = "xhigh"
+SCORER_CODEX = "codex"
+SCORER_GROK = "grok-4.7-xhigh"
+
+
+class CodexUnavailable(RuntimeError):
+    """Codex CLI cannot score this frame. The only fallback is grok-4.7 xhigh."""
 
 
 def _grok_binary() -> str:
@@ -469,25 +476,7 @@ def write_explicit_edit_with_grok(lock: Path) -> str:
         if len(payload) < 90000:
             break
     result = subprocess.run(
-        [
-            _grok_binary(),
-            "--output-format",
-            "plain",
-            "--always-approve",
-            "--no-auto-update",
-            "--disable-web-search",
-            "--verbatim",
-            "--max-turns",
-            "6",
-            "--cwd",
-            "/tmp",
-            "-m",
-            GROK_MODEL,
-            "--effort",
-            GROK_EFFORT,
-            "--prompt-json",
-            payload,
-        ],
+        _grok_command(payload),
         capture_output=True,
         text=True,
         timeout=900,
@@ -608,19 +597,163 @@ def _run_codex_image(panel: dict, dest: Path) -> None:
         raise SystemExit(detail[-800:])
 
 
-def _score_with_codex(image: Path) -> dict:
-    """Codex scores the still. This does not generate an image."""
+def _grok_command(payload: str) -> list[str]:
+    """grok-4.7 xhigh. Do not route this through .cursor/grok/run.sh."""
+    return [
+        _grok_binary(),
+        "--output-format",
+        "plain",
+        "--always-approve",
+        "--no-auto-update",
+        "--disable-web-search",
+        "--verbatim",
+        "--max-turns",
+        "6",
+        "--cwd",
+        "/tmp",
+        "-m",
+        GROK_MODEL,
+        "--effort",
+        GROK_EFFORT,
+        "--prompt-json",
+        payload,
+    ]
+
+
+def codex_result_unavailable(returncode: int, text: str) -> str | None:
+    """Why this Codex scoring result cannot be kept. None means it can be parsed."""
+    if returncode != 0:
+        return "CLI 报错"
+    raw = text or ""
+    if "{" in raw:
+        return None
+    lowered = raw.lower()
+    for mark in (
+        "usage limit",
+        "rate limit",
+        "quota",
+        "insufficient_quota",
+        "too many requests",
+        "额度",
+    ):
+        if mark in lowered or mark in raw:
+            return "额度用完"
+    return None
+
+
+def _codex_score_once(image: Path, *, run=None, logged_in: bool | None = None) -> dict:
+    """One Codex scoring attempt. Raises CodexUnavailable instead of falling through."""
+    prompt = _codex_score_prompt(image)
+    images = [ANCHOR, image]
+    if run is None:
+        binary = _codex_binary()
+        if logged_in is None:
+            logged_in = _codex_logged_in() if binary else False
+        reason = codex_block_reason(binary, logged_in=bool(logged_in))
+        if reason:
+            raise CodexUnavailable(reason)
+        try:
+            result = _codex_exec(prompt, images, image.parent)
+        except SystemExit as exc:
+            raise CodexUnavailable(str(exc) or "CLI 报错") from exc
+    else:
+        if logged_in is False:
+            raise CodexUnavailable("Codex CLI 未登录。失败退出。不执行登录，不开机，禁止改走 agy。")
+        result = run(prompt, images)
+    text = f"{result.stdout or ''}\n{result.stderr or ''}"
+    why = codex_result_unavailable(result.returncode, text)
+    if why:
+        raise CodexUnavailable(why)
+    try:
+        item = parse_score(text)
+    except SystemExit as exc:
+        raise CodexUnavailable(str(exc) or "CLI 报错") from exc
+    if "mean" not in item:
+        raise CodexUnavailable("CLI 报错")
+    return item
+
+
+def _grok_vision_payload(prompt: str, images: list[Path]) -> str:
+    """Same JPEG block shape as the edit call, for every attached still."""
+    import base64
+    import io
+
+    from PIL import Image
+
+    blocks: list[dict] = [{"type": "text", "text": prompt}]
+    encoded = []
+    for path in images:
+        image = Image.open(path).convert("RGB")
+        image.thumbnail((1024, 1024))
+        encoded.append(image)
+    payload = ""
+    for quality in (70, 55, 40, 30):
+        blocks = [{"type": "text", "text": prompt}]
+        for image in encoded:
+            buffer = io.BytesIO()
+            image.save(buffer, format="JPEG", quality=quality)
+            blocks.append(
+                {
+                    "type": "image",
+                    "mimeType": "image/jpeg",
+                    "data": base64.b64encode(buffer.getvalue()).decode("ascii"),
+                }
+            )
+        payload = json.dumps(blocks)
+        if len(payload) < 90000:
+            break
+    return payload
+
+
+def _grok_exec_vision(prompt: str, images: list[Path]) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        _grok_command(_grok_vision_payload(prompt, images)),
+        capture_output=True,
+        text=True,
+        timeout=900,
+    )
+
+
+def _grok_score_once(image: Path, *, run=None) -> dict:
+    """grok-4.7 xhigh scores with the Codex prefix. This does not generate an image."""
+    prompt = _codex_score_prompt(image)
+    images = [ANCHOR, image]
+    result = run(prompt, images) if run is not None else _grok_exec_vision(prompt, images)
+    text = f"{result.stdout or ''}\n{result.stderr or ''}"
+    if result.returncode != 0:
+        raise SystemExit("grok-4.7 xhigh 打分失败")
+    item = parse_score(text)
+    if "mean" not in item:
+        raise SystemExit("grok-4.7 xhigh 打分失败")
+    return item
+
+
+def score_frame(image: Path, *, codex=None, grok=None) -> dict:
+    """Score with Codex. On quota, login, or CLI failure, use grok-4.7 xhigh."""
     if not ANCHOR.is_file():
         raise SystemExit(f"missing anchor {ANCHOR}")
     if not RUBRIC.is_file():
         raise SystemExit(f"missing rubric {RUBRIC}")
     if not image.is_file():
         raise SystemExit(f"missing image {image}")
-    result = _codex_exec(_codex_score_prompt(image), [ANCHOR, image], image.parent)
-    if result.returncode != 0:
-        detail = (result.stderr or result.stdout or "codex score failed").strip()
-        raise SystemExit(detail[-800:])
-    return parse_score(f"{result.stdout or ''}\n{result.stderr or ''}")
+    try:
+        item = (codex or _codex_score_once)(image)
+    except CodexUnavailable:
+        try:
+            item = (grok or _grok_score_once)(image)
+        except SystemExit as exc:
+            raise SystemExit(
+                "Codex 不可用，grok-4.7 xhigh 打分也失败。禁止 OpenCode，禁止 agy，不开机。"
+            ) from exc
+        item["scorer"] = SCORER_GROK
+        return item
+    item["scorer"] = SCORER_CODEX
+    return item
+
+
+def _score_with_codex(image: Path) -> dict:
+    """Live scoring entry. Codex first, then the fixed grok-4.7 xhigh fallback."""
+    return score_frame(image)
 
 
 def report_node(node: str, panel_id: str = "-", image: Path | None = None, score: dict | None = None) -> None:
@@ -641,7 +774,7 @@ def report_node(node: str, panel_id: str = "-", image: Path | None = None, score
     eight = " ".join(f"{key}={score.get(key)}" for key in keys)
     print(
         f"NODE {node} id={panel_id} path={image} mean={score.get('mean')} "
-        f"gates={score.get('gates')} {eight}",
+        f"gates={score.get('gates')} scorer={score.get('scorer')} {eight}",
         flush=True,
     )
 
@@ -652,7 +785,7 @@ def _run_codex_stage(panel: dict, dest: Path) -> dict:
     while True:
         print(f"==== CODEX {panel['id']} try={attempt} likeness ====", flush=True)
         _run_codex_image(panel, dest)
-        item = _score_with_codex(dest)
+        item = score_frame(dest)
         gates = " ".join(item.get("gates") or []) or "-"
         print(
             f"SCORE {panel['id']} stage=1 try={attempt} mean={item.get('mean')} gates={gates}",
@@ -716,7 +849,7 @@ def _run_qwen_stage(
             },
             pass1,
         )
-        item = _score_with_codex(pass1)
+        item = score_frame(pass1)
         print(
             f"SCORE {panel['id']} pass1 try={attempt} mean={item.get('mean')} "
             f"gates={item.get('gates')} accepted={pass1_accepted(item)}",
@@ -748,7 +881,7 @@ def _run_qwen_stage(
             },
             dest,
         )
-        item = _score_with_codex(dest)
+        item = score_frame(dest)
         action = stage2_action(item)
         print(
             f"SCORE {panel['id']} pass2 try={index} mean={item.get('mean')} "
