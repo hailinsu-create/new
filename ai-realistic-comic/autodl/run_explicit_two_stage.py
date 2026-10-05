@@ -1,9 +1,8 @@
-"""New two-stage still runner. Not the live white-snake workflow.
+"""Two-stage still runner.
 
-The running six use autodl/run_explicit8.py. This copy does not change that
-agy/Qwen path. Codex first locks pose, face, clothes, and body with no
-explicitness, then scores that still. The local model may raise explicitness
-only after that Codex score passes.
+Stage 1 lock images come only from Codex CLI. agy is forbidden.
+A missing Codex binary fails and exits. There is no fallback.
+Stage 2 is F34 Qwen, and only after that Codex score passes.
 """
 from __future__ import annotations
 
@@ -31,17 +30,9 @@ gates 只填失败的门，例如 ["H2"]。没有失败就是 []。face_drift �
 
 
 def agy_block_reason(binary: str | None, *, logged_in: bool) -> str | None:
-    """Stop before stage 1 when Antigravity is not already logged in.
-
-    A config directory created by an interrupted OAuth prompt is not a login.
-    This does not run `agy login` and it does not start a GPU.
-    """
-    if not binary or not logged_in:
-        return (
-            "缺的是登录：请在这台 Cursor 环境运行 agy，按它打印的 Google 账号授权完成登录。"
-            "第一段还没开始。不要自行代填账号，不要开机。监督 bot（漫监）去问用户。"
-        )
-    return None
+    """Stage 1 is Codex only. agy is never a substitute, logged in or not."""
+    del binary, logged_in
+    return "禁止 agy。第一段锁定图只许 Codex CLI。不许降级，不开机。"
 
 
 def local_explicit_allowed(item: dict) -> bool:
@@ -156,87 +147,15 @@ def _load_panels() -> list[dict]:
 
 
 def score_still(image: Path) -> dict:
-    if not ANCHOR.is_file():
-        raise SystemExit(f"missing anchor {ANCHOR}")
-    if not RUBRIC.is_file():
-        raise SystemExit(f"missing rubric {RUBRIC}")
-    if shutil.which("opencode") is None:
-        raise SystemExit("opencode is required for still-score; do not keep an unscored frame")
-    cmd = [
-        "opencode",
-        "run",
-        "--pure",
-        "--auto",
-        "-m",
-        VISION_MODEL,
-        "--variant",
-        "max",
-        "--dir",
-        "/tmp",
-        SCORE_PROMPT,
-        "-f",
-        str(ANCHOR),
-        "-f",
-        str(image),
-    ]
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
-    if result.returncode != 0:
-        raise SystemExit(f"vision score failed: {result.stderr[-500:]}")
-    return parse_score(result.stdout)
+    """Lock-image scores go through Codex. opencode is not a stage-1 substitute."""
+    del image
+    raise SystemExit("禁止降级。锁定图打分只许 Codex CLI。")
 
 
 def _render_until_kept(provider, panel: dict, dest: Path, seed: int) -> None:
-    attempt = 1
-    while True:
-        print(
-            f"==== STILL {panel['id']} try={attempt} seed={seed} {panel['width']}x{panel['height']} refs={len(panel['refs'])} ====",
-            flush=True,
-        )
-        provider.call(
-            "qwen-image-edit-2511",
-            {
-                "prompt": f"{panel['prompt']} Avoid: {panel['negative']}.",
-                "negative": panel["negative"],
-                "images": panel["refs"],
-                "width": panel["width"],
-                "height": panel["height"],
-                "steps": 40,
-                "seed": seed,
-                "true_cfg_scale": float(os.environ.get("EXPLICIT_CFG", "4")),
-            },
-            dest,
-        )
-        print(f"wrote {dest} {dest.stat().st_size}", flush=True)
-        item = score_still(dest)
-        gates = " ".join(item.get("gates") or []) or "-"
-        print(
-            f"SCORE {panel['id']} try={attempt} mean={item.get('mean')} gates={gates} note={item.get('note', '')}",
-            flush=True,
-        )
-        if accepted(item):
-            print(f"KEEP {panel['id']} mean={item.get('mean')}", flush=True)
-            return
-        failed = dest.with_name(f"{panel['id']}.below9-try{attempt}{dest.suffix}")
-        dest.replace(failed)
-        print(f"RESHOOT {panel['id']} below 9 or hard gate, next seed={seed + 1}", flush=True)
-        attempt += 1
-        seed += 1
-
-
-def _agy_prompt(panel: dict) -> str:
-    refs = "\n".join(f"- {path}" for path in panel["refs"])
-    return (
-        "Use generate_image. Pass every reference image below by absolute path "
-        "in reference_images. Do not increase nudity or sexual contact. "
-        "Match the faces and costumes on the makeup refs, and the pose and "
-        "expression on the body board. Snake-tail rules still apply: one "
-        "pearl-white scaled tail to a blunt connected tip, not a fish, not a "
-        "snake head, and Bai herself has no human legs or feet. "
-        "Gu Cheng'an's own foot is allowed. Stage 1 is likeness only because "
-        "the Gemini image model (gemini-3-pro-image or gemini-3.1-flash-image) "
-        "refuses explicit prompts. End with a line IMAGE_PATH: <absolute path>.\n"
-        f"{refs}"
-    )
+    """Retired local-Qwen first frame. It skips the Codex lock."""
+    del provider, panel, dest, seed
+    raise SystemExit("禁止降级。锁定图必须先由 Codex CLI 生成。不许直接用本地 Qwen 出第一段。")
 
 
 GROK_MODEL = "grok-4.7"
@@ -559,15 +478,14 @@ def write_explicit_edit_with_grok(lock: Path) -> str:
 
 
 def codex_block_reason(binary: str | None, *, logged_in: bool) -> str | None:
-    """Stop before stage 1 when Codex CLI is missing or not already logged in.
+    """Fail before stage 1 when Codex CLI is missing or not already logged in.
 
-    This does not run `codex login` and it does not start a GPU.
+    This does not run `codex login`, does not call agy, and does not start a GPU.
     """
-    if not binary or not logged_in:
-        return (
-            "缺的是登录：请在这台 Cursor 环境运行 codex login，按它打印的地址完成登录。"
-            "第一段还没开始。不要自行代填账号，不要开机。监督 bot（漫监）去问用户。"
-        )
+    if not binary:
+        return "缺 Codex CLI。失败退出。禁止 agy，禁止降级，不开机。"
+    if not logged_in:
+        return "Codex CLI 未登录。失败退出。不执行登录，不开机，禁止改走 agy。"
     return None
 
 
@@ -727,26 +645,8 @@ def _run_codex_stage(panel: dict, dest: Path) -> dict:
         attempt += 1
 
 
-def _agy_binary() -> str | None:
-    found = shutil.which("agy")
-    if found:
-        return found
-    local = Path.home() / ".local" / "bin" / "agy"
-    if local.is_file():
-        return str(local)
-    return None
-
-
-def _agy_logged_in() -> bool:
-    # Account login lives in the OS keyring, which this environment does not have.
-    # settings.json is only the optional Gemini API-key mode, not a signed-in account.
-    return (Path.home() / ".gemini" / "antigravity-cli" / "settings.json").is_file()
-
-
 def _ensure_agy() -> None:
-    reason = agy_block_reason(_agy_binary(), logged_in=_agy_logged_in())
-    if reason:
-        raise SystemExit(reason)
+    raise SystemExit(agy_block_reason(None, logged_in=False))
 
 
 def _ensure_codex() -> None:
@@ -756,33 +656,9 @@ def _ensure_codex() -> None:
 
 
 def _run_agy_stage(panel: dict, dest: Path) -> None:
-    """Likeness passes stay inside agy. This function is not called until login exists."""
-    attempt = 1
-    while True:
-        print(f"==== AGY {panel['id']} try={attempt} likeness ====", flush=True)
-        cmd = ["agy", "--print", _agy_prompt(panel)]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
-        if result.returncode != 0:
-            raise SystemExit(f"agy stage 1 failed: {result.stderr[-400:]}")
-        text = result.stdout
-        marker = "IMAGE_PATH:"
-        if marker not in text:
-            raise SystemExit("agy did not return IMAGE_PATH")
-        image = Path(text.split(marker, 1)[1].strip().splitlines()[0].strip())
-        if not image.is_file():
-            raise SystemExit(f"agy image missing {image}")
-        dest.write_bytes(image.read_bytes())
-        item = score_still(dest)
-        gates = " ".join(item.get("gates") or []) or "-"
-        print(
-            f"SCORE {panel['id']} stage=1 try={attempt} mean={item.get('mean')} gates={gates}",
-            flush=True,
-        )
-        if accepted(item):
-            print(f"KEEP {panel['id']} stage=1", flush=True)
-            return
-        print(f"RESHOOT {panel['id']} stage=1 inside agy", flush=True)
-        attempt += 1
+    """agy cannot produce the stage-1 lock."""
+    del panel, dest
+    raise SystemExit(agy_block_reason(None, logged_in=True))
 
 
 def _run_qwen_stage(

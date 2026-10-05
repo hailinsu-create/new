@@ -32,7 +32,7 @@
 
 八项等权，各 0–10：身份、区分、互动、美感、解剖、服装、动机、摄影感。均分就是分数。
 
-收留线是 9。硬门没过，或八项均分低于 9，都不算完成。一采定内容，写实纹理和分辨率不挡一采。二采只放大，提示词和种子不动，掉分只降 denoise 和步数，不退回一采。入口是 `autodl/run_explicit_two_stage.py`。不得另开一条生成指令来补这张。
+收留线是 9。硬门没过，或八项均分低于 9，都不算完成。第一段锁定图只许 Codex CLI。禁止 agy。缺 Codex 失败退出，不许降级。一采定内容，写实纹理和分辨率不挡一采。二采只放大，提示词和种子不动，掉分只降 denoise 和步数，不退回一采。第二段仍是 F34。入口是 `autodl/run_explicit_two_stage.py`。不得另开一条生成指令来补这张。
 
 视觉打分模型固定为 `opencode-go/deepseek-v4-flash-vision-exp`，推理档 `max`。不要换模型。一采定内容，二采只放大。详见 `docs/explicit-still-two-stage.md`。
 

@@ -37,9 +37,10 @@ def test_unset_explicit_only_refuses_the_full_set():
 def test_codex_stops_before_stage_one_without_login():
     mod = _load()
     missing = mod.codex_block_reason(None, logged_in=False)
-    assert missing and "缺的是登录" in missing
+    assert missing and "缺 Codex CLI" in missing and "失败退出" in missing
     logged_out = mod.codex_block_reason("/home/ubuntu/.local/bin/codex", logged_in=False)
-    assert logged_out and "缺的是登录" in logged_out
+    assert logged_out and "未登录" in logged_out and "失败退出" in logged_out
+    assert "agy" in logged_out
     assert mod.codex_block_reason("/home/ubuntu/.local/bin/codex", logged_in=True) is None
     prompt = mod._codex_prompt(
         {
@@ -57,13 +58,52 @@ def test_codex_stops_before_stage_one_without_login():
     assert "Do not generate an image" in score
 
 
-def test_agy_stops_before_stage_one_without_login():
+def test_agy_is_forbidden_even_when_logged_in():
     mod = _load()
-    missing = mod.agy_block_reason(None, logged_in=False)
-    assert missing and "缺的是登录" in missing
-    logged_out = mod.agy_block_reason("/home/ubuntu/.local/bin/agy", logged_in=False)
-    assert logged_out and "缺的是登录" in logged_out
-    assert mod.agy_block_reason("/home/ubuntu/.local/bin/agy", logged_in=True) is None
+    for binary, logged_in in (
+        (None, False),
+        ("/home/ubuntu/.local/bin/agy", False),
+        ("/home/ubuntu/.local/bin/agy", True),
+    ):
+        reason = mod.agy_block_reason(binary, logged_in=logged_in)
+        assert reason and "禁止 agy" in reason
+    try:
+        mod._ensure_agy()
+    except SystemExit as exc:
+        assert "禁止 agy" in str(exc)
+    else:
+        raise AssertionError("agy ensure must fail")
+    try:
+        mod._run_agy_stage({"id": "p01"}, Path("/tmp/out.png"))
+    except SystemExit as exc:
+        assert "禁止 agy" in str(exc)
+    else:
+        raise AssertionError("agy stage must fail")
+    try:
+        mod._render_until_kept(None, {"id": "p01"}, Path("/tmp/out.png"), 1)
+    except SystemExit as exc:
+        assert "禁止降级" in str(exc)
+    else:
+        raise AssertionError("local Qwen must not replace the Codex lock")
+    try:
+        mod.score_still(Path("/tmp/out.png"))
+    except SystemExit as exc:
+        assert "Codex CLI" in str(exc)
+    else:
+        raise AssertionError("opencode must not score the lock")
+    source = Path(mod.__file__).read_text(encoding="utf-8")
+    assert '["agy"' not in source
+    assert "agy --print" not in source
+    retired = Path(mod.__file__).resolve().parent / "run_explicit8.py"
+    spec = importlib.util.spec_from_file_location("run_explicit8", retired)
+    old = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(old)
+    try:
+        old.main()
+    except SystemExit as exc:
+        assert "失败退出" in str(exc) and "Codex CLI" in str(exc)
+    else:
+        raise AssertionError("retired runner must fail closed")
 
 
 def test_pass2_miss_does_not_reopen_pass1():

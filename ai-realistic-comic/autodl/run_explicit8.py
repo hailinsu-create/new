@@ -139,72 +139,16 @@ def score_still(image: Path) -> dict:
 
 
 def _render_until_kept(provider, panel: dict, dest: Path, seed: int) -> None:
-    attempt = 1
-    while True:
-        print(
-            f"==== STILL {panel['id']} try={attempt} seed={seed} {panel['width']}x{panel['height']} refs={len(panel['refs'])} ====",
-            flush=True,
-        )
-        provider.call(
-            "qwen-image-edit-2511",
-            {
-                "prompt": f"{panel['prompt']} Avoid: {panel['negative']}.",
-                "negative": panel["negative"],
-                "images": panel["refs"],
-                "width": panel["width"],
-                "height": panel["height"],
-                "steps": 40,
-                "seed": seed,
-                "true_cfg_scale": float(os.environ.get("EXPLICIT_CFG", "4")),
-            },
-            dest,
-        )
-        print(f"wrote {dest} {dest.stat().st_size}", flush=True)
-        item = score_still(dest)
-        gates = " ".join(item.get("gates") or []) or "-"
-        print(
-            f"SCORE {panel['id']} try={attempt} mean={item.get('mean')} gates={gates} note={item.get('note', '')}",
-            flush=True,
-        )
-        if accepted(item):
-            print(f"KEEP {panel['id']} mean={item.get('mean')}", flush=True)
-            return
-        failed = dest.with_name(f"{panel['id']}.below9-try{attempt}{dest.suffix}")
-        dest.replace(failed)
-        print(f"RESHOOT {panel['id']} below 9 or hard gate, next seed={seed + 1}", flush=True)
-        attempt += 1
-        seed += 1
+    del provider, panel, dest, seed
+    raise SystemExit(
+        "已停用。锁定图必须由 Codex CLI 在 autodl/run_explicit_two_stage.py 生成。禁止这条本地 Qwen 降级。"
+    )
 
 
 def main() -> None:
-    panels = _load_panels()
-    only = require_subset(os.environ.get("EXPLICIT_ONLY", ""), {panel["id"] for panel in panels})
-    os.environ.setdefault("HF_HUB_OFFLINE", "1")
-    os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
-    os.environ.setdefault("DIFFUSERS_OFFLINE", "1")
-    os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
-    from comic_pipeline.config import Settings
-    from comic_pipeline.providers.local import LocalProvider
-
-    settings = Settings(
-        image_provider="local",
-        local_still_model="qwen-image-edit-2511",
-        local_steps=40,
-        local_offload="sequential",
-        local_seed=1,
+    raise SystemExit(
+        "已停用。锁定图必须由 Codex CLI 在 autodl/run_explicit_two_stage.py 生成。禁止这条本地 Qwen 降级。失败退出。"
     )
-    provider = LocalProvider(settings)
-    out_root = Path(os.environ.get("EXPLICIT_OUT", "/root/autodl-tmp/out/explicit-8"))
-    out_root.mkdir(parents=True, exist_ok=True)
-    for panel in panels:
-        if panel["id"] not in only:
-            continue
-        for ref in panel["refs"]:
-            if not ref.is_file():
-                raise SystemExit(f"missing ref {ref}")
-        dest = out_root / f"{panel['id']}.png"
-        _render_until_kept(provider, panel, dest, int(os.environ.get("EXPLICIT_SEED", "1")))
-    print("ALL_OK", flush=True)
 
 
 if __name__ == "__main__":
