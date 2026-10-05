@@ -5,7 +5,7 @@
 - 出片继续走 `docs/explicit-still-two-stage.md` 和 `autodl/run_explicit_two_stage.py`。这里不改那两个文件，也不共用它们的 job 文件。
 - 资产走 `autodl/run_cast_body_two_stage.py` 和 `autodl/cast_body_worker.py`。机器上的队列是 `/root/autodl-tmp/in/cast-asset-job.json`。
 
-四人仍是林晚棠、顾承安、伊莲·沃斯、阿德里安·凯恩。林晚棠和伊莲的脸已换成 2026-10-06 记事正面锁脸：`library/cast/lin_wantang/ref.png`、`library/cast/elena_voss/ref.png`。旧女脸在 `archive/ref-retired-2026-10-05.png`，停用。男演员 ref 不动。侧脸和三视图还没有。一采只改衣着、发型和妆，脸锁在**新的**穿衣底板上。一采过除分辨率外的全部要求。二采只用同一颗种子做轻放大；掉分只调 denoise 和步数，不大改内容。不写故事场景，不换构图。出片不代跑。
+四人仍是林晚棠、顾承安、伊莲·沃斯、阿德里安·凯恩。林晚棠和伊莲的脸已换成 2026-10-06 记事正面锁脸：`library/cast/lin_wantang/ref.png`、`library/cast/elena_voss/ref.png`。旧女脸在 `archive/ref-retired-2026-10-05.png`，停用。男演员 ref 不动。侧脸和三视图还没有。`library/cast/mood/` 的五合一合成图只是气质标签板，不能当这四张 `ref.png`，也不能喂去衣。一采只改衣着、发型和妆，脸锁在**新的**穿衣底板上。一采过除分辨率外的全部要求。二采只用同一颗种子做轻放大；掉分只调 denoise 和步数，不大改内容。不写故事场景，不换构图。出片不代跑。
 
 ## 十二张穿衣底板
 
