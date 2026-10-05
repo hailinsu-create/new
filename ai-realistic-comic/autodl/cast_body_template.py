@@ -1,14 +1,18 @@
 """Reusable cast-body templates for later stills. Not a story workflow.
 
-Pass 1 changes only clothes, hair, and makeup, and must clear every content
-score. Resolution stays on the low grid. The face stays locked to the clothed
-plate. A framing sentence, a face-lock sentence, and a clothes sentence stay
-apart. Identity, anatomy, or wardrobe under 9 spends that seed. Pass 1 then
-takes the next unspent seed until the gate clears or the user drops a stop
-file. Pass 2 is a same-seed light upscale and is forbidden until pass 1
-clears. A pass-2 miss only changes denoise and steps. The still agent proxies
-once. After shared login, this pipeline runs itself and does not hand work back.
-This module does not import or edit the explicit-still runner.
+Female identity is the 2026-10-06 frontal lock, not the retired sheet.
+A female clothed plate is rebuilt from that lock until its mean is at least 9.
+Only then does pass 1 change clothes, hair, and makeup on that new plate.
+Pass 1 must clear every content score. Resolution stays on the low grid.
+The undress face stays locked to the new clothed plate. A framing sentence,
+a face-lock sentence, and a clothes sentence stay apart. The clothes sentence
+is written twice and is not lengthened further. Identity, anatomy, or wardrobe
+under 9 spends that seed. Pass 1 then takes the next unspent seed until the
+gate clears or the user drops a stop file. Pass 2 is a same-seed light upscale
+and is forbidden until pass 1 clears. A pass-2 miss only changes denoise and
+steps. The still agent proxies once. After shared login, this pipeline runs
+itself and does not hand work back. This module does not import or edit the
+explicit-still runner.
 """
 from __future__ import annotations
 
@@ -93,8 +97,10 @@ EIGHT = (
 # Every content score. Pixel size is not a key; pass 1 stays on the low grid.
 PASS1_KEYS = EIGHT
 
-# Twelve clothed turnarounds are the base plates. Means are the makeup-ref rescore.
-# A view is not undressed until its clothed mean is at least 9.
+# Twelve clothed turnarounds are the base plates.
+# Male means are the makeup-ref rescore and still gate undress.
+# Female means in this table belong to the retired faces. They do not open undress.
+# A female view undresses only after a fresh plate scores a mean of at least 9.
 CLOTHED_MEAN = {
     ("lin_wantang", "front"): 9.125,
     ("lin_wantang", "side"): 9.125,
@@ -110,6 +116,11 @@ CLOTHED_MEAN = {
     ("adrian_kane", "back"): 9.125,
 }
 CLOTHED_VIEWS = tuple(CLOTHED_MEAN)
+FEMALE_ACTORS = frozenset({"lin_wantang", "elena_voss"})
+LOCK_ID = "2026-10-06-front"
+# Clothed rebuild borrows the old plate as a body donor and turns the NSFW LoRA off.
+CLOTHED_SCALE = 0.0
+CLOTHED_LIN_FRONT_SEED = 1
 
 # Nine nude turnarounds: only the clothed plates already at mean >= 9.
 NUDE_VIEWS = (
@@ -139,12 +150,12 @@ GARMENTS = {
 }
 
 _PERIOD_LOOK = {
-    "lin_wantang": "去发髻、头饰、花钿、浓妆、红唇。黑褐色披发，淡妆，黑褐眼。",
+    "lin_wantang": "去发髻、头饰、花钿、浓妆、红唇。黑褐色头发松松束在脑后，额前干净，淡妆，黑褐眼，自然唇。",
     "gu_chengan": "去发髻、额带、浓妆、红唇。黑褐色短发，淡妆，黑褐眼。",
 }
 
 _KEEP_LOOK = {
-    "elena_voss": "保持赤褐发、暖琥珀棕眼、人耳。",
+    "elena_voss": "保持棕波浪发松松束起、蓝灰眼、人耳，不要眼镜。",
     "adrian_kane": "保持深色发、浅蓝灰眼、尖耳，无武器。",
 }
 
@@ -160,11 +171,23 @@ def self_run_line() -> str:
     return "资产自己跑。禁止再让出片代跑。"
 
 
-def clothed_passed(actor: str, view: str) -> bool:
-    """True when this clothed plate already scored a mean of at least 9."""
+def clothed_passed(actor: str, view: str, fresh_mean: float | None = None) -> bool:
+    """True when this clothed plate may be undressed.
+
+    Men use the stored table. Women ignore that table: the old mean belonged
+    to a retired face. Only a fresh mean of at least 9, measured on the new
+    lock, opens undress.
+    """
+    if actor in FEMALE_ACTORS:
+        if fresh_mean is None:
+            return False
+        try:
+            return float(fresh_mean) >= KEEP_MEAN
+        except (TypeError, ValueError):
+            return False
     try:
         mean = float(CLOTHED_MEAN[(actor, view)])
-    except KeyError:
+    except (KeyError, TypeError, ValueError):
         return False
     return mean >= KEEP_MEAN
 
@@ -211,6 +234,12 @@ def seed_for(actor: str, view: str, attempt: int) -> int:
     return advance_seed(base + int(attempt), actor, view)
 
 
+def clothed_seed_for(actor: str, view: str, attempt: int) -> int:
+    """Seeds for the clothed rebuild. They are not the undress blacklist."""
+    base = CLOTHED_LIN_FRONT_SEED if (actor, view) == ("lin_wantang", "front") else OTHER_SEED
+    return int(base) + int(attempt)
+
+
 def look_line(actor: str) -> str:
     if actor in _PERIOD_LOOK:
         return _PERIOD_LOOK[actor]
@@ -246,8 +275,19 @@ def frame_clause() -> str:
 
 
 def pass1_prompt(actor: str, view: str) -> str:
-    """Clothed plate only. Frame, face lock, and clothes removal stay apart."""
+    """New clothed plate only. Frame, face lock, and clothes removal stay apart."""
     return frame_clause() + face_lock_line(actor) + wardrobe_clause(actor, view)
+
+
+def clothed_prompt(actor: str, view: str) -> str:
+    """Rebuild a clothed plate. Image 1 is the new lock. Image 2 is only the body donor."""
+    garment = GARMENTS[(actor, view)]
+    return (
+        "第一张是新锁脸。第二张只借成年身体比例、站姿和衣服，不要沿用第二张的旧脸。"
+        + look_line(actor)
+        + f"衣服保持{garment}，不要脱掉。"
+        + frame_clause()
+    )
 
 
 def pass2_prompt(actor: str) -> str:
@@ -257,7 +297,14 @@ def pass2_prompt(actor: str) -> str:
     return "只放大。不改脸、身体、衣着、发型、妆。头和双脚仍留在画面内。"
 
 
-def negative_for(actor: str) -> str:
+def negative_for(actor: str, stage: str = "pass1") -> str:
+    if stage == "clothed":
+        base = "磨皮,塑料皮肤,裸体,文字,水印,未成年人"
+        if actor in PERIOD_RELEASE:
+            return base + ",发髻,头饰,花钿,红唇,古装妆,浓妆,金黄瞳"
+        if actor == "elena_voss":
+            return base + ",眼镜,尖耳,绿眼,赤褐发"
+        return base
     base = "磨皮,塑料皮肤,衣服,内衣,短裤,裙子,袍子,文字,水印,未成年人"
     if actor in PERIOD_RELEASE:
         return base + ",发髻,头饰,花钿,红唇,古装妆,浓妆"
@@ -425,6 +472,11 @@ def accept_pass1(item: dict, actor: str, view: str, scale: float, seed: int) -> 
     return _score_ok(item, PASS1_KEYS)
 
 
+def accept_clothed(item: dict, actor: str, view: str, scale: float, seed: int) -> bool:
+    """Clothed gate: every content score, including clothes still on the body."""
+    return accept_pass1(item, actor, view, scale, seed)
+
+
 def accept_pass2(item: dict, actor: str, view: str, scale: float, seed: int) -> bool:
     if is_void(actor, view, scale, seed):
         return False
@@ -451,9 +503,10 @@ def score_prompt(actor: str, view: str, stage: str) -> str:
         )
     elif actor == "elena_voss":
         look = (
-            "Keep Elena's auburn hair, warm amber-brown eyes, and human ears. "
-            "Do not give her pointed ears or green eyes. period_hair and period_makeup stay false. "
-            "eyes_black_brown stays false because her eyes are amber-brown."
+            "Keep Elena's soft brown wavy hair loosely pulled back, clear blue-grey eyes, and human ears. "
+            "No glasses. Do not give her pointed ears, green eyes, auburn hair, or amber eyes. "
+            "period_hair and period_makeup stay false. "
+            "eyes_black_brown stays false because her eyes are blue-grey."
         )
     else:
         look = (
@@ -463,9 +516,19 @@ def score_prompt(actor: str, view: str, stage: str) -> str:
     if view == "back" and actor in PERIOD_RELEASE:
         look += " Back view: do not fail identity because the face is hidden. Eyes may be unseen."
     detail = ""
-    if stage == "pass1":
+    if stage == "clothed":
+        detail = (
+            " This is a clothed full-body plate, not a nude. "
+            "The first image is the new frontal lock. Identity below 9 means the result face does not match that lock. "
+            "Do not accept the retired gold eyes, crimson lips, period bun, auburn hair, or amber eyes. "
+            "Wardrobe below 9 means the named everyday clothes are missing, or a period costume replaced them. "
+            "Nudity is a wardrobe failure on this stage. "
+            "The plate must clear every content score. Resolution is the only exemption."
+        )
+    elif stage == "pass1":
         detail = (
             " Pass 1 may change only clothes, hair, and makeup on the clothed plate. "
+            "The makeup reference is the current lock face. "
             "Identity below 9 means the face was redrawn: face shape, features, or skin tone moved. "
             "Do not mark identity below 9 because the instructed hair or makeup changed. "
             "Wardrobe below 9 means cloth remains on the chest, abdomen, hips, or legs. "
@@ -484,13 +547,17 @@ def score_prompt(actor: str, view: str, stage: str) -> str:
         "The first image is this adult actor's makeup reference. "
         "This is one adult body template, not a scene and not two people. "
         f"Actor id: {actor}. View: {view}. {look}{detail} "
-        "Nude pass requires every garment gone. If cloth remains on the chest, abdomen, hips, or legs, wardrobe is below 8. "
         "Full body, head and both feet in frame, plain background, adult only. "
         "Eight equal scores from 0 to 10: identity, distinction, interaction, aesthetics, anatomy, wardrobe, motif, photoreal. "
         "interaction means the pose is a stable turnaround, not a story pose. "
-        "mean is their equal average. gates is [] or H6 for a minor look, H4 for Elena's ears or green eyes or Adrian missing ears or holding a weapon, "
+        "mean is their equal average. gates is [] or H6 for a minor look, H4 for Elena's ears or green eyes or glasses or Adrian missing ears or holding a weapon, "
         "H7 for malformed limbs, FEET if a foot is cut off. "
-        "Output one JSON object only: "
+        + (
+            ""
+            if stage == "clothed"
+            else "Nude pass requires every garment gone. If cloth remains on the chest, abdomen, hips, or legs, wardrobe is below 8. "
+        )
+        + "Output one JSON object only: "
         '{"gates":[],"period_hair":false,"period_makeup":false,"eyes_black_brown":false,'
         '"identity":0,"distinction":0,"interaction":0,"aesthetics":0,"anatomy":0,"wardrobe":0,'
         '"motif":0,"photoreal":0,"mean":0,"note":"一句"}'

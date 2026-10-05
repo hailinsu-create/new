@@ -33,11 +33,18 @@ def _pass1_score(**over):
 def test_twelve_clothed_plates_gate_nude():
     mod = _load()
     assert len(mod.CLOTHED_VIEWS) == 12
-    assert mod.clothed_passed("lin_wantang", "front")
+    assert not mod.clothed_passed("lin_wantang", "front")
+    assert mod.clothed_passed("lin_wantang", "front", fresh_mean=9.2)
+    assert not mod.clothed_passed("lin_wantang", "front", fresh_mean=8.9)
+    assert not mod.clothed_passed("elena_voss", "front")
+    assert not mod.clothed_passed("elena_voss", "back")
+    assert mod.clothed_passed("gu_chengan", "front")
     assert not mod.clothed_passed("gu_chengan", "side")
     assert not mod.clothed_passed("gu_chengan", "back")
     assert not mod.clothed_passed("elena_voss", "side")
-    assert all(mod.clothed_passed(*pair) for pair in mod.NUDE_VIEWS)
+    assert mod.clothed_passed("adrian_kane", "front")
+    male = [pair for pair in mod.NUDE_VIEWS if pair[0] not in mod.FEMALE_ACTORS]
+    assert male and all(mod.clothed_passed(*pair) for pair in male)
 
 
 def test_nine_views_and_fixed_scale():
@@ -126,6 +133,21 @@ def test_prompts_only_change_look_and_clothes():
     assert "face was redrawn" in guide
     assert "instructed hair or makeup" in guide
     assert "every content score" in guide
+    elena = mod.look_line("elena_voss")
+    assert "蓝灰" in elena
+    assert "琥珀" not in elena
+    assert "赤褐" not in elena
+    clothed = mod.clothed_prompt("lin_wantang", "front")
+    assert clothed.startswith("第一张")
+    assert "去衣" not in clothed
+    assert "黑褐色" in clothed
+    assert "发髻" in clothed
+    assert "不要脱掉" in clothed
+    assert mod.CLOTHED_SCALE == 0.0
+    assert mod.clothed_seed_for("lin_wantang", "front", 0) == 1
+    plate = mod.score_prompt("lin_wantang", "front", "clothed")
+    assert "not a nude" in plate
+    assert "Nudity is a wardrobe failure" in plate
     up = mod.pass2_prompt("lin_wantang")
     assert up == "只放大。不改脸、身体、衣着、发型、妆。头和双脚仍留在画面内。"
     assert "补上" not in up
@@ -218,6 +240,7 @@ def test_worker_refuses_full_bf16_and_uses_cast_queue():
     assert "fuse_lora(lora_scale=scale)" not in text
     assert "fuse_lora(lora_scale=1.0)" in text
     assert "if _fused_scale == scale:" in text
+    assert 'job.get("face")' in text
     assert "min(width / image.width, height / image.height)" in text
     assert "center_crop" not in text
     runner = (
@@ -418,6 +441,9 @@ def test_runner_does_not_edit_explicit_still_files():
     assert "power_on" not in text
     assert "body-clothed" in text
     assert "不拿定妆全身" in text
+    assert "CLOTHED_TRY" in text
+    assert "2026-10-06-front" in text
+    assert "donor_remote" in text
     assert "PASS1_NEW_SEED" in text
     assert "identity_anatomy_or_wardrobe_below" in text
     assert "pass2_allowed" in text

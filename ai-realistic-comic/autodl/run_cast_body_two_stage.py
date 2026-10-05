@@ -1,6 +1,7 @@
 """Cast-asset template pipeline. Serves later stills. Does not edit explicit-still files.
 
-Stage 1 reuses a clothed turnaround when one is already on disk.
+Women use the 2026-10-06 frontal lock. Their old clothed plates are donors only.
+A female view rebuilds a clothed plate until the mean is at least 9, then undresses it.
 Stage 2 is F34 Qwen-Image-Edit-2511, 8bit, VAE on CPU, fixed LoRA scale.
 Pass 1 is the low-res gate. Pass 2 repeats the same seed and only upscales.
 """
@@ -19,6 +20,7 @@ import cast_body_template as tpl
 ROOT = Path(__file__).resolve().parents[1]
 ART = Path("/opt/cursor/artifacts/body-nude")
 FAIL = ART / "_fail"
+CLOTHED_ART = Path("/opt/cursor/artifacts/body-clothed")
 VISION_MODEL = "opencode-go/deepseek-v4-flash-vision-exp"
 TOKEN_FILE = Path("/tmp/autodl_token_live.txt")
 REUSE_JSON = Path("/tmp/f34-asset-reuse.json")
@@ -513,13 +515,158 @@ def store_pass2(client, actor: str, view: str, png: Path, record: dict) -> Path:
     return final
 
 
+def clothed_plate_paths(actor: str, view: str) -> tuple[Path, Path]:
+    folder = ROOT / "library" / "cast" / actor / "body-clothed"
+    return folder / f"{view}.png", folder / f"{view}.json"
+
+
+def fresh_clothed_mean(actor: str, view: str):
+    """Mean of a new-lock clothed plate. Retired faces and missing files do not count."""
+    if actor not in tpl.FEMALE_ACTORS:
+        return None
+    png, meta = clothed_plate_paths(actor, view)
+    if not png.is_file() or not meta.is_file():
+        return None
+    data = json.loads(meta.read_text(encoding="utf-8"))
+    if data.get("lock") != tpl.LOCK_ID or not data.get("passed"):
+        return None
+    return data.get("mean")
+
+
+def view_clothed_ok(actor: str, view: str) -> bool:
+    if actor in tpl.FEMALE_ACTORS:
+        return tpl.clothed_passed(actor, view, fresh_clothed_mean(actor, view))
+    return tpl.clothed_passed(actor, view)
+
+
+def resolve_donor(client, actor: str, view: str) -> str:
+    """Old clothed file supplies the body only. It is not the undress source."""
+    remote = f"/root/autodl-tmp/in/{actor}-{view}-clothed.png"
+    check = ssh_exec(client, f"if [ -f {remote} ]; then echo YES; else echo NO; fi")
+    if "YES" in check:
+        print(f"donor_remote {remote}", flush=True)
+        return remote
+    raise SystemExit(
+        f"没有 {actor} {view} 的旧穿衣供体。不拿定妆全身去改，避免古装发型和妆留在去衣图上。"
+    )
+
+
+def store_clothed(actor: str, view: str, png: Path, record: dict) -> Path:
+    dest, meta = clothed_plate_paths(actor, view)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(png, dest)
+    record = {**record, "lock": tpl.LOCK_ID}
+    meta.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    CLOTHED_ART.mkdir(parents=True, exist_ok=True)
+    art = CLOTHED_ART / f"{actor}-{view}.png"
+    shutil.copyfile(png, art)
+    (art.with_suffix(".json")).write_text(
+        json.dumps(record, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return dest
+
+
+def run_clothed_rebuild(client, remote: Remote, actor: str, view: str) -> Path:
+    """Walk seeds until the new-face clothed plate clears every content score."""
+    print(f"NODE 启动 {actor}:{view} 重做穿衣底板 lock={tpl.LOCK_ID}", flush=True)
+    face_local = ROOT / "library" / "cast" / actor / "ref.png"
+    if not face_local.is_file():
+        raise SystemExit(f"missing lock ref {face_local}")
+    face_remote = f"/root/autodl-tmp/in/cast-{actor}-face.png"
+    donor = resolve_donor(client, actor, view)
+    prompt = Path(f"/tmp/cast-clothed-{actor}-{view}.txt")
+    prompt.write_text(tpl.clothed_prompt(actor, view), encoding="utf-8")
+    sftp = client.open_sftp()
+    sftp.put(str(face_local), face_remote)
+    sftp.put(str(prompt), f"/root/autodl-tmp/in/cast-{actor}-{view}-clothed.txt")
+    sftp.close()
+    width, height = tpl.PASS1_SIZE
+    attempt = 0
+    while True:
+        if user_stop_requested(client):
+            raise SystemExit(f"{actor} {view} 用户叫停。穿衣底板未过门，禁止去衣。")
+        seed = tpl.clothed_seed_for(actor, view, attempt)
+        attempt += 1
+        print(
+            f"CLOTHED_TRY {actor} {view} scale={tpl.CLOTHED_SCALE} seed={seed}",
+            flush=True,
+        )
+        done = remote.render(
+            {
+                "kind": "clothed",
+                "scale": tpl.CLOTHED_SCALE,
+                "seed": seed,
+                "width": width,
+                "height": height,
+                "steps": tpl.PASS1_STEPS,
+                "true_cfg_scale": tpl.ASSET_TRUE_CFG,
+                "src": donor,
+                "face": face_remote,
+                "prompt": f"/root/autodl-tmp/in/cast-{actor}-{view}-clothed.txt",
+                "negative": tpl.negative_for(actor, "clothed"),
+                "dest": f"/root/autodl-tmp/out/cast-{actor}-{view}-clothed-new.png",
+            }
+        )
+        CLOTHED_ART.mkdir(parents=True, exist_ok=True)
+        local = CLOTHED_ART / "_fail" / f"{actor}-{view}-clothed-seed{seed}.png"
+        remote.fetch(done["dest"], local)
+        score = score_image(local, actor, view, "clothed")
+        passed = tpl.accept_clothed(score, actor, view, tpl.CLOTHED_SCALE, seed)
+        emit_score(
+            local,
+            "CLOTHED",
+            actor,
+            view,
+            score,
+            passed,
+            seed,
+            f"scale={tpl.CLOTHED_SCALE} seed={seed}",
+            seconds=done.get("seconds"),
+        )
+        if not passed:
+            if tpl.identity_anatomy_or_wardrobe_below(score):
+                print(
+                    f"CLOTHED_NEW_SEED {actor} {view} seed={seed} "
+                    f"identity={score.get('identity')} anatomy={score.get('anatomy')} "
+                    f"wardrobe={score.get('wardrobe')} "
+                    f"below={tpl.keys_below(score, tpl.RESEED_KEYS)}",
+                    flush=True,
+                )
+            continue
+        record = tpl.attempt_record(
+            actor,
+            view,
+            "clothed",
+            tpl.CLOTHED_SCALE,
+            seed,
+            score,
+            tpl.look_gates(actor, view, score),
+            True,
+            seconds=done.get("seconds"),
+        )
+        path = store_clothed(actor, view, local, record)
+        print(
+            f"NODE 穿衣 {actor} {view} path={path} seed={seed} "
+            f"mean={score.get('mean')} eight={tpl.format_eight(score)}",
+            flush=True,
+        )
+        print(f"CLOTHED_KEEP {path}", flush=True)
+        return path
+
+
 def run_view(client, remote: Remote, actor: str, view: str) -> dict:
-    if not tpl.clothed_passed(actor, view):
-        mean = tpl.CLOTHED_MEAN.get((actor, view))
+    if actor in tpl.FEMALE_ACTORS and not view_clothed_ok(actor, view):
+        run_clothed_rebuild(client, remote, actor, view)
+    if not view_clothed_ok(actor, view):
+        mean = fresh_clothed_mean(actor, view)
+        if mean is None and actor not in tpl.FEMALE_ACTORS:
+            mean = tpl.CLOTHED_MEAN.get((actor, view))
         raise SystemExit(
             f"{actor} {view} 穿衣底板均分 {mean}，未到 9。先补底板，不去衣。"
         )
     src = resolve_clothed(client, actor, view)
+    print(f"NODE 去衣启动 {actor}:{view} src={src}", flush=True)
     prompt1 = Path(f"/tmp/cast-pass1-{actor}-{view}.txt")
     prompt2 = Path(f"/tmp/cast-pass2-{actor}.txt")
     prompt1.write_text(tpl.pass1_prompt(actor, view), encoding="utf-8")
@@ -593,6 +740,11 @@ def run_view(client, remote: Remote, actor: str, view: str) -> dict:
             "void_rejected": False,
         }
         path = store_pass1(actor, view, local, record)
+        print(
+            f"NODE 一采 {actor} {view} path={path} seed={seed} "
+            f"mean={score.get('mean')} eight={tpl.format_eight(score)}",
+            flush=True,
+        )
         print(f"PASS1_KEEP {path}", flush=True)
         kept = {"seed": seed, "pass1": done, "score": score, "path": str(path)}
         break
@@ -667,6 +819,11 @@ def run_view(client, remote: Remote, actor: str, view: str) -> dict:
             "score": score2,
         }
         final = store_pass2(client, actor, view, local2, record)
+        print(
+            f"NODE 二采 {actor} {view} path={final} seed={seed} "
+            f"mean={score2.get('mean')} eight={tpl.format_eight(score2)}",
+            flush=True,
+        )
         print(f"PASS2_KEEP {final}", flush=True)
         return {"pass1": kept, "pass2": record, "path": str(final)}
     raise SystemExit(
@@ -737,6 +894,7 @@ def main() -> None:
     client = connect(item)
     try:
         ensure_worker(client)
+        print("NODE 工作流做好 女锁脸=2026-10-06-front 男演员不动 出片不代跑", flush=True)
         remote = Remote(client)
         for actor, view in parse_only(args.only):
             run_view(client, remote, actor, view)

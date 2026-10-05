@@ -148,16 +148,22 @@ def render(pipe, job: dict) -> dict:
     steps = int(job["steps"])
     prompt = Path(job["prompt"]).read_text(encoding="utf-8").strip()
     negative = job.get("negative") or ""
+    images = []
+    face_path = job.get("face")
+    if face_path:
+        # Native lock face. Do not letterbox the headshot onto the body canvas.
+        images.append(Image.open(face_path).convert("RGB"))
     src = Image.open(job["src"]).convert("RGB")
-    if kind == "pass1":
+    if kind in {"pass1", "clothed"}:
         src = letterbox(src, width, height)
     else:
         src = src.resize((width, height), Image.Resampling.LANCZOS)
+    images.append(src)
     fuse_scale(pipe, scale)
     generator = torch.Generator(device="cpu").manual_seed(seed)
     kwargs = {
         "prompt": prompt,
-        "image": [src],
+        "image": images,
         "height": height,
         "width": width,
         "generator": generator,

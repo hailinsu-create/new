@@ -6,15 +6,15 @@ Adult woman. Human ears. Two legs.
 
 ## Face 脸
 
-Warm fair skin, soft oval face, amber-brown eyes, full rose lips, a calm half-smile. Late twenties.
+Light skin, light freckles, soft oval face, clear blue-grey eyes, nude-pink lips. No amber eyes, no green eyes, no glasses. The lock is `library/cast/elena_voss/ref.png`. Late twenties.
 
-暖白皮，柔和鹅蛋脸，琥珀棕眼，玫瑰唇。成年。
+浅色皮肤，轻微雀斑，蓝灰眼，自然唇。不要琥珀眼，不要绿眼，不要眼镜。成年。
 
 ## Hair 发
 
-Long wavy auburn to copper hair. Sometimes a loose side braid. Crown of dark leaves, small red berries, and wheat ears.
+Soft brown waves loosely pulled back. Not auburn. A wheat-and-berry crown is role costume, not the lock face.
 
-赤褐长卷发，深色叶、红浆果、麦穗花冠。
+棕波浪发松松束起，不是赤褐。麦穗冠是戏服。
 
 ## Costume 衣
 
@@ -31,11 +31,11 @@ Forest green, black, crimson, gold, auburn. Scene light is low amber candlelight
 896×1200. One full-body front view, both bare feet in frame.
 
 <!-- GEN_PROMPT_START -->
-Edit the references into a single-person costume sheet of Persephone. Keep her face, auburn hair, and flower-and-wheat crown. Delete the man, his cloak, the throne, the candles, the hall, and the loose pomegranates.
+Edit the references into a single-person costume sheet of Persephone. Keep her new lock face: blue-grey eyes, soft brown waves loosely pulled back, no glasses. The flower-and-wheat crown is costume. Delete the man, his cloak, the throne, the candles, the hall, and the loose pomegranates.
 
-One adult woman, full body, standing, facing the camera, both bare feet visible, plain neutral grey studio background, even soft light. Warm fair skin, amber-brown eyes, rose lips, late twenties. Long wavy auburn hair, crown of dark leaves, red berries, and wheat. Off-shoulder dark green sheer dress, crimson silk sash, one wide gold cuff, high slit, bare feet. Human ears, not pointed. No second person. No text.
+One adult woman, full body, standing, facing the camera, both bare feet visible, plain neutral grey studio background, even soft light. Light skin, light freckles, clear blue-grey eyes, nude-pink lips, late twenties. Soft brown wavy hair loosely pulled back, no glasses. Crown of dark leaves, red berries, and wheat. Off-shoulder dark green sheer dress, crimson silk sash, one wide gold cuff, high slit, bare feet. Human ears, not pointed. No second person. No text.
 
-珀耳塞福涅单人定妆。赤褐长卷发，麦穗浆果叶冠，墨绿露肩纱裙，深红腰封，宽金臂环，赤足，人耳。灰底棚拍，全身正面，两脚入画。删掉哈迪斯、斗篷、王座、蜡烛、大厅。不要文字。
+珀耳塞福涅单人定妆。棕波浪发松束，蓝灰眼，自然唇，无眼镜。麦穗浆果叶冠是戏服。墨绿露肩纱裙，深红腰封，宽金臂环，赤足，人耳。灰底棚拍，全身正面，两脚入画。删掉哈迪斯、斗篷、王座、蜡烛、大厅。不要文字。
 <!-- GEN_PROMPT_END -->
 
 <!-- NEG_START -->

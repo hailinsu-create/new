@@ -85,7 +85,7 @@ refs:
 width: 896
 height: 1200
 <!-- GEN_START -->
-Photoreal cinematic still, same standing embrace as the first reference. Adult Elena Voss and adult Adrian Kane in the underworld, fur cloak, pomegranate, torch if present in the board. Keep faces, his pointed ears, pale blue-grey eyes, her auburn hair and wheat-berry crown, and the expression on the board. Her green gown is sheer and open down the front, crimson sash loose, one breast and the high slit fully bare, his cloak open on a bare chest, her hips pressed to his, his hand low on her bare waist and buttock, faces close. No text.
+Photoreal cinematic still, same standing embrace as the first reference. Adult Elena Voss and adult Adrian Kane in the underworld, fur cloak, pomegranate, torch if present in the board. Keep faces, his pointed ears, pale blue-grey eyes, her blue-grey eyes, soft brown waves loosely pulled back, no glasses, and wheat-berry crown as costume, and the expression on the board. Her green gown is sheer and open down the front, crimson sash loose, one breast and the high slit fully bare, his cloak open on a bare chest, her hips pressed to his, his hand low on her bare waist and buttock, faces close. No text.
 <!-- GEN_END -->
 <!-- NEG_START -->
 text, watermark, child, extra people, human ears on him, changed eye color, weapon, fully closed gown
