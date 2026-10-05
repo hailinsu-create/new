@@ -4,7 +4,9 @@
 
 ## 修订必须落库
 
-以后每次修订出片工作流，必须写说明文档并推到 GitHub，不得只留在本地。说明写进本文件（打分前缀、开关机、检查表或参数有变时，同时改 `docs/still-score-two-stage.md`）。提交在分支 `cursor/ai-realistic-comic-e63b`，对应 PR https://github.com/hailinsu-create/new/pull/70 。推不上去就短报失败原因；未推送的修订不算固化。口令、网站 token、设备码不进文档、不进 git。
+说明文档是固化防漂移用的。修订等于三件事一起做：改脚本、写或更新说明文档、推到 GitHub。少任何一件都不算修订完成，不得只留在本地。文档与代码不一致算漂移，须立刻对齐：以脚本里正在执行的常量和钩子为准改文档，或把脚本改回文档已写明的规则，然后马上再推。
+
+说明写进本文件。打分前缀、开关机、检查表或参数有变时，同时改 `docs/still-score-two-stage.md`。提交在分支 `cursor/ai-realistic-comic-e63b`，对应 PR https://github.com/hailinsu-create/new/pull/70 。推不上去就短报失败原因；未推送的修订不算固化。口令、网站 token、设备码不进文档、不进 git。
 
 ## 两段式
 

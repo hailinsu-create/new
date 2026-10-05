@@ -180,7 +180,12 @@ def test_f34_powers_on_only_for_work_and_shuts_down_when_stopped():
         "待分图：",
         "只打这一张。",
         "不得只留在本地",
-        "必须写说明文档并推到 GitHub",
+        "防漂移",
+        "改脚本",
+        "写或更新说明文档",
+        "推到 GitHub",
+        "文档与代码不一致算漂移",
+        "立刻对齐",
         "107374182400",
         mod.F34_UUID,
     ):
