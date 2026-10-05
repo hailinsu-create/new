@@ -5,7 +5,7 @@
 ## 两段式
 
 1. 第一段由 Codex CLI 生成姿势、脸、衣服和身体，只做非露骨锁定（`/home/ubuntu/.local/bin/codex exec`，参考图用 `-i` 附上）。身体板锁姿势和表情，定妆 `ref.png` 锁脸、衣服和身体。不加大尺度，不把破限提示词交给 Codex。许仙（顾承安）自己的脚不盖住，那只脚不是缺陷。不调用 agy。
-2. 打分也由 Codex 做，标准仍是 `docs/still-score-two-stage.md`。硬门没过或八项均分低于 9，只在 Codex 里重出这一张。这一分没过时，本地模型不得加大尺度。
+2. 第一段、一采、二采的打分都由 Codex CLI 做，标准是 `docs/still-score-two-stage.md`。禁止 OpenCode Go vision。缺 Codex 失败退出。硬门没过或八项均分低于 9，只在 Codex 里重出这一张。这一分没过时，本地模型不得加大尺度。
 3. Codex 锁定图过 9 之后，Qwen 只喂这一张锁图。`write_explicit_edit_with_grok` 用 grok-4.7 xhigh 看这张图，指令只写要改的衣服和胸口接触，不贴整场提示词，不写“不要改姿势”。挂 `qwen-image-edit-plus-nsfw-lora`，文件在 F34 `/root/autodl-tmp/loras/qwen-image-edit-plus-nsfw-lora.safetensors`。LoRA 强度用去衣调参定下的 `QWEN_LORA_SCALE`；还没定下之前不填数。
 4. Qwen 分两采，同一种子、同一条提示、同一 LoRA 强度。一采定内容：448×600、16 步，脸、姿势、解剖、衣着或接触、硬门都要过；写实纹理和分辨率不挡一采。过了才进二采。二采只放大：把一采结果低去噪放到 896×1200，denoise 先 0.35、40 步，掉分只降到 0.30、再 0.25，步数只降不升。不改内容，不重写提示，不换种子，不重开一采。一采和二采各自记下渲染耗时。
 5. 本机没有 `codex` 就失败退出，不许改走 agy，也不许改用本地 Qwen 直接出锁定图。已安装但 `codex login status` 不是已登录，同样失败退出。脚本不执行登录，不开机。
@@ -91,7 +91,7 @@ Cursor 环境换成新 VM 之后先做下面三步。脚本不代登录，不开
 
 ## 出图
 
-- 出图、打分、不达标重出，都在 `autodl/run_explicit_two_stage.py` 里完成。文件落盘不算收。第一段的生成和打分都在 Codex 里。这一分没过，本地模型不加尺度。过了之后必须先由 `write_explicit_edit_with_grok` 用 grok-4.7 xhigh 自己看锁定图，点出这张图里实际还合着的衣服再写加尺度指令，Qwen 不能跳过这一步，也不能改回笼统的一句。第二段没过 9 只降低 denoise 和步数重做二采，不重写提示，不换种子，不退回第一段。
+- 出图、打分、不达标重出，都在 `autodl/run_explicit_two_stage.py` 里完成。文件落盘不算收。第一段的生成，以及第一段、一采、二采的打分，都只许 Codex CLI。禁止 OpenCode Go vision。缺 Codex 失败退出。这一分没过，本地模型不加尺度。过了之后必须先由 `write_explicit_edit_with_grok` 用 grok-4.7 xhigh 自己看锁定图，点出这张图里实际还合着的衣服再写加尺度指令，Qwen 不能跳过这一步，也不能改回笼统的一句。第二段没过 9 只降低 denoise 和步数重做二采，不重写提示，不换种子，不退回第一段。
 - 这次不跑图。p03–p08 的提示词不改，也不为这次重跑。
 - 只在 AutoDL F34 `xaxna66hqt-c5c9c7fc`（西北B / west-E，RTX 5090 D）上跑本地 Qwen。不要开、不要删旧的 G09 `sa4eaxgcuq-26e36fc9`。开机要用户另行授权。
 - 模型 `Qwen/Qwen-Image-Edit-2511`，用机上缓存，离线，不要重下权重。一采 448×600、16 步定内容。二采 896×1200，先 40 步、denoise 0.35，掉分只降到 0.30 再 0.25，步数只降不升。`true_cfg_scale` 4。同一张的种子和提示词不动，不重开一采。

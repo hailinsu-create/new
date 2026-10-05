@@ -108,6 +108,8 @@ def test_agy_is_forbidden_even_when_logged_in():
     source = Path(mod.__file__).read_text(encoding="utf-8")
     assert '["agy"' not in source
     assert "agy --print" not in source
+    assert "opencode" not in source
+    assert source.count("_score_with_codex(") >= 4
     retired = Path(mod.__file__).resolve().parent / "run_explicit8.py"
     spec = importlib.util.spec_from_file_location("run_explicit8", retired)
     old = importlib.util.module_from_spec(spec)

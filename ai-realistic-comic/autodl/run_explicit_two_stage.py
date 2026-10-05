@@ -20,7 +20,6 @@ PROMPT_FILES = (
 )
 ANCHOR = ROOT / "library" / "stills" / "explicit-8" / "anchor-10.jpg"
 RUBRIC = ROOT / "docs" / "still-score-two-stage.md"
-VISION_MODEL = "opencode-go/deepseek-v4-flash-vision-exp"
 KEEP_MEAN = 9.0
 
 SCORE_PROMPT = """按 docs/still-score-two-stage.md 给第二张图打分。第一张图是满分基准 anchor-10，八项固定 10。地上那只脚是许仙（顾承安）的，不扣。和基准一样的圆钝连体尾尖不算 H2。白蛇自己的人腿或人脚才算 H3；人身格的人腿是对的，雨桥没有蛇尾。伊莲不许尖耳或绿眼。阿德里安保留尖耳，不拿武器。别人长尖耳算 H4。
@@ -147,9 +146,9 @@ def _load_panels() -> list[dict]:
 
 
 def score_still(image: Path) -> dict:
-    """Lock-image scores go through Codex. opencode is not a stage-1 substitute."""
+    """Both still stages score through Codex CLI."""
     del image
-    raise SystemExit("禁止降级。锁定图打分只许 Codex CLI。")
+    raise SystemExit("禁止 OpenCode Go vision。出片两段打分只许 Codex CLI。缺 Codex 失败退出。")
 
 
 def _render_until_kept(provider, panel: dict, dest: Path, seed: int) -> None:

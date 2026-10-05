@@ -1,5 +1,7 @@
 # 双人静帧打分
 
+已停用。出片打分改走 `docs/still-score-two-stage.md`，只许 Codex CLI。禁止 OpenCode Go vision。
+
 用户 2026-10-03 拍板的这一轮是收留标准。以后不要另换一套分数，也不要退回 7.5。
 
 破限静帧只能由 `docs/explicit-still-mode.md` 和 `autodl/run_explicit8.py` 生成。监督 bot 不得越过这条工作流，另写一条生成指令。文件落盘不算完成。
@@ -32,7 +34,7 @@
 
 收留线是 9。硬门没过，或八项均分低于 9，都不算完成。`autodl/run_explicit8.py` 只重出这一张，提示词不动，seed 从当前值起每次加 1，直到硬门全过且均分不低于 9。不得另开一条生成指令来补这张。
 
-视觉打分模型固定为 `opencode-go/deepseek-v4-flash-vision-exp`，推理档 `max`。不要换模型。
+本文件不再指定打分模型。出片两段打分只许 Codex CLI。禁止 OpenCode Go vision。缺 Codex 失败退出。
 
 这次只把规则写进工作流。低于 9 的旧图这次不回溯重跑。p03–p08 的提示词不改。以后可以逐步收紧，不另起架构。
 

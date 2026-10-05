@@ -10,8 +10,6 @@ from __future__ import annotations
 import json
 import os
 import re
-import shutil
-import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,7 +19,6 @@ PROMPT_FILES = (
 )
 ANCHOR = ROOT / "library" / "stills" / "explicit-8" / "anchor-10.jpg"
 RUBRIC = ROOT / "docs" / "still-score.md"
-VISION_MODEL = "opencode-go/deepseek-v4-flash-vision-exp"
 KEEP_MEAN = 9.0
 
 SCORE_PROMPT = """按 docs/still-score.md 给第二张图打分。第一张图是满分基准 anchor-10，八项固定 10。地上那只脚是许仙（顾承安）的，不扣。和基准一样的圆钝连体尾尖不算 H2。白蛇自己的人腿或人脚才算 H3；人身格的人腿是对的，雨桥没有蛇尾。伊莲不许尖耳或绿眼。阿德里安保留尖耳，不拿武器。别人长尖耳算 H4。
@@ -109,33 +106,8 @@ def _load_panels() -> list[dict]:
 
 
 def score_still(image: Path) -> dict:
-    if not ANCHOR.is_file():
-        raise SystemExit(f"missing anchor {ANCHOR}")
-    if not RUBRIC.is_file():
-        raise SystemExit(f"missing rubric {RUBRIC}")
-    if shutil.which("opencode") is None:
-        raise SystemExit("opencode is required for still-score; do not keep an unscored frame")
-    cmd = [
-        "opencode",
-        "run",
-        "--pure",
-        "--auto",
-        "-m",
-        VISION_MODEL,
-        "--variant",
-        "max",
-        "--dir",
-        "/tmp",
-        SCORE_PROMPT,
-        "-f",
-        str(ANCHOR),
-        "-f",
-        str(image),
-    ]
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
-    if result.returncode != 0:
-        raise SystemExit(f"vision score failed: {result.stderr[-500:]}")
-    return parse_score(result.stdout)
+    del image
+    raise SystemExit("已停用。出片打分只许 Codex CLI。禁止 OpenCode Go vision。失败退出。")
 
 
 def _render_until_kept(provider, panel: dict, dest: Path, seed: int) -> None:

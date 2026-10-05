@@ -27,7 +27,7 @@
 
 ## 禁令
 
-出图后由 `autodl/run_explicit8.py` 调用 `opencode-go/deepseek-v4-flash-vision-exp`（推理档 max）按 `docs/still-score.md` 打分。硬门没过，或八项均分低于 9，脚本只重出这一张，直到硬门全过且均分不低于 9。监督 bot 不得改由自己的一条生成指令来补。下面任何一条出现，这张就不算完成：
+已停用。出片打分不再调用 OpenCode Go vision。两段打分只许 Codex CLI，见 `docs/still-score-two-stage.md`。缺 Codex 失败退出。下面任何一条出现，这张就不算完成：
 
 - H1 鱼尾、鱼鳍、尾鳍。
 - H2 尾尖是蛇头（眼、嘴、第二张脸）、断开的珍珠球，或切断的断尖。和满分基准一样的圆钝连体尾尖不算。

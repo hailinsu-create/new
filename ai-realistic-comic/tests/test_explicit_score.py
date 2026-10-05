@@ -13,7 +13,13 @@ def _load():
 def test_keep_line_is_nine_and_gates_block():
     mod = _load()
     assert mod.KEEP_MEAN == 9.0
-    assert mod.VISION_MODEL == "opencode-go/deepseek-v4-flash-vision-exp"
+    try:
+        mod.score_still(Path("/tmp/out.png"))
+    except SystemExit as exc:
+        assert "Codex CLI" in str(exc) and "OpenCode" in str(exc)
+    else:
+        raise AssertionError("retired scorer must fail closed")
+    assert "opencode" not in Path(mod.__file__).read_text(encoding="utf-8")
     assert mod.accepted({"gates": [], "mean": 9})
     assert mod.accepted({"gates": [], "mean": 9.1})
     assert not mod.accepted({"gates": [], "mean": 8.9})
