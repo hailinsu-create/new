@@ -126,14 +126,20 @@ def test_prompts_only_change_look_and_clothes():
     assert front.index("构图：") < front.index(mod.FRAME_HARD) < front.index("锁脸：") < front.index("去衣：")
     assert front.count("胸腹髋腿只留皮肤，不要背心短裤内衣。") == 2
     assert "身体不动" not in front
-    assert "只锁脸型、五官、肤色和站姿" in front
-    assert "资产站姿模板" in mod.SCORE_PREFIX
+    assert "只锁五官和肤色" in front
+    assert "第二张图是锁脸" in front
+    assert "站姿" not in mod.face_lock_line("lin_wantang")
+    assert "脸型" not in mod.face_lock_line("lin_wantang")
+    assert "无情节的成年全身站姿模板" in mod.SCORE_PREFIX
+    assert "胸腹髋腿还有布则 motif<9" in mod.SCORE_PREFIX
+    assert "至少给 9" not in mod.SCORE_PREFIX
+    assert mod.KEEP_MEAN == 9.0
     for ban in mod.STORY_BANS + ("接触", "情节"):
         assert ban not in text
     adrian = mod.pass1_prompt("adrian_kane", "front")
     assert adrian.startswith("构图：")
     assert adrian.count("胸腹髋腿只留皮肤，不要背心短裤内衣。") == 2
-    assert "只锁脸型、五官、肤色和站姿" in adrian
+    assert "只锁五官和肤色" in adrian
     assert "身体不动" not in adrian
     assert "尖耳" in mod.look_line("adrian_kane")
     images = ["/tmp/lock.png", "/tmp/plate.png"]
@@ -340,7 +346,9 @@ def test_diagnosis_keeps_the_prompt_and_records_the_vae_roundoff():
     )
     assert "不是 worker 越跑越坏" in docs
     assert "胸腹髋腿只留皮肤" in docs
-    assert "资产站姿模板" in docs
+    assert "无情节的成年全身站姿模板" in docs
+    assert "第二张图是锁脸" in docs
+    assert "不扫" in docs
     assert "指定籽" in docs
     assert "已退役" in docs
     assert "0.7225" in docs
@@ -359,6 +367,7 @@ def test_worker_refuses_full_bf16_and_uses_cast_queue():
     assert "fuse_lora(lora_scale=1.0)" in text
     assert "if _fused_scale == scale:" in text
     assert 'job.get("face")' in text
+    assert text.index("images = [src]") < text.index("images.append(face)")
     assert "min(width / image.width, height / image.height)" in text
     assert "center_crop" not in text
     runner = (
@@ -627,6 +636,11 @@ def test_runner_does_not_edit_explicit_still_files():
     assert "nohup python -u" not in text
     assert "指定籽不递增" in text
     assert "SCHEME_AFTER_A" in text
+    assert "--research" in text
+    assert "PROBE_ONCE" in text
+    assert "RESEARCH_DONE" in text
+    assert "ref.png" in text
+    assert '"face"' in text
     assert "PASS1_NEW_SEED" not in text
     assert "identity_anatomy_or_wardrobe_below" in text
     assert "pass2_allowed" in text

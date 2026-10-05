@@ -5,7 +5,7 @@
 - 出片第一段同样只走 Codex CLI，见 `docs/explicit-still-two-stage.md` 和 `autodl/run_explicit_two_stage.py`。资产脚本不共用出片的 job 文件。
 - 资产走 `autodl/run_cast_body_two_stage.py` 和 `autodl/cast_body_worker.py`。机器上的队列是 `/root/autodl-tmp/in/cast-asset-job.json`。穿衣底板不进这个队列。
 
-四人仍是林晚棠、顾承安、伊莲·沃斯、阿德里安·凯恩。林晚棠和伊莲的脸已换成 2026-10-06 记事正面锁脸：`library/cast/lin_wantang/ref.png`、`library/cast/elena_voss/ref.png`。旧女脸在 `archive/ref-retired-2026-10-05.png`，停用。男演员 ref 不动。侧脸和三视图还没有。`library/cast/mood/` 的五合一合成图只是气质标签板，不能当这四张 `ref.png`，也不能喂去衣。一采锁脸型、五官、肤色和站姿，并去衣。发型妆随新锁脸，不在一采提示里另写改妆。脸锁在**新的**穿衣底板上。一采过除分辨率外的全部要求。二采只用同一颗种子做轻放大；掉分只调 denoise 和步数，不大改内容。不写故事场景，不换构图。出片不代跑。
+四人仍是林晚棠、顾承安、伊莲·沃斯、阿德里安·凯恩。林晚棠和伊莲的脸已换成 2026-10-06 记事正面锁脸：`library/cast/lin_wantang/ref.png`、`library/cast/elena_voss/ref.png`。旧女脸在 `archive/ref-retired-2026-10-05.png`，停用。男演员 ref 不动。侧脸和三视图还没有。`library/cast/mood/` 的五合一合成图只是气质标签板，不能当这四张 `ref.png`，也不能喂去衣。一采锁脸只留五官和肤色，并去衣。`ref.png` 作为第二张图喂给工人，不 letterbox。发型妆随新锁脸，不在一采提示里另写改妆。第一张图仍是已经过门的穿衣底板。一采过除分辨率外的全部要求。二采只用同一颗种子做轻放大；掉分只调 denoise 和步数，不大改内容。不写故事场景，不换构图。出片不代跑。
 
 ## 十二张穿衣底板
 
@@ -51,17 +51,29 @@ F34 干活才开机。当前批次做完或暂停，`f34_shutdown_hook` 立刻 `
 | denoise | 无 | 0.20。掉分降到 0.15，再降到 0.12 |
 | true_cfg_scale | 4 | 4 |
 | LoRA scale | 0.85 | 0.85，同一颗种子 |
-| 提示 | 构图一句，含 `full body, head and both feet in frame, no bust/head crop`。锁脸：只锁脸型、五官、肤色和站姿。去衣结果态写两遍：胸腹髋腿只留皮肤，不要背心短裤内衣。三句并列，互不替换 | 只放大。头和双脚仍留在画面内 |
+| 提示 | 构图一句，含 `full body, head and both feet in frame, no bust/head crop`。锁脸：只锁五官和肤色。第二张图是锁脸。去衣结果态写两遍：胸腹髋腿只留皮肤，不要背心短裤内衣。三句并列，互不替换 | 只放大。头和双脚仍留在画面内 |
 
 ## 两段，求快
 
-去衣固定 LoRA scale `0.85`。不扫 scale。一采输入只喂已经过门的新 `body-clothed` 底板。构图、锁脸、去衣分成三句，互不替换。构图只写全身入画：中文「头和双脚都留在画面内，不要裁成头肩」，加上独立硬句 `full body, head and both feet in frame, no bust/head crop`。锁脸只写「只锁脸型、五官、肤色和站姿」，不写「身体不动」，不把发型妆句接在锁脸上。去衣是结果态，同一句写两遍：胸腹髋腿只留皮肤，不要背心短裤内衣。「不要把去衣句再加长」已退役。不另加接触或情节。
+去衣固定 LoRA scale `0.85`。不扫 scale。一采输入只喂已经过门的新 `body-clothed` 底板。构图、锁脸、去衣分成三句，互不替换。构图只写全身入画：中文「头和双脚都留在画面内，不要裁成头肩」，加上独立硬句 `full body, head and both feet in frame, no bust/head crop`。锁脸只写「只锁五官和肤色」，并写明第二张图是锁脸。不写「身体不动」，不写站姿，不把发型妆句接在锁脸上。去衣是结果态，同一句写两遍：胸腹髋腿只留皮肤，不要背心短裤内衣。「不要把去衣句再加长」已退役。不另加接触或情节。
 
 林晚棠正面 seed `33`–`83` 已花。其中 `33`–`61` 是更早的失败批，`62`–`83` 是旧提示一采，全部打过分，没有过门。盲递增不从 `84` 接着跑。下一验证只用指定籽。指定籽可以点名重跑，未过门不进二采，也不换成下一颗。本次指定 seed `62`、`70`、`78`。`scale 0.85 / seed 33` 作废。任一内容项低于 9 都不过门。用户放下停止文件 `/tmp/cast-asset-stop`（本机）或 `/root/autodl-tmp/in/cast-asset-stop`（F34）就停。用户叫停时一采未过门，禁止二采。
 
-三张指定籽都跑完再看衣着分。三张 wardrobe 都 ≤ 4 才进方案 B：同一批指定籽，一采步数先改成 16，提示、true_cfg、scale、分辨率、LoRA、负向、二采都不改。16 步仍是三张 wardrobe 都 ≤ 4，再两段去衣：同一提示、同一籽，第二段用 16 步那张图做输入。不跳方案 C，不盲换籽。有过门，或任一 wardrobe ≥ 7，就停在这一档；过门的那张才进二采放大。表内一采步数仍是 8。
+方案 A 的三张指定籽衣着都是 2，于是进了方案 B 的 16 步。16 步后并非三张衣着都 ≤ 4，两段去衣没有开。表内一采步数仍是 8。研究批单独用 16 步，不把表改成 16。
 
-motif 口径在 `SCORE_PREFIX`：motif 是资产站姿模板，沿用穿衣底板的中性站姿。衣服脱掉不扣 motif。
+## 规划 C
+
+衣服会动但结果不对时走这条。scale 默认仍是 `0.85`，不扫区间。锁脸收成「只锁五官和肤色。第二张图是锁脸。」构图句、去衣结果态两遍、负向、`448×592`、true_cfg 4、LoRA 文件都不改。一采把 `library/cast/<id>/ref.png` 传到工人的 `face` 字段，作为第二张图，不 letterbox。不换籽当主策略，不重跑 `33`–`61`，不改二采，不改 letterbox，不开 G09，不新建实例。
+
+旁路探针只一次：林晚棠正面籽 `62`，scale `1.0`，16 步，同一条 C 提示和 face。脸崩就退回 `0.85`。更好也只写进报告，默认批次仍是 `0.85`。
+
+研究批只跑林晚棠正面一采，禁止二采，哪怕过门也不放大。步数 16。籽含对照 `62`、`70`、`78`，再加 `79`–`85`，一共十张。命令：
+
+```bash
+python autodl/run_cast_body_two_stage.py --only lin_wantang:front --research --probe-scale 1.0 --steps 16 --seed 62,70,78,79,80,81,82,83,84,85
+```
+
+motif 口径在 `SCORE_PREFIX` 的 pass1 段：无情节的成年全身站姿模板，纯色背景，与锁脸同一人；没有剧情互动不扣分；胸腹髋腿还有布则 motif<9。九分线不放宽。
 
 ## 越跑越坏
 
@@ -113,8 +125,8 @@ motif 口径在 `SCORE_PREFIX`：motif 是资产站姿模板，沿用穿衣底�
 # 只看机器和余额，不出图
 AUTODL_TOKEN=... python autodl/run_cast_body_two_stage.py --doctor
 
-# 林晚棠正面：指定籽。未过门不进二采，也不盲递增
-AUTODL_TOKEN=... python autodl/run_cast_body_two_stage.py --only lin_wantang:front --seed 62,70,78
+# 林晚棠正面研究批：一采十张，外加籽 62 的一次 scale 1.0 探针。禁止二采
+AUTODL_TOKEN=... python autodl/run_cast_body_two_stage.py --only lin_wantang:front --research --probe-scale 1.0 --steps 16 --seed 62,70,78,79,80,81,82,83,84,85
 ```
 
 在 `ai-realistic-comic/` 目录下运行。一采过门图写到 `/opt/cursor/artifacts/body-nude/<id>-<view>-pass1.png` 和同名 json。没过门的图留在 `/opt/cursor/artifacts/body-nude/_fail/`，旁边同名 json 含八项。二采过门才写入 `library/cast/<id>/body-nude/` 和 F34 `/root/autodl-tmp/assets/body-nude/<id>/`。二采没过门的图同样在 `_fail/` 留同名 json。

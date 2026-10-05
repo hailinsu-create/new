@@ -6,8 +6,8 @@ Only then does pass 1 change clothes on that new plate.
 Pass 1 must clear every content score. Resolution stays on the low grid.
 The undress face stays locked to the new clothed plate. A framing sentence,
 a face-lock sentence, and a clothes sentence stay apart. The face lock names
-face shape, features, skin tone, and the standing pose. The clothes sentence
-is the nude result, written twice. Identity, anatomy, or wardrobe under 9
+only features and skin tone. The lock image is the second input. The clothes
+sentence is the nude result, written twice. Identity, anatomy, or wardrobe under 9
 does not open the next seed. The next check names its seeds. Spent seeds stay
 out of the walker. A named seed may be rendered again. Pass 2 is a same-seed
 light upscale and is forbidden until pass 1 clears. A pass-2 miss only changes
@@ -39,6 +39,11 @@ LIN_FRONT_SPENT = frozenset(range(33, 84))
 LIN_FRONT_A_CHECK = (62, 70, 78)
 # Scheme B only, after that named check. The schedule table stays at 8.
 B_PASS1_STEPS = 16
+# Scheme C research batch. One 1.0 probe, then these seeds at 0.85 and 16 steps.
+C_PASS1_STEPS = 16
+C_PROBE_SCALE = 1.0
+C_PROBE_SEED = 62
+LIN_FRONT_C_BATCH = (62, 70, 78, 79, 80, 81, 82, 83, 84, 85)
 OTHER_SEED = 41
 # Local and remote files. Either one stops the pass-1 seed walk.
 STOP_LOCAL = "/tmp/cast-asset-stop"
@@ -355,10 +360,10 @@ def look_line(actor: str) -> str:
 
 
 def face_lock_line(actor: str) -> str:
-    """Lock face shape, features, skin tone, and the standing pose."""
+    """Lock features and skin tone. The second image is the lock. No stance lock."""
     if actor not in PERIOD_RELEASE and actor not in _KEEP_LOOK:
         raise KeyError(actor)
-    return "锁脸：只锁脸型、五官、肤色和站姿。"
+    return "锁脸：只锁五官和肤色。第二张图是锁脸。"
 
 
 def wardrobe_clause(actor: str, view: str) -> str:
@@ -631,8 +636,6 @@ SCORE_PREFIX = (
     "这是一张成年身体模板，不是情节，也不是两个人。全身，头和双脚都在画面内，纯色背景，仅限成年人。\n"
     "Eight equal scores from 0 to 10: identity, distinction, interaction, aesthetics, anatomy, wardrobe, motif, photoreal. "
     "interaction means the pose is a stable turnaround, not a story pose. "
-    "motif 是资产站姿模板：沿用穿衣底板的中性站姿，全身，不是情节姿势，也不另加手势。"
-    "衣服脱掉不扣 motif。站姿还在，motif 至少给 9。"
     "mean is their equal average. gates is [] or H6 for a minor look, H4 for Elena's ears or green eyes or glasses or Adrian missing ears or holding a weapon, "
     "H7 for malformed limbs, FEET if a foot is cut off.\n"
     "只输出一个 JSON 对象：\n"
@@ -666,7 +669,8 @@ SCORE_PREFIX = (
     "Pass 1 must clear every content score. Resolution is the only exemption: "
     "do not add a penalty, and do not waive a content score, only because the frame is small. "
     "Pixel count is pass 2. Wrong face, pose, anatomy, wardrobe, likeness, or motif still scores below 9. "
-    "Nude pass requires every garment gone. If cloth remains on the chest, abdomen, hips, or legs, wardrobe is below 8.\n"
+    "Nude pass requires every garment gone. If cloth remains on the chest, abdomen, hips, or legs, wardrobe is below 8. "
+    "pass1 的 motif：无情节的成年全身站姿模板，纯色背景，与锁脸同一人；没有剧情互动不扣分；胸腹髋腿还有布则 motif<9。\n"
     "阶段 pass2：Pass 2 is a same-seed light upscale. Content must stay the pass-1 plate. "
     "Lower a score when the upscale changes the face, hair, makeup, pose, body, or anatomy. "
     "Nude pass requires every garment gone. If cloth remains on the chest, abdomen, hips, or legs, wardrobe is below 8.\n"

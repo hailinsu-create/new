@@ -763,6 +763,7 @@ def run_view(
     specified_seed: int,
     *,
     steps: int | None = None,
+    scale: float | None = None,
     on_miss: str = "exit",
     enter_pass2: bool = True,
     src_local: Path | None = None,
@@ -795,6 +796,14 @@ def run_view(
     sftp.close()
     width, height = tpl.PASS1_SIZE
     pass1_steps = tpl.PASS1_STEPS if steps is None else int(steps)
+    use_scale = tpl.FIXED_SCALE if scale is None else float(scale)
+    face_local = ROOT / "library" / "cast" / actor / "ref.png"
+    if not face_local.is_file():
+        raise SystemExit(f"missing lock ref {face_local}")
+    face_remote = f"/root/autodl-tmp/in/cast-{actor}-ref.png"
+    face_up = client.open_sftp()
+    face_up.put(str(face_local), face_remote)
+    face_up.close()
     # One specified seed. A miss does not step to the next seed.
     if user_stop_requested(client):
         raise SystemExit(f"{actor} {view} 用户叫停。一采未过门，禁止二采。")
@@ -802,20 +811,21 @@ def run_view(
     tag = plate_tag or ("" if pass1_steps == tpl.PASS1_STEPS else f"steps{pass1_steps}")
     suffix = f"-{tag}" if tag else ""
     print(
-        f"PASS1_TRY {actor} {view} scale={tpl.FIXED_SCALE} seed={seed} steps={pass1_steps}",
+        f"PASS1_TRY {actor} {view} scale={use_scale} seed={seed} steps={pass1_steps} face={face_remote}",
         flush=True,
     )
     remote_dest = f"/root/autodl-tmp/out/cast-{actor}-{view}-pass1-seed{seed}{suffix}.png"
     done = remote.render(
         {
             "kind": "pass1",
-            "scale": tpl.FIXED_SCALE,
+            "scale": use_scale,
             "seed": seed,
             "width": width,
             "height": height,
             "steps": pass1_steps,
             "true_cfg_scale": tpl.ASSET_TRUE_CFG,
             "src": src,
+            "face": face_remote,
             "prompt": f"/root/autodl-tmp/in/cast-{actor}-{view}-pass1.txt",
             "negative": tpl.negative_for(actor),
             "dest": remote_dest,
@@ -825,7 +835,7 @@ def run_view(
     local = FAIL / f"{actor}-{view}-pass1-seed{seed}{suffix}.png"
     remote.fetch(done["dest"], local)
     score = score_image(local, actor, view, "pass1")
-    passed = tpl.accept_pass1(score, actor, view, tpl.FIXED_SCALE, seed)
+    passed = tpl.accept_pass1(score, actor, view, use_scale, seed)
     emit_score(
         local,
         "PASS1",
@@ -834,7 +844,8 @@ def run_view(
         score,
         passed,
         seed,
-        f"scale={tpl.FIXED_SCALE} seed={seed} steps={pass1_steps}",
+        f"scale={use_scale} seed={seed} steps={pass1_steps}",
+        scale=use_scale,
         seconds=done.get("seconds"),
     )
     if not passed:
@@ -978,6 +989,54 @@ def run_named_batch(client, remote: Remote, actor: str, view: str, seeds: list[i
     print("SCHEME_STOP 两段后仍不换籽，不跳 C。", flush=True)
 
 
+def run_research(
+    client,
+    remote: Remote,
+    actor: str,
+    view: str,
+    seeds: list[int],
+    steps: int,
+    probe_scale: float | None,
+) -> None:
+    """Pass 1 only. One optional scale probe, then the named seeds at 0.85. No pass 2."""
+    print(f"RESEARCH_PROMPT {tpl.pass1_prompt(actor, view)}", flush=True)
+    if probe_scale is not None:
+        probe_seed = tpl.C_PROBE_SEED
+        print(
+            f"PROBE_ONCE scale={probe_scale} seed={probe_seed} steps={steps} 不扫 scale",
+            flush=True,
+        )
+        run_view(
+            client,
+            remote,
+            actor,
+            view,
+            probe_seed,
+            steps=steps,
+            scale=probe_scale,
+            on_miss="return",
+            enter_pass2=False,
+            plate_tag=f"c-probe-scale{probe_scale:g}",
+        )
+        print("PROBE_DONE 默认批次回到 0.85。", flush=True)
+    for seed in seeds:
+        if user_stop_requested(client):
+            raise SystemExit(f"{actor} {view} 用户叫停。一采未过门，禁止二采。")
+        run_view(
+            client,
+            remote,
+            actor,
+            view,
+            seed,
+            steps=steps,
+            scale=tpl.FIXED_SCALE,
+            on_miss="return",
+            enter_pass2=False,
+            plate_tag=f"c-steps{steps}",
+        )
+    print("RESEARCH_DONE 一采研究批结束。禁止二采。", flush=True)
+
+
 def parse_only(raw: str) -> list[tuple[str, str]]:
     if not raw:
         return list(tpl.NUDE_VIEWS)
@@ -1067,6 +1126,9 @@ def main() -> None:
     parser.add_argument("--keep-on", action="store_true", help="用户当次明确说别关")
     parser.add_argument("--hold-off", action="store_true", help="用户当次明确说先别开")
     parser.add_argument("--seed", default=None, help="指定一采籽，逗号分隔。未指定不跑")
+    parser.add_argument("--research", action="store_true", help="一采研究批。禁止二采。")
+    parser.add_argument("--steps", type=int, default=None, help="当次一采步数。研究批默认 16。")
+    parser.add_argument("--probe-scale", type=float, default=None, help="只对籽 62 试一次这个 scale")
     args = parser.parse_args()
     if os.environ.get("CAST_ASK_FILM_PROXY") or tpl.film_proxy_allowed():
         raise SystemExit(tpl.self_run_line())
@@ -1147,7 +1209,11 @@ def main() -> None:
                 if user_stop_requested(client):
                     paused = True
                     raise SystemExit(f"{actor} {view} 用户叫停。关机留盘，不去衣。")
-                run_named_batch(client, remote, actor, view, seeds)
+                if args.research:
+                    steps = tpl.C_PASS1_STEPS if args.steps is None else int(args.steps)
+                    run_research(client, remote, actor, view, seeds, steps, args.probe_scale)
+                else:
+                    run_named_batch(client, remote, actor, view, seeds)
         finally:
             client.close()
     finally:
