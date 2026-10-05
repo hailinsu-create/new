@@ -16,6 +16,14 @@
 
 这台 Cursor 环境的第一段只许 `/home/ubuntu/.local/bin/codex`。禁止 agy。禁止降级到 `autodl/run_explicit8.py` 或本地 Qwen 直接出锁定图。不要代填账号，不要开机。
 
+## 新 VM 检查表
+
+Cursor 环境换成新 VM 之后先做下面三步。脚本不代登录，不开机。硬门不变：没有 `codex` 或 `codex login status` 不是已登录，都失败退出；禁止 agy；禁止降级。第二段仍是 F34。
+
+1. 路径。`command -v codex` 必须是 `/home/ubuntu/.local/bin/codex`。非交互 shell 的 PATH 没有它时，脚本再看 `~/.local/bin/codex`。两条都没有就失败退出。补装之后仍要落在这条路径。不要改走 agy。
+2. 登录状态。运行 `codex login status`。退出码是 0，并且输出里有 `Logged in`，才算已登录。这台环境已登录时的一行是 `Logged in using ChatGPT`。不是这一类输出，入口失败退出。脚本不自己执行登录。
+3. 缺登录时的设备码。由人在这台 VM 上运行 `codex login --device-auth`。CLI 按这个顺序打印：用 ChatGPT 设备码登录；在浏览器打开它给的链接并登录账号；填入它给的一次性码。无浏览器时，用它打印的 URL 手工打开。回到这台 VM 再跑 `codex login status`，看到 `Logged in` 才停。设备码不写进仓库或脚本。不要改用 API key 降级。这一步不开 F34。
+
 四人穿衣身体参考在 `library/cast/<id>/body-clothed/front.png`、`side.png`、`back.png`。脸用定妆，身体和姿势不锁，衣服是短袖 T 恤加及膝运动短裤或长裤，简单、贴身、好去掉，站姿中性。Codex 按 9.0 门打分时必须附上该演员的定妆 ref。背面的身份按发型、发色、肤色、体型和定妆是否一致来认，不因为看不到脸扣分。过了才可以交给本地 Qwen 去掉这张图上的衣服，结果写入 `body-nude/`。去衣这一步 Qwen 只喂这张穿衣底图，不再额外喂穿衣定妆 ref，脸在打分时对定妆。底图按自身比例输出（宽 896），把头和双脚留在画面里。每张过门后拷到 `/opt/cursor/artifacts/body-nude/<id>-<view>.png`，并写一行 DONE_ONE（演员、视角、均分、硬门、路径），不等确认就继续下一张，中途不关机。指令由 `body_undress_rules` 约束：只点名这张图里实际穿着的那几件衣服并去掉，不要大段描述衣服的样子，锁脸、姿势和体型。林晚棠同时去掉古装盘发和发饰，换成自然散发，并去掉古装妆、眉间花钿、浓唇色和眼妆，换成素颜或极淡自然妆。顾承安同时去掉发髻和额前头巾或发带，换成自然的现代短发或散发；若有角色妆也同样去掉。五官、脸型和肤色仍锁定妆 ref。这两人的裸体身体打分时发型和妆容都不算身份扣分，身份按脸、肤色、体型认。伊莲和阿德里安发型和妆容不变。林晚棠这套是人形，不是蛇尾身体。这 9 张去衣一旦开机，9.0 门和硬门全部过了才关机并保留数据盘。关机之后立刻读 AutoDL 网站钱包 `assets`（单位厘），把余额数字写进当轮报告，漫画把这个数字转给额度 bot。关机流程不能跳过读余额。没过就重写指令继续重出，不设 3 次上限。同一张连续 15 次仍过不了，先不关机，报回卡在哪一张。林晚棠正面已过门并保留。去衣循环暂停在侧面，因为无 LoRA 的结果把胸、下体和皮肤磨平。F34 保持开机。数据盘上的适配器是 `ScottzillaSystems/qwen-image-edit-plus-nsfw-lora` 的 `qwen-image-edit-plus-nsfw-lora.safetensors`，放在 `/root/autodl-tmp/loras/`，基座是 `Qwen/Qwen-Image-Edit-2511`。diffusers 0.40 用 `load_lora_weights` 加载，这台机器没有 ComfyUI。身体去衣的 Qwen 改成两采，从这次 LoRA 调参开始用。一采约 448×600、16 步。一采只看构图、脸、身体结构、衣服是否去掉，以及硬门：身份、姿势、解剖、服装各自不低于 9，且硬门为空。照片感、美感和皮肤纹理不挡一采，留给二采。二采仍按完整八项均分 9.0 和硬门。一采的条件图按 448×600 的面积编码，不再用管线默认的约 1024² 把条件图编成 896×1184。权重是 BF16，transformer 约 39GB、文本编码器约 16GB，32GB 的 5090 放不下整模型。transformer 用 fp8 或 8bit 后常驻 GPU，VAE 一起留下，文本编码器不用时放在 CPU，LoRA 用 fuse_lora。一采条件图按 448×600 编码。改前 sequential offload、条件图约 896×1184、LoRA 未融合时，16 步约 155–165 秒，每步约 9.7–10.3 秒，显存约 12GB。二采用同一种子和同一条提示，把一采结果放大到 896×1200，denoise 从 0.35 只降到 0.30、0.25，只补轻度细节。二采掉分不重写提示，也不重开一采。一采和二采各自记渲染耗时。输入只喂穿衣底图。正面两采定参后按该强度、种子和去噪继续剩下 8 张。二采过门后写入 `library/cast/<id>/body-nude/<view>.png`，同目录 `scores.json` 记八项分、均分、硬门、种子、LoRA 强度、去噪和一采、二采耗时，并在 F34 数据盘留一份 `/root/autodl-tmp/assets/body-nude/`。无 LoRA 的已过门林晚棠正面另存 `front-smooth.png`。<!-- LORA_LOCK: pending -->
 
 ## F34 SSH 与内存（2026-10-05）

@@ -10,6 +10,20 @@ def _load():
     return module
 
 
+def test_new_vm_checklist_stays_in_the_still_doc():
+    text = (Path(__file__).resolve().parents[1] / "docs" / "explicit-still-two-stage.md").read_text(
+        encoding="utf-8"
+    )
+    assert "/home/ubuntu/.local/bin/codex" in text
+    assert "codex login status" in text
+    assert "Logged in using ChatGPT" in text
+    assert "codex login --device-auth" in text
+    assert "一次性码" in text
+    assert "禁止 agy" in text
+    assert "失败退出" in text
+    assert "不开 F34" in text
+
+
 def test_keep_line_is_nine_and_gates_block():
     mod = _load()
     assert mod.KEEP_MEAN == 9.0

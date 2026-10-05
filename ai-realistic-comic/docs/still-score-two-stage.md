@@ -34,7 +34,7 @@
 
 收留线是 9。硬门没过，或八项均分低于 9，都不算完成。第一段锁定图只许 Codex CLI。禁止 agy。缺 Codex 失败退出，不许降级。一采定内容，写实纹理和分辨率不挡一采。二采只放大，提示词和种子不动，掉分只降 denoise 和步数，不退回一采。第二段仍是 F34。入口是 `autodl/run_explicit_two_stage.py`。不得另开一条生成指令来补这张。
 
-视觉打分模型固定为 `opencode-go/deepseek-v4-flash-vision-exp`，推理档 `max`。不要换模型。一采定内容，二采只放大。详见 `docs/explicit-still-two-stage.md`。
+视觉打分模型固定为 `opencode-go/deepseek-v4-flash-vision-exp`，推理档 `max`。不要换模型。一采定内容，二采只放大。新 VM 先按 `docs/explicit-still-two-stage.md` 的检查表核对 Codex CLI 路径、`codex login status` 和设备码登录。硬门不变。详见 `docs/explicit-still-two-stage.md`。
 
 这次只把规则写进工作流。低于 9 的旧图这次不回溯重跑。p03–p08 的提示词不改。以后可以逐步收紧，不另起架构。
 
