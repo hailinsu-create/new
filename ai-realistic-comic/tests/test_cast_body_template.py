@@ -16,6 +16,7 @@ def _pass1_score(**over):
         "period_hair": False,
         "period_makeup": False,
         "eyes_black_brown": True,
+        "eyes_geometry": True,
         "identity": 9,
         "distinction": 9,
         "interaction": 9,
@@ -98,6 +99,21 @@ def test_pass1_requires_every_content_score_except_resolution():
     assert not mod.accept_pass1(_pass1_score(period_hair=True), "lin_wantang", "front", 0.85, 34)
     assert not mod.accept_pass1(_pass1_score(period_makeup=True), "lin_wantang", "front", 0.85, 34)
     assert not mod.accept_pass1(_pass1_score(eyes_black_brown=False), "lin_wantang", "front", 0.85, 34)
+    assert not mod.accept_pass1(
+        _pass1_score(eyes_geometry=False, eyes_black_brown=True, identity=9),
+        "lin_wantang",
+        "front",
+        0.85,
+        34,
+    )
+    capped = mod.cap_identity_for_eyes(
+        _pass1_score(eyes_geometry=False, identity=9, wardrobe=10)
+    )
+    assert capped["identity"] == 7
+    assert capped["wardrobe"] == 10
+    assert "EYES_GEOMETRY" in mod.look_gates(
+        "lin_wantang", "front", _pass1_score(eyes_geometry=False)
+    )
     assert not mod.accept_pass1(_pass1_score(gates=["H7"]), "lin_wantang", "front", 0.85, 34)
     missing = _pass1_score()
     del missing["period_hair"]
@@ -128,7 +144,7 @@ def test_prompts_only_change_look_and_clothes():
     assert front.count("胸腹髋腿只留皮肤，不要背心短裤内衣。") == 2
     assert "身体不动" not in front
     assert "只锁五官和肤色" in front
-    assert "第二张图是锁脸" in front
+    assert "第二张图是锁脸" not in front
     assert "站姿" not in mod.face_lock_line("lin_wantang")
     assert "脸型" not in mod.face_lock_line("lin_wantang")
     assert "无情节的成年全身站姿模板" in mod.SCORE_PREFIX
@@ -143,7 +159,7 @@ def test_prompts_only_change_look_and_clothes():
     assert "只锁五官和肤色" in adrian
     assert "身体不动" not in adrian
     assert "尖耳" in mod.look_line("adrian_kane")
-    images = ["/tmp/lock.png", "/tmp/plate.png"]
+    images = ["/tmp/lock.png", "/tmp/eyes.jpg", "/tmp/plate.png"]
     call = mod.score_call("lin_wantang", "front", "pass1", images)
     assert call.startswith(mod.SCORE_PREFIX)
     tail = call[len(mod.SCORE_PREFIX) :]
@@ -203,7 +219,12 @@ def test_prompts_only_change_look_and_clothes():
     assert up == "只放大。不改脸、身体、衣着、发型、妆。头和双脚仍留在画面内。"
     assert "补上" not in up
     assert "light upscale" in mod.SCORE_PREFIX
-    pass2_call = mod.score_call("elena_voss", "back", "pass2", ["/tmp/elena-lock.png", "/tmp/elena-plate.png"])
+    pass2_call = mod.score_call(
+        "elena_voss",
+        "back",
+        "pass2",
+        ["/tmp/elena-lock.png", "/tmp/elena-eyes.jpg", "/tmp/elena-plate.png"],
+    )
     assert pass2_call.startswith(mod.SCORE_PREFIX)
     assert "light upscale" not in pass2_call[len(mod.SCORE_PREFIX) :]
     assert pass2_call[: len(mod.SCORE_PREFIX)] == mod.SCORE_PREFIX
@@ -218,7 +239,7 @@ def test_prompts_only_change_look_and_clothes():
     assert "opencode" not in score_joined
     assert "deepseek-v4-flash-vision" not in score_joined
     assert "agy" not in score_joined
-    assert score_argv.count("-i") == 2
+    assert score_argv.count("-i") == 3
     assert mod.f34_should_power_on(has_work=True, hold_off=False) is True
     assert mod.f34_should_power_on(has_work=False, hold_off=False) is False
     assert mod.f34_should_power_on(has_work=True, hold_off=True) is False
@@ -349,7 +370,8 @@ def test_diagnosis_keeps_the_prompt_and_records_the_vae_roundoff():
     assert "不是 worker 越跑越坏" in docs
     assert "胸腹髋腿只留皮肤" in docs
     assert "无情节的成年全身站姿模板" in docs
-    assert "第二张图是锁脸" in docs
+    assert "eyes_geometry" in docs
+    assert "已撤" in docs
     assert "不扫" in docs
     assert "指定籽" in docs
     assert "已退役" in docs
@@ -642,7 +664,8 @@ def test_runner_does_not_edit_explicit_still_files():
     assert "PROBE_ONCE" in text
     assert "RESEARCH_DONE" in text
     assert "ref.png" in text
-    assert '"face"' in text
+    assert '"face"' not in text
+    assert "eye_crop" in text
     assert "PASS1_NEW_SEED" not in text
     assert "identity_anatomy_or_wardrobe_below" in text
     assert "pass2_allowed" in text

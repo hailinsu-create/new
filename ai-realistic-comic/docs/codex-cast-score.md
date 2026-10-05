@@ -2,7 +2,7 @@
 
 打分 = Codex CLI + 固定标准前缀 `SCORE_PREFIX`。
 
-前缀在 `autodl/cast_body_template.py` 的 `SCORE_PREFIX`。它含八项、硬门和 JSON schema，同一次运行里字节不变。`score_call` 只在末尾追加定妆路径、待打分图路径和一句任务，不改写前缀正文。pass1 的 motif 定义在这前缀里：无情节的成年全身站姿模板。胸腹髋腿还有布则这一项低于 9。九分线不放宽。
+前缀在 `autodl/cast_body_template.py` 的 `SCORE_PREFIX`。它含八项、硬门和 JSON schema，同一次运行里字节不变。`score_call` 只在末尾追加定妆路径、待打分图路径和一句任务，不改写前缀正文。pass1 的 motif 定义在这前缀里：无情节的成年全身站姿模板。胸腹髋腿还有布则这一项低于 9。九分线不放宽。`eyes_black_brown` 只表虹膜颜色。`eyes_geometry` 失败则不过门，并且 identity 最高 7。打分用头肩裁切比眼睛，用全身图判衣着、姿势和脚。
 
 出图和打分用同一套 `codex login`。没有 `codex` 打印 `CODEX_CLI_MISSING` 并退出。未登录打印 `CODEX_CLI_LOGGED_OUT` 并退出。禁止改走 OpenCode vision。
 

@@ -45,6 +45,8 @@ C_PASS1_STEPS = 16
 C_PROBE_SCALE = 1.0
 C_PROBE_SEED = 62
 LIN_FRONT_C_BATCH = (62, 70, 78, 79, 80, 81, 82, 83, 84, 85)
+# Next research batch. No second face image. 86-92 are not spent yet.
+LIN_FRONT_NOFACE_BATCH = (62, 70, 78, 86, 87, 88, 89, 90, 91, 92)
 OTHER_SEED = 41
 # Local and remote files. Either one stops the pass-1 seed walk.
 STOP_LOCAL = "/tmp/cast-asset-stop"
@@ -361,10 +363,10 @@ def look_line(actor: str) -> str:
 
 
 def face_lock_line(actor: str) -> str:
-    """Lock features and skin tone. The second image is the lock. No stance lock."""
+    """Lock features and skin tone. Do not point at a second image."""
     if actor not in PERIOD_RELEASE and actor not in _KEEP_LOOK:
         raise KeyError(actor)
-    return "锁脸：只锁五官和肤色。第二张图是锁脸。"
+    return "锁脸：只锁五官和肤色。"
 
 
 def wardrobe_clause(actor: str, view: str) -> str:
@@ -473,10 +475,12 @@ def mean_of(item: dict) -> float:
 
 
 def look_gates(actor: str, view: str, item: dict) -> list[str]:
-    """Period hair, makeup, and eye color. Missing flags do not pass."""
-    if actor not in PERIOD_RELEASE:
-        return []
+    """Period hair, makeup, iris color, and eye geometry. Missing flags do not pass."""
     gates: list[str] = []
+    if view != "back" and item.get("eyes_geometry") is not True:
+        gates.append("EYES_GEOMETRY")
+    if actor not in PERIOD_RELEASE:
+        return gates
     if item.get("period_hair") is not False:
         gates.append("HAIR")
     if view == "back":
@@ -488,6 +492,24 @@ def look_gates(actor: str, view: str, item: dict) -> list[str]:
     if item.get("eyes_black_brown") is not True:
         gates.append("EYES")
     return gates
+
+
+def cap_identity_for_eyes(item: dict) -> dict:
+    """A geometry miss caps identity at 7. Iris color does not offset it."""
+    if item.get("eyes_geometry") is not False:
+        return item
+    try:
+        identity = float(item.get("identity"))
+    except (TypeError, ValueError):
+        return item
+    if identity > 7:
+        item["identity"] = 7
+    try:
+        values = [float(item[key]) for key in EIGHT]
+    except (TypeError, ValueError, KeyError):
+        return item
+    item["mean"] = round(sum(values) / len(values), 4)
+    return item
 
 
 def _score_ok(item: dict, keys: tuple[str, ...]) -> bool:
@@ -545,7 +567,8 @@ def score_log_line(
         f"{stage} {actor} {view} {prefix}"
         f"mean={item.get('mean')} gates={item.get('gates')} look={look} "
         f"period_hair={item.get('period_hair')} period_makeup={item.get('period_makeup')} "
-        f"eyes_black_brown={item.get('eyes_black_brown')} passed={passed} "
+        f"eyes_black_brown={item.get('eyes_black_brown')} "
+        f"eyes_geometry={item.get('eyes_geometry')} passed={passed} "
         f"eight={format_eight(item)} below={below_nine(item)}"
     )
 
@@ -575,6 +598,7 @@ def attempt_record(
         "period_hair": item.get("period_hair"),
         "period_makeup": item.get("period_makeup"),
         "eyes_black_brown": item.get("eyes_black_brown"),
+        "eyes_geometry": item.get("eyes_geometry"),
         "eight": {key: item.get(key) for key in EIGHT},
         "below": below_nine(item),
         "score": item,
@@ -633,22 +657,33 @@ def accept_pass2(item: dict, actor: str, view: str, scale: float, seed: int) -> 
 
 # Byte-stable scoring prefix. Do not format this per image.
 SCORE_PREFIX = (
-    "不要生成图像。不要改文件。不要改写本标准。第一张图是定妆锁脸。只给最后一张图打分。"
+    "不要生成图像。不要改文件。不要改写本标准。"
+    "第一张图是定妆锁脸。第二张是结果的头肩裁切，只用来比眼睛。最后一张是全身，用来判衣着、姿势和脚。"
     "这是一张成年身体模板，不是情节，也不是两个人。全身，头和双脚都在画面内，纯色背景，仅限成年人。\n"
     "Eight equal scores from 0 to 10: identity, distinction, interaction, aesthetics, anatomy, wardrobe, motif, photoreal. "
     "interaction means the pose is a stable turnaround, not a story pose. "
     "mean is their equal average. gates is [] or H6 for a minor look, H4 for Elena's ears or green eyes or glasses or Adrian missing ears or holding a weapon, "
     "H7 for malformed limbs, FEET if a foot is cut off.\n"
     "只输出一个 JSON 对象：\n"
-    '{"gates":[],"period_hair":false,"period_makeup":false,"eyes_black_brown":false,'
+    '{"gates":[],"period_hair":false,"period_makeup":false,"eyes_black_brown":false,"eyes_geometry":false,'
     '"identity":0,"distinction":0,"interaction":0,"aesthetics":0,"anatomy":0,"wardrobe":0,'
     '"motif":0,"photoreal":0,"mean":0,"note":"一句"}\n'
+    "eyes_black_brown is iris color only. "
+    "eyes_geometry is false when the eyes differ in size, the corners are uneven, the gaze is not parallel, "
+    "a catchlight is missing, or an eyelid is smeared. If eyes_geometry is false, identity is at most 7. "
+    "Iris color does not cancel that.\n"
     "林晚棠、顾承安：Nude template for Lin or Gu. Identity is facial features, face shape, skin tone, and body type. "
     "Costume hair and makeup must be gone: no hair bun, no hairpins, no forehead ornament, "
     "no heavy eye makeup, no crimson lips. Hair is natural black-brown. Makeup is light or bare. "
     "Eyes are normal black-brown. Do not deduct identity for that change. "
     "Do deduct, and set period_hair or period_makeup true, if the bun, ornaments, heavy makeup, or red lips remain. "
-    "Set eyes_black_brown true only when the irises read black-brown. "
+    "Set eyes_black_brown true only when the irises read black-brown. That flag is color only. "
+    "eyes_geometry is true only when both eyes are nearly the same size, the outer corners sit level, "
+    "the gaze is parallel, each iris has a small catchlight, and the eyelids are not smeared. "
+    "Any one miss sets eyes_geometry false. "
+    "If eyes_geometry is false, identity is at most 7. A true eyes_black_brown does not raise identity "
+    "and does not cancel the geometry failure. Compare eyes on the head crop against the lock. "
+    "Do not judge eye shape from the tiny face in the full-body frame. "
     "Back view: do not fail identity because the face is hidden. Eyes may be unseen.\n"
     "伊莲·沃斯：Keep Elena's soft brown wavy hair loosely pulled back, clear blue-grey eyes, and human ears. "
     "No glasses. Do not give her pointed ears, green eyes, auburn hair, or amber eyes. "
@@ -684,12 +719,12 @@ def score_call(actor: str, view: str, stage: str, images: list[str]) -> str:
         raise KeyError(stage)
     if view not in ("front", "side", "back"):
         raise KeyError(view)
-    if len(images) != 2:
-        raise ValueError("score_call expects the lock image and the plate")
+    if len(images) != 3:
+        raise ValueError("score_call expects the lock, the eye crop, and the full plate")
     tail = (
         f"Actor id: {actor}. View: {view}. Stage: {stage}.\n"
-        f"{images[0]}\n{images[1]}\n"
-        "只给最后一张打分。\n"
+        f"{images[0]}\n{images[1]}\n{images[2]}\n"
+        "第二张只比眼睛。最后一张判衣着、姿势和脚。\n"
     )
     return SCORE_PREFIX + tail
 

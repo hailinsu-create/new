@@ -253,6 +253,35 @@ def gpu_block_reason(text: str) -> str | None:
     return None
 
 
+def eye_crop(plate: Path, lock: Path) -> tuple[Path, Path]:
+    """Native head crop plus a lock resized to that height. Do not enlarge the plate."""
+    from PIL import Image
+
+    src = Image.open(plate).convert("RGB")
+    ref = Image.open(lock).convert("RGB")
+    width, height = src.size
+    # Head sits in the top quarter of these full-body plates.
+    box = (
+        int(width * 0.28),
+        int(height * 0.01),
+        int(width * 0.72),
+        max(2, int(height * 0.24)),
+    )
+    crop = src.crop(box)
+    scale = crop.size[1] / max(1, ref.size[1])
+    ref = ref.resize(
+        (max(1, int(round(ref.size[0] * scale))), crop.size[1]),
+        Image.Resampling.LANCZOS,
+    )
+    dest_dir = Path("/tmp/cast-eye-crops")
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    crop_path = dest_dir / f"{plate.stem}.jpg"
+    lock_path = dest_dir / f"{plate.stem}-lock.jpg"
+    crop.save(crop_path, quality=95)
+    ref.save(lock_path, quality=95)
+    return lock_path, crop_path
+
+
 def score_image(image: Path, actor: str, view: str, stage: str) -> dict:
     """Codex CLI scores with the fixed SCORE_PREFIX. No second scorer."""
     makeup = ROOT / "library" / "cast" / actor / "ref.png"
@@ -260,7 +289,8 @@ def score_image(image: Path, actor: str, view: str, stage: str) -> dict:
         raise SystemExit(f"missing makeup ref {makeup}")
     binary = codex_binary()
     logged = bool(binary) and codex_logged_in(binary)
-    images = [str(makeup), str(image)]
+    lock_view, cropped = eye_crop(image, makeup)
+    images = [str(lock_view), str(cropped), str(image)]
     cmd = tpl.score_exec_argv(binary, logged_in=logged, cwd=str(image.parent), images=images)
     prompt = tpl.score_call(actor, view, stage, images)
     if not prompt.startswith(tpl.SCORE_PREFIX):
@@ -276,9 +306,10 @@ def score_image(image: Path, actor: str, view: str, stage: str) -> dict:
         detail = (result.stderr or result.stdout or "codex score missing").strip()
         raise SystemExit(f"CODEX_CLI_FAILED score {actor} {view} {stage} {detail[-500:]}")
     try:
-        return tpl.parse_score(f"{result.stdout}\n{result.stderr}")
+        parsed = tpl.parse_score(f"{result.stdout}\n{result.stderr}")
     except ValueError as exc:
         raise SystemExit(f"CODEX_CLI_FAILED score json {actor} {view} {stage} {exc}") from exc
+    return tpl.cap_identity_for_eyes(parsed)
 
 
 def clothed_candidates(actor: str, view: str) -> list[str]:
@@ -797,21 +828,14 @@ def run_view(
     width, height = tpl.PASS1_SIZE
     pass1_steps = tpl.PASS1_STEPS if steps is None else int(steps)
     use_scale = tpl.FIXED_SCALE if scale is None else float(scale)
-    face_local = ROOT / "library" / "cast" / actor / "ref.png"
-    if not face_local.is_file():
-        raise SystemExit(f"missing lock ref {face_local}")
-    face_remote = f"/root/autodl-tmp/in/cast-{actor}-ref.png"
-    face_up = client.open_sftp()
-    face_up.put(str(face_local), face_remote)
-    face_up.close()
-    # One specified seed. A miss does not step to the next seed.
+    # One specified seed. A miss does not step to the next seed. Pass 1 does not send a second face.
     if user_stop_requested(client):
         raise SystemExit(f"{actor} {view} 用户叫停。一采未过门，禁止二采。")
     seed = tpl.require_specified_seed(specified_seed, actor, view)
     tag = plate_tag or ("" if pass1_steps == tpl.PASS1_STEPS else f"steps{pass1_steps}")
     suffix = f"-{tag}" if tag else ""
     print(
-        f"PASS1_TRY {actor} {view} scale={use_scale} seed={seed} steps={pass1_steps} face={face_remote}",
+        f"PASS1_TRY {actor} {view} scale={use_scale} seed={seed} steps={pass1_steps}",
         flush=True,
     )
     remote_dest = f"/root/autodl-tmp/out/cast-{actor}-{view}-pass1-seed{seed}{suffix}.png"
@@ -825,7 +849,6 @@ def run_view(
             "steps": pass1_steps,
             "true_cfg_scale": tpl.ASSET_TRUE_CFG,
             "src": src,
-            "face": face_remote,
             "prompt": f"/root/autodl-tmp/in/cast-{actor}-{view}-pass1.txt",
             "negative": tpl.negative_for(actor),
             "dest": remote_dest,
@@ -1032,7 +1055,7 @@ def run_research(
             scale=tpl.FIXED_SCALE,
             on_miss="return",
             enter_pass2=False,
-            plate_tag=f"c-steps{steps}",
+            plate_tag=f"noface-steps{steps}",
         )
     print("RESEARCH_DONE 一采研究批结束。禁止二采。", flush=True)
 
