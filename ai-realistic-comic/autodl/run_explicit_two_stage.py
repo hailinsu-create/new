@@ -11,6 +11,9 @@ import os
 import re
 import shutil
 import subprocess
+import sys
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,6 +24,17 @@ PROMPT_FILES = (
 ANCHOR = ROOT / "library" / "stills" / "explicit-8" / "anchor-10.jpg"
 RUBRIC = ROOT / "docs" / "still-score-two-stage.md"
 KEEP_MEAN = 9.0
+
+# F34 only. Power on to do Qwen work. Shut down and keep the disk when the
+# batch is done, paused, idle, or waiting. Never release or delete.
+F34_UUID = "xaxna66hqt-c5c9c7fc"
+G09_UUID = "sa4eaxgcuq-26e36fc9"
+F34_DISK_BYTES = 107374182400
+F34_POWER_ON_URL = "https://www.autodl.com/api/v1/instance/power_on"
+F34_POWER_OFF_URL = "https://www.autodl.com/api/v1/instance/power_off"
+F34_LIST_URL = "https://www.autodl.com/api/v1/instance"
+F34_BALANCE_URL = "https://www.autodl.com/api/v1/wallet/balance"
+F34_STOP_PHASES = frozenset({"done", "paused", "idle", "wait"})
 
 # Fixed prefix. Do not interpolate paths or the frame under test.
 SCORE_PREFIX = """打分只许 Codex CLI 看图并执行本标准。禁止 OpenCode Go vision。禁止 deepseek-v4-flash-vision。禁止 agy。禁止其它识图回退。不要生成图，不要改文件。
@@ -750,43 +764,245 @@ def _run_qwen_stage(
     raise SystemExit(f"{panel['id']} 二采未过门。没有重写提示，没有换种子，没有重开一采。")
 
 
+def f34_power_decision(phase: str, user_text: str = "") -> str:
+    """Decide F34 power without calling the network.
+
+    work: power on, unless this turn says 先别开.
+    done, paused, idle, or wait: power off and keep the disk, unless this
+    turn says 别关. Idle and waiting are not a reason to leave the GPU on.
+    """
+    text = user_text or ""
+    if phase in F34_STOP_PHASES:
+        if "别关" in text:
+            return "skip_shutdown"
+        return "power_off_keep_disk"
+    if phase == "work":
+        if "先别开" in text:
+            return "skip_power_on"
+        return "power_on"
+    raise SystemExit(f"未知 F34 阶段：{phase}")
+
+
+def _f34_guard(payload: dict, url: str) -> None:
+    """F34 power_off/power_on only. Do not release the disk or touch G09."""
+    uuid = str(payload.get("instance_uuid") or "")
+    if uuid != F34_UUID or G09_UUID in uuid or G09_UUID in url:
+        raise SystemExit("只许操作 F34。不要开、不要删 G09。")
+    lowered = url.lower()
+    if any(word in lowered for word in ("release", "delete", "destroy")):
+        raise SystemExit("禁止释放或删除实例。关机必须留盘。")
+    if set(payload) != {"instance_uuid"}:
+        raise SystemExit("开关机请求只许带 instance_uuid，禁止释放数据盘。")
+
+
+def _f34_website_token() -> str:
+    env = os.environ.get("F34_WEBSITE_TOKEN", "").strip()
+    if env:
+        return env
+    path = Path(os.environ.get("F34_WEBSITE_TOKEN_FILE", "/tmp/autodl_token_live.txt"))
+    if path.is_file():
+        return path.read_text(encoding="utf-8").strip()
+    raise SystemExit("缺网站 token。F34 关机未执行。立刻手动关机留盘。")
+
+
+def _f34_website_request(method: str, url: str, token: str, payload: dict | None) -> dict:
+    """Website API. Authorization is the raw token. Does not print the token."""
+    data = None if payload is None else json.dumps(payload).encode()
+    req = urllib.request.Request(
+        url,
+        data=data,
+        headers={"Authorization": token, "Content-Type": "application/json"},
+        method=method,
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            raw = resp.read().decode()
+    except urllib.error.HTTPError as exc:
+        raise SystemExit(f"F34 网站请求失败：HTTP {exc.code}") from exc
+    except urllib.error.URLError as exc:
+        raise SystemExit("F34 网站请求失败：URLError") from exc
+    body = json.loads(raw)
+    if not isinstance(body, dict):
+        raise SystemExit("F34 网站返回不是对象。")
+    return body
+
+
+def _f34_default_post(url: str, payload: dict, token: str | None) -> dict:
+    return _f34_website_request("POST", url, token or _f34_website_token(), payload)
+
+
+def _f34_default_get(url: str, token: str | None) -> dict:
+    return _f34_website_request("GET", url, token or _f34_website_token(), None)
+
+
+def _assets_li(body: dict) -> int:
+    data = body.get("data") if isinstance(body, dict) else None
+    if isinstance(data, dict) and "assets" in data:
+        return int(data["assets"])
+    if isinstance(body, dict) and "assets" in body:
+        return int(body["assets"])
+    raise SystemExit("关机后没有读到钱包 assets。")
+
+
+def _f34_disk_bytes(body: dict, uuid: str) -> int | None:
+    data = body.get("data") if isinstance(body, dict) else None
+    rows: list = []
+    if isinstance(data, list):
+        rows.extend(data)
+    elif isinstance(data, dict):
+        if data.get("uuid") or data.get("instance_uuid"):
+            rows.append(data)
+        nested = data.get("list") or data.get("instances") or []
+        if isinstance(nested, list):
+            rows.extend(nested)
+    if isinstance(body, dict) and isinstance(body.get("list"), list):
+        rows.extend(body["list"])
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        row_id = str(row.get("uuid") or row.get("instance_uuid") or "")
+        if row_id != uuid:
+            continue
+        size = row.get("expand_data_disk_size")
+        if size is None:
+            return None
+        return int(size)
+    return None
+
+
+def f34_begin_work(user_text: str = "", *, post=None, token: str | None = None) -> dict:
+    """Power F34 on only when this turn is real Qwen work and did not say 先别开."""
+    decision = f34_power_decision("work", user_text)
+    report = {
+        "action": decision,
+        "uuid": F34_UUID,
+        "disk_bytes": F34_DISK_BYTES,
+        "release": False,
+    }
+    if decision != "power_on":
+        return report
+    payload = {"instance_uuid": F34_UUID}
+    _f34_guard(payload, F34_POWER_ON_URL)
+    sender = post or _f34_default_post
+    sender(F34_POWER_ON_URL, payload, token)
+    return report
+
+
+def f34_shutdown_hook(
+    phase: str,
+    user_text: str = "",
+    *,
+    post=None,
+    get=None,
+    list_post=None,
+    token: str | None = None,
+) -> dict:
+    """Shut F34 down and keep the data disk. This hook never powers the machine on."""
+    decision = f34_power_decision(phase, user_text)
+    report = {
+        "action": decision,
+        "uuid": F34_UUID,
+        "disk_bytes": F34_DISK_BYTES,
+        "release": False,
+        "assets_li": None,
+    }
+    if decision != "power_off_keep_disk":
+        return report
+    payload = {"instance_uuid": F34_UUID}
+    _f34_guard(payload, F34_POWER_OFF_URL)
+    sender = post or _f34_default_post
+    sender(F34_POWER_OFF_URL, payload, token)
+    if not (get is None and post is not None):
+        reader = get or _f34_default_get
+        report["assets_li"] = _assets_li(reader(F34_BALANCE_URL, token))
+    if not (list_post is None and post is not None):
+        lister = list_post or _f34_default_post
+        listed = lister(F34_LIST_URL, {}, token)
+        size = _f34_disk_bytes(listed, F34_UUID)
+        if size is not None and size != F34_DISK_BYTES:
+            raise SystemExit(f"数据盘不是 {F34_DISK_BYTES}。不要释放实例。")
+        if size is not None:
+            report["disk_bytes"] = size
+    return report
+
+
+def _f34_finish(phase: str, user_text: str) -> None:
+    pending = sys.exc_info()[0]
+    try:
+        result = f34_shutdown_hook(phase, user_text)
+    except SystemExit as exc:
+        print(f"F34_SHUTDOWN_FAILED {exc}", flush=True)
+        if pending is None:
+            raise
+        return
+    except Exception as exc:
+        print(f"F34_SHUTDOWN_FAILED {exc.__class__.__name__}", flush=True)
+        if pending is None:
+            raise SystemExit("F34 关机失败。立刻手动关机留盘。") from exc
+        return
+    if result["action"] == "power_off_keep_disk":
+        print(
+            f"F34_SHUTDOWN uuid={result['uuid']} disk={result['disk_bytes']} "
+            f"assets_li={result.get('assets_li')}",
+            flush=True,
+        )
+        return
+    if result["action"] == "skip_shutdown":
+        print("F34_SKIP_SHUTDOWN 别关", flush=True)
+
+
 def main() -> None:
     # Two-stage entry. The in-flight white-snake six use the already copied
     # renderer and are not started from here.
-    _ensure_codex()
-    panels = _load_panels()
-    only = require_subset(os.environ.get("EXPLICIT_ONLY", ""), {panel["id"] for panel in panels})
-    os.environ.setdefault("HF_HUB_OFFLINE", "1")
-    os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
-    os.environ.setdefault("DIFFUSERS_OFFLINE", "1")
-    os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
-    from comic_pipeline.config import Settings
-    from comic_pipeline.providers.local import LocalProvider
+    # Codex does not boot F34. Qwen work boots it. Done or paused shuts it down.
+    turn = os.environ.get("F34_TURN", "")
+    phase = "done"
+    try:
+        _ensure_codex()
+        panels = _load_panels()
+        only = require_subset(os.environ.get("EXPLICIT_ONLY", ""), {panel["id"] for panel in panels})
+        os.environ.setdefault("HF_HUB_OFFLINE", "1")
+        os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+        os.environ.setdefault("DIFFUSERS_OFFLINE", "1")
+        os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
+        from comic_pipeline.config import Settings
+        from comic_pipeline.providers.local import LocalProvider
 
-    settings = Settings(
-        image_provider="local",
-        local_still_model="qwen-image-edit-2511",
-        local_steps=40,
-        local_offload="sequential",
-        local_seed=1,
-    )
-    provider = LocalProvider(settings)
-    out_root = Path(os.environ.get("EXPLICIT_OUT", "/root/autodl-tmp/out/explicit-8"))
-    out_root.mkdir(parents=True, exist_ok=True)
-    report_node("ready")
-    for panel in panels:
-        if panel["id"] not in only:
-            continue
-        report_node("start", panel["id"])
-        for ref in panel["refs"]:
-            if not ref.is_file():
-                raise SystemExit(f"missing ref {ref}")
-        likeness = out_root / f"{panel['id']}.stage1.png"
-        dest = out_root / f"{panel['id']}.png"
-        seed = int(os.environ.get("EXPLICIT_SEED", "1"))
-        lock_score = _run_codex_stage(panel, likeness)
-        _run_qwen_stage(provider, panel, likeness, dest, seed, lock_score)
-    print("ALL_OK", flush=True)
+        settings = Settings(
+            image_provider="local",
+            local_still_model="qwen-image-edit-2511",
+            local_steps=40,
+            local_offload="sequential",
+            local_seed=1,
+        )
+        provider = LocalProvider(settings)
+        out_root = Path(os.environ.get("EXPLICIT_OUT", "/root/autodl-tmp/out/explicit-8"))
+        out_root.mkdir(parents=True, exist_ok=True)
+        report_node("ready")
+        booted = False
+        for panel in panels:
+            if panel["id"] not in only:
+                continue
+            report_node("start", panel["id"])
+            for ref in panel["refs"]:
+                if not ref.is_file():
+                    raise SystemExit(f"missing ref {ref}")
+            likeness = out_root / f"{panel['id']}.stage1.png"
+            dest = out_root / f"{panel['id']}.png"
+            seed = int(os.environ.get("EXPLICIT_SEED", "1"))
+            lock_score = _run_codex_stage(panel, likeness)
+            if not booted:
+                boot = f34_begin_work(turn)
+                if boot["action"] != "power_on":
+                    raise SystemExit("用户当次说先别开。不开 F34。")
+                booted = True
+            _run_qwen_stage(provider, panel, likeness, dest, seed, lock_score)
+        print("ALL_OK", flush=True)
+    except BaseException:
+        phase = "paused"
+        raise
+    finally:
+        _f34_finish(phase, turn)
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@
 
 这是同一套演员上的一种出图模式，不是新演员，也不是第二套身体板。演员锁仍以 `library/cast/CAST.md` 为准。以后同类静帧必须按本文件，不能改走 `docs/still-mode.md` 里的 fal nano-banana 配方。
 
-已停用。出片走 `docs/explicit-still-two-stage.md` 和 `autodl/run_explicit_two_stage.py`。打分标准是 `docs/still-score-two-stage.md`，由 Codex CLI 执行。禁止 OpenCode vision。缺 Codex 失败退出。开机仍要用户另行授权。
+已停用。出片走 `docs/explicit-still-two-stage.md` 和 `autodl/run_explicit_two_stage.py`。打分标准是 `docs/still-score-two-stage.md`，由 Codex CLI 执行。禁止 OpenCode vision。缺 Codex 失败退出。F34 干活才开机，做完或暂停立刻关机留盘。
 
 新神话姿势锁见 `library/stills/myth-poses/POSE.md`。m01–m04 已出过一版，目检未收，见下文。
 
@@ -56,7 +56,7 @@
 
 - 出图、打分、不达标重出，都在 `autodl/run_explicit8.py` 里完成。文件落盘不算收。均分低于 9 或硬门没过，脚本只重出这一张。
 - 这次不跑图。p03–p08 的提示词不改，也不为这次重跑。
-- 只在 AutoDL F34 `xaxna66hqt-c5c9c7fc`（西北B / west-E，RTX 5090 D）上跑本地 Qwen。不要开、不要删旧的 G09 `sa4eaxgcuq-26e36fc9`。开机要用户另行授权。
+- 只在 AutoDL F34 `xaxna66hqt-c5c9c7fc`（西北B / west-E，RTX 5090 D）上跑本地 Qwen。不要开、不要删旧的 G09 `sa4eaxgcuq-26e36fc9`。干活才开机，做完或暂停立刻关机留盘。
 - 模型 `Qwen/Qwen-Image-Edit-2511`，用机上缓存，离线，不要重下权重。896×1200，40 步，seed 1，`true_cfg_scale` 4。重出时只把这一张的 seed 加 1，其余参数不动。
 - 入口已停用。目视由 Codex CLI 按 `docs/still-score-two-stage.md` 执行硬门和八项，不用 OpenCode vision。已知缺陷、硬门或均分低于 9，都是没完成。
 - 必须设置 `EXPLICIT_ONLY`。未设置时脚本退出，不会把 p01–p08 和 m01–m04 一起重跑。p03–p08 的提示词不改，也不为写规则而重跑。

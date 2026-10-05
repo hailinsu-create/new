@@ -156,3 +156,136 @@ def test_parse_score_reads_one_object():
     item = mod.parse_score('noise {"gates": [], "mean": 9.2, "note": "ok"} tail')
     assert item["mean"] == 9.2
     assert item["gates"] == []
+
+
+def test_f34_powers_on_only_for_work_and_shuts_down_when_stopped():
+    import inspect
+
+    mod = _load()
+    text = (Path(__file__).resolve().parents[1] / "docs" / "explicit-still-two-stage.md").read_text(
+        encoding="utf-8"
+    )
+    for phrase in (
+        "干活才开机",
+        "立刻关机留盘",
+        "禁止空转",
+        "等下一步",
+        "别关",
+        "先别开",
+        "f34_shutdown_hook",
+        "107374182400",
+        mod.F34_UUID,
+    ):
+        assert phrase in text
+    assert "F34 保持开机" not in text
+    assert "先不关机" not in text
+
+    assert mod.f34_power_decision("work", "") == "power_on"
+    assert mod.f34_power_decision("work", "别关") == "power_on"
+    assert mod.f34_power_decision("work", "先别开") == "skip_power_on"
+    for phase in ("done", "paused", "idle", "wait"):
+        assert mod.f34_power_decision(phase, "") == "power_off_keep_disk"
+        assert mod.f34_power_decision(phase, "先别开") == "power_off_keep_disk"
+        assert mod.f34_power_decision(phase, "别关") == "skip_shutdown"
+    try:
+        mod.f34_power_decision("sleep", "")
+    except SystemExit as exc:
+        assert "未知" in str(exc)
+    else:
+        raise AssertionError("unknown phase must fail")
+
+    calls = []
+
+    def post(url, payload, token):
+        calls.append((url, dict(payload), token))
+        return {"code": "Success"}
+
+    def get(url, token):
+        calls.append((url, None, token))
+        return {"data": {"assets": 51790, "blocked_asset": 0}}
+
+    def list_post(url, payload, token):
+        calls.append((url, dict(payload), token))
+        return {
+            "data": [
+                {
+                    "uuid": mod.F34_UUID,
+                    "status": "shutdown",
+                    "expand_data_disk_size": mod.F34_DISK_BYTES,
+                }
+            ]
+        }
+
+    result = mod.f34_shutdown_hook(
+        "done", "", post=post, get=get, list_post=list_post, token="t"
+    )
+    assert result["action"] == "power_off_keep_disk"
+    assert result["uuid"] == mod.F34_UUID
+    assert result["disk_bytes"] == mod.F34_DISK_BYTES
+    assert result["release"] is False
+    assert result["assets_li"] == 51790
+    urls = [item[0] for item in calls]
+    assert urls[0] == mod.F34_POWER_OFF_URL
+    assert calls[0][1] == {"instance_uuid": mod.F34_UUID}
+    assert mod.F34_POWER_ON_URL not in urls
+    assert mod.G09_UUID not in str(calls)
+    assert "release" not in str(urls)
+
+    calls.clear()
+    skipped = mod.f34_shutdown_hook("paused", "别关", post=post, get=get, list_post=list_post)
+    assert skipped["action"] == "skip_shutdown"
+    assert calls == []
+
+    calls.clear()
+    mod.f34_shutdown_hook("idle", "先别开", post=post)
+    assert calls[0][0] == mod.F34_POWER_OFF_URL
+    assert mod.F34_POWER_ON_URL not in [item[0] for item in calls]
+
+    calls.clear()
+    held = mod.f34_begin_work("先别开", post=post)
+    assert held["action"] == "skip_power_on"
+    assert calls == []
+
+    calls.clear()
+    started = mod.f34_begin_work("", post=post, token="t")
+    assert started["action"] == "power_on"
+    assert calls == [(mod.F34_POWER_ON_URL, {"instance_uuid": mod.F34_UUID}, "t")]
+
+    try:
+        mod._f34_guard({"instance_uuid": mod.G09_UUID}, mod.F34_POWER_OFF_URL)
+    except SystemExit as exc:
+        assert "G09" in str(exc)
+    else:
+        raise AssertionError("G09 must be refused")
+    try:
+        mod._f34_guard(
+            {"instance_uuid": mod.F34_UUID},
+            "https://www.autodl.com/api/v1/instance/release",
+        )
+    except SystemExit as exc:
+        assert "留盘" in str(exc)
+    else:
+        raise AssertionError("release must be refused")
+
+    def bad_disk(url, payload, token):
+        return {"data": [{"uuid": mod.F34_UUID, "expand_data_disk_size": 1}]}
+
+    try:
+        mod.f34_shutdown_hook("wait", "", post=post, list_post=bad_disk)
+    except SystemExit as exc:
+        assert "不要释放" in str(exc)
+    else:
+        raise AssertionError("wrong disk size must fail closed")
+
+    source = Path(mod.__file__).read_text(encoding="utf-8")
+    assert "/api/v1/dev/instance/pro/power_off" not in source
+    hook = inspect.getsource(mod.f34_shutdown_hook)
+    assert "F34_POWER_ON_URL" not in hook
+    assert "power_on" not in hook
+    main_src = inspect.getsource(mod.main)
+    assert main_src.index("_run_codex_stage") < main_src.index("f34_begin_work")
+    assert main_src.index("f34_begin_work") < main_src.index("_run_qwen_stage")
+    assert "_f34_finish" in main_src
+    request_src = inspect.getsource(mod._f34_website_request)
+    assert "Bearer" not in request_src
+    assert "Authorization" in request_src
