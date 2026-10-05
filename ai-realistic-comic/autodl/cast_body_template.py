@@ -1,8 +1,10 @@
 """Reusable cast-body templates for later stills. Not a story workflow.
 
-Pass 1 changes only clothes, hair, and makeup. The face stays locked to the
-clothed plate that is fed in. Identity or anatomy under 9 spends that seed.
-Pass 2 is forbidden until pass 1 clears the gate.
+Pass 1 changes only clothes, hair, and makeup, and must clear every content
+score. Resolution stays on the low grid. The face stays locked to the clothed
+plate. Identity or anatomy under 9 spends that seed. Pass 2 is a same-seed
+light upscale and is forbidden until pass 1 clears. A pass-2 miss only changes
+denoise and steps.
 This module does not import or edit the explicit-still runner.
 """
 from __future__ import annotations
@@ -33,7 +35,6 @@ STOP_REMOTE = "/root/autodl-tmp/in/cast-asset-stop"
 WORKER_REMOTE = "/root/autodl-tmp/cast-asset/worker.py"
 WORKER_LOG = "/root/autodl-tmp/cast-asset/worker.log"
 
-PASS1_KEYS = ("identity", "interaction", "anatomy", "wardrobe")
 EIGHT = (
     "identity",
     "distinction",
@@ -44,6 +45,8 @@ EIGHT = (
     "motif",
     "photoreal",
 )
+# Every content score. Pixel size is not a key; pass 1 stays on the low grid.
+PASS1_KEYS = EIGHT
 
 # Twelve clothed turnarounds are the base plates. Means are the makeup-ref rescore.
 # A view is not undressed until its clothed mean is at least 9.
@@ -160,10 +163,13 @@ def pass1_prompt(actor: str, view: str) -> str:
 
 
 def pass2_prompt(actor: str) -> str:
+    """Same-seed light upscale. Retries must keep this text and change sampling only."""
+    if actor not in _PERIOD_LOOK and actor not in _KEEP_LOOK:
+        raise KeyError(actor)
     return (
-        "保持这张图的五官、脸型、肤色、姿势和体型。"
-        f"{look_line(actor)}"
-        "补上清晰毛孔、细纹、乳头和下体结构。不要磨皮，不要塑料皮肤。"
+        "只把这张图放大变清晰。不要改内容。"
+        "五官、脸型、肤色、发型、妆面、眼睛、耳朵、姿势、体型和身体结构都保持这张图。"
+        "不要磨皮，不要塑料皮肤。"
         "头部和双脚留在画面内。"
         "nsfw nipples"
     )
@@ -246,6 +252,7 @@ def pass2_allowed(pass1_accepted: bool) -> bool:
 
 
 def accept_pass1(item: dict, actor: str, view: str, scale: float, seed: int) -> bool:
+    """All content scores, hard gates, and look checks. Resolution is exempt."""
     if is_void(actor, view, scale, seed):
         return False
     if look_gates(actor, view, item):
@@ -296,9 +303,14 @@ def score_prompt(actor: str, view: str, stage: str) -> str:
             " Pass 1 may change only clothes, hair, and makeup on the clothed plate. "
             "Identity below 9 means the face was redrawn: face shape, features, or skin tone moved. "
             "Do not mark identity below 9 because the instructed hair or makeup changed. "
-            "Pass 1 is low resolution. Anatomy is limb count, proportions, and joints. "
-            "Do not lower identity, anatomy, aesthetics, photoreal, or motif because the frame is small, "
-            "skin is smooth, or nipple and genital detail is soft. Texture is pass 2."
+            "Pass 1 must clear every content score. Resolution is the only exemption: "
+            "do not add a penalty, and do not waive a content score, only because the frame is small. "
+            "Pixel count is pass 2. Wrong face, pose, anatomy, wardrobe, likeness, or motif still scores below 9."
+        )
+    elif stage == "pass2":
+        detail = (
+            " Pass 2 is a same-seed light upscale. Content must stay the pass-1 plate. "
+            "Lower a score when the upscale changes the face, hair, makeup, pose, body, or anatomy."
         )
     return (
         "Do not generate an image. Do not edit any file. Score only the second image. "

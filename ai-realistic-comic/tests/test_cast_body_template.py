@@ -17,14 +17,14 @@ def _pass1_score(**over):
         "period_makeup": False,
         "eyes_black_brown": True,
         "identity": 9,
-        "distinction": 8.5,
+        "distinction": 9,
         "interaction": 9,
         "aesthetics": 9,
         "anatomy": 9,
         "wardrobe": 10,
         "motif": 9,
         "photoreal": 9,
-        "mean": 9.0625,
+        "mean": 9.125,
     }
     item.update(over)
     return item
@@ -62,9 +62,15 @@ def test_void_seed_33_never_passes():
     assert mod.accept_pass1(score, "lin_wantang", "front", 0.85, 34)
 
 
-def test_pass1_ignores_low_distinction_but_blocks_hair():
+def test_pass1_requires_every_content_score_except_resolution():
     mod = _load()
+    assert mod.PASS1_KEYS == mod.EIGHT
+    assert mod.PASS1_SIZE == (448, 592)
     assert mod.accept_pass1(_pass1_score(), "lin_wantang", "front", 0.85, 34)
+    assert not mod.accept_pass1(_pass1_score(distinction=8.5), "lin_wantang", "front", 0.85, 34)
+    assert not mod.accept_pass1(_pass1_score(aesthetics=8), "lin_wantang", "front", 0.85, 34)
+    assert not mod.accept_pass1(_pass1_score(motif=8), "lin_wantang", "front", 0.85, 34)
+    assert not mod.accept_pass1(_pass1_score(photoreal=8), "lin_wantang", "front", 0.85, 34)
     assert not mod.accept_pass1(_pass1_score(identity=8.9), "lin_wantang", "front", 0.85, 34)
     assert not mod.accept_pass1(_pass1_score(period_hair=True), "lin_wantang", "front", 0.85, 34)
     assert not mod.accept_pass1(_pass1_score(period_makeup=True), "lin_wantang", "front", 0.85, 34)
@@ -101,6 +107,11 @@ def test_prompts_only_change_look_and_clothes():
     guide = mod.score_prompt("lin_wantang", "front", "pass1")
     assert "face was redrawn" in guide
     assert "instructed hair or makeup" in guide
+    assert "every content score" in guide
+    up = mod.pass2_prompt("lin_wantang")
+    assert "不要改内容" in up
+    assert "补上" not in up
+    assert "light upscale" in mod.score_prompt("lin_wantang", "front", "pass2")
 
 
 def test_low_identity_or_anatomy_changes_seed_and_blocks_pass2():
@@ -196,3 +207,5 @@ def test_runner_does_not_edit_explicit_still_files():
     assert "PASS1_NEW_SEED" in text
     assert "pass2_allowed" in text
     assert "禁止二采" in text
+    assert "content=locked" in text
+    assert "没有改内容" in text

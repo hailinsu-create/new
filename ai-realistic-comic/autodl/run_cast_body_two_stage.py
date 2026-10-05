@@ -485,11 +485,16 @@ def run_view(client, remote: Remote, actor: str, view: str) -> dict:
             f"{actor} {view} 一采未过门，禁止二采。没有改 scale。作废对 0.85/33 仍不收。"
         )
     seed = kept["seed"]
+    # Light upscale of the kept plate. A miss changes denoise and steps only.
     plans = list(tpl.PASS2_SCORE_TRIES)
     oom_left = list(tpl.PASS2_OOM_TRIES)
     while plans:
         denoise, steps = plans.pop(0)
-        print(f"PASS2_TRY {actor} {view} scale={tpl.FIXED_SCALE} seed={seed} denoise={denoise} steps={steps}", flush=True)
+        print(
+            f"PASS2_TRY {actor} {view} scale={tpl.FIXED_SCALE} seed={seed} "
+            f"denoise={denoise} steps={steps} content=locked",
+            flush=True,
+        )
         try:
             done2 = remote.render(
                 {
@@ -538,7 +543,9 @@ def run_view(client, remote: Remote, actor: str, view: str) -> dict:
         final = store_pass2(client, actor, view, local2, record)
         print(f"PASS2_KEEP {final}", flush=True)
         return {"pass1": kept, "pass2": record, "path": str(final)}
-    raise SystemExit(f"{actor} {view} 二采未过门。一采保留，不重做一采。")
+    raise SystemExit(
+        f"{actor} {view} 二采未过门。只调了 denoise 和步数，没有改内容，也没有重做一采。"
+    )
 
 
 def parse_only(raw: str) -> list[tuple[str, str]]:
