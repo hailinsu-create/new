@@ -22,9 +22,14 @@ VOID_LIN_FRONT = ("lin_wantang", "front", 0.85, 33)
 # 33 is void. 34-46 missed identity or wardrobe. 47-49 cropped to a head and
 # hit FEET. 50 was full body, mean 9.0, empty gates and look, but a content
 # score stayed under 9 (the old log did not keep the eight items). 51 wardrobe
-# was 2. 52 mean was 8.75 with empty gates and look. Next seed is 53.
-LIN_FRONT_SEED = 53
-LIN_FRONT_SPENT = frozenset(range(33, 53))
+# was 2. 52 mean was 8.75 with empty gates and look.
+# 53 mean 5.0, FEET, MAKEUP, identity 6, anatomy 3, wardrobe 9 (floating head).
+# 54 mean 4.4, FEET, identity 7, anatomy 2, wardrobe 5 (head only).
+# 55 mean 7.6, identity 9, anatomy 8, wardrobe 2 (full body, clothes on).
+# 56 mean 7.13, MAKEUP, identity 9, anatomy 8, wardrobe 1 (full body, clothes on).
+# Next seed is 57.
+LIN_FRONT_SEED = 57
+LIN_FRONT_SPENT = frozenset(range(33, 57))
 OTHER_SEED = 41
 # Local and remote files. Either one stops the pass-1 seed walk.
 STOP_LOCAL = "/tmp/cast-asset-stop"

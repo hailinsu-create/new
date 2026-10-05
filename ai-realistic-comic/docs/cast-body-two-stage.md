@@ -39,7 +39,7 @@
 
 固定 LoRA scale `0.85`。不扫 scale。一采只改衣着、发型和妆。输入只喂 `body-clothed` 底板，不喂定妆 ref。构图、锁脸、去衣分成三句，互不替换。构图只写全身入画：中文「头和双脚都留在画面内，不要裁成头肩」，加上独立硬句 `full body, head and both feet in frame, no bust/head crop`。锁脸只写脸型、五官、身体和允许改的发型妆。去衣只写脱掉的衣服，同一句写两遍。不另加接触或情节。
 
-林晚棠正面下一颗从 seed `53` 起。`scale 0.85 / seed 33` 作废。已失败黑名单是 seed `33`–`52`，这些籽不再重跑。seed `34`–`46` 因身份或衣着低于 9 失败。seed `47`–`49` 收成头肩，硬门 `FEET`，根因是当时提示没有「头脚都留在画面」的构图句。seed `50` 构图已是全身，mean `9.0`、硬门空、look 空，但仍 `passed=False`：至少一项内容分低于 9，旧日志没有留下八项，所以不能猜是哪一项。seed `51` 衣着分为 2。seed `52` mean `8.75`，硬门空、look 空，同样没有八项记录。identity、anatomy 或 wardrobe 低于 9 立刻换下一颗种子。任一内容项低于 9 都不过门。一采没有过门就自动下一颗，直到过门，或用户放下停止文件 `/tmp/cast-asset-stop`（本机）或 `/root/autodl-tmp/in/cast-asset-stop`（F34）。没有「三颗就停」。用户叫停时一采未过门，禁止二采。
+林晚棠正面下一颗从 seed `57` 起。`scale 0.85 / seed 33` 作废。已失败黑名单是 seed `33`–`56`，这些籽不再重跑。seed `34`–`46` 因身份或衣着低于 9 失败。seed `47`–`49` 收成头肩，硬门 `FEET`，根因是当时提示没有「头脚都留在画面」的构图句。seed `50` 构图已是全身，mean `9.0`、硬门空、look 空，但仍 `passed=False`：至少一项内容分低于 9，旧日志没有留下八项，所以不能猜是哪一项。seed `51` 衣着分为 2。seed `52` mean `8.75`，硬门空、look 空，同样没有八项记录。新规则下 seed `53` mean 5.0、FEET、MAKEUP（漂浮头）；seed `54` mean 4.4、FEET（只有头）；seed `55` mean 7.6、硬门空、wardrobe 2（全身但衣服还在）；seed `56` mean 7.13、MAKEUP、wardrobe 1（全身，红唇和衣服还在）。八项写在每张失败图旁边的 json。identity、anatomy 或 wardrobe 低于 9 立刻换下一颗种子。任一内容项低于 9 都不过门。一采没有过门就自动下一颗，直到过门，或用户放下停止文件 `/tmp/cast-asset-stop`（本机）或 `/root/autodl-tmp/in/cast-asset-stop`（F34）。没有「三颗就停」。用户叫停时一采未过门，禁止二采。
 
 一采和二采无论过不过门，日志都打出八项、`period_hair`、`period_makeup`、`eyes_black_brown`、硬门、look 和 `below`。每张尝试图旁边写同名 `.json`，里面有八项。mean 为 9 仍失败时，`below` 列出低于 9 的项。
 

@@ -46,9 +46,9 @@ def test_nine_views_and_fixed_scale():
     assert ("gu_chengan", "side") not in mod.NUDE_VIEWS
     assert ("elena_voss", "side") not in mod.NUDE_VIEWS
     assert mod.FIXED_SCALE == 0.85
-    assert mod.LIN_FRONT_SEED == 53
-    assert 33 in mod.LIN_FRONT_SPENT and 52 in mod.LIN_FRONT_SPENT
-    assert 53 not in mod.LIN_FRONT_SPENT
+    assert mod.LIN_FRONT_SEED == 57
+    assert 33 in mod.LIN_FRONT_SPENT and 56 in mod.LIN_FRONT_SPENT
+    assert 57 not in mod.LIN_FRONT_SPENT
     assert mod.PASS1_SIZE == (448, 592)
     assert mod.PASS1_STEPS == 8
     assert mod.ASSET_SCHEDULE["pass1"]["steps"] == 8
@@ -64,7 +64,7 @@ def test_nine_views_and_fixed_scale():
 def test_void_seed_33_never_passes():
     mod = _load()
     assert mod.is_void("lin_wantang", "front", 0.85, 33)
-    assert mod.seed_for("lin_wantang", "front", 0) == 53
+    assert mod.seed_for("lin_wantang", "front", 0) == 57
     score = _pass1_score()
     assert not mod.accept_pass1(score, "lin_wantang", "front", 0.85, 33)
     assert mod.accept_pass1(score, "lin_wantang", "front", 0.85, 34)
@@ -179,12 +179,12 @@ def test_low_identity_or_anatomy_changes_seed_and_blocks_pass2():
     assert mod.identity_anatomy_or_wardrobe_below(_pass1_score(anatomy=8))
     assert mod.identity_anatomy_or_wardrobe_below(_pass1_score(wardrobe=2))
     assert not mod.identity_anatomy_or_wardrobe_below(_pass1_score())
-    assert mod.seed_for("lin_wantang", "front", 0) == 53
-    assert mod.seed_for("lin_wantang", "front", 1) == 54
-    assert mod.seed_for("lin_wantang", "front", 2) == 55
-    assert mod.advance_seed(33, "lin_wantang", "front") == 53
-    assert mod.advance_seed(50, "lin_wantang", "front") == 53
-    assert mod.advance_seed(52, "lin_wantang", "front") == 53
+    assert mod.seed_for("lin_wantang", "front", 0) == 57
+    assert mod.seed_for("lin_wantang", "front", 1) == 58
+    assert mod.seed_for("lin_wantang", "front", 2) == 59
+    assert mod.advance_seed(33, "lin_wantang", "front") == 57
+    assert mod.advance_seed(52, "lin_wantang", "front") == 57
+    assert mod.advance_seed(56, "lin_wantang", "front") == 57
     assert all(mod.seed_for("lin_wantang", "front", n) not in mod.LIN_FRONT_SPENT for n in range(6))
 
 
@@ -339,8 +339,8 @@ def test_score_log_names_the_item_under_nine_when_mean_is_nine():
     ).read_text(encoding="utf-8")
     docs = (Path(__file__).resolve().parents[1] / "docs" / "cast-body-two-stage.md").read_text(encoding="utf-8")
     assert "没有「三颗就停」" in docs
-    assert "seed `53`" in docs
-    assert "33`–`52`" in docs
+    assert "seed `57`" in docs
+    assert "33`–`56`" in docs
 
 
 def test_fail_sidecar_json_lists_every_content_score():
