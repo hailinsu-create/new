@@ -2,6 +2,10 @@
 
 以后出图只走这条。`docs/explicit-still-mode.md` 和 `autodl/run_explicit8.py` 已停用。演员锁仍以 `library/cast/CAST.md` 为准。监督 bot（漫监）只做管理：监督、纠偏、续指令，卡住才短报。不得绕过工作流自己出图、改提示词或改规则。
 
+## 修订必须落库
+
+以后每次修订出片工作流，必须写说明文档并推到 GitHub，不得只留在本地。说明写进本文件（打分前缀、开关机、检查表或参数有变时，同时改 `docs/still-score-two-stage.md`）。提交在分支 `cursor/ai-realistic-comic-e63b`，对应 PR https://github.com/hailinsu-create/new/pull/70 。推不上去就短报失败原因；未推送的修订不算固化。口令、网站 token、设备码不进文档、不进 git。
+
 ## 两段式
 
 1. 第一段由 Codex CLI 生成姿势、脸、衣服和身体，只做非露骨锁定（`/home/ubuntu/.local/bin/codex exec`，参考图用 `-i` 附上）。身体板锁姿势和表情，定妆 `ref.png` 锁脸、衣服和身体。不加大尺度，不把破限提示词交给 Codex。许仙（顾承安）自己的脚不盖住，那只脚不是缺陷。不调用 agy。
@@ -31,6 +35,22 @@ Cursor 环境换成新 VM 之后先做下面三步。脚本不代登录，不开
 1. 开机只发生在第二段 Qwen 真的要出图时。第一段 Codex 不开 F34。用户当次说「先别开」就不开。入口是 `f34_begin_work`，网站 `POST https://www.autodl.com/api/v1/instance/power_on`，实例只许 `xaxna66hqt-c5c9c7fc`。
 2. 这一批做完、暂停、空转或停下来等下一步，`f34_shutdown_hook` 立刻 `POST https://www.autodl.com/api/v1/instance/power_off`。不调用释放或删除。数据盘保持 `107374182400` 字节。用户当次说「别关」才跳过。关机钩子本身不开机。
 3. 关机后读 `GET https://www.autodl.com/api/v1/wallet/balance` 的 `assets`（厘），写进当轮报告。不要开、不要删 G09 `sa4eaxgcuq-26e36fc9`。开发者接口看不到 F34，不要改走 `/api/v1/dev/instance/pro/power_off`。
+
+## SCORE_PREFIX
+
+出片打分的唯一路径是 Codex CLI 看图。标准写在 `autodl/run_explicit_two_stage.py` 的常量 `SCORE_PREFIX` 里，不是每次现拼的 f-string。这段前缀字节保持不变，方便同一段提示命中缓存。里面有八项名称（身份、区分、互动、美感、解剖、服装、动机、摄影感）、H1–H7 各一行、以及唯一允许的 JSON 对象。前缀里只用相对名字 `anchor-10`，不写入绝对路径，也不写入这一张待分图的路径。
+
+`_codex_score_prompt` 每次只在前缀后面追加两行：`待分图：` 加本张路径，然后 `只打这一张。`。第一段锁定图、一采、二采共用这一份前缀。附件顺序仍是先满分基准 `anchor-10`，再本张图。禁止 OpenCode Go vision、deepseek-v4-flash-vision、agy 和其它识图回退。Codex 未登录或没有二进制就 `SystemExit`，脚本不代登录，也不为此开机。
+
+## F34 钩子
+
+开关机逻辑在同一个脚本里，不靠记得去控制台点。
+
+`f34_power_decision` 不访问网络。阶段是 `work` 时返回开机，除非当次文字里有「先别开」。阶段是 `done`、`paused`、`idle` 或 `wait` 时返回关机留盘，除非当次文字里有「别关」。空转和停下来等下一步都算要关机，不能为了等下一条指令把机器挂着。
+
+`main` 用环境变量 `F34_TURN` 传入当次原话。第一段 Codex 生成和打分不开机。Qwen 真的要出图时才调用一次 `f34_begin_work`：网站 `POST https://www.autodl.com/api/v1/instance/power_on`，请求体只有 `instance_uuid` = `xaxna66hqt-c5c9c7fc`。用户当次说了先别开，这里直接退出，不开机。
+
+一批正常结束，`phase` 是 `done`。入口失败、缺登录、先别开或其它中断，`phase` 改成 `paused`。`finally` 里的 `_f34_finish` 调用 `f34_shutdown_hook`。该钩子只发关机，不发开机。关机是网站 `POST https://www.autodl.com/api/v1/instance/power_off`，同样只有 F34 的 `instance_uuid`。不调用释放或删除。关机后用 `GET https://www.autodl.com/api/v1/wallet/balance` 读 `assets`（厘）并打印。再拉实例列表核对 `expand_data_disk_size`。数据盘必须仍是 `107374182400` 字节；对不上就失败退出，并且仍然不释放实例。G09 `sa4eaxgcuq-26e36fc9` 不在请求里。网站 token 来自 `F34_WEBSITE_TOKEN` 或 `F34_WEBSITE_TOKEN_FILE`（默认 `/tmp/autodl_token_live.txt`），不写进仓库，请求头是原始 token，不打印。
 
 四人穿衣身体参考在 `library/cast/<id>/body-clothed/front.png`、`side.png`、`back.png`。脸用定妆，身体和姿势不锁，衣服是短袖 T 恤加及膝运动短裤或长裤，简单、贴身、好去掉，站姿中性。Codex 按 9.0 门打分时必须附上该演员的定妆 ref。背面的身份按发型、发色、肤色、体型和定妆是否一致来认，不因为看不到脸扣分。过了才可以交给本地 Qwen 去掉这张图上的衣服，结果写入 `body-nude/`。去衣这一步 Qwen 只喂这张穿衣底图，不再额外喂穿衣定妆 ref，脸在打分时对定妆。底图按自身比例输出（宽 896），把头和双脚留在画面里。每张过门后拷到 `/opt/cursor/artifacts/body-nude/<id>-<view>.png`，并写一行 DONE_ONE（演员、视角、均分、硬门、路径），不等确认就继续下一张。这一批还在出图时不中途关机；做完或暂停就立刻关机留盘。指令由 `body_undress_rules` 约束：只点名这张图里实际穿着的那几件衣服并去掉，不要大段描述衣服的样子，锁脸、姿势和体型。林晚棠同时去掉古装盘发和发饰，换成自然散发，并去掉古装妆、眉间花钿、浓唇色和眼妆，换成素颜或极淡自然妆。顾承安同时去掉发髻和额前头巾或发带，换成自然的现代短发或散发；若有角色妆也同样去掉。五官、脸型和肤色仍锁定妆 ref。这两人的裸体身体打分时发型和妆容都不算身份扣分，身份按脸、肤色、体型认。伊莲和阿德里安发型和妆容不变。林晚棠这套是人形，不是蛇尾身体。这 9 张去衣干活才开机。这一批做完或暂停就立刻关机留盘。关机之后立刻读 AutoDL 网站钱包 `assets`（单位厘），把余额数字写进当轮报告，漫画把这个数字转给额度 bot。关机流程不能跳过读余额。没过就重写指令继续重出，不设 3 次上限。同一张连续 15 次仍过不了，立刻关机留盘，并报回卡在哪一张。林晚棠正面已过门并保留。去衣循环暂停在侧面，因为无 LoRA 的结果把胸、下体和皮肤磨平。暂停后不把 F34 空开。数据盘上的适配器是 `ScottzillaSystems/qwen-image-edit-plus-nsfw-lora` 的 `qwen-image-edit-plus-nsfw-lora.safetensors`，放在 `/root/autodl-tmp/loras/`，基座是 `Qwen/Qwen-Image-Edit-2511`。diffusers 0.40 用 `load_lora_weights` 加载，这台机器没有 ComfyUI。身体去衣的 Qwen 改成两采，从这次 LoRA 调参开始用。一采约 448×600、16 步。一采只看构图、脸、身体结构、衣服是否去掉，以及硬门：身份、姿势、解剖、服装各自不低于 9，且硬门为空。照片感、美感和皮肤纹理不挡一采，留给二采。二采仍按完整八项均分 9.0 和硬门。一采的条件图按 448×600 的面积编码，不再用管线默认的约 1024² 把条件图编成 896×1184。权重是 BF16，transformer 约 39GB、文本编码器约 16GB，32GB 的 5090 放不下整模型。transformer 用 fp8 或 8bit 后常驻 GPU，VAE 一起留下，文本编码器不用时放在 CPU，LoRA 用 fuse_lora。一采条件图按 448×600 编码。改前 sequential offload、条件图约 896×1184、LoRA 未融合时，16 步约 155–165 秒，每步约 9.7–10.3 秒，显存约 12GB。二采用同一种子和同一条提示，把一采结果放大到 896×1200，denoise 从 0.35 只降到 0.30、0.25，只补轻度细节。二采掉分不重写提示，也不重开一采。一采和二采各自记渲染耗时。输入只喂穿衣底图。正面两采定参后按该强度、种子和去噪继续剩下 8 张。二采过门后写入 `library/cast/<id>/body-nude/<view>.png`，同目录 `scores.json` 记八项分、均分、硬门、种子、LoRA 强度、去噪和一采、二采耗时，并在 F34 数据盘留一份 `/root/autodl-tmp/assets/body-nude/`。无 LoRA 的已过门林晚棠正面另存 `front-smooth.png`。<!-- LORA_LOCK: pending -->
 
