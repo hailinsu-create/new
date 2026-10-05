@@ -100,16 +100,16 @@ PASS1_KEYS = EIGHT
 # Twelve clothed turnarounds are the base plates.
 # Male means are the makeup-ref rescore and still gate undress.
 # Female means in this table do not open undress by themselves.
-# Archived 2026-10-06 Codex plates: both women, front/side/back.
-# Male cells are unchanged. A female view undresses only from the fresh json.
+# Archived 2026-10-06 Codex plates: both women, and Gu front/side/back.
+# Adrian cells are unchanged. A female view undresses only from the fresh json.
 # A female view undresses only after a fresh plate scores a mean of at least 9.
 CLOTHED_MEAN = {
     ("lin_wantang", "front"): 9.4125,
     ("lin_wantang", "side"): 9.4,
     ("lin_wantang", "back"): 9.4,
-    ("gu_chengan", "front"): 9.25,
-    ("gu_chengan", "side"): 8.75,
-    ("gu_chengan", "back"): 8.875,
+    ("gu_chengan", "front"): 9.2,
+    ("gu_chengan", "side"): 9.3,
+    ("gu_chengan", "back"): 9.125,
     ("elena_voss", "front"): 9.4625,
     ("elena_voss", "side"): 9.475,
     ("elena_voss", "back"): 9.3875,
@@ -167,12 +167,14 @@ def require_codex_cli(binary: str | None, *, logged_in: bool = True) -> str:
     return binary
 
 # Nude turnarounds: clothed plates whose mean is at least 9.
-# Gu side and back stay out. Elena side entered after the 2026-10-06 plate.
+# Gu side and back entered after the Codex plates cleared 9.
 NUDE_VIEWS = (
     ("lin_wantang", "front"),
     ("lin_wantang", "side"),
     ("lin_wantang", "back"),
     ("gu_chengan", "front"),
+    ("gu_chengan", "side"),
+    ("gu_chengan", "back"),
     ("elena_voss", "front"),
     ("elena_voss", "side"),
     ("elena_voss", "back"),
@@ -188,6 +190,8 @@ GARMENTS = {
     ("lin_wantang", "side"): "T恤和短裤",
     ("lin_wantang", "back"): "T恤和短裤",
     ("gu_chengan", "front"): "T恤和短裤",
+    ("gu_chengan", "side"): "T恤和短裤",
+    ("gu_chengan", "back"): "T恤和短裤",
     ("elena_voss", "front"): "T恤和短裤",
     ("elena_voss", "side"): "T恤和短裤",
     ("elena_voss", "back"): "T恤和短裤",

@@ -11,9 +11,9 @@
 
 十二个位置仍是四人各正、侧、背。2026-10-06 已用 Codex 过门的六张女人图替换女性位。阿德里安三向均分不动：正 9.25、侧 9.125、背 9.125。本仓库没有阿德里安穿衣 png。
 
-顾承安穿衣三向用 Codex CLI 重做。锁脸仍是 `library/cast/gu_chengan/ref.png`，不换这张 ref。出图去掉发套和发箍，衣服仍是 T恤和短裤，黑褐色短发、淡妆、黑褐眼不变。均分和八项都 ≥ 9 才写入 `library/cast/gu_chengan/body-clothed/`。侧背旧均分 8.75、8.875 在新图过门前仍挡住去衣。F34 去衣可以同时跑，这条穿衣不进 F34。
+顾承安穿衣三向已用 Codex CLI 过门并入档。锁脸仍是 `library/cast/gu_chengan/ref.png`，没有换这张 ref。三张都去掉发套和发箍，衣服是 T恤和短裤。均分：正 9.2、侧 9.3、背 9.125。档案在 `library/cast/gu_chengan/body-clothed/`。这条穿衣不进 F34。
 
-女性位都在 `library/cast/<id>/body-clothed/<view>.png`，json 的 `lock` 是 `2026-10-06-front`，`entry` 是 `codex`，八项都 ≥ 9：林晚棠正 9.4125、侧 9.4、背 9.4，伊莲正 9.4625、侧 9.475、背 9.3875。去衣输入就是这张新底板。女性视图要这份 json 里 `passed` 且均分 ≥ 9 才去衣。顾承安侧面 8.75、背面 8.875 未到 9，先补再去衣。
+女性位都在 `library/cast/<id>/body-clothed/<view>.png`，json 的 `lock` 是 `2026-10-06-front`，`entry` 是 `codex`，八项都 ≥ 9：林晚棠正 9.4125、侧 9.4、背 9.4，伊莲正 9.4625、侧 9.475、背 9.3875。去衣输入就是这张新底板。女性视图要这份 json 里 `passed` 且均分 ≥ 9 才去衣。
 
 穿衣重做只走 Codex CLI。命令是 `/home/ubuntu/.local/bin/codex exec --skip-git-repo-check --ephemeral --color never -C <目录> -s workspace-write -i <新 ref.png> -`，提示词从标准输入送入。参考图只有该演员的新锁脸。模型用这条 CLI 自己的默认模型，脚本不另换。没有 `codex` 可执行文件就 `SystemExit`，打印 `CODEX_CLI_MISSING`。不许改走别的出图，不许锁脸直出，不许把穿衣底板交给 F34。F34 工人收到 `kind=clothed` 同样退出。不过门就在 Codex CLI 里重出。林晚棠正面穿衣种子从 `1` 起，只用于记录这次尝试，和去衣黑名单 `33`–`61` 分开。去衣种子仍从 `62` 起，而且只在穿衣过门之后。
 
@@ -29,16 +29,16 @@
 
 F34 干活才开机。当前批次做完或暂停，`f34_shutdown_hook` 立刻 `power_off` 关机留盘，不释放实例。禁止空转，禁止为等下一步挂着机。用户当次说别关用 `--keep-on`，说先别开用 `--hold-off`。穿衣和打分不开机。不开 G09，不新建实例。
 
-## 十张去衣模板
+## 十二张去衣模板
 
 | 演员 | 视图 |
 | --- | --- |
 | lin_wantang | 正、侧、背 |
-| gu_chengan | 正 |
+| gu_chengan | 正、侧、背 |
 | elena_voss | 正、侧、背 |
 | adrian_kane | 正、侧、背 |
 
-本批从林晚棠正面起跑。均分不到 9 的位置不进这张表：顾承安侧面、顾承安背面。有穿衣底图就复用 `library/cast/<id>/body-clothed/<view>.png`。没有穿衣底图就停，不用定妆全身图代替，避免古装发型和妆留在去衣结果里。
+十二个穿衣均分都已经 ≥ 9。有穿衣底图就复用 `library/cast/<id>/body-clothed/<view>.png`。阿德里安还没有穿衣 png，走到他会停。没有穿衣底图就停，不用定妆全身图代替，避免古装发型和妆留在去衣结果里。
 
 ## 资产参数
 
