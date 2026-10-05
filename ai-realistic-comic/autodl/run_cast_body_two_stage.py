@@ -458,6 +458,12 @@ def run_view(client, remote: Remote, actor: str, view: str) -> dict:
             flush=True,
         )
         if not passed:
+            if tpl.identity_or_anatomy_below(score):
+                print(
+                    f"PASS1_NEW_SEED {actor} {view} seed={seed} "
+                    f"identity={score.get('identity')} anatomy={score.get('anatomy')}",
+                    flush=True,
+                )
             continue
         record = {
             "actor": actor,
@@ -474,8 +480,10 @@ def run_view(client, remote: Remote, actor: str, view: str) -> dict:
         print(f"PASS1_KEEP {path}", flush=True)
         kept = {"seed": seed, "pass1": done, "score": score, "path": str(path)}
         break
-    if kept is None:
-        raise SystemExit(f"{actor} {view} 一采未过门。没有改 scale。作废对 0.85/33 仍不收。")
+    if not tpl.pass2_allowed(kept is not None):
+        raise SystemExit(
+            f"{actor} {view} 一采未过门，禁止二采。没有改 scale。作废对 0.85/33 仍不收。"
+        )
     seed = kept["seed"]
     plans = list(tpl.PASS2_SCORE_TRIES)
     oom_left = list(tpl.PASS2_OOM_TRIES)

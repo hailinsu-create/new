@@ -84,16 +84,36 @@ def test_pass2_uses_eight_way_mean_and_same_look_gate():
 
 def test_prompts_only_change_look_and_clothes():
     mod = _load()
-    text = mod.pass1_prompt("lin_wantang", "front") + mod.pass2_prompt("lin_wantang")
+    front = mod.pass1_prompt("lin_wantang", "front")
+    text = front + mod.pass2_prompt("lin_wantang")
+    assert front.startswith("这张图是穿衣底板。只改衣着、发型和妆面。")
+    assert "不要重画脸" in front
     assert "黑褐色" in text
     assert "发髻" in text
-    assert "背心和短裤" in mod.pass1_prompt("lin_wantang", "front")
+    assert "背心和短裤" in front
     for ban in mod.STORY_BANS:
         assert ban not in text
     adrian = mod.pass1_prompt("adrian_kane", "front")
+    assert adrian.startswith("这张图是穿衣底板。只改衣着、发型和妆面。")
     assert "尖耳" in adrian
     assert "黑褐色" not in adrian
     assert "浅蓝灰" in adrian
+    guide = mod.score_prompt("lin_wantang", "front", "pass1")
+    assert "face was redrawn" in guide
+    assert "instructed hair or makeup" in guide
+
+
+def test_low_identity_or_anatomy_changes_seed_and_blocks_pass2():
+    mod = _load()
+    assert mod.identity_or_anatomy_below(_pass1_score(identity=8))
+    assert mod.identity_or_anatomy_below(_pass1_score(anatomy=8.9))
+    assert mod.identity_or_anatomy_below({})
+    assert not mod.identity_or_anatomy_below(_pass1_score())
+    assert mod.pass2_allowed(False) is False
+    assert mod.pass2_allowed(True) is True
+    assert mod.seed_for("lin_wantang", "front", 0) == 34
+    assert mod.seed_for("lin_wantang", "front", 1) == 35
+    assert mod.seed_for("lin_wantang", "front", 2) == 36
 
 
 def test_worker_refuses_full_bf16_and_uses_cast_queue():
@@ -171,3 +191,8 @@ def test_runner_does_not_edit_explicit_still_files():
     assert "explicit-still-two-stage" not in text
     assert "sa4eaxgcuq" not in text or "G09" in text
     assert "power_on" not in text
+    assert "body-clothed" in text
+    assert "不拿定妆全身" in text
+    assert "PASS1_NEW_SEED" in text
+    assert "pass2_allowed" in text
+    assert "禁止二采" in text

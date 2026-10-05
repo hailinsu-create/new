@@ -1,7 +1,8 @@
 """Reusable cast-body templates for later stills. Not a story workflow.
 
-Prompts only change hair, makeup, clothes, and the body detail a nude
-turnaround needs. Face shape, features, and skin tone stay locked.
+Pass 1 changes only clothes, hair, and makeup. The face stays locked to the
+clothed plate that is fed in. Identity or anatomy under 9 spends that seed.
+Pass 2 is forbidden until pass 1 clears the gate.
 This module does not import or edit the explicit-still runner.
 """
 from __future__ import annotations
@@ -143,8 +144,11 @@ def look_line(actor: str) -> str:
 
 
 def pass1_prompt(actor: str, view: str) -> str:
+    """Edit the clothed plate. Clothes, hair, and makeup only. Face stays."""
     clothes = GARMENTS[(actor, view)]
     return (
+        "这张图是穿衣底板。只改衣着、发型和妆面。"
+        "五官、脸型和肤色锁住这张图，不要重画脸。"
         f"去掉{clothes}，露出皮肤。"
         f"{look_line(actor)}"
         "补上乳头和下体结构，皮肤保留毛孔和细纹。"
@@ -224,6 +228,23 @@ def _score_ok(item: dict, keys: tuple[str, ...]) -> bool:
     return True
 
 
+def identity_or_anatomy_below(item: dict) -> bool:
+    """True when identity or anatomy is missing or under 9. That seed is spent."""
+    for key in ("identity", "anatomy"):
+        try:
+            value = float(item.get(key))
+        except (TypeError, ValueError):
+            return True
+        if value < KEEP_MEAN:
+            return True
+    return False
+
+
+def pass2_allowed(pass1_accepted: bool) -> bool:
+    """Pass 2 runs only after pass 1 has cleared the gate."""
+    return bool(pass1_accepted)
+
+
 def accept_pass1(item: dict, actor: str, view: str, scale: float, seed: int) -> bool:
     if is_void(actor, view, scale, seed):
         return False
@@ -272,7 +293,10 @@ def score_prompt(actor: str, view: str, stage: str) -> str:
     detail = ""
     if stage == "pass1":
         detail = (
-            " Pass 1 is low resolution. Anatomy is limb count, proportions, and joints. "
+            " Pass 1 may change only clothes, hair, and makeup on the clothed plate. "
+            "Identity below 9 means the face was redrawn: face shape, features, or skin tone moved. "
+            "Do not mark identity below 9 because the instructed hair or makeup changed. "
+            "Pass 1 is low resolution. Anatomy is limb count, proportions, and joints. "
             "Do not lower identity, anatomy, aesthetics, photoreal, or motif because the frame is small, "
             "skin is smooth, or nipple and genital detail is soft. Texture is pass 2."
         )
