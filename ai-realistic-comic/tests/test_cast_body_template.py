@@ -212,6 +212,19 @@ def test_prompts_only_change_look_and_clothes():
     assert "空转" in mod.F34_POWER_RULE
 
 
+def test_parse_score_keeps_the_last_score_object():
+    mod = _load()
+    text = (
+        'noise {"gates":[],"identity":0,"mean":0} '
+        '{"gates":[],"identity":9,"distinction":9,"mean":9.1,"note":"ok"} tail'
+    )
+    item = mod.parse_score(text)
+    assert item["identity"] == 9
+    assert item["mean"] == 9.1
+    single = mod.parse_score('noise {"gates": [], "mean": 9.2, "note": "ok"} tail')
+    assert single["mean"] == 9.2
+
+
 def test_film_proxy_closes_after_the_one_run():
     mod = _load()
     assert mod.FILM_PROXY_REMAINING == 0

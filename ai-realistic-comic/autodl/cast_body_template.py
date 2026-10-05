@@ -99,10 +99,12 @@ PASS1_KEYS = EIGHT
 
 # Twelve clothed turnarounds are the base plates.
 # Male means are the makeup-ref rescore and still gate undress.
-# Female means in this table belong to the retired faces. They do not open undress.
+# Female means in this table do not open undress by themselves.
+# lin_wantang front is the archived 2026-10-06 Codex plate. The other female
+# cells still belong to retired faces until a fresh plate replaces them.
 # A female view undresses only after a fresh plate scores a mean of at least 9.
 CLOTHED_MEAN = {
-    ("lin_wantang", "front"): 9.125,
+    ("lin_wantang", "front"): 9.4125,
     ("lin_wantang", "side"): 9.125,
     ("lin_wantang", "back"): 9.0,
     ("gu_chengan", "front"): 9.25,
@@ -360,16 +362,33 @@ def negative_for(actor: str, stage: str = "pass1") -> str:
 
 
 def parse_score(text: str) -> dict:
-    start = text.find("{")
-    end = text.rfind("}")
-    if start < 0 or end <= start:
-        raise ValueError("score json missing")
-    data = json.loads(text[start : end + 1])
-    if isinstance(data.get("items"), list) and data["items"]:
-        data = data["items"][0]
-    if not isinstance(data, dict):
-        raise ValueError("score json was not an object")
-    return data
+    """Read the score object. Codex may emit more than one JSON value."""
+    decoder = json.JSONDecoder()
+    found: list[dict] = []
+    idx = 0
+    while idx < len(text):
+        start = text.find("{", idx)
+        if start < 0:
+            break
+        try:
+            data, end = decoder.raw_decode(text, start)
+        except json.JSONDecodeError:
+            idx = start + 1
+            continue
+        if isinstance(data, dict):
+            if isinstance(data.get("items"), list) and data["items"]:
+                item = data["items"][0]
+                if isinstance(item, dict):
+                    found.append(item)
+            else:
+                found.append(data)
+        idx = max(end, start + 1)
+    scored = [item for item in found if "identity" in item or "mean" in item]
+    if scored:
+        return scored[-1]
+    if found:
+        return found[-1]
+    raise ValueError("score json missing")
 
 
 def mean_of(item: dict) -> float:
