@@ -58,6 +58,8 @@
 
 和出片共用同一套 F34 登录，不另要令牌。自测是 `python autodl/run_cast_body_two_stage.py --login-check`。口令读 `AUTODL_SSH_PASSWORD`，或本机 `/tmp/cast-ssh.env`。SSH 通了再核对 F34 上的 `/root/autodl-tmp/.cast-ssh.env`。口令不写入仓库。
 
+出片代跑只这一次。共享登录到位后，资产用这个入口自己跑。`FILM_PROXY_REMAINING` 为 0。再设 `CAST_ASK_FILM_PROXY` 或再把队列交给出片，脚本退出并打印「资产自己跑。禁止再让出片代跑。」
+
 关机保留数据盘。关机之后立刻读 AutoDL 钱包 `assets`（厘）并写进当轮报告。1000 厘 = ¥1。低于 ¥5 只警报，不充值。
 
 ```bash

@@ -119,6 +119,39 @@ def test_prompts_only_change_look_and_clothes():
     assert "light upscale" in mod.score_prompt("lin_wantang", "front", "pass2")
 
 
+def test_film_proxy_closes_after_the_one_run():
+    mod = _load()
+    assert mod.FILM_PROXY_REMAINING == 0
+    assert mod.film_proxy_allowed() is False
+    assert mod.self_run_line() == "资产自己跑。禁止再让出片代跑。"
+    text = (Path(__file__).resolve().parents[1] / "autodl" / "run_cast_body_two_stage.py").read_text(
+        encoding="utf-8"
+    )
+    assert "CAST_ASK_FILM_PROXY" in text
+    assert "self_run_line" in text
+    assert "run_explicit_two_stage" not in text
+    import os
+    import sys
+
+    autodl = Path(__file__).resolve().parents[1] / "autodl"
+    sys.path.insert(0, str(autodl))
+    import run_cast_body_two_stage as runner
+
+    old_argv = sys.argv
+    os.environ["CAST_ASK_FILM_PROXY"] = "1"
+    sys.argv = ["run_cast_body_two_stage.py", "--login-check"]
+    try:
+        try:
+            runner.main()
+        except SystemExit as exc:
+            assert str(exc) == mod.self_run_line()
+        else:
+            raise AssertionError("film proxy request should exit")
+    finally:
+        sys.argv = old_argv
+        os.environ.pop("CAST_ASK_FILM_PROXY", None)
+
+
 def test_low_identity_or_anatomy_changes_seed_and_blocks_pass2():
     mod = _load()
     assert mod.identity_or_anatomy_below(_pass1_score(identity=8))

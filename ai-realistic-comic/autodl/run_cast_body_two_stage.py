@@ -570,6 +570,8 @@ def main() -> None:
     parser.add_argument("--login-check", action="store_true", help="SSH once with the shared password and stop")
     parser.add_argument("--shutdown", action="store_true", help="Power off F34 after the run and print balance")
     args = parser.parse_args()
+    if os.environ.get("CAST_ASK_FILM_PROXY") or tpl.film_proxy_allowed():
+        raise SystemExit(tpl.self_run_line())
     item = direct_endpoint()
     token = ""
     if item is None:
@@ -602,9 +604,11 @@ def main() -> None:
             mode = ssh_exec(client, f"stat -c '%a %U %s' {REMOTE_CAST_SSH}").strip()
             print(f"cast_ssh_env {mode}", flush=True)
             print("资产登录已通", flush=True)
+            print(tpl.self_run_line(), flush=True)
         finally:
             client.close()
         return
+    print(tpl.self_run_line(), flush=True)
     client = connect(item)
     try:
         ensure_worker(client)

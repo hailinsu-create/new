@@ -4,7 +4,8 @@ Pass 1 changes only clothes, hair, and makeup, and must clear every content
 score. Resolution stays on the low grid. The face stays locked to the clothed
 plate. Identity or anatomy under 9 spends that seed. Pass 2 is a same-seed
 light upscale and is forbidden until pass 1 clears. A pass-2 miss only changes
-denoise and steps.
+denoise and steps. The still agent proxies once. After shared login, this
+pipeline runs itself and does not hand work back.
 This module does not import or edit the explicit-still runner.
 """
 from __future__ import annotations
@@ -18,6 +19,8 @@ VOID_LIN_FRONT = ("lin_wantang", "front", 0.85, 33)
 LIN_FRONT_SEED = 34
 OTHER_SEED = 41
 PASS1_SEED_TRIES = 3
+# The one still-agent proxy is already spent. This pipeline does not grant another.
+FILM_PROXY_REMAINING = 0
 
 # Asset turnaround schedule. It is not the still runner's 40-step contact edit.
 ASSET_SCHEDULE = {
@@ -132,6 +135,15 @@ _KEEP_LOOK = {
 }
 
 STORY_BANS = ("月下", "木屋", "夜湖", "雨桥", "冥府", "王座", "白蛇", "蛇尾", "石榴", "相拥")
+
+
+def film_proxy_allowed() -> bool:
+    """True only while a still-agent proxy is still authorized."""
+    return FILM_PROXY_REMAINING > 0
+
+
+def self_run_line() -> str:
+    return "资产自己跑。禁止再让出片代跑。"
 
 
 def clothed_passed(actor: str, view: str) -> bool:
