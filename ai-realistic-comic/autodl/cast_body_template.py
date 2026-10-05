@@ -2,17 +2,18 @@
 
 Female identity is the 2026-10-06 frontal lock, not the retired sheet.
 A female clothed plate is rebuilt from that lock until its mean is at least 9.
-Only then does pass 1 change clothes, hair, and makeup on that new plate.
+Only then does pass 1 change clothes on that new plate.
 Pass 1 must clear every content score. Resolution stays on the low grid.
 The undress face stays locked to the new clothed plate. A framing sentence,
-a face-lock sentence, and a clothes sentence stay apart. The clothes sentence
-is written twice and is not lengthened further. Identity, anatomy, or wardrobe
-under 9 spends that seed. Pass 1 then takes the next unspent seed until the
-gate clears or the user drops a stop file. Pass 2 is a same-seed light upscale
-and is forbidden until pass 1 clears. A pass-2 miss only changes denoise and
-steps. The still agent proxies once. After shared login, this pipeline runs
-itself and does not hand work back. This module does not import or edit the
-explicit-still runner.
+a face-lock sentence, and a clothes sentence stay apart. The face lock names
+face shape, features, skin tone, and the standing pose. The clothes sentence
+is the nude result, written twice. Identity, anatomy, or wardrobe under 9
+does not open the next seed. The next check names its seeds. Spent seeds stay
+out of the walker. A named seed may be rendered again. Pass 2 is a same-seed
+light upscale and is forbidden until pass 1 clears. A pass-2 miss only changes
+denoise and steps. The still agent proxies once. After shared login, this
+pipeline runs itself and does not hand work back. This module does not import
+or edit the explicit-still runner.
 """
 from __future__ import annotations
 
@@ -31,9 +32,13 @@ VOID_LIN_FRONT = ("lin_wantang", "front", 0.85, 33)
 # 54 mean 4.4, FEET, identity 7, anatomy 2, wardrobe 5 (head only).
 # 55-61 stay on the framed prompt: full body, identity about 9, wardrobe 1-4.
 # Means oscillate (7.6, 7.13, 7.75, 7.0, 7.4, 7.63, 6.75). That is not a drift.
-# Next unused seed is 62.
+# 62-83 are the 2026-10-06 pass-1 batch. All of them scored and none passed.
+# The walker stops at 84. The named check may repeat 62, 70, and 78 once.
 LIN_FRONT_SEED = 62
-LIN_FRONT_SPENT = frozenset(range(33, 62))
+LIN_FRONT_SPENT = frozenset(range(33, 84))
+LIN_FRONT_A_CHECK = (62, 70, 78)
+# Scheme B only, after that named check. The schedule table stays at 8.
+B_PASS1_STEPS = 16
 OTHER_SEED = 41
 # Local and remote files. Either one stops the pass-1 seed walk.
 STOP_LOCAL = "/tmp/cast-asset-stop"
@@ -280,9 +285,59 @@ def qwen_vae_frame(width: int, height: int) -> tuple[int, int]:
 
 
 def seed_for(actor: str, view: str, attempt: int) -> int:
-    """Fixed scale lives outside. Seeds step by one from the next unspent seed."""
+    """Next unspent seed. The pass-1 runner must not call this to walk a batch."""
     base = LIN_FRONT_SEED if (actor, view) == ("lin_wantang", "front") else OTHER_SEED
     return advance_seed(base + int(attempt), actor, view)
+
+
+def parse_specified_seeds(text: str | None) -> list[int]:
+    """Named seeds only. A missing list does not walk forward from the spent set."""
+    if text is None or not str(text).strip():
+        raise SystemExit("下一验证必须指定籽。禁止从已花种子往后盲递增。")
+    chosen: list[int] = []
+    for part in str(text).split(","):
+        piece = part.strip()
+        if not piece:
+            continue
+        if not piece.lstrip("-").isdigit():
+            raise SystemExit(f"籽不是整数：{piece}")
+        chosen.append(int(piece))
+    if not chosen:
+        raise SystemExit("下一验证必须指定籽。禁止从已花种子往后盲递增。")
+    return chosen
+
+
+def require_specified_seed(seed: int | None, actor: str, view: str) -> int:
+    """One named seed. Spent seeds may be named again. Void 33 may not. No increment."""
+    if seed is None:
+        raise SystemExit("下一验证必须指定籽。禁止从已花种子往后盲递增。")
+    chosen = int(seed)
+    if is_void(actor, view, FIXED_SCALE, chosen):
+        raise SystemExit(f"seed {chosen} 作废，不重跑。")
+    return chosen
+
+
+def scheme_after_named_pass1(items: list[dict]) -> str:
+    """After the named plates. scheme_b, stop_or_expand, or stop. Never a new seed."""
+    if not items:
+        raise ValueError("named pass1 scores missing")
+    wards: list[float] = []
+    passed = False
+    for item in items:
+        if item.get("passed"):
+            passed = True
+        raw = item.get("wardrobe")
+        if raw is None and isinstance(item.get("score"), dict):
+            raw = item["score"].get("wardrobe")
+        try:
+            wards.append(float(raw))
+        except (TypeError, ValueError):
+            wards.append(0.0)
+    if passed or any(score >= 7 for score in wards):
+        return "stop_or_expand"
+    if all(score <= 4 for score in wards):
+        return "scheme_b"
+    return "stop"
 
 
 def clothed_seed_for(actor: str, view: str, attempt: int) -> int:
@@ -300,16 +355,17 @@ def look_line(actor: str) -> str:
 
 
 def face_lock_line(actor: str) -> str:
-    """Face clause only. It does not mention garments."""
-    line = "锁脸：脸型不重画，五官尽量少改，身体不动。"
-    if actor in PERIOD_RELEASE:
-        line += "可改发型、妆、眼睛。"
-    return line + look_line(actor)
+    """Lock face shape, features, skin tone, and the standing pose."""
+    if actor not in PERIOD_RELEASE and actor not in _KEEP_LOOK:
+        raise KeyError(actor)
+    return "锁脸：只锁脸型、五官、肤色和站姿。"
 
 
 def wardrobe_clause(actor: str, view: str) -> str:
-    """Clothes clause only, written twice so it is not traded for the face lock."""
-    once = f"去掉{GARMENTS[(actor, view)]}。"
+    """Result state, written twice. The frame sentence stays out of this clause."""
+    if (actor, view) not in GARMENTS:
+        raise KeyError((actor, view))
+    once = "胸腹髋腿只留皮肤，不要背心短裤内衣。"
     return f"去衣：{once}{once}"
 
 
@@ -338,6 +394,11 @@ def clothed_prompt(actor: str, view: str) -> str:
         + look_line(actor)
         + f"衣服保持{garment}，不要脱掉。"
         + frame_clause()
+        + (
+            "头、双手和双脚都完整入画，不要把手放进口袋，不要裁掉手指或脚。"
+            if actor == "gu_chengan"
+            else ""
+        )
         + {
             "front": "这一张是正面全身，面对镜头。",
             "side": "这一张是左侧面全身。",
@@ -570,6 +631,8 @@ SCORE_PREFIX = (
     "这是一张成年身体模板，不是情节，也不是两个人。全身，头和双脚都在画面内，纯色背景，仅限成年人。\n"
     "Eight equal scores from 0 to 10: identity, distinction, interaction, aesthetics, anatomy, wardrobe, motif, photoreal. "
     "interaction means the pose is a stable turnaround, not a story pose. "
+    "motif 是资产站姿模板：沿用穿衣底板的中性站姿，全身，不是情节姿势，也不另加手势。"
+    "衣服脱掉不扣 motif。站姿还在，motif 至少给 9。"
     "mean is their equal average. gates is [] or H6 for a minor look, H4 for Elena's ears or green eyes or glasses or Adrian missing ears or holding a weapon, "
     "H7 for malformed limbs, FEET if a foot is cut off.\n"
     "只输出一个 JSON 对象：\n"

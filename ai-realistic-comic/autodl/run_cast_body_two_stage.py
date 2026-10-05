@@ -672,105 +672,12 @@ def run_clothed_rebuild(client, remote: Remote, actor: str, view: str) -> Path:
         return path
 
 
-def run_view(client, remote: Remote, actor: str, view: str) -> dict:
-    if actor in tpl.FEMALE_ACTORS and not view_clothed_ok(actor, view):
-        run_clothed_rebuild(client, remote, actor, view)
-    if not view_clothed_ok(actor, view):
-        mean = fresh_clothed_mean(actor, view)
-        if mean is None and actor not in tpl.FEMALE_ACTORS:
-            mean = tpl.CLOTHED_MEAN.get((actor, view))
-        raise SystemExit(
-            f"{actor} {view} 穿衣底板均分 {mean}，未到 9。先补底板，不去衣。"
-        )
-    src = resolve_clothed(client, actor, view)
-    print(f"NODE 去衣启动 {actor}:{view} src={src}", flush=True)
-    prompt1 = Path(f"/tmp/cast-pass1-{actor}-{view}.txt")
-    prompt2 = Path(f"/tmp/cast-pass2-{actor}.txt")
-    prompt1.write_text(tpl.pass1_prompt(actor, view), encoding="utf-8")
-    prompt2.write_text(tpl.pass2_prompt(actor), encoding="utf-8")
-    sftp = client.open_sftp()
-    sftp.put(str(prompt1), f"/root/autodl-tmp/in/cast-{actor}-{view}-pass1.txt")
-    sftp.put(str(prompt2), f"/root/autodl-tmp/in/cast-{actor}-pass2.txt")
-    sftp.close()
-    width, height = tpl.PASS1_SIZE
-    kept = None
-    # Pass 1 keeps the next unspent seed until the gate clears or the user drops a stop file.
-    attempt = 0
-    while True:
-        if user_stop_requested(client):
-            raise SystemExit(f"{actor} {view} 用户叫停。一采未过门，禁止二采。")
-        seed = tpl.seed_for(actor, view, attempt)
-        attempt += 1
-        print(f"PASS1_TRY {actor} {view} scale={tpl.FIXED_SCALE} seed={seed}", flush=True)
-        done = remote.render(
-            {
-                "kind": "pass1",
-                "scale": tpl.FIXED_SCALE,
-                "seed": seed,
-                "width": width,
-                "height": height,
-                "steps": tpl.PASS1_STEPS,
-                "true_cfg_scale": tpl.ASSET_TRUE_CFG,
-                "src": src,
-                "prompt": f"/root/autodl-tmp/in/cast-{actor}-{view}-pass1.txt",
-                "negative": tpl.negative_for(actor),
-                "dest": f"/root/autodl-tmp/out/cast-{actor}-{view}-pass1.png",
-            }
-        )
-        FAIL.mkdir(parents=True, exist_ok=True)
-        local = FAIL / f"{actor}-{view}-pass1-seed{seed}.png"
-        remote.fetch(done["dest"], local)
-        score = score_image(local, actor, view, "pass1")
-        passed = tpl.accept_pass1(score, actor, view, tpl.FIXED_SCALE, seed)
-        emit_score(
-            local,
-            "PASS1",
-            actor,
-            view,
-            score,
-            passed,
-            seed,
-            f"scale={tpl.FIXED_SCALE} seed={seed}",
-            seconds=done.get("seconds"),
-        )
-        if not passed:
-            if tpl.identity_anatomy_or_wardrobe_below(score):
-                print(
-                    f"PASS1_NEW_SEED {actor} {view} seed={seed} "
-                    f"identity={score.get('identity')} anatomy={score.get('anatomy')} "
-                    f"wardrobe={score.get('wardrobe')} "
-                    f"below={tpl.keys_below(score, tpl.RESEED_KEYS)}",
-                    flush=True,
-                )
-            continue
-        record = {
-            "actor": actor,
-            "view": view,
-            "stage": "pass1",
-            "scale": tpl.FIXED_SCALE,
-            "seed": seed,
-            "seconds": done.get("seconds"),
-            "score": score,
-            "look": tpl.look_gates(actor, view, score),
-            "eight": {key: score.get(key) for key in tpl.EIGHT},
-            "below": tpl.below_nine(score),
-            "void_rejected": False,
-        }
-        path = store_pass1(actor, view, local, record)
-        print(
-            f"NODE 一采 {actor} {view} path={path} seed={seed} "
-            f"mean={score.get('mean')} eight={tpl.format_eight(score)}",
-            flush=True,
-        )
-        print(f"PASS1_KEEP {path}", flush=True)
-        kept = {"seed": seed, "pass1": done, "score": score, "path": str(path)}
-        break
-    if not tpl.pass2_allowed(kept is not None):
+def run_pass2(client, remote: Remote, actor: str, view: str, seed: int, src_remote: str) -> dict:
+    """Same seed, larger frame. A miss changes denoise and steps only."""
+    if not tpl.pass2_allowed(True):
         raise SystemExit(
             f"{actor} {view} 一采未过门，禁止二采。没有改 scale。作废对 0.85/33 仍不收。"
         )
-    seed = kept["seed"]
-    # Light upscale of the kept plate. A miss changes denoise and steps only.
     plans = list(tpl.PASS2_SCORE_TRIES)
     oom_left = list(tpl.PASS2_OOM_TRIES)
     while plans:
@@ -793,7 +700,7 @@ def run_view(client, remote: Remote, actor: str, view: str) -> dict:
                     "height": tpl.PASS2_SIZE[1],
                     "steps": steps,
                     "true_cfg_scale": tpl.ASSET_TRUE_CFG,
-                    "src": kept["pass1"]["dest"],
+                    "src": src_remote,
                     "prompt": f"/root/autodl-tmp/in/cast-{actor}-pass2.txt",
                     "negative": tpl.negative_for(actor),
                     "dest": f"/root/autodl-tmp/out/cast-{actor}-{view}-pass2.png",
@@ -842,10 +749,233 @@ def run_view(client, remote: Remote, actor: str, view: str) -> dict:
             flush=True,
         )
         print(f"PASS2_KEEP {final}", flush=True)
-        return {"pass1": kept, "pass2": record, "path": str(final)}
+        return {"pass1": {"seed": seed}, "pass2": record, "path": str(final)}
     raise SystemExit(
         f"{actor} {view} 二采未过门。只调了 denoise 和步数，没有改内容，也没有重做一采。"
     )
+
+
+def run_view(
+    client,
+    remote: Remote,
+    actor: str,
+    view: str,
+    specified_seed: int,
+    *,
+    steps: int | None = None,
+    on_miss: str = "exit",
+    enter_pass2: bool = True,
+    src_local: Path | None = None,
+    plate_tag: str = "",
+) -> dict:
+    if actor in tpl.FEMALE_ACTORS and not view_clothed_ok(actor, view):
+        run_clothed_rebuild(client, remote, actor, view)
+    if not view_clothed_ok(actor, view):
+        mean = fresh_clothed_mean(actor, view)
+        if mean is None and actor not in tpl.FEMALE_ACTORS:
+            mean = tpl.CLOTHED_MEAN.get((actor, view))
+        raise SystemExit(
+            f"{actor} {view} 穿衣底板均分 {mean}，未到 9。先补底板，不去衣。"
+        )
+    if src_local is None:
+        src = resolve_clothed(client, actor, view)
+    else:
+        src = f"/root/autodl-tmp/in/cast-{actor}-{view}-{plate_tag or 'next'}.png"
+        upload = client.open_sftp()
+        upload.put(str(src_local), src)
+        upload.close()
+    print(f"NODE 去衣启动 {actor}:{view} src={src}", flush=True)
+    prompt1 = Path(f"/tmp/cast-pass1-{actor}-{view}.txt")
+    prompt2 = Path(f"/tmp/cast-pass2-{actor}.txt")
+    prompt1.write_text(tpl.pass1_prompt(actor, view), encoding="utf-8")
+    prompt2.write_text(tpl.pass2_prompt(actor), encoding="utf-8")
+    sftp = client.open_sftp()
+    sftp.put(str(prompt1), f"/root/autodl-tmp/in/cast-{actor}-{view}-pass1.txt")
+    sftp.put(str(prompt2), f"/root/autodl-tmp/in/cast-{actor}-pass2.txt")
+    sftp.close()
+    width, height = tpl.PASS1_SIZE
+    pass1_steps = tpl.PASS1_STEPS if steps is None else int(steps)
+    # One specified seed. A miss does not step to the next seed.
+    if user_stop_requested(client):
+        raise SystemExit(f"{actor} {view} 用户叫停。一采未过门，禁止二采。")
+    seed = tpl.require_specified_seed(specified_seed, actor, view)
+    tag = plate_tag or ("" if pass1_steps == tpl.PASS1_STEPS else f"steps{pass1_steps}")
+    suffix = f"-{tag}" if tag else ""
+    print(
+        f"PASS1_TRY {actor} {view} scale={tpl.FIXED_SCALE} seed={seed} steps={pass1_steps}",
+        flush=True,
+    )
+    remote_dest = f"/root/autodl-tmp/out/cast-{actor}-{view}-pass1-seed{seed}{suffix}.png"
+    done = remote.render(
+        {
+            "kind": "pass1",
+            "scale": tpl.FIXED_SCALE,
+            "seed": seed,
+            "width": width,
+            "height": height,
+            "steps": pass1_steps,
+            "true_cfg_scale": tpl.ASSET_TRUE_CFG,
+            "src": src,
+            "prompt": f"/root/autodl-tmp/in/cast-{actor}-{view}-pass1.txt",
+            "negative": tpl.negative_for(actor),
+            "dest": remote_dest,
+        }
+    )
+    FAIL.mkdir(parents=True, exist_ok=True)
+    local = FAIL / f"{actor}-{view}-pass1-seed{seed}{suffix}.png"
+    remote.fetch(done["dest"], local)
+    score = score_image(local, actor, view, "pass1")
+    passed = tpl.accept_pass1(score, actor, view, tpl.FIXED_SCALE, seed)
+    emit_score(
+        local,
+        "PASS1",
+        actor,
+        view,
+        score,
+        passed,
+        seed,
+        f"scale={tpl.FIXED_SCALE} seed={seed} steps={pass1_steps}",
+        seconds=done.get("seconds"),
+    )
+    if not passed:
+        message = (
+            f"{actor} {view} seed={seed} 未过门。"
+            f"below={tpl.below_nine(score)}。指定籽不递增，禁止二采。"
+        )
+        print(message, flush=True)
+        missed = {
+            "passed": False,
+            "seed": seed,
+            "score": score,
+            "path": str(local),
+            "steps": pass1_steps,
+            "wardrobe": score.get("wardrobe"),
+            "pass1_dest": remote_dest,
+        }
+        if on_miss == "return":
+            return missed
+        raise SystemExit(message)
+    record = {
+        "actor": actor,
+        "view": view,
+        "stage": "pass1",
+        "scale": tpl.FIXED_SCALE,
+        "seed": seed,
+        "seconds": done.get("seconds"),
+        "score": score,
+        "look": tpl.look_gates(actor, view, score),
+        "eight": {key: score.get(key) for key in tpl.EIGHT},
+        "below": tpl.below_nine(score),
+        "void_rejected": False,
+    }
+    path = store_pass1(actor, view, local, record)
+    print(
+        f"NODE 一采 {actor} {view} path={path} seed={seed} "
+        f"mean={score.get('mean')} eight={tpl.format_eight(score)}",
+        flush=True,
+    )
+    print(f"PASS1_KEEP {path}", flush=True)
+    row = {
+        "passed": True,
+        "seed": seed,
+        "score": score,
+        "path": str(path),
+        "steps": pass1_steps,
+        "wardrobe": score.get("wardrobe"),
+        "pass1_dest": done["dest"],
+    }
+    if not enter_pass2:
+        return row
+    return run_pass2(client, remote, actor, view, seed, done["dest"])
+
+
+def expand_passed(client, remote: Remote, actor: str, view: str, rows: list[dict]) -> None:
+    """Pass 2 only for plates that already cleared pass 1."""
+    for row in rows:
+        if not row.get("passed"):
+            continue
+        run_pass2(client, remote, actor, view, int(row["seed"]), str(row["pass1_dest"]))
+
+
+def run_named_batch(client, remote: Remote, actor: str, view: str, seeds: list[int]) -> None:
+    """Named pass-1 plates. The Lin front check may enter scheme B. No new seed."""
+    rows = []
+    for seed in seeds:
+        if user_stop_requested(client):
+            raise SystemExit(f"{actor} {view} 用户叫停。一采未过门，禁止二采。")
+        rows.append(
+            run_view(
+                client,
+                remote,
+                actor,
+                view,
+                seed,
+                on_miss="return",
+                enter_pass2=False,
+            )
+        )
+    chained = (actor, view) == ("lin_wantang", "front") and tuple(seeds) == tpl.LIN_FRONT_A_CHECK
+    if not chained:
+        expand_passed(client, remote, actor, view, rows)
+        return
+    decision = tpl.scheme_after_named_pass1(rows)
+    print(f"SCHEME_AFTER_A {decision} seeds={list(seeds)}", flush=True)
+    if decision == "stop_or_expand":
+        expand_passed(client, remote, actor, view, rows)
+        return
+    if decision != "scheme_b":
+        print("SCHEME_STOP 不进 B，不换籽，不跳 C。", flush=True)
+        return
+    print("SCHEME_B 同一指定籽先 16 步。", flush=True)
+    rows16 = []
+    for seed in seeds:
+        if user_stop_requested(client):
+            raise SystemExit(f"{actor} {view} 用户叫停。一采未过门，禁止二采。")
+        rows16.append(
+            run_view(
+                client,
+                remote,
+                actor,
+                view,
+                seed,
+                steps=tpl.B_PASS1_STEPS,
+                on_miss="return",
+                enter_pass2=False,
+            )
+        )
+    decision16 = tpl.scheme_after_named_pass1(rows16)
+    print(f"SCHEME_AFTER_B16 {decision16}", flush=True)
+    if decision16 == "stop_or_expand":
+        expand_passed(client, remote, actor, view, rows16)
+        return
+    if decision16 != "scheme_b":
+        print("SCHEME_STOP 16 步后不两段，不换籽，不跳 C。", flush=True)
+        return
+    print("SCHEME_B 两段去衣。第二段用 16 步结果，同一提示，同一籽。", flush=True)
+    rows2 = []
+    for row in rows16:
+        if user_stop_requested(client):
+            raise SystemExit(f"{actor} {view} 用户叫停。一采未过门，禁止二采。")
+        rows2.append(
+            run_view(
+                client,
+                remote,
+                actor,
+                view,
+                int(row["seed"]),
+                steps=tpl.PASS1_STEPS,
+                on_miss="return",
+                enter_pass2=False,
+                src_local=Path(row["path"]),
+                plate_tag="stage2",
+            )
+        )
+    decision2 = tpl.scheme_after_named_pass1(rows2)
+    print(f"SCHEME_AFTER_STAGE2 {decision2}", flush=True)
+    if decision2 == "stop_or_expand":
+        expand_passed(client, remote, actor, view, rows2)
+        return
+    print("SCHEME_STOP 两段后仍不换籽，不跳 C。", flush=True)
 
 
 def parse_only(raw: str) -> list[tuple[str, str]]:
@@ -936,6 +1066,7 @@ def main() -> None:
     parser.add_argument("--shutdown", action="store_true", help="Power off F34 after the run and print balance")
     parser.add_argument("--keep-on", action="store_true", help="用户当次明确说别关")
     parser.add_argument("--hold-off", action="store_true", help="用户当次明确说先别开")
+    parser.add_argument("--seed", default=None, help="指定一采籽，逗号分隔。未指定不跑")
     args = parser.parse_args()
     if os.environ.get("CAST_ASK_FILM_PROXY") or tpl.film_proxy_allowed():
         raise SystemExit(tpl.self_run_line())
@@ -990,6 +1121,10 @@ def main() -> None:
             finally:
                 client.close()
             return
+        seeds = tpl.parse_specified_seeds(args.seed)
+        for actor, view in parse_only(args.only):
+            for seed in seeds:
+                tpl.require_specified_seed(seed, actor, view)
         boot = f34_power_for_work(
             token,
             str(item.get("status") or ""),
@@ -1012,7 +1147,7 @@ def main() -> None:
                 if user_stop_requested(client):
                     paused = True
                     raise SystemExit(f"{actor} {view} 用户叫停。关机留盘，不去衣。")
-                run_view(client, remote, actor, view)
+                run_named_batch(client, remote, actor, view, seeds)
         finally:
             client.close()
     finally:

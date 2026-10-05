@@ -57,7 +57,9 @@ def test_nine_views_and_fixed_scale():
     assert mod.FIXED_SCALE == 0.85
     assert mod.LIN_FRONT_SEED == 62
     assert 33 in mod.LIN_FRONT_SPENT and 61 in mod.LIN_FRONT_SPENT
-    assert 62 not in mod.LIN_FRONT_SPENT
+    assert 62 in mod.LIN_FRONT_SPENT and 78 in mod.LIN_FRONT_SPENT
+    assert 83 in mod.LIN_FRONT_SPENT
+    assert 84 not in mod.LIN_FRONT_SPENT
     assert mod.qwen_vae_frame(448, 592) == (448, 576)
     assert mod.PASS1_SIZE == (448, 592)
     assert mod.PASS1_STEPS == 8
@@ -74,7 +76,9 @@ def test_nine_views_and_fixed_scale():
 def test_void_seed_33_never_passes():
     mod = _load()
     assert mod.is_void("lin_wantang", "front", 0.85, 33)
-    assert mod.seed_for("lin_wantang", "front", 0) == 62
+    assert mod.seed_for("lin_wantang", "front", 0) == 84
+    assert mod.LIN_FRONT_A_CHECK == (62, 70, 78)
+    assert mod.B_PASS1_STEPS == 16
     score = _pass1_score()
     assert not mod.accept_pass1(score, "lin_wantang", "front", 0.85, 33)
     assert mod.accept_pass1(score, "lin_wantang", "front", 0.85, 34)
@@ -120,17 +124,18 @@ def test_prompts_only_change_look_and_clothes():
     assert mod.FRAME_HARD not in mod.wardrobe_clause("lin_wantang", "front")
     assert "去衣：" in front
     assert front.index("构图：") < front.index(mod.FRAME_HARD) < front.index("锁脸：") < front.index("去衣：")
-    assert front.count("去掉背心和短裤。") == 2
-    assert "黑褐色" in text
-    assert "发髻" in text
+    assert front.count("胸腹髋腿只留皮肤，不要背心短裤内衣。") == 2
+    assert "身体不动" not in front
+    assert "只锁脸型、五官、肤色和站姿" in front
+    assert "资产站姿模板" in mod.SCORE_PREFIX
     for ban in mod.STORY_BANS + ("接触", "情节"):
         assert ban not in text
     adrian = mod.pass1_prompt("adrian_kane", "front")
     assert adrian.startswith("构图：")
-    assert adrian.count("去掉T恤和短裤。") == 2
-    assert "尖耳" in adrian
-    assert "黑褐色" not in adrian
-    assert "浅蓝灰" in adrian
+    assert adrian.count("胸腹髋腿只留皮肤，不要背心短裤内衣。") == 2
+    assert "只锁脸型、五官、肤色和站姿" in adrian
+    assert "身体不动" not in adrian
+    assert "尖耳" in mod.look_line("adrian_kane")
     images = ["/tmp/lock.png", "/tmp/plate.png"]
     call = mod.score_call("lin_wantang", "front", "pass1", images)
     assert call.startswith(mod.SCORE_PREFIX)
@@ -279,19 +284,52 @@ def test_low_identity_or_anatomy_changes_seed_and_blocks_pass2():
     assert mod.identity_anatomy_or_wardrobe_below(_pass1_score(anatomy=8))
     assert mod.identity_anatomy_or_wardrobe_below(_pass1_score(wardrobe=2))
     assert not mod.identity_anatomy_or_wardrobe_below(_pass1_score())
-    assert mod.seed_for("lin_wantang", "front", 0) == 62
-    assert mod.seed_for("lin_wantang", "front", 1) == 63
-    assert mod.seed_for("lin_wantang", "front", 2) == 64
-    assert mod.advance_seed(33, "lin_wantang", "front") == 62
-    assert mod.advance_seed(56, "lin_wantang", "front") == 62
-    assert mod.advance_seed(61, "lin_wantang", "front") == 62
+    assert mod.seed_for("lin_wantang", "front", 0) == 84
+    assert mod.seed_for("lin_wantang", "front", 1) == 84
+    assert mod.seed_for("lin_wantang", "front", 2) == 84
+    assert mod.advance_seed(33, "lin_wantang", "front") == 84
+    assert mod.advance_seed(62, "lin_wantang", "front") == 84
+    assert mod.advance_seed(83, "lin_wantang", "front") == 84
+    assert mod.parse_specified_seeds("62,70,78") == [62, 70, 78]
+    assert mod.require_specified_seed(84, "lin_wantang", "front") == 84
+    assert mod.require_specified_seed(62, "lin_wantang", "front") == 62
+    assert mod.require_specified_seed(70, "lin_wantang", "front") == 70
+    assert mod.require_specified_seed(78, "lin_wantang", "front") == 78
+    try:
+        mod.require_specified_seed(None, "lin_wantang", "front")
+    except SystemExit:
+        pass
+    else:
+        raise AssertionError("a missing seed must stop")
+    try:
+        mod.require_specified_seed(33, "lin_wantang", "front")
+    except SystemExit:
+        pass
+    else:
+        raise AssertionError("void seed 33 must stop")
     assert all(mod.seed_for("lin_wantang", "front", n) not in mod.LIN_FRONT_SPENT for n in range(6))
+    low = [{"passed": False, "wardrobe": 2} for _ in range(3)]
+    assert mod.scheme_after_named_pass1(low) == "scheme_b"
+    mixed = [
+        {"passed": False, "wardrobe": 2},
+        {"passed": False, "wardrobe": 7},
+        {"passed": False, "wardrobe": 2},
+    ]
+    assert mod.scheme_after_named_pass1(mixed) == "stop_or_expand"
+    middle = [{"passed": False, "wardrobe": 5} for _ in range(3)]
+    assert mod.scheme_after_named_pass1(middle) == "stop"
+    one_pass = [
+        {"passed": True, "wardrobe": 9},
+        {"passed": False, "wardrobe": 2},
+        {"passed": False, "wardrobe": 2},
+    ]
+    assert mod.scheme_after_named_pass1(one_pass) == "stop_or_expand"
 
 
 def test_diagnosis_keeps_the_prompt_and_records_the_vae_roundoff():
     mod = _load()
     front = mod.pass1_prompt("lin_wantang", "front")
-    assert front.count("去掉背心和短裤。") == 2
+    assert front.count("胸腹髋腿只留皮肤，不要背心短裤内衣。") == 2
     assert "白色背心" not in front
     assert "(:" not in front
     assert mod.PASS1_STEPS == 8
@@ -301,7 +339,10 @@ def test_diagnosis_keeps_the_prompt_and_records_the_vae_roundoff():
         encoding="utf-8"
     )
     assert "不是 worker 越跑越坏" in docs
-    assert "不要把去衣句再加长" in docs
+    assert "胸腹髋腿只留皮肤" in docs
+    assert "资产站姿模板" in docs
+    assert "指定籽" in docs
+    assert "已退役" in docs
     assert "0.7225" in docs
 
 
@@ -466,9 +507,11 @@ def test_score_log_names_the_item_under_nine_when_mean_is_nine():
         Path(__file__).resolve().parents[1] / "docs" / "cast-body-two-stage.md"
     ).read_text(encoding="utf-8")
     docs = (Path(__file__).resolve().parents[1] / "docs" / "cast-body-two-stage.md").read_text(encoding="utf-8")
-    assert "没有「三颗就停」" in docs
+    assert "指定籽" in docs
+    assert "未过门不进二采" in docs
     assert "seed `62`" in docs
     assert "33`–`61`" in docs
+    assert "33`–`83`" in docs
 
 
 def test_fail_sidecar_json_lists_every_content_score():
@@ -582,7 +625,9 @@ def test_runner_does_not_edit_explicit_still_files():
     assert "donor_remote" in text
     assert "/root/miniconda3/bin/python" in text
     assert "nohup python -u" not in text
-    assert "PASS1_NEW_SEED" in text
+    assert "指定籽不递增" in text
+    assert "SCHEME_AFTER_A" in text
+    assert "PASS1_NEW_SEED" not in text
     assert "identity_anatomy_or_wardrobe_below" in text
     assert "pass2_allowed" in text
     assert "禁止二采" in text

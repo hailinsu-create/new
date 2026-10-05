@@ -2,7 +2,7 @@
 
 打分 = Codex CLI + 固定标准前缀 `SCORE_PREFIX`。
 
-前缀在 `autodl/cast_body_template.py` 的 `SCORE_PREFIX`。它含八项、硬门和 JSON schema，同一次运行里字节不变。`score_call` 只在末尾追加定妆路径、待打分图路径和一句任务，不改写前缀正文。
+前缀在 `autodl/cast_body_template.py` 的 `SCORE_PREFIX`。它含八项、硬门和 JSON schema，同一次运行里字节不变。`score_call` 只在末尾追加定妆路径、待打分图路径和一句任务，不改写前缀正文。motif 的定义在这前缀里：资产站姿模板。衣服脱掉不扣这一项。
 
 出图和打分用同一套 `codex login`。没有 `codex` 打印 `CODEX_CLI_MISSING` 并退出。未登录打印 `CODEX_CLI_LOGGED_OUT` 并退出。禁止改走 OpenCode vision。
 
