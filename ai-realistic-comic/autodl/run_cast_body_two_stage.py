@@ -458,6 +458,7 @@ def emit_score(
     passed: bool,
     seed: int,
     extra: str,
+    scale: float | None = None,
     **record_extra,
 ) -> dict:
     look = tpl.look_gates(actor, view, score)
@@ -465,7 +466,7 @@ def emit_score(
         actor,
         view,
         stage_label.lower(),
-        tpl.FIXED_SCALE,
+        tpl.FIXED_SCALE if scale is None else scale,
         seed,
         score,
         look,
@@ -622,6 +623,7 @@ def run_clothed_rebuild(client, remote: Remote, actor: str, view: str) -> Path:
             passed,
             seed,
             f"scale={tpl.CLOTHED_SCALE} seed={seed}",
+            scale=tpl.CLOTHED_SCALE,
             seconds=done.get("seconds"),
         )
         if not passed:
