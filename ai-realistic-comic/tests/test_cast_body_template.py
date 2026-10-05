@@ -558,6 +558,12 @@ def test_runner_does_not_edit_explicit_still_files():
     assert "固定标准前缀" in cast_doc
     assert "关机留盘" in cast_doc
     assert "空转" in cast_doc
+    assert "不得只留在本机" in cast_doc
+    assert "推到 GitHub" in cast_doc
+    assert "改脚本" in cast_doc
+    assert "文档与代码不一致算漂移" in cast_doc
+    assert "不得只留在本机" in score_entry
+    assert "文档与代码不一致算漂移" in score_entry
     template_text = (
         Path(__file__).resolve().parents[1] / "autodl" / "cast_body_template.py"
     ).read_text(encoding="utf-8")

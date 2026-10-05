@@ -100,8 +100,8 @@ PASS1_KEYS = EIGHT
 # Twelve clothed turnarounds are the base plates.
 # Male means are the makeup-ref rescore and still gate undress.
 # Female means in this table do not open undress by themselves.
-# Archived 2026-10-06 Codex plates: lin front/side/back and elena front.
-# elena side and back stay retired until a fresh plate replaces them.
+# Archived 2026-10-06 Codex plates: both women, front/side/back.
+# Male cells are unchanged. A female view undresses only from the fresh json.
 # A female view undresses only after a fresh plate scores a mean of at least 9.
 CLOTHED_MEAN = {
     ("lin_wantang", "front"): 9.4125,
@@ -111,8 +111,8 @@ CLOTHED_MEAN = {
     ("gu_chengan", "side"): 8.75,
     ("gu_chengan", "back"): 8.875,
     ("elena_voss", "front"): 9.4625,
-    ("elena_voss", "side"): 8.875,
-    ("elena_voss", "back"): 9.25,
+    ("elena_voss", "side"): 9.475,
+    ("elena_voss", "back"): 9.3875,
     ("adrian_kane", "front"): 9.25,
     ("adrian_kane", "side"): 9.125,
     ("adrian_kane", "back"): 9.125,
