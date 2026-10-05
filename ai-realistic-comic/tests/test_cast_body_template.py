@@ -666,6 +666,7 @@ def test_runner_does_not_edit_explicit_still_files():
     assert "ref.png" in text
     assert '"face"' not in text
     assert "eye_crop" in text
+    assert "SCORE_DEFERRED" in text
     assert "PASS1_NEW_SEED" not in text
     assert "identity_anatomy_or_wardrobe_below" in text
     assert "pass2_allowed" in text

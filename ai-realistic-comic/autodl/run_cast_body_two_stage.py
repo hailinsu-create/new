@@ -1045,18 +1045,27 @@ def run_research(
     for seed in seeds:
         if user_stop_requested(client):
             raise SystemExit(f"{actor} {view} 用户叫停。一采未过门，禁止二采。")
-        run_view(
-            client,
-            remote,
-            actor,
-            view,
-            seed,
-            steps=steps,
-            scale=tpl.FIXED_SCALE,
-            on_miss="return",
-            enter_pass2=False,
-            plate_tag=f"noface-steps{steps}",
-        )
+        try:
+            run_view(
+                client,
+                remote,
+                actor,
+                view,
+                seed,
+                steps=steps,
+                scale=tpl.FIXED_SCALE,
+                on_miss="return",
+                enter_pass2=False,
+                plate_tag=f"noface-steps{steps}",
+            )
+        except SystemExit as exc:
+            text = str(exc)
+            if "CODEX_CLI_FAILED" not in text:
+                raise
+            print(
+                f"SCORE_DEFERRED seed={seed} 图已留下，打分失败不中断后面的籽。{text[-180:]}",
+                flush=True,
+            )
     print("RESEARCH_DONE 一采研究批结束。禁止二采。", flush=True)
 
 
