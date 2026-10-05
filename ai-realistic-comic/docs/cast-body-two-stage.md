@@ -56,7 +56,7 @@
 
 只用 F34 `xaxna66hqt-c5c9c7fc`（西北B）。禁止开 G09 `sa4eaxgcuq-26e36fc9`，禁止新建实例。F34 上若已有出片 worker，本脚本退出，不杀那个进程。开机要用户授权；状态不是 `running` 时脚本不开机。
 
-和出片共用同一套 F34 登录，不另要令牌。自测是 `python autodl/run_cast_body_two_stage.py --login-check`。口令读 `AUTODL_SSH_PASSWORD`，或本机 `/tmp/cast-ssh.env`。SSH 通了再核对 F34 上的 `/root/autodl-tmp/.cast-ssh.env`。口令不写入仓库。
+和出片共用同一套 F34 登录，不另要令牌。自测是 `python autodl/run_cast_body_two_stage.py --login-check`。口令读 `AUTODL_SSH_PASSWORD`，或本机 `/tmp/cast-ssh.env`，或两边都能挂到的 `/cursor/stores/user/cast-ssh.env`。出片机的 `/tmp/cast-ssh.env` 资产机读不到。环境变量里的旧口令会挡住文件，先取消再读。SSH 通了再核对 F34 上的 `/root/autodl-tmp/.cast-ssh.env`。口令不写入仓库。
 
 出片代跑只这一次。共享登录到位后，资产用这个入口自己跑。`FILM_PROXY_REMAINING` 为 0。再设 `CAST_ASK_FILM_PROXY` 或再把队列交给出片，脚本退出并打印「资产自己跑。禁止再让出片代跑。」
 

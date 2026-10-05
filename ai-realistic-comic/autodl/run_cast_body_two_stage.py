@@ -24,6 +24,7 @@ TOKEN_FILE = Path("/tmp/autodl_token_live.txt")
 REUSE_JSON = Path("/tmp/f34-asset-reuse.json")
 REUSE_ENV = Path("/tmp/f34-asset-reuse.env")
 CAST_SSH_ENV = Path("/tmp/cast-ssh.env")
+SHARED_CAST_SSH = Path("/cursor/stores/user/cast-ssh.env")
 REMOTE_CAST_SSH = "/root/autodl-tmp/.cast-ssh.env"
 YUAN_PER_LI = 1000
 
@@ -76,6 +77,8 @@ def reuse_config() -> dict:
         data = parse_cast_env(REUSE_ENV.read_text(encoding="utf-8"))
     elif CAST_SSH_ENV.is_file():
         data = parse_cast_env(CAST_SSH_ENV.read_text(encoding="utf-8"))
+    elif SHARED_CAST_SSH.is_file():
+        data = parse_cast_env(SHARED_CAST_SSH.read_text(encoding="utf-8"))
     else:
         return {}
     if data.get("instance_uuid") not in (None, "", tpl.F34_UUID):
@@ -577,8 +580,9 @@ def main() -> None:
     if item is None:
         if args.login_check:
             raise SystemExit(
-                "共享口令还没到本机。自测只读 AUTODL_SSH_PASSWORD，或本机 /tmp/cast-ssh.env。"
-                "F34 上的 /root/autodl-tmp/.cast-ssh.env 要等这条 SSH 通了再读。不要另要令牌。"
+                "共享口令还没到本机。自测只读 AUTODL_SSH_PASSWORD，或本机 /tmp/cast-ssh.env，"
+                "或 /cursor/stores/user/cast-ssh.env。"
+                "环境变量里的旧口令会挡住文件。F34 上的 /root/autodl-tmp/.cast-ssh.env 要等这条 SSH 通了再读。不要另要令牌。"
             )
         token = load_token()
         item = f34_instance(token)

@@ -224,6 +224,33 @@ def test_reuse_env_parses_film_handoff():
     ).read_text(encoding="utf-8")
 
 
+def test_shared_store_supplies_password_when_local_tmp_is_missing(tmp_path, monkeypatch):
+    import sys
+
+    autodl = Path(__file__).resolve().parents[1] / "autodl"
+    sys.path.insert(0, str(autodl))
+    import run_cast_body_two_stage as runner
+
+    shared = tmp_path / "cast-ssh.env"
+    shared.write_text(
+        "\n".join(
+            [
+                "AUTODL_SSH_HOST=connect.weste.seetacloud.com",
+                "AUTODL_SSH_PORT=35239",
+                "AUTODL_SSH_USER=root",
+                "AUTODL_SSH_PASSWORD=from-store",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(runner, "REUSE_JSON", tmp_path / "missing.json")
+    monkeypatch.setattr(runner, "REUSE_ENV", tmp_path / "missing.env")
+    monkeypatch.setattr(runner, "CAST_SSH_ENV", tmp_path / "missing-cast.env")
+    monkeypatch.setattr(runner, "SHARED_CAST_SSH", shared)
+    monkeypatch.delenv("AUTODL_SSH_PASSWORD", raising=False)
+    assert runner.ssh_password_from_disk() == "from-store"
+
+
 def test_gpu_block_is_per_line():
     import sys
 
