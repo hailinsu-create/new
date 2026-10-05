@@ -142,6 +142,10 @@ def test_prompts_only_change_look_and_clothes():
     assert "every content score" not in tail
     assert "/tmp/plate.png" in tail
     assert "opencode" not in call.lower()
+    gu_look = mod.look_line("gu_chengan")
+    assert "发套" in gu_look
+    assert "发箍" in gu_look
+    assert "发套" not in mod.look_line("adrian_kane")
     elena = mod.look_line("elena_voss")
     assert "蓝灰" in elena
     assert "琥珀" not in elena
@@ -562,6 +566,8 @@ def test_runner_does_not_edit_explicit_still_files():
     assert "空转" in cast_doc
     assert "不得只留在本机" in cast_doc
     assert "推到 GitHub" in cast_doc
+    assert "发套" in cast_doc
+    assert "发箍" in cast_doc
     assert "改脚本" in cast_doc
     assert "文档与代码不一致算漂移" in cast_doc
     assert "不得只留在本机" in score_entry
