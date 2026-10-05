@@ -59,7 +59,8 @@ def test_nine_views_and_fixed_scale():
     assert 33 in mod.LIN_FRONT_SPENT and 61 in mod.LIN_FRONT_SPENT
     assert 62 in mod.LIN_FRONT_SPENT and 78 in mod.LIN_FRONT_SPENT
     assert 83 in mod.LIN_FRONT_SPENT
-    assert 84 not in mod.LIN_FRONT_SPENT
+    assert 84 in mod.LIN_FRONT_SPENT and 85 in mod.LIN_FRONT_SPENT
+    assert 86 not in mod.LIN_FRONT_SPENT
     assert mod.qwen_vae_frame(448, 592) == (448, 576)
     assert mod.PASS1_SIZE == (448, 592)
     assert mod.PASS1_STEPS == 8
@@ -76,7 +77,7 @@ def test_nine_views_and_fixed_scale():
 def test_void_seed_33_never_passes():
     mod = _load()
     assert mod.is_void("lin_wantang", "front", 0.85, 33)
-    assert mod.seed_for("lin_wantang", "front", 0) == 84
+    assert mod.seed_for("lin_wantang", "front", 0) == 86
     assert mod.LIN_FRONT_A_CHECK == (62, 70, 78)
     assert mod.B_PASS1_STEPS == 16
     score = _pass1_score()
@@ -290,12 +291,13 @@ def test_low_identity_or_anatomy_changes_seed_and_blocks_pass2():
     assert mod.identity_anatomy_or_wardrobe_below(_pass1_score(anatomy=8))
     assert mod.identity_anatomy_or_wardrobe_below(_pass1_score(wardrobe=2))
     assert not mod.identity_anatomy_or_wardrobe_below(_pass1_score())
-    assert mod.seed_for("lin_wantang", "front", 0) == 84
-    assert mod.seed_for("lin_wantang", "front", 1) == 84
-    assert mod.seed_for("lin_wantang", "front", 2) == 84
-    assert mod.advance_seed(33, "lin_wantang", "front") == 84
-    assert mod.advance_seed(62, "lin_wantang", "front") == 84
-    assert mod.advance_seed(83, "lin_wantang", "front") == 84
+    assert mod.seed_for("lin_wantang", "front", 0) == 86
+    assert mod.seed_for("lin_wantang", "front", 1) == 86
+    assert mod.seed_for("lin_wantang", "front", 2) == 86
+    assert mod.advance_seed(33, "lin_wantang", "front") == 86
+    assert mod.advance_seed(62, "lin_wantang", "front") == 86
+    assert mod.advance_seed(83, "lin_wantang", "front") == 86
+    assert mod.advance_seed(85, "lin_wantang", "front") == 86
     assert mod.parse_specified_seeds("62,70,78") == [62, 70, 78]
     assert mod.require_specified_seed(84, "lin_wantang", "front") == 84
     assert mod.require_specified_seed(62, "lin_wantang", "front") == 62
