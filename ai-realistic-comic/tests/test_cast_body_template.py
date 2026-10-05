@@ -46,7 +46,7 @@ def test_nine_views_and_fixed_scale():
     assert ("gu_chengan", "side") not in mod.NUDE_VIEWS
     assert ("elena_voss", "side") not in mod.NUDE_VIEWS
     assert mod.FIXED_SCALE == 0.85
-    assert mod.LIN_FRONT_SEED == 34
+    assert mod.LIN_FRONT_SEED == 47
     assert mod.PASS1_SIZE == (448, 592)
     assert mod.PASS1_STEPS == 8
     assert mod.ASSET_SCHEDULE["pass1"]["steps"] == 8
@@ -62,7 +62,7 @@ def test_nine_views_and_fixed_scale():
 def test_void_seed_33_never_passes():
     mod = _load()
     assert mod.is_void("lin_wantang", "front", 0.85, 33)
-    assert mod.seed_for("lin_wantang", "front", 0) == 34
+    assert mod.seed_for("lin_wantang", "front", 0) == 47
     score = _pass1_score()
     assert not mod.accept_pass1(score, "lin_wantang", "front", 0.85, 33)
     assert mod.accept_pass1(score, "lin_wantang", "front", 0.85, 34)
@@ -98,14 +98,17 @@ def test_prompts_only_change_look_and_clothes():
     mod = _load()
     front = mod.pass1_prompt("lin_wantang", "front")
     text = front + mod.pass2_prompt("lin_wantang")
-    assert front.startswith("锁脸、锁身体。只改衣着、发型、妆。")
+    assert front.startswith("锁脸：")
+    assert "去衣：" in front
+    assert front.index("锁脸：") < front.index("去衣：")
+    assert front.count("去掉背心和短裤。") == 2
     assert "黑褐色" in text
     assert "发髻" in text
-    assert "背心和短裤" in front
     for ban in mod.STORY_BANS + ("接触", "情节"):
         assert ban not in text
     adrian = mod.pass1_prompt("adrian_kane", "front")
-    assert adrian.startswith("锁脸、锁身体。只改衣着、发型、妆。")
+    assert adrian.startswith("锁脸：")
+    assert adrian.count("去掉T恤和短裤。") == 2
     assert "尖耳" in adrian
     assert "黑褐色" not in adrian
     assert "浅蓝灰" in adrian
@@ -160,9 +163,13 @@ def test_low_identity_or_anatomy_changes_seed_and_blocks_pass2():
     assert not mod.identity_or_anatomy_below(_pass1_score())
     assert mod.pass2_allowed(False) is False
     assert mod.pass2_allowed(True) is True
-    assert mod.seed_for("lin_wantang", "front", 0) == 34
-    assert mod.seed_for("lin_wantang", "front", 1) == 35
-    assert mod.seed_for("lin_wantang", "front", 2) == 36
+    assert mod.identity_or_wardrobe_below(_pass1_score(identity=8))
+    assert mod.identity_or_wardrobe_below(_pass1_score(wardrobe=3))
+    assert mod.identity_or_wardrobe_below({})
+    assert not mod.identity_or_wardrobe_below(_pass1_score())
+    assert mod.seed_for("lin_wantang", "front", 0) == 47
+    assert mod.seed_for("lin_wantang", "front", 1) == 48
+    assert mod.seed_for("lin_wantang", "front", 2) == 49
 
 
 def test_worker_refuses_full_bf16_and_uses_cast_queue():
@@ -244,6 +251,7 @@ def test_runner_does_not_edit_explicit_still_files():
     assert "body-clothed" in text
     assert "不拿定妆全身" in text
     assert "PASS1_NEW_SEED" in text
+    assert "identity_or_wardrobe_below" in text
     assert "pass2_allowed" in text
     assert "禁止二采" in text
     assert "content=locked" in text

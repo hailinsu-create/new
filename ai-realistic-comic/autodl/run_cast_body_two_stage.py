@@ -459,10 +459,10 @@ def run_view(client, remote: Remote, actor: str, view: str) -> dict:
             flush=True,
         )
         if not passed:
-            if tpl.identity_or_anatomy_below(score):
+            if tpl.identity_or_wardrobe_below(score):
                 print(
                     f"PASS1_NEW_SEED {actor} {view} seed={seed} "
-                    f"identity={score.get('identity')} anatomy={score.get('anatomy')}",
+                    f"identity={score.get('identity')} wardrobe={score.get('wardrobe')}",
                     flush=True,
                 )
             continue

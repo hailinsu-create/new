@@ -2,7 +2,7 @@
 
 Pass 1 changes only clothes, hair, and makeup, and must clear every content
 score. Resolution stays on the low grid. The face stays locked to the clothed
-plate. Identity or anatomy under 9 spends that seed. Pass 2 is a same-seed
+plate. Identity or wardrobe under 9 spends that seed. Pass 2 is a same-seed
 light upscale and is forbidden until pass 1 clears. A pass-2 miss only changes
 denoise and steps. The still agent proxies once. After shared login, this
 pipeline runs itself and does not hand work back.
@@ -16,7 +16,8 @@ KEEP_MEAN = 9.0
 FIXED_SCALE = 0.85
 # Seed 33 at this scale is the rejected Lin front pass 1. Never a pass.
 VOID_LIN_FRONT = ("lin_wantang", "front", 0.85, 33)
-LIN_FRONT_SEED = 34
+# Seeds 34-46 already failed identity or wardrobe. Do not rerun them.
+LIN_FRONT_SEED = 47
 OTHER_SEED = 41
 PASS1_SEED_TRIES = 3
 # The one still-agent proxy is already spent. This pipeline does not grant another.
@@ -130,8 +131,8 @@ _PERIOD_LOOK = {
 }
 
 _KEEP_LOOK = {
-    "elena_voss": "发型妆保持。暖琥珀棕眼，人耳。",
-    "adrian_kane": "发型妆保持。浅蓝灰眼，尖耳，无武器。",
+    "elena_voss": "保持赤褐发、暖琥珀棕眼、人耳。",
+    "adrian_kane": "保持深色发、浅蓝灰眼、尖耳，无武器。",
 }
 
 STORY_BANS = ("月下", "木屋", "夜湖", "雨桥", "冥府", "王座", "白蛇", "蛇尾", "石榴", "相拥")
@@ -176,10 +177,23 @@ def look_line(actor: str) -> str:
     return _KEEP_LOOK[actor]
 
 
+def face_lock_line(actor: str) -> str:
+    """Face clause only. It does not mention garments."""
+    line = "锁脸：脸型不重画，五官尽量少改，身体不动。"
+    if actor in PERIOD_RELEASE:
+        line += "可改发型、妆、眼睛。"
+    return line + look_line(actor)
+
+
+def wardrobe_clause(actor: str, view: str) -> str:
+    """Clothes clause only, written twice so it is not traded for the face lock."""
+    once = f"去掉{GARMENTS[(actor, view)]}。"
+    return f"去衣：{once}{once}"
+
+
 def pass1_prompt(actor: str, view: str) -> str:
-    """Short lock: face, body, clothes, hair, makeup. No still-frame contact."""
-    clothes = GARMENTS[(actor, view)]
-    return f"锁脸、锁身体。只改衣着、发型、妆。去掉{clothes}。{look_line(actor)}"
+    """Clothed plate only. Face lock and clothes removal stay in separate clauses."""
+    return face_lock_line(actor) + wardrobe_clause(actor, view)
 
 
 def pass2_prompt(actor: str) -> str:
@@ -246,6 +260,18 @@ def _score_ok(item: dict, keys: tuple[str, ...]) -> bool:
         if value < KEEP_MEAN:
             return False
     return True
+
+
+def identity_or_wardrobe_below(item: dict) -> bool:
+    """True when identity or wardrobe is missing or under 9. Switch seed now."""
+    for key in ("identity", "wardrobe"):
+        try:
+            value = float(item.get(key))
+        except (TypeError, ValueError):
+            return True
+        if value < KEEP_MEAN:
+            return True
+    return False
 
 
 def identity_or_anatomy_below(item: dict) -> bool:
@@ -317,6 +343,8 @@ def score_prompt(actor: str, view: str, stage: str) -> str:
             " Pass 1 may change only clothes, hair, and makeup on the clothed plate. "
             "Identity below 9 means the face was redrawn: face shape, features, or skin tone moved. "
             "Do not mark identity below 9 because the instructed hair or makeup changed. "
+            "Wardrobe below 9 means cloth remains on the chest, abdomen, hips, or legs. "
+            "Do not trade a locked face for leftover clothes. "
             "Pass 1 must clear every content score. Resolution is the only exemption: "
             "do not add a penalty, and do not waive a content score, only because the frame is small. "
             "Pixel count is pass 2. Wrong face, pose, anatomy, wardrobe, likeness, or motif still scores below 9."
