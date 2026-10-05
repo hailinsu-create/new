@@ -46,7 +46,9 @@ def test_nine_views_and_fixed_scale():
     assert ("gu_chengan", "side") not in mod.NUDE_VIEWS
     assert ("elena_voss", "side") not in mod.NUDE_VIEWS
     assert mod.FIXED_SCALE == 0.85
-    assert mod.LIN_FRONT_SEED == 50
+    assert mod.LIN_FRONT_SEED == 53
+    assert 33 in mod.LIN_FRONT_SPENT and 52 in mod.LIN_FRONT_SPENT
+    assert 53 not in mod.LIN_FRONT_SPENT
     assert mod.PASS1_SIZE == (448, 592)
     assert mod.PASS1_STEPS == 8
     assert mod.ASSET_SCHEDULE["pass1"]["steps"] == 8
@@ -62,7 +64,7 @@ def test_nine_views_and_fixed_scale():
 def test_void_seed_33_never_passes():
     mod = _load()
     assert mod.is_void("lin_wantang", "front", 0.85, 33)
-    assert mod.seed_for("lin_wantang", "front", 0) == 50
+    assert mod.seed_for("lin_wantang", "front", 0) == 53
     score = _pass1_score()
     assert not mod.accept_pass1(score, "lin_wantang", "front", 0.85, 33)
     assert mod.accept_pass1(score, "lin_wantang", "front", 0.85, 34)
@@ -101,8 +103,13 @@ def test_prompts_only_change_look_and_clothes():
     assert front.startswith("构图：")
     assert "头和双脚都留在画面内" in front
     assert "不要裁成头肩" in front
+    assert mod.FRAME_HARD in front
+    assert front.count(mod.FRAME_HARD) == 1
+    assert mod.FRAME_HARD in mod.frame_clause()
+    assert mod.FRAME_HARD not in mod.face_lock_line("lin_wantang")
+    assert mod.FRAME_HARD not in mod.wardrobe_clause("lin_wantang", "front")
     assert "去衣：" in front
-    assert front.index("构图：") < front.index("锁脸：") < front.index("去衣：")
+    assert front.index("构图：") < front.index(mod.FRAME_HARD) < front.index("锁脸：") < front.index("去衣：")
     assert front.count("去掉背心和短裤。") == 2
     assert "黑褐色" in text
     assert "发髻" in text
@@ -169,9 +176,16 @@ def test_low_identity_or_anatomy_changes_seed_and_blocks_pass2():
     assert mod.identity_or_wardrobe_below(_pass1_score(wardrobe=3))
     assert mod.identity_or_wardrobe_below({})
     assert not mod.identity_or_wardrobe_below(_pass1_score())
-    assert mod.seed_for("lin_wantang", "front", 0) == 50
-    assert mod.seed_for("lin_wantang", "front", 1) == 51
-    assert mod.seed_for("lin_wantang", "front", 2) == 52
+    assert mod.identity_anatomy_or_wardrobe_below(_pass1_score(anatomy=8))
+    assert mod.identity_anatomy_or_wardrobe_below(_pass1_score(wardrobe=2))
+    assert not mod.identity_anatomy_or_wardrobe_below(_pass1_score())
+    assert mod.seed_for("lin_wantang", "front", 0) == 53
+    assert mod.seed_for("lin_wantang", "front", 1) == 54
+    assert mod.seed_for("lin_wantang", "front", 2) == 55
+    assert mod.advance_seed(33, "lin_wantang", "front") == 53
+    assert mod.advance_seed(50, "lin_wantang", "front") == 53
+    assert mod.advance_seed(52, "lin_wantang", "front") == 53
+    assert all(mod.seed_for("lin_wantang", "front", n) not in mod.LIN_FRONT_SPENT for n in range(6))
 
 
 def test_worker_refuses_full_bf16_and_uses_cast_queue():
@@ -288,6 +302,85 @@ def test_gpu_block_is_per_line():
     assert runner.gpu_block_reason(other) is not None
 
 
+def test_score_log_names_the_item_under_nine_when_mean_is_nine():
+    mod = _load()
+    item = _pass1_score(distinction=8, mean=9.0)
+    look = []
+    line = mod.score_log_line(
+        "PASS1",
+        "lin_wantang",
+        "front",
+        item,
+        look,
+        False,
+        "scale=0.85 seed=50",
+    )
+    assert "passed=False" in line
+    assert "mean=9.0" in line
+    assert "period_hair=" in line and "period_makeup=" in line and "eyes_black_brown=" in line
+    for key in mod.EIGHT:
+        assert f"{key}=" in line
+    assert line.endswith("below=['distinction']") or "below=['distinction']" in line
+    record = mod.attempt_record(
+        "lin_wantang",
+        "front",
+        "pass1",
+        0.85,
+        50,
+        item,
+        look,
+        False,
+    )
+    assert record["eight"]["distinction"] == 8
+    assert record["below"] == ["distinction"]
+    assert record["passed"] is False
+    assert "full body, head and both feet in frame, no bust/head crop" in (
+        Path(__file__).resolve().parents[1] / "docs" / "cast-body-two-stage.md"
+    ).read_text(encoding="utf-8")
+    docs = (Path(__file__).resolve().parents[1] / "docs" / "cast-body-two-stage.md").read_text(encoding="utf-8")
+    assert "没有「三颗就停」" in docs
+    assert "seed `53`" in docs
+    assert "33`–`52`" in docs
+
+
+def test_fail_sidecar_json_lists_every_content_score():
+    import json
+    import sys
+    import tempfile
+
+    mod = _load()
+    autodl = Path(__file__).resolve().parents[1] / "autodl"
+    sys.path.insert(0, str(autodl))
+    import run_cast_body_two_stage as runner
+
+    item = _pass1_score(motif=7, mean=9.0)
+    record = mod.attempt_record(
+        "lin_wantang",
+        "front",
+        "pass1",
+        0.85,
+        50,
+        item,
+        [],
+        False,
+    )
+    with tempfile.TemporaryDirectory() as raw:
+        png = Path(raw) / "lin_wantang-front-pass1-seed50.png"
+        png.write_bytes(b"png")
+        dest = runner.write_attempt_json(png, record)
+        assert dest.name == "lin_wantang-front-pass1-seed50.json"
+        data = json.loads(dest.read_text(encoding="utf-8"))
+    assert data["mean"] == 9.0
+    assert data["passed"] is False
+    assert data["below"] == ["motif"]
+    assert set(data["eight"]) == set(mod.EIGHT)
+    assert data["eight"]["motif"] == 7
+    text = (Path(__file__).resolve().parents[1] / "autodl" / "run_cast_body_two_stage.py").read_text(
+        encoding="utf-8"
+    )
+    assert text.count("emit_score(") >= 2
+
+
 def test_runner_does_not_edit_explicit_still_files():
     path = Path(__file__).resolve().parents[1] / "autodl" / "run_cast_body_two_stage.py"
     text = path.read_text(encoding="utf-8")
@@ -298,8 +391,13 @@ def test_runner_does_not_edit_explicit_still_files():
     assert "body-clothed" in text
     assert "不拿定妆全身" in text
     assert "PASS1_NEW_SEED" in text
-    assert "identity_or_wardrobe_below" in text
+    assert "identity_anatomy_or_wardrobe_below" in text
     assert "pass2_allowed" in text
     assert "禁止二采" in text
+    assert "PASS1_SEED_TRIES" not in text
+    assert "用户叫停" in text
+    assert "write_attempt_json" in text
+    assert "score_log_line" in text
+    assert "while True:" in text
     assert "content=locked" in text
     assert "没有改内容" in text

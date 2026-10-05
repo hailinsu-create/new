@@ -2,10 +2,12 @@
 
 Pass 1 changes only clothes, hair, and makeup, and must clear every content
 score. Resolution stays on the low grid. The face stays locked to the clothed
-plate. Identity or wardrobe under 9 spends that seed. Pass 2 is a same-seed
-light upscale and is forbidden until pass 1 clears. A pass-2 miss only changes
-denoise and steps. The still agent proxies once. After shared login, this
-pipeline runs itself and does not hand work back.
+plate. A framing sentence, a face-lock sentence, and a clothes sentence stay
+apart. Identity, anatomy, or wardrobe under 9 spends that seed. Pass 1 then
+takes the next unspent seed until the gate clears or the user drops a stop
+file. Pass 2 is a same-seed light upscale and is forbidden until pass 1
+clears. A pass-2 miss only changes denoise and steps. The still agent proxies
+once. After shared login, this pipeline runs itself and does not hand work back.
 This module does not import or edit the explicit-still runner.
 """
 from __future__ import annotations
@@ -16,10 +18,16 @@ KEEP_MEAN = 9.0
 FIXED_SCALE = 0.85
 # Seed 33 at this scale is the rejected Lin front pass 1. Never a pass.
 VOID_LIN_FRONT = ("lin_wantang", "front", 0.85, 33)
-# Seeds 34-49 failed. 47-49 cropped to a head and hit FEET. Next seed is 50.
-LIN_FRONT_SEED = 50
+# Lin front seeds already spent at scale 0.85. Do not render them again.
+# 33 is void. 34-46 missed identity or wardrobe. 47-49 cropped to a head and
+# hit FEET. 50 was full body, mean 9.0, empty gates and look, but a content
+# score stayed under 9 (the old log did not keep the eight items). 51 wardrobe
+# was 2. 52 mean was 8.75 with empty gates and look. Next seed is 53.
+LIN_FRONT_SEED = 53
+LIN_FRONT_SPENT = frozenset(range(33, 53))
 OTHER_SEED = 41
-PASS1_SEED_TRIES = 3
+# Local and remote files. Either one stops the pass-1 seed walk.
+STOP_LOCAL = "/tmp/cast-asset-stop"
 # The one still-agent proxy is already spent. This pipeline does not grant another.
 FILM_PROXY_REMAINING = 0
 
@@ -160,13 +168,26 @@ def is_void(actor: str, view: str, scale: float, seed: int) -> bool:
     return (actor, view, float(scale), int(seed)) == VOID_LIN_FRONT
 
 
-def seed_for(actor: str, view: str, attempt: int) -> int:
-    """Fixed scale lives outside. Seeds step by one and skip the void pair."""
-    base = LIN_FRONT_SEED if (actor, view) == ("lin_wantang", "front") else OTHER_SEED
-    seed = base + int(attempt)
-    while is_void(actor, view, FIXED_SCALE, seed):
+def spent_seeds(actor: str, view: str) -> frozenset[int]:
+    """Seeds already rendered for this view. The walker must not repeat them."""
+    if (actor, view) == ("lin_wantang", "front"):
+        return LIN_FRONT_SPENT
+    return frozenset()
+
+
+def advance_seed(seed: int, actor: str, view: str) -> int:
+    """Step past the void pair and any seed already spent on this view."""
+    seed = int(seed)
+    blocked = spent_seeds(actor, view)
+    while is_void(actor, view, FIXED_SCALE, seed) or seed in blocked:
         seed += 1
     return seed
+
+
+def seed_for(actor: str, view: str, attempt: int) -> int:
+    """Fixed scale lives outside. Seeds step by one from the next unspent seed."""
+    base = LIN_FRONT_SEED if (actor, view) == ("lin_wantang", "front") else OTHER_SEED
+    return advance_seed(base + int(attempt), actor, view)
 
 
 def look_line(actor: str) -> str:
@@ -191,9 +212,16 @@ def wardrobe_clause(actor: str, view: str) -> str:
     return f"去衣：{once}{once}"
 
 
+FRAME_HARD = "full body, head and both feet in frame, no bust/head crop"
+
+
 def frame_clause() -> str:
-    """Framing clause. It does not redo the face lock or the clothes sentence."""
-    return "构图：保持这张图的全身取景。头和双脚都留在画面内，不要裁成头肩。"
+    """Framing clause only. It does not redo the face lock or the clothes sentence."""
+    return (
+        "构图：保持这张图的全身取景。头和双脚都留在画面内，不要裁成头肩。"
+        + FRAME_HARD
+        + "。"
+    )
 
 
 def pass1_prompt(actor: str, view: str) -> str:
@@ -267,28 +295,99 @@ def _score_ok(item: dict, keys: tuple[str, ...]) -> bool:
     return True
 
 
-def identity_or_wardrobe_below(item: dict) -> bool:
-    """True when identity or wardrobe is missing or under 9. Switch seed now."""
-    for key in ("identity", "wardrobe"):
+RESEED_KEYS = ("identity", "anatomy", "wardrobe")
+
+
+def keys_below(item: dict, keys: tuple[str, ...]) -> list[str]:
+    """Keys that are missing or under 9. Order follows `keys`."""
+    low: list[str] = []
+    for key in keys:
         try:
             value = float(item.get(key))
         except (TypeError, ValueError):
-            return True
+            low.append(key)
+            continue
         if value < KEEP_MEAN:
-            return True
-    return False
+            low.append(key)
+    return low
+
+
+def below_nine(item: dict) -> list[str]:
+    """Every content score under 9. A mean of 9 can still list one of these."""
+    return keys_below(item, EIGHT)
+
+
+def format_eight(item: dict) -> str:
+    """One readable list of the eight content scores."""
+    return " ".join(f"{key}={item.get(key)}" for key in EIGHT)
+
+
+def score_log_line(
+    stage: str,
+    actor: str,
+    view: str,
+    item: dict,
+    look: list[str],
+    passed: bool,
+    extra: str = "",
+) -> str:
+    """Pass or fail, the eight scores and the look flags stay on one line."""
+    prefix = f"{extra} " if extra else ""
+    return (
+        f"{stage} {actor} {view} {prefix}"
+        f"mean={item.get('mean')} gates={item.get('gates')} look={look} "
+        f"period_hair={item.get('period_hair')} period_makeup={item.get('period_makeup')} "
+        f"eyes_black_brown={item.get('eyes_black_brown')} passed={passed} "
+        f"eight={format_eight(item)} below={below_nine(item)}"
+    )
+
+
+def attempt_record(
+    actor: str,
+    view: str,
+    stage: str,
+    scale: float,
+    seed: int,
+    item: dict,
+    look: list[str],
+    passed: bool,
+    **extra,
+) -> dict:
+    """Sidecar written next to every attempt image, pass or fail."""
+    record = {
+        "actor": actor,
+        "view": view,
+        "stage": stage,
+        "scale": scale,
+        "seed": seed,
+        "passed": passed,
+        "mean": item.get("mean"),
+        "gates": item.get("gates") or [],
+        "look": look,
+        "period_hair": item.get("period_hair"),
+        "period_makeup": item.get("period_makeup"),
+        "eyes_black_brown": item.get("eyes_black_brown"),
+        "eight": {key: item.get(key) for key in EIGHT},
+        "below": below_nine(item),
+        "score": item,
+    }
+    record.update(extra)
+    return record
+
+
+def identity_or_wardrobe_below(item: dict) -> bool:
+    """True when identity or wardrobe is missing or under 9. Switch seed now."""
+    return bool(keys_below(item, ("identity", "wardrobe")))
 
 
 def identity_or_anatomy_below(item: dict) -> bool:
     """True when identity or anatomy is missing or under 9. That seed is spent."""
-    for key in ("identity", "anatomy"):
-        try:
-            value = float(item.get(key))
-        except (TypeError, ValueError):
-            return True
-        if value < KEEP_MEAN:
-            return True
-    return False
+    return bool(keys_below(item, ("identity", "anatomy")))
+
+
+def identity_anatomy_or_wardrobe_below(item: dict) -> bool:
+    """True when identity, anatomy, or wardrobe is missing or under 9."""
+    return bool(keys_below(item, RESEED_KEYS))
 
 
 def pass2_allowed(pass1_accepted: bool) -> bool:

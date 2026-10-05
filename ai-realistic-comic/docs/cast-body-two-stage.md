@@ -33,13 +33,15 @@
 | denoise | 无 | 0.20。掉分降到 0.15，再降到 0.12 |
 | true_cfg_scale | 4 | 4 |
 | LoRA scale | 0.85 | 0.85，同一颗种子 |
-| 提示 | 构图一句强制全身、头和双脚入画。锁脸一句，去衣一句并写两遍。三句分开 | 只放大。头和双脚仍留在画面内 |
+| 提示 | 构图一句，含 `full body, head and both feet in frame, no bust/head crop`。锁脸一句。去衣一句并写两遍。三句并列，互不替换 | 只放大。头和双脚仍留在画面内 |
 
 ## 两段，求快
 
-固定 LoRA scale `0.85`。不扫 scale。一采只改衣着、发型和妆。输入只喂 `body-clothed` 底板，不喂定妆 ref。锁脸和去衣分成两句：锁脸只写脸型、五官、身体和允许改的发型妆；去衣只写脱掉的衣服，同一句写两遍。两句不互相替换。不另加接触或情节。
+固定 LoRA scale `0.85`。不扫 scale。一采只改衣着、发型和妆。输入只喂 `body-clothed` 底板，不喂定妆 ref。构图、锁脸、去衣分成三句，互不替换。构图只写全身入画：中文「头和双脚都留在画面内，不要裁成头肩」，加上独立硬句 `full body, head and both feet in frame, no bust/head crop`。锁脸只写脸型、五官、身体和允许改的发型妆。去衣只写脱掉的衣服，同一句写两遍。不另加接触或情节。
 
-林晚棠正面下一颗从 seed `50` 起。`scale 0.85 / seed 33` 作废。seed `34`–`46` 已经因身份或衣着低于 9 失败。seed `47`–`49` 收成头肩，硬门 `FEET`，不再重跑。构图单独一句：全身取景，头和双脚都留在画面内，不要裁成头肩。identity 或 wardrobe 低于 9 立刻换下一颗种子，不进二采。同一张一次调用最多三颗种子。三颗都未过门就停，禁止二采。
+林晚棠正面下一颗从 seed `53` 起。`scale 0.85 / seed 33` 作废。已失败黑名单是 seed `33`–`52`，这些籽不再重跑。seed `34`–`46` 因身份或衣着低于 9 失败。seed `47`–`49` 收成头肩，硬门 `FEET`，根因是当时提示没有「头脚都留在画面」的构图句。seed `50` 构图已是全身，mean `9.0`、硬门空、look 空，但仍 `passed=False`：至少一项内容分低于 9，旧日志没有留下八项，所以不能猜是哪一项。seed `51` 衣着分为 2。seed `52` mean `8.75`，硬门空、look 空，同样没有八项记录。identity、anatomy 或 wardrobe 低于 9 立刻换下一颗种子。任一内容项低于 9 都不过门。一采没有过门就自动下一颗，直到过门，或用户放下停止文件 `/tmp/cast-asset-stop`（本机）或 `/root/autodl-tmp/in/cast-asset-stop`（F34）。没有「三颗就停」。用户叫停时一采未过门，禁止二采。
+
+一采和二采无论过不过门，日志都打出八项、`period_hair`、`period_makeup`、`eyes_black_brown`、硬门、look 和 `below`。每张尝试图旁边写同名 `.json`，里面有八项。mean 为 9 仍失败时，`below` 列出低于 9 的项。
 
 1. 一采 `448×592`，8 步，`true_cfg_scale` 4。除分辨率外，全部要求都要过：identity、distinction、interaction（姿势）、aesthetics、anatomy、wardrobe、motif、photoreal 都 ≥ 9，硬门为空，发型妆眼睛自检通过。像素停在这一档，不因为图小单独判负，也不因为图小把内容分放行。identity 低于 9 表示脸被重画，不是因为按要求改了发型或妆。
 2. 二采只在一采过门之后才允许。同一 seed、同一 scale、同一段「只放大」提示词，把过门的一采放大到 `896×1200`。从 denoise `0.20`、12 步起。全八项均分 ≥ 9，硬门为空，自检仍要通过。掉分只改 denoise 和步数，不改提示词，不改内容，不改 scale，不换种子。显存不够时，VAE 已经在 CPU，接着同样只降步数或去噪。未过门的一采不进这一段。
@@ -70,4 +72,4 @@ AUTODL_TOKEN=... python autodl/run_cast_body_two_stage.py --doctor
 AUTODL_TOKEN=... python autodl/run_cast_body_two_stage.py --only lin_wantang:front
 ```
 
-在 `ai-realistic-comic/` 目录下运行。一采过门图写到 `/opt/cursor/artifacts/body-nude/<id>-<view>-pass1.png` 和同名 json。二采过门才写入 `library/cast/<id>/body-nude/` 和 F34 `/root/autodl-tmp/assets/body-nude/<id>/`。
+在 `ai-realistic-comic/` 目录下运行。一采过门图写到 `/opt/cursor/artifacts/body-nude/<id>-<view>-pass1.png` 和同名 json。没过门的图留在 `/opt/cursor/artifacts/body-nude/_fail/`，旁边同名 json 含八项。二采过门才写入 `library/cast/<id>/body-nude/` 和 F34 `/root/autodl-tmp/assets/body-nude/<id>/`。二采没过门的图同样在 `_fail/` 留同名 json。

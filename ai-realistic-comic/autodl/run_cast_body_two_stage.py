@@ -396,6 +396,52 @@ def resolve_clothed(client, actor: str, view: str) -> str:
     )
 
 
+def write_attempt_json(png: Path, record: dict) -> Path:
+    """Write the eight scores beside the attempt image. Failures keep this file."""
+    dest = png.with_suffix(".json")
+    dest.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return dest
+
+
+def user_stop_requested(client) -> bool:
+    """True when the user dropped the local or the F34 stop file."""
+    if Path(tpl.STOP_LOCAL).is_file():
+        return True
+    out = ssh_exec(
+        client,
+        f"if [ -f {tpl.STOP_REMOTE} ]; then echo yes; else echo no; fi",
+    )
+    return out.strip().endswith("yes")
+
+
+def emit_score(
+    png: Path,
+    stage_label: str,
+    actor: str,
+    view: str,
+    score: dict,
+    passed: bool,
+    seed: int,
+    extra: str,
+    **record_extra,
+) -> dict:
+    look = tpl.look_gates(actor, view, score)
+    record = tpl.attempt_record(
+        actor,
+        view,
+        stage_label.lower(),
+        tpl.FIXED_SCALE,
+        seed,
+        score,
+        look,
+        passed,
+        **record_extra,
+    )
+    write_attempt_json(png, record)
+    print(tpl.score_log_line(stage_label, actor, view, score, look, passed, extra), flush=True)
+    return record
+
+
 def store_pass1(actor: str, view: str, png: Path, record: dict) -> Path:
     ART.mkdir(parents=True, exist_ok=True)
     dest = ART / f"{actor}-{view}-pass1.png"
@@ -451,8 +497,13 @@ def run_view(client, remote: Remote, actor: str, view: str) -> dict:
     sftp.close()
     width, height = tpl.PASS1_SIZE
     kept = None
-    for attempt in range(tpl.PASS1_SEED_TRIES):
+    # Pass 1 keeps the next unspent seed until the gate clears or the user drops a stop file.
+    attempt = 0
+    while True:
+        if user_stop_requested(client):
+            raise SystemExit(f"{actor} {view} 用户叫停。一采未过门，禁止二采。")
         seed = tpl.seed_for(actor, view, attempt)
+        attempt += 1
         print(f"PASS1_TRY {actor} {view} scale={tpl.FIXED_SCALE} seed={seed}", flush=True)
         done = remote.render(
             {
@@ -474,17 +525,24 @@ def run_view(client, remote: Remote, actor: str, view: str) -> dict:
         remote.fetch(done["dest"], local)
         score = score_image(local, actor, view, "pass1")
         passed = tpl.accept_pass1(score, actor, view, tpl.FIXED_SCALE, seed)
-        print(
-            f"PASS1 {actor} {view} scale={tpl.FIXED_SCALE} seed={seed} "
-            f"mean={score.get('mean')} gates={score.get('gates')} "
-            f"look={tpl.look_gates(actor, view, score)} passed={passed}",
-            flush=True,
+        emit_score(
+            local,
+            "PASS1",
+            actor,
+            view,
+            score,
+            passed,
+            seed,
+            f"scale={tpl.FIXED_SCALE} seed={seed}",
+            seconds=done.get("seconds"),
         )
         if not passed:
-            if tpl.identity_or_wardrobe_below(score):
+            if tpl.identity_anatomy_or_wardrobe_below(score):
                 print(
                     f"PASS1_NEW_SEED {actor} {view} seed={seed} "
-                    f"identity={score.get('identity')} wardrobe={score.get('wardrobe')}",
+                    f"identity={score.get('identity')} anatomy={score.get('anatomy')} "
+                    f"wardrobe={score.get('wardrobe')} "
+                    f"below={tpl.keys_below(score, tpl.RESEED_KEYS)}",
                     flush=True,
                 )
             continue
@@ -497,6 +555,8 @@ def run_view(client, remote: Remote, actor: str, view: str) -> dict:
             "seconds": done.get("seconds"),
             "score": score,
             "look": tpl.look_gates(actor, view, score),
+            "eight": {key: score.get(key) for key in tpl.EIGHT},
+            "below": tpl.below_nine(score),
             "void_rejected": False,
         }
         path = store_pass1(actor, view, local, record)
@@ -512,6 +572,8 @@ def run_view(client, remote: Remote, actor: str, view: str) -> dict:
     plans = list(tpl.PASS2_SCORE_TRIES)
     oom_left = list(tpl.PASS2_OOM_TRIES)
     while plans:
+        if user_stop_requested(client):
+            raise SystemExit(f"{actor} {view} 用户叫停。一采已过门，二采未完成。")
         denoise, steps = plans.pop(0)
         print(
             f"PASS2_TRY {actor} {view} scale={tpl.FIXED_SCALE} seed={seed} "
@@ -546,10 +608,17 @@ def run_view(client, remote: Remote, actor: str, view: str) -> dict:
         remote.fetch(done2["dest"], local2)
         score2 = score_image(local2, actor, view, "pass2")
         passed = tpl.accept_pass2(score2, actor, view, tpl.FIXED_SCALE, seed)
-        print(
-            f"PASS2 {actor} {view} denoise={denoise} mean={score2.get('mean')} "
-            f"gates={score2.get('gates')} look={tpl.look_gates(actor, view, score2)} passed={passed}",
-            flush=True,
+        emit_score(
+            local2,
+            "PASS2",
+            actor,
+            view,
+            score2,
+            passed,
+            seed,
+            f"scale={tpl.FIXED_SCALE} seed={seed} denoise={denoise} steps={steps}",
+            denoise=denoise,
+            steps=steps,
         )
         if not passed:
             continue
