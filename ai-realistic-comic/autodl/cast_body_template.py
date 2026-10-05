@@ -19,11 +19,39 @@ LIN_FRONT_SEED = 34
 OTHER_SEED = 41
 PASS1_SEED_TRIES = 3
 
-PASS1_SIZE = (448, 592)  # verified ~448x600 bucket, 16 steps
-PASS1_STEPS = 16
-PASS2_SIZE = (896, 1200)
-PASS2_SCORE_TRIES = ((0.35, 40), (0.30, 40), (0.25, 40))
-PASS2_OOM_TRIES = ((0.35, 28), (0.35, 20), (0.30, 20))
+# Asset turnaround schedule. It is not the still runner's 40-step contact edit.
+ASSET_SCHEDULE = {
+    "pass1": {
+        "width": 448,
+        "height": 592,
+        "steps": 8,
+        "true_cfg_scale": 4.0,
+        "denoise": None,
+    },
+    "pass2": {
+        "width": 896,
+        "height": 1200,
+        "steps": 12,
+        "true_cfg_scale": 4.0,
+        "denoise": 0.20,
+    },
+}
+PASS1_SIZE = (ASSET_SCHEDULE["pass1"]["width"], ASSET_SCHEDULE["pass1"]["height"])
+PASS1_STEPS = ASSET_SCHEDULE["pass1"]["steps"]
+ASSET_TRUE_CFG = ASSET_SCHEDULE["pass1"]["true_cfg_scale"]
+PASS2_SIZE = (ASSET_SCHEDULE["pass2"]["width"], ASSET_SCHEDULE["pass2"]["height"])
+PASS2_DENOISE = ASSET_SCHEDULE["pass2"]["denoise"]
+PASS2_STEPS = ASSET_SCHEDULE["pass2"]["steps"]
+PASS2_SCORE_TRIES = (
+    (PASS2_DENOISE, PASS2_STEPS),
+    (0.15, PASS2_STEPS),
+    (0.12, 8),
+)
+PASS2_OOM_TRIES = (
+    (PASS2_DENOISE, 8),
+    (0.15, 6),
+    (0.12, 6),
+)
 
 F34_UUID = "xaxna66hqt-c5c9c7fc"
 G09_UUID = "sa4eaxgcuq-26e36fc9"
@@ -94,23 +122,13 @@ GARMENTS = {
 }
 
 _PERIOD_LOOK = {
-    "lin_wantang": (
-        "去掉古装发髻、头饰、花钿、浓妆和红唇。"
-        "头发改为自然披下的黑褐色长发，不要发髻。"
-        "妆面改为淡妆或素颜。眼睛改为正常的黑褐色。"
-        "只保持五官、脸型和肤色。"
-    ),
-    "gu_chengan": (
-        "去掉发髻、额前头巾或发带、浓妆和红唇。"
-        "头发改为自然的黑褐色短发，不要发髻。"
-        "妆面改为淡妆或素颜。眼睛改为正常的黑褐色。"
-        "只保持五官、脸型和肤色。"
-    ),
+    "lin_wantang": "去发髻、头饰、花钿、浓妆、红唇。黑褐色披发，淡妆，黑褐眼。",
+    "gu_chengan": "去发髻、额带、浓妆、红唇。黑褐色短发，淡妆，黑褐眼。",
 }
 
 _KEEP_LOOK = {
-    "elena_voss": "发型和妆容保持这张图。眼睛保持暖琥珀棕。人耳，不要尖耳。",
-    "adrian_kane": "发型和妆容保持这张图。眼睛保持浅蓝灰。尖耳保留。不要武器。",
+    "elena_voss": "发型妆保持。暖琥珀棕眼，人耳。",
+    "adrian_kane": "发型妆保持。浅蓝灰眼，尖耳，无武器。",
 }
 
 STORY_BANS = ("月下", "木屋", "夜湖", "雨桥", "冥府", "王座", "白蛇", "蛇尾", "石榴", "相拥")
@@ -147,32 +165,16 @@ def look_line(actor: str) -> str:
 
 
 def pass1_prompt(actor: str, view: str) -> str:
-    """Edit the clothed plate. Clothes, hair, and makeup only. Face stays."""
+    """Short lock: face, body, clothes, hair, makeup. No still-frame contact."""
     clothes = GARMENTS[(actor, view)]
-    return (
-        "这张图是穿衣底板。只改衣着、发型和妆面。"
-        "五官、脸型和肤色锁住这张图，不要重画脸。"
-        f"去掉{clothes}，露出皮肤。"
-        f"{look_line(actor)}"
-        "补上乳头和下体结构，皮肤保留毛孔和细纹。"
-        "头部和双脚留在画面内。"
-        "姿势和体型保持这张图。"
-        "背景保持朴素。"
-        "nsfw nipples"
-    )
+    return f"锁脸、锁身体。只改衣着、发型、妆。去掉{clothes}。{look_line(actor)}"
 
 
 def pass2_prompt(actor: str) -> str:
     """Same-seed light upscale. Retries must keep this text and change sampling only."""
     if actor not in _PERIOD_LOOK and actor not in _KEEP_LOOK:
         raise KeyError(actor)
-    return (
-        "只把这张图放大变清晰。不要改内容。"
-        "五官、脸型、肤色、发型、妆面、眼睛、耳朵、姿势、体型和身体结构都保持这张图。"
-        "不要磨皮，不要塑料皮肤。"
-        "头部和双脚留在画面内。"
-        "nsfw nipples"
-    )
+    return "只放大。不改脸、身体、衣着、发型、妆。"
 
 
 def negative_for(actor: str) -> str:

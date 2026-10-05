@@ -150,7 +150,7 @@ def render(pipe, job: dict) -> dict:
         "height": height,
         "width": width,
         "generator": generator,
-        "true_cfg_scale": 4.0,
+        "true_cfg_scale": float(job.get("true_cfg_scale") or 4.0),
         "guidance_scale": 1.0,
     }
     if negative:

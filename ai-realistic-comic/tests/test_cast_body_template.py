@@ -48,7 +48,13 @@ def test_nine_views_and_fixed_scale():
     assert mod.FIXED_SCALE == 0.85
     assert mod.LIN_FRONT_SEED == 34
     assert mod.PASS1_SIZE == (448, 592)
-    assert mod.PASS1_STEPS == 16
+    assert mod.PASS1_STEPS == 8
+    assert mod.ASSET_SCHEDULE["pass1"]["steps"] == 8
+    assert mod.ASSET_SCHEDULE["pass2"]["denoise"] == 0.20
+    assert mod.ASSET_SCHEDULE["pass2"]["steps"] == 12
+    assert mod.PASS2_SCORE_TRIES[0] == (0.20, 12)
+    assert all(denoise <= 0.20 and steps <= 12 for denoise, steps in mod.PASS2_SCORE_TRIES)
+    assert all(denoise <= 0.20 and steps <= 8 for denoise, steps in mod.PASS2_OOM_TRIES)
     assert "cast-asset-job.json" in mod.JOB_REMOTE
     assert "lora-job" not in mod.JOB_REMOTE
 
@@ -92,15 +98,14 @@ def test_prompts_only_change_look_and_clothes():
     mod = _load()
     front = mod.pass1_prompt("lin_wantang", "front")
     text = front + mod.pass2_prompt("lin_wantang")
-    assert front.startswith("这张图是穿衣底板。只改衣着、发型和妆面。")
-    assert "不要重画脸" in front
+    assert front.startswith("锁脸、锁身体。只改衣着、发型、妆。")
     assert "黑褐色" in text
     assert "发髻" in text
     assert "背心和短裤" in front
-    for ban in mod.STORY_BANS:
+    for ban in mod.STORY_BANS + ("接触", "情节"):
         assert ban not in text
     adrian = mod.pass1_prompt("adrian_kane", "front")
-    assert adrian.startswith("这张图是穿衣底板。只改衣着、发型和妆面。")
+    assert adrian.startswith("锁脸、锁身体。只改衣着、发型、妆。")
     assert "尖耳" in adrian
     assert "黑褐色" not in adrian
     assert "浅蓝灰" in adrian
@@ -109,7 +114,7 @@ def test_prompts_only_change_look_and_clothes():
     assert "instructed hair or makeup" in guide
     assert "every content score" in guide
     up = mod.pass2_prompt("lin_wantang")
-    assert "不要改内容" in up
+    assert up == "只放大。不改脸、身体、衣着、发型、妆。"
     assert "补上" not in up
     assert "light upscale" in mod.score_prompt("lin_wantang", "front", "pass2")
 
@@ -132,6 +137,7 @@ def test_worker_refuses_full_bf16_and_uses_cast_queue():
     text = path.read_text(encoding="utf-8")
     assert "refused full BF16" in text
     assert "load_in_8bit=True" in text
+    assert 'job.get("true_cfg_scale")' in text
     assert 'pipe.vae.to("cpu")' in text
     assert "cast-asset-job.json" in text
     assert "lora-job.json" not in text
