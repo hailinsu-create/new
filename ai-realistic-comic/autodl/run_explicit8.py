@@ -1,7 +1,7 @@
 # 已停用，改用 two-stage
 """Explicit stills p01-p08 plus myth poses m01-m04. Same offline Qwen cache.
 
-A frame is finished only after the vision score in docs/still-score.md passes.
+Retired. Still scores are executed by Codex CLI against docs/still-score-two-stage.md.
 Hard-gate failures and means under 9 stay inside this script: the same panel is
 rendered again. Callers do not start a second generation command.
 """
@@ -20,11 +20,6 @@ PROMPT_FILES = (
 ANCHOR = ROOT / "library" / "stills" / "explicit-8" / "anchor-10.jpg"
 RUBRIC = ROOT / "docs" / "still-score.md"
 KEEP_MEAN = 9.0
-
-SCORE_PROMPT = """按 docs/still-score.md 给第二张图打分。第一张图是满分基准 anchor-10，八项固定 10。地上那只脚是许仙（顾承安）的，不扣。和基准一样的圆钝连体尾尖不算 H2。白蛇自己的人腿或人脚才算 H3；人身格的人腿是对的，雨桥没有蛇尾。伊莲不许尖耳或绿眼。阿德里安保留尖耳，不拿武器。别人长尖耳算 H4。
-只输出一个 JSON 对象，不要改文件：
-{"scene":"六个字内","gates":[],"identity":0,"distinction":0,"interaction":0,"aesthetics":0,"anatomy":0,"wardrobe":0,"motif":0,"photoreal":0,"mean":0,"note":"一句"}
-gates 只填失败的门，例如 ["H2"]。没有失败就是 []。mean 是八项等权均分。"""
 
 
 def accepted(item: dict) -> bool:

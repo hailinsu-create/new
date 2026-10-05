@@ -1,6 +1,6 @@
 # 两段式打分
 
-这是出片打分标准。`docs/still-score.md` 已停用。第一段、一采、二采都由 Codex CLI 打分。禁止 OpenCode Go vision。缺 Codex 失败退出。
+这是出片打分标准。`docs/still-score.md` 已停用。第一段、一采、二采的标准和门禁都由 Codex CLI 执行本文件的 H1–H7 和八项。禁止 OpenCode vision。缺 Codex 失败退出。
 
 用户 2026-10-03 拍板的这一轮是收留标准。以后不要另换一套分数，也不要退回 7.5。
 
@@ -34,7 +34,7 @@
 
 收留线是 9。硬门没过，或八项均分低于 9，都不算完成。第一段锁定图只许 Codex CLI。禁止 agy。缺 Codex 失败退出，不许降级。一采定内容，写实纹理和分辨率不挡一采。二采只放大，提示词和种子不动，掉分只降 denoise 和步数，不退回一采。第二段仍是 F34。入口是 `autodl/run_explicit_two_stage.py`。不得另开一条生成指令来补这张。
 
-打分只许 Codex CLI，路径和登录见 `docs/explicit-still-two-stage.md` 的新 VM 检查表。第一段、一采、二采都走这一条。禁止 OpenCode Go vision。缺 Codex 失败退出，不许降级。一采定内容，二采只放大。
+标准和门禁由 Codex CLI 看图执行。八项、硬门和 JSON 是固定前缀，每次只追加本张图和一句「只打这一张」。路径和登录见 `docs/explicit-still-two-stage.md` 的新 VM 检查表。第一段、一采、二采都走这一条。禁止 OpenCode Go vision、deepseek-v4-flash-vision、agy 和其它识图回退。Codex 未登录或不可用就失败退出，不许降级。一采定内容，二采只放大。
 
 这次只把规则写进工作流。低于 9 的旧图这次不回溯重跑。p03–p08 的提示词不改。以后可以逐步收紧，不另起架构。
 

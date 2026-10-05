@@ -4,7 +4,7 @@
 
 这是同一套演员上的一种出图模式，不是新演员，也不是第二套身体板。演员锁仍以 `library/cast/CAST.md` 为准。以后同类静帧必须按本文件，不能改走 `docs/still-mode.md` 里的 fal nano-banana 配方。
 
-生成请求只能走本文件和 `autodl/run_explicit8.py`。监督 bot（漫监）对这条流程只做管理：监督、纠偏、续指令，卡住才短报。不得绕过工作流自己出图、改提示词或改规则。出图和规则变更都由这条工作流执行。开机仍要用户另行授权。打分和收留线以 `docs/still-score.md` 为准。
+已停用。出片走 `docs/explicit-still-two-stage.md` 和 `autodl/run_explicit_two_stage.py`。打分标准是 `docs/still-score-two-stage.md`，由 Codex CLI 执行。禁止 OpenCode vision。缺 Codex 失败退出。开机仍要用户另行授权。
 
 新神话姿势锁见 `library/stills/myth-poses/POSE.md`。m01–m04 已出过一版，目检未收，见下文。
 
@@ -58,7 +58,7 @@
 - 这次不跑图。p03–p08 的提示词不改，也不为这次重跑。
 - 只在 AutoDL F34 `xaxna66hqt-c5c9c7fc`（西北B / west-E，RTX 5090 D）上跑本地 Qwen。不要开、不要删旧的 G09 `sa4eaxgcuq-26e36fc9`。开机要用户另行授权。
 - 模型 `Qwen/Qwen-Image-Edit-2511`，用机上缓存，离线，不要重下权重。896×1200，40 步，seed 1，`true_cfg_scale` 4。重出时只把这一张的 seed 加 1，其余参数不动。
-- 入口 `autodl/run_explicit8.py`。脚本连读两份 prompts，再用 `docs/still-score.md` 的视觉模型做目视。已知缺陷、硬门或均分低于 9，都是没完成。
+- 入口已停用。目视由 Codex CLI 按 `docs/still-score-two-stage.md` 执行硬门和八项，不用 OpenCode vision。已知缺陷、硬门或均分低于 9，都是没完成。
 - 必须设置 `EXPLICIT_ONLY`。未设置时脚本退出，不会把 p01–p08 和 m01–m04 一起重跑。p03–p08 的提示词不改，也不为写规则而重跑。
 - p01–p08 参考顺序仍是该格身体板在前，再跟两位演员的定妆。m01–m04 没有新身体板，参考图只有两位演员的定妆，姿势写在提示词里。
 - 只跑 p01、p02：`EXPLICIT_ONLY=p01,p02 python autodl/run_explicit8.py`

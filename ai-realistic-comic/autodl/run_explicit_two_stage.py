@@ -22,10 +22,22 @@ ANCHOR = ROOT / "library" / "stills" / "explicit-8" / "anchor-10.jpg"
 RUBRIC = ROOT / "docs" / "still-score-two-stage.md"
 KEEP_MEAN = 9.0
 
-SCORE_PROMPT = """按 docs/still-score-two-stage.md 给第二张图打分。第一张图是满分基准 anchor-10，八项固定 10。地上那只脚是许仙（顾承安）的，不扣。和基准一样的圆钝连体尾尖不算 H2。白蛇自己的人腿或人脚才算 H3；人身格的人腿是对的，雨桥没有蛇尾。伊莲不许尖耳或绿眼。阿德里安保留尖耳，不拿武器。别人长尖耳算 H4。
-只输出一个 JSON 对象，不要改文件：
+# Fixed prefix. Do not interpolate paths or the frame under test.
+SCORE_PREFIX = """打分只许 Codex CLI 看图并执行本标准。禁止 OpenCode Go vision。禁止 deepseek-v4-flash-vision。禁止 agy。禁止其它识图回退。不要生成图，不要改文件。
+第一张附件是满分基准 anchor-10，八项固定 10。第一段、一采、二采用同一前缀。
+八项等权，各 0–10：身份、区分、互动、美感、解剖、服装、动机、摄影感。均分低于 9 不算过。
+H1 鱼尾、鱼鳍、尾鳍。
+H2 尾尖是蛇头、断开的珍珠球或切断的断尖。和基准一样的圆钝连体尾尖不算。
+H3 白蛇自己长出人腿或人脚。许仙自己的脚不算。人身格的人腿是对的。雨桥没有蛇尾。
+H4 伊莲尖耳或绿眼。阿德里安没了尖耳或拿了武器。别人长尖耳。
+H5 不是正好两人，多一张脸，或拼贴。
+H6 看起来像未成年人。
+H7 看得见的手多指、多一只手、断肢。被挡住的手指不算。
+硬门非空不算过，不能把硬门平均掉。
+只输出一个 JSON 对象：
 {"scene":"六个字内","gates":[],"face_drift":false,"identity":0,"distinction":0,"interaction":0,"aesthetics":0,"anatomy":0,"wardrobe":0,"motif":0,"photoreal":0,"mean":0,"note":"一句"}
-gates 只填失败的门，例如 ["H2"]。没有失败就是 []。face_drift 只有脸不像定妆时才是 true。mean 是八项等权均分。"""
+gates 只填失败的门，例如 ["H2"]。没有失败就是 []。face_drift 只有脸不像定妆时才是 true。mean 是八项等权均分。
+"""
 
 
 def agy_block_reason(binary: str | None, *, logged_in: bool) -> str | None:
@@ -536,13 +548,8 @@ def _codex_prompt(panel: dict, dest: Path) -> str:
 
 
 def _codex_score_prompt(image: Path) -> str:
-    return (
-        "Do not generate an image. Do not edit any file. Score only.\n"
-        f"{SCORE_PROMPT}\n"
-        f"Rubric: {RUBRIC}\n"
-        f"Anchor: {ANCHOR}\n"
-        f"Image: {image}\n"
-    )
+    """Stable prefix, then this frame and one short task sentence."""
+    return f"{SCORE_PREFIX}待分图：{image}\n只打这一张。\n"
 
 
 def _codex_exec(prompt: str, images: list[Path], cwd: Path) -> subprocess.CompletedProcess[str]:

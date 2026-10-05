@@ -69,7 +69,26 @@ def test_codex_stops_before_stage_one_without_login():
     assert "image generation tool exactly once" in prompt
     assert "bare breasts" not in prompt
     score = mod._codex_score_prompt(Path("/tmp/out.png"))
-    assert "Do not generate an image" in score
+    assert score.startswith(mod.SCORE_PREFIX)
+    assert "待分图：/tmp/out.png\n只打这一张。\n" == score[len(mod.SCORE_PREFIX) :]
+    other = mod._codex_score_prompt(Path("/var/tmp/other.png"))
+    assert other.startswith(mod.SCORE_PREFIX)
+    assert score[: len(mod.SCORE_PREFIX)] == other[: len(mod.SCORE_PREFIX)]
+    assert "/tmp/out.png" not in mod.SCORE_PREFIX
+    assert "/var/tmp/other.png" not in mod.SCORE_PREFIX
+    for name in ("身份", "区分", "互动", "美感", "解剖", "服装", "动机", "摄影感"):
+        assert name in mod.SCORE_PREFIX
+    for gate in ("H1", "H2", "H3", "H4", "H5", "H6", "H7"):
+        assert gate in mod.SCORE_PREFIX
+    assert '"mean":0' in mod.SCORE_PREFIX
+    assert "OpenCode Go vision" in mod.SCORE_PREFIX
+    assert "deepseek-v4-flash-vision" in mod.SCORE_PREFIX
+    assert "禁止 agy" in mod.SCORE_PREFIX
+    assert str(mod.RUBRIC).endswith("docs/still-score-two-stage.md")
+    rubric = mod.RUBRIC.read_text(encoding="utf-8")
+    assert "由 Codex CLI" in rubric
+    assert "固定前缀" in rubric
+    assert "禁止 OpenCode" in rubric
 
 
 def test_agy_is_forbidden_even_when_logged_in():
@@ -108,7 +127,8 @@ def test_agy_is_forbidden_even_when_logged_in():
     source = Path(mod.__file__).read_text(encoding="utf-8")
     assert '["agy"' not in source
     assert "agy --print" not in source
-    assert "opencode" not in source
+    assert "opencode run" not in source
+    assert '"opencode"' not in source
     assert source.count("_score_with_codex(") >= 4
     retired = Path(mod.__file__).resolve().parent / "run_explicit8.py"
     spec = importlib.util.spec_from_file_location("run_explicit8", retired)
