@@ -289,15 +289,32 @@ def test_prompts_only_change_look_and_clothes():
     assert "agy" not in score_joined
     assert score_argv.count("-i") == 3
     grok_argv = mod.grok_score_argv(
-        "/home/ubuntu/.opencode/bin/opencode",
+        "/home/ubuntu/.local/bin/cursor-agent",
         ["/tmp/lock.png", "/tmp/eyes.jpg", "/tmp/plate.png"],
         "score this",
     )
-    assert grok_argv.index("score this") < grok_argv.index("-f")
-    assert "opencode-go/grok-4.7" in grok_argv
-    assert "xhigh" in grok_argv
-    assert grok_argv.count("-f") == 3
-    assert "deepseek" not in " ".join(grok_argv).lower()
+    assert grok_argv[-1] == "score this"
+    assert grok_argv.index("--model") < grok_argv.index("score this")
+    assert grok_argv[grok_argv.index("--model") + 1] == "grok-4.7-xhigh"
+    assert grok_argv.count("--image") == 3
+    assert grok_argv.index("--image") < grok_argv.index("score this")
+    assert "cursor-agent" in grok_argv[0]
+    joined_grok = " ".join(grok_argv).lower()
+    assert "opencode" not in joined_grok
+    assert "api.x.ai" not in joined_grok
+    assert "grok.com" not in joined_grok
+    assert "deepseek" not in joined_grok
+    for blocked in (
+        "/home/ubuntu/.opencode/bin/opencode",
+        "/home/ubuntu/.grok/bin/grok",
+        "/home/ubuntu/.grok/bin/agent",
+    ):
+        try:
+            mod.grok_score_argv(blocked, ["/tmp/lock.png"], "score this")
+        except SystemExit as exc:
+            assert "GROK_SCORE_CHANNEL" in str(exc)
+        else:
+            raise AssertionError(f"{blocked} must stay off the grok fallback")
     assert mod.codex_should_fallback(1, "usage limit")
     assert mod.codex_should_fallback(None, "codex missing or logged out")
     assert not mod.codex_should_fallback(0, "ok")
@@ -438,6 +455,11 @@ def test_diagnosis_keeps_the_prompt_and_records_the_vae_roundoff():
     assert "已撤" in docs
     assert "ref-face.png" in docs
     assert "grok-4.7-xhigh" in docs
+    assert "cursor-agent" in docs
+    assert "打分默认仍是 Codex CLI" in docs
+    assert "opencode-go/grok-4.7" not in docs
+    assert "grok.com" in docs
+    assert "xAI" in docs
     assert "背面不喂" in docs
     assert "wardrobe 最高 6" in docs or "最高 6" in docs
     assert "不扫" in docs
@@ -669,7 +691,9 @@ def test_runner_does_not_edit_explicit_still_files():
     assert "require_codex_cli" in text
     assert '"kind": "clothed"' not in text
     assert "agy" not in text.lower()
-    assert "opencode-go/grok-4.7" not in text.lower() or "grok_score_argv" in text
+    assert "opencode" not in text.lower()
+    assert "cursor-agent" in text
+    assert "api.x.ai" not in text.lower()
     assert "deepseek-v4-flash-vision" not in text
     assert "grok_binary" in text
     assert "SCORER_FALLBACK" in text

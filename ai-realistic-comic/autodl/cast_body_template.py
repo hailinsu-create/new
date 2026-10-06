@@ -514,8 +514,9 @@ EYE_DETAIL_MIN_SIDE = 200
 GROK_SCORER = "grok-4.7-xhigh"
 CODEX_SCORER = "codex"
 LOCAL_SCORER = "local"
-GROK_FALLBACK_MODEL = "opencode-go/grok-4.7"
-GROK_FALLBACK_VARIANT = "xhigh"
+# Fallback only. Codex CLI stays the default scorer.
+CURSOR_GROK_MODEL = "grok-4.7-xhigh"
+CURSOR_GROK_BINARY_NAME = "cursor-agent"
 
 
 def cap_identity_for_eyes(item: dict) -> dict:
@@ -572,30 +573,42 @@ def codex_should_fallback(returncode: int | None, detail: str) -> bool:
     return any(needle in lowered for needle in needles)
 
 
+def grok_channel_rejected(binary: str) -> str | None:
+    """Cursor's cursor-agent only. grok.com CLI, xAI, and OpenCode stay closed."""
+    raw = binary.replace("\\", "/").lower()
+    name = raw.rsplit("/", 1)[-1]
+    if name != CURSOR_GROK_BINARY_NAME:
+        return name or binary
+    for banned in ("opencode", ".grok/", "api.x.ai", "grok.com"):
+        if banned in raw:
+            return banned
+    return None
+
+
 def grok_score_argv(binary: str, images: list[str], prompt: str) -> list[str]:
-    """Same rubric, grok 4.7 xhigh. The prompt comes before the image flags."""
+    """Cursor grok 4.7 xhigh. The prompt is last, after every --image flag."""
+    rejected = grok_channel_rejected(binary)
+    if rejected:
+        raise SystemExit(f"GROK_SCORE_CHANNEL {rejected}")
     cmd = [
         binary,
-        "run",
+        "-p",
+        "--output-format",
+        "text",
+        "--mode",
+        "ask",
+        "--trust",
         "--model",
-        GROK_FALLBACK_MODEL,
-        "--variant",
-        GROK_FALLBACK_VARIANT,
-        "--pure",
-        "--format",
-        "json",
-        "--auto",
-        "--dir",
-        "/tmp/cast-score",
-        prompt,
+        CURSOR_GROK_MODEL,
     ]
     for image in images:
-        cmd.extend(["-f", str(image)])
+        cmd.extend(["--image", str(image)])
+    cmd.append(prompt)
     joined = " ".join(cmd).lower()
-    for banned in ("deepseek", "agy", "gpt-"):
+    for banned in ("deepseek", "agy", "gpt-", "opencode", "api.x.ai", "grok.com"):
         if banned in joined:
             raise SystemExit(f"GROK_SCORE_FORBIDDEN {banned}")
-    if GROK_FALLBACK_MODEL not in cmd or GROK_FALLBACK_VARIANT not in cmd:
+    if CURSOR_GROK_MODEL not in cmd or cmd.count("--image") != len(images) or cmd[-1] != prompt:
         raise SystemExit("GROK_SCORE_MODEL_DRIFT")
     return cmd
 

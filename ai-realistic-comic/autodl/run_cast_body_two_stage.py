@@ -277,30 +277,19 @@ def eye_crop(plate: Path, lock: Path) -> tuple[Path, Path, int]:
 
 
 def grok_binary() -> str | None:
-    found = shutil.which("opencode")
+    """Cursor's cursor-agent. Other grok binaries are rejected by grok_channel_rejected."""
+    candidates: list[str] = []
+    override = os.environ.get("CURSOR_AGENT_BIN", "").strip()
+    if override:
+        candidates.append(override)
+    found = shutil.which("cursor-agent")
     if found:
-        return found
-    local = Path.home() / ".opencode" / "bin" / "opencode"
-    if local.is_file():
-        return str(local)
+        candidates.append(found)
+    candidates.append(str(Path.home() / ".local" / "bin" / "cursor-agent"))
+    for path in candidates:
+        if path and Path(path).is_file() and tpl.grok_channel_rejected(path) is None:
+            return path
     return None
-
-
-def texts_from_opencode(raw: str) -> str:
-    chunks: list[str] = []
-    for line in raw.splitlines():
-        piece = line.strip()
-        if not piece.startswith("{"):
-            continue
-        try:
-            event = json.loads(piece)
-        except json.JSONDecodeError:
-            continue
-        part = event.get("part") if isinstance(event.get("part"), dict) else {}
-        text = part.get("text") or event.get("text") or ""
-        if text:
-            chunks.append(str(text))
-    return "\n".join(chunks)
 
 
 def finish_score(parsed: dict, short_side: int, scorer: str) -> dict:
@@ -310,7 +299,7 @@ def finish_score(parsed: dict, short_side: int, scorer: str) -> dict:
 
 
 def score_image(image: Path, actor: str, view: str, stage: str) -> dict:
-    """Codex CLI first. Quota, logout, or a CLI error falls back to grok 4.7 xhigh."""
+    """Codex CLI first. Only a missing login, quota, or CLI error falls back to Cursor grok 4.7 xhigh."""
     face = ROOT / tpl.ref_face_rel(actor)
     makeup = face if face.is_file() else ROOT / "library" / "cast" / actor / "ref.png"
     if not makeup.is_file():
@@ -367,7 +356,7 @@ def score_image(image: Path, actor: str, view: str, stage: str) -> dict:
         )
     except subprocess.TimeoutExpired as exc:
         raise SystemExit(f"SCORE_FAILED grok timeout {actor} {view} {stage}") from exc
-    grok_text = f"{grok.stdout or ''}\n{texts_from_opencode(grok.stdout or '')}\n{grok.stderr or ''}"
+    grok_text = f"{grok.stdout or ''}\n{grok.stderr or ''}"
     if grok.returncode != 0:
         detail = (grok.stderr or grok.stdout or "grok score missing").strip()
         raise SystemExit(
