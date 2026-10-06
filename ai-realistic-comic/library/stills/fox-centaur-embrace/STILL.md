@@ -22,3 +22,7 @@
 - 林不要金黄瞳、不要正红唇、不要花钿。
 
 眼镜待定：现行锁脸带着眼镜，这一张按锁脸来，不把没戴眼镜写成硬门。
+
+## 出图
+
+Codex CLI 成衣一张。`lin-elena-embrace.png` 1536×1024。打分 `lin-elena-embrace.json`：均分 9.3，硬门空，anatomy 8.8。F34 / G09 未开。

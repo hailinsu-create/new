@@ -1,0 +1,16 @@
+按 JSON 打分。第一张是林晚棠锁脸，第二张是伊莲·沃斯锁脸，第三张是待打分的双人成衣静帧。
+
+这一张不是蛇尾格，不要用鱼尾/蛇头硬门。八项等权 0–10：identity, distinction, interaction, aesthetics, anatomy, wardrobe, motif, photoreal。均分就是分数。收留线 9。
+
+硬门（任一失败则 gates 列出，不算完成）：
+- extra_person：不是正好两人
+- minor：看起来像未成年人
+- lin_not_qipao_fox：林不是旗袍人身，或狐尾不是九条，或变成蛇尾/鱼尾
+- elena_not_armored_centaur：伊莲上身不是铠甲，或腰以下不是马身四腿
+- not_embrace：没有相拥
+- elena_wrong_eyes_or_ears：伊莲绿眼、蓝灰眼、或尖耳
+- text：有文字水印
+
+身份：林必须是第一张那张东方黑发清冷脸（黑褐眼）；伊莲必须是第二张那张棕卷发褐眼脸。眼镜待定，戴或不戴都不进硬门。
+
+只输出一个 JSON 对象，字段：identity, distinction, interaction, aesthetics, anatomy, wardrobe, motif, photoreal, mean, gates, notes, scorer。scorer 固定 "codex"。gates 是字符串数组，没有硬门就 []。
