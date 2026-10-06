@@ -1,16 +1,16 @@
 {
-  "identity": 9,
+  "identity": 8,
   "distinction": 8,
-  "interaction": 9,
-  "aesthetics": 6,
+  "interaction": 8,
+  "aesthetics": 4,
   "anatomy": 3,
   "wardrobe": 1,
   "motif": 9,
   "photoreal": 6,
-  "mean": 6.375,
+  "mean": 5.875,
   "gates": [
     "clothes_remain"
   ],
-  "notes": "脸部与锁脸参考高度一致，单人站姿仍挺拔，九尾狐特征保留。旗袍领口、下摆印花及高跟鞋仍在；躯干至腿部呈肤色筒状覆盖，未形成自然裸露人体，胸腹、骨盆与腿部结构明显异常。肤色覆盖区域与周围皮肤、布料的质感衔接不自然。",
+  "notes": "面部与锁脸参考较接近，单人站姿仍挺拔，九尾保留。旗袍领口、侧缘及大面积下摆仍在，去衣未完成；躯干呈棕白斑块和布料般拼接，未形成自然连续的皮肤，胸腹结构明显失真。",
   "scorer": "codex"
 }

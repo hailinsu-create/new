@@ -1,18 +1,16 @@
 {
-  "identity": 8,
-  "distinction": 3,
-  "interaction": 4,
-  "aesthetics": 5,
-  "anatomy": 2,
-  "wardrobe": 2,
-  "motif": 7,
-  "photoreal": 8,
-  "mean": 4.875,
+  "identity": 9,
+  "distinction": 9,
+  "interaction": 9,
+  "aesthetics": 9,
+  "anatomy": 8,
+  "wardrobe": 3,
+  "motif": 9,
+  "photoreal": 9,
+  "mean": 8.125,
   "gates": [
-    "extra_person",
-    "armor_remain",
-    "clothes_remain"
+    "armor_remain"
   ],
-  "notes": "上方伊莲脸部接近锁脸参考，眼睛呈褐色。出现第二名女性，破坏单人挺拔站姿；双人躯干与马身连接异常。金属护手、腰部甲片及上方躯干的毛皮覆盖仍在，去衣不完整。马身、四足和马尾保留，光影与材质较真实。",
+  "notes": "脸部与锁脸参考高度一致，褐眼正确。单人站姿挺拔，马身、四腿与马尾完整保留，人体躯干呈皮肤。颈部金属护圈、左臂铠甲及腰部甲片仍在，触发 armor_remain。人马衔接略显生硬。",
   "scorer": "codex"
 }

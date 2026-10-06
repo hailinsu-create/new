@@ -25,7 +25,7 @@
 
 ## 出图
 
-Codex CLI 成衣。F34 / G09 未开。
+成衣：Codex CLI。F34 / G09 未开。
 
 - 双人：`lin-elena-embrace.png` 1536×1024。打分均分 9.3，硬门空，anatomy 8.8。
 - 林单人：`lin-qipao-nine-tail.png` 1024×1536。更挺拔。Codex 均分 9.0，硬门空；狐尾可辨约八条，第九条可能重叠。
@@ -33,20 +33,22 @@ Codex CLI 成衣。F34 / G09 未开。
 
 ## 去衣 / 破衣破甲（这一张的衣服，不是身体板）
 
-穿衣单人保留。每人两张：`nude`（去衣）和 `torn`（旗袍/铠甲破碎露肤）。狐尾和马身不进蒙版。工作流 `workflows/comfyui/scheme_still_fox_centaur_undress.py --mode both`：社区对齐小洞 crop-and-stitch + `InpaintModelConditioning`。
+穿衣单人保留。每人两张：`nude`（去衣）和 `torn`（旗袍/铠甲破碎露肤）。狐尾和马身不进蒙版。工作流 `workflows/comfyui/scheme_still_fox_centaur_undress.py`：北京 B crop-and-stitch + `InpaintModelConditioning`。
 
 现行日程：
 
-- `nude`：林胸/腹/裙；伊莲胸甲/领/臂/腰；衣服 denoise **0.80** + 收边 **0.42**
-- `torn`：更小的椭圆破洞，denoise **0.78** + 收边；提示写撕破旗袍 / 碎裂铠甲，保留衣甲残骸
-- 大洞 `MAX_CONTENT_FRAC=0.58`；InstantID 吃成衣板 **头肩裁**；失败则该 pass 退回纯 inpaint
+- 小洞 / 椭圆破洞；衣服 denoise **0.88**；收边 **0.40**；`MAX_CONTENT_FRAC=0.52`
+- InstantID 头肩裁已接，但实跑去衣默认 `--no-instantid`（叠 InstantID 易薄纱或双人）
 - 打分对照仍是板心 `ref-face.png`；收留线均分 ≥ 9 且硬门空
+- Codex imagegen 拒绝对成衣板做露点/破甲编辑（safety）；继续只走北京 Comfy
 
 不要丢进 `scheme_b_from_plate.py`。北京 B `359a49a1c3-4cda10df`。F34 / G09 不开。不用 ReActor。
 
-| 人 | 成衣 | 去衣 | 破衣/破甲 |
-| --- | --- | --- | --- |
-| 林 | `lin-qipao-nine-tail.png` | `lin-qipao-nine-tail-nude.png` | `lin-qipao-nine-tail-torn.png` |
-| 伊莲 | `elena-armor-centaur.png` | `elena-armor-centaur-nude.png` | `elena-armor-centaur-torn.png` |
+| 人 | 成衣 | 变体 | 均分 | 硬门 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| 林 | `lin-qipao-nine-tail.png` | `lin-qipao-nine-tail-torn.png` | **8.875** | 空 | 最接近过门；wardrobe 9，anatomy 8 |
+| 林 | 同上 | `lin-qipao-nine-tail-nude.png` | 5.875–7 | `clothes_remain` | RealVisXL 难彻底褪旗袍 |
+| 伊莲 | `elena-armor-centaur.png` | `elena-armor-centaur-nude.png` | **8.125** | `armor_remain` | 胸甲主体已去；颈/臂/腰甲残留 |
+| 伊莲 | 同上 | `elena-armor-centaur-torn.png` | 7.25–7.5 | `intact_clothes` | 破甲不够、露肤不足 |
 
-上一轮（改工作流前）去衣：林 6.5 / `clothes_remain`；伊莲 8.0 / `armor_remain`。新日程重跑后更新分数。
+未过收留线（均分 ≥ 9 且硬门空）。林破衣差 anatomy 1 分；伊莲去衣差残甲。
