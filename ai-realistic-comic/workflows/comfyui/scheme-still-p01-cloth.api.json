@@ -1,0 +1,137 @@
+{
+  "source": {
+    "multi_id": "https://github.com/cubiq/ComfyUI_InstantID/blob/main/examples/InstantID_multi_id.json",
+    "inpaint": "https://github.com/lquesada/ComfyUI-Inpaint-CropAndStitch",
+    "why": "Full-frame dual InstantID with complementary masks. Cloth is a later 1024 crop. No face paste.",
+    "stage": "cloth-crop",
+    "sampler_seed": 20261011,
+    "face_denoise": 0.7,
+    "cloth_denoise": 0.75
+  },
+  "prompt": {
+    "3": {
+      "class_type": "CheckpointLoaderSimple",
+      "inputs": {
+        "ckpt_name": "RealVisXL_V5.0_fp16.safetensors"
+      }
+    },
+    "4": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "text": "photoreal matching skin, bare chest of an adult woman, natural breast and nipple, skin tone matches the neck, no white cloth",
+        "clip": [
+          "3",
+          1
+        ]
+      }
+    },
+    "5": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "text": "white bandeau, strap, bra, cloth, fabric, smear, blotch, blur, plastic, extra fingers, extra hand, text, watermark",
+        "clip": [
+          "3",
+          1
+        ]
+      }
+    },
+    "1": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "p01-bandeau-crop.png"
+      }
+    },
+    "2": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "p01-bandeau-crop-mask.png"
+      }
+    },
+    "50": {
+      "class_type": "ImageToMask",
+      "inputs": {
+        "image": [
+          "2",
+          0
+        ],
+        "channel": "red"
+      }
+    },
+    "40": {
+      "class_type": "InpaintModelConditioning",
+      "inputs": {
+        "positive": [
+          "4",
+          0
+        ],
+        "negative": [
+          "5",
+          0
+        ],
+        "vae": [
+          "3",
+          2
+        ],
+        "pixels": [
+          "1",
+          0
+        ],
+        "mask": [
+          "50",
+          0
+        ],
+        "noise_mask": true
+      }
+    },
+    "15": {
+      "class_type": "KSampler",
+      "inputs": {
+        "model": [
+          "3",
+          0
+        ],
+        "seed": 20261014,
+        "steps": 22,
+        "cfg": 4.5,
+        "sampler_name": "dpmpp_2m",
+        "scheduler": "karras",
+        "positive": [
+          "40",
+          0
+        ],
+        "negative": [
+          "40",
+          1
+        ],
+        "latent_image": [
+          "40",
+          2
+        ],
+        "denoise": 0.75
+      }
+    },
+    "16": {
+      "class_type": "VAEDecode",
+      "inputs": {
+        "samples": [
+          "15",
+          0
+        ],
+        "vae": [
+          "3",
+          2
+        ]
+      }
+    },
+    "22": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "16",
+          0
+        ],
+        "filename_prefix": "p01-bandeau"
+      }
+    }
+  }
+}
