@@ -5,8 +5,8 @@
 - **English name:** Lin Wantang
 - **Standing slot:** 亚洲女性 Asian woman（Asian female lead）
 - **Maps-to role:** 白素贞 / Bai Suzhen（character folder `library/characters/baisuzhen_snake/`）。这是她当前饰演的角色，不是她的身份；任何未来的亚洲女性镜头都用这张脸，换角色不改脸。
-- **Lock face:** `library/cast/lin_wantang/ref.png` — 2026-10-06 记事正面单人锁脸（原创脸，非真人，不是公众人物 1:1）。头肩正面，灰底。侧脸、背面、三视图未交付。
-- **Retired:** `library/cast/lin_wantang/archive/ref-retired-2026-10-05.png` 停用。旧金黄瞳、正红唇、花钿、发髻不再当身份。
+- **Lock face:** `library/cast/lin_wantang/ref-face.png` — 下颌以上干净正脸，无衣领。InstantID 和打分都用这张。原图是记事 `lockface-asian-female-front.jpg`，仓库里是 `face-2026-10-06.jpg` 和带黑圆领的 `ref.png`。原创脸，非真人。侧脸、背面、三视图未交付。
+- **Retired:** `archive/ref-retired-2026-10-05.png`（金黄瞳旧定妆）和 `archive/ref-face-retired-2026-10-06-morning.png`（上一版下颌裁切）停用，不要删。
 - **Age appearance:** adult, mid-to-late twenties.
 
 ## Face 脸
@@ -38,8 +38,8 @@
 
 ## Chinese prompt lock（可直接粘贴）
 
-林晚棠（lin_wantang），成年亚洲女性主演。原创脸，非真人。浅色皮肤，干净额头，柔和脸型，黑褐眼，自然眉，自然裸粉唇，不要金黄瞳，不要正红唇，不要花钿，不要浓妆。黑发松松束在脑后，额前干净，人耳。锁脸以 `library/cast/lin_wantang/ref.png` 为准。角色戏服和蛇尾另计，不改变这张脸。
+林晚棠（lin_wantang），成年亚洲女性主演。原创脸，非真人。浅色皮肤，干净额头，柔和脸型，黑褐眼，自然眉，自然裸粉唇，不要金黄瞳，不要正红唇，不要花钿，不要浓妆。黑发松松束在脑后，额前干净，人耳。锁脸以 `library/cast/lin_wantang/ref-face.png` 为准。角色戏服和蛇尾另计，不改变这张脸。
 
 ## English prompt lock（paste-ready)
 
-Lin Wantang (lin_wantang), adult Asian standing actress. Original fictional face, not a real person. Even light skin, clean forehead, soft oval face, black-brown eyes, natural brows, nude-pink lips. No gold irises, no crimson lips, no forehead ornament, no heavy makeup. Soft black hair loosely tied back. Human ears. The lock is `library/cast/lin_wantang/ref.png`. Role costume and the serpent body do not change this face.
+Lin Wantang (lin_wantang), adult Asian standing actress. Original fictional face, not a real person. Even light skin, clean forehead, soft oval face, black-brown eyes, natural brows, nude-pink lips. No gold irises, no crimson lips, no forehead ornament, no heavy makeup. Soft black hair loosely tied back. Human ears. The lock is `library/cast/lin_wantang/ref-face.png`. Role costume and the serpent body do not change this face.
