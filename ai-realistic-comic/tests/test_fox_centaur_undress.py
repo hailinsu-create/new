@@ -91,10 +91,11 @@ def test_torn_masks_are_smaller_than_full_nude_unions():
 
 def test_community_region_schedule_is_small_holes_then_edge():
     undress = _load("scheme_still_fox_centaur_undress")
-    assert undress.CLOTH_DENOISE == 0.80
-    assert undress.TORN_DENOISE == 0.78
+    assert undress.CLOTH_DENOISE == 0.85
+    assert undress.TORN_DENOISE == 0.83
     assert undress.EDGE_DENOISE == 0.42
-    assert undress.MAX_CONTENT_FRAC == 0.58
+    assert undress.MAX_CONTENT_FRAC == 0.55
+    assert undress.ELENA_HEAD[0] <= 260
     lin = undress.lin_nude_passes()
     elena = undress.elena_nude_passes()
     assert lin[-1].denoise == undress.EDGE_DENOISE

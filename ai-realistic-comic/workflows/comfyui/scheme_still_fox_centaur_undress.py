@@ -39,11 +39,11 @@ LIN_PLATE = STILL_DIR / "lin-qipao-nine-tail.png"
 ELENA_PLATE = STILL_DIR / "elena-armor-centaur.png"
 
 SAMPLER_SEED = 20261006
-CLOTH_DENOISE = 0.80
-TORN_DENOISE = 0.78
+CLOTH_DENOISE = 0.85
+TORN_DENOISE = 0.83
 EDGE_DENOISE = 0.42
-MASK_BLUR = 12
-MAX_CONTENT_FRAC = 0.58
+MASK_BLUR = 14
+MAX_CONTENT_FRAC = 0.55
 
 BJ_UUID = "359a49a1c3-4cda10df"
 F34_UUID = "xaxna66hqt-c5c9c7fc"
@@ -95,10 +95,11 @@ CROP_STITCH = "https://github.com/lquesada/ComfyUI-Inpaint-CropAndStitch"
 INSTANTID = "https://github.com/cubiq/ComfyUI_InstantID"
 BASE = (1024, 1536)
 
-LIN_HEAD = (360, 60, 560, 340)
-ELENA_HEAD = (340, 40, 540, 300)
-LIN_FACE_CLEAR = (320, 20, 560, 300)
-ELENA_FACE_CLEAR = (330, 20, 530, 235)
+LIN_HEAD = (340, 40, 600, 360)
+# Face sits left-of-center on the armored plate; rightward boxes miss InsightFace.
+ELENA_HEAD = (250, 20, 500, 300)
+LIN_FACE_CLEAR = (300, 10, 620, 300)
+ELENA_FACE_CLEAR = (240, 10, 520, 230)
 
 OUT_STEM = {
     ("lin", "nude"): "lin-qipao-nine-tail-nude",
@@ -226,52 +227,53 @@ def pad_face_for_instantid(src: Image.Image, size: int = 768) -> Image.Image:
 
 
 def lin_nude_passes() -> list[RegionPass]:
+    # Full qipao width — prior narrow strips left the dress intact.
     return [
-        RegionPass("lin-nude-chest", (395, 310, 505, 540), CLOTH_DENOISE, LIN_NUDE_POS, LIN_NUDE_NEG),
-        RegionPass("lin-nude-midriff", (380, 520, 500, 760), CLOTH_DENOISE, LIN_NUDE_POS, LIN_NUDE_NEG),
-        RegionPass("lin-nude-skirt", (370, 740, 490, 1220), CLOTH_DENOISE, LIN_NUDE_POS, LIN_NUDE_NEG),
-        RegionPass("lin-nude-edge", (385, 320, 500, 1200), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=20),
+        RegionPass("lin-nude-chest", (340, 280, 560, 560), CLOTH_DENOISE, LIN_NUDE_POS, LIN_NUDE_NEG),
+        RegionPass("lin-nude-midriff", (330, 520, 550, 820), CLOTH_DENOISE, LIN_NUDE_POS, LIN_NUDE_NEG),
+        RegionPass("lin-nude-skirt", (320, 780, 540, 1280), CLOTH_DENOISE, LIN_NUDE_POS, LIN_NUDE_NEG),
+        RegionPass("lin-nude-edge", (330, 290, 550, 1260), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=24),
     ]
 
 
 def elena_nude_passes() -> list[RegionPass]:
     return [
-        RegionPass("elena-nude-breastplate", (310, 255, 530, 540), CLOTH_DENOISE, ELENA_NUDE_POS, ELENA_NUDE_NEG),
-        RegionPass("elena-nude-collar", (385, 230, 505, 305), CLOTH_DENOISE, ELENA_NUDE_POS, ELENA_NUDE_NEG),
-        RegionPass("elena-nude-arm", (170, 290, 320, 680), CLOTH_DENOISE, ELENA_NUDE_POS, ELENA_NUDE_NEG),
-        RegionPass("elena-nude-hip", (325, 535, 540, 690), CLOTH_DENOISE, ELENA_NUDE_POS, ELENA_NUDE_NEG),
-        RegionPass("elena-nude-edge", (175, 235, 535, 690), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=18),
+        RegionPass("elena-nude-breastplate", (280, 230, 560, 560), CLOTH_DENOISE, ELENA_NUDE_POS, ELENA_NUDE_NEG),
+        RegionPass("elena-nude-collar", (340, 210, 500, 310), CLOTH_DENOISE, ELENA_NUDE_POS, ELENA_NUDE_NEG),
+        RegionPass("elena-nude-arm", (140, 270, 320, 700), CLOTH_DENOISE, ELENA_NUDE_POS, ELENA_NUDE_NEG),
+        RegionPass("elena-nude-hip", (300, 520, 560, 720), CLOTH_DENOISE, ELENA_NUDE_POS, ELENA_NUDE_NEG),
+        RegionPass("elena-nude-edge", (145, 215, 555, 715), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=20),
     ]
 
 
 def lin_torn_passes() -> list[RegionPass]:
-    # Small tear ellipses — keep fabric outside the holes.
+    # Larger tear ellipses so skin shows through; keep dress remnants outside.
     return [
         RegionPass(
             "lin-torn-chest",
-            (400, 330, 500, 520),
+            (350, 300, 550, 560),
             TORN_DENOISE,
             LIN_TORN_POS,
             LIN_TORN_NEG,
-            ellipses=((410, 340, 470, 430), (430, 420, 490, 510)),
+            ellipses=((360, 320, 480, 470), (400, 400, 540, 540)),
         ),
         RegionPass(
             "lin-torn-midriff",
-            (385, 540, 495, 720),
+            (340, 520, 540, 780),
             TORN_DENOISE,
             LIN_TORN_POS,
             LIN_TORN_NEG,
-            ellipses=((400, 550, 480, 640), (390, 630, 470, 710)),
+            ellipses=((360, 540, 520, 680), (350, 650, 500, 770)),
         ),
         RegionPass(
             "lin-torn-thigh",
-            (375, 780, 470, 1050),
+            (330, 760, 500, 1120),
             TORN_DENOISE,
             LIN_TORN_POS,
             LIN_TORN_NEG,
-            ellipses=((385, 800, 450, 920), (400, 930, 460, 1030)),
+            ellipses=((350, 780, 470, 960), (370, 940, 490, 1100)),
         ),
-        RegionPass("lin-torn-edge", (390, 340, 490, 1040), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=14),
+        RegionPass("lin-torn-edge", (340, 310, 540, 1100), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=16),
     ]
 
 
@@ -279,37 +281,37 @@ def elena_torn_passes() -> list[RegionPass]:
     return [
         RegionPass(
             "elena-torn-breastplate",
-            (320, 270, 520, 520),
+            (290, 250, 550, 540),
             TORN_DENOISE,
             ELENA_TORN_POS,
             ELENA_TORN_NEG,
-            ellipses=((340, 290, 430, 400), (420, 320, 510, 450), (360, 420, 470, 510)),
+            ellipses=((310, 270, 450, 420), (400, 300, 540, 470), (340, 400, 500, 530)),
         ),
         RegionPass(
             "elena-torn-collar",
-            (390, 235, 500, 300),
+            (350, 215, 500, 310),
             TORN_DENOISE,
             ELENA_TORN_POS,
             ELENA_TORN_NEG,
-            ellipses=((400, 240, 490, 295),),
+            ellipses=((360, 220, 490, 300),),
         ),
         RegionPass(
             "elena-torn-arm",
-            (180, 300, 310, 620),
+            (150, 280, 320, 660),
             TORN_DENOISE,
             ELENA_TORN_POS,
             ELENA_TORN_NEG,
-            ellipses=((190, 320, 280, 430), (200, 450, 290, 560)),
+            ellipses=((160, 300, 300, 460), (170, 440, 300, 620)),
         ),
         RegionPass(
             "elena-torn-hip",
-            (330, 540, 530, 680),
+            (310, 520, 550, 710),
             TORN_DENOISE,
             ELENA_TORN_POS,
             ELENA_TORN_NEG,
-            ellipses=((350, 550, 450, 640), (430, 560, 520, 670)),
+            ellipses=((330, 530, 470, 660), (400, 550, 540, 700)),
         ),
-        RegionPass("elena-torn-edge", (185, 240, 525, 675), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=14),
+        RegionPass("elena-torn-edge", (155, 220, 545, 705), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=16),
     ]
 
 
