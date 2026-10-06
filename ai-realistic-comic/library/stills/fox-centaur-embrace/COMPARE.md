@@ -13,6 +13,17 @@
 
 都没过收留线（均分 ≥ 9 且硬门空）。Codex imagegen 拒绝对成衣板做露点编辑。
 
+### 2026-10-07 栈升级（未重跑出片）
+
+根因对照社区：RealVisXL 无 inpaint 训练 → 旗袍花纹/胸甲高光当结构保留；几何蒙版漏颈环/护臂。北京 B 已装：
+
+- Acly Fooocus inpaint（`INPAINT_ApplyFooocusInpaint`）+ `inpaint_v26.fooocus.patch`
+- 核心 `DifferentialDiffusion`
+- storyicon GroundingDINO + SAM（语义衣物蒙版）
+- Flux Fill gated，跳过
+
+工作流已默认接线；下一轮开机用 `--mode both --no-instantid` 重跑四张再打分。
+
 ## 林晚棠
 
 ### 对照图

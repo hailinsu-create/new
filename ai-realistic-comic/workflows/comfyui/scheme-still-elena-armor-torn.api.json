@@ -2,15 +2,25 @@
   "source": {
     "inpaint": "https://github.com/lquesada/ComfyUI-Inpaint-CropAndStitch",
     "instantid": "https://github.com/cubiq/ComfyUI_InstantID",
-    "why": "Small-hole clothes inpaint; nude or torn/shatter mode; denoise 0.75–0.85 + edge ~0.4; InstantID from plate head-shoulder.",
+    "fooocus_inpaint": "https://github.com/Acly/comfyui-inpaint-nodes",
+    "segment_anything": "https://github.com/storyicon/comfyui_segment_anything",
+    "fooocus_head": "fooocus_inpaint_head.pth",
+    "fooocus_patch": "inpaint_v26.fooocus.patch",
+    "fooocus": true,
+    "differential_diffusion": true,
+    "why": "Small-hole clothes inpaint; Fooocus patch + DifferentialDiffusion; nude or torn/shatter; denoise 0.75–0.85 + edge ~0.4; InstantID from plate head-shoulder; DINO+SAM for semantic masks.",
     "stage": "elena-torn-breastplate",
     "mode": "torn",
-    "sampler_seed": 20261006,
-    "cloth_denoise": 0.8,
-    "torn_denoise": 0.78,
-    "edge_denoise": 0.42,
-    "max_content_frac": 0.58,
-    "beijing": "359a49a1c3-4cda10df"
+    "sampler_seed": 20261007,
+    "cloth_denoise": 0.88,
+    "torn_denoise": 0.88,
+    "edge_denoise": 0.4,
+    "max_content_frac": 0.52,
+    "beijing": "359a49a1c3-4cda10df",
+    "dino_prompt": {
+      "lin": "qipao, cheongsam, dress, silk fabric, embroidery",
+      "elena": "armor, breastplate, gauntlet, gorget, metal plate"
+    }
   },
   "prompt": {
     "3": {
@@ -22,7 +32,7 @@
     "4": {
       "class_type": "CLIPTextEncode",
       "inputs": {
-        "text": "shattered cracked medieval breastplate with jagged metal edges, torn mail gaps, bare skin of breasts and belly showing through broken armor, same adult woman, brown eyes, round gold wire glasses, waist still joins bay mare body, one person only",
+        "text": "shattered cracked breastplate with jagged broken metal edges, large holes in armor, bare breasts and belly skin visible through wrecked plates, armor shards still on shoulders and waist, same adult woman, brown eyes, round gold wire glasses, waist still joins bay mare body, one person only, no extra arms",
         "clip": [
           "3",
           1
@@ -91,10 +101,10 @@
       "class_type": "KSampler",
       "inputs": {
         "model": [
-          "10",
+          "72",
           0
         ],
-        "seed": 20261006,
+        "seed": 20261007,
         "steps": 22,
         "cfg": 4.5,
         "sampler_name": "dpmpp_2m",
@@ -111,7 +121,7 @@
           "40",
           2
         ],
-        "denoise": 0.78
+        "denoise": 0.88
       }
     },
     "16": {
@@ -216,6 +226,40 @@
           "9",
           0
         ]
+      }
+    },
+    "70": {
+      "class_type": "INPAINT_LoadFooocusInpaint",
+      "inputs": {
+        "head": "fooocus_inpaint_head.pth",
+        "patch": "inpaint_v26.fooocus.patch"
+      }
+    },
+    "71": {
+      "class_type": "INPAINT_ApplyFooocusInpaint",
+      "inputs": {
+        "model": [
+          "10",
+          0
+        ],
+        "patch": [
+          "70",
+          0
+        ],
+        "latent": [
+          "40",
+          2
+        ]
+      }
+    },
+    "72": {
+      "class_type": "DifferentialDiffusion",
+      "inputs": {
+        "model": [
+          "71",
+          0
+        ],
+        "strength": 1.0
       }
     }
   }

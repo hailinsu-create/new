@@ -1,0 +1,65 @@
+{
+  "source": {
+    "segment_anything": "https://github.com/storyicon/comfyui_segment_anything",
+    "why": "Semantic garment mask for undress; intersect with face-clear geometry.",
+    "beijing": "359a49a1c3-4cda10df"
+  },
+  "prompt": {
+    "1": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "lin-qipao-nine-tail.png"
+      }
+    },
+    "2": {
+      "class_type": "SAMModelLoader (segment anything)",
+      "inputs": {
+        "model_name": "sam_vit_b_01ec64.pth"
+      }
+    },
+    "3": {
+      "class_type": "GroundingDinoModelLoader (segment anything)",
+      "inputs": {
+        "model_name": "GroundingDINO_SwinT_OGC (694MB)"
+      }
+    },
+    "4": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "qipao, cheongsam, dress, silk fabric, embroidery",
+        "threshold": 0.3
+      }
+    },
+    "5": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "4",
+          1
+        ]
+      }
+    },
+    "6": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "5",
+          0
+        ],
+        "filename_prefix": "lin-dino-clothes"
+      }
+    }
+  }
+}

@@ -2,9 +2,11 @@
 
 Community practice (lquesada / comfyorg Crop-and-Stitch, plus InpaintModelConditioning):
 work at about 1024, denoise 0.65–0.85, blur the mask 8–15px, and never VAE the
-unmasked pixels. Beijing has no dedicated SDXL inpaint checkpoint, so this uses
-RealVisXL with InpaintModelConditioning + noise_mask instead of SetLatentNoiseMask
-at denoise 1.0 on the full frame.
+unmasked pixels. Beijing stacks RealVisXL with Acly Fooocus inpaint head/patch
+(`INPAINT_LoadFooocusInpaint` + `INPAINT_ApplyFooocusInpaint`) and core
+`DifferentialDiffusion` so fabric/armor priors do not stick at mid denoise.
+Still uses InpaintModelConditioning + noise_mask — never SetLatentNoiseMask at
+denoise 1.0 on the full frame.
 """
 
 from __future__ import annotations
@@ -20,6 +22,11 @@ TARGET = 1024
 CONTEXT = 72
 MASK_BLUR = 12
 INPAINT_NODE = "InpaintModelConditioning"
+FOOOCUS_HEAD = "fooocus_inpaint_head.pth"
+FOOOCUS_PATCH = "inpaint_v26.fooocus.patch"
+FOOOCUS_LOAD = "INPAINT_LoadFooocusInpaint"
+FOOOCUS_APPLY = "INPAINT_ApplyFooocusInpaint"
+DIFF_DIFFUSION = "DifferentialDiffusion"
 
 
 class CropJob:
@@ -103,9 +110,14 @@ def inpaint_crop_graph(
     seed: int,
     prefix: str,
     denoise: float = INPAINT_DENOISE,
+    *,
+    fooocus: bool = True,
+    differential: bool = True,
+    fooocus_head: str = FOOOCUS_HEAD,
+    fooocus_patch: str = FOOOCUS_PATCH,
 ) -> dict:
-    """API graph: 1024 crop + InpaintModelConditioning, denoise below 1.0."""
-    return {
+    """API graph: 1024 crop + IMC (+ Fooocus patch + DifferentialDiffusion)."""
+    graph: dict = {
         "3": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": ckpt}},
         "4": {"class_type": "CLIPTextEncode", "inputs": {"text": positive, "clip": ["3", 1]}},
         "5": {"class_type": "CLIPTextEncode", "inputs": {"text": negative, "clip": ["3", 1]}},
@@ -141,6 +153,25 @@ def inpaint_crop_graph(
         "16": {"class_type": "VAEDecode", "inputs": {"samples": ["15", 0], "vae": ["3", 2]}},
         "22": {"class_type": "SaveImage", "inputs": {"images": ["16", 0], "filename_prefix": prefix}},
     }
+    model_src: list = ["3", 0]
+    if fooocus:
+        graph["70"] = {
+            "class_type": FOOOCUS_LOAD,
+            "inputs": {"head": fooocus_head, "patch": fooocus_patch},
+        }
+        graph["71"] = {
+            "class_type": FOOOCUS_APPLY,
+            "inputs": {"model": model_src, "patch": ["70", 0], "latent": ["40", 2]},
+        }
+        model_src = ["71", 0]
+    if differential:
+        graph["72"] = {
+            "class_type": DIFF_DIFFUSION,
+            "inputs": {"model": model_src, "strength": 1.0},
+        }
+        model_src = ["72", 0]
+    graph["15"]["inputs"]["model"] = model_src
+    return graph
 
 
 def save_crop_pair(job: CropJob, input_dir: Path, stem: str) -> tuple[str, str]:

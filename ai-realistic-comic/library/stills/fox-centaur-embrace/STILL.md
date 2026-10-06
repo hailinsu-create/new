@@ -33,11 +33,12 @@
 
 ## 去衣 / 破衣破甲（这一张的衣服，不是身体板）
 
-穿衣单人保留。每人两张：`nude`（去衣）和 `torn`（旗袍/铠甲破碎露肤）。狐尾和马身不进蒙版。工作流 `workflows/comfyui/scheme_still_fox_centaur_undress.py`：北京 B crop-and-stitch + `InpaintModelConditioning`。
+穿衣单人保留。每人两张：`nude`（去衣）和 `torn`（旗袍/铠甲破碎露肤）。狐尾和马身不进蒙版。工作流 `workflows/comfyui/scheme_still_fox_centaur_undress.py`：北京 B crop-and-stitch + `InpaintModelConditioning` + **Fooocus inpaint patch** + **DifferentialDiffusion**；语义蒙版可用 GroundingDINO+SAM。
 
 现行日程：
 
 - 小洞 / 椭圆破洞；衣服 denoise **0.88**；收边 **0.40**；`MAX_CONTENT_FRAC=0.52`
+- 默认 Fooocus（`fooocus_inpaint_head.pth` + `inpaint_v26.fooocus.patch`）打在 RealVisXL 上；`--no-fooocus` 回退旧 IMC
 - InstantID 头肩裁已接，但实跑去衣默认 `--no-instantid`（叠 InstantID 易薄纱或双人）
 - 打分对照仍是板心 `ref-face.png`；收留线均分 ≥ 9 且硬门空
 - Codex imagegen 拒绝对成衣板做露点/破甲编辑（safety）；继续只走北京 Comfy

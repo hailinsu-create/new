@@ -47,8 +47,10 @@ ComfyUI 在 `/root/autodl-tmp/comfyui`，标签 `v0.39.0`，提交 `b0b743566f65
 | ComfyUI_InstantID | `72495e806bc2ab9c41581e15ccaa1bcf83c477e8` | 锁脸 |
 | ComfyUI_IPAdapter_plus | `a0f451a5113cf9becb0847b92884cb10cbdec0ef` | FaceID Plus V2 |
 | comfyui_controlnet_aux | `0cd290477128d42cdc3e76a826a402d866e8c684` | DWPose |
+| comfyui-inpaint-nodes (Acly) | 数据盘 git HEAD | Fooocus inpaint：`INPAINT_LoadFooocusInpaint` / `INPAINT_ApplyFooocusInpaint` |
+| comfyui_segment_anything (storyicon) | 数据盘 git HEAD | GroundingDINO + SAM 语义衣物蒙版 |
 
-Impact 的 `requirements.txt` 去掉了 `git+sam2` 那一行。FaceDetailer 用 SAM1。PuLID 这轮不装。裸体图不用 ReActor。
+核心自带 `DifferentialDiffusion`（`comfy_extras/nodes_differential_diffusion.py`）。Impact 的 `requirements.txt` 去掉了 `git+sam2` 那一行。FaceDetailer 用 SAM1。PuLID 这轮不装。裸体图不用 ReActor。
 
 `onnxruntime-gpu==1.30.0` 能 import，`get_available_providers()` 只有 `AzureExecutionProvider` 和 `CPUExecutionProvider`，没有 CUDA。InstantID 和 IP-Adapter FaceID 的 InsightFace 都设成 `CPU`。DWPose 走 OpenCV DNN。InsightFace / antelopev2 常见许可是研究或非商用，出片前要单独核对许可。
 
@@ -77,6 +79,10 @@ sha256 是数据盘上的文件。来源是 hf-mirror 上对应的仓库，除�
 | `models/upscale_models/4x-UltraSharp.pth` | 66961958 | `a5812231fc936b42af08a5edba784195495d303d5b3248c24489ef0c4021fe01` |
 | `models/ultralytics/bbox/face_yolov8m.pt` | 52026019 | `717923c19b3f4bbf5250b728f1fa6b2cb72a33aed1d236ea9caf0e21ad943e5f` |
 | `models/sams/sam_vit_b_01ec64.pth` | 375042383 | `ec2df62732614e57411cdcf32a23ffdf28910380d03139ee0f4fcbe91eb8c912` |
+| `models/inpaint/fooocus_inpaint_head.pth` | ~52KiB | `32f7f838e0c6d8f13437ba8411e77a4688d77a2e34df8857e4ef4d51f6b97692` |
+| `models/inpaint/inpaint_v26.fooocus.patch` | ~1.3GiB | `f8657a025104e22d70f9c060635d8e8c2196f433871a2f68dc40abd2171f0d59` |
+| `models/grounding-dino/groundingdino_swint_ogc.pth` | ~662MiB | `3b3ca2563c77c69f651d7bd133e97139c186df06231157a64c507099c52bc799` |
+| `models/text_encoders/clip_l.safetensors` | ~235MiB | （Flux 文本；Fill 权重 gated 未下） |
 | `ckpts/yzd-v/DWPose/yolox_l.onnx` | 216746733 | `7860ae79de6c89a3c1eb72ae9a2756c0ccfbe04b7791bb5880afabd97855a411` |
 | `ckpts/yzd-v/DWPose/dw-ll_ucoco_384.onnx` | 134399116 | `724f4ff2439ed61afb86fb8a1951ec39c6220682803b4a8bd4f598cd913b1843` |
 | `insightface/models/antelopev2/glintr100.onnx` | 260665334 | `4ab1d6435d639628a6f3e5008dd4f929edf4c4124b1a7169e1048f9fef534cdf` |
@@ -161,3 +167,5 @@ RealVisXL 在缩小后的全身图上仍会画黑丝带或抹胸。脚本在正�
 2026-10-06 第二次：用户要林晚棠裸体三向。北京 B `359a49a1c3-4cda10df` 再次开机，F34 和 G09 仍关机。InstantID 改吃 `ref-face.png`（记事干净正脸裁到下巴，无衣领）。种子仍是 `20261006`。Codex `pass1`：正面 identity 7、anatomy 6、H7，不过门；侧面和背面过门。背面图和第一次相同，因为背面不喂脸。出完后机器再次内部关机，磁盘保留。
 
 2026-10-06 旗袍九尾 / 铠甲半人马单人去衣 / 破衣破甲：不要跑 `scheme_b_from_plate.py`。衣服走 `workflows/comfyui/scheme_still_fox_centaur_undress.py --mode both`：小洞/椭圆 crop-and-stitch + `InpaintModelConditioning`，衣服 denoise **0.88**、收边 **0.40**，`MAX_CONTENT_FRAC=0.52`。InstantID 头肩裁可用，但去衣实跑默认 `--no-instantid`（叠 InstantID 易薄纱或双人）。最佳成绩：林破衣 Codex 均分 **8.875** 硬门空；伊莲去衣 **8.125** / `armor_remain`。Codex imagegen 拒绝对成衣板做露点编辑。机器北京 B `359a49a1c3-4cda10df`。F34 / G09 不开。裸体不用 ReActor。
+
+2026-10-07 去衣优化栈（磁盘不紧，按社区建议装完即关）：北京 B 数据盘新增 Acly Fooocus inpaint、GroundingDINO+SAM、核心 `DifferentialDiffusion`。`/object_info` 已确认 `INPAINT_LoadFooocusInpaint`、`INPAINT_ApplyFooocusInpaint`、`DifferentialDiffusion`、`GroundingDinoSAMSegment (segment anything)`。Flux Fill（`FLUX.1-Fill-dev`）Hugging Face gated，未装；可选 SDXL 单文件 inpaint ckpt 也未找到稳定镜像，主路径用 Fooocus patch 打在 RealVisXL 上。工作流默认接 Fooocus+Diff（`--no-fooocus` 回退旧 IMC）。装完后北京 B 已 shutdown，盘保留。

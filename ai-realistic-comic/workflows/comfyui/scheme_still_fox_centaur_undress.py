@@ -2,6 +2,9 @@
 
 Community stack (not Scheme B full redraw):
 - lquesada / comfyorg Crop-and-Stitch + InpaintModelConditioning
+- Acly Fooocus inpaint head/patch on RealVisXL (kills fabric/armor priors)
+- DifferentialDiffusion for soft mask edges
+- GroundingDINO + SAM available on Beijing for semantic garment masks
 - clothing denoise 0.75–0.85; edge pass ~0.4
 - small holes; downscale large crops (anti double-body)
 - InstantID from plate head-shoulder (jaw-up ref-face often fails InsightFace)
@@ -26,6 +29,11 @@ from PIL import Image, ImageChops, ImageDraw, ImageFilter
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from comfy_util import queue_prompt, resolve_base_models  # noqa: E402
 from inpaint_crop import (  # noqa: E402
+    DIFF_DIFFUSION,
+    FOOOCUS_APPLY,
+    FOOOCUS_HEAD as IMC_FOOOCUS_HEAD,
+    FOOOCUS_LOAD,
+    FOOOCUS_PATCH as IMC_FOOOCUS_PATCH,
     CropJob,
     inpaint_crop_graph,
     prepare_crop,
@@ -95,6 +103,14 @@ EDGE_NEG = "seam, hard edge, smear, blur, plastic, text, watermark, extra limbs"
 
 CROP_STITCH = "https://github.com/lquesada/ComfyUI-Inpaint-CropAndStitch"
 INSTANTID = "https://github.com/cubiq/ComfyUI_InstantID"
+FOOOCUS_INPAINT = "https://github.com/Acly/comfyui-inpaint-nodes"
+SEGMENT_ANYTHING = "https://github.com/storyicon/comfyui_segment_anything"
+FOOOCUS_HEAD = "fooocus_inpaint_head.pth"
+FOOOCUS_PATCH = "inpaint_v26.fooocus.patch"
+DINO_PROMPTS = {
+    "lin": "qipao, cheongsam, dress, silk fabric, embroidery",
+    "elena": "armor, breastplate, gauntlet, gorget, metal plate",
+}
 BASE = (1024, 1536)
 
 LIN_HEAD = (340, 40, 600, 360)
@@ -355,7 +371,11 @@ def instantid_inpaint_graph(
     seed: int,
     prefix: str,
     denoise: float = CLOTH_DENOISE,
+    *,
+    fooocus: bool = True,
+    differential: bool = True,
 ) -> dict:
+    # Order avoids cycles: InstantID on base → IMC → Fooocus(latent) → Diff → KSampler.
     graph = inpaint_crop_graph(
         ckpt=models["ckpt"],
         crop_name=crop_name,
@@ -365,6 +385,8 @@ def instantid_inpaint_graph(
         seed=seed,
         prefix=prefix,
         denoise=denoise,
+        fooocus=False,
+        differential=False,
     )
     graph["60"] = {"class_type": "LoadImage", "inputs": {"image": ref_name}}
     graph["6"] = {
@@ -398,18 +420,83 @@ def instantid_inpaint_graph(
     }
     graph["40"]["inputs"]["positive"] = ["10", 1]
     graph["40"]["inputs"]["negative"] = ["10", 2]
-    graph["15"]["inputs"]["model"] = ["10", 0]
+    model_src: list = ["10", 0]
+    if fooocus:
+        graph["70"] = {
+            "class_type": FOOOCUS_LOAD,
+            "inputs": {"head": IMC_FOOOCUS_HEAD, "patch": IMC_FOOOCUS_PATCH},
+        }
+        graph["71"] = {
+            "class_type": FOOOCUS_APPLY,
+            "inputs": {"model": model_src, "patch": ["70", 0], "latent": ["40", 2]},
+        }
+        model_src = ["71", 0]
+    if differential:
+        graph["72"] = {
+            "class_type": DIFF_DIFFUSION,
+            "inputs": {"model": model_src, "strength": 1.0},
+        }
+        model_src = ["72", 0]
+    graph["15"]["inputs"]["model"] = model_src
     return graph
 
 
-def envelope(prompt: dict, stage: str, mode: str) -> dict:
+def grounding_dino_mask_graph(
+    image_name: str,
+    prompt: str,
+    *,
+    prefix: str = "dino-mask",
+    threshold: float = 0.3,
+    sam_model: str = "sam_vit_b_01ec64.pth",
+    dino_model: str = "GroundingDINO_SwinT_OGC (694MB)",
+) -> dict:
+    """Semantic garment mask via storyicon GroundingDINO + SAM (Beijing)."""
+    return {
+        "1": {"class_type": "LoadImage", "inputs": {"image": image_name}},
+        "2": {
+            "class_type": "SAMModelLoader (segment anything)",
+            "inputs": {"model_name": sam_model},
+        },
+        "3": {
+            "class_type": "GroundingDinoModelLoader (segment anything)",
+            "inputs": {"model_name": dino_model},
+        },
+        "4": {
+            "class_type": "GroundingDinoSAMSegment (segment anything)",
+            "inputs": {
+                "sam_model": ["2", 0],
+                "grounding_dino_model": ["3", 0],
+                "image": ["1", 0],
+                "prompt": prompt,
+                "threshold": threshold,
+            },
+        },
+        "5": {
+            "class_type": "MaskToImage",
+            "inputs": {"mask": ["4", 1]},
+        },
+        "6": {
+            "class_type": "SaveImage",
+            "inputs": {"images": ["5", 0], "filename_prefix": prefix},
+        },
+    }
+
+
+def envelope(prompt: dict, stage: str, mode: str, *, fooocus: bool = True) -> dict:
     return {
         "source": {
             "inpaint": CROP_STITCH,
             "instantid": INSTANTID,
+            "fooocus_inpaint": FOOOCUS_INPAINT,
+            "segment_anything": SEGMENT_ANYTHING,
+            "fooocus_head": FOOOCUS_HEAD,
+            "fooocus_patch": FOOOCUS_PATCH,
+            "fooocus": fooocus,
+            "differential_diffusion": True,
             "why": (
-                "Small-hole clothes inpaint; nude or torn/shatter mode; "
-                "denoise 0.75–0.85 + edge ~0.4; InstantID from plate head-shoulder."
+                "Small-hole clothes inpaint; Fooocus patch + DifferentialDiffusion; "
+                "nude or torn/shatter; denoise 0.75–0.85 + edge ~0.4; "
+                "InstantID from plate head-shoulder; DINO+SAM for semantic masks."
             ),
             "stage": stage,
             "mode": mode,
@@ -419,6 +506,7 @@ def envelope(prompt: dict, stage: str, mode: str) -> dict:
             "edge_denoise": EDGE_DENOISE,
             "max_content_frac": MAX_CONTENT_FRAC,
             "beijing": BJ_UUID,
+            "dino_prompt": DINO_PROMPTS,
         },
         "prompt": prompt,
     }
@@ -468,11 +556,33 @@ def emit_examples(directory: Path) -> None:
             SAMPLER_SEED,
             stage,
             CLOTH_DENOISE if mode == "nude" else TORN_DENOISE,
+            fooocus=True,
+            differential=True,
         )
         (directory / filename).write_text(
-            json.dumps(envelope(graph, stage, mode), ensure_ascii=False, indent=2),
+            json.dumps(envelope(graph, stage, mode, fooocus=True), ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
+    dino = grounding_dino_mask_graph(
+        "lin-qipao-nine-tail.png",
+        DINO_PROMPTS["lin"],
+        prefix="lin-dino-clothes",
+    )
+    (directory / "scheme-still-dino-clothes-mask.api.json").write_text(
+        json.dumps(
+            {
+                "source": {
+                    "segment_anything": SEGMENT_ANYTHING,
+                    "why": "Semantic garment mask for undress; intersect with face-clear geometry.",
+                    "beijing": BJ_UUID,
+                },
+                "prompt": dino,
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
 
 
 def _upload(host: str, path: Path) -> None:
@@ -502,6 +612,7 @@ def run_region(
     out_dir: Path,
     *,
     use_instantid: bool,
+    fooocus: bool = True,
 ) -> Image.Image:
     clear = LIN_FACE_CLEAR if actor == "lin" else ELENA_FACE_CLEAR
     mask = box_mask(plate, region.box, clear_face=clear, ellipses=region.ellipses)
@@ -523,6 +634,8 @@ def run_region(
             seed,
             region.stem,
             region.denoise,
+            fooocus=fooocus,
+            differential=fooocus,
         )
     else:
         graph = inpaint_crop_graph(
@@ -534,9 +647,11 @@ def run_region(
             seed=seed,
             prefix=region.stem,
             denoise=region.denoise,
+            fooocus=fooocus,
+            differential=fooocus,
         )
     (out_dir / f"{region.stem}.api.json").write_text(
-        json.dumps(envelope(graph, region.stem, mode), ensure_ascii=False, indent=2),
+        json.dumps(envelope(graph, region.stem, mode, fooocus=fooocus), ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
     crop_out = out_dir / f"{region.stem}-crop.png"
@@ -557,12 +672,13 @@ def run_region(
                 input_dir,
                 out_dir,
                 use_instantid=False,
+                fooocus=fooocus,
             )
         raise
     stitched = stitch(prepared["plate"], Image.open(crop_out), prepared["job"])
     print(
         f"PASS {region.stem} mode={mode} denoise={region.denoise} "
-        f"opaque={prepared['opaque_ratio']:.3f} instantid={use_instantid}",
+        f"opaque={prepared['opaque_ratio']:.3f} instantid={use_instantid} fooocus={fooocus}",
         flush=True,
     )
     return stitched
@@ -577,6 +693,7 @@ def run_actor_mode(
     out_dir: Path,
     *,
     use_instantid: bool,
+    fooocus: bool = True,
 ) -> Path:
     plate_path = LIN_PLATE if actor == "lin" else ELENA_PLATE
     head_box = LIN_HEAD if actor == "lin" else ELENA_HEAD
@@ -601,6 +718,7 @@ def run_actor_mode(
             input_dir,
             out_dir,
             use_instantid=want_id,
+            fooocus=fooocus,
         )
     dest = out_dir / f"{OUT_STEM[(actor, mode)]}.png"
     current.save(dest)
@@ -635,6 +753,11 @@ def main() -> None:
     parser.add_argument("--only", choices=("lin", "elena"), nargs="*")
     parser.add_argument("--mode", choices=("nude", "torn", "both"), default="both")
     parser.add_argument("--no-instantid", action="store_true")
+    parser.add_argument(
+        "--no-fooocus",
+        action="store_true",
+        help="Skip Acly Fooocus inpaint patch + DifferentialDiffusion (legacy IMC-only).",
+    )
     args = parser.parse_args()
     if args.emit_examples:
         emit_examples(args.emit_examples)
@@ -642,6 +765,7 @@ def main() -> None:
 
     actors = args.only or ["lin", "elena"]
     modes = ["nude", "torn"] if args.mode == "both" else [args.mode]
+    use_fooocus = not args.no_fooocus
     args.input.mkdir(parents=True, exist_ok=True)
     args.out.mkdir(parents=True, exist_ok=True)
     debug = Path("/tmp/fox-undress-preview/masks")
@@ -658,7 +782,8 @@ def main() -> None:
     print("MODELS", json.dumps(models, ensure_ascii=False), flush=True)
     print(
         f"SCHEDULE cloth={CLOTH_DENOISE} torn={TORN_DENOISE} edge={EDGE_DENOISE} "
-        f"max_content={MAX_CONTENT_FRAC} modes={modes} instantid={not args.no_instantid}",
+        f"max_content={MAX_CONTENT_FRAC} modes={modes} instantid={not args.no_instantid} "
+        f"fooocus={use_fooocus}",
         flush=True,
     )
 
@@ -672,6 +797,7 @@ def main() -> None:
                 args.input,
                 args.out,
                 use_instantid=not args.no_instantid,
+                fooocus=use_fooocus,
             )
 
 
