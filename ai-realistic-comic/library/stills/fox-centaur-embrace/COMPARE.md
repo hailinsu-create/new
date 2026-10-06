@@ -118,3 +118,59 @@
 - 伊莲：成衣→去衣身份稳住，马身保住；差在甲片残留，均分从 8.94 掉到 8。
 - 林：狐尾和构图保住；衣服没褪干净，还引入多余手臂，均分从 9.0 掉到 6.5。
 - 两张都不过门。若继续，林要换更稳的局部蒙版、避免二次长人；伊莲只需再抠领圈、左臂甲、腰甲。
+
+## 工作流问题 × 社区解法
+
+社区公开做法（crop-and-stitch、衣服 inpaint 教程、cubiq InstantID、本仓库 PR #74 已落地的 p01 抹胸）和这次跑偏点对上如下。不是另开一条生成指令，是对照表。
+
+### 社区标准栈（衣服局部改）
+
+| 层 | 社区常见做法 | 来源 |
+| --- | --- | --- |
+| 蒙版 | Grounding DINO + SAM 按「shirt / armor」自动抠，再 grow/blur 8–15px | [lewdly 衣服 inpaint](https://lewdly.ai/blog/comfyui-nsfw-inpainting-clothing-workflow)、Civitai auto clothes |
+| 裁切 | 只裁蒙版区到约 1024；洞太大要 **缩小** 再采，避免 double head / double body | [lquesada CropAndStitch](https://github.com/lquesada/ComfyUI-Inpaint-CropAndStitch)、[comfyorg 同思路](https://github.com/comfyorg/comfyui-crop-and-stitch) |
+| 条件 | `InpaintModelConditioning` + `noise_mask`，不要全图 `SetLatentNoiseMask` denoise 1.0 | 同上；本仓库 `inpaint_crop.py` |
+| denoise | 换衣服 / 去衣 **0.75–0.85**；&lt;0.7 容易留原衣纹理；&gt;0.9 比例易漂 | lewdly 表 |
+| 底模 | 专用 inpaint 权重，或 Fooocus inpaint patch，或 Flux Fill；纯写实底不如这些 | Acly Fooocus inpaint、Civitai Flux Fill / SDXL auto clothes |
+| 两遍 | 先 0.85 出内容，再 0.4 扩一点蒙版软边 | lewdly |
+| 边界 | Differential Diffusion + 模糊蒙版，按灰度局部 denoise | [ComfyUI Differential Diffusion](https://comfyui.nomadoor.net/en/basic-workflows/differential-diffusion/) |
+| 锁脸 | InstantID / FaceID 要 **能检出的正脸**；紧裁失败就加大 pad 或从头肩裁 | [cubiq InstantID](https://github.com/cubiq/ComfyUI_InstantID)、faceswap preprocess pad |
+| 收尾 | FaceDetailer denoise ~0.4，身份仍接同一张锁脸 | Impact Pack；本仓库 Scheme B / p01 |
+
+本仓库已按社区落地过的成功尺度：**p01 只蒙一条抹胸**（小洞）+ crop 1024 + denoise 0.75。旗袍全身竖条和半身铠甲边角，远大于那条抹胸。
+
+### 我们哪里偏了
+
+| 问题 | 这次实况 | 社区说法 | 对上的结论 |
+| --- | --- | --- | --- |
+| InstantID 断 | 板心 `ref-face.png`（下颌以上）→ `Reference Image: No face detected`；768 补边仍挂 | 锁脸要清晰正脸；紧裁 / 过小脸易挂；可加大 pad 或换头肩裁 | 实跑被迫无 InstantID。蒙版里生皮肤时无身份向量，更容易在旗袍轮廓里长第二人 |
+| 蒙版 | 手绘 polygon + 颜色启发式 | DINO+SAM 语义抠衣 | 伊莲领圈 / 护手 / 腰甲漏蒙 → `armor_remain`；林开衩边糊进肤色 |
+| denoise | 0.38 几乎不动；0.70 薄纱；0.84 长人 | 去衣要 0.75–0.85；&lt;0.7 留衣纹 | 林卡在「要褪衣就必须进社区区间」和「进了就长人」之间，没有工作点 |
+| 洞太大 | 旗袍整条竖洞一次 crop | CropAndStitch 明文：洞太大要 **downscale**，否则 double head/body | 林高 denoise 的第二人，和社区「洞太大长双人」是同一类失败 |
+| 底模 | 只用 RealVisXL + IMC | 社区换装多用 inpaint ckpt / Fooocus patch / Flux Fill | 蓝白花旗袍先验太强，中 denoise 被读成薄纱而不是裸肤 |
+| 结构锁 | 去衣采样无 OpenPose / Depth | SDXL 换装常加 ControlNet 保体型 | 高噪时躯干可被重解释成另一个人 |
+| 两遍策略 | 有时硬推高 denoise；有时只降 | 社区是高噪出内容 + 低噪收边，不是一直加噪 | 我们缺「第二遍只修边」 |
+| 成功参照 | p01 抹胸小洞过得去 | 同栈 | 证明 crop+0.75 在 **小衣服洞** 上成立；不证明能一次抠完整旗袍 |
+
+### 和 Scheme B 的关系
+
+社区「全身裸体底板」是另一条：OpenPose + InstantID + 提示写 nude（本仓库 `scheme_b_from_plate.py`）。那条会抹掉九尾和马身，这次不能用。
+
+社区「成衣静帧去衣」才是 crop-and-stitch。我们选对了族，但：
+
+1. 洞比社区示例大一个数量级；  
+2. 蒙版不是语义分割；  
+3. InstantID 输入不合 InsightFace；  
+4. 没有 inpaint 专用权重；  
+5. 撞上 double-body 时，社区解法是 **缩小 crop / 拆更小洞**，我们却主要靠 **降 denoise**，于是直接撞上 `clothes_remain`。
+
+### 若按社区改，优先序
+
+1. **SAM（+ Grounding DINO）抠衣**，伊莲甲片拆成领 / 胸 / 臂 / 腰多个小洞。  
+2. **InstantID 锁脸改成衣板上的头肩裁**（或加大 pad），保证 InsightFace 能检出；再在衣服 inpaint 上接身份。  
+3. 林：**拆洞 + 必要时缩小 crop**（防双人），再进 0.75–0.85；第二遍 0.4 收边。不要用「整条旗袍一次 0.84」。  
+4. 有磁盘就加 **Fooocus inpaint patch** 或 SDXL inpaint / Flux Fill；RealVisXL 只当退路。  
+5. 可选 Differential Diffusion 做蒙版灰度 denoise；FaceDetailer 收尾。  
+6. 文档与实跑对齐：InstantID 没挂上就不要写「已接 InstantID」。
+
+一句话：社区已经说明 **小洞 + 语义蒙版 + 0.75–0.85 + 专用 inpaint + 能检出的锁脸**；我们用了 crop 壳子，但洞太大、蒙版太粗、锁脸挂了、底模偏弱，所以林卡在双人/留衣互斥，伊莲卡在残甲漏蒙。
