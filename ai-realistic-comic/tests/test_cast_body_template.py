@@ -223,7 +223,8 @@ def test_prompts_only_change_look_and_clothes():
     assert "发箍" in gu_look
     assert "发套" not in mod.look_line("adrian_kane")
     elena = mod.look_line("elena_voss")
-    assert "蓝灰" in elena
+    assert "褐眼" in elena
+    assert "蓝灰" not in elena
     assert "琥珀" not in elena
     assert "赤褐" not in elena
     clothed = mod.clothed_prompt("lin_wantang", "front")

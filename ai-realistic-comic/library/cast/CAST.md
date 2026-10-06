@@ -1,17 +1,17 @@
 # 演员锁定 / CAST LOCK
 
-这一套是唯一的演员资产，不是两套系统。body-boards/p01..p08（八格样张的裁图）锁姿势和身体；演员目录 lin_wantang、gu_chengan、elena_voss、adrian_kane 各自保留今天的定妆 ref.png 和 actor.md（名字、脸、身体、衣柜），作为同一批人的脸和衣柜锁。p01–p04 是林晚棠 + 顾承安，p05–p08 是伊莲·沃斯 + 阿德里安·凯恩。没有第二套演员。
+这一套是唯一的演员资产，不是两套系统。body-boards/p01..p08（八格样张的裁图）锁姿势和身体；演员目录 lin_wantang、gu_chengan、elena_voss、adrian_kane 各自保留定妆和 actor.md（名字、脸、身体、衣柜），作为同一批人的脸和衣柜锁。p01–p04 是林晚棠 + 顾承安，p05–p08 是伊莲·沃斯 + 阿德里安·凯恩。没有第二套演员。
 
-女演员锁脸已于 2026-10-06 换成记事正面单人板（原创脸，非真人）。林晚棠 `cast/lin_wantang/ref.png` 是亚洲女正面：黑褐眼、自然唇、黑发松束。伊莲·沃斯 `cast/elena_voss/ref.png` 是欧美女正面：蓝灰眼、棕波浪发松束、人耳、无眼镜。旧女脸在各自 `archive/ref-retired-2026-10-05.png`，停用。侧脸和三视图未交付。男演员顾承安、阿德里安的 `ref.png` 不动。角色戏服和蛇尾不是这张锁脸。
+女演员身份锁是 2026-10-06 气质板**板心**那两张脸（用户原话：林和伊莲最新面容，以后就锁这两个）。林晚棠 `cast/lin_wantang/ref-face.png`：黑发东方清冷脸，黑褐眼，下颌以上，无衣领。伊莲·沃斯 `cast/elena_voss/ref-face.png`：棕卷发、圆框金丝眼镜、褐眼，下颌以上，无衣领。记事那两张干净正面不是同一个人，已进各自 archive（伊莲那张还是蓝灰眼、没戴眼镜，蓝灰眼不算她）。旧 10-05 女脸仍停用。侧脸和三视图未交付。男演员顾承安、阿德里安的 `ref.png` 不动。角色戏服和蛇尾不是这张锁脸。伊莲眼镜是否标志配饰待定；现行锁脸默认保留板心原样，去眼镜的裁法未启用，眼镜不进 H4。
 
-气质标签板在 `library/cast/mood/`，见 `library/cast/mood/LOOK.md`。那两张五合一合成图只提供亚洲女、欧美女的气质标签，不是真人肖像，也不覆盖上面四位的 `ref.png`。身份仍锁各自现有定妆。
+气质标签板在 `library/cast/mood/`，见 `library/cast/mood/LOOK.md`。当前汇总板是 v3：`mood/2026-10-06-asia-aesthetic-board-v3.jpg` 挂林晚棠，`mood/2026-10-06-eu-aesthetic-board-v3.jpg` 挂伊莲。板心是锁脸来源；四周标签、静物、风景不是脸。标签卡在 `mood/tags/`。这些都不是真人肖像。
 
-破限静帧（更露、贴得更近，姿势表情不动）只能走 `docs/explicit-still-mode.md` 和 `autodl/run_explicit8.py`。监督 bot 不得另开生成指令。收留按 `docs/still-score.md`：满分基准是亭中盘蛇 `library/stills/explicit-8/anchor-10.jpg`，硬门不过或八项均分低于 9 就在该脚本里重出这一张。蛇身是一条珍珠白鳞尾，尾尖圆钝且连在同一条尾巴上，不是蛇头，不是鱼尾。白蛇自己的人腿或人脚才算不合格；顾承安自己的脚不扣。人身格的人腿是对的。只有阿德里安有尖耳；伊莲是人耳，眼睛是蓝灰不是绿，也不再是琥珀褐。林晚棠眼睛是黑褐，不再用金黄瞳和正红唇认人。阿德里安不要武器。
+破限静帧（更露、贴得更近，姿势表情不动）只能走 `docs/explicit-still-mode.md` 和 `autodl/run_explicit8.py`。监督 bot 不得另开生成指令。收留按 `docs/still-score.md`：满分基准是亭中盘蛇 `library/stills/explicit-8/anchor-10.jpg`，硬门不过或八项均分低于 9 就在该脚本里重出这一张。蛇身是一条珍珠白鳞尾，尾尖圆钝且连在同一条尾巴上，不是蛇头，不是鱼尾。白蛇自己的人腿或人脚才算不合格；顾承安自己的脚不扣。人身格的人腿是对的。只有阿德里安有尖耳；伊莲是人耳，眼睛是褐色，绿眼仍不合格，蓝灰眼是记事错脸也不算她。林晚棠眼睛是黑褐，不再用金黄瞳和正红唇认人。阿德里安不要武器。
 
 它同时包含三样东西，缺一不可：
 
 1. **姿势 / 身体板** `library/cast/body-boards/p01.png` … `p08.png`。从唯一样张八格 `library/samples/approved/01-grid.jpg`（与用户附件同一文件）按 2×4、从左到右、先上后下裁出。每张只锁那一格的姿势、表情和身体关系。没有第二套身体板。
-2. **脸锁** `lin_wantang/ref.png`、`gu_chengan/ref.png`、`elena_voss/ref.png`、`adrian_kane/ref.png`。女演员这两张是 2026-10-06 正面锁脸；男演员仍是原来的定妆。这是同一批人的脸锁，不是另一套身体板，也不是 `library_pose_dingzhuang`。
+2. **脸锁** 女演员 `lin_wantang/ref-face.png`、`elena_voss/ref-face.png`（气质板板心裁切）；男演员 `gu_chengan/ref.png`、`adrian_kane/ref.png`。这是同一批人的脸锁，不是另一套身体板，也不是 `library_pose_dingzhuang`。
 3. **演员名和面容身体细则** 各自的 `actor.md`。名字保留：林晚棠、顾承安、伊莲·沃斯、阿德里安·凯恩。
 
 八格里的人就是这四位演员。上排（p01–p04）是林晚棠与顾承安；下排（p05–p08）是伊莲·沃斯与阿德里安·凯恩。神话名（白素贞、许仙、珀耳塞福涅、哈迪斯）只是他们正在演的角色，不是另一张脸。
@@ -25,9 +25,9 @@
 
 | id | 中文名 | English | standing slot | 当前饰演角色 | 脸和衣柜锁（F34 定妆） | 细则 |
 |---|---|---|---|---|---|---|
-| lin_wantang | 林晚棠 | Lin Wantang | 亚洲女性 | 白素贞 | `cast/lin_wantang/ref.png` | `cast/lin_wantang/actor.md` |
+| lin_wantang | 林晚棠 | Lin Wantang | 亚洲女性 | 白素贞 | `cast/lin_wantang/ref-face.png` | `cast/lin_wantang/actor.md` |
 | gu_chengan | 顾承安 | Gu Cheng'an | 亚洲男性 | 许仙 | `cast/gu_chengan/ref.png` | `cast/gu_chengan/actor.md` |
-| elena_voss | 伊莲·沃斯 | Elena Voss | 西方女性 | 珀耳塞福涅 | `cast/elena_voss/ref.png` | `cast/elena_voss/actor.md` |
+| elena_voss | 伊莲·沃斯 | Elena Voss | 西方女性 | 珀耳塞福涅 | `cast/elena_voss/ref-face.png` | `cast/elena_voss/actor.md` |
 | adrian_kane | 阿德里安·凯恩 | Adrian Kane | 西方男性 | 哈迪斯 | `cast/adrian_kane/ref.png` | `cast/adrian_kane/actor.md` |
 
 ## 八格身体板 / The only body boards
@@ -45,7 +45,7 @@
 
 ## 使用顺序 / Order of use
 
-1. 出图时两张参考一起用：该格的 `body-boards/p0N.png` 锁姿势和表情；对应演员的 `ref.png` 锁脸和衣柜。Read the panel body board for pose and expression, and that actor's makeup `ref.png` for face and wardrobe. Both belong to this one cast.
+1. 出图时两张参考一起用：该格的 `body-boards/p0N.png` 锁姿势和表情；女演员用 `ref-face.png` 锁脸，男演员用 `ref.png` 锁脸和衣柜。Read the panel body board for pose and expression, and that actor's lock face for identity. Both belong to this one cast.
 2. 角色名只用于场景叙述，不产生新脸。Role names never create a new face.
 3. 林晚棠的蛇身是她自己的身体变体（珍珠白钝尾，不是鱼尾）。p02 的青色是水光，尾巴本身仍是珍珠白钝尾。
 4. 不要另建身体板目录，不要把定妆照或 `library_pose_dingzhuang` 当成第二套身体板。

@@ -1,12 +1,12 @@
 # 白素贞 / Bai Suzhen — makeup sheet
 
-> **Cast lock 演员锁定：** 白素贞由固定演员林晚棠（lin_wantang）出演，脸和身体必须匹配 `ai-realistic-comic/library/cast/lin_wantang/actor.md` 与 `ref.png`，不得漂移（this role is played by the standing actor Lin Wantang; face and body must match the cast actor.md and ref.png, do not drift）。
+> **Cast lock 演员锁定：** 白素贞由固定演员林晚棠（lin_wantang）出演，脸和身体必须匹配 `ai-realistic-comic/library/cast/lin_wantang/actor.md` 与 `ref-face.png`，不得漂移（this role is played by the standing actor Lin Wantang; face and body must match the cast actor.md and ref-face.png, do not drift）。
 
 Same adult woman in two bodies. Do not invent a second face.
 
 ## Face 脸
 
-Even light skin, soft oval, clear black-brown eyes, natural brows, nude-pink lips. No gold irises, no crimson lips, no pearl-dot scale lace. The lock is `library/cast/lin_wantang/ref.png`. Late twenties.
+Even light skin, soft oval, clear black-brown eyes, natural brows, nude-pink lips. No gold irises, no crimson lips, no pearl-dot scale lace. The lock is `library/cast/lin_wantang/ref-face.png`. Late twenties.
 
 浅色皮肤，柔和脸型，黑褐眼，自然眉，自然唇。不要浅金瞳，不要正红唇，不要鳞点妆。成年。
 

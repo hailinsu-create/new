@@ -221,7 +221,7 @@ _PERIOD_LOOK = {
 }
 
 _KEEP_LOOK = {
-    "elena_voss": "保持棕波浪发松松束起、蓝灰眼、人耳，不要眼镜。",
+    "elena_voss": "保持棕卷发松松束起、褐眼、人耳。眼镜待定，现行锁脸带着板心圆框金丝眼镜。",
     "adrian_kane": "保持深色发、浅蓝灰眼、尖耳，无武器。",
 }
 
@@ -444,7 +444,7 @@ def negative_for(actor: str, stage: str = "pass1") -> str:
         if actor in PERIOD_RELEASE:
             return base + ",发髻,头饰,花钿,红唇,古装妆,浓妆,金黄瞳"
         if actor == "elena_voss":
-            return base + ",眼镜,尖耳,绿眼,赤褐发"
+            return base + ",尖耳,绿眼,蓝灰眼,赤褐发"
         return base
     base = "磨皮,塑料皮肤,衣服,内衣,短裤,裙子,袍子,文字,水印,未成年人"
     if actor in PERIOD_RELEASE:

@@ -1,7 +1,7 @@
 # explicit-8 — one cast, eight stills
 
 Same four adults. Pose and face emotion stay locked to `library/cast/body-boards/p0N.png`.
-Face identity from the matching actor `ref.png`. Clothing and contact go further than the board:
+Face identity from the matching actor lock. Female InstantID is `ref-face.png` cropped from the v3 board center. Clothing and contact go further than the board:
 more skin, sheer or opened clothes, closer sexual contact. No text, no watermark, no minors.
 林晚棠 snake panels: one unbroken pearl-white snake tail, scales from the root to a blunt rounded tip, not a fish, not a head, not a cut tip. p01 and p02 have no human legs and no human feet. Faces stay on the cast refs; pose and expression stay on the body board.
 
@@ -12,7 +12,7 @@ panel: p01
 actors: lin_wantang gu_chengan
 refs:
 - library/cast/body-boards/p01.png
-- library/cast/lin_wantang/ref.png
+- library/cast/lin_wantang/ref-face.png
 - library/cast/gu_chengan/ref.png
 width: 896
 height: 1200
@@ -29,7 +29,7 @@ panel: p02
 actors: lin_wantang gu_chengan
 refs:
 - library/cast/body-boards/p02.png
-- library/cast/lin_wantang/ref.png
+- library/cast/lin_wantang/ref-face.png
 - library/cast/gu_chengan/ref.png
 width: 896
 height: 1200
@@ -46,7 +46,7 @@ panel: p03
 actors: lin_wantang gu_chengan
 refs:
 - library/cast/body-boards/p03.png
-- library/cast/lin_wantang/ref.png
+- library/cast/lin_wantang/ref-face.png
 - library/cast/gu_chengan/ref.png
 width: 896
 height: 1200
@@ -63,7 +63,7 @@ panel: p04
 actors: lin_wantang gu_chengan
 refs:
 - library/cast/body-boards/p04.png
-- library/cast/lin_wantang/ref.png
+- library/cast/lin_wantang/ref-face.png
 - library/cast/gu_chengan/ref.png
 width: 896
 height: 1200
@@ -80,12 +80,12 @@ panel: p05
 actors: elena_voss adrian_kane
 refs:
 - library/cast/body-boards/p05.png
-- library/cast/elena_voss/ref.png
+- library/cast/elena_voss/ref-face.png
 - library/cast/adrian_kane/ref.png
 width: 896
 height: 1200
 <!-- GEN_START -->
-Photoreal cinematic still, same standing embrace as the first reference. Adult Elena Voss and adult Adrian Kane in the underworld, fur cloak, pomegranate, torch if present in the board. Keep faces, his pointed ears, pale blue-grey eyes, her blue-grey eyes, soft brown waves loosely pulled back, no glasses, and wheat-berry crown as costume, and the expression on the board. Her green gown is sheer and open down the front, crimson sash loose, one breast and the high slit fully bare, his cloak open on a bare chest, her hips pressed to his, his hand low on her bare waist and buttock, faces close. No text.
+Photoreal cinematic still, same standing embrace as the first reference. Adult Elena Voss and adult Adrian Kane in the underworld, fur cloak, pomegranate, torch if present in the board. Keep faces, his pointed ears, pale blue-grey eyes, her brown eyes, brown curls loosely pulled back, and wheat-berry crown as costume, and the expression on the board. Her green gown is sheer and open down the front, crimson sash loose, one breast and the high slit fully bare, his cloak open on a bare chest, her hips pressed to his, his hand low on her bare waist and buttock, faces close. No text.
 <!-- GEN_END -->
 <!-- NEG_START -->
 text, watermark, child, extra people, human ears on him, changed eye color, weapon, fully closed gown
@@ -97,7 +97,7 @@ panel: p06
 actors: elena_voss adrian_kane
 refs:
 - library/cast/body-boards/p06.png
-- library/cast/elena_voss/ref.png
+- library/cast/elena_voss/ref-face.png
 - library/cast/adrian_kane/ref.png
 width: 896
 height: 1200
@@ -114,7 +114,7 @@ panel: p07
 actors: elena_voss adrian_kane
 refs:
 - library/cast/body-boards/p07.png
-- library/cast/elena_voss/ref.png
+- library/cast/elena_voss/ref-face.png
 - library/cast/adrian_kane/ref.png
 width: 896
 height: 1200
@@ -131,7 +131,7 @@ panel: p08
 actors: elena_voss adrian_kane
 refs:
 - library/cast/body-boards/p08.png
-- library/cast/elena_voss/ref.png
+- library/cast/elena_voss/ref-face.png
 - library/cast/adrian_kane/ref.png
 width: 896
 height: 1200
