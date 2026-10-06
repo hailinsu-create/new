@@ -1,0 +1,16 @@
+{
+  "identity": 9,
+  "distinction": 9,
+  "interaction": 9,
+  "aesthetics": 9,
+  "anatomy": 9,
+  "wardrobe": 2,
+  "motif": 3,
+  "photoreal": 9,
+  "mean": 7.375,
+  "gates": [
+    "intact_clothes"
+  ],
+  "notes": "面容与锁脸参考高度一致，褐眼正确；单人站姿挺拔，马身及四肢结构自然。铠甲主体几乎完整，仅肩部局部缺损，未呈现明显破碎或撕裂，也未露出大片人类肌肤躯体，不满足破衣／破甲要求。",
+  "scorer": "codex"
+}

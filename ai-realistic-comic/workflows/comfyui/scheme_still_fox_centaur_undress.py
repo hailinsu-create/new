@@ -38,12 +38,12 @@ STILL_DIR = CAST_ROOT / "library" / "stills" / "fox-centaur-embrace"
 LIN_PLATE = STILL_DIR / "lin-qipao-nine-tail.png"
 ELENA_PLATE = STILL_DIR / "elena-armor-centaur.png"
 
-SAMPLER_SEED = 20261006
-CLOTH_DENOISE = 0.85
-TORN_DENOISE = 0.83
-EDGE_DENOISE = 0.42
+SAMPLER_SEED = 20261007
+CLOTH_DENOISE = 0.88
+TORN_DENOISE = 0.88
+EDGE_DENOISE = 0.40
 MASK_BLUR = 14
-MAX_CONTENT_FRAC = 0.55
+MAX_CONTENT_FRAC = 0.52
 
 BJ_UUID = "359a49a1c3-4cda10df"
 F34_UUID = "xaxna66hqt-c5c9c7fc"
@@ -229,55 +229,72 @@ def pad_face_for_instantid(src: Image.Image, size: int = 768) -> Image.Image:
 
 
 def lin_nude_passes() -> list[RegionPass]:
-    # One torso hole + edge. Stacking InstantID chest/mid/skirt passes left sheer cloth and smear.
+    # Non-overlapping bands; one giant smear hole failed anatomy.
     return [
-        RegionPass("lin-nude-torso", (330, 280, 560, 1260), CLOTH_DENOISE, LIN_NUDE_POS, LIN_NUDE_NEG),
-        RegionPass("lin-nude-edge", (330, 280, 560, 1260), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=28),
+        RegionPass("lin-nude-chest", (350, 300, 540, 540), CLOTH_DENOISE, LIN_NUDE_POS, LIN_NUDE_NEG),
+        RegionPass("lin-nude-belly", (340, 540, 530, 820), CLOTH_DENOISE, LIN_NUDE_POS, LIN_NUDE_NEG),
+        RegionPass("lin-nude-hips", (335, 820, 520, 1180), CLOTH_DENOISE, LIN_NUDE_POS, LIN_NUDE_NEG),
+        RegionPass("lin-nude-edge", (340, 310, 535, 1160), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=18),
     ]
 
 
 def elena_nude_passes() -> list[RegionPass]:
-    # Human torso + arms only; never stack four InstantID passes (spawned extra limbs).
+    # Breastplate-first; arm/hip separate — a full-torso hole spawned a second woman.
     return [
-        RegionPass("elena-nude-torso", (150, 220, 560, 720), CLOTH_DENOISE, ELENA_NUDE_POS, ELENA_NUDE_NEG),
-        RegionPass("elena-nude-edge", (150, 220, 560, 720), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=24),
+        RegionPass("elena-nude-chest", (300, 240, 540, 520), CLOTH_DENOISE, ELENA_NUDE_POS, ELENA_NUDE_NEG),
+        RegionPass("elena-nude-arm", (150, 280, 310, 640), CLOTH_DENOISE, ELENA_NUDE_POS, ELENA_NUDE_NEG),
+        RegionPass("elena-nude-waist", (310, 500, 540, 700), CLOTH_DENOISE, ELENA_NUDE_POS, ELENA_NUDE_NEG),
+        RegionPass("elena-nude-edge", (155, 240, 545, 700), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=16),
     ]
 
 
 def lin_torn_passes() -> list[RegionPass]:
-    # Few large jagged tears so Codex sees shredded cloth, not couture cutouts.
+    # Push wardrobe past 7: bigger skin windows + shredded remnants.
     return [
         RegionPass(
             "lin-torn-front",
-            (340, 290, 560, 1100),
+            (340, 290, 560, 1120),
             TORN_DENOISE,
             LIN_TORN_POS,
             LIN_TORN_NEG,
             ellipses=(
-                (350, 310, 520, 500),
-                (360, 480, 540, 700),
-                (350, 700, 500, 980),
+                (345, 300, 535, 520),
+                (350, 500, 545, 760),
+                (345, 740, 520, 1050),
             ),
         ),
-        RegionPass("lin-torn-edge", (340, 290, 560, 1100), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=18),
+        RegionPass("lin-torn-edge", (340, 290, 560, 1120), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=20),
     ]
 
 
 def elena_torn_passes() -> list[RegionPass]:
+    # Prior torn barely scratched paint — open the breastplate hard.
     return [
         RegionPass(
-            "elena-torn-front",
-            (160, 220, 560, 700),
+            "elena-torn-chest",
+            (290, 230, 550, 560),
             TORN_DENOISE,
             ELENA_TORN_POS,
             ELENA_TORN_NEG,
-            ellipses=(
-                (300, 240, 520, 480),
-                (170, 300, 310, 620),
-                (320, 480, 540, 680),
-            ),
+            ellipses=((300, 250, 540, 520),),
         ),
-        RegionPass("elena-torn-edge", (160, 220, 560, 700), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=18),
+        RegionPass(
+            "elena-torn-arm",
+            (150, 280, 320, 640),
+            TORN_DENOISE,
+            ELENA_TORN_POS,
+            ELENA_TORN_NEG,
+            ellipses=((160, 300, 300, 600),),
+        ),
+        RegionPass(
+            "elena-torn-waist",
+            (310, 500, 545, 700),
+            TORN_DENOISE,
+            ELENA_TORN_POS,
+            ELENA_TORN_NEG,
+            ellipses=((320, 510, 535, 690),),
+        ),
+        RegionPass("elena-torn-edge", (155, 235, 545, 695), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=16),
     ]
 
 

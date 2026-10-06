@@ -1,17 +1,16 @@
 {
-  "identity": 8,
+  "identity": 9,
   "distinction": 8,
-  "interaction": 8,
-  "aesthetics": 8,
-  "anatomy": 4,
-  "wardrobe": 0,
-  "motif": 8,
-  "photoreal": 8,
-  "mean": 6.5,
+  "interaction": 9,
+  "aesthetics": 6,
+  "anatomy": 3,
+  "wardrobe": 1,
+  "motif": 9,
+  "photoreal": 6,
+  "mean": 6.375,
   "gates": [
     "clothes_remain"
   ],
-  "notes": "脸部与锁脸参考较接近，单人站姿仍挺拔。旗袍大面积保留，胸腹髋腿未全部成为裸露皮肤，去衣目标未完成。大腿前出现多余手臂和手，人体结构明显异常。狐尾仍在，可辨约八条，重叠可能遮住第九条，不据此判硬门。",
-  "scorer": "codex",
-  "tail_count": 8
+  "notes": "脸部与锁脸参考高度一致，单人站姿仍挺拔，九尾狐特征保留。旗袍领口、下摆印花及高跟鞋仍在；躯干至腿部呈肤色筒状覆盖，未形成自然裸露人体，胸腹、骨盆与腿部结构明显异常。肤色覆盖区域与周围皮肤、布料的质感衔接不自然。",
+  "scorer": "codex"
 }

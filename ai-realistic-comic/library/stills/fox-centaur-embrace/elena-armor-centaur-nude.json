@@ -1,16 +1,18 @@
 {
-  "identity": 9,
-  "distinction": 9,
-  "interaction": 9,
-  "aesthetics": 9,
-  "anatomy": 8,
-  "wardrobe": 3,
-  "motif": 8,
-  "photoreal": 9,
-  "mean": 8,
+  "identity": 8,
+  "distinction": 3,
+  "interaction": 4,
+  "aesthetics": 5,
+  "anatomy": 2,
+  "wardrobe": 2,
+  "motif": 7,
+  "photoreal": 8,
+  "mean": 4.875,
   "gates": [
-    "armor_remain"
+    "extra_person",
+    "armor_remain",
+    "clothes_remain"
   ],
-  "notes": "脸部与锁脸参考高度一致，褐眼正确。半人马站姿挺拔，马身及四条马腿完整保留；人马衔接略显生硬。去衣不彻底：颈部金属护领、手臂护甲与手甲仍在，腰部也残留甲片，触发 armor_remain。圆框金丝眼镜不计硬门。",
+  "notes": "上方伊莲脸部接近锁脸参考，眼睛呈褐色。出现第二名女性，破坏单人挺拔站姿；双人躯干与马身连接异常。金属护手、腰部甲片及上方躯干的毛皮覆盖仍在，去衣不完整。马身、四足和马尾保留，光影与材质较真实。",
   "scorer": "codex"
 }
