@@ -456,8 +456,10 @@ def clear_torso_cloth(host: str, actor: str, view: str, image_path: Path, input_
     """RealVisXL draws a black ribbon when the figure is scaled to keep the feet.
 
     A solid sternum inpaint removes that ribbon. Back views are skipped so a
-    ponytail is not treated as cloth. Near-black pixels only; a light wrap is
-    left for the scorer.
+    ponytail is not treated as cloth. A dark pixel counts only when skin sits
+    on both sides, so hair against the gray background is not a ribbon. A
+    light wrap is left for the scorer. The box is capped so it cannot cover
+    an arm or the hips.
     """
     if view == "back":
         print(f"CLEAN_SKIP {actor} {view} back", flush=True)
@@ -468,18 +470,42 @@ def clear_torso_cloth(host: str, actor: str, view: str, image_path: Path, input_
     src = Image.open(image_path).convert("RGB")
     arr = np.asarray(src)
     height, width = arr.shape[:2]
-    y0, y1 = int(0.155 * height), int(0.45 * height)
+    y0, y1 = int(0.155 * height), int(0.42 * height)
     x0, x1 = int(0.32 * width), int(0.68 * width)
-    dark = arr[y0:y1, x0:x1].max(axis=2) < 48
-    count = int(dark.sum())
-    if count < 250:
-        print(f"CLEAN_SKIP {actor} {view} dark={count}", flush=True)
-        return image_path
+    region = arr[y0:y1, x0:x1]
+    dark = region.max(axis=2) < 48
     ys, xs = np.nonzero(dark)
-    left = max(0, int(xs.min()) + x0 - 28)
-    right = min(width - 1, int(xs.max()) + x0 + 28)
-    top = max(int(0.15 * height), int(ys.min()) + y0 - 24)
-    bottom = min(int(0.50 * height), int(ys.max()) + y0 + 36)
+    if len(xs) == 0:
+        print(f"CLEAN_SKIP {actor} {view} dark=0", flush=True)
+        return image_path
+    abs_y = ys + y0
+    abs_x = xs + x0
+    left_x = abs_x - 22
+    right_x = abs_x + 22
+    inside = (left_x >= 0) & (right_x < width)
+    left_px = arr[abs_y[inside], left_x[inside]]
+    right_px = arr[abs_y[inside], right_x[inside]]
+
+    def _skin(px: np.ndarray) -> np.ndarray:
+        red = px[:, 0].astype(np.int16)
+        blue = px[:, 2].astype(np.int16)
+        peak = px.max(axis=1).astype(np.int16)
+        return (red > 130) & (red > blue + 15) & (peak > 80)
+
+    kept = _skin(left_px) & _skin(right_px)
+    count = int(kept.sum())
+    if count < 120:
+        print(f"CLEAN_SKIP {actor} {view} ribbon={count}", flush=True)
+        return image_path
+    keep_y = abs_y[inside][kept]
+    keep_x = abs_x[inside][kept]
+    left = max(0, int(keep_x.min()) - 28)
+    right = min(width - 1, int(keep_x.max()) + 28)
+    top = max(int(0.15 * height), int(keep_y.min()) - 24)
+    bottom = min(int(0.42 * height), int(keep_y.max()) + 36)
+    if right - left > 340 or bottom - top > 380:
+        print(f"CLEAN_SKIP {actor} {view} box={left},{top},{right},{bottom}", flush=True)
+        return image_path
     mask = Image.new("L", (width, height), 0)
     ImageDraw.Draw(mask).rounded_rectangle((left, top, right, bottom), radius=20, fill=255)
     mask = mask.filter(ImageFilter.GaussianBlur(radius=8))
