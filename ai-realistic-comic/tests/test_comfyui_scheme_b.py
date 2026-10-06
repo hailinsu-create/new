@@ -29,3 +29,8 @@ def test_scheme_b_keeps_qwen_seeds_abandoned_and_skips_adrian():
     assert "FaceDetailer" not in back_prompt
     assert "86`–`98`" in history
     assert "从 `99` 起" in history
+    assert "SetLatentNoiseMask" not in script
+    assert "ref-face.png" in script
+    assert "InpaintModelConditioning" in (ROOT / "workflows" / "comfyui" / "inpaint_crop.py").read_text(
+        encoding="utf-8"
+    )

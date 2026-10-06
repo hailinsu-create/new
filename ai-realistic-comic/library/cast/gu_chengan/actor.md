@@ -6,6 +6,7 @@
 - **Standing slot:** 亚洲男性 Asian man（Asian male lead）
 - **Maps-to role:** 许仙 / Xu Xian（character folder `library/characters/xuxian/`）。这是他当前饰演的角色，不是他的身份；任何未来的亚洲男性镜头都用这张脸，换角色不改脸。
 - **Source sheet:** `library/cast/gu_chengan/ref.png` — the F34 Qwen makeup sheet (896×1200, one full-body standing view). Sheet wins over older text (including the old card line that says the gown is worn open at the chest — **on this sheet the robe is closed**).
+- **Lock face:** `library/cast/gu_chengan/ref-face.png` — 下颌以上正脸裁自同一张 `ref.png`，含顶髻。InstantID 用这张，不用全身站姿，避免药桶和合拢长袍漏进双人图。头上的深蓝抹额仍是定妆的一部分；p01 戏里若不要宽抹额，靠提示和负向压，不另造一张脸。
 - **Age appearance:** adult, late twenties.
 
 ## Face 脸

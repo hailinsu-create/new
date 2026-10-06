@@ -96,10 +96,18 @@ InstantID 用 antelopev2。IP-Adapter FaceID Plus V2 的统一加载器默认下
 
 ## 工作流
 
-仓库里的可运行脚本是 `workflows/comfyui/scheme_b_from_plate.py`。API 格式示例：
+仓库里的可运行脚本：
+
+- `workflows/comfyui/scheme_b_from_plate.py` 单人裸体三向
+- `workflows/comfyui/scheme_still_multi_id.py` 双人静帧 Multi-ID
+- `workflows/comfyui/inpaint_crop.py` 两套共用的 1024 裁切缝回
+
+API 格式示例：
 
 - `workflows/comfyui/scheme-b-front-side.api.json` 正面和侧面（林晚棠正面的图）
 - `workflows/comfyui/scheme-b-back.api.json` 背面
+- `workflows/comfyui/scheme-still-p01.api.json` p01 双 InstantID
+- `workflows/comfyui/scheme-still-p01-cloth.api.json` p01 抹胸裁切
 
 这些图是社区节点拼出来的，不是把别人的整张工作流原样导入。
 
@@ -109,6 +117,8 @@ InstantID 用 antelopev2。IP-Adapter FaceID Plus V2 的统一加载器默认下
 | [ComfyUI_InstantID](https://github.com/cubiq/ComfyUI_InstantID) | InstantX/InstantID 的移植。身份来自锁脸，关键点来自穿衣底板，侧面不会被拉成正面 |
 | [IPAdapter FaceID Plus V2](https://github.com/cubiq/ComfyUI_IPAdapter_plus) | 预设 FACEID PLUS V2，权重来自 h94/IP-Adapter-FaceID。只接到 FaceDetailer 的模型上，不和 InstantID 叠在同一次采样上 |
 | [comfyui_controlnet_aux](https://github.com/Fannovel16/comfyui_controlnet_aux) 的 DWPose，加 [xinsir/controlnet-openpose-sdxl-1.0](https://huggingface.co/xinsir/controlnet-openpose-sdxl-1.0) | 穿衣底板出姿势。`scale_stick_for_xinsr_cn=enable`，手和身体开，脸关 |
+| cubiq [InstantID Multi-ID 示例](https://github.com/cubiq/ComfyUI_InstantID/blob/main/examples/InstantID_multi_id.json) | 双人图：互补 mask、一次采样、锁脸与姿势分开 |
+| [Inpaint Crop and Stitch](https://github.com/lquesada/ComfyUI-Inpaint-CropAndStitch) 的做法，节点用 ComfyUI 自带的 `InpaintModelConditioning` | 去衣和清丝带：约 1024 裁切，denoise 0.75，未蒙住的像素不进 VAE |
 
 Qwen 去衣把身份和脱衣压进同一次 448 编辑，没有一张八项都过。用户作废了那些种子，所以不用方案 A 去修籽 86 或 98。
 
@@ -117,26 +127,44 @@ Qwen 去衣把身份和脱衣压进同一次 448 编辑，没有一张八项都�
 1. 穿衣底板进 DWPose（`yolox_l.onnx` + `dw-ll_ucoco_384.onnx`）。
 2. 姿势图缩到 0.86，贴到 1024×1536 黑底的 `(72, 40)`。不缩小的时候脚会被裁掉；缩得太多胸口更容易长出丝带。0.86 是脚还在画面里的那一档。
 3. xinsir OpenPose，strength 0.95。
-4. 正面和侧面：锁脸进 InstantID（weight 0.8，CPU），脸关键点用同一套缩放贴回全画布。`ApplyInstantID` 的 `image_kps` 必须是照片或全画布关键点。检测失败时节点会把这张关键点图本身当控制图，这是预期，不是没提出脸。锁脸本身要能检出脸。
+4. 正面和侧面：锁脸进 InstantID（weight 0.8，CPU）。身份图优先 `{actor}-ref-face.png`（下颌以上），没有才退回 `{actor}-ref.png`。全身定妆会把衣服漏进身份。脸关键点用同一套缩放贴回全画布。`ApplyInstantID` 的 `image_kps` 必须是照片或全画布关键点。检测失败时节点会把这张关键点图本身当控制图，这是预期，不是没提出脸。锁脸本身要能检出脸。
 5. 主采样：种子 `20261006`（ComfyUI 采样种子，不是 Qwen 去衣种子），26 步，cfg 4，`dpmpp_2m` / `karras`，1024×1536。
 6. FaceDetailer：guide 768，16 步，cfg 4.5，denoise 0.40。FaceID Plus V2 的 `lora_strength` 0.6，`weight` 0.85，`weight_faceidv2` 1.0，`weight_type` linear，`embeds_scaling` 为 `V only`，provider CPU。SAM 是 `sam_vit_b`。
 7. 背面只有 OpenPose，不喂脸，不做 FaceDetailer。
 
-RealVisXL 在缩小后的全身图上仍会画黑丝带或抹胸。脚本在正面和侧面出图后，只把「左右两侧都是皮肤」的近黑像素当成丝带（高 15.5%–42%、宽 32%–68%，通道低于 48，至少 120 个这样的像素）。头发贴着灰背景，不会被算进去。够数就用实心矩形蒙版做一次 denoise 1.0 的重绘，种子 `20261009`，20 步，cfg 4.5，提示只写裸露的胸口皮肤。矩形宽超过 340 或高超过 380 就放弃，避免把手臂或胯一起重绘。背面不跑这一步。浅色布这一步认不出来。
+RealVisXL 在缩小后的全身图上仍会画黑丝带或抹胸。脚本在正面和侧面出图后，只把「左右两侧都是皮肤」的近黑像素当成丝带（高 15.5%–42%、宽 32%–68%，通道低于 48，至少 120 个这样的像素）。头发贴着灰背景，不会被算进去。够数就把胸口裁到约 1024，用 ComfyUI 核心节点 `InpaintModelConditioning`（`noise_mask=true`）做 denoise **0.75** 的重绘，再缝回原图。未蒙住的像素不进 VAE。这是社区 crop-and-stitch 做法，不是全图画 `SetLatentNoiseMask` denoise 1.0。种子 `20261009`，22 步，cfg 4.5，蒙版模糊 12px。矩形宽超过 340 或高超过 380 就放弃，避免把手臂或胯一起重绘。背面不跑这一步。浅色布这一步认不出来。北京没有专用 SDXL inpaint 底模，仍用 RealVisXL。
 
 第一版清理用的是全部近黑像素的外接矩形。伊莲侧面那一版把远处的手臂画薄了，所以打分用的是清理前的那张。林晚棠正面的丝带是后一步收紧蒙版之前清掉的。
 
-输入文件名是 `{actor}-{view}-clothed.png` 和 `{actor}-ref.png`，放在 ComfyUI 的 `input/`。仓库里有九张穿衣 png：林晚棠、顾承安、伊莲各正面、侧面、背面。阿德里安只有 `ref.png`，没有 `body-clothed/`，这轮不补底板，也不出他的裸体。
+输入文件名是 `{actor}-{view}-clothed.png` 和 `{actor}-ref-face.png`（没有脸裁才用 `{actor}-ref.png`），放在 ComfyUI 的 `input/`。仓库里有九张穿衣 png：林晚棠、顾承安、伊莲各正面、侧面、背面。林和顾都有 `ref-face.png`。阿德里安只有 `ref.png`，没有 `body-clothed/`，这轮不补底板，也不出他的裸体。
 
-调用（在北京机器上，ComfyUI 已监听本机 8188）：
+把整个 `workflows/comfyui/` 目录拷到机器，不要只拷一个 py。调用（在北京机器上，ComfyUI 已监听本机 8188）：
 
 ```bash
-/root/miniconda3/bin/python /root/autodl-tmp/scheme_b_from_plate.py \
+/root/miniconda3/bin/python /root/autodl-tmp/comfy-workflows/scheme_b_from_plate.py \
   --only lin_wantang front \
   --out /root/autodl-tmp/comfy-runs
 ```
 
 不带 `--only` 会按脚本里的九张顺序跑。结果写到 `--out/{actor}-{view}.png`。
+
+## 双人静帧（北京 Multi-ID）
+
+CAST.md 仍把破限静帧绑在 F34 的 `autodl/run_explicit8.py`。那条脚本这轮没改。F34 不开的时候，北京走 `workflows/comfyui/scheme_still_multi_id.py`。图的形状跟 cubiq 官方 `examples/InstantID_multi_id.json`：一次 KSampler，两条 `ApplyInstantID` 互补脸 mask，锁脸进 `image`，姿势进 `image_kps`，`ConditioningCombine`。InsightFace 在关键点图里只取最大脸，所以另一张脸要涂黑。不要把脸裁出来做主采样，也不要 PIL 椭圆贴回去当主锁脸。
+
+去衣是后一步：只蒙抹胸，1024 裁切，`InpaintModelConditioning` denoise 0.75，缝回。不重绘她按在他胸口的手。FaceDetailer 最后按人各做一次。
+
+默认姿势锁 `library/cast/body-boards/p01.png`，脸锁林/顾的 `ref-face.png`。采样种子 `20261011`。脸部 inpaint denoise 0.70。CFG 4。
+
+```bash
+/root/miniconda3/bin/python /root/autodl-tmp/comfy-workflows/scheme_still_multi_id.py \
+  --pose /root/autodl-tmp/p01-pose.png \
+  --lin-face /root/autodl-tmp/lin-ref-face.png \
+  --gu-face /root/autodl-tmp/gu-ref-face.png \
+  --out /root/autodl-tmp/comfy-runs/p01-still
+```
+
+API 示例：`workflows/comfyui/scheme-still-p01.api.json` 和 `scheme-still-p01-cloth.api.json`。
 
 ## 打分
 

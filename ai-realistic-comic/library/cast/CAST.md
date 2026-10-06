@@ -4,7 +4,7 @@
 
 女演员锁脸已于 2026-10-06 换成记事正面单人板（原创脸，非真人）。林晚棠 `cast/lin_wantang/ref.png` 是亚洲女正面：黑褐眼、自然唇、黑发松束。伊莲·沃斯 `cast/elena_voss/ref.png` 是欧美女正面：蓝灰眼、棕波浪发松束、人耳、无眼镜。旧女脸在各自 `archive/ref-retired-2026-10-05.png`，停用。侧脸和三视图未交付。男演员顾承安、阿德里安的 `ref.png` 不动。角色戏服和蛇尾不是这张锁脸。
 
-气质标签板在 `library/cast/mood/`，见 `library/cast/mood/LOOK.md`。那两张五合一合成图只提供亚洲女、欧美女的气质标签，不是真人肖像，也不覆盖上面四位的 `ref.png`。身份仍锁各自现有定妆。
+气质标签板在 `library/cast/mood/`，见 `library/cast/mood/LOOK.md`。当前汇总板是 v3：`mood/2026-10-06-asia-aesthetic-board-v3.jpg` 挂林晚棠的气质，`mood/2026-10-06-eu-aesthetic-board-v3.jpg` 挂伊莲的气质。标签卡在 `mood/tags/`。这些都不是真人肖像，也不覆盖四位的 `ref.png`。身份仍锁各自现有定妆。
 
 破限静帧（更露、贴得更近，姿势表情不动）只能走 `docs/explicit-still-mode.md` 和 `autodl/run_explicit8.py`。监督 bot 不得另开生成指令。收留按 `docs/still-score.md`：满分基准是亭中盘蛇 `library/stills/explicit-8/anchor-10.jpg`，硬门不过或八项均分低于 9 就在该脚本里重出这一张。蛇身是一条珍珠白鳞尾，尾尖圆钝且连在同一条尾巴上，不是蛇头，不是鱼尾。白蛇自己的人腿或人脚才算不合格；顾承安自己的脚不扣。人身格的人腿是对的。只有阿德里安有尖耳；伊莲是人耳，眼睛是蓝灰不是绿，也不再是琥珀褐。林晚棠眼睛是黑褐，不再用金黄瞳和正红唇认人。阿德里安不要武器。
 

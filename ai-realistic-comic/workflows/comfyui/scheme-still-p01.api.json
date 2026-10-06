@@ -1,0 +1,339 @@
+{
+  "source": {
+    "multi_id": "https://github.com/cubiq/ComfyUI_InstantID/blob/main/examples/InstantID_multi_id.json",
+    "inpaint": "https://github.com/lquesada/ComfyUI-Inpaint-CropAndStitch",
+    "why": "Full-frame dual InstantID with complementary masks. Cloth is a later 1024 crop. No face paste.",
+    "stage": "multi-id",
+    "sampler_seed": 20261011,
+    "face_denoise": 0.7,
+    "cloth_denoise": 0.75
+  },
+  "prompt": {
+    "3": {
+      "class_type": "CheckpointLoaderSimple",
+      "inputs": {
+        "ckpt_name": "RealVisXL_V5.0_fp16.safetensors"
+      }
+    },
+    "4": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "text": "photoreal adult East Asian woman looking down, soft oval face, even light skin, black-brown eyes, natural brows, nude-pink lips, clean forehead, moonlit cabin",
+        "clip": [
+          "3",
+          1
+        ]
+      }
+    },
+    "5": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "text": "photoreal adult East Asian man, small oval face, fair warm skin, dark brown almond eyes, straight brows, pale rose lips, clean-shaven, black topknot, no navy forehead headband, moonlit cabin",
+        "clip": [
+          "3",
+          1
+        ]
+      }
+    },
+    "6": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "text": "child, teen, extra fingers, extra hand, extra person, gold irises, crimson lips, navy headband, forehead wrap, smear, plastic skin, fish tail, fins, her legs, her feet, text, watermark, collage, glitch",
+        "clip": [
+          "3",
+          1
+        ]
+      }
+    },
+    "20": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "p01-pose.png"
+      }
+    },
+    "21": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "p01-lin-face.png"
+      }
+    },
+    "22": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "p01-gu-face.png"
+      }
+    },
+    "23": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "p01-lin-mask.png"
+      }
+    },
+    "24": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "p01-gu-mask.png"
+      }
+    },
+    "25": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "p01-lin-kps.png"
+      }
+    },
+    "26": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "p01-gu-kps.png"
+      }
+    },
+    "27": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "p01-face-union.png"
+      }
+    },
+    "30": {
+      "class_type": "ImageToMask",
+      "inputs": {
+        "image": [
+          "23",
+          0
+        ],
+        "channel": "red"
+      }
+    },
+    "31": {
+      "class_type": "ImageToMask",
+      "inputs": {
+        "image": [
+          "24",
+          0
+        ],
+        "channel": "red"
+      }
+    },
+    "32": {
+      "class_type": "ImageToMask",
+      "inputs": {
+        "image": [
+          "27",
+          0
+        ],
+        "channel": "red"
+      }
+    },
+    "7": {
+      "class_type": "InstantIDModelLoader",
+      "inputs": {
+        "instantid_file": "ip-adapter.bin"
+      }
+    },
+    "8": {
+      "class_type": "InstantIDFaceAnalysis",
+      "inputs": {
+        "provider": "CPU"
+      }
+    },
+    "9": {
+      "class_type": "DiffControlNetLoader",
+      "inputs": {
+        "model": [
+          "3",
+          0
+        ],
+        "control_net_name": "instantid/diffusion_pytorch_model.safetensors"
+      }
+    },
+    "10": {
+      "class_type": "ApplyInstantID",
+      "inputs": {
+        "instantid": [
+          "7",
+          0
+        ],
+        "insightface": [
+          "8",
+          0
+        ],
+        "control_net": [
+          "9",
+          0
+        ],
+        "image": [
+          "21",
+          0
+        ],
+        "model": [
+          "3",
+          0
+        ],
+        "positive": [
+          "4",
+          0
+        ],
+        "negative": [
+          "6",
+          0
+        ],
+        "weight": 0.8,
+        "start_at": 0.0,
+        "end_at": 1.0,
+        "image_kps": [
+          "25",
+          0
+        ],
+        "mask": [
+          "30",
+          0
+        ]
+      }
+    },
+    "11": {
+      "class_type": "ApplyInstantID",
+      "inputs": {
+        "instantid": [
+          "7",
+          0
+        ],
+        "insightface": [
+          "8",
+          0
+        ],
+        "control_net": [
+          "9",
+          0
+        ],
+        "image": [
+          "22",
+          0
+        ],
+        "model": [
+          "10",
+          0
+        ],
+        "positive": [
+          "5",
+          0
+        ],
+        "negative": [
+          "6",
+          0
+        ],
+        "weight": 0.85,
+        "start_at": 0.0,
+        "end_at": 1.0,
+        "image_kps": [
+          "26",
+          0
+        ],
+        "mask": [
+          "31",
+          0
+        ]
+      }
+    },
+    "12": {
+      "class_type": "ConditioningCombine",
+      "inputs": {
+        "conditioning_1": [
+          "10",
+          1
+        ],
+        "conditioning_2": [
+          "11",
+          1
+        ]
+      }
+    },
+    "13": {
+      "class_type": "ConditioningCombine",
+      "inputs": {
+        "conditioning_1": [
+          "10",
+          2
+        ],
+        "conditioning_2": [
+          "11",
+          2
+        ]
+      }
+    },
+    "40": {
+      "class_type": "InpaintModelConditioning",
+      "inputs": {
+        "positive": [
+          "12",
+          0
+        ],
+        "negative": [
+          "13",
+          0
+        ],
+        "vae": [
+          "3",
+          2
+        ],
+        "pixels": [
+          "20",
+          0
+        ],
+        "mask": [
+          "32",
+          0
+        ],
+        "noise_mask": true
+      }
+    },
+    "15": {
+      "class_type": "KSampler",
+      "inputs": {
+        "model": [
+          "11",
+          0
+        ],
+        "seed": 20261011,
+        "steps": 26,
+        "cfg": 4.0,
+        "sampler_name": "dpmpp_2m",
+        "scheduler": "karras",
+        "positive": [
+          "40",
+          0
+        ],
+        "negative": [
+          "40",
+          1
+        ],
+        "latent_image": [
+          "40",
+          2
+        ],
+        "denoise": 0.7
+      }
+    },
+    "16": {
+      "class_type": "VAEDecode",
+      "inputs": {
+        "samples": [
+          "15",
+          0
+        ],
+        "vae": [
+          "3",
+          2
+        ]
+      }
+    },
+    "99": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "16",
+          0
+        ],
+        "filename_prefix": "p01-multi-id"
+      }
+    }
+  }
+}

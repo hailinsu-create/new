@@ -15,11 +15,21 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from inpaint_crop import (  # noqa: E402
+    INPAINT_DENOISE,
+    inpaint_crop_graph,
+    prepare_crop,
+    save_crop_pair,
+    stitch,
+)
 
 SAMPLER_SEED = 20261006
 WIDTH = 1024
@@ -165,10 +175,19 @@ def _detailer(image, model, positive, negative, detector, sam, denoise: float, g
     return node
 
 
-def build(actor: str, view: str, models: dict[str, str]) -> dict:
+def identity_name(actor: str, input_dir: Path | None = None) -> str:
+    """Prefer the jaw-up lock. Full standing sheets leak costume into InstantID."""
+    face = f"{actor}-ref-face.png"
+    sheet = f"{actor}-ref.png"
+    if input_dir is None or (input_dir / face).is_file() or not (input_dir / sheet).is_file():
+        return face
+    return sheet
+
+
+def build(actor: str, view: str, models: dict[str, str], identity: str | None = None) -> dict:
     positive, negative = PROMPTS[(actor, view)]
     pose = f"{actor}-{view}-clothed.png"
-    ref = f"{actor}-ref.png"
+    ref = identity or f"{actor}-ref-face.png"
     prompt: dict = {
         "3": {
             "class_type": "CheckpointLoaderSimple",
@@ -455,11 +474,12 @@ def _chest_positive(actor: str) -> str:
 def clear_torso_cloth(host: str, actor: str, view: str, image_path: Path, input_dir: Path) -> Path:
     """RealVisXL draws a black ribbon when the figure is scaled to keep the feet.
 
-    A solid sternum inpaint removes that ribbon. Back views are skipped so a
-    ponytail is not treated as cloth. A dark pixel counts only when skin sits
-    on both sides, so hair against the gray background is not a ribbon. A
-    light wrap is left for the scorer. The box is capped so it cannot cover
-    an arm or the hips.
+    A crop-and-stitch sternum inpaint removes that ribbon. Back views are
+    skipped so a ponytail is not treated as cloth. A dark pixel counts only
+    when skin sits on both sides, so hair against the gray background is not
+    a ribbon. A light wrap is left for the scorer. The box is capped so it
+    cannot cover an arm or the hips. Denoise stays at 0.75 on a 1024 crop;
+    unmasked pixels are never sent through the VAE.
     """
     if view == "back":
         print(f"CLEAN_SKIP {actor} {view} back", flush=True)
@@ -508,58 +528,34 @@ def clear_torso_cloth(host: str, actor: str, view: str, image_path: Path, input_
         return image_path
     mask = Image.new("L", (width, height), 0)
     ImageDraw.Draw(mask).rounded_rectangle((left, top, right, bottom), radius=20, fill=255)
-    mask = mask.filter(ImageFilter.GaussianBlur(radius=8))
-    rgba = src.convert("RGBA")
-    rgba.putalpha(Image.fromarray(255 - np.asarray(mask)).convert("L"))
-    name = f"{actor}-{view}-chest.png"
-    input_dir.mkdir(parents=True, exist_ok=True)
-    rgba.save(input_dir / name)
-    print(f"CLEAN {actor} {view} dark={count} box={left},{top},{right},{bottom}", flush=True)
-    prompt = {
-        "3": {
-            "class_type": "CheckpointLoaderSimple",
-            "inputs": {"ckpt_name": "RealVisXL_V5.0_fp16.safetensors"},
-        },
-        "4": {
-            "class_type": "CLIPTextEncode",
-            "inputs": {"text": _chest_positive(actor), "clip": ["3", 1]},
-        },
-        "5": {
-            "class_type": "CLIPTextEncode",
-            "inputs": {
-                "text": "ribbon, bow, strap, bandeau, bra, cloth, fabric, string, necklace, jewelry, scar, veins, text, watermark",
-                "clip": ["3", 1],
-            },
-        },
-        "1": {"class_type": "LoadImage", "inputs": {"image": name}},
-        "41": {"class_type": "VAEEncode", "inputs": {"pixels": ["1", 0], "vae": ["3", 2]}},
-        "42": {"class_type": "SetLatentNoiseMask", "inputs": {"samples": ["41", 0], "mask": ["1", 1]}},
-        "15": {
-            "class_type": "KSampler",
-            "inputs": {
-                "model": ["3", 0],
-                "seed": SAMPLER_SEED + 3,
-                "steps": 20,
-                "cfg": 4.5,
-                "sampler_name": "dpmpp_2m",
-                "scheduler": "karras",
-                "positive": ["4", 0],
-                "negative": ["5", 0],
-                "latent_image": ["42", 0],
-                "denoise": 1.0,
-            },
-        },
-        "16": {"class_type": "VAEDecode", "inputs": {"samples": ["15", 0], "vae": ["3", 2]}},
-        "22": {
-            "class_type": "SaveImage",
-            "inputs": {"images": ["16", 0], "filename_prefix": f"cast-{actor}-{view}-chest"},
-        },
-    }
+    mask = mask.filter(ImageFilter.GaussianBlur(radius=12))
+    job = prepare_crop(src, mask)
+    stem = f"{actor}-{view}-chest"
+    crop_name, mask_name = save_crop_pair(job, input_dir, stem)
+    print(
+        f"CLEAN {actor} {view} dark={count} box={left},{top},{right},{bottom} denoise={INPAINT_DENOISE}",
+        flush=True,
+    )
+    prompt = inpaint_crop_graph(
+        ckpt="RealVisXL_V5.0_fp16.safetensors",
+        crop_name=crop_name,
+        mask_name=mask_name,
+        positive=_chest_positive(actor),
+        negative="ribbon, bow, strap, bandeau, bra, cloth, fabric, string, necklace, jewelry, scar, veins, smear, extra fingers, extra hand, text, watermark",
+        seed=SAMPLER_SEED + 3,
+        prefix=f"cast-{actor}-{view}-chest",
+        denoise=INPAINT_DENOISE,
+    )
     queued = _post(f"{host}/prompt", {"prompt": prompt, "client_id": f"cast-chest-{actor}-{view}"})
     prompt_id = queued.get("prompt_id")
     if not prompt_id:
         raise SystemExit(f"PROMPT_REJECTED {queued}")
-    return _wait_saved(host, prompt_id, "22", image_path, actor, view)
+    crop_out = image_path.with_name(f"{actor}-{view}-chest-crop.png")
+    _wait_saved(host, prompt_id, "22", crop_out, actor, view)
+    stitched = stitch(src, Image.open(crop_out), job)
+    stitched.save(image_path)
+    print(f"STITCH {image_path} {image_path.stat().st_size}", flush=True)
+    return image_path
 
 
 def run_one(
@@ -570,7 +566,7 @@ def run_one(
     out_dir: Path,
     input_dir: Path,
 ) -> Path:
-    prompt = build(actor, view, models)
+    prompt = build(actor, view, models, identity=identity_name(actor, input_dir))
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / f"{actor}-{view}.api.json").write_text(
         json.dumps(envelope(actor, view, prompt), ensure_ascii=False, indent=2),
