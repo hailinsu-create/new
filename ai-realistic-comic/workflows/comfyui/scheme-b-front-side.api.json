@@ -1,0 +1,408 @@
+{
+  "source": {
+    "facedetailer": "https://github.com/ltdrdata/ComfyUI-Impact-Pack/blob/Main/example_workflows/1-FaceDetailer.json",
+    "instantid": "https://github.com/cubiq/ComfyUI_InstantID",
+    "ipadapter_faceid": "https://github.com/cubiq/ComfyUI_IPAdapter_plus",
+    "openpose_pre": "https://github.com/Fannovel16/comfyui_controlnet_aux",
+    "why": "Clothed plate supplies the pose. The face lock supplies identity. Nude is in the prompt and the photoreal checkpoint, not in a Qwen edit.",
+    "actor": "lin_wantang",
+    "view": "front",
+    "sampler_seed": 20261006
+  },
+  "prompt": {
+    "3": {
+      "class_type": "CheckpointLoaderSimple",
+      "inputs": {
+        "ckpt_name": "RealVisXL_V5.0_fp16.safetensors"
+      }
+    },
+    "4": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "text": "photorealistic full-body photo of an adult East Asian woman in her twenties, standing facing the camera, head and both feet in frame, plain gray background, black-brown hair loosely tied back, clean forehead, light makeup, natural lips, black-brown eyes, level eyes, nude, bare chest abdomen hips and legs, visible nipples, visible navel, realistic skin, both feet fully inside the frame, bare hips and legs with no cloth, nothing tied around the neck, no bow, no string on the skin",
+        "clip": [
+          "3",
+          1
+        ]
+      }
+    },
+    "5": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "text": "child, teen, clothes, shirt, shorts, underwear, bodysuit, hip seam, hair bun, hairpin, forehead ornament, heavy makeup, red lips, crooked eyes, asymmetrical eyes, extra limbs, cropped head, cropped feet, plastic skin, skirt, towel, wrap, sarong, draped cloth, halter, straps, ribbon, bow, choker, necklace, string, cord, neck strap, black strap, bikini, bra, sandals, shoes, heels, text, watermark",
+        "clip": [
+          "3",
+          1
+        ]
+      }
+    },
+    "1": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "lin_wantang-front-clothed.png"
+      }
+    },
+    "11": {
+      "class_type": "DiffControlNetLoader",
+      "inputs": {
+        "model": [
+          "3",
+          0
+        ],
+        "control_net_name": "openpose-sdxl-xinsir/diffusion_pytorch_model.safetensors"
+      }
+    },
+    "12": {
+      "class_type": "DWPreprocessor",
+      "inputs": {
+        "image": [
+          "1",
+          0
+        ],
+        "detect_hand": "enable",
+        "detect_body": "enable",
+        "detect_face": "disable",
+        "resolution": 1024,
+        "bbox_detector": "yolox_l.onnx",
+        "pose_estimator": "dw-ll_ucoco_384.onnx",
+        "scale_stick_for_xinsr_cn": "enable"
+      }
+    },
+    "30": {
+      "class_type": "ImageScaleBy",
+      "inputs": {
+        "image": [
+          "12",
+          0
+        ],
+        "upscale_method": "nearest-exact",
+        "scale_by": 0.86
+      }
+    },
+    "31": {
+      "class_type": "EmptyImage",
+      "inputs": {
+        "width": 1024,
+        "height": 1536,
+        "batch_size": 1,
+        "color": 0
+      }
+    },
+    "32": {
+      "class_type": "ImageCompositeMasked",
+      "inputs": {
+        "destination": [
+          "31",
+          0
+        ],
+        "source": [
+          "30",
+          0
+        ],
+        "x": 72,
+        "y": 40,
+        "resize_source": false
+      }
+    },
+    "14": {
+      "class_type": "EmptyLatentImage",
+      "inputs": {
+        "width": 1024,
+        "height": 1536,
+        "batch_size": 1
+      }
+    },
+    "2": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "lin_wantang-ref.png"
+      }
+    },
+    "6": {
+      "class_type": "InstantIDModelLoader",
+      "inputs": {
+        "instantid_file": "ip-adapter.bin"
+      }
+    },
+    "7": {
+      "class_type": "InstantIDFaceAnalysis",
+      "inputs": {
+        "provider": "CPU"
+      }
+    },
+    "8": {
+      "class_type": "DiffControlNetLoader",
+      "inputs": {
+        "model": [
+          "3",
+          0
+        ],
+        "control_net_name": "instantid/diffusion_pytorch_model.safetensors"
+      }
+    },
+    "9": {
+      "class_type": "FaceKeypointsPreprocessor",
+      "inputs": {
+        "faceanalysis": [
+          "7",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ]
+      }
+    },
+    "33": {
+      "class_type": "ImageScaleBy",
+      "inputs": {
+        "image": [
+          "9",
+          0
+        ],
+        "upscale_method": "nearest-exact",
+        "scale_by": 0.86
+      }
+    },
+    "34": {
+      "class_type": "ImageCompositeMasked",
+      "inputs": {
+        "destination": [
+          "31",
+          0
+        ],
+        "source": [
+          "33",
+          0
+        ],
+        "x": 72,
+        "y": 40,
+        "resize_source": false
+      }
+    },
+    "10": {
+      "class_type": "ApplyInstantID",
+      "inputs": {
+        "instantid": [
+          "6",
+          0
+        ],
+        "insightface": [
+          "7",
+          0
+        ],
+        "control_net": [
+          "8",
+          0
+        ],
+        "image": [
+          "2",
+          0
+        ],
+        "model": [
+          "3",
+          0
+        ],
+        "positive": [
+          "4",
+          0
+        ],
+        "negative": [
+          "5",
+          0
+        ],
+        "weight": 0.8,
+        "start_at": 0.0,
+        "end_at": 1.0,
+        "image_kps": [
+          "34",
+          0
+        ]
+      }
+    },
+    "13": {
+      "class_type": "ControlNetApplyAdvanced",
+      "inputs": {
+        "positive": [
+          "10",
+          1
+        ],
+        "negative": [
+          "10",
+          2
+        ],
+        "control_net": [
+          "11",
+          0
+        ],
+        "image": [
+          "32",
+          0
+        ],
+        "strength": 0.95,
+        "start_percent": 0.0,
+        "end_percent": 1.0
+      }
+    },
+    "15": {
+      "class_type": "KSampler",
+      "inputs": {
+        "model": [
+          "10",
+          0
+        ],
+        "seed": 20261006,
+        "steps": 26,
+        "cfg": 4.0,
+        "sampler_name": "dpmpp_2m",
+        "scheduler": "karras",
+        "positive": [
+          "13",
+          0
+        ],
+        "negative": [
+          "13",
+          1
+        ],
+        "latent_image": [
+          "14",
+          0
+        ],
+        "denoise": 1.0
+      }
+    },
+    "16": {
+      "class_type": "VAEDecode",
+      "inputs": {
+        "samples": [
+          "15",
+          0
+        ],
+        "vae": [
+          "3",
+          2
+        ]
+      }
+    },
+    "17": {
+      "class_type": "IPAdapterUnifiedLoaderFaceID",
+      "inputs": {
+        "model": [
+          "3",
+          0
+        ],
+        "preset": "FACEID PLUS V2",
+        "lora_strength": 0.6,
+        "provider": "CPU"
+      }
+    },
+    "18": {
+      "class_type": "IPAdapterFaceID",
+      "inputs": {
+        "model": [
+          "17",
+          0
+        ],
+        "ipadapter": [
+          "17",
+          1
+        ],
+        "image": [
+          "2",
+          0
+        ],
+        "weight": 0.85,
+        "weight_faceidv2": 1.0,
+        "weight_type": "linear",
+        "combine_embeds": "average",
+        "start_at": 0.0,
+        "end_at": 1.0,
+        "embeds_scaling": "V only"
+      }
+    },
+    "19": {
+      "class_type": "UltralyticsDetectorProvider",
+      "inputs": {
+        "model_name": "bbox/face_yolov8m.pt"
+      }
+    },
+    "20": {
+      "class_type": "SAMLoader",
+      "inputs": {
+        "model_name": "sam_vit_b_01ec64.pth",
+        "device_mode": "AUTO"
+      }
+    },
+    "21": {
+      "class_type": "FaceDetailer",
+      "inputs": {
+        "image": [
+          "16",
+          0
+        ],
+        "model": [
+          "18",
+          0
+        ],
+        "clip": [
+          "3",
+          1
+        ],
+        "vae": [
+          "3",
+          2
+        ],
+        "guide_size": 768,
+        "guide_size_for": true,
+        "max_size": 1280,
+        "seed": 20261006,
+        "steps": 16,
+        "cfg": 4.5,
+        "sampler_name": "dpmpp_2m",
+        "scheduler": "karras",
+        "positive": [
+          "4",
+          0
+        ],
+        "negative": [
+          "5",
+          0
+        ],
+        "denoise": 0.4,
+        "feather": 5,
+        "noise_mask": true,
+        "force_inpaint": true,
+        "bbox_threshold": 0.5,
+        "bbox_dilation": 10,
+        "bbox_crop_factor": 3.0,
+        "sam_detection_hint": "center-1",
+        "sam_dilation": 0,
+        "sam_threshold": 0.93,
+        "sam_bbox_expansion": 0,
+        "sam_mask_hint_threshold": 0.7,
+        "sam_mask_hint_use_negative": "False",
+        "drop_size": 10,
+        "bbox_detector": [
+          "19",
+          0
+        ],
+        "wildcard": "",
+        "cycle": 1,
+        "sam_model_opt": [
+          "20",
+          0
+        ]
+      }
+    },
+    "22": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "21",
+          0
+        ],
+        "filename_prefix": "cast-lin_wantang-front"
+      }
+    }
+  }
+}

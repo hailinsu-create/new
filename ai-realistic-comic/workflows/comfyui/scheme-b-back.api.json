@@ -1,0 +1,190 @@
+{
+  "source": {
+    "facedetailer": "https://github.com/ltdrdata/ComfyUI-Impact-Pack/blob/Main/example_workflows/1-FaceDetailer.json",
+    "instantid": "https://github.com/cubiq/ComfyUI_InstantID",
+    "ipadapter_faceid": "https://github.com/cubiq/ComfyUI_IPAdapter_plus",
+    "openpose_pre": "https://github.com/Fannovel16/comfyui_controlnet_aux",
+    "why": "Clothed plate supplies the pose. The face lock supplies identity. Nude is in the prompt and the photoreal checkpoint, not in a Qwen edit.",
+    "actor": "lin_wantang",
+    "view": "back",
+    "sampler_seed": 20261006
+  },
+  "prompt": {
+    "3": {
+      "class_type": "CheckpointLoaderSimple",
+      "inputs": {
+        "ckpt_name": "RealVisXL_V5.0_fp16.safetensors"
+      }
+    },
+    "4": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "text": "photorealistic full-body photo from behind of an adult East Asian woman in her twenties, standing, face not visible, head and both feet in frame, plain gray background, black-brown hair loosely tied back, nude back, bare hips and legs, realistic skin, both feet fully inside the frame, bare hips and legs with no cloth, nothing tied around the neck, no bow, no string on the skin",
+        "clip": [
+          "3",
+          1
+        ]
+      }
+    },
+    "5": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "text": "child, teen, clothes, shirt, shorts, underwear, bodysuit, hip seam, hair bun, hairpin, face visible, extra limbs, cropped head, cropped feet, plastic skin, skirt, towel, wrap, sarong, draped cloth, halter, straps, ribbon, bow, choker, necklace, string, cord, neck strap, black strap, bikini, bra, sandals, shoes, heels, text, watermark",
+        "clip": [
+          "3",
+          1
+        ]
+      }
+    },
+    "1": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "lin_wantang-back-clothed.png"
+      }
+    },
+    "11": {
+      "class_type": "DiffControlNetLoader",
+      "inputs": {
+        "model": [
+          "3",
+          0
+        ],
+        "control_net_name": "openpose-sdxl-xinsir/diffusion_pytorch_model.safetensors"
+      }
+    },
+    "12": {
+      "class_type": "DWPreprocessor",
+      "inputs": {
+        "image": [
+          "1",
+          0
+        ],
+        "detect_hand": "enable",
+        "detect_body": "enable",
+        "detect_face": "disable",
+        "resolution": 1024,
+        "bbox_detector": "yolox_l.onnx",
+        "pose_estimator": "dw-ll_ucoco_384.onnx",
+        "scale_stick_for_xinsr_cn": "enable"
+      }
+    },
+    "30": {
+      "class_type": "ImageScaleBy",
+      "inputs": {
+        "image": [
+          "12",
+          0
+        ],
+        "upscale_method": "nearest-exact",
+        "scale_by": 0.86
+      }
+    },
+    "31": {
+      "class_type": "EmptyImage",
+      "inputs": {
+        "width": 1024,
+        "height": 1536,
+        "batch_size": 1,
+        "color": 0
+      }
+    },
+    "32": {
+      "class_type": "ImageCompositeMasked",
+      "inputs": {
+        "destination": [
+          "31",
+          0
+        ],
+        "source": [
+          "30",
+          0
+        ],
+        "x": 72,
+        "y": 40,
+        "resize_source": false
+      }
+    },
+    "14": {
+      "class_type": "EmptyLatentImage",
+      "inputs": {
+        "width": 1024,
+        "height": 1536,
+        "batch_size": 1
+      }
+    },
+    "13": {
+      "class_type": "ControlNetApplyAdvanced",
+      "inputs": {
+        "positive": [
+          "4",
+          0
+        ],
+        "negative": [
+          "5",
+          0
+        ],
+        "control_net": [
+          "11",
+          0
+        ],
+        "image": [
+          "32",
+          0
+        ],
+        "strength": 0.95,
+        "start_percent": 0.0,
+        "end_percent": 1.0
+      }
+    },
+    "15": {
+      "class_type": "KSampler",
+      "inputs": {
+        "model": [
+          "3",
+          0
+        ],
+        "seed": 20261006,
+        "steps": 26,
+        "cfg": 4.0,
+        "sampler_name": "dpmpp_2m",
+        "scheduler": "karras",
+        "positive": [
+          "13",
+          0
+        ],
+        "negative": [
+          "13",
+          1
+        ],
+        "latent_image": [
+          "14",
+          0
+        ],
+        "denoise": 1.0
+      }
+    },
+    "16": {
+      "class_type": "VAEDecode",
+      "inputs": {
+        "samples": [
+          "15",
+          0
+        ],
+        "vae": [
+          "3",
+          2
+        ]
+      }
+    },
+    "22": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "16",
+          0
+        ],
+        "filename_prefix": "cast-lin_wantang-back"
+      }
+    }
+  }
+}

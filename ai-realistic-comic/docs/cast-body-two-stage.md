@@ -73,6 +73,8 @@ F34 干活才开机。当前批次做完或暂停，`f34_shutdown_hook` 立刻 `
 
 到二采过门为止时用 16 步、scale `0.85`。一采未过门禁止二采。不过门换下一颗未花籽。林晚棠正面 `86`–`98` 已花，从 `99` 继续。拉回本机若遇到临时 IO 错误，同一张图重试三次。到点或做完都关机留盘。
 
+2026-10-06 用户叫停这条换籽：Qwen 去衣种子全部作废，黑名单里的籽不再重跑，也不再从 `99` 起续跑。十二张穿衣底板保留。裸体资产改从底板重做，见 `docs/comfyui-setup.md`。本仓库没有阿德里安的穿衣 png，他的三向不在这轮重做里。
+
 ```bash
 python autodl/run_cast_body_two_stage.py --only lin_wantang:front,lin_wantang:side,lin_wantang:back --until-pass2 --steps 16 --deadline 2026-10-05T23:33:00+00:00
 ```
