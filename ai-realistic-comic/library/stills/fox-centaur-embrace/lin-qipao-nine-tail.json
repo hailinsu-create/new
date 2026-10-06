@@ -1,0 +1,17 @@
+{
+  "identity": 9.0,
+  "distinction": 8.7,
+  "interaction": 9.1,
+  "aesthetics": 9.2,
+  "anatomy": 8.8,
+  "wardrobe": 9.5,
+  "motif": 8.6,
+  "photoreal": 9.1,
+  "mean": 9.0,
+  "gates": [],
+  "tail_count": 8,
+  "notes": "Codex CLI. 挺拔单人旗袍。可辨约八条狐尾，第九条可能重叠。",
+  "scorer": "codex",
+  "file": "library/stills/fox-centaur-embrace/lin-qipao-nine-tail.png",
+  "size": "1024x1536"
+}

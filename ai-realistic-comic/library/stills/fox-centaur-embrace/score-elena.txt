@@ -1,0 +1,5 @@
+按 JSON 打分。第一张是锁脸，第二张是单人成衣静帧。八项 0–10：identity distinction interaction aesthetics anatomy wardrobe motif photoreal。interaction 这里指半人马站姿是否挺拔稳定。mean 是均分。scorer 固定 "codex"。gates 为字符串数组。
+
+伊莲这张硬门：extra_person, minor, not_armor, not_centaur, stallion_anatomy, green_or_bluegrey_eyes, pointed_ears, text。马身必须是母马，四条马腿。眼镜待定不进硬门。
+
+只输出一个 JSON：identity, distinction, interaction, aesthetics, anatomy, wardrobe, motif, photoreal, mean, gates, notes, scorer.

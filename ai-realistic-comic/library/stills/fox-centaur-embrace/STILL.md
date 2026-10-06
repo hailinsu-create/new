@@ -27,6 +27,6 @@
 
 Codex CLI 成衣。F34 / G09 未开。
 
-- 双人：`lin-elena-embrace.png` 1536×1024。打分 `lin-elena-embrace.json`：均分 9.3，硬门空，anatomy 8.8。
-- 林单人：`lin-qipao-nine-tail.png`。旗袍、九尾、更挺拔、更好看。
-- 伊莲单人：`elena-armor-centaur.png`。铠甲半人马、马身比例拉长、更挺拔。
+- 双人：`lin-elena-embrace.png` 1536×1024。打分均分 9.3，硬门空，anatomy 8.8。
+- 林单人：`lin-qipao-nine-tail.png` 1024×1536。更挺拔。Codex 均分 9.0，硬门空；狐尾可辨约八条，第九条可能重叠。
+- 伊莲单人：`elena-armor-centaur.png` 1024×1536。马身拉长、母马腹线。身份 9，人马衔接仍略硬。
