@@ -5,12 +5,13 @@
   "aesthetics": 9,
   "anatomy": 9,
   "wardrobe": 2,
-  "motif": 3,
+  "motif": 7,
   "photoreal": 9,
-  "mean": 7.25,
+  "mean": 7.75,
   "gates": [
     "intact_clothes"
   ],
-  "notes": "脸部与锁脸参考高度一致，褐眼正确。单人站姿挺拔，马身、四腿及尾巴完整，写实质感良好。但胸甲、腰甲及臂甲基本完整，仅局部磨损和缺口；裸露主要限于肩部与上臂，未达到衣甲明显破碎、撕裂并露出大片肌肤躯体的要求。",
-  "scorer": "codex"
+  "notes": "脸部与锁脸参考高度一致，褐眼正确；单人站姿挺拔，半人马形态完整。铠甲虽有凹损和局部缺口，但胸甲、臂甲及腰甲仍基本完整，缺乏明显碎裂或撕裂，也未露出大片肌肤躯体。",
+  "scorer": "codex",
+  "stack": "fooocus+maskedfill+pass3"
 }

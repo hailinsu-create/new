@@ -2,15 +2,17 @@
   "identity": 8,
   "distinction": 8,
   "interaction": 8,
-  "aesthetics": 4,
-  "anatomy": 3,
-  "wardrobe": 1,
-  "motif": 9,
-  "photoreal": 6,
-  "mean": 5.875,
+  "aesthetics": 6,
+  "anatomy": 4,
+  "wardrobe": 2,
+  "motif": 8,
+  "photoreal": 5,
+  "mean": 6.125,
   "gates": [
     "clothes_remain"
   ],
-  "notes": "面部与锁脸参考较接近，单人站姿仍挺拔，九尾保留。旗袍领口、侧缘及大面积下摆仍在，去衣未完成；躯干呈棕白斑块和布料般拼接，未形成自然连续的皮肤，胸腹结构明显失真。",
-  "scorer": "codex"
+  "notes": "脸部与锁脸参考较一致，单人站姿仍挺拔。旗袍领口、肩带及大面积裙摆仍在，髋腿未完全显露为皮肤，去衣不合格。胸腹肤色与四肢明显不一致，胸部轮廓、腰腹及髋腿衔接失真。狐尾保留，可辨约八条，重叠可能遮挡第九条，不据此判硬门。未见额外人物、未成年特征或文字。",
+  "scorer": "codex",
+  "tail_count": 8,
+  "stack": "fooocus+maskedfill+pass3"
 }

@@ -26,6 +26,7 @@ FOOOCUS_HEAD = "fooocus_inpaint_head.pth"
 FOOOCUS_PATCH = "inpaint_v26.fooocus.patch"
 FOOOCUS_LOAD = "INPAINT_LoadFooocusInpaint"
 FOOOCUS_APPLY = "INPAINT_ApplyFooocusInpaint"
+MASKED_FILL = "INPAINT_MaskedFill"
 DIFF_DIFFUSION = "DifferentialDiffusion"
 
 
@@ -113,10 +114,12 @@ def inpaint_crop_graph(
     *,
     fooocus: bool = True,
     differential: bool = True,
+    masked_fill: bool = True,
+    fill_mode: str = "neutral",
     fooocus_head: str = FOOOCUS_HEAD,
     fooocus_patch: str = FOOOCUS_PATCH,
 ) -> dict:
-    """API graph: 1024 crop + IMC (+ Fooocus patch + DifferentialDiffusion)."""
+    """API graph: 1024 crop + MaskedFill + IMC (+ Fooocus + DifferentialDiffusion)."""
     graph: dict = {
         "3": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": ckpt}},
         "4": {"class_type": "CLIPTextEncode", "inputs": {"text": positive, "clip": ["3", 1]}},
@@ -124,35 +127,47 @@ def inpaint_crop_graph(
         "1": {"class_type": "LoadImage", "inputs": {"image": crop_name}},
         "2": {"class_type": "LoadImage", "inputs": {"image": mask_name}},
         "50": {"class_type": "ImageToMask", "inputs": {"image": ["2", 0], "channel": "red"}},
-        "40": {
-            "class_type": INPAINT_NODE,
-            "inputs": {
-                "positive": ["4", 0],
-                "negative": ["5", 0],
-                "vae": ["3", 2],
-                "pixels": ["1", 0],
-                "mask": ["50", 0],
-                "noise_mask": True,
-            },
-        },
-        "15": {
-            "class_type": "KSampler",
-            "inputs": {
-                "model": ["3", 0],
-                "seed": seed,
-                "steps": INPAINT_STEPS,
-                "cfg": INPAINT_CFG,
-                "sampler_name": "dpmpp_2m",
-                "scheduler": "karras",
-                "positive": ["40", 0],
-                "negative": ["40", 1],
-                "latent_image": ["40", 2],
-                "denoise": denoise,
-            },
-        },
-        "16": {"class_type": "VAEDecode", "inputs": {"samples": ["15", 0], "vae": ["3", 2]}},
-        "22": {"class_type": "SaveImage", "inputs": {"images": ["16", 0], "filename_prefix": prefix}},
     }
+    pixels: list = ["1", 0]
+    if masked_fill:
+        graph["51"] = {
+            "class_type": MASKED_FILL,
+            "inputs": {
+                "image": ["1", 0],
+                "mask": ["50", 0],
+                "fill": fill_mode,
+                "falloff": 0,
+            },
+        }
+        pixels = ["51", 0]
+    graph["40"] = {
+        "class_type": INPAINT_NODE,
+        "inputs": {
+            "positive": ["4", 0],
+            "negative": ["5", 0],
+            "vae": ["3", 2],
+            "pixels": pixels,
+            "mask": ["50", 0],
+            "noise_mask": True,
+        },
+    }
+    graph["15"] = {
+        "class_type": "KSampler",
+        "inputs": {
+            "model": ["3", 0],
+            "seed": seed,
+            "steps": INPAINT_STEPS,
+            "cfg": INPAINT_CFG,
+            "sampler_name": "dpmpp_2m",
+            "scheduler": "karras",
+            "positive": ["40", 0],
+            "negative": ["40", 1],
+            "latent_image": ["40", 2],
+            "denoise": denoise,
+        },
+    }
+    graph["16"] = {"class_type": "VAEDecode", "inputs": {"samples": ["15", 0], "vae": ["3", 2]}}
+    graph["22"] = {"class_type": "SaveImage", "inputs": {"images": ["16", 0], "filename_prefix": prefix}}
     model_src: list = ["3", 0]
     if fooocus:
         graph["70"] = {

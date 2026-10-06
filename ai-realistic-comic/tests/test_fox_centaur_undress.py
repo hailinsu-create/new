@@ -43,6 +43,8 @@ def test_inpaint_crop_uses_conditioning_not_full_frame_denoise_one():
     assert graph["70"]["class_type"] == crop.FOOOCUS_LOAD
     assert graph["71"]["class_type"] == crop.FOOOCUS_APPLY
     assert graph["72"]["class_type"] == crop.DIFF_DIFFUSION
+    assert graph["51"]["class_type"] == crop.MASKED_FILL
+    assert graph["40"]["inputs"]["pixels"] == ["51", 0]
     assert graph["15"]["inputs"]["model"] == ["72", 0]
     legacy = crop.inpaint_crop_graph(
         "RealVisXL_V5.0_fp16.safetensors",
@@ -54,8 +56,10 @@ def test_inpaint_crop_uses_conditioning_not_full_frame_denoise_one():
         "chest",
         fooocus=False,
         differential=False,
+        masked_fill=False,
     )
     assert "70" not in legacy
+    assert "51" not in legacy
     assert legacy["15"]["inputs"]["model"] == ["3", 0]
 
 
@@ -108,10 +112,11 @@ def test_torn_masks_are_smaller_than_full_nude_unions():
 
 def test_community_region_schedule_is_small_holes_then_edge():
     undress = _load("scheme_still_fox_centaur_undress")
-    assert undress.CLOTH_DENOISE == 0.88
-    assert undress.TORN_DENOISE == 0.88
-    assert undress.EDGE_DENOISE == 0.40
+    assert undress.CLOTH_DENOISE == 0.98
+    assert undress.TORN_DENOISE == 0.96
+    assert undress.EDGE_DENOISE == 0.42
     assert undress.MAX_CONTENT_FRAC == 0.52
+    assert undress.MASK_BLUR <= 10
     assert undress.ELENA_HEAD[0] <= 260
     lin = undress.lin_nude_passes()
     elena = undress.elena_nude_passes()
@@ -184,9 +189,9 @@ def test_fox_centaur_graph_is_crop_inpaint_plus_instantid_on_head_shoulder():
     assert graph["10"]["inputs"]["model"] == ["3", 0]
     assert graph["71"]["inputs"]["model"] == ["10", 0]
     assert graph["71"]["inputs"]["latent"] == ["40", 2]
-    assert graph["15"]["inputs"]["model"] == ["72", 0]
+    assert graph["15"]["inputs"]["model"] == ["71", 0]  # cloth pass: no Diff
+    assert graph["51"]["class_type"] == "INPAINT_MaskedFill"
     assert "INPAINT_ApplyFooocusInpaint" in dumped
-    assert "DifferentialDiffusion" in dumped
     assert "SetLatentNoiseMask" not in dumped
     assert "ReActor" not in dumped
     assert "blue-grey" in undress.ELENA_NUDE_NEG

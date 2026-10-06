@@ -47,10 +47,11 @@ LIN_PLATE = STILL_DIR / "lin-qipao-nine-tail.png"
 ELENA_PLATE = STILL_DIR / "elena-armor-centaur.png"
 
 SAMPLER_SEED = 20261007
-CLOTH_DENOISE = 0.88
-TORN_DENOISE = 0.88
-EDGE_DENOISE = 0.40
-MASK_BLUR = 14
+# Fooocus + MaskedFill can take near-1.0; 0.88 left sheer qipao / intact armor.
+CLOTH_DENOISE = 0.98
+TORN_DENOISE = 0.96
+EDGE_DENOISE = 0.42
+MASK_BLUR = 8
 MAX_CONTENT_FRAC = 0.52
 
 BJ_UUID = "359a49a1c3-4cda10df"
@@ -387,6 +388,8 @@ def instantid_inpaint_graph(
         denoise=denoise,
         fooocus=False,
         differential=False,
+        masked_fill=denoise >= 0.6,
+        fill_mode="neutral",
     )
     graph["60"] = {"class_type": "LoadImage", "inputs": {"image": ref_name}}
     graph["6"] = {
@@ -431,7 +434,10 @@ def instantid_inpaint_graph(
             "inputs": {"model": model_src, "patch": ["70", 0], "latent": ["40", 2]},
         }
         model_src = ["71", 0]
-    if differential:
+    # Soft DifferentialDiffusion fights cloth removal on blurred masks; cloth/armor
+    # passes keep it off unless the caller forces differential=True at low denoise.
+    want_diff = differential if denoise < 0.6 else False
+    if want_diff:
         graph["72"] = {
             "class_type": DIFF_DIFFUSION,
             "inputs": {"model": model_src, "strength": 1.0},
@@ -623,6 +629,10 @@ def run_region(
     head_ref.save(input_dir / ref_name)
     for filename in (prepared["crop_name"], prepared["crop_mask"], ref_name):
         _upload(host, input_dir / filename)
+    # Cloth/armor passes: hard fill + Fooocus, no DifferentialDiffusion (soft masks
+    # were leaving fabric). Edge pass: keep Diff for blend.
+    use_diff = fooocus and region.denoise < 0.6
+    use_fill = region.denoise >= 0.6
     if use_instantid:
         graph = instantid_inpaint_graph(
             models,
@@ -635,7 +645,7 @@ def run_region(
             region.stem,
             region.denoise,
             fooocus=fooocus,
-            differential=fooocus,
+            differential=use_diff,
         )
     else:
         graph = inpaint_crop_graph(
@@ -648,7 +658,9 @@ def run_region(
             prefix=region.stem,
             denoise=region.denoise,
             fooocus=fooocus,
-            differential=fooocus,
+            differential=use_diff,
+            masked_fill=use_fill,
+            fill_mode="neutral",
         )
     (out_dir / f"{region.stem}.api.json").write_text(
         json.dumps(envelope(graph, region.stem, mode, fooocus=fooocus), ensure_ascii=False, indent=2),

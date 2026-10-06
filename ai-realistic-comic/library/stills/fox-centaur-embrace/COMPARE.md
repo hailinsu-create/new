@@ -13,16 +13,16 @@
 
 都没过收留线（均分 ≥ 9 且硬门空）。Codex imagegen 拒绝对成衣板做露点编辑。
 
-### 2026-10-07 栈升级（未重跑出片）
+### 2026-10-07 Fooocus 重跑（Codex）
 
-根因对照社区：RealVisXL 无 inpaint 训练 → 旗袍花纹/胸甲高光当结构保留；几何蒙版漏颈环/护臂。北京 B 已装：
+| 人 | 变体 | 均分 | 硬门 | 相对装栈前 |
+| --- | ---: | ---: | --- | --- |
+| 林 | torn | **8.75** | 空 | 近门（曾 8.875）；本轮保留最佳破衣 |
+| 林 | nude | 6.125 | `clothes_remain` | 胸口可开窗，裙与 smear 仍失败 |
+| 伊莲 | nude | 7.375 | `armor_remain` | 躯干能露肤；残甲/纹理 smear |
+| 伊莲 | torn | 7.75 | `intact_clothes` | 略好于装栈前，仍不够碎 |
 
-- Acly Fooocus inpaint（`INPAINT_ApplyFooocusInpaint`）+ `inpaint_v26.fooocus.patch`
-- 核心 `DifferentialDiffusion`
-- storyicon GroundingDINO + SAM（语义衣物蒙版）
-- Flux Fill gated，跳过
-
-工作流已默认接线；下一轮开机用 `--mode both --no-instantid` 重跑四张再打分。
+栈：MaskedFill(neutral) + Fooocus v26 + denoise 0.98（衣服 pass 无 DifferentialDiffusion）。GroundingDINO 已装但本轮几何蒙版为主；Flux Fill 仍 gated。
 
 ## 林晚棠
 

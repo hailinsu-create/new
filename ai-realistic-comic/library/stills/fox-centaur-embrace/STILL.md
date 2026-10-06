@@ -37,19 +37,19 @@
 
 现行日程：
 
-- 小洞 / 椭圆破洞；衣服 denoise **0.88**；收边 **0.40**；`MAX_CONTENT_FRAC=0.52`
-- 默认 Fooocus（`fooocus_inpaint_head.pth` + `inpaint_v26.fooocus.patch`）打在 RealVisXL 上；`--no-fooocus` 回退旧 IMC
-- InstantID 头肩裁已接，但实跑去衣默认 `--no-instantid`（叠 InstantID 易薄纱或双人）
-- 打分对照仍是板心 `ref-face.png`；收留线均分 ≥ 9 且硬门空
-- Codex imagegen 拒绝对成衣板做露点/破甲编辑（safety）；继续只走北京 Comfy
+- 小洞 / 椭圆破洞；衣服 denoise **0.98**；破衣 **0.96**；收边 **0.42**；`MASK_BLUR=8`；`MAX_CONTENT_FRAC=0.52`
+- 默认 Fooocus + `INPAINT_MaskedFill(neutral)`；衣服 pass 关 DifferentialDiffusion（软边会留布）
+- InstantID 头肩裁已接，实跑去衣默认 `--no-instantid`
+- 打分对照板心 `ref-face.png`；收留线均分 ≥ 9 且硬门空
+- Codex imagegen 拒绝对成衣板做露点/破甲编辑；只走北京 Comfy
 
 不要丢进 `scheme_b_from_plate.py`。北京 B `359a49a1c3-4cda10df`。F34 / G09 不开。不用 ReActor。
 
 | 人 | 成衣 | 变体 | 均分 | 硬门 | 说明 |
 | --- | --- | --- | --- | --- | --- |
-| 林 | `lin-qipao-nine-tail.png` | `lin-qipao-nine-tail-torn.png` | **8.875** | 空 | 最接近过门；wardrobe 9，anatomy 8 |
-| 林 | 同上 | `lin-qipao-nine-tail-nude.png` | 5.875–7 | `clothes_remain` | RealVisXL 难彻底褪旗袍 |
-| 伊莲 | `elena-armor-centaur.png` | `elena-armor-centaur-nude.png` | **8.125** | `armor_remain` | 胸甲主体已去；颈/臂/腰甲残留 |
-| 伊莲 | 同上 | `elena-armor-centaur-torn.png` | 7.25–7.5 | `intact_clothes` | 破甲不够、露肤不足 |
+| 林 | `lin-qipao-nine-tail.png` | `lin-qipao-nine-tail-torn.png` | **8.75** | 空 | 近门；wardrobe 8，anatomy 9（保留此前最佳破衣） |
+| 林 | 同上 | `lin-qipao-nine-tail-nude.png` | 6.125 | `clothes_remain` | Fooocus 可开胸窗，裙/残布与 smear 仍过门 |
+| 伊莲 | `elena-armor-centaur.png` | `elena-armor-centaur-nude.png` | 7.375 | `armor_remain` | 躯干可露肤；护臂/腰甲与 smear 未净 |
+| 伊莲 | 同上 | `elena-armor-centaur-torn.png` | 7.75 | `intact_clothes` | 破甲仍偏保守 |
 
-未过收留线（均分 ≥ 9 且硬门空）。林破衣差 anatomy 1 分；伊莲去衣差残甲。
+未过收留线。下一步优先 GroundingDINO 语义蒙版抠甲片轮廓，再叠 Fooocus。
