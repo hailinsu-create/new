@@ -1,0 +1,17 @@
+{
+  "identity": 9,
+  "distinction": 8,
+  "interaction": 9,
+  "aesthetics": 9,
+  "anatomy": 8,
+  "wardrobe": 0,
+  "motif": 7,
+  "photoreal": 9,
+  "mean": 7.375,
+  "gates": [
+    "armor_remain"
+  ],
+  "notes": "面容与锁脸参考高度一致，褐眼正确。半人马站姿仍挺拔，马身与四条马腿保留，未见其他硬门问题。但上身金色铠甲、护臂、手甲及腰部甲片明显残留，去衣要求未完成。圆框金丝眼镜不计硬门。",
+  "scorer": "codex",
+  "stack": "fooocus+maskedfill+elena_best"
+}

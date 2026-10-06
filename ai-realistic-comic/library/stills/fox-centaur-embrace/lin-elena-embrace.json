@@ -1,0 +1,16 @@
+{
+  "identity": 9.2,
+  "distinction": 9.5,
+  "interaction": 9.4,
+  "aesthetics": 9.5,
+  "anatomy": 8.8,
+  "wardrobe": 9.6,
+  "motif": 9.1,
+  "photoreal": 9.3,
+  "mean": 9.3,
+  "gates": [],
+  "notes": "Codex CLI. 两张锁脸匹配。旗袍九尾与铠甲半人马、相拥成立。九尾根部重叠，马腿轮廓有重叠，anatomy 8.8。",
+  "scorer": "codex",
+  "file": "library/stills/fox-centaur-embrace/lin-elena-embrace.png",
+  "size": "1536x1024"
+}

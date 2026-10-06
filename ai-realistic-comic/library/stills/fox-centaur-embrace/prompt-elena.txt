@@ -1,0 +1,14 @@
+Use the image generation tool exactly once. Do not edit git. Do not boot a GPU. Do not open F34 or G09.
+
+Single-person photoreal cinematic PORTRAIT still, 1024x1536, vertical. One adult woman only. Original fictional face, not a real person, not a minor.
+
+The attached image is Elena Voss lock face. Match that exact Western face: light skin, light freckles, brown curly hair loosely pulled back, brown eyes, nude-pink lips, human ears not pointed. Keep the round gold wire glasses as on the lock crop. No green eyes, no blue-grey eyes, no pointed ears.
+
+This still only:
+- Centaur: human torso from the waist up in fitted medieval plate armor that flatters an adult feminine figure (shaped breastplate, cinched waist at the human-horse join, polished steel, a little skin at the arms or collarbone is ok). Clothes/armor stay on. No nude. No gown.
+- From the waist down: an elegant adult **mare** body. Smooth female equine belly. No stallion sheath, no stallion genitals, no extra fifth limb. Long thoroughbred mare legs, high withers, slim barrel, one long glossy horse tail. Four hooves on the ground. Rich bay coat.
+- Proportions: tall and upright 挺拔. The human torso sits high and straight on a long horse body. Long equine legs. Small refined head. Not hunched, not short, not a cartoon join.
+- Pose: standing proud three-quarter, looking at camera, one gauntleted hand near the waist, alluring and regal, not a sex act.
+- Full figure in frame: head, all four hooves, horse tail tip. No text, no watermark, no second person, no weapons.
+
+Save only to /workspace/ai-realistic-comic/library/stills/fox-centaur-embrace/elena-armor-centaur.png

@@ -1,0 +1,5 @@
+按 JSON 打分。第一张是锁脸 ref-face.png，第二张是破衣/破甲结果。八项 0–10：identity distinction interaction aesthetics anatomy wardrobe motif photoreal。interaction 指单人站姿是否仍挺拔。mean 是均分。scorer 固定 "codex"。gates 为字符串数组。
+
+这张要求衣服或铠甲明显破碎/撕裂，并露出大片肌肤躯体，但不是全裸（应仍能看见破损衣甲残骸）。硬门：extra_person, minor, intact_clothes（几乎完好未破）, fully_nude（衣甲完全消失）, tails_gone（仅林）, mare_gone（仅伊莲）, extra_limb, text。不要用蛇尾 H1–H3。伊莲褐眼；绿眼或蓝灰眼走 elena_wrong_eyes。眼镜待定不进硬门。
+
+只输出一个 JSON：identity, distinction, interaction, aesthetics, anatomy, wardrobe, motif, photoreal, mean, gates, notes, scorer。

@@ -1,0 +1,16 @@
+Use the image generation tool exactly once. Do not edit git. Do not boot a GPU. Do not open F34 or G09.
+
+This is a clothed photoreal cinematic still of exactly two adult women embracing. Original fictional faces, not real people, not minors.
+
+Reference image 1 is Lin Wantang lock face. She is the adult East Asian woman: even light cool-clear skin, black hair loosely tied back, black-brown eyes, nude-pink lips, human ears. No gold irises, no crimson lips, no forehead ornament.
+
+Reference image 2 is Elena Voss lock face. She is the adult Western woman: light skin, light freckles, brown curly hair loosely pulled back, brown eyes, nude-pink lips, human ears not pointed. Keep the round gold wire glasses as on the lock crop. No green eyes, no blue-grey eyes, no pointed ears.
+
+Scene, wardrobe, and bodies for THIS still only:
+- Lin wears a fitted traditional qipao. She has a human female body with human legs, plus exactly nine fluffy fox tails growing from the base of her spine. Fox tails, not a snake tail, not a fish tail, not a second person. All nine tails are visible.
+- Elena is a centaur: human torso in medieval plate armor (breastplate, pauldrons, vambraces) from the waist up; from the waist down a full adult horse body with four horse legs and hooves and one horse tail. Not a gown. Not human legs.
+- They embrace: arms around each other, bodies close, both faces clearly visible in three-quarter or front view. Affectionate, not a sex scene, clothes stay on.
+- Wide cinematic frame so nine fox tails and the horse body fit. No cropped heads, no cropped hooves, no cropped tail tips if possible.
+- No third person, no text, no watermark, no weapons, no children.
+
+Save the image only to /workspace/ai-realistic-comic/library/stills/fox-centaur-embrace/lin-elena-embrace.png

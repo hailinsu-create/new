@@ -1,0 +1,18 @@
+{
+  "identity": 8,
+  "distinction": 8,
+  "interaction": 8,
+  "aesthetics": 6,
+  "anatomy": 4,
+  "wardrobe": 2,
+  "motif": 8,
+  "photoreal": 5,
+  "mean": 6.125,
+  "gates": [
+    "clothes_remain"
+  ],
+  "notes": "脸部与锁脸参考较一致，单人站姿仍挺拔。旗袍领口、肩带及大面积裙摆仍在，髋腿未完全显露为皮肤，去衣不合格。胸腹肤色与四肢明显不一致，胸部轮廓、腰腹及髋腿衔接失真。狐尾保留，可辨约八条，重叠可能遮挡第九条，不据此判硬门。未见额外人物、未成年特征或文字。",
+  "scorer": "codex",
+  "tail_count": 8,
+  "stack": "fooocus+maskedfill+pass3"
+}

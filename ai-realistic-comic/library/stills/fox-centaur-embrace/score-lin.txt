@@ -1,0 +1,5 @@
+按 JSON 打分。第一张是锁脸，第二张是单人成衣静帧。八项 0–10：identity distinction interaction aesthetics anatomy wardrobe motif photoreal。interaction 这里指单人站姿是否挺拔稳定。mean 是均分。scorer 固定 "codex"。gates 为字符串数组。
+
+林这张硬门：extra_person, minor, not_qipao, not_fox_tails, text。狐尾应是九条；八条也记下但不要只因重叠难数就判硬门。不要用蛇尾门。
+
+只输出一个 JSON：identity, distinction, interaction, aesthetics, anatomy, wardrobe, motif, photoreal, mean, gates, notes, scorer, tail_count.

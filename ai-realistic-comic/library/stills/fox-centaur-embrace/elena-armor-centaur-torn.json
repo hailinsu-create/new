@@ -1,0 +1,17 @@
+{
+  "identity": 9,
+  "distinction": 8,
+  "interaction": 9,
+  "aesthetics": 9,
+  "anatomy": 9,
+  "wardrobe": 2,
+  "motif": 7,
+  "photoreal": 9,
+  "mean": 7.75,
+  "gates": [
+    "intact_clothes"
+  ],
+  "notes": "脸部与锁脸参考高度一致，褐眼正确；单人站姿挺拔，半人马形态完整。铠甲虽有凹损和局部缺口，但胸甲、臂甲及腰甲仍基本完整，缺乏明显碎裂或撕裂，也未露出大片肌肤躯体。",
+  "scorer": "codex",
+  "stack": "fooocus+maskedfill+pass3"
+}

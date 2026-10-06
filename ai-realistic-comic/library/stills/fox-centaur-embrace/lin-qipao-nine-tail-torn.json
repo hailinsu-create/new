@@ -1,0 +1,15 @@
+{
+  "identity": 9,
+  "distinction": 9,
+  "interaction": 9,
+  "aesthetics": 8,
+  "anatomy": 9,
+  "wardrobe": 8,
+  "motif": 9,
+  "photoreal": 9,
+  "mean": 8.75,
+  "gates": [],
+  "notes": "面部与锁脸参考高度一致；单人站姿挺拔，四肢比例自然。旗袍胸腹多处明显撕裂，露出大片肌肤，仍保留清晰衣料残骸，符合非全裸要求。白色多尾完整呈现，但尾根与各尾分界略含混；破口边缘稍显刻意。",
+  "scorer": "codex",
+  "stack": "fooocus+maskedfill+pass3"
+}

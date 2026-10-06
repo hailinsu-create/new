@@ -1,0 +1,12 @@
+Use the image generation tool exactly once. Do not edit git. Do not boot a GPU. Do not open F34 or G09.
+
+Single-person photoreal cinematic PORTRAIT still, 1024x1536, vertical. One adult woman only. Original fictional face, not a real person, not a minor.
+
+Attached images: (1) Lin Wantang lock face — match that exact East Asian face. (2) The clothed qipao nine-tail plate — keep the same garden, pose, camera, and exactly nine fluffy cream fox tails.
+
+This still only — shattered clothing:
+- The floral qipao is heavily torn and shredded with jagged silk edges. Large irregular holes expose bare breasts and belly skin. Dangling fabric scraps remain on the collar, hips, and skirt so it is clearly broken clothing, not fully nude and not an intact dress.
+- Keep nine fox tails untouched. Tall upright three-quarter pose looking at camera. Full body in frame.
+- One person only. No extra arms, no second body, no text, no watermark, no weapons.
+
+Save only to /workspace/ai-realistic-comic/library/stills/fox-centaur-embrace/lin-qipao-nine-tail-torn.png

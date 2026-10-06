@@ -1,0 +1,12 @@
+Use the image generation tool exactly once. Do not edit git. Do not boot a GPU. Do not open F34 or G09.
+
+Single-person photoreal cinematic PORTRAIT still, 1024x1536, vertical. One adult woman only. Original fictional face, not a real person, not a minor.
+
+Attached images: (1) Elena Voss lock face — brown eyes, round gold wire glasses, human ears. (2) The armored mare-centaur plate — keep terrace, pose, bay mare body, four legs, horse tail.
+
+This still only — shattered armor:
+- The medieval breastplate and arm armor are shattered and cracked with jagged metal edges. Large holes expose bare breasts and belly skin. Broken armor shards remain on shoulders, waist, and one arm so it is clearly wrecked armor, not fully nude and not intact plate.
+- Waist still joins the bay mare body. One head, one torso only. Tall upright three-quarter pose looking at camera. Full figure in frame.
+- No green eyes, no blue-grey eyes, no pointed ears, no second person, no extra limbs, no text, no watermark, no weapons.
+
+Save only to /workspace/ai-realistic-comic/library/stills/fox-centaur-embrace/elena-armor-centaur-torn.png
