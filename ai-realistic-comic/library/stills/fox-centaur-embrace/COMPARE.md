@@ -110,7 +110,7 @@
 | 去衣 | 北京 B `359a49a1c3-4cda10df`，`scheme_still_fox_centaur_undress.py` |
 | 图型 | 1024 crop-and-stitch，`InpaintModelConditioning` |
 | 禁走 | `scheme_b_from_plate.py` 全身 OpenPose 重绘；F34；G09；ReActor |
-| 锁脸 | `library/cast/<id>/ref-face.png`（打分对照）；实跑未接 InstantID |
+| 锁脸 | 打分对照 `library/cast/<id>/ref-face.png`；去衣 InstantID 改吃成衣板头肩裁 |
 | 寻卡 | 每两分钟一次；第 13 次开机 |
 
 ## 结论
@@ -164,13 +164,26 @@
 4. 没有 inpaint 专用权重；  
 5. 撞上 double-body 时，社区解法是 **缩小 crop / 拆更小洞**，我们却主要靠 **降 denoise**，于是直接撞上 `clothes_remain`。
 
-### 若按社区改，优先序
+### 已按社区改写的工作流（代码）
 
-1. **SAM（+ Grounding DINO）抠衣**，伊莲甲片拆成领 / 胸 / 臂 / 腰多个小洞。  
-2. **InstantID 锁脸改成衣板上的头肩裁**（或加大 pad），保证 InsightFace 能检出；再在衣服 inpaint 上接身份。  
-3. 林：**拆洞 + 必要时缩小 crop**（防双人），再进 0.75–0.85；第二遍 0.4 收边。不要用「整条旗袍一次 0.84」。  
-4. 有磁盘就加 **Fooocus inpaint patch** 或 SDXL inpaint / Flux Fill；RealVisXL 只当退路。  
-5. 可选 Differential Diffusion 做蒙版灰度 denoise；FaceDetailer 收尾。  
-6. 文档与实跑对齐：InstantID 没挂上就不要写「已接 InstantID」。
+`scheme_still_fox_centaur_undress.py` 已落地优先序里能在北京现有节点上做的部分（仍无 DINO+SAM、仍无 Fooocus/Flux Fill）：
 
-一句话：社区已经说明 **小洞 + 语义蒙版 + 0.75–0.85 + 专用 inpaint + 能检出的锁脸**；我们用了 crop 壳子，但洞太大、蒙版太粗、锁脸挂了、底模偏弱，所以林卡在双人/留衣互斥，伊莲卡在残甲漏蒙。
+| 项 | 现行 |
+| --- | --- |
+| 小洞 | `lin_region_passes` / `elena_region_passes`：胸腹裙或胸甲领臂腰，各跑一次 |
+| denoise | 衣服 pass `CLOTH_DENOISE=0.80`；收边 `EDGE_DENOISE=0.42` + grow |
+| 大洞降采样 | `prepare_crop_community`，`MAX_CONTENT_FRAC=0.58` |
+| InstantID | `head_shoulder_from_plate` 从头肩盒裁；检不出脸则该 pass 退回纯 inpaint |
+| 禁走 | Scheme B 全图；F34；G09；ReActor |
+| 未做 | Grounding DINO+SAM；Fooocus inpaint patch / Flux Fill；Differential Diffusion；FaceDetailer 收尾 |
+
+静帧 PNG 仍是改写前那一轮；北京重跑后再更新分数表。
+
+### 若再继续，优先序
+
+1. **SAM（+ Grounding DINO）抠衣**，替代手绘 box。  
+2. 有磁盘就加 **Fooocus inpaint patch** 或 SDXL inpaint / Flux Fill。  
+3. 可选 Differential Diffusion；FaceDetailer 收尾。  
+4. 北京重跑两张，用 Codex 打分更新本表。
+
+一句话：社区已经说明 **小洞 + 语义蒙版 + 0.75–0.85 + 专用 inpaint + 能检出的锁脸**；代码侧已接上小洞、0.80/0.42、大洞降采样、头肩 InstantID；语义蒙版和专用 inpaint 权重仍待装。

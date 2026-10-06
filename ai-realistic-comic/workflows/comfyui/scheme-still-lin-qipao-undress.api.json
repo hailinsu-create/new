@@ -2,10 +2,12 @@
   "source": {
     "inpaint": "https://github.com/lquesada/ComfyUI-Inpaint-CropAndStitch",
     "instantid": "https://github.com/cubiq/ComfyUI_InstantID",
-    "why": "Clothes-only 1024 crop. Tails and horse stay unmasked. Not a full OpenPose redraw.",
-    "stage": "lin-cloth",
+    "why": "Small-hole clothes inpaint at denoise 0.75–0.85, edge pass ~0.4, InstantID from plate head-shoulder. Not full OpenPose redraw.",
+    "stage": "lin-chest",
     "sampler_seed": 20261006,
-    "cloth_denoise": 0.75,
+    "cloth_denoise": 0.8,
+    "edge_denoise": 0.42,
+    "max_content_frac": 0.58,
     "beijing": "359a49a1c3-4cda10df"
   },
   "prompt": {
@@ -18,7 +20,7 @@
     "4": {
       "class_type": "CLIPTextEncode",
       "inputs": {
-        "text": "bare skin only, natural breasts, visible nipples, navel, skin tone matches the neck, same body under the dress, no second person",
+        "text": "bare skin only, natural breasts, visible nipples, navel, skin tone matches the neck, same adult woman already in the photo, one person only, no second body",
         "clip": [
           "3",
           1
@@ -28,7 +30,7 @@
     "5": {
       "class_type": "CLIPTextEncode",
       "inputs": {
-        "text": "child, teen, extra person, second woman, extra face, extra head, clone, ghost, qipao, cheongsam, dress, clothes, embroidery, fabric pattern, ribbon, bra, snake tail, extra limbs, smear, plastic, text, watermark",
+        "text": "child, teen, extra person, second woman, extra face, extra head, clone, ghost, qipao, cheongsam, dress, clothes, embroidery, fabric pattern, ribbon, bra, panties, snake tail, extra limbs, smear, plastic, text, watermark",
         "clip": [
           "3",
           1
@@ -38,13 +40,13 @@
     "1": {
       "class_type": "LoadImage",
       "inputs": {
-        "image": "lin-crop.png"
+        "image": "lin-chest-crop.png"
       }
     },
     "2": {
       "class_type": "LoadImage",
       "inputs": {
-        "image": "lin-crop-mask.png"
+        "image": "lin-chest-crop-mask.png"
       }
     },
     "50": {
@@ -107,7 +109,7 @@
           "40",
           2
         ],
-        "denoise": 0.75
+        "denoise": 0.8
       }
     },
     "16": {
@@ -130,13 +132,13 @@
           "16",
           0
         ],
-        "filename_prefix": "lin-nude"
+        "filename_prefix": "lin-chest"
       }
     },
     "60": {
       "class_type": "LoadImage",
       "inputs": {
-        "image": "lin-ref-face.png"
+        "image": "lin-head-shoulder.png"
       }
     },
     "6": {
@@ -205,7 +207,7 @@
           "5",
           0
         ],
-        "weight": 0.8,
+        "weight": 0.75,
         "start_at": 0.0,
         "end_at": 1.0,
         "image_kps": [

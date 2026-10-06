@@ -160,4 +160,4 @@ RealVisXL 在缩小后的全身图上仍会画黑丝带或抹胸。脚本在正�
 
 2026-10-06 第二次：用户要林晚棠裸体三向。北京 B `359a49a1c3-4cda10df` 再次开机，F34 和 G09 仍关机。InstantID 改吃 `ref-face.png`（记事干净正脸裁到下巴，无衣领）。种子仍是 `20261006`。Codex `pass1`：正面 identity 7、anatomy 6、H7，不过门；侧面和背面过门。背面图和第一次相同，因为背面不喂脸。出完后机器再次内部关机，磁盘保留。
 
-2026-10-06 旗袍九尾 / 铠甲半人马单人去衣：不要跑 `scheme_b_from_plate.py`。那条是全身 OpenPose 重绘，会把狐尾和马身抹掉。衣服走 `workflows/comfyui/scheme_still_fox_centaur_undress.py`，1024 crop-and-stitch，`InpaintModelConditioning` denoise 0.75。锁脸仍是板心 `ref-face.png`。机器还是北京 B `359a49a1c3-4cda10df`。F34 和 G09 不开。裸体不用 ReActor。
+2026-10-06 旗袍九尾 / 铠甲半人马单人去衣：不要跑 `scheme_b_from_plate.py`。那条是全身 OpenPose 重绘，会把狐尾和马身抹掉。衣服走 `workflows/comfyui/scheme_still_fox_centaur_undress.py`：社区对齐的小洞 crop-and-stitch（林胸/腹/裙，伊莲胸甲/领/臂/腰）+ `InpaintModelConditioning`，衣服 denoise **0.80**、收边 **0.42**，大洞 `MAX_CONTENT_FRAC=0.58` 降采样防双人。InstantID 吃成衣板 **头肩裁**（不是下颌以上的 `ref-face.png`）；检出失败则该 pass 退回纯 inpaint。打分对照仍是板心 `ref-face.png`。机器还是北京 B `359a49a1c3-4cda10df`。F34 和 G09 不开。裸体不用 ReActor。
