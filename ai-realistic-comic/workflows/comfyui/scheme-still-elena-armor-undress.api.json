@@ -1,0 +1,218 @@
+{
+  "source": {
+    "inpaint": "https://github.com/lquesada/ComfyUI-Inpaint-CropAndStitch",
+    "instantid": "https://github.com/cubiq/ComfyUI_InstantID",
+    "why": "Clothes-only 1024 crop. Tails and horse stay unmasked. Not a full OpenPose redraw.",
+    "stage": "elena-cloth",
+    "sampler_seed": 20261006,
+    "cloth_denoise": 0.75,
+    "beijing": "359a49a1c3-4cda10df"
+  },
+  "prompt": {
+    "3": {
+      "class_type": "CheckpointLoaderSimple",
+      "inputs": {
+        "ckpt_name": "RealVisXL_V5.0_fp16.safetensors"
+      }
+    },
+    "4": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "text": "photorealistic adult woman in her twenties, brown eyes, round gold wire glasses, brown curly hair, same standing pose, nude human torso, natural breasts, visible nipples, skin matching the neck, waist joins a bay mare centaur body, four horse legs, terrace and mountains, no armor, no metal, no gauntlets",
+        "clip": [
+          "3",
+          1
+        ]
+      }
+    },
+    "5": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "text": "child, teen, armor, plate mail, gauntlet, gorget, clothes, shirt, bra, green eyes, blue-grey eyes, blue-gray eyes, pointed ears, elf ears, stallion, extra legs, extra person, smear, blotch, blur, plastic skin, text, watermark",
+        "clip": [
+          "3",
+          1
+        ]
+      }
+    },
+    "1": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "elena-crop.png"
+      }
+    },
+    "2": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "elena-crop-mask.png"
+      }
+    },
+    "50": {
+      "class_type": "ImageToMask",
+      "inputs": {
+        "image": [
+          "2",
+          0
+        ],
+        "channel": "red"
+      }
+    },
+    "40": {
+      "class_type": "InpaintModelConditioning",
+      "inputs": {
+        "positive": [
+          "10",
+          1
+        ],
+        "negative": [
+          "10",
+          2
+        ],
+        "vae": [
+          "3",
+          2
+        ],
+        "pixels": [
+          "1",
+          0
+        ],
+        "mask": [
+          "50",
+          0
+        ],
+        "noise_mask": true
+      }
+    },
+    "15": {
+      "class_type": "KSampler",
+      "inputs": {
+        "model": [
+          "10",
+          0
+        ],
+        "seed": 20261007,
+        "steps": 22,
+        "cfg": 4.5,
+        "sampler_name": "dpmpp_2m",
+        "scheduler": "karras",
+        "positive": [
+          "40",
+          0
+        ],
+        "negative": [
+          "40",
+          1
+        ],
+        "latent_image": [
+          "40",
+          2
+        ],
+        "denoise": 0.75
+      }
+    },
+    "16": {
+      "class_type": "VAEDecode",
+      "inputs": {
+        "samples": [
+          "15",
+          0
+        ],
+        "vae": [
+          "3",
+          2
+        ]
+      }
+    },
+    "22": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "16",
+          0
+        ],
+        "filename_prefix": "elena-nude"
+      }
+    },
+    "60": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "elena-ref-face.png"
+      }
+    },
+    "6": {
+      "class_type": "InstantIDModelLoader",
+      "inputs": {
+        "instantid_file": "ip-adapter.bin"
+      }
+    },
+    "7": {
+      "class_type": "InstantIDFaceAnalysis",
+      "inputs": {
+        "provider": "CPU"
+      }
+    },
+    "8": {
+      "class_type": "DiffControlNetLoader",
+      "inputs": {
+        "model": [
+          "3",
+          0
+        ],
+        "control_net_name": "instantid/diffusion_pytorch_model.safetensors"
+      }
+    },
+    "9": {
+      "class_type": "FaceKeypointsPreprocessor",
+      "inputs": {
+        "faceanalysis": [
+          "7",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ]
+      }
+    },
+    "10": {
+      "class_type": "ApplyInstantID",
+      "inputs": {
+        "instantid": [
+          "6",
+          0
+        ],
+        "insightface": [
+          "7",
+          0
+        ],
+        "control_net": [
+          "8",
+          0
+        ],
+        "image": [
+          "60",
+          0
+        ],
+        "model": [
+          "3",
+          0
+        ],
+        "positive": [
+          "4",
+          0
+        ],
+        "negative": [
+          "5",
+          0
+        ],
+        "weight": 0.8,
+        "start_at": 0.0,
+        "end_at": 1.0,
+        "image_kps": [
+          "9",
+          0
+        ]
+      }
+    }
+  }
+}

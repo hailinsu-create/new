@@ -1,0 +1,127 @@
+"""Fox/centaur still undress: clothes-only crop, not a full Scheme B redraw."""
+
+from __future__ import annotations
+
+import importlib.util
+import json
+from pathlib import Path
+
+from PIL import Image, ImageDraw
+
+ROOT = Path(__file__).resolve().parents[1]
+COMFY = ROOT / "workflows" / "comfyui"
+STILL = ROOT / "library" / "stills" / "fox-centaur-embrace"
+
+
+def _load(name: str):
+    path = COMFY / f"{name}.py"
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_inpaint_crop_uses_conditioning_not_full_frame_denoise_one():
+    crop = _load("inpaint_crop")
+    assert crop.INPAINT_DENOISE == 0.75
+    graph = crop.inpaint_crop_graph(
+        "RealVisXL_V5.0_fp16.safetensors",
+        "crop.png",
+        "mask.png",
+        "bare skin",
+        "cloth",
+        1,
+        "chest",
+    )
+    dumped = json.dumps(graph)
+    assert "InpaintModelConditioning" in dumped
+    assert "SetLatentNoiseMask" not in dumped
+    assert graph["15"]["inputs"]["denoise"] == 0.75
+    assert graph["40"]["inputs"]["noise_mask"] is True
+
+
+def test_crop_and_stitch_leaves_unmasked_pixels():
+    crop = _load("inpaint_crop")
+    original = Image.new("RGB", (200, 200), (10, 20, 30))
+    ImageDraw.Draw(original).rectangle((20, 20, 80, 80), fill=(200, 40, 40))
+    mask = Image.new("L", (200, 200), 0)
+    ImageDraw.Draw(mask).rectangle((40, 40, 70, 70), fill=255)
+    job = crop.prepare_crop(original, mask, context=8, target=64)
+    fake = Image.new("RGB", (64, 64), (0, 255, 0))
+    out = crop.stitch(original, fake, job)
+    assert out.getpixel((10, 10)) == (10, 20, 30)
+    assert out.getpixel((25, 25)) == (200, 40, 40)
+
+
+def test_fox_centaur_undress_keeps_tails_horse_and_faces():
+    undress = _load("scheme_still_fox_centaur_undress")
+    lin = Image.open(STILL / "lin-qipao-nine-tail.png")
+    elena = Image.open(STILL / "elena-armor-centaur.png")
+    lin_mask = undress.lin_clothes_mask(lin)
+    elena_mask = undress.elena_clothes_mask(elena)
+    assert lin_mask.getpixel((430, 200)) < 20
+    assert lin_mask.getpixel((750, 450)) < 20
+    assert lin_mask.getpixel((500, 1450)) < 20
+    assert lin_mask.getpixel((430, 450)) > 200
+    assert lin_mask.getpixel((400, 900)) > 200
+    assert elena_mask.getpixel((430, 160)) < 20
+    assert elena_mask.getpixel((700, 800)) < 20
+    assert elena_mask.getpixel((400, 750)) < 20
+    assert elena_mask.getpixel((430, 400)) > 200
+    assert elena_mask.getpixel((250, 500)) > 200
+
+
+def test_fox_centaur_graph_is_crop_inpaint_plus_instantid_on_ref_face():
+    undress = _load("scheme_still_fox_centaur_undress")
+    models = {
+        "ckpt": "RealVisXL_V5.0_fp16.safetensors",
+        "instant_cn": "instantid/x.safetensors",
+        "instant_ip": "ip-adapter.bin",
+    }
+    graph = undress.instantid_inpaint_graph(
+        models,
+        "lin-crop.png",
+        "lin-crop-mask.png",
+        "lin-ref-face.png",
+        undress.LIN_POS,
+        undress.LIN_NEG,
+        undress.SAMPLER_SEED,
+        "lin-nude",
+    )
+    dumped = json.dumps(graph)
+    assert graph["2"]["inputs"]["image"] == "lin-crop-mask.png"
+    assert graph["60"]["inputs"]["image"] == "lin-ref-face.png"
+    assert graph["10"]["class_type"] == "ApplyInstantID"
+    assert graph["10"]["inputs"]["image"] == ["60", 0]
+    assert graph["40"]["class_type"] == "InpaintModelConditioning"
+    assert graph["40"]["inputs"]["positive"] == ["10", 1]
+    assert graph["15"]["inputs"]["denoise"] == 0.75
+    assert graph["15"]["inputs"]["model"] == ["10", 0]
+    assert "SetLatentNoiseMask" not in dumped
+    assert "ReActor" not in dumped
+    assert "blue-grey" in undress.ELENA_NEG
+    assert "brown eyes" in undress.ELENA_POS
+    assert "gold wire glasses" in undress.ELENA_POS
+    assert "fox tails" in undress.LIN_POS
+    assert undress.F34_UUID not in dumped
+    script = (COMFY / "scheme_still_fox_centaur_undress.py").read_text(encoding="utf-8")
+    assert "from scheme_b_from_plate" not in script
+    assert "scheme_b_from_plate.py" in script
+    assert undress.BJ_UUID in script
+    assert undress.F34_UUID in script
+    try:
+        undress.assert_not_forbidden_uuid(undress.F34_UUID)
+        raise AssertionError("F34 must be forbidden")
+    except SystemExit as exc:
+        assert "FORBIDDEN_INSTANCE" in str(exc)
+
+
+def test_fox_centaur_docs_say_crop_not_full_redraw():
+    still = (STILL / "STILL.md").read_text(encoding="utf-8")
+    setup = (ROOT / "docs" / "comfyui-setup.md").read_text(encoding="utf-8")
+    assert "不用 ReActor" in still
+    assert "crop-and-stitch" in still
+    assert "scheme_still_fox_centaur_undress.py" in still
+    assert "scheme_still_fox_centaur_undress.py" in setup
+    assert "359a49a1c3-4cda10df" in setup
+    assert "InpaintModelConditioning" in setup

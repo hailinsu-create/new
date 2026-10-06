@@ -30,3 +30,14 @@ Codex CLI 成衣。F34 / G09 未开。
 - 双人：`lin-elena-embrace.png` 1536×1024。打分均分 9.3，硬门空，anatomy 8.8。
 - 林单人：`lin-qipao-nine-tail.png` 1024×1536。更挺拔。Codex 均分 9.0，硬门空；狐尾可辨约八条，第九条可能重叠。
 - 伊莲单人：`elena-armor-centaur.png` 1024×1536。马身拉长、母马腹线。身份 9，人马衔接仍略硬。
+
+## 去衣（这一张的衣服，不是身体板）
+
+穿衣单人保留。去衣只抠旗袍和铠甲，狐尾和马身不进蒙版。工作流是 `workflows/comfyui/scheme_still_fox_centaur_undress.py`：1024 crop-and-stitch + `InpaintModelConditioning` denoise 0.75，InstantID 吃板心 `ref-face.png`。不要把这两张丢进 `scheme_b_from_plate.py` 的全身 OpenPose 重绘，那会把九尾和马身画没。北京 B `359a49a1c3-4cda10df`。F34 / G09 不开。不用 ReActor。
+
+打分对照仍是 `ref-face.png`。不要套蛇尾 H1–H3。伊莲褐眼、圆框金丝眼镜默认保留；绿眼或蓝灰眼走 H4。
+
+| 人 | 成衣 | 去衣 |
+| --- | --- | --- |
+| 林 | `lin-qipao-nine-tail.png` | `lin-qipao-nine-tail-nude.png` |
+| 伊莲 | `elena-armor-centaur.png` | `elena-armor-centaur-nude.png` |
