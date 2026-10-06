@@ -71,6 +71,14 @@ def test_fox_centaur_undress_keeps_tails_horse_and_faces():
     assert elena_mask.getpixel((250, 500)) > 200
 
 
+def test_pad_face_for_instantid_is_square_and_larger_than_lock():
+    undress = _load("scheme_still_fox_centaur_undress")
+    face = Image.open(ROOT / "library/cast/lin_wantang/ref-face.png")
+    padded = undress.pad_face_for_instantid(face, 768)
+    assert padded.size == (768, 768)
+    assert padded.size[0] > face.size[0]
+
+
 def test_fox_centaur_graph_is_crop_inpaint_plus_instantid_on_ref_face():
     undress = _load("scheme_still_fox_centaur_undress")
     models = {
@@ -100,9 +108,10 @@ def test_fox_centaur_graph_is_crop_inpaint_plus_instantid_on_ref_face():
     assert "SetLatentNoiseMask" not in dumped
     assert "ReActor" not in dumped
     assert "blue-grey" in undress.ELENA_NEG
-    assert "brown eyes" in undress.ELENA_POS
-    assert "gold wire glasses" in undress.ELENA_POS
-    assert "fox tails" in undress.LIN_POS
+    assert "extra person" in undress.LIN_NEG
+    assert "bare skin" in undress.LIN_POS
+    assert "armor" in undress.ELENA_NEG
+    assert "狐尾" in (STILL / "STILL.md").read_text(encoding="utf-8")
     assert undress.F34_UUID not in dumped
     script = (COMFY / "scheme_still_fox_centaur_undress.py").read_text(encoding="utf-8")
     assert "from scheme_b_from_plate" not in script

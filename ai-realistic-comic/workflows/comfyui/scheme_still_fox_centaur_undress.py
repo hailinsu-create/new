@@ -57,29 +57,25 @@ SSH = [
 ]
 
 LIN_POS = (
-    "photorealistic adult East Asian woman in her twenties, same standing pose, "
-    "nude torso abdomen hips and legs, natural breasts, visible nipples, navel, "
-    "bare skin matching the neck and the already-bare right thigh, "
-    "nine cream fox tails still fanned behind her, high-heel pumps, "
-    "Chinese garden courtyard, no qipao, no dress, no cloth on the body"
+    "bare skin only, natural breasts, visible nipples, navel, skin tone matches the neck, "
+    "same body under the dress, no second person"
 )
 LIN_NEG = (
-    "child, teen, qipao, cheongsam, dress, clothes, fabric, embroidery, "
-    "ribbon, strap, bra, panties, snake tail, fish tail, extra person, "
-    "extra limbs, smear, blotch, blur, plastic skin, text, watermark"
+    "child, teen, extra person, second woman, extra face, extra head, clone, ghost, "
+    "qipao, cheongsam, dress, clothes, embroidery, fabric pattern, ribbon, bra, "
+    "snake tail, extra limbs, smear, plastic, text, watermark"
 )
 ELENA_POS = (
-    "photorealistic adult woman in her twenties, brown eyes, round gold wire glasses, "
-    "brown curly hair, same standing pose, nude human torso, natural breasts, "
-    "visible nipples, skin matching the neck, waist joins a bay mare centaur body, "
-    "four horse legs, terrace and mountains, no armor, no metal, no gauntlets"
+    "bare human torso skin only, natural breasts, visible nipples, skin tone matches the neck, "
+    "no metal, no armor, same waist joining the horse body"
 )
 ELENA_NEG = (
-    "child, teen, armor, plate mail, gauntlet, gorget, clothes, shirt, bra, "
-    "green eyes, blue-grey eyes, blue-gray eyes, pointed ears, elf ears, "
-    "stallion, extra legs, extra person, smear, blotch, blur, plastic skin, "
-    "text, watermark"
+    "child, teen, extra person, extra face, extra hair on chest, armor, plate, gauntlet, "
+    "gorget, pauldron, mail, clothes, bra, green eyes, blue-grey eyes, pointed ears, "
+    "stallion, extra legs, smear, plastic, text, watermark"
 )
+LIN_DENOISE = 0.72
+ELENA_DENOISE = 0.78
 CROP_STITCH = "https://github.com/lquesada/ComfyUI-Inpaint-CropAndStitch"
 INSTANTID = "https://github.com/cubiq/ComfyUI_InstantID"
 
@@ -162,33 +158,128 @@ def elena_clothes_mask(image: Image.Image) -> Image.Image:
     mask = _fill_px(
         size,
         [
-            (388, 258),
-            (472, 250),
-            (530, 310),
-            (548, 400),
-            (545, 520),
-            (500, 575),
-            (430, 610),
-            (350, 625),
-            (250, 690),
-            (190, 640),
-            (205, 520),
-            (230, 400),
-            (290, 310),
-            (350, 270),
+            (370, 245),
+            (480, 242),
+            (540, 300),
+            (555, 400),
+            (548, 530),
+            (510, 600),
+            (430, 655),
+            (330, 660),
+            (240, 700),
+            (175, 650),
+            (185, 520),
+            (210, 380),
+            (255, 290),
+            (330, 250),
         ],
     )
-    _clear_px(mask, (330, 20, 540, 255), radius=22)
+    _clear_px(mask, (330, 20, 530, 238), radius=18)
 
     def horse(rgb: tuple[int, int, int], x: int, y: int) -> bool:
         red, green, blue = rgb
         sx = int(x / size[0] * BASE[0])
         sy = int(y / size[1] * BASE[1])
         brown = red > 55 and red > green + 12 and green >= blue - 8
-        return bool(brown and sy > 630 and sx > 300)
+        return bool(brown and sy > 650 and sx > 320)
 
     mask = _unmask_color(image, mask, pred=horse)
     return mask.filter(ImageFilter.GaussianBlur(radius=12))
+
+
+def lin_chest_mask(image: Image.Image) -> Image.Image:
+    """Upper qipao only, to avoid spawning a second figure in a full-dress hole."""
+    size = image.size
+    mask = _fill_px(
+        size,
+        [
+            (400, 300),
+            (490, 298),
+            (518, 360),
+            (515, 500),
+            (505, 700),
+            (368, 700),
+            (358, 500),
+            (365, 360),
+        ],
+    )
+    _clear_px(mask, (320, 20, 560, 286), radius=20)
+    return mask.filter(ImageFilter.GaussianBlur(radius=10))
+
+
+def lin_skirt_mask(image: Image.Image) -> Image.Image:
+    size = image.size
+    mask = _fill_px(
+        size,
+        [
+            (360, 690),
+            (500, 690),
+            (492, 1274),
+            (368, 1276),
+        ],
+    )
+    _clear_px(mask, (478, 760, 560, 1320), radius=8)
+    return mask.filter(ImageFilter.GaussianBlur(radius=10))
+
+
+def elena_remain_mask(image: Image.Image) -> Image.Image:
+    """Leftover pauldron, gauntlet, hip plate, collar on a first-pass nude."""
+    size = image.size
+    arm = _fill_px(
+        size,
+        [
+            (175, 255),
+            (330, 250),
+            (340, 420),
+            (320, 700),
+            (175, 710),
+            (160, 500),
+        ],
+    )
+    hip = _fill_px(
+        size,
+        [
+            (330, 555),
+            (545, 545),
+            (540, 680),
+            (330, 690),
+        ],
+    )
+    collar = _fill_px(
+        size,
+        [
+            (390, 236),
+            (505, 236),
+            (500, 300),
+            (385, 300),
+        ],
+    )
+    mask = Image.composite(arm, Image.new("L", size, 0), arm)
+    mask = Image.composite(hip, mask, hip)
+    mask = Image.composite(collar, mask, collar)
+    _clear_px(mask, (330, 20, 530, 238), radius=16)
+
+    def horse(rgb: tuple[int, int, int], x: int, y: int) -> bool:
+        red, green, blue = rgb
+        sx = int(x / size[0] * BASE[0])
+        sy = int(y / size[1] * BASE[1])
+        brown = red > 55 and red > green + 12 and green >= blue - 8
+        return bool(brown and sy > 620 and sx > 300)
+
+    mask = _unmask_color(image, mask, pred=horse)
+    return mask.filter(ImageFilter.GaussianBlur(radius=10))
+
+
+def pad_face_for_instantid(src: Image.Image, size: int = 768) -> Image.Image:
+    """InsightFace misses a jaw-up lock if the canvas is too tight."""
+    src = src.convert("RGB")
+    canvas = Image.new("RGB", (size, size), (46, 42, 38))
+    scale = min((size - 96) / max(src.width, 1), (size - 96) / max(src.height, 1))
+    new_w = max(8, int(src.width * scale))
+    new_h = max(8, int(src.height * scale))
+    resized = src.resize((new_w, new_h), Image.Resampling.LANCZOS)
+    canvas.paste(resized, ((size - new_w) // 2, (size - new_h) // 2))
+    return canvas
 
 
 def instantid_inpaint_graph(
@@ -352,20 +443,24 @@ def run_one(
     seed: int,
     input_dir: Path,
     out_dir: Path,
+    denoise: float,
+    stem: str | None = None,
 ) -> Path:
-    prepared = prepare_job(name, plate, mask, input_dir)
-    shutil.copy(face, input_dir / f"{name}-ref-face.png")
-    for filename in (prepared["crop_name"], prepared["crop_mask"], f"{name}-ref-face.png"):
+    stem = stem or name
+    prepared = prepare_job(stem, plate, mask, input_dir)
+    padded = pad_face_for_instantid(Image.open(face))
+    padded.save(input_dir / f"{name}-ref-face.png")
+    for filename in (prepared["crop_name"], prepared["crop_mask"]):
         _upload(host, input_dir / filename)
-    graph = instantid_inpaint_graph(
-        models,
-        prepared["crop_name"],
-        prepared["crop_mask"],
-        f"{name}-ref-face.png",
-        positive,
-        negative,
-        seed,
-        f"{name}-nude-crop",
+    graph = inpaint_crop_graph(
+        ckpt=models["ckpt"],
+        crop_name=prepared["crop_name"],
+        mask_name=prepared["crop_mask"],
+        positive=positive,
+        negative=negative,
+        seed=seed,
+        prefix=f"{name}-nude-crop",
+        denoise=denoise,
     )
     (out_dir / f"{name}-undress.api.json").write_text(
         json.dumps(envelope(graph, name), ensure_ascii=False, indent=2),
@@ -398,8 +493,8 @@ def main() -> None:
     lin_img = Image.open(LIN_PLATE).convert("RGB")
     elena_img = Image.open(ELENA_PLATE).convert("RGB")
     jobs = {
-        "lin": (LIN_PLATE, LIN_FACE, lin_clothes_mask(lin_img), LIN_POS, LIN_NEG, SAMPLER_SEED),
-        "elena": (ELENA_PLATE, ELENA_FACE, elena_clothes_mask(elena_img), ELENA_POS, ELENA_NEG, SAMPLER_SEED + 1),
+        "lin": (LIN_PLATE, LIN_FACE, lin_clothes_mask(lin_img), LIN_POS, LIN_NEG, SAMPLER_SEED, LIN_DENOISE),
+        "elena": (ELENA_PLATE, ELENA_FACE, elena_clothes_mask(elena_img), ELENA_POS, ELENA_NEG, SAMPLER_SEED + 1, ELENA_DENOISE),
     }
     chosen = args.only or ["lin", "elena"]
     args.input.mkdir(parents=True, exist_ok=True)
@@ -407,7 +502,7 @@ def main() -> None:
     debug = Path("/tmp/fox-undress-preview/masks")
     debug.mkdir(parents=True, exist_ok=True)
     for name in chosen:
-        plate, _face, mask, _p, _n, _s = jobs[name]
+        plate, _face, mask, _p, _n, _s, _d = jobs[name]
         overlay = Image.open(plate).convert("RGBA")
         tint = Image.new("RGBA", overlay.size, (220, 40, 40, 110))
         overlay = Image.composite(tint, overlay, mask)
@@ -419,9 +514,26 @@ def main() -> None:
         return
     models = resolve_base_models(args.host)
     print("MODELS", json.dumps(models, ensure_ascii=False), flush=True)
-    for name in chosen:
-        plate, face, mask, positive, negative, seed = jobs[name]
-        run_one(args.host, models, name, plate, face, mask, positive, negative, seed, args.input, args.out)
+    if "lin" in chosen:
+        chest = lin_chest_mask(lin_img)
+        lin_dest = run_one(
+            args.host, models, "lin", LIN_PLATE, LIN_FACE, chest, LIN_POS, LIN_NEG,
+            SAMPLER_SEED, args.input, args.out, 0.70, stem="lin-chest",
+        )
+        after = Image.open(lin_dest).convert("RGB")
+        skirt = lin_skirt_mask(after)
+        run_one(
+            args.host, models, "lin", lin_dest, LIN_FACE, skirt, LIN_POS, LIN_NEG,
+            SAMPLER_SEED + 2, args.input, args.out, 0.70, stem="lin-skirt",
+        )
+    if "elena" in chosen:
+        current = args.out / "elena-armor-centaur-nude.png"
+        plate = current if current.is_file() else ELENA_PLATE
+        remain = elena_remain_mask(Image.open(plate).convert("RGB"))
+        run_one(
+            args.host, models, "elena", plate, ELENA_FACE, remain, ELENA_POS, ELENA_NEG,
+            SAMPLER_SEED + 3, args.input, args.out, 0.80, stem="elena-remain",
+        )
 
 
 if __name__ == "__main__":

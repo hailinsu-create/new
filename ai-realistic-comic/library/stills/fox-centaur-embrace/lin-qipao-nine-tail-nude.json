@@ -1,0 +1,17 @@
+{
+  "identity": 8,
+  "distinction": 8,
+  "interaction": 8,
+  "aesthetics": 8,
+  "anatomy": 4,
+  "wardrobe": 0,
+  "motif": 8,
+  "photoreal": 8,
+  "mean": 6.5,
+  "gates": [
+    "clothes_remain"
+  ],
+  "notes": "脸部与锁脸参考较接近，单人站姿仍挺拔。旗袍大面积保留，胸腹髋腿未全部成为裸露皮肤，去衣目标未完成。大腿前出现多余手臂和手，人体结构明显异常。狐尾仍在，可辨约八条，重叠可能遮住第九条，不据此判硬门。",
+  "scorer": "codex",
+  "tail_count": 8
+}

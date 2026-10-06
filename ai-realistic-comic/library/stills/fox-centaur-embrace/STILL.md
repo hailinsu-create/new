@@ -33,11 +33,13 @@ Codex CLI 成衣。F34 / G09 未开。
 
 ## 去衣（这一张的衣服，不是身体板）
 
-穿衣单人保留。去衣只抠旗袍和铠甲，狐尾和马身不进蒙版。工作流是 `workflows/comfyui/scheme_still_fox_centaur_undress.py`：1024 crop-and-stitch + `InpaintModelConditioning` denoise 0.75，InstantID 吃板心 `ref-face.png`。不要把这两张丢进 `scheme_b_from_plate.py` 的全身 OpenPose 重绘，那会把九尾和马身画没。北京 B `359a49a1c3-4cda10df`。F34 / G09 不开。不用 ReActor。
+穿衣单人保留。去衣只抠旗袍和铠甲，狐尾和马身不进蒙版。工作流是 `workflows/comfyui/scheme_still_fox_centaur_undress.py`：1024 crop-and-stitch + `InpaintModelConditioning`。锁脸仍是板心 `ref-face.png`；InstantID 在这张锁脸上 InsightFace 检不出脸，所以实跑是衣服 inpaint，成衣脸上的五官保留。不要把这两张丢进 `scheme_b_from_plate.py` 的全身 OpenPose 重绘。北京 B `359a49a1c3-4cda10df`。F34 / G09 不开。不用 ReActor。
+
+林：高 denoise 会在旗袍轮廓里长出第二个人，所以胸腹分开抠、denoise 0.70。结果是薄纱旗袍、胸可见，不是全裸，狐尾还在。伊莲：上身铠甲已去，马身还在；领圈、左臂甲、腰甲还留一点。
 
 打分对照仍是 `ref-face.png`。不要套蛇尾 H1–H3。伊莲褐眼、圆框金丝眼镜默认保留；绿眼或蓝灰眼走 H4。
 
-| 人 | 成衣 | 去衣 |
-| --- | --- | --- |
-| 林 | `lin-qipao-nine-tail.png` | `lin-qipao-nine-tail-nude.png` |
-| 伊莲 | `elena-armor-centaur.png` | `elena-armor-centaur-nude.png` |
+| 人 | 成衣 | 去衣 | 均分 | 硬门 |
+| --- | --- | --- | --- | --- |
+| 林 | `lin-qipao-nine-tail.png` | `lin-qipao-nine-tail-nude.png` | 6.5 | clothes_remain |
+| 伊莲 | `elena-armor-centaur.png` | `elena-armor-centaur-nude.png` | 8.0 | armor_remain |

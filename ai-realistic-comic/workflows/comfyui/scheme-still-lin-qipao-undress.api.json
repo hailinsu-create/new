@@ -18,7 +18,7 @@
     "4": {
       "class_type": "CLIPTextEncode",
       "inputs": {
-        "text": "photorealistic adult East Asian woman in her twenties, same standing pose, nude torso abdomen hips and legs, natural breasts, visible nipples, navel, bare skin matching the neck and the already-bare right thigh, nine cream fox tails still fanned behind her, high-heel pumps, Chinese garden courtyard, no qipao, no dress, no cloth on the body",
+        "text": "bare skin only, natural breasts, visible nipples, navel, skin tone matches the neck, same body under the dress, no second person",
         "clip": [
           "3",
           1
@@ -28,7 +28,7 @@
     "5": {
       "class_type": "CLIPTextEncode",
       "inputs": {
-        "text": "child, teen, qipao, cheongsam, dress, clothes, fabric, embroidery, ribbon, strap, bra, panties, snake tail, fish tail, extra person, extra limbs, smear, blotch, blur, plastic skin, text, watermark",
+        "text": "child, teen, extra person, second woman, extra face, extra head, clone, ghost, qipao, cheongsam, dress, clothes, embroidery, fabric pattern, ribbon, bra, snake tail, extra limbs, smear, plastic, text, watermark",
         "clip": [
           "3",
           1
