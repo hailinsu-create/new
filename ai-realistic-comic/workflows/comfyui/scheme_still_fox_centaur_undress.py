@@ -70,17 +70,19 @@ ELENA_NUDE_NEG = (
 )
 
 LIN_TORN_POS = (
-    "torn ripped blue-white qipao with jagged fabric edges, large skin gaps on breasts and "
-    "midriff, shredded silk hanging, same adult woman, one person only, fox tails untouched"
+    "heavily torn ripped qipao, jagged shredded silk edges, large irregular holes exposing "
+    "bare breasts and belly skin, dangling fabric scraps, dress remnants still on hips and "
+    "collar, same adult woman, one person only, fox tails untouched"
 )
 LIN_TORN_NEG = (
     "child, teen, extra person, fully nude, completely naked, missing dress entirely, "
     "snake tail, extra limbs, extra arm, clone, smear, plastic, text, watermark"
 )
 ELENA_TORN_POS = (
-    "shattered cracked medieval breastplate with jagged metal edges, torn mail gaps, "
-    "bare skin of breasts and belly showing through broken armor, same adult woman, "
-    "brown eyes, round gold wire glasses, waist still joins bay mare body, one person only"
+    "shattered cracked breastplate with jagged broken metal edges, large holes in armor, "
+    "bare breasts and belly skin visible through wrecked plates, armor shards still on "
+    "shoulders and waist, same adult woman, brown eyes, round gold wire glasses, "
+    "waist still joins bay mare body, one person only, no extra arms"
 )
 ELENA_TORN_NEG = (
     "child, teen, extra person, fully nude, armor completely gone, green eyes, "
@@ -227,91 +229,55 @@ def pad_face_for_instantid(src: Image.Image, size: int = 768) -> Image.Image:
 
 
 def lin_nude_passes() -> list[RegionPass]:
-    # Full qipao width — prior narrow strips left the dress intact.
+    # One torso hole + edge. Stacking InstantID chest/mid/skirt passes left sheer cloth and smear.
     return [
-        RegionPass("lin-nude-chest", (340, 280, 560, 560), CLOTH_DENOISE, LIN_NUDE_POS, LIN_NUDE_NEG),
-        RegionPass("lin-nude-midriff", (330, 520, 550, 820), CLOTH_DENOISE, LIN_NUDE_POS, LIN_NUDE_NEG),
-        RegionPass("lin-nude-skirt", (320, 780, 540, 1280), CLOTH_DENOISE, LIN_NUDE_POS, LIN_NUDE_NEG),
-        RegionPass("lin-nude-edge", (330, 290, 550, 1260), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=24),
+        RegionPass("lin-nude-torso", (330, 280, 560, 1260), CLOTH_DENOISE, LIN_NUDE_POS, LIN_NUDE_NEG),
+        RegionPass("lin-nude-edge", (330, 280, 560, 1260), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=28),
     ]
 
 
 def elena_nude_passes() -> list[RegionPass]:
+    # Human torso + arms only; never stack four InstantID passes (spawned extra limbs).
     return [
-        RegionPass("elena-nude-breastplate", (280, 230, 560, 560), CLOTH_DENOISE, ELENA_NUDE_POS, ELENA_NUDE_NEG),
-        RegionPass("elena-nude-collar", (340, 210, 500, 310), CLOTH_DENOISE, ELENA_NUDE_POS, ELENA_NUDE_NEG),
-        RegionPass("elena-nude-arm", (140, 270, 320, 700), CLOTH_DENOISE, ELENA_NUDE_POS, ELENA_NUDE_NEG),
-        RegionPass("elena-nude-hip", (300, 520, 560, 720), CLOTH_DENOISE, ELENA_NUDE_POS, ELENA_NUDE_NEG),
-        RegionPass("elena-nude-edge", (145, 215, 555, 715), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=20),
+        RegionPass("elena-nude-torso", (150, 220, 560, 720), CLOTH_DENOISE, ELENA_NUDE_POS, ELENA_NUDE_NEG),
+        RegionPass("elena-nude-edge", (150, 220, 560, 720), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=24),
     ]
 
 
 def lin_torn_passes() -> list[RegionPass]:
-    # Larger tear ellipses so skin shows through; keep dress remnants outside.
+    # Few large jagged tears so Codex sees shredded cloth, not couture cutouts.
     return [
         RegionPass(
-            "lin-torn-chest",
-            (350, 300, 550, 560),
+            "lin-torn-front",
+            (340, 290, 560, 1100),
             TORN_DENOISE,
             LIN_TORN_POS,
             LIN_TORN_NEG,
-            ellipses=((360, 320, 480, 470), (400, 400, 540, 540)),
+            ellipses=(
+                (350, 310, 520, 500),
+                (360, 480, 540, 700),
+                (350, 700, 500, 980),
+            ),
         ),
-        RegionPass(
-            "lin-torn-midriff",
-            (340, 520, 540, 780),
-            TORN_DENOISE,
-            LIN_TORN_POS,
-            LIN_TORN_NEG,
-            ellipses=((360, 540, 520, 680), (350, 650, 500, 770)),
-        ),
-        RegionPass(
-            "lin-torn-thigh",
-            (330, 760, 500, 1120),
-            TORN_DENOISE,
-            LIN_TORN_POS,
-            LIN_TORN_NEG,
-            ellipses=((350, 780, 470, 960), (370, 940, 490, 1100)),
-        ),
-        RegionPass("lin-torn-edge", (340, 310, 540, 1100), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=16),
+        RegionPass("lin-torn-edge", (340, 290, 560, 1100), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=18),
     ]
 
 
 def elena_torn_passes() -> list[RegionPass]:
     return [
         RegionPass(
-            "elena-torn-breastplate",
-            (290, 250, 550, 540),
+            "elena-torn-front",
+            (160, 220, 560, 700),
             TORN_DENOISE,
             ELENA_TORN_POS,
             ELENA_TORN_NEG,
-            ellipses=((310, 270, 450, 420), (400, 300, 540, 470), (340, 400, 500, 530)),
+            ellipses=(
+                (300, 240, 520, 480),
+                (170, 300, 310, 620),
+                (320, 480, 540, 680),
+            ),
         ),
-        RegionPass(
-            "elena-torn-collar",
-            (350, 215, 500, 310),
-            TORN_DENOISE,
-            ELENA_TORN_POS,
-            ELENA_TORN_NEG,
-            ellipses=((360, 220, 490, 300),),
-        ),
-        RegionPass(
-            "elena-torn-arm",
-            (150, 280, 320, 660),
-            TORN_DENOISE,
-            ELENA_TORN_POS,
-            ELENA_TORN_NEG,
-            ellipses=((160, 300, 300, 460), (170, 440, 300, 620)),
-        ),
-        RegionPass(
-            "elena-torn-hip",
-            (310, 520, 550, 710),
-            TORN_DENOISE,
-            ELENA_TORN_POS,
-            ELENA_TORN_NEG,
-            ellipses=((330, 530, 470, 660), (400, 550, 540, 700)),
-        ),
-        RegionPass("elena-torn-edge", (155, 220, 545, 705), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=16),
+        RegionPass("elena-torn-edge", (160, 220, 560, 700), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=18),
     ]
 
 
@@ -603,6 +569,8 @@ def run_actor_mode(
     head = head_shoulder_from_plate(plate, head_box)
     current = plate
     for i, region in enumerate(regions):
+        # Body undress: InstantID on stacked crops caused sheer cloth / extra limbs.
+        # Keep InstantID off unless the caller forces it and this is a cloth pass.
         want_id = use_instantid and region.denoise >= 0.6
         current = run_region(
             host,

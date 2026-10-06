@@ -10,9 +10,16 @@ import urllib.request
 from pathlib import Path
 
 
-def get_json(url: str) -> dict:
-    with urllib.request.urlopen(url, timeout=60) as response:
-        return json.load(response)
+def get_json(url: str, *, timeout: int = 60, retries: int = 4) -> dict:
+    last: Exception | None = None
+    for attempt in range(retries):
+        try:
+            with urllib.request.urlopen(url, timeout=timeout) as response:
+                return json.load(response)
+        except (TimeoutError, urllib.error.URLError) as exc:
+            last = exc
+            time.sleep(2 + attempt * 2)
+    raise SystemExit(f"GET_FAILED {url} {last}")
 
 
 def post_json(url: str, payload: dict) -> dict:
