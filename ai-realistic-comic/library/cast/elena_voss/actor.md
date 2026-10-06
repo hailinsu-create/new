@@ -23,14 +23,18 @@
 
 板上的白上衣只是锁脸拍摄衣服，不是角色的墨绿纱裙，也不是去衣底板的 T 恤短裤。
 
+## 气质标签（不另起一张脸）
+
+欧美 7 条已收成 7 个点，写在 `library/cast/mood/tags/eu-elena.md`。气质板是 `library/cast/mood/2026-10-06-eu-aesthetic-board-v3.jpg`，板心不是这张锁脸，不能替换 `ref.png`。留在脸上的是：年代温润、克制柔感、澄澈坚韧、蜕变极净、侧影温柔、职场清爽。眼镜清澈只是道具标签，正面锁脸不戴眼镜。
+
 ## Role costume 角色戏服（不是锁脸）
 
 珀耳塞福涅的墨绿露肩纱裙、深红腰封、金镯、麦穗浆果冠仍是角色戏服。出角色镜头时可以穿，脸仍锁 `ref.png`。资产去衣模板不穿这套戏服。人耳，不要尖耳，不要武器。
 
 ## Chinese prompt lock（可直接粘贴）
 
-伊莲·沃斯（elena_voss），成年西方女性主演。原创脸，非真人。浅色皮肤，轻微雀斑，柔和脸型，蓝灰眼，自然眉，自然裸粉唇，不要琥珀眼，不要绿眼，不要眼镜。棕波浪发松松束起，人耳不是尖耳。锁脸以 `library/cast/elena_voss/ref.png` 为准。墨绿纱裙和麦穗冠是角色戏服，不改变这张脸。
+伊莲·沃斯（elena_voss），成年西方女性主演。原创脸，非真人。浅色皮肤带一点暖光，轻微雀斑，柔和脸型，蓝灰眼，眼光稳定，自然眉，自然裸粉唇，妆很淡。不要琥珀眼，不要绿眼，不要眼镜，不要浓妆。棕波浪发松松束起。人耳不是尖耳。气质可以是温润、克制、清爽，脸仍以 `library/cast/elena_voss/ref.png` 为准。墨绿纱裙和麦穗冠是角色戏服，不改变这张脸。
 
 ## English prompt lock（paste-ready)
 
-Elena Voss (elena_voss), adult Western standing actress. Original fictional face, not a real person. Light skin, light freckles, soft oval face, clear blue-grey eyes, natural brows, nude-pink lips. No amber eyes, no green eyes, no glasses. Soft brown wavy hair loosely pulled back. Human ears, not pointed. The lock is `library/cast/elena_voss/ref.png`. The green gown and wheat crown are role costume and do not change this face.
+Elena Voss (elena_voss), adult Western standing actress. Original fictional face, not a real person. Light skin with a warm quiet glow, light freckles, soft oval face, steady blue-grey eyes, natural brows, nude-pink lips, very light makeup. No amber eyes, no green eyes, no glasses, no heavy makeup. Soft brown wavy hair loosely pulled back. Human ears, not pointed. Mood may be warm, restrained, or neatly everyday. The lock is `library/cast/elena_voss/ref.png`. The green gown and wheat crown are role costume and do not change this face.
