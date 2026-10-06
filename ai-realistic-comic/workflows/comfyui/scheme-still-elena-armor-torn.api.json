@@ -3,8 +3,8 @@
     "inpaint": "https://github.com/lquesada/ComfyUI-Inpaint-CropAndStitch",
     "instantid": "https://github.com/cubiq/ComfyUI_InstantID",
     "why": "Small-hole clothes inpaint; nude or torn/shatter mode; denoise 0.75–0.85 + edge ~0.4; InstantID from plate head-shoulder.",
-    "stage": "elena-breastplate",
-    "mode": "nude",
+    "stage": "elena-torn-breastplate",
+    "mode": "torn",
     "sampler_seed": 20261006,
     "cloth_denoise": 0.8,
     "torn_denoise": 0.78,
@@ -22,7 +22,7 @@
     "4": {
       "class_type": "CLIPTextEncode",
       "inputs": {
-        "text": "bare human torso skin only, natural breasts, visible nipples, skin tone matches the neck, brown eyes, round gold wire glasses, no metal, no armor, waist joins the bay mare body, one person only",
+        "text": "shattered cracked medieval breastplate with jagged metal edges, torn mail gaps, bare skin of breasts and belly showing through broken armor, same adult woman, brown eyes, round gold wire glasses, waist still joins bay mare body, one person only",
         "clip": [
           "3",
           1
@@ -32,7 +32,7 @@
     "5": {
       "class_type": "CLIPTextEncode",
       "inputs": {
-        "text": "child, teen, extra person, extra face, armor, plate, gauntlet, gorget, pauldron, mail, clothes, bra, green eyes, blue-grey eyes, blue-gray eyes, pointed ears, stallion, extra legs, smear, plastic, text, watermark",
+        "text": "child, teen, extra person, fully nude, armor completely gone, green eyes, blue-grey eyes, blue-gray eyes, pointed ears, stallion, extra legs, smear, plastic, text, watermark",
         "clip": [
           "3",
           1
@@ -42,13 +42,13 @@
     "1": {
       "class_type": "LoadImage",
       "inputs": {
-        "image": "elena-breastplate-crop.png"
+        "image": "elena-torn-breastplate-crop.png"
       }
     },
     "2": {
       "class_type": "LoadImage",
       "inputs": {
-        "image": "elena-breastplate-crop-mask.png"
+        "image": "elena-torn-breastplate-crop-mask.png"
       }
     },
     "50": {
@@ -111,7 +111,7 @@
           "40",
           2
         ],
-        "denoise": 0.8
+        "denoise": 0.78
       }
     },
     "16": {
@@ -134,7 +134,7 @@
           "16",
           0
         ],
-        "filename_prefix": "elena-breastplate"
+        "filename_prefix": "elena-torn-breastplate"
       }
     },
     "60": {

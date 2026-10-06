@@ -2,10 +2,12 @@
   "source": {
     "inpaint": "https://github.com/lquesada/ComfyUI-Inpaint-CropAndStitch",
     "instantid": "https://github.com/cubiq/ComfyUI_InstantID",
-    "why": "Small-hole clothes inpaint at denoise 0.75–0.85, edge pass ~0.4, InstantID from plate head-shoulder. Not full OpenPose redraw.",
+    "why": "Small-hole clothes inpaint; nude or torn/shatter mode; denoise 0.75–0.85 + edge ~0.4; InstantID from plate head-shoulder.",
     "stage": "lin-chest",
+    "mode": "nude",
     "sampler_seed": 20261006,
     "cloth_denoise": 0.8,
+    "torn_denoise": 0.78,
     "edge_denoise": 0.42,
     "max_content_frac": 0.58,
     "beijing": "359a49a1c3-4cda10df"
@@ -20,7 +22,7 @@
     "4": {
       "class_type": "CLIPTextEncode",
       "inputs": {
-        "text": "bare skin only, natural breasts, visible nipples, navel, skin tone matches the neck, same adult woman already in the photo, one person only, no second body",
+        "text": "bare skin only, natural breasts, visible nipples, navel, skin tone matches the neck, same adult woman already in the photo, one person only, no second body, no extra arms",
         "clip": [
           "3",
           1
@@ -30,7 +32,7 @@
     "5": {
       "class_type": "CLIPTextEncode",
       "inputs": {
-        "text": "child, teen, extra person, second woman, extra face, extra head, clone, ghost, qipao, cheongsam, dress, clothes, embroidery, fabric pattern, ribbon, bra, panties, snake tail, extra limbs, smear, plastic, text, watermark",
+        "text": "child, teen, extra person, second woman, extra face, extra head, clone, ghost, qipao, cheongsam, dress, clothes, embroidery, fabric pattern, ribbon, bra, panties, snake tail, extra limbs, extra arm, extra hand, smear, plastic, text, watermark",
         "clip": [
           "3",
           1

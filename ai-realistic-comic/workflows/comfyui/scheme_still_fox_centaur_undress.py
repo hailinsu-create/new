@@ -1,12 +1,12 @@
-"""Clothes-only crop-and-stitch undress for the fox/centaur solos.
+"""Clothes-only crop-and-stitch for fox/centaur solos: nude or torn/shatter.
 
-Community stack this follows (not Scheme B full redraw):
+Community stack (not Scheme B full redraw):
 - lquesada / comfyorg Crop-and-Stitch + InpaintModelConditioning
 - clothing denoise 0.75–0.85; edge pass ~0.4
-- small holes (split garments); downscale large crops to avoid double bodies
-- InstantID lock from a *detectable* head-shoulder crop of the clothed plate
-  (jaw-up ref-face.png alone often fails InsightFace)
-- FaceDetailer is optional post; no ReActor; Beijing only; F34/G09 off
+- small holes; downscale large crops (anti double-body)
+- InstantID from plate head-shoulder (jaw-up ref-face often fails InsightFace)
+- modes: nude (remove cloth/armor) | torn (shattered cloth/armor, skin shows)
+- no ReActor; Beijing only; F34/G09 off
 
 Do not feed these stills to scheme_b_from_plate.py — OpenPose redraw wipes
 fox tails and the mare body.
@@ -37,55 +37,75 @@ CAST_ROOT = Path(__file__).resolve().parents[2]
 STILL_DIR = CAST_ROOT / "library" / "stills" / "fox-centaur-embrace"
 LIN_PLATE = STILL_DIR / "lin-qipao-nine-tail.png"
 ELENA_PLATE = STILL_DIR / "elena-armor-centaur.png"
-LIN_FACE = CAST_ROOT / "library" / "cast" / "lin_wantang" / "ref-face.png"
-ELENA_FACE = CAST_ROOT / "library" / "cast" / "elena_voss" / "ref-face.png"
 
 SAMPLER_SEED = 20261006
-# Community clothing band. Below ~0.7 keeps fabric; above ~0.9 drifts anatomy.
 CLOTH_DENOISE = 0.80
+TORN_DENOISE = 0.78
 EDGE_DENOISE = 0.42
 MASK_BLUR = 12
-# CropAndStitch: large holes spawn double bodies — keep content under this share of the 1024 canvas.
 MAX_CONTENT_FRAC = 0.58
 
-BJ_HOST = "connect.bjb2.seetacloud.com"
-BJ_PORT = "34711"
-BJ_KEY = Path.home() / ".ssh" / "bjb791"
 BJ_UUID = "359a49a1c3-4cda10df"
 F34_UUID = "xaxna66hqt-c5c9c7fc"
 G09_UUID = "sa4eaxgcuq-26e36fc9"
 
-LIN_POS = (
+LIN_NUDE_POS = (
     "bare skin only, natural breasts, visible nipples, navel, skin tone matches the neck, "
-    "same adult woman already in the photo, one person only, no second body"
+    "same adult woman already in the photo, one person only, no second body, no extra arms"
 )
-LIN_NEG = (
+LIN_NUDE_NEG = (
     "child, teen, extra person, second woman, extra face, extra head, clone, ghost, "
     "qipao, cheongsam, dress, clothes, embroidery, fabric pattern, ribbon, bra, panties, "
-    "snake tail, extra limbs, smear, plastic, text, watermark"
+    "snake tail, extra limbs, extra arm, extra hand, smear, plastic, text, watermark"
 )
-ELENA_POS = (
+ELENA_NUDE_POS = (
     "bare human torso skin only, natural breasts, visible nipples, skin tone matches the neck, "
     "brown eyes, round gold wire glasses, no metal, no armor, waist joins the bay mare body, "
     "one person only"
 )
-ELENA_NEG = (
+ELENA_NUDE_NEG = (
     "child, teen, extra person, extra face, armor, plate, gauntlet, gorget, pauldron, mail, "
     "clothes, bra, green eyes, blue-grey eyes, blue-gray eyes, pointed ears, stallion, "
     "extra legs, smear, plastic, text, watermark"
 )
-EDGE_POS = "matching bare skin, seamless blend to surrounding skin, no cloth edge"
-EDGE_NEG = "seam, hard edge, cloth fringe, metal rim, smear, blur, plastic, text, watermark"
+
+LIN_TORN_POS = (
+    "torn ripped blue-white qipao with jagged fabric edges, large skin gaps on breasts and "
+    "midriff, shredded silk hanging, same adult woman, one person only, fox tails untouched"
+)
+LIN_TORN_NEG = (
+    "child, teen, extra person, fully nude, completely naked, missing dress entirely, "
+    "snake tail, extra limbs, extra arm, clone, smear, plastic, text, watermark"
+)
+ELENA_TORN_POS = (
+    "shattered cracked medieval breastplate with jagged metal edges, torn mail gaps, "
+    "bare skin of breasts and belly showing through broken armor, same adult woman, "
+    "brown eyes, round gold wire glasses, waist still joins bay mare body, one person only"
+)
+ELENA_TORN_NEG = (
+    "child, teen, extra person, fully nude, armor completely gone, green eyes, "
+    "blue-grey eyes, blue-gray eyes, pointed ears, stallion, extra legs, smear, "
+    "plastic, text, watermark"
+)
+
+EDGE_POS = "matching bare skin, seamless blend to surrounding skin, soft cloth or metal edge"
+EDGE_NEG = "seam, hard edge, smear, blur, plastic, text, watermark, extra limbs"
 
 CROP_STITCH = "https://github.com/lquesada/ComfyUI-Inpaint-CropAndStitch"
 INSTANTID = "https://github.com/cubiq/ComfyUI_InstantID"
 BASE = (1024, 1536)
 
-# Head-shoulder boxes on the clothed plates (px at 1024×1536). InsightFace needs shoulders.
 LIN_HEAD = (360, 60, 560, 340)
 ELENA_HEAD = (340, 40, 540, 300)
 LIN_FACE_CLEAR = (320, 20, 560, 300)
 ELENA_FACE_CLEAR = (330, 20, 530, 235)
+
+OUT_STEM = {
+    ("lin", "nude"): "lin-qipao-nine-tail-nude",
+    ("lin", "torn"): "lin-qipao-nine-tail-torn",
+    ("elena", "nude"): "elena-armor-centaur-nude",
+    ("elena", "torn"): "elena-armor-centaur-torn",
+}
 
 
 @dataclass(frozen=True)
@@ -96,6 +116,7 @@ class RegionPass:
     positive: str
     negative: str
     grow: int = 0
+    ellipses: tuple[tuple[int, int, int, int], ...] = ()
 
 
 def assert_not_forbidden_uuid(uuid: str) -> None:
@@ -120,12 +141,17 @@ def box_mask(
     *,
     blur: int = MASK_BLUR,
     clear_face: tuple[int, int, int, int] | None = None,
+    ellipses: tuple[tuple[int, int, int, int], ...] = (),
 ) -> Image.Image:
     mask = Image.new("L", image.size, 0)
-    rect = _scale_box(image.size, box)
-    ImageDraw.Draw(mask).rounded_rectangle(rect, radius=18, fill=255)
+    draw = ImageDraw.Draw(mask)
+    if ellipses:
+        for oval in ellipses:
+            draw.ellipse(_scale_box(image.size, oval), fill=255)
+    else:
+        draw.rounded_rectangle(_scale_box(image.size, box), radius=18, fill=255)
     if clear_face is not None:
-        ImageDraw.Draw(mask).rounded_rectangle(_scale_box(image.size, clear_face), radius=20, fill=0)
+        draw.rounded_rectangle(_scale_box(image.size, clear_face), radius=20, fill=0)
     if blur:
         mask = mask.filter(ImageFilter.GaussianBlur(radius=blur))
     return mask
@@ -156,7 +182,6 @@ def prepare_crop_community(
     frac = max(content_w, content_h) / float(target)
     if frac <= max_content_frac:
         return job
-    # Shrink content on the canvas; leave more gray context — community downscale for big holes.
     scale = max_content_frac / frac
     new_w = max(16, int(content_w * scale) // 8 * 8)
     new_h = max(16, int(content_h * scale) // 8 * 8)
@@ -178,7 +203,6 @@ def prepare_crop_community(
 
 
 def head_shoulder_from_plate(plate: Image.Image, box: tuple[int, int, int, int], size: int = 768) -> Image.Image:
-    """InstantID reference: shoulders-in crop from the clothed plate, padded square."""
     rect = _scale_box(plate.size, box)
     crop = plate.convert("RGB").crop(rect)
     canvas = Image.new("RGB", (size, size), (48, 44, 40))
@@ -191,7 +215,6 @@ def head_shoulder_from_plate(plate: Image.Image, box: tuple[int, int, int, int],
 
 
 def pad_face_for_instantid(src: Image.Image, size: int = 768) -> Image.Image:
-    """Fallback pad for a tight jaw-up lock. Prefer head_shoulder_from_plate."""
     src = src.convert("RGB")
     canvas = Image.new("RGB", (size, size), (46, 42, 38))
     scale = min((size - 96) / max(src.width, 1), (size - 96) / max(src.height, 1))
@@ -202,42 +225,139 @@ def pad_face_for_instantid(src: Image.Image, size: int = 768) -> Image.Image:
     return canvas
 
 
-def lin_region_passes() -> list[RegionPass]:
-    """Small holes: chest / midriff / skirt, then a low-denoise edge pass."""
+def lin_nude_passes() -> list[RegionPass]:
     return [
-        RegionPass("lin-chest", (390, 300, 510, 560), CLOTH_DENOISE, LIN_POS, LIN_NEG),
-        RegionPass("lin-midriff", (375, 540, 505, 780), CLOTH_DENOISE, LIN_POS, LIN_NEG),
-        RegionPass("lin-skirt", (365, 760, 495, 1260), CLOTH_DENOISE, LIN_POS, LIN_NEG),
-        RegionPass("lin-edge", (380, 310, 505, 1240), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=22),
+        RegionPass("lin-nude-chest", (395, 310, 505, 540), CLOTH_DENOISE, LIN_NUDE_POS, LIN_NUDE_NEG),
+        RegionPass("lin-nude-midriff", (380, 520, 500, 760), CLOTH_DENOISE, LIN_NUDE_POS, LIN_NUDE_NEG),
+        RegionPass("lin-nude-skirt", (370, 740, 490, 1220), CLOTH_DENOISE, LIN_NUDE_POS, LIN_NUDE_NEG),
+        RegionPass("lin-nude-edge", (385, 320, 500, 1200), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=20),
     ]
+
+
+def elena_nude_passes() -> list[RegionPass]:
+    return [
+        RegionPass("elena-nude-breastplate", (310, 255, 530, 540), CLOTH_DENOISE, ELENA_NUDE_POS, ELENA_NUDE_NEG),
+        RegionPass("elena-nude-collar", (385, 230, 505, 305), CLOTH_DENOISE, ELENA_NUDE_POS, ELENA_NUDE_NEG),
+        RegionPass("elena-nude-arm", (170, 290, 320, 680), CLOTH_DENOISE, ELENA_NUDE_POS, ELENA_NUDE_NEG),
+        RegionPass("elena-nude-hip", (325, 535, 540, 690), CLOTH_DENOISE, ELENA_NUDE_POS, ELENA_NUDE_NEG),
+        RegionPass("elena-nude-edge", (175, 235, 535, 690), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=18),
+    ]
+
+
+def lin_torn_passes() -> list[RegionPass]:
+    # Small tear ellipses — keep fabric outside the holes.
+    return [
+        RegionPass(
+            "lin-torn-chest",
+            (400, 330, 500, 520),
+            TORN_DENOISE,
+            LIN_TORN_POS,
+            LIN_TORN_NEG,
+            ellipses=((410, 340, 470, 430), (430, 420, 490, 510)),
+        ),
+        RegionPass(
+            "lin-torn-midriff",
+            (385, 540, 495, 720),
+            TORN_DENOISE,
+            LIN_TORN_POS,
+            LIN_TORN_NEG,
+            ellipses=((400, 550, 480, 640), (390, 630, 470, 710)),
+        ),
+        RegionPass(
+            "lin-torn-thigh",
+            (375, 780, 470, 1050),
+            TORN_DENOISE,
+            LIN_TORN_POS,
+            LIN_TORN_NEG,
+            ellipses=((385, 800, 450, 920), (400, 930, 460, 1030)),
+        ),
+        RegionPass("lin-torn-edge", (390, 340, 490, 1040), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=14),
+    ]
+
+
+def elena_torn_passes() -> list[RegionPass]:
+    return [
+        RegionPass(
+            "elena-torn-breastplate",
+            (320, 270, 520, 520),
+            TORN_DENOISE,
+            ELENA_TORN_POS,
+            ELENA_TORN_NEG,
+            ellipses=((340, 290, 430, 400), (420, 320, 510, 450), (360, 420, 470, 510)),
+        ),
+        RegionPass(
+            "elena-torn-collar",
+            (390, 235, 500, 300),
+            TORN_DENOISE,
+            ELENA_TORN_POS,
+            ELENA_TORN_NEG,
+            ellipses=((400, 240, 490, 295),),
+        ),
+        RegionPass(
+            "elena-torn-arm",
+            (180, 300, 310, 620),
+            TORN_DENOISE,
+            ELENA_TORN_POS,
+            ELENA_TORN_NEG,
+            ellipses=((190, 320, 280, 430), (200, 450, 290, 560)),
+        ),
+        RegionPass(
+            "elena-torn-hip",
+            (330, 540, 530, 680),
+            TORN_DENOISE,
+            ELENA_TORN_POS,
+            ELENA_TORN_NEG,
+            ellipses=((350, 550, 450, 640), (430, 560, 520, 670)),
+        ),
+        RegionPass("elena-torn-edge", (185, 240, 525, 675), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=14),
+    ]
+
+
+def region_passes(actor: str, mode: str) -> list[RegionPass]:
+    table = {
+        ("lin", "nude"): lin_nude_passes,
+        ("lin", "torn"): lin_torn_passes,
+        ("elena", "nude"): elena_nude_passes,
+        ("elena", "torn"): elena_torn_passes,
+    }
+    return table[(actor, mode)]()
+
+
+# Back-compat aliases for older tests / callers.
+def lin_region_passes() -> list[RegionPass]:
+    return lin_nude_passes()
 
 
 def elena_region_passes() -> list[RegionPass]:
-    """Small holes: breastplate / collar / arm / hip, then edge pass."""
-    return [
-        RegionPass("elena-breastplate", (300, 250, 540, 560), CLOTH_DENOISE, ELENA_POS, ELENA_NEG),
-        RegionPass("elena-collar", (380, 230, 510, 310), CLOTH_DENOISE, ELENA_POS, ELENA_NEG),
-        RegionPass("elena-arm", (160, 280, 330, 700), CLOTH_DENOISE, ELENA_POS, ELENA_NEG),
-        RegionPass("elena-hip", (320, 540, 550, 700), CLOTH_DENOISE, ELENA_POS, ELENA_NEG),
-        RegionPass("elena-edge", (170, 235, 545, 700), EDGE_DENOISE, EDGE_POS, EDGE_NEG, grow=20),
-    ]
+    return elena_nude_passes()
 
 
-def _union_masks(image: Image.Image, regions: list[RegionPass], clear_face: tuple[int, int, int, int]) -> Image.Image:
+def _union_masks(
+    image: Image.Image,
+    regions: list[RegionPass],
+    clear_face: tuple[int, int, int, int],
+) -> Image.Image:
     mask = Image.new("L", image.size, 0)
     for region in regions:
-        part = box_mask(image, region.box, clear_face=clear_face)
+        part = box_mask(image, region.box, clear_face=clear_face, ellipses=region.ellipses)
         mask = ImageChops.lighter(mask, part)
     return mask.filter(ImageFilter.GaussianBlur(radius=2))
 
 
-# Kept for tests / debug overlays: union of cloth regions (not used as one pass).
 def lin_clothes_mask(image: Image.Image) -> Image.Image:
-    return _union_masks(image, lin_region_passes()[:3], LIN_FACE_CLEAR)
+    return _union_masks(image, [r for r in lin_nude_passes() if r.denoise >= 0.6], LIN_FACE_CLEAR)
 
 
 def elena_clothes_mask(image: Image.Image) -> Image.Image:
-    return _union_masks(image, elena_region_passes()[:4], ELENA_FACE_CLEAR)
+    return _union_masks(image, [r for r in elena_nude_passes() if r.denoise >= 0.6], ELENA_FACE_CLEAR)
+
+
+def lin_torn_mask(image: Image.Image) -> Image.Image:
+    return _union_masks(image, [r for r in lin_torn_passes() if r.denoise >= 0.6], LIN_FACE_CLEAR)
+
+
+def elena_torn_mask(image: Image.Image) -> Image.Image:
+    return _union_masks(image, [r for r in elena_torn_passes() if r.denoise >= 0.6], ELENA_FACE_CLEAR)
 
 
 def instantid_inpaint_graph(
@@ -297,18 +417,20 @@ def instantid_inpaint_graph(
     return graph
 
 
-def envelope(prompt: dict, stage: str) -> dict:
+def envelope(prompt: dict, stage: str, mode: str) -> dict:
     return {
         "source": {
             "inpaint": CROP_STITCH,
             "instantid": INSTANTID,
             "why": (
-                "Small-hole clothes inpaint at denoise 0.75–0.85, edge pass ~0.4, "
-                "InstantID from plate head-shoulder. Not full OpenPose redraw."
+                "Small-hole clothes inpaint; nude or torn/shatter mode; "
+                "denoise 0.75–0.85 + edge ~0.4; InstantID from plate head-shoulder."
             ),
             "stage": stage,
+            "mode": mode,
             "sampler_seed": SAMPLER_SEED,
             "cloth_denoise": CLOTH_DENOISE,
+            "torn_denoise": TORN_DENOISE,
             "edge_denoise": EDGE_DENOISE,
             "max_content_frac": MAX_CONTENT_FRAC,
             "beijing": BJ_UUID,
@@ -342,36 +464,30 @@ def emit_examples(directory: Path) -> None:
         "instant_ip": "ip-adapter.bin",
     }
     directory.mkdir(parents=True, exist_ok=True)
-    lin = instantid_inpaint_graph(
-        models,
-        "lin-chest-crop.png",
-        "lin-chest-crop-mask.png",
-        "lin-head-shoulder.png",
-        LIN_POS,
-        LIN_NEG,
-        SAMPLER_SEED,
-        "lin-chest",
-        CLOTH_DENOISE,
-    )
-    elena = instantid_inpaint_graph(
-        models,
-        "elena-breastplate-crop.png",
-        "elena-breastplate-crop-mask.png",
-        "elena-head-shoulder.png",
-        ELENA_POS,
-        ELENA_NEG,
-        SAMPLER_SEED + 1,
-        "elena-breastplate",
-        CLOTH_DENOISE,
-    )
-    (directory / "scheme-still-lin-qipao-undress.api.json").write_text(
-        json.dumps(envelope(lin, "lin-chest"), ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-    (directory / "scheme-still-elena-armor-undress.api.json").write_text(
-        json.dumps(envelope(elena, "elena-breastplate"), ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
+    specs = [
+        ("scheme-still-lin-qipao-undress.api.json", "lin", "nude", "lin-chest", LIN_NUDE_POS, LIN_NUDE_NEG),
+        ("scheme-still-elena-armor-undress.api.json", "elena", "nude", "elena-breastplate", ELENA_NUDE_POS, ELENA_NUDE_NEG),
+        ("scheme-still-lin-qipao-torn.api.json", "lin", "torn", "lin-torn-chest", LIN_TORN_POS, LIN_TORN_NEG),
+        ("scheme-still-elena-armor-torn.api.json", "elena", "torn", "elena-torn-breastplate", ELENA_TORN_POS, ELENA_TORN_NEG),
+    ]
+    for filename, actor, mode, stage, pos, neg in specs:
+        ref = f"{actor}-head-shoulder.png"
+        crop = f"{stage}-crop.png"
+        graph = instantid_inpaint_graph(
+            models,
+            crop,
+            f"{stage}-crop-mask.png",
+            ref,
+            pos,
+            neg,
+            SAMPLER_SEED,
+            stage,
+            CLOTH_DENOISE if mode == "nude" else TORN_DENOISE,
+        )
+        (directory / filename).write_text(
+            json.dumps(envelope(graph, stage, mode), ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
 
 
 def _upload(host: str, path: Path) -> None:
@@ -392,6 +508,7 @@ def run_region(
     host: str,
     models: dict[str, str],
     actor: str,
+    mode: str,
     plate: Image.Image,
     head_ref: Image.Image,
     region: RegionPass,
@@ -402,7 +519,7 @@ def run_region(
     use_instantid: bool,
 ) -> Image.Image:
     clear = LIN_FACE_CLEAR if actor == "lin" else ELENA_FACE_CLEAR
-    mask = box_mask(plate, region.box, clear_face=clear)
+    mask = box_mask(plate, region.box, clear_face=clear, ellipses=region.ellipses)
     if region.grow:
         mask = dilate_mask(mask, region.grow).filter(ImageFilter.GaussianBlur(radius=MASK_BLUR))
     prepared = prepare_job(region.stem, plate, mask, input_dir)
@@ -434,7 +551,7 @@ def run_region(
             denoise=region.denoise,
         )
     (out_dir / f"{region.stem}.api.json").write_text(
-        json.dumps(envelope(graph, region.stem), ensure_ascii=False, indent=2),
+        json.dumps(envelope(graph, region.stem, mode), ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
     crop_out = out_dir / f"{region.stem}-crop.png"
@@ -447,6 +564,7 @@ def run_region(
                 host,
                 models,
                 actor,
+                mode,
                 plate,
                 head_ref,
                 region,
@@ -458,36 +576,37 @@ def run_region(
         raise
     stitched = stitch(prepared["plate"], Image.open(crop_out), prepared["job"])
     print(
-        f"PASS {region.stem} denoise={region.denoise} opaque={prepared['opaque_ratio']:.3f} "
-        f"instantid={use_instantid}",
+        f"PASS {region.stem} mode={mode} denoise={region.denoise} "
+        f"opaque={prepared['opaque_ratio']:.3f} instantid={use_instantid}",
         flush=True,
     )
     return stitched
 
 
-def run_actor(
+def run_actor_mode(
     host: str,
     models: dict[str, str],
     actor: str,
-    plate_path: Path,
-    head_box: tuple[int, int, int, int],
-    regions: list[RegionPass],
+    mode: str,
     input_dir: Path,
     out_dir: Path,
     *,
     use_instantid: bool,
-    seed_offset: int = 0,
 ) -> Path:
+    plate_path = LIN_PLATE if actor == "lin" else ELENA_PLATE
+    head_box = LIN_HEAD if actor == "lin" else ELENA_HEAD
+    regions = region_passes(actor, mode)
+    seed_offset = {"lin": 0, "elena": 20}[actor] + {"nude": 0, "torn": 40}[mode]
     plate = Image.open(plate_path).convert("RGB")
     head = head_shoulder_from_plate(plate, head_box)
     current = plate
     for i, region in enumerate(regions):
-        # InstantID only on cloth passes; edge pass is plain low denoise.
         want_id = use_instantid and region.denoise >= 0.6
         current = run_region(
             host,
             models,
             actor,
+            mode,
             current,
             head,
             region,
@@ -496,20 +615,21 @@ def run_actor(
             out_dir,
             use_instantid=want_id,
         )
-    dest = out_dir / {
-        "lin": "lin-qipao-nine-tail-nude.png",
-        "elena": "elena-armor-centaur-nude.png",
-    }[actor]
+    dest = out_dir / f"{OUT_STEM[(actor, mode)]}.png"
     current.save(dest)
     print(f"STITCH {dest} {dest.stat().st_size}", flush=True)
     return dest
 
 
-def _write_mask_previews(actor: str, plate: Image.Image, regions: list[RegionPass], clear: tuple[int, int, int, int], head_box: tuple[int, int, int, int], debug: Path) -> None:
-    for region in regions:
+def _write_mask_previews(actor: str, mode: str, debug: Path) -> None:
+    plate_path = LIN_PLATE if actor == "lin" else ELENA_PLATE
+    clear = LIN_FACE_CLEAR if actor == "lin" else ELENA_FACE_CLEAR
+    head_box = LIN_HEAD if actor == "lin" else ELENA_HEAD
+    plate = Image.open(plate_path).convert("RGB")
+    for region in region_passes(actor, mode):
         if region.denoise < 0.6:
             continue
-        m = box_mask(plate, region.box, clear_face=clear)
+        m = box_mask(plate, region.box, clear_face=clear, ellipses=region.ellipses)
         overlay = plate.convert("RGBA")
         tint = Image.new("RGBA", overlay.size, (220, 40, 40, 110))
         Image.composite(tint, overlay, m).save(debug / f"{region.stem}-overlay.png")
@@ -526,24 +646,23 @@ def main() -> None:
     parser.add_argument("--prepare-only", action="store_true")
     parser.add_argument("--emit-examples", type=Path)
     parser.add_argument("--only", choices=("lin", "elena"), nargs="*")
+    parser.add_argument("--mode", choices=("nude", "torn", "both"), default="both")
     parser.add_argument("--no-instantid", action="store_true")
     args = parser.parse_args()
     if args.emit_examples:
         emit_examples(args.emit_examples)
         return
 
-    chosen = args.only or ["lin", "elena"]
+    actors = args.only or ["lin", "elena"]
+    modes = ["nude", "torn"] if args.mode == "both" else [args.mode]
     args.input.mkdir(parents=True, exist_ok=True)
     args.out.mkdir(parents=True, exist_ok=True)
     debug = Path("/tmp/fox-undress-preview/masks")
     debug.mkdir(parents=True, exist_ok=True)
 
-    if "lin" in chosen:
-        lin = Image.open(LIN_PLATE).convert("RGB")
-        _write_mask_previews("lin", lin, lin_region_passes(), LIN_FACE_CLEAR, LIN_HEAD, debug)
-    if "elena" in chosen:
-        elena = Image.open(ELENA_PLATE).convert("RGB")
-        _write_mask_previews("elena", elena, elena_region_passes(), ELENA_FACE_CLEAR, ELENA_HEAD, debug)
+    for actor in actors:
+        for mode in modes:
+            _write_mask_previews(actor, mode, debug)
 
     if args.prepare_only:
         return
@@ -551,37 +670,22 @@ def main() -> None:
     models = resolve_base_models(args.host)
     print("MODELS", json.dumps(models, ensure_ascii=False), flush=True)
     print(
-        f"SCHEDULE cloth={CLOTH_DENOISE} edge={EDGE_DENOISE} max_content={MAX_CONTENT_FRAC} "
-        f"instantid={not args.no_instantid}",
+        f"SCHEDULE cloth={CLOTH_DENOISE} torn={TORN_DENOISE} edge={EDGE_DENOISE} "
+        f"max_content={MAX_CONTENT_FRAC} modes={modes} instantid={not args.no_instantid}",
         flush=True,
     )
 
-    if "lin" in chosen:
-        run_actor(
-            args.host,
-            models,
-            "lin",
-            LIN_PLATE,
-            LIN_HEAD,
-            lin_region_passes(),
-            args.input,
-            args.out,
-            use_instantid=not args.no_instantid,
-            seed_offset=0,
-        )
-    if "elena" in chosen:
-        run_actor(
-            args.host,
-            models,
-            "elena",
-            ELENA_PLATE,
-            ELENA_HEAD,
-            elena_region_passes(),
-            args.input,
-            args.out,
-            use_instantid=not args.no_instantid,
-            seed_offset=10,
-        )
+    for actor in actors:
+        for mode in modes:
+            run_actor_mode(
+                args.host,
+                models,
+                actor,
+                mode,
+                args.input,
+                args.out,
+                use_instantid=not args.no_instantid,
+            )
 
 
 if __name__ == "__main__":

@@ -31,23 +31,22 @@ Codex CLI 成衣。F34 / G09 未开。
 - 林单人：`lin-qipao-nine-tail.png` 1024×1536。更挺拔。Codex 均分 9.0，硬门空；狐尾可辨约八条，第九条可能重叠。
 - 伊莲单人：`elena-armor-centaur.png` 1024×1536。马身拉长、母马腹线。身份 9，人马衔接仍略硬。
 
-## 去衣（这一张的衣服，不是身体板）
+## 去衣 / 破衣破甲（这一张的衣服，不是身体板）
 
-穿衣单人保留。去衣只抠旗袍和铠甲，狐尾和马身不进蒙版。工作流是 `workflows/comfyui/scheme_still_fox_centaur_undress.py`：社区对齐的小洞 crop-and-stitch + `InpaintModelConditioning`。
+穿衣单人保留。每人两张：`nude`（去衣）和 `torn`（旗袍/铠甲破碎露肤）。狐尾和马身不进蒙版。工作流 `workflows/comfyui/scheme_still_fox_centaur_undress.py --mode both`：社区对齐小洞 crop-and-stitch + `InpaintModelConditioning`。
 
-现行日程（对 COMPARE.md 里社区表的实现）：
+现行日程：
 
-- 蒙版拆成多个小洞（林：胸 / 腹 / 裙；伊莲：胸甲 / 领 / 臂 / 腰），再加一遍 denoise ≈ 0.42 的收边
-- 衣服 pass denoise **0.80**（社区 0.75–0.85 带）
-- 洞太大时 `prepare_crop_community` 把内容压到 canvas 的 ≤58%（防 double body）
-- InstantID 锁脸改吃成衣板上的 **头肩裁**（`head_shoulder_from_plate`），不再只喂下颌以上的 `ref-face.png`；InsightFace 仍挂则该 pass 退回纯 inpaint
-- 打分对照仍是板心 `ref-face.png`
+- `nude`：林胸/腹/裙；伊莲胸甲/领/臂/腰；衣服 denoise **0.80** + 收边 **0.42**
+- `torn`：更小的椭圆破洞，denoise **0.78** + 收边；提示写撕破旗袍 / 碎裂铠甲，保留衣甲残骸
+- 大洞 `MAX_CONTENT_FRAC=0.58`；InstantID 吃成衣板 **头肩裁**；失败则该 pass 退回纯 inpaint
+- 打分对照仍是板心 `ref-face.png`；收留线均分 ≥ 9 且硬门空
 
-不要把这两张丢进 `scheme_b_from_plate.py` 的全身 OpenPose 重绘。北京 B `359a49a1c3-4cda10df`。F34 / G09 不开。不用 ReActor。
+不要丢进 `scheme_b_from_plate.py`。北京 B `359a49a1c3-4cda10df`。F34 / G09 不开。不用 ReActor。
 
-上一轮实跑（改工作流前）：林 denoise 0.70 胸腹分抠 → 薄纱旗袍、多余手臂，均分 6.5 / `clothes_remain`；伊莲胸甲去了、领臂腰甲残留，均分 8.0 / `armor_remain`。狐尾和马身都还在。社区改写后的静帧尚未在北京重跑。
+| 人 | 成衣 | 去衣 | 破衣/破甲 |
+| --- | --- | --- | --- |
+| 林 | `lin-qipao-nine-tail.png` | `lin-qipao-nine-tail-nude.png` | `lin-qipao-nine-tail-torn.png` |
+| 伊莲 | `elena-armor-centaur.png` | `elena-armor-centaur-nude.png` | `elena-armor-centaur-torn.png` |
 
-| 人 | 成衣 | 去衣（改写前） | 均分 | 硬门 |
-| --- | --- | --- | --- | --- |
-| 林 | `lin-qipao-nine-tail.png` | `lin-qipao-nine-tail-nude.png` | 6.5 | clothes_remain |
-| 伊莲 | `elena-armor-centaur.png` | `elena-armor-centaur-nude.png` | 8.0 | armor_remain |
+上一轮（改工作流前）去衣：林 6.5 / `clothes_remain`；伊莲 8.0 / `armor_remain`。新日程重跑后更新分数。
