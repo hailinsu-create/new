@@ -11,8 +11,8 @@
 ## 两段式
 
 1. 第一段由 Codex CLI 生成姿势、脸、衣服和身体，只做非露骨锁定（`/home/ubuntu/.local/bin/codex exec`，参考图用 `-i` 附上）。身体板锁姿势和表情，定妆 `ref.png` 锁脸、衣服和身体。不加大尺度，不把破限提示词交给 Codex。许仙（顾承安）自己的脚不盖住，那只脚不是缺陷。不调用 agy。
-2. 第一段、一采、二采的打分先由 Codex CLI 看图并执行。Codex CLI 可用就用 Codex。不可用（没有二进制、未登录、额度用完、CLI 报错）就自动改用 grok-4.7 xhigh，不再失败退出。两家看的是同一份 `SCORE_PREFIX`：八项、H1–H7、JSON 和 9 分收留线完全一致。每次只在前缀后面加上待分图路径和「只打这一张」。解析后的分数 JSON 由脚本写入 `scorer`：`codex` 或 `grok-4.7-xhigh`。禁止 OpenCode Go vision、deepseek-v4-flash-vision、agy 和除此之外的识图回退。两家都失败才退出。硬门没过或八项均分低于 9，只重出这一张。这一分没过时，本地模型不得加大尺度。第一段出图仍只许 Codex，不改由 grok 出锁定图。
-3. Codex 锁定图过 9 之后，Qwen 只喂这一张锁图。`write_explicit_edit_with_grok` 用 grok-4.7 xhigh 看这张图，指令只写要改的衣服和胸口接触，不贴整场提示词，不写“不要改姿势”。挂 `qwen-image-edit-plus-nsfw-lora`，文件在 F34 `/root/autodl-tmp/loras/qwen-image-edit-plus-nsfw-lora.safetensors`。LoRA 强度用去衣调参定下的 `QWEN_LORA_SCALE`；还没定下之前不填数。
+2. 打分默认仍是 Codex CLI，不变。第一段、一采、二采先由 Codex CLI 看图并执行。只有 Codex CLI 不可用（没有二进制、未登录、额度用完、CLI 报错、超时、没有可解析的分数 JSON）才回退 grok 4.7。回退走 Cursor 提供的 grok 4.7，slug 是 `grok-4.7-xhigh`。不走 grok.com CLI，不走 `.cursor/grok/run.sh`，不走 xAI 直连 API（`api.x.ai`）。两家看的是同一份 `SCORE_PREFIX`：八项、H1–H7、JSON 和 9 分收留线完全一致。每次只在前缀后面加上待分图路径和「只打这一张」。解析后的分数 JSON 由脚本写入 `scorer`：`codex` 或 `grok-4.7-xhigh`。禁止 OpenCode Go vision、deepseek-v4-flash-vision、agy 和除此之外的识图回退。两家都失败才退出。硬门没过或八项均分低于 9，只重出这一张。这一分没过时，本地模型不得加大尺度。第一段出图仍只许 Codex，不改由 grok 出锁定图。
+3. Codex 锁定图过 9 之后，Qwen 只喂这一张锁图。`write_explicit_edit_with_grok` 用 Cursor 提供的 grok 4.7 看这张图，slug 同样是 `grok-4.7-xhigh`，不走 grok.com CLI，不走 `api.x.ai`。指令只写要改的衣服和胸口接触，不贴整场提示词，不写“不要改姿势”。挂 `qwen-image-edit-plus-nsfw-lora`，文件在 F34 `/root/autodl-tmp/loras/qwen-image-edit-plus-nsfw-lora.safetensors`。LoRA 强度用去衣调参定下的 `QWEN_LORA_SCALE`；还没定下之前不填数。
 4. Qwen 分两采，同一种子、同一条提示、同一 LoRA 强度。一采定内容：448×600、16 步，脸、姿势、解剖、衣着或接触、硬门都要过；写实纹理和分辨率不挡一采。过了才进二采。二采只放大：把一采结果低去噪放到 896×1200，denoise 先 0.35、40 步，掉分只降到 0.30、再 0.25，步数只降不升。不改内容，不重写提示，不换种子，不重开一采。一采和二采各自记下渲染耗时。
 5. 本机没有 `codex` 就失败退出，不许改走 agy，也不许改用本地 Qwen 直接出锁定图。已安装但 `codex login status` 不是已登录，同样失败退出。脚本不执行登录，不开机。
 
@@ -40,15 +40,25 @@ Cursor 环境换成新 VM 之后先做下面三步。脚本不代登录，不开
 
 ## SCORE_PREFIX
 
-标准写在 `autodl/run_explicit_two_stage.py` 的常量 `SCORE_PREFIX` 里，不是每次现拼的 f-string。这段前缀对 Codex 和 grok-4.7 xhigh 字节相同，方便同一段提示命中缓存。里面有八项名称（身份、区分、互动、美感、解剖、服装、动机、摄影感）、H1–H7 各一行、以及模型要输出的 JSON 对象。前缀里只用相对名字 `anchor-10`，不写入绝对路径，也不写入这一张待分图的路径，也不写入 `scorer`。`scorer` 由脚本在解析之后写入，避免两家各写各的、把前缀拆成两份。
+标准写在 `autodl/run_explicit_two_stage.py` 的常量 `SCORE_PREFIX` 里，不是每次现拼的 f-string。这段前缀对 Codex 和 Cursor 提供的 grok 4.7 字节相同，方便同一段提示命中缓存。里面有八项名称（身份、区分、互动、美感、解剖、服装、动机、摄影感）、H1–H7 各一行、以及模型要输出的 JSON 对象。前缀里只用相对名字 `anchor-10`，不写入绝对路径，也不写入这一张待分图的路径，也不写入 `scorer`，也不写入打分渠道。`scorer` 由脚本在解析之后写入，避免两家各写各的、把前缀拆成两份。
 
 `_codex_score_prompt` 每次只在前缀后面追加两行：`待分图：` 加本张路径，然后 `只打这一张。`。第一段锁定图、一采、二采共用这一份前缀。附件顺序仍是先满分基准 `anchor-10`，再本张图。
 
 ## 打分回退
 
-入口是 `score_frame`。Codex CLI 可用就用 Codex，`scorer` 记 `codex`。下面任一情况算 Codex 不可用，自动切到 grok-4.7 xhigh，`scorer` 记 `grok-4.7-xhigh`：没有 `codex` 二进制、`codex login status` 不是已登录、输出像额度用完（usage limit、rate limit、quota、insufficient_quota、额度）且没有分数 JSON、进程非 0、超时或其它 CLI 报错、以及没有解析出分数 JSON。脚本不执行 `codex login`。
+顺序固定，不许调换：
 
-回退命令是本机 `grok` CLI：`-m grok-4.7 --effort xhigh`，与 `GROK_MODEL`、`GROK_EFFORT` 相同。不走 `.cursor/grok/run.sh`（那条会固定成别的模型）。提示词就是 `_codex_score_prompt`，附件仍是 anchor 再本张图。rubric、9 分阈值、H1–H7 硬门不另写一套。禁止 OpenCode Go vision、deepseek-v4-flash-vision、agy 和其它识图回退。grok 也失败就 `SystemExit`，不开机，不出图。
+1. 打分默认仍是 Codex CLI，不变。Codex CLI 可用就用 Codex，`scorer` 记 `codex`。
+2. 只有 Codex CLI 不可用时才回退 grok 4.7。
+3. 回退时走 Cursor 提供的 grok 4.7，slug 是 `grok-4.7-xhigh`，`scorer` 记 `grok-4.7-xhigh`。不走其它渠道。
+
+入口是 `score_frame`。下面任一情况算 Codex 不可用：没有 `codex` 二进制、`codex login status` 不是已登录、输出像额度用完（usage limit、rate limit、quota、insufficient_quota、额度）且没有分数 JSON、进程非 0、超时或其它 CLI 报错、以及没有解析出分数 JSON。脚本不执行 `codex login`。
+
+回退命令是 Cursor 的 agent CLI：`--print --output-format text --mode ask --model grok-4.7-xhigh`。模型名由 `GROK_MODEL` 与 `GROK_EFFORT` 拼成这一个 slug，不把 `-m` 和 `--effort` 交给 grok.com。图片用 `--image`，先 anchor 再本张图。提示词就是 `_codex_score_prompt`。禁止 grok.com CLI（`~/.grok/bin/grok`、`~/.grok/bin/agent`），禁止 `.cursor/grok/run.sh`，禁止 xAI 直连 API（`api.x.ai`）。`PATH` 上若只有 grok.com 的 `grok` 或 `agent`，回退失败退出，不用它们冒充 Cursor。`CURSOR_AGENT_BIN` 指向这些路径同样失败退出。找不到 Cursor agent 二进制也失败退出，不开机，不出图。
+
+`write_explicit_edit_with_grok` 里的 grok 4.7 也走这一条 Cursor 渠道，不走 grok.com，不走 `api.x.ai`。
+
+rubric、9 分阈值、H1–H7 硬门不另写一套。禁止 OpenCode Go vision、deepseek-v4-flash-vision、agy 和其它识图回退。Cursor 的 grok 4.7 也失败就 `SystemExit`，不开机，不出图。
 
 第一段锁定图的生成不走这条回退。没有 Codex 或未登录时，`_ensure_codex` 和 `_run_codex_image` 仍失败退出，不许 grok、agy 或本地 Qwen 出第一段。
 
@@ -129,7 +139,7 @@ Cursor 环境换成新 VM 之后先做下面三步。脚本不代登录，不开
 
 ## 出图
 
-- 出图、打分、不达标重出，都在 `autodl/run_explicit_two_stage.py` 里完成。文件落盘不算收。第一段的生成只许 Codex CLI。第一段、一采、二采的打分先用 Codex；Codex 不可用就自动改用 grok-4.7 xhigh，标准和硬门相同，分数 JSON 记 `scorer`。禁止 OpenCode Go vision。两家打分都失败才退出。这一分没过，本地模型不加尺度。过了之后必须先由 `write_explicit_edit_with_grok` 用 grok-4.7 xhigh 自己看锁定图，点出这张图里实际还合着的衣服再写加尺度指令，Qwen 不能跳过这一步，也不能改回笼统的一句。第二段没过 9 只降低 denoise 和步数重做二采，不重写提示，不换种子，不退回第一段。
+- 出图、打分、不达标重出，都在 `autodl/run_explicit_two_stage.py` 里完成。文件落盘不算收。第一段的生成只许 Codex CLI。打分默认仍是 Codex CLI。只有 Codex 不可用才回退 Cursor 提供的 grok 4.7（`grok-4.7-xhigh`），标准和硬门相同，分数 JSON 记 `scorer`。不走 grok.com CLI，不走 `api.x.ai`。禁止 OpenCode Go vision。两家打分都失败才退出。这一分没过，本地模型不加尺度。过了之后必须先由 `write_explicit_edit_with_grok` 用同一条 Cursor grok 4.7 自己看锁定图，点出这张图里实际还合着的衣服再写加尺度指令，Qwen 不能跳过这一步，也不能改回笼统的一句。第二段没过 9 只降低 denoise 和步数重做二采，不重写提示，不换种子，不退回第一段。
 - 这次不跑图。p03–p08 的提示词不改，也不为这次重跑。
 - 只在 AutoDL F34 `xaxna66hqt-c5c9c7fc`（西北B / west-E，RTX 5090 D）上跑本地 Qwen。不要开、不要删旧的 G09 `sa4eaxgcuq-26e36fc9`。干活才开机。用户当次说先别开就不开。
 - 模型 `Qwen/Qwen-Image-Edit-2511`，用机上缓存，离线，不要重下权重。一采 448×600、16 步定内容。二采 896×1200，先 40 步、denoise 0.35，掉分只降到 0.30 再 0.25，步数只降不升。`true_cfg_scale` 4。同一张的种子和提示词不动，不重开一采。

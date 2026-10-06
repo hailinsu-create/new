@@ -2,7 +2,7 @@
 
 **Cast lock:** any future Asian woman / Asian man / Western woman / Western man shots must use the four standing actors in `library/cast/CAST.md` (林晚棠 / 顾承安 / 伊莲·沃斯 / 阿德里安·凯恩) so identity does not drift.
 
-破限静帧见 `explicit-still-two-stage.md`。不要把这类图送进下面的 fal nano-banana 流程，也不要套用本文件的 7.5。打分标准是 `still-score-two-stage.md`。Codex CLI 可用就用 Codex，不可用就用 grok-4.7 xhigh，标准和硬门相同。禁止 OpenCode vision。监督 bot 不得另开生成指令。
+破限静帧见 `explicit-still-two-stage.md`。不要把这类图送进下面的 fal nano-banana 流程，也不要套用本文件的 7.5。打分标准是 `still-score-two-stage.md`。打分默认仍是 Codex CLI。只有 Codex CLI 不可用才回退 Cursor 提供的 grok 4.7，标准和硬门相同。禁止 grok.com CLI。禁止 OpenCode vision。监督 bot 不得另开生成指令。
 
 **Approved recipe (locked in by the user after review):** `fal-ai/nano-banana-pro/edit` is the default model for stills
 (`FAL_STILL_MODEL`, 2K output at about $0.15 per image, so `COMIC_STILL_BUDGET_USD` defaults to $0.80 and at most

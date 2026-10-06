@@ -2,7 +2,7 @@
 
 新姿势锁，同一套演员（见 `library/cast/CAST.md`）。比 `body-boards/p01`–`p08` / `explicit-8` 更露、身体接触更直接。四套已出过一版，目检未收，结论在 `docs/explicit-still-mode.md`，不要当成已收。本文件不另起第二套演员或身体板。
 
-可跑的块在同目录 `prompts.md`，由 `autodl/run_explicit_two_stage.py` 和 explicit-8 一起读。样张只算 `library/samples/approved/` 里用户最初那几张；蛇尾形状复刻样张。尾锁以 prompts 为准：一条不断的珍珠白蛇尾，鳞片铺到圆钝尾尖；尾尖是圆钝鳞尾，不是头。蛇形格里白蛇自己不能有人腿人脚；顾承安自己的脚按 `docs/still-score-two-stage.md` 不扣。m02 人身骑坐、不要蛇尾；m03 是站着靠战车栏挤压，不是坐在怀里；m04 伊莲没有尖耳，只有阿德里安有尖耳，不要武器，只喂一颗籽，嘴对嘴，不是王座。正向不写 stump。出图后先由 Codex CLI 按该标准打分；Codex 不可用就由 grok-4.7 xhigh 按同一标准打分。硬门不过或均分低于 9 就在脚本里重出这一张。禁止 OpenCode vision。监督 bot 不得另开生成指令。
+可跑的块在同目录 `prompts.md`，由 `autodl/run_explicit_two_stage.py` 和 explicit-8 一起读。样张只算 `library/samples/approved/` 里用户最初那几张；蛇尾形状复刻样张。尾锁以 prompts 为准：一条不断的珍珠白蛇尾，鳞片铺到圆钝尾尖；尾尖是圆钝鳞尾，不是头。蛇形格里白蛇自己不能有人腿人脚；顾承安自己的脚按 `docs/still-score-two-stage.md` 不扣。m02 人身骑坐、不要蛇尾；m03 是站着靠战车栏挤压，不是坐在怀里；m04 伊莲没有尖耳，只有阿德里安有尖耳，不要武器，只喂一颗籽，嘴对嘴，不是王座。正向不写 stump。出图后打分默认仍是 Codex CLI；只有 Codex CLI 不可用才回退 Cursor 提供的 grok 4.7，按同一标准打分。硬门不过或均分低于 9 就在脚本里重出这一张。禁止 grok.com CLI。禁止 OpenCode vision。监督 bot 不得另开生成指令。
 
 | id | 标题 | 神话 | 谁 | 身体 |
 |---|---|---|---|---|

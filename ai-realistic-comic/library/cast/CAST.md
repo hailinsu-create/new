@@ -2,7 +2,7 @@
 
 这一套是唯一的演员资产，不是两套系统。body-boards/p01..p08（八格样张的裁图）锁姿势和身体；演员目录 lin_wantang、gu_chengan、elena_voss、adrian_kane 各自保留今天的定妆 ref.png 和 actor.md（名字、脸、身体、衣柜），作为同一批人的脸和衣柜锁。p01–p04 是林晚棠 + 顾承安，p05–p08 是伊莲·沃斯 + 阿德里安·凯恩。没有第二套演员。
 
-破限静帧（更露、贴得更近，姿势表情不动）只能走 `docs/explicit-still-two-stage.md` 和 `autodl/run_explicit_two_stage.py`。监督 bot 不得另开生成指令。收留按 `docs/still-score-two-stage.md`。Codex CLI 可用就由 Codex 执行硬门和八项，不可用就由 grok-4.7 xhigh 执行，标准和阈值相同。禁止 OpenCode vision。满分基准是亭中盘蛇 `library/stills/explicit-8/anchor-10.jpg`，硬门不过或八项均分低于 9 就在该脚本里重出这一张。蛇身是一条珍珠白鳞尾，尾尖圆钝且连在同一条尾巴上，不是蛇头，不是鱼尾。白蛇自己的人腿或人脚才算不合格；顾承安自己的脚不扣。人身格的人腿是对的。只有阿德里安有尖耳；伊莲是人耳，眼睛是琥珀褐不是绿。阿德里安不要武器。
+破限静帧（更露、贴得更近，姿势表情不动）只能走 `docs/explicit-still-two-stage.md` 和 `autodl/run_explicit_two_stage.py`。监督 bot 不得另开生成指令。收留按 `docs/still-score-two-stage.md`。打分默认仍是 Codex CLI。只有 Codex CLI 不可用才回退 Cursor 提供的 grok 4.7，标准和阈值相同。禁止 grok.com CLI。禁止 OpenCode vision。满分基准是亭中盘蛇 `library/stills/explicit-8/anchor-10.jpg`，硬门不过或八项均分低于 9 就在该脚本里重出这一张。蛇身是一条珍珠白鳞尾，尾尖圆钝且连在同一条尾巴上，不是蛇头，不是鱼尾。白蛇自己的人腿或人脚才算不合格；顾承安自己的脚不扣。人身格的人腿是对的。只有阿德里安有尖耳；伊莲是人耳，眼睛是琥珀褐不是绿。阿德里安不要武器。
 
 它同时包含三样东西，缺一不可：
 

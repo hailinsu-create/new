@@ -316,9 +316,26 @@ def test_score_uses_codex_then_grok_with_the_same_prefix():
         encoding="utf-8"
     )
     rubric = mod.RUBRIC.read_text(encoding="utf-8")
-    for phrase in ("score_frame", "grok-4.7-xhigh", "scorer", "额度用完", "同一份"):
-        assert phrase in doc
+    for phrase in (
+        "score_frame",
+        "grok-4.7-xhigh",
+        "scorer",
+        "额度用完",
+        "同一份",
+        "打分默认仍是 Codex CLI",
+        "只有 Codex CLI 不可用时才回退 grok 4.7",
+        "回退时走 Cursor 提供的 grok 4.7",
+        "grok.com",
+        "api.x.ai",
+        "~/.grok/bin/grok",
+        "~/.grok/bin/agent",
+    ):
+        assert phrase in doc, phrase
     assert "grok-4.7 xhigh" in rubric
+    assert "打分默认仍是 Codex CLI" in rubric
+    assert "Cursor 提供的 grok 4.7" in rubric
+    assert "由 Codex CLI" in rubric
+    assert "api.x.ai" in rubric
     assert mod.SCORER_CODEX == "codex"
     assert mod.SCORER_GROK == "grok-4.7-xhigh"
     assert mod.GROK_MODEL == "grok-4.7"
@@ -409,10 +426,77 @@ def test_score_uses_codex_then_grok_with_the_same_prefix():
     assert seen[0][0] == mod._codex_score_prompt(image)
     assert seen[0][0].startswith(mod.SCORE_PREFIX)
     assert seen[0][1] == [mod.ANCHOR, image]
-    command = inspect.getsource(mod._grok_command)
-    assert "GROK_MODEL" in command
-    assert "GROK_EFFORT" in command
-    assert "run.sh" not in command.split("return", 1)[1]
+    command = inspect.getsource(mod._cursor_grok_command)
+    assert "_cursor_grok_slug" in command
+    assert "GROK_MODEL" in inspect.getsource(mod._cursor_grok_slug)
+    assert "GROK_EFFORT" in inspect.getsource(mod._cursor_grok_slug)
+    fake = Path("/tmp/cursor-agent-still-test")
+    fake.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    fake.chmod(0o755)
+    argv = mod._cursor_grok_command(
+        mod._codex_score_prompt(image),
+        [mod.ANCHOR, image],
+        binary=str(fake),
+    )
+    assert argv[0] == str(fake)
+    assert "--print" in argv
+    assert argv[argv.index("--model") + 1] == "grok-4.7-xhigh"
+    images = [argv[index + 1] for index, flag in enumerate(argv) if flag == "--image"]
+    assert images == [str(mod.ANCHOR), str(image)]
+    assert argv[-1] == mod._codex_score_prompt(image)
+    assert "--prompt-json" not in argv
+    assert "-m" not in argv
+    assert "--effort" not in argv
+    assert "api.x.ai" not in "\n".join(argv)
+    assert "run.sh" not in "\n".join(argv)
+    for banned in (
+        str(Path.home() / ".grok" / "bin" / "grok"),
+        str(Path.home() / ".grok" / "bin" / "agent"),
+        str(Path(__file__).resolve().parents[2] / ".cursor" / "grok" / "run.sh"),
+    ):
+        try:
+            mod._cursor_grok_command("x", [image], binary=banned)
+        except SystemExit as exc:
+            assert "grok-4.7-xhigh" in str(exc)
+            assert "api.x.ai" in str(exc)
+        else:
+            raise AssertionError(banned)
+    import os
+
+    saved = os.environ.get("CURSOR_AGENT_BIN")
+    os.environ["CURSOR_AGENT_BIN"] = str(Path.home() / ".grok" / "bin" / "grok")
+    try:
+        try:
+            mod._cursor_agent_binary()
+        except SystemExit as exc:
+            assert "grok-4.7-xhigh" in str(exc)
+        else:
+            raise AssertionError("CURSOR_AGENT_BIN must not accept grok.com")
+    finally:
+        if saved is None:
+            os.environ.pop("CURSOR_AGENT_BIN", None)
+        else:
+            os.environ["CURSOR_AGENT_BIN"] = saved
+    try:
+        mod._cursor_agent_binary(
+            candidates=[
+                str(Path.home() / ".grok" / "bin" / "grok"),
+                str(Path.home() / ".grok" / "bin" / "agent"),
+            ]
+        )
+    except SystemExit as exc:
+        assert "Cursor" in str(exc)
+        assert "api.x.ai" in str(exc)
+    else:
+        raise AssertionError("grok.com binaries must not be the fallback")
+    picked = mod._cursor_agent_binary(
+        candidates=[str(Path.home() / ".grok" / "bin" / "agent"), str(fake)]
+    )
+    assert picked == str(fake.resolve())
+    edit_src = inspect.getsource(mod.write_explicit_edit_with_grok)
+    assert "_cursor_grok_command" in edit_src
+    assert "prompt-json" not in edit_src
+    assert "api.x.ai" not in edit_src
     lock = inspect.getsource(mod._run_codex_image)
     assert "score_frame" not in lock
     assert "grok" not in lock

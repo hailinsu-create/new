@@ -2,7 +2,9 @@
 
 Stage 1 lock images come only from Codex CLI. agy is forbidden.
 A missing Codex binary fails and exits before that lock. There is no image fallback.
-Scoring tries Codex, then grok-4.7 xhigh with the same prefix. Stage 2 is F34 Qwen.
+Scoring stays on Codex CLI. Only when that CLI is unavailable does it fall back
+to Cursor's grok-4.7-xhigh, same prefix. grok.com CLI and api.x.ai are refused.
+Stage 2 is F34 Qwen.
 """
 from __future__ import annotations
 
@@ -37,7 +39,7 @@ F34_BALANCE_URL = "https://www.autodl.com/api/v1/wallet/balance"
 F34_STOP_PHASES = frozenset({"done", "paused", "idle", "wait"})
 
 # Fixed prefix. Do not interpolate paths, the frame under test, or scorer.
-# Codex and the grok-4.7 xhigh fallback both receive these exact bytes.
+# Codex and the Cursor grok-4.7-xhigh fallback both receive these exact bytes.
 SCORE_PREFIX = """打分用同一份标准。Codex CLI 可用就由 Codex 看图执行。Codex 不可用时由 grok-4.7 xhigh 看图执行。禁止 OpenCode Go vision。禁止 deepseek-v4-flash-vision。禁止 agy。禁止其它识图回退。不要生成图，不要改文件。
 第一张附件是满分基准 anchor-10，八项固定 10。第一段、一采、二采用同一前缀。
 八项等权，各 0–10：身份、区分、互动、美感、解剖、服装、动机、摄影感。均分低于 9 不算过。
@@ -173,9 +175,9 @@ def _load_panels() -> list[dict]:
 
 
 def score_still(image: Path) -> dict:
-    """Both still stages score through Codex CLI."""
+    """Retired entry. Live scoring is score_frame: Codex CLI, then Cursor grok."""
     del image
-    raise SystemExit("禁止 OpenCode Go vision。出片两段打分只许 Codex CLI。缺 Codex 失败退出。")
+    raise SystemExit("禁止 OpenCode Go vision。出片打分默认仍是 Codex CLI。旧入口已停用，改走 score_frame。")
 
 
 def _render_until_kept(provider, panel: dict, dest: Path, seed: int) -> None:
@@ -188,20 +190,117 @@ GROK_MODEL = "grok-4.7"
 GROK_EFFORT = "xhigh"
 SCORER_CODEX = "codex"
 SCORER_GROK = "grok-4.7-xhigh"
+CURSOR_GROK_REFUSAL = (
+    "grok 4.7 只许 Cursor 提供的 grok-4.7-xhigh。"
+    "禁止 grok.com CLI（~/.grok/bin/grok、~/.grok/bin/agent），"
+    "禁止 .cursor/grok/run.sh，禁止 api.x.ai。"
+)
 
 
 class CodexUnavailable(RuntimeError):
-    """Codex CLI cannot score this frame. The only fallback is grok-4.7 xhigh."""
+    """Codex CLI cannot score this frame. The only fallback is Cursor grok-4.7-xhigh."""
 
 
-def _grok_binary() -> str:
-    found = shutil.which("grok")
-    if found:
-        return found
-    local = Path.home() / ".grok" / "bin" / "grok"
-    if local.is_file():
-        return str(local)
-    raise SystemExit("grok CLI is required before the local explicit pass")
+def _cursor_grok_slug() -> str:
+    """One Cursor model id. Do not pass -m and --effort to the grok.com CLI."""
+    slug = f"{GROK_MODEL}-{GROK_EFFORT}"
+    if slug != SCORER_GROK:
+        raise SystemExit("Cursor grok slug must stay grok-4.7-xhigh")
+    return slug
+
+
+def _require_cursor_agent(raw: str) -> None:
+    """Refuse grok.com, run.sh, and api.x.ai even when CURSOR_AGENT_BIN points there."""
+    path = Path(raw).expanduser()
+    seen = [path]
+    try:
+        if path.exists():
+            seen.append(path.resolve())
+    except OSError:
+        pass
+    for item in seen:
+        parts = item.parts
+        if ".grok" in parts or item.name == "grok" or "api.x.ai" in str(item):
+            raise SystemExit(CURSOR_GROK_REFUSAL)
+        if item.name == "run.sh" and "grok" in parts:
+            raise SystemExit(CURSOR_GROK_REFUSAL)
+
+
+def _cursor_agent_candidates() -> list[str]:
+    home = Path.home()
+    found: list[str] = []
+    cursor_agent = shutil.which("cursor-agent")
+    if cursor_agent:
+        found.append(cursor_agent)
+    found.extend(
+        [
+            str(home / ".local" / "bin" / "cursor-agent"),
+            str(home / ".cursor" / "bin" / "cursor-agent"),
+            str(home / ".cursor" / "bin" / "agent"),
+            str(home / ".local" / "bin" / "agent"),
+        ]
+    )
+    agent = shutil.which("agent")
+    if agent:
+        found.append(agent)
+    return found
+
+
+def _cursor_agent_binary(*, candidates: list[str] | None = None) -> str:
+    """Cursor agent only. A grok.com binary on PATH is not a fallback."""
+    override = os.environ.get("CURSOR_AGENT_BIN", "").strip()
+    if override:
+        _require_cursor_agent(override)
+        path = Path(override).expanduser()
+        if not path.is_file():
+            raise SystemExit(
+                "CURSOR_AGENT_BIN 不是可用的 Cursor agent。"
+                "禁止改走 grok.com CLI 或 api.x.ai。不开机。"
+            )
+        return str(path)
+    for raw in candidates if candidates is not None else _cursor_agent_candidates():
+        path = Path(raw).expanduser()
+        if not path.is_file():
+            continue
+        try:
+            _require_cursor_agent(str(path))
+        except SystemExit:
+            continue
+        return str(path.resolve())
+    raise SystemExit(
+        "Cursor 的 grok 4.7 不可用：没有 Cursor agent 二进制。"
+        "打分回退只许 Cursor 提供的 grok-4.7-xhigh。"
+        "禁止 grok.com CLI、禁止 .cursor/grok/run.sh、禁止 api.x.ai。不开机。"
+    )
+
+
+def _cursor_grok_command(
+    prompt: str, images: list[Path], *, binary: str | None = None
+) -> list[str]:
+    """Cursor grok-4.7-xhigh. Refuses every non-Cursor channel."""
+    exe = binary if binary is not None else _cursor_agent_binary()
+    _require_cursor_agent(exe)
+    cmd = [
+        exe,
+        "--print",
+        "--output-format",
+        "text",
+        "--mode",
+        "ask",
+        "--trust",
+        "--sandbox",
+        "disabled",
+        "--model",
+        _cursor_grok_slug(),
+        "--workspace",
+        str(ROOT),
+    ]
+    for image in images:
+        cmd.extend(["--image", str(image)])
+    cmd.append(prompt)
+    if {"--prompt-json", "-m", "--effort", "--always-approve"}.intersection(cmd):
+        raise SystemExit(CURSOR_GROK_REFUSAL)
+    return cmd
 
 
 def nude_body_refs(actor_id: str) -> list[Path]:
@@ -449,34 +548,10 @@ def write_explicit_edit_with_grok(lock: Path) -> str:
         "禁止写成笼统的 Open her robe and bandeau, open his robe, and increase their chest contact。"
         "禁止贴整场提示词。禁止写“不要改姿势”。"
         "可以先看图。最后单独一行只放这一条指令，不要把开场、解释或过程写进那一行。"
+        f"\n锁图：{lock}\n只看这一张。不要生成图，不要改文件。\n"
     )
-    # ACP image blocks require base64 `data`. The PNG exceeds ARG_MAX, so the
-    # same lock is sent as a JPEG of those pixels.
-    import base64
-    import io
-
-    from PIL import Image
-
-    image = Image.open(lock).convert("RGB")
-    image.thumbnail((1024, 1024))
-    payload = ""
-    for quality in (70, 55, 40, 30):
-        buffer = io.BytesIO()
-        image.save(buffer, format="JPEG", quality=quality)
-        payload = json.dumps(
-            [
-                {"type": "text", "text": ask},
-                {
-                    "type": "image",
-                    "mimeType": "image/jpeg",
-                    "data": base64.b64encode(buffer.getvalue()).decode("ascii"),
-                },
-            ]
-        )
-        if len(payload) < 90000:
-            break
     result = subprocess.run(
-        _grok_command(payload),
+        _cursor_grok_command(ask, [lock]),
         capture_output=True,
         text=True,
         timeout=900,
@@ -597,29 +672,6 @@ def _run_codex_image(panel: dict, dest: Path) -> None:
         raise SystemExit(detail[-800:])
 
 
-def _grok_command(payload: str) -> list[str]:
-    """grok-4.7 xhigh. Do not route this through .cursor/grok/run.sh."""
-    return [
-        _grok_binary(),
-        "--output-format",
-        "plain",
-        "--always-approve",
-        "--no-auto-update",
-        "--disable-web-search",
-        "--verbatim",
-        "--max-turns",
-        "6",
-        "--cwd",
-        "/tmp",
-        "-m",
-        GROK_MODEL,
-        "--effort",
-        GROK_EFFORT,
-        "--prompt-json",
-        payload,
-    ]
-
-
 def codex_result_unavailable(returncode: int, text: str) -> str | None:
     """Why this Codex scoring result cannot be kept. None means it can be parsed."""
     if returncode != 0:
@@ -673,41 +725,9 @@ def _codex_score_once(image: Path, *, run=None, logged_in: bool | None = None) -
     return item
 
 
-def _grok_vision_payload(prompt: str, images: list[Path]) -> str:
-    """Same JPEG block shape as the edit call, for every attached still."""
-    import base64
-    import io
-
-    from PIL import Image
-
-    blocks: list[dict] = [{"type": "text", "text": prompt}]
-    encoded = []
-    for path in images:
-        image = Image.open(path).convert("RGB")
-        image.thumbnail((1024, 1024))
-        encoded.append(image)
-    payload = ""
-    for quality in (70, 55, 40, 30):
-        blocks = [{"type": "text", "text": prompt}]
-        for image in encoded:
-            buffer = io.BytesIO()
-            image.save(buffer, format="JPEG", quality=quality)
-            blocks.append(
-                {
-                    "type": "image",
-                    "mimeType": "image/jpeg",
-                    "data": base64.b64encode(buffer.getvalue()).decode("ascii"),
-                }
-            )
-        payload = json.dumps(blocks)
-        if len(payload) < 90000:
-            break
-    return payload
-
-
 def _grok_exec_vision(prompt: str, images: list[Path]) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        _grok_command(_grok_vision_payload(prompt, images)),
+        _cursor_grok_command(prompt, images),
         capture_output=True,
         text=True,
         timeout=900,
@@ -715,7 +735,7 @@ def _grok_exec_vision(prompt: str, images: list[Path]) -> subprocess.CompletedPr
 
 
 def _grok_score_once(image: Path, *, run=None) -> dict:
-    """grok-4.7 xhigh scores with the Codex prefix. This does not generate an image."""
+    """Cursor grok-4.7-xhigh scores with the Codex prefix. This does not generate an image."""
     prompt = _codex_score_prompt(image)
     images = [ANCHOR, image]
     result = run(prompt, images) if run is not None else _grok_exec_vision(prompt, images)
@@ -729,7 +749,7 @@ def _grok_score_once(image: Path, *, run=None) -> dict:
 
 
 def score_frame(image: Path, *, codex=None, grok=None) -> dict:
-    """Score with Codex. On quota, login, or CLI failure, use grok-4.7 xhigh."""
+    """Codex CLI first. Cursor grok-4.7-xhigh only when Codex is unavailable."""
     if not ANCHOR.is_file():
         raise SystemExit(f"missing anchor {ANCHOR}")
     if not RUBRIC.is_file():
@@ -743,7 +763,8 @@ def score_frame(image: Path, *, codex=None, grok=None) -> dict:
             item = (grok or _grok_score_once)(image)
         except SystemExit as exc:
             raise SystemExit(
-                "Codex 不可用，grok-4.7 xhigh 打分也失败。禁止 OpenCode，禁止 agy，不开机。"
+                "Codex 不可用，Cursor 的 grok-4.7 xhigh 打分也失败。"
+                "禁止 OpenCode，禁止 agy，禁止 grok.com，禁止 api.x.ai，不开机。"
             ) from exc
         item["scorer"] = SCORER_GROK
         return item
@@ -752,7 +773,7 @@ def score_frame(image: Path, *, codex=None, grok=None) -> dict:
 
 
 def _score_with_codex(image: Path) -> dict:
-    """Live scoring entry. Codex first, then the fixed grok-4.7 xhigh fallback."""
+    """Live scoring entry. Codex CLI first. Cursor grok-4.7-xhigh only if Codex is unavailable."""
     return score_frame(image)
 
 
