@@ -209,8 +209,15 @@ def test_segformer_garment_is_class_run_minus_background_run():
 
 def test_sam_option_is_resolved_from_object_info(monkeypatch):
     info = {sem.SAM_LOADER_NODE: {"input": {"required": {"model_name": [["sam_vit_h (2.56GB)", "sam_vit_b (375MB)"]]}}}}
-    monkeypatch.setattr(run, "get_json", lambda url, timeout=0: info)
+    urls = []
+
+    def fake(url, timeout=0):
+        urls.append(url)
+        return info
+
+    monkeypatch.setattr(run, "get_json", fake)
     assert run.resolve_sam_model("http://x") == "sam_vit_b (375MB)"
+    assert " " not in urls[0]
 
 
 def test_dino_batch_failure_falls_back_per_prompt(tmp_path, monkeypatch):

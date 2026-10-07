@@ -70,7 +70,7 @@ def verify_stack(host: str) -> list[str]:
 
 def resolve_sam_model(host: str) -> str:
     """The SAM loader only accepts its own option labels, e.g. 'sam_vit_b (375MB)'. Pick the vit_b one."""
-    info = get_json(f"{host}/object_info/{sem.SAM_LOADER_NODE}", timeout=60)[sem.SAM_LOADER_NODE]
+    info = get_json(f"{host}/object_info/{urllib.parse.quote(sem.SAM_LOADER_NODE)}", timeout=60)[sem.SAM_LOADER_NODE]
     options = info["input"]["required"]["model_name"][0]
     for option in options:
         if "sam_vit_b" in option:
@@ -80,7 +80,7 @@ def resolve_sam_model(host: str) -> str:
 
 def mask_source(host: str, class_type: str) -> tuple[str, int]:
     """(kind, slot) of the output that carries the mask. MASK first, then IMAGE."""
-    info = get_json(f"{host}/object_info/{class_type}")[class_type]
+    info = get_json(f"{host}/object_info/{urllib.parse.quote(class_type)}")[class_type]
     outputs = info.get("output") or []
     for kind in ("MASK", "IMAGE"):
         for i, name in enumerate(outputs):

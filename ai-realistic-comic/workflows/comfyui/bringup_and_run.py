@@ -183,7 +183,7 @@ def remote_run(args: str, *, check: bool = True) -> subprocess.CompletedProcess:
 def pull(local: Path) -> None:
     local.mkdir(parents=True, exist_ok=True)
     remote = subprocess.Popen(ssh_argv([f"tar -C {REMOTE_OUT} -cf - ."]), stdout=subprocess.PIPE)
-    unpack = subprocess.run(["tar", "-C", str(local), "-xf", "-"], stdin=remote.stdout, capture_output=True)
+    unpack = subprocess.run(["tar", "-C", str(local), "--no-overwrite-dir", "--no-same-permissions", "-xf", "-"], stdin=remote.stdout, capture_output=True)
     remote.stdout.close()
     remote.wait()
     if remote.returncode != 0 or unpack.returncode != 0:
@@ -248,10 +248,12 @@ def main() -> None:
         restart_comfy()
         remote_run("--check-stack")
         ssh(f"mkdir -p {REMOTE_OUT}")
-        remote_run(f"--only lin elena --mode both --no-score --out {shlex.quote(REMOTE_OUT)}", check=False)
+        run = remote_run(f"--only lin elena --mode both --no-score --out {shlex.quote(REMOTE_OUT)}", check=False)
         pull(args.out)
         score_local(args.out)
         keep_in_repo(args.out)
+        if run.returncode != 0:
+            raise SystemExit(f"REMOTE_RUN_FAILED rc={run.returncode} (partial results were pulled)")
     except BaseException as exc:  # noqa: BLE001
         failure = exc
         print(f"BRINGUP_FAILED {exc}", flush=True)
