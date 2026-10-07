@@ -576,52 +576,63 @@ def undress_one(
                     y_cut = int(plan.horse_guard_y / sem.BASE[1] * shape[0])
                     # Buffer above mare so residual does not chew the human/horse seam.
                     redo_mask[max(0, y_cut - 16) :, :] = False
-                # Lin: never Fooocus-redo below the hips — residual passes smear thighs/calves.
+                # Lin: torso residual above hips; skirt residual below hips uses LOWER prompts
+                # (generic residual-skin below hips smears thighs and can leave floral print).
+                skirt_mask = np.zeros_like(redo_mask)
                 if actor == "lin":
                     hip_cut = int(720 / sem.BASE[1] * shape[0])
+                    skirt_mask = redo_mask.copy()
+                    skirt_mask[:hip_cut, :] = False
                     redo_mask[hip_cut:, :] = False
                 tiny = best_ratio <= LAMA_RESIDUAL_MAX_RATIO and leftover_px <= LAMA_RESIDUAL_MAX_PIXELS
-                if not redo_mask.any():
+                if not redo_mask.any() and not skirt_mask.any():
                     print(f"RESIDUAL_SKIP_EMPTY {stem} pass={n} (protected zones)", flush=True)
                     break
-                # Always LaMa-hard-erase leftovers first (P0). Tiny → light touch; large → mid Fooocus.
-                current = run_bands(
-                    host, models, base, redo_mask,
-                    positive=RESIDUAL_SKIN_POS, negative=RESIDUAL_SKIN_NEG, seed=seed + n * 50,
-                    stem=f"{stem}-p{n}lama", denoise=0.0, edge=False, input_dir=input_dir, out_dir=work,
-                    lama_only=True,
+
+                def _lama_then_fooocus(img, mask, pos, neg, tag: str, denoise: float):
+                    if not mask.any():
+                        return img
+                    img = run_bands(
+                        host, models, img, mask,
+                        positive=pos, negative=neg, seed=seed + n * 50,
+                        stem=f"{stem}-p{n}{tag}lama", denoise=0.0, edge=False,
+                        input_dir=input_dir, out_dir=work, lama_only=True,
+                    )
+                    meta["passes"].append({"kind": f"lama_{tag}", "n": n, "pixels": int(mask.sum())})
+                    use_touch = tiny and tag == "torso"
+                    if use_touch:
+                        img = run_bands(
+                            host, models, img, mask,
+                            positive=pos, negative=neg, seed=seed + n * 50 + 3,
+                            stem=f"{stem}-p{n}{tag}touch", denoise=RESIDUAL_TOUCH_DENOISE, edge=True,
+                            input_dir=input_dir, out_dir=work, cfg=RESIDUAL_TOUCH_CFG,
+                        )
+                        meta["passes"].append({"kind": f"touch_{tag}", "n": n, "denoise": RESIDUAL_TOUCH_DENOISE})
+                    else:
+                        print(
+                            f"RESIDUAL_FOOOCUS {stem} pass={n} tag={tag} ratio={best_ratio:.4f} "
+                            f"grown={int(mask.sum())} denoise={denoise}",
+                            flush=True,
+                        )
+                        img = run_bands(
+                            host, models, img, mask,
+                            positive=pos, negative=neg, seed=seed + n * 50 + 7,
+                            stem=f"{stem}-p{n}{tag}redo", denoise=denoise, edge=False,
+                            input_dir=input_dir, out_dir=work, cfg=NUDE_CFG, lama_prefill=True,
+                        )
+                        meta["passes"].append(
+                            {"kind": f"fooocus_{tag}", "n": n, "denoise": denoise, "pixels": int(mask.sum())}
+                        )
+                    return img
+
+                current = base
+                current = _lama_then_fooocus(
+                    current, redo_mask, RESIDUAL_SKIN_POS, RESIDUAL_SKIN_NEG, "torso", RESIDUAL_FOOOCUS_DENOISE
                 )
-                meta["passes"].append({"kind": "lama_residual", "n": n, "pixels": leftover_px})
-                if tiny:
-                    current = run_bands(
-                        host, models, current, redo_mask if redo_mask.any() else target,
-                        positive=RESIDUAL_SKIN_POS, negative=RESIDUAL_SKIN_NEG, seed=seed + n * 50 + 3,
-                        stem=f"{stem}-p{n}touch", denoise=RESIDUAL_TOUCH_DENOISE, edge=True,
-                        input_dir=input_dir, out_dir=work, cfg=RESIDUAL_TOUCH_CFG,
-                    )
-                    meta["passes"].append(
-                        {"kind": "touch", "n": n, "denoise": RESIDUAL_TOUCH_DENOISE}
-                    )
-                else:
-                    print(
-                        f"RESIDUAL_FOOOCUS {stem} pass={n} ratio={best_ratio:.4f} "
-                        f"pixels={leftover_px} grow={grow_px} grown={int(redo_mask.sum())} "
-                        f"denoise={RESIDUAL_FOOOCUS_DENOISE}",
-                        flush=True,
-                    )
-                    current = run_bands(
-                        host, models, current, redo_mask if redo_mask.any() else target,
-                        positive=RESIDUAL_SKIN_POS, negative=RESIDUAL_SKIN_NEG, seed=seed + n * 50 + 7,
-                        stem=f"{stem}-p{n}redo", denoise=RESIDUAL_FOOOCUS_DENOISE, edge=False,
-                        input_dir=input_dir, out_dir=work, cfg=NUDE_CFG, lama_prefill=True,
-                    )
-                    meta["passes"].append(
-                        {
-                            "kind": "fooocus_residual",
-                            "n": n,
-                            "denoise": RESIDUAL_FOOOCUS_DENOISE,
-                            "pixels": leftover_px,
-                        }
+                if skirt_mask.any():
+                    current = _lama_then_fooocus(
+                        current, skirt_mask, LOWER_POS, LOWER_NEG, "skirt",
+                        min(0.92, RESIDUAL_FOOOCUS_DENOISE + 0.04),
                     )
             tmp = work / f"{stem}-p{n}-result.png"
             current.save(tmp)
