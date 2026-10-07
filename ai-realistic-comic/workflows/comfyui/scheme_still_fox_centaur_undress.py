@@ -60,7 +60,7 @@ G09_UUID = "sa4eaxgcuq-26e36fc9"
 
 LIN_NUDE_POS = (
     "bare skin only, natural breasts, visible nipples, navel, skin tone matches the neck, "
-    "same adult woman already in the photo, one person only, no second body, no extra arms"
+    "same adult woman already in the photo, one person only"
 )
 LIN_NUDE_NEG = (
     "child, teen, extra person, second woman, extra face, extra head, clone, ghost, "
@@ -70,9 +70,8 @@ LIN_NUDE_NEG = (
 )
 ELENA_NUDE_POS = (
     "bare human torso skin only, natural breasts, visible nipples, skin tone matches the neck, "
-    "bare arms, bare shoulders, bare forearms and bare hands, no sleeves, "
-    "brown eyes, round gold wire glasses, no metal, no armor, waist joins the bay mare body, "
-    "one person only"
+    "bare arms, bare shoulders, bare forearms and bare hands, soft natural skin, "
+    "waist joins the bay mare body, one person only"
 )
 ELENA_NUDE_NEG = (
     "child, teen, extra person, extra face, armor, plate, gauntlet, gorget, pauldron, mail, "
