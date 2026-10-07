@@ -80,6 +80,8 @@ class ActorPlan:
     keep_top_frac: float = 0.0
     keep_bottom_frac: float = 0.0
     tear_fraction: float = 0.62
+    # SegFormer only counts within this many px of a DINO garment hit. 0 = trust SegFormer alone.
+    segformer_support_px: int = 0
 
 
 LIN = ActorPlan(
@@ -112,11 +114,12 @@ ELENA = ActorPlan(
         "golden armor",
     ),
     protect_prompts=("face", "hair", "glasses"),
-    roi=(60, 230, 660, 900),
+    roi=(60, 230, 560, 900),
     face_clear=(240, 10, 520, 230),
     use_segformer=True,
+    segformer_support_px=40,
     garment_wins_prompts=("breastplate", "pauldron", "vambrace", "gauntlet", "fauld", "gorget"),
-    horse_guard_y=720,
+    horse_guard_y=690,
     horse_prompts=("horse body", "horse tail"),
     keep_top_frac=0.0,
     keep_bottom_frac=0.10,
@@ -230,11 +233,10 @@ def build_garment_mask(
     """Union of garment evidence minus protection, clipped to the actor ROI."""
     roi = box_array(shape, plan.roi)
     face = box_array(shape, plan.face_clear)
-    evidence = union(
-        *(arr for arr in (segformer,) if arr is not None),
-        *dino_garment.values(),
-        shape=shape,
-    )
+    dino_union = union(*dino_garment.values(), shape=shape)
+    if segformer is not None and plan.segformer_support_px:
+        segformer = segformer & dilate(dino_union, plan.segformer_support_px)
+    evidence = union(*(arr for arr in (segformer,) if arr is not None), dino_union, shape=shape)
     evidence &= roi
 
     protect_face = union(*(dilate(a, 6) for a in dino_protect.values()), shape=shape)
@@ -324,17 +326,36 @@ def overlay(plate: Image.Image, arr: np.ndarray, color: tuple[int, int, int] = (
     return Image.composite(tint, base, to_image(arr)).convert("RGB")
 
 
-def segformer_graph(image_name: str, classes: tuple[str, ...] = GARMENT_CLASSES, prefix: str = "seg") -> dict:
+def segformer_graph(
+    image_name: str,
+    classes: tuple[str, ...] = GARMENT_CLASSES,
+    prefix: str = "seg",
+    *,
+    kind: str = "MASK",
+    slot: int = 1,
+) -> dict:
+    """kind/slot say which output of the SegFormer node carries the class mask."""
     flags = {name: (name in classes) for name in SEGFORMER_CLASSES}
-    return {
+    graph: dict = {
         "1": {"class_type": "LoadImage", "inputs": {"image": image_name}},
         "2": {"class_type": SEGFORMER_NODE, "inputs": {"image": ["1", 0], **flags}},
-        "3": {"class_type": "MaskToImage", "inputs": {"mask": ["2", 1]}},
-        "4": {"class_type": "SaveImage", "inputs": {"images": ["3", 0], "filename_prefix": prefix}},
     }
+    if kind == "MASK":
+        graph["3"] = {"class_type": "MaskToImage", "inputs": {"mask": ["2", slot]}}
+        graph["4"] = {"class_type": "SaveImage", "inputs": {"images": ["3", 0], "filename_prefix": prefix}}
+    else:
+        graph["4"] = {"class_type": "SaveImage", "inputs": {"images": ["2", slot], "filename_prefix": prefix}}
+    return graph
 
 
-def dino_masks_graph(image_name: str, prompts: tuple[str, ...], *, threshold: float = 0.3, prefix: str = "dino") -> dict:
+def dino_masks_graph(
+    image_name: str,
+    prompts: tuple[str, ...],
+    *,
+    threshold: float = 0.3,
+    prefix: str = "dino",
+    slot: int = 1,
+) -> dict:
     """One graph, shared loaders, one SaveImage per prompt. Node ids are returned by dino_save_ids."""
     graph: dict = {
         "1": {"class_type": "LoadImage", "inputs": {"image": image_name}},
@@ -353,7 +374,7 @@ def dino_masks_graph(image_name: str, prompts: tuple[str, ...], *, threshold: fl
                 "threshold": threshold,
             },
         }
-        graph[to_img] = {"class_type": "MaskToImage", "inputs": {"mask": [seg, 1]}}
+        graph[to_img] = {"class_type": "MaskToImage", "inputs": {"mask": [seg, slot]}}
         graph[save] = {
             "class_type": "SaveImage",
             "inputs": {"images": [to_img, 0], "filename_prefix": f"{prefix}-{i:02d}"},

@@ -39,7 +39,7 @@ NUDE_DENOISE = 1.0
 TORN_DENOISE = 0.96
 EDGE_DENOISE = 0.42
 BAND_HEIGHT = 420
-BAND_GROW = 10
+BAND_GROW = 0  # the garment mask is already grown and protection-clipped
 MAX_NUDE_PASSES = 3
 RESIDUAL_OK = 0.05
 SEED = 20261008
@@ -68,12 +68,14 @@ def verify_stack(host: str) -> list[str]:
     return [name for name in sem.REQUIRED_NODES if name not in info]
 
 
-def mask_output_index(host: str, class_type: str) -> int:
+def mask_source(host: str, class_type: str) -> tuple[str, int]:
+    """(kind, slot) of the output that carries the mask. MASK first, then IMAGE."""
     info = get_json(f"{host}/object_info/{class_type}")[class_type]
     outputs = info.get("output") or []
-    for i, kind in enumerate(outputs):
-        if kind == "MASK":
-            return i
+    for kind in ("MASK", "IMAGE"):
+        for i, name in enumerate(outputs):
+            if name == kind:
+                return kind, i
     raise SystemExit(f"NO_MASK_OUTPUT {class_type} {outputs}")
 
 
@@ -115,35 +117,52 @@ def run_graph(host: str, graph: dict, outputs: dict[str, str], work: Path, tag: 
     raise SystemExit(f"RUN_TIMEOUT {tag}")
 
 
+def dino_by_prompt(
+    host: str, name: str, prompts: tuple[str, ...], slot: int, work: Path, tag: str, size: tuple[int, int]
+) -> dict[str, np.ndarray]:
+    """All prompts in one graph. If a prompt with no hit fails the run, retry one by one and treat it as empty."""
+    empty = np.zeros((size[1], size[0]), dtype=bool)
+
+    def load(path: Path) -> np.ndarray:
+        return sem.to_bool(Image.open(path).resize(size))
+
+    graph = sem.dino_masks_graph(name, prompts, prefix=f"{tag}-dino", slot=slot)
+    ids = sem.dino_save_ids(prompts)
+    try:
+        got = run_graph(host, graph, {f"p{i:02d}": ids[p] for i, p in enumerate(prompts)}, work, f"{tag}-dino")
+        return {p: load(got[f"p{i:02d}"]) for i, p in enumerate(prompts)}
+    except SystemExit as exc:
+        print(f"DINO_BATCH_FAILED {tag} {str(exc)[:160]}; retry per prompt", flush=True)
+    out: dict[str, np.ndarray] = {}
+    for i, prompt in enumerate(prompts):
+        single = sem.dino_masks_graph(name, (prompt,), prefix=f"{tag}-dino{i}", slot=slot)
+        try:
+            got = run_graph(host, single, {"p": sem.dino_save_ids((prompt,))[prompt]}, work, f"{tag}-dino{i}")
+            out[prompt] = load(got["p"])
+        except SystemExit as exc:
+            print(f"DINO_EMPTY {tag} prompt={prompt!r} {str(exc)[:120]}", flush=True)
+            out[prompt] = empty
+    return out
+
+
 def segment(host: str, image_path: Path, plan: sem.ActorPlan, work: Path, tag: str, input_dir: Path) -> sem.MaskEvidence:
     name = f"{tag}-seg-input.png"
     input_dir.mkdir(parents=True, exist_ok=True)
     Image.open(image_path).convert("RGB").save(input_dir / name)
     upload(host, input_dir / name)
     size = Image.open(image_path).size
-    shape = (size[1], size[0])
 
     seg_arr = None
     if plan.use_segformer:
-        graph = sem.segformer_graph(name, prefix=f"{tag}-segformer")
-        index = mask_output_index(host, sem.SEGFORMER_NODE)
-        graph["3"]["inputs"]["mask"] = ["2", index]
+        kind, slot = mask_source(host, sem.SEGFORMER_NODE)
+        graph = sem.segformer_graph(name, prefix=f"{tag}-segformer", kind=kind, slot=slot)
         got = run_graph(host, graph, {"segformer": "4"}, work, f"{tag}-segformer")
         seg_arr = sem.to_bool(Image.open(got["segformer"]).resize(size))
 
     prompts = sem.all_dino_prompts(plan)
-    dino_index = mask_output_index(host, sem.DINO_SAM_NODE)
-    graph = sem.dino_masks_graph(name, prompts, prefix=f"{tag}-dino")
-    for i in range(len(prompts)):
-        graph[str(10 + i * 3 + 1)]["inputs"]["mask"] = [str(10 + i * 3), dino_index]
-    ids = sem.dino_save_ids(prompts)
-    got = run_graph(host, graph, {f"p{i:02d}": ids[p] for i, p in enumerate(prompts)}, work, f"{tag}-dino")
-    by_prompt = {}
-    for i, prompt in enumerate(prompts):
-        by_prompt[prompt] = sem.to_bool(Image.open(got[f"p{i:02d}"]).resize(size))
-    evidence = sem.split_evidence(plan, seg_arr, by_prompt)
-    evidence.shape = shape  # type: ignore[attr-defined]
-    return evidence
+    _, dino_slot = mask_source(host, sem.DINO_SAM_NODE)
+    by_prompt = dino_by_prompt(host, name, prompts, dino_slot, work, tag, size)
+    return sem.split_evidence(plan, seg_arr, by_prompt)
 
 
 def garment_from(plan: sem.ActorPlan, evidence: sem.MaskEvidence, shape: tuple[int, int]) -> np.ndarray:
@@ -278,6 +297,8 @@ def undress_one(
     print(f"MASK {stem} garment_share={share:.4f}", flush=True)
     if share < 0.005:
         raise SystemExit(f"MASK_EMPTY {stem} garment_share={share:.5f}")
+    if share > 0.35:
+        raise SystemExit(f"MASK_SUSPECT {stem} garment_share={share:.5f}; check the SegFormer output slot")
     sem.overlay(plate, garment).save(debug / f"{stem}-garment-overlay.png")
     sem.to_image(garment).save(debug / f"{stem}-garment-mask.png")
 

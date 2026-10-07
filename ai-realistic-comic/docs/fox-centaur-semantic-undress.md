@@ -12,7 +12,8 @@
    - SegFormer B2 clothes（StartHua）：Upper-clothes、Skirt、Pants、Dress、Belt、Scarf 的并集。
    - GroundingDINO + SAM（storyicon）补件。林：qipao、cheongsam dress、silk fabric skirt、mandarin collar、shoulder strap、dress hem。伊莲：breastplate、pauldron、vambrace、gauntlet、fauld、gorget、golden armor。
    - 保护区先减掉：脸框、face、hair、glasses、fox tail、高跟鞋；伊莲再加 horse body / horse tail，但只在 y>720（1024×1536 板坐标）以下生效，而且 DINO 明确点名的甲件优先于马身保护，免得腰甲被当成马。
-   - 裁到演员 ROI，丢掉过小的碎块，再外扩 10 px。
+   - 裁到演员 ROI，丢掉过小的碎块，再外扩 10 px，外扩之后再减一次保护区。分带重绘时不再二次外扩，所以蒙版不会越过脸和狐尾的保护边。
+   - 伊莲的 SegFormer 只在 DINO 甲件命中 40 px 之内才算数，防止把马背毛色当成衣服。ROI 是 (60,230,560,900)，马身保护线 y=690，对照两张成衣底板核过坐标。
 2. torn：在 nude 蒙版里用固定种子的锯齿多边形挖洞（林 62%，伊莲 68%），林保留领口 7% 和下摆 18%，伊莲保留下摆 10%，所以残骸留在身上，不会全裸。
 3. 预填：Acly `INPAINT_MaskedFill`，`fill=neutral`。不用 Telea / NS 当去衣预填。等价 Fooocus 的 Disable initial latent + Modify Content。
 4. Crop and Stitch：SDXL 固定 1024。蒙版按 420 px 高度分带，每带单独裁剪重绘再贴回，不用一个大洞。内容占比封顶 `MAX_CONTENT_FRAC=0.52`，伊莲只裁人躯干、手臂、腰接缝，不进马身。
@@ -22,6 +23,12 @@
 8. InstantID：默认不开。脸在保护区里没被重绘，锁脸是多余的；去衣后 identity 若掉到 9 以下再手动加。头肩图和 `ApplyInstantID` 图在 `scheme_still_fox_centaur_undress.py` 的 `instantid_inpaint_graph`。
 
 顺序：先两张 nude，再两张 torn。不开 ReActor。
+
+## 容错
+
+- DINO 一批提示词里有一条没检出导致整图报错时，改成逐条提示词重跑，没检出的按空蒙版处理，日志 `DINO_EMPTY`。
+- SegFormer 节点的蒙版输出口按 `/object_info` 找：先 MASK，再 IMAGE。不再写死槽位。
+- 衣服蒙版占整图 <0.5% 报 `MASK_EMPTY`，>35% 报 `MASK_SUSPECT`（多半是输出口取错），都不继续出图。
 
 ## 入口
 
@@ -56,7 +63,7 @@ python workflows/comfyui/run_fox_centaur_semantic.py --score-only --out <含 png
 
 ## 状态（2026-10-07）
 
-- 离线完成：蒙版逻辑、torn 挖洞、残留检查、Codex-only 打分、安装脚本、八个 API 图、说明文档；`tests/test_semantic_undress.py` 与 `tests/test_fox_centaur_undress.py` 通过。
+- 离线完成：蒙版逻辑、torn 挖洞、残留检查、Codex-only 打分、安装脚本、八个 API 图、说明文档。25 个测试通过（`tests/test_semantic_undress.py`、`tests/test_fox_centaur_undress.py`），其中两个是用假 ComfyUI 后端在真实成衣底板上跑完整个 `undress_one`：脸区像素不变，衣服区被换成肤色，残留循环、收边、sidecar 落盘都走到；torn 保留残骸。假后端不画图，所以这只证明流程和拼接对，不证明画面质量。
 - **没在机器上跑过。** 节点类名（`segformer_b2_clothes` 的输出口、DINO+SAM 的节点名）和权重路径按公开仓库写，装完后以 `--check-stack` 和 `/object_info` 为准，不符就改常量。
 - 阻塞：北京 B `359a49a1c3-4cda10df` 已关机，开机弹窗「该主机空闲GPU不足…主机GPU空闲数量：0 卡」。需要用户给「克隆到有空卡主机」或其它开机授权。F34 不动。
 - 开机后顺序：`install_undress_stack.sh inventory` → `install` → `--check-stack` → 先两张 nude，再两张 torn → Codex 打分（VM 无 codex 则 `SCORE_FAILED codex ... reason=cli_missing`）→ 机内关机留盘 → 回传四张和 json。

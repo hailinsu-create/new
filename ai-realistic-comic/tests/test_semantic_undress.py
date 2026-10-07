@@ -69,12 +69,26 @@ def test_horse_guard_does_not_eat_armor_that_dino_names():
         sem.ELENA,
         SHAPE,
         segformer=armor,
-        dino_garment={},
+        dino_garment={"gorget": _rect(300, 600, 540, 640)},
         dino_protect={},
         dino_horse={"horse body": horse},
     )
     assert not plain[760, 420]
-    assert plain[650, 420]
+    assert plain[630, 420]
+
+
+def test_segformer_horse_false_positive_is_dropped_without_dino_support():
+    coat = _rect(300, 700, 500, 800)
+    breastplate = _rect(300, 300, 500, 500)
+    mask = sem.build_garment_mask(
+        sem.ELENA,
+        SHAPE,
+        segformer=coat | breastplate,
+        dino_garment={"breastplate": breastplate},
+        dino_protect={},
+    )
+    assert mask[400, 400]
+    assert not mask[750, 400]
 
 
 def test_tear_mask_leaves_remnants_and_keeps_bands():
@@ -182,3 +196,99 @@ def test_emitted_examples_match_the_runner(tmp_path):
     assert edge["prompt"]["72"]["class_type"] == "DifferentialDiffusion" and "51" not in edge["prompt"]
     committed = json.loads((COMFY / "scheme-semantic-inpaint-lin-nude.api.json").read_text())
     assert committed == nude
+
+
+def test_segformer_graph_can_read_an_image_output():
+    graph = sem.segformer_graph("plate.png", kind="IMAGE", slot=0)
+    assert graph["4"]["inputs"]["images"] == ["2", 0]
+    assert "3" not in graph
+    default = sem.segformer_graph("plate.png")
+    assert default["3"]["inputs"]["mask"] == ["2", 1]
+
+
+def test_dino_batch_failure_falls_back_per_prompt(tmp_path, monkeypatch):
+    calls = []
+
+    def fake_run_graph(host, graph, outputs, work, tag):
+        calls.append(tag)
+        if len(outputs) > 1:
+            raise SystemExit("RUN_FAILED batch")
+        if "dino1" in tag:
+            raise SystemExit("RUN_FAILED no hit")
+        path = tmp_path / f"{tag}.png"
+        Image.new("L", (16, 16), 255).save(path)
+        return {"p": path}
+
+    monkeypatch.setattr(run, "run_graph", fake_run_graph)
+    got = run.dino_by_prompt("http://127.0.0.1:8188", "x.png", ("a", "b", "c"), 1, tmp_path, "t", (16, 16))
+    assert got["a"].all() and got["c"].all() and not got["b"].any()
+    assert len(calls) == 4
+
+
+def _fake_backend(monkeypatch, plan_name):
+    """No ComfyUI: segmentation returns boxes, inpaint paints the masked crop pixels skin-coloured."""
+    legacy = sys.modules["scheme_still_fox_centaur_undress"]
+    plan = sem.PLANS[plan_name]
+    shape = (1536, 1024)
+    torso = {"lin": _rect(340, 320, 560, 1150), "elena": _rect(300, 260, 500, 560)}[plan_name]
+    state = {"segments": 0}
+
+    def fake_segment(host, image_path, plan_, work, tag, input_dir):
+        state["segments"] += 1
+        garment_left = torso if state["segments"] == 1 else np.zeros(shape, dtype=bool)
+        garment = {plan_.garment_prompts[0]: garment_left}
+        protect = {plan_.protect_prompts[0]: _rect(380, 40, 560, 280)}
+        return sem.MaskEvidence(segformer=None, garment=garment, protect=protect, horse={})
+
+    def fake_run_graph(host, graph, outputs, work, tag):
+        crop = Image.open(Path(state["input_dir"]) / graph["1"]["inputs"]["image"]).convert("RGB")
+        mask = Image.open(Path(state["input_dir"]) / graph["2"]["inputs"]["image"]).convert("L")
+        skin = Image.new("RGB", crop.size, (214, 170, 150))
+        if "51" not in graph:
+            out = crop
+        else:
+            out = Image.composite(skin, crop, mask.point(lambda v: 255 if v > 40 else 0))
+        dest = Path(work) / f"{tag}-crop.png"
+        out.save(dest)
+        return {"crop": dest}
+
+    monkeypatch.setattr(run, "segment", fake_segment)
+    monkeypatch.setattr(run, "run_graph", fake_run_graph)
+    monkeypatch.setattr(run, "upload", lambda host, path: None)
+    return state
+
+
+def test_end_to_end_with_fake_comfy_keeps_face_and_clears_garment(tmp_path, monkeypatch):
+    plate = sys.modules["scheme_still_fox_centaur_undress"].LIN_PLATE
+    if not plate.exists():
+        return
+    state = _fake_backend(monkeypatch, "lin")
+    state["input_dir"] = tmp_path / "in"
+    out = tmp_path / "out"
+    dest = run.undress_one("http://127.0.0.1:8188", {"ckpt": "x"}, "lin", "nude", out, tmp_path / "in", attempt=0)
+    result = Image.open(dest).convert("RGB")
+    source = Image.open(plate).convert("RGB")
+    assert result.size == source.size == (1024, 1536)
+    face = (380, 40, 560, 280)
+    assert np.array_equal(np.asarray(result.crop(face)), np.asarray(source.crop(face)))
+    cx, cy = 450, 700
+    assert np.abs(np.asarray(result)[cy, cx].astype(int) - np.array([214, 170, 150])).max() < 40
+    meta = json.loads((out / "lin-qipao-nine-tail-nude.run.json").read_text())
+    kinds = [p["kind"] for p in meta["passes"]]
+    assert kinds == ["nude", "edge"] and meta["passes"][0]["residual_ratio"] == 0.0
+    assert (out / "debug" / "lin-qipao-nine-tail-nude-garment-overlay.png").exists()
+
+
+def test_end_to_end_torn_leaves_remnants(tmp_path, monkeypatch):
+    plate = sys.modules["scheme_still_fox_centaur_undress"].ELENA_PLATE
+    if not plate.exists():
+        return
+    state = _fake_backend(monkeypatch, "elena")
+    state["input_dir"] = tmp_path / "in"
+    out = tmp_path / "out"
+    dest = run.undress_one("http://127.0.0.1:8188", {"ckpt": "x"}, "elena", "torn", out, tmp_path / "in", attempt=0)
+    result = np.asarray(Image.open(dest).convert("RGB")).astype(int)
+    source = np.asarray(Image.open(plate).convert("RGB")).astype(int)
+    region = (slice(260, 560), slice(300, 500))
+    changed = (np.abs(result[region] - source[region]).sum(axis=2) > 30).mean()
+    assert 0.15 < changed < 0.9
