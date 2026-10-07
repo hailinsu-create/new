@@ -1,0 +1,18 @@
+{
+  "actor": "lin",
+  "mode": "torn",
+  "attempt": 0,
+  "seed": 20261408,
+  "garment_share": 0.1423028310139974,
+  "passes": [
+    {
+      "kind": "composite",
+      "tear_fraction": 0.5
+    },
+    {
+      "kind": "rim",
+      "denoise": 0.55
+    }
+  ],
+  "base": "lin-qipao-nine-tail-nude.png"
+}

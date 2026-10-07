@@ -1,0 +1,21 @@
+{
+  "identity": 8.5,
+  "distinction": 9,
+  "interaction": 9,
+  "aesthetics": 8.5,
+  "anatomy": 7,
+  "wardrobe": 9,
+  "motif": 9,
+  "photoreal": 8.5,
+  "mean": 8.5625,
+  "gates": [],
+  "notes": "面部与锁脸参考较一致，褐眼正确。单人站姿挺拔，马身、四腿及尾巴完整可见。衣甲明显破裂，大片躯体裸露，同时保留袖子、护颈和破损胸甲、腰甲，符合 torn。人马衔接处的裸肤块与甲片关系略显生硬，局部解剖可信度不足。",
+  "scorer": "codex",
+  "passed": false,
+  "below": [
+    "identity",
+    "aesthetics",
+    "anatomy",
+    "photoreal"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "actor": "elena",
+  "mode": "torn",
+  "attempt": 0,
+  "seed": 20261608,
+  "garment_share": 0.1667505900065104,
+  "passes": [
+    {
+      "kind": "composite",
+      "tear_fraction": 0.55
+    },
+    {
+      "kind": "rim",
+      "denoise": 0.55
+    }
+  ],
+  "base": "elena-armor-centaur-nude.png"
+}

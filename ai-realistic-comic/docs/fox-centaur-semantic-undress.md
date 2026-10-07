@@ -106,7 +106,18 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 
 ## 状态（2026-10-07）
 
-上机结果（北京 B，RTX 5090，`--check-stack` 返回 `STACK_OK`，四张都出了图）。**没有 Codex 分数**：VM 上原来没有 Codex CLI，用户后来授权在这台 VM 装（`@openai/codex` 装到 `~/.local/bin/codex`，`codex_still_score.py` 会自己找到），登录要设备码，签完后用 `--score-only` 补打。下面只是我对画面的目测记录，不是分数。
+上机结果（北京 B，RTX 5090，`--check-stack` 返回 `STACK_OK`，四张都出了图）。Codex CLI 已装到 VM 的 `~/.local/bin/codex` 并登录，下面是 Codex 真实打分（过线 ≥9 且硬门空）。**四张都没过门。**
+
+| 静帧 | 取用的轮次 | Codex 均分 | 硬门 |
+| --- | --- | --- | --- |
+| 林 nude | run9 | 7.75 | clothes_remain |
+| 伊莲 nude | run6 | 8.0 | armor_remain |
+| 林 torn | run9（run7、run10 同为 8.75） | 8.75 | 空 |
+| 伊莲 torn | run7 | 8.5625 | 空 |
+
+其余轮次：run7 林 nude 7.06（clothes_remain、extra_limb）、伊莲 nude 7.125；run9 伊莲 nude 7.25、伊莲 torn 7.0（intact_clothes）；run10（attempt 1）林 nude 7.625、伊莲 nude 6.625、林 torn 8.75、伊莲 torn 7.625。结果在 `library/stills/fox-centaur-embrace/semantic/`，各轮完整输出在 `/opt/cursor/artifacts/fox-centaur-semantic/run*`。
+
+下面是我对各轮画面的目测记录：
 
 | 轮次 | 目测 |
 | --- | --- |
@@ -117,5 +128,5 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 
 已知残留问题：林的领口、胯部布片、左侧裙片；伊莲的右臂/手套/腰带。残留检查本身能框出这些位置（`debug/*-residual-p*.png`），但重绘会把同类物体再画回来。下一步候选：残留区域专用 LaMa 擦除（已接，`big-lama.pt` 必须是 Sanster 的 `add_big_lama` 发布版，fashn-ai 那份 spandrel 不认）加更小的分区、换种子重试（`--attempt`）。
 
-- 北京 B 机器仍开着（用户要求不关，等打分和决定），读到的余额 ¥16.02。
+- 北京 B 机器已在机内 `shutdown`，数据盘保留；读到的余额 ¥16.02（关机时的读数）。再出图用 `bringup_and_run.py`（会自己开机）。
 - 流程里踩过的坑都已写进脚本和上面的各节：SegFormer 目录和 `__init__`、GroundingDINO 的 cfg/bert/transformers 版本、SAM 选项名、object_info URL 转义、tar 解包权限。

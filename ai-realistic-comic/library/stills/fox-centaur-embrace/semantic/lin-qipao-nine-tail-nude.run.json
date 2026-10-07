@@ -1,0 +1,32 @@
+{
+  "actor": "lin",
+  "mode": "nude",
+  "attempt": 0,
+  "seed": 20261008,
+  "garment_share": 0.1423028310139974,
+  "passes": [
+    {
+      "kind": "nude",
+      "n": 0,
+      "denoise": 1.0,
+      "residual_ratio": 0.8459
+    },
+    {
+      "kind": "nude",
+      "n": 1,
+      "denoise": 1.0,
+      "residual_ratio": 0.5338
+    },
+    {
+      "kind": "nude",
+      "n": 2,
+      "denoise": 1.0,
+      "residual_ratio": 1.0181
+    },
+    {
+      "kind": "edge",
+      "denoise": 0.42
+    }
+  ],
+  "best_residual_ratio": 0.5338
+}

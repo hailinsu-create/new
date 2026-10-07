@@ -1,0 +1,21 @@
+{
+  "identity": 9,
+  "distinction": 9,
+  "interaction": 9,
+  "aesthetics": 9,
+  "anatomy": 7,
+  "wardrobe": 3,
+  "motif": 9,
+  "photoreal": 9,
+  "mean": 8.0,
+  "gates": [
+    "armor_remain"
+  ],
+  "notes": "脸型、发型、眼镜与锁脸参考高度一致，眼睛为褐色。单人站姿挺拔，马身、四腿和长尾保留。人体躯干主体为皮肤，但颈圈、肩部甲片、前臂护甲及腰胯甲片明显残留，未完成去甲。人马衔接与前胸结构略显生硬。",
+  "scorer": "codex",
+  "passed": false,
+  "below": [
+    "anatomy",
+    "wardrobe"
+  ]
+}

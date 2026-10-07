@@ -1,0 +1,24 @@
+{
+  "identity": 8.5,
+  "distinction": 9,
+  "interaction": 8.5,
+  "aesthetics": 8.5,
+  "anatomy": 7.5,
+  "wardrobe": 2,
+  "motif": 9,
+  "photoreal": 9,
+  "mean": 7.75,
+  "gates": [
+    "clothes_remain"
+  ],
+  "notes": "脸型、眉眼与锁脸参考较接近。单人站姿挺拔，九尾狐特征明确，狐尾仍在，但尾根连接和九条尾巴的独立计数不够清晰。人体比例基本自然，腰胯衔接略生硬。颈胸旗袍布料、腰胯遮挡及长裙残片明显残留，未达到完整去衣要求。未见额外人物、额外肢体或文字。",
+  "scorer": "codex",
+  "passed": false,
+  "below": [
+    "identity",
+    "interaction",
+    "aesthetics",
+    "anatomy",
+    "wardrobe"
+  ]
+}
