@@ -10,6 +10,8 @@
       "mandarin collar",
       "shoulder strap",
       "dress hem",
+      "white cloth",
+      "skirt panel",
       "face",
       "hair",
       "fox tail",
@@ -22,10 +24,12 @@
       "mandarin collar": "21",
       "shoulder strap": "24",
       "dress hem": "27",
-      "face": "30",
-      "hair": "33",
-      "fox tail": "36",
-      "high heel shoes": "39"
+      "white cloth": "30",
+      "skirt panel": "33",
+      "face": "36",
+      "hair": "39",
+      "fox tail": "42",
+      "high heel shoes": "45"
     }
   },
   "prompt": {
@@ -63,7 +67,7 @@
           0
         ],
         "prompt": "qipao",
-        "threshold": 0.3
+        "threshold": 0.25
       }
     },
     "11": {
@@ -101,7 +105,7 @@
           0
         ],
         "prompt": "cheongsam dress",
-        "threshold": 0.3
+        "threshold": 0.25
       }
     },
     "14": {
@@ -139,7 +143,7 @@
           0
         ],
         "prompt": "silk fabric skirt",
-        "threshold": 0.3
+        "threshold": 0.25
       }
     },
     "17": {
@@ -177,7 +181,7 @@
           0
         ],
         "prompt": "mandarin collar",
-        "threshold": 0.3
+        "threshold": 0.25
       }
     },
     "20": {
@@ -215,7 +219,7 @@
           0
         ],
         "prompt": "shoulder strap",
-        "threshold": 0.3
+        "threshold": 0.25
       }
     },
     "23": {
@@ -253,7 +257,7 @@
           0
         ],
         "prompt": "dress hem",
-        "threshold": 0.3
+        "threshold": 0.25
       }
     },
     "26": {
@@ -290,8 +294,8 @@
           "1",
           0
         ],
-        "prompt": "face",
-        "threshold": 0.3
+        "prompt": "white cloth",
+        "threshold": 0.25
       }
     },
     "29": {
@@ -328,8 +332,8 @@
           "1",
           0
         ],
-        "prompt": "hair",
-        "threshold": 0.3
+        "prompt": "skirt panel",
+        "threshold": 0.25
       }
     },
     "32": {
@@ -366,8 +370,8 @@
           "1",
           0
         ],
-        "prompt": "fox tail",
-        "threshold": 0.3
+        "prompt": "face",
+        "threshold": 0.25
       }
     },
     "35": {
@@ -404,8 +408,8 @@
           "1",
           0
         ],
-        "prompt": "high heel shoes",
-        "threshold": 0.3
+        "prompt": "hair",
+        "threshold": 0.25
       }
     },
     "38": {
@@ -425,6 +429,82 @@
           0
         ],
         "filename_prefix": "dino-09"
+      }
+    },
+    "40": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "fox tail",
+        "threshold": 0.25
+      }
+    },
+    "41": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "40",
+          1
+        ]
+      }
+    },
+    "42": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "41",
+          0
+        ],
+        "filename_prefix": "dino-10"
+      }
+    },
+    "43": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "high heel shoes",
+        "threshold": 0.25
+      }
+    },
+    "44": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "43",
+          1
+        ]
+      }
+    },
+    "45": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "44",
+          0
+        ],
+        "filename_prefix": "dino-11"
       }
     }
   }

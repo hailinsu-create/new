@@ -15,6 +15,9 @@
       "gold bracer",
       "black cloth",
       "leather strap",
+      "black sleeve",
+      "arm guard",
+      "choker",
       "face",
       "hair",
       "glasses",
@@ -33,11 +36,14 @@
       "gold bracer": "36",
       "black cloth": "39",
       "leather strap": "42",
-      "face": "45",
-      "hair": "48",
-      "glasses": "51",
-      "horse body": "54",
-      "horse tail": "57"
+      "black sleeve": "45",
+      "arm guard": "48",
+      "choker": "51",
+      "face": "54",
+      "hair": "57",
+      "glasses": "60",
+      "horse body": "63",
+      "horse tail": "66"
     }
   },
   "prompt": {
@@ -75,7 +81,7 @@
           0
         ],
         "prompt": "breastplate",
-        "threshold": 0.3
+        "threshold": 0.25
       }
     },
     "11": {
@@ -113,7 +119,7 @@
           0
         ],
         "prompt": "pauldron",
-        "threshold": 0.3
+        "threshold": 0.25
       }
     },
     "14": {
@@ -151,7 +157,7 @@
           0
         ],
         "prompt": "vambrace",
-        "threshold": 0.3
+        "threshold": 0.25
       }
     },
     "17": {
@@ -189,7 +195,7 @@
           0
         ],
         "prompt": "gauntlet",
-        "threshold": 0.3
+        "threshold": 0.25
       }
     },
     "20": {
@@ -227,7 +233,7 @@
           0
         ],
         "prompt": "fauld",
-        "threshold": 0.3
+        "threshold": 0.25
       }
     },
     "23": {
@@ -265,7 +271,7 @@
           0
         ],
         "prompt": "gorget",
-        "threshold": 0.3
+        "threshold": 0.25
       }
     },
     "26": {
@@ -303,7 +309,7 @@
           0
         ],
         "prompt": "golden armor",
-        "threshold": 0.3
+        "threshold": 0.25
       }
     },
     "29": {
@@ -341,7 +347,7 @@
           0
         ],
         "prompt": "black glove",
-        "threshold": 0.3
+        "threshold": 0.25
       }
     },
     "32": {
@@ -379,7 +385,7 @@
           0
         ],
         "prompt": "gold bracer",
-        "threshold": 0.3
+        "threshold": 0.25
       }
     },
     "35": {
@@ -417,7 +423,7 @@
           0
         ],
         "prompt": "black cloth",
-        "threshold": 0.3
+        "threshold": 0.25
       }
     },
     "38": {
@@ -455,7 +461,7 @@
           0
         ],
         "prompt": "leather strap",
-        "threshold": 0.3
+        "threshold": 0.25
       }
     },
     "41": {
@@ -492,8 +498,8 @@
           "1",
           0
         ],
-        "prompt": "face",
-        "threshold": 0.3
+        "prompt": "black sleeve",
+        "threshold": 0.25
       }
     },
     "44": {
@@ -530,8 +536,8 @@
           "1",
           0
         ],
-        "prompt": "hair",
-        "threshold": 0.3
+        "prompt": "arm guard",
+        "threshold": 0.25
       }
     },
     "47": {
@@ -568,8 +574,8 @@
           "1",
           0
         ],
-        "prompt": "glasses",
-        "threshold": 0.3
+        "prompt": "choker",
+        "threshold": 0.25
       }
     },
     "50": {
@@ -606,8 +612,8 @@
           "1",
           0
         ],
-        "prompt": "horse body",
-        "threshold": 0.3
+        "prompt": "face",
+        "threshold": 0.25
       }
     },
     "53": {
@@ -644,8 +650,8 @@
           "1",
           0
         ],
-        "prompt": "horse tail",
-        "threshold": 0.3
+        "prompt": "hair",
+        "threshold": 0.25
       }
     },
     "56": {
@@ -665,6 +671,120 @@
           0
         ],
         "filename_prefix": "dino-15"
+      }
+    },
+    "58": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "glasses",
+        "threshold": 0.25
+      }
+    },
+    "59": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "58",
+          1
+        ]
+      }
+    },
+    "60": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "59",
+          0
+        ],
+        "filename_prefix": "dino-16"
+      }
+    },
+    "61": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "horse body",
+        "threshold": 0.25
+      }
+    },
+    "62": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "61",
+          1
+        ]
+      }
+    },
+    "63": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "62",
+          0
+        ],
+        "filename_prefix": "dino-17"
+      }
+    },
+    "64": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "horse tail",
+        "threshold": 0.25
+      }
+    },
+    "65": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "64",
+          1
+        ]
+      }
+    },
+    "66": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "65",
+          0
+        ],
+        "filename_prefix": "dino-18"
       }
     }
   }
