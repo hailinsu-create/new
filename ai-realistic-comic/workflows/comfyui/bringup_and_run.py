@@ -8,7 +8,8 @@ Steps, in order:
  2. wait for SSH (re-reads /cursor/stores/user/bjb-ssh.env every try, so a new host/port is picked up).
  3. ship the scripts, plates and lock faces; run install_undress_stack.sh install; restart ComfyUI.
  4. run_fox_centaur_semantic.py --check-stack, then nude lin, nude elena, torn lin, torn elena.
- 5. pull results back, score them with Codex only (no CLI -> SCORE_FAILED, no fallback).
+ 5. pull results back, emit Cursor score requests; agent scores (no Codex).
+    Pending/failed nude scores skip torn for that actor.
  6. after a clean run, shut the machine down from the inside (disk kept), then print the balance.
     After a failed step the machine is left on (and says so) unless --shutdown-on-failure,
     because a free GPU is hard to get twice.
@@ -207,7 +208,7 @@ def pull(local: Path) -> None:
 def score_local(local: Path) -> None:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import run_fox_centaur_semantic as runner  # noqa: E402
-    import codex_still_score as scorer  # noqa: E402
+    import cursor_still_score as scorer  # noqa: E402
 
     for mode in ("nude", "torn"):
         for actor in ("lin", "elena"):
@@ -282,7 +283,15 @@ def main() -> None:
                 if not side.exists():
                     print(f"SKIP_TORN {actor}: no nude score sidecar", flush=True)
                     continue
-                gates = set(json.loads(side.read_text(encoding="utf-8")).get("gates") or [])
+                payload = json.loads(side.read_text(encoding="utf-8"))
+                if payload.get("score_pending") or payload.get("score_failed"):
+                    print(
+                        f"SKIP_TORN {actor}: cursor score "
+                        f"{'pending' if payload.get('score_pending') else 'failed'}",
+                        flush=True,
+                    )
+                    continue
+                gates = set(payload.get("gates") or [])
                 hard = gates & {"clothes_remain", "armor_remain"}
                 if hard:
                     print(f"SKIP_TORN {actor}: hard gates {sorted(hard)}", flush=True)

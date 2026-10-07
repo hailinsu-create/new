@@ -1,4 +1,4 @@
-"""Semantic undress pipeline: mask math, graphs, and the Codex-only scorer."""
+"""Semantic undress pipeline: mask math, graphs, and the Cursor-only scorer."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ def _load(name: str):
 
 
 sem = _load("semantic_undress")
-score = _load("codex_still_score")
+score = _load("cursor_still_score")
 run = _load("run_fox_centaur_semantic")
 
 SHAPE = (1536, 1024)
@@ -186,20 +186,39 @@ def test_inpaint_graph_is_fill_then_fooocus_without_diff_on_cloth_pass():
     assert "Telea" not in json.dumps(graph) and "NS" not in graph["51"]["inputs"]["fill"]
 
 
-def test_scorer_missing_cli_is_score_failed_and_never_grok(tmp_path, monkeypatch, capsys):
-    monkeypatch.setattr(score, "codex_binary", lambda: None)
+def test_scorer_pending_without_payload_and_never_banned_backends(tmp_path, capsys):
     image = tmp_path / "lin-qipao-nine-tail-nude.png"
     Image.new("RGB", (8, 8)).save(image)
     result = score.score_image("lin", "nude", image)
-    assert result["score_failed"] and result["reason"] == "cli_missing"
-    assert result["line"] == "SCORE_FAILED codex lin nude reason=cli_missing"
-    assert "SCORE_FAILED codex lin nude reason=cli_missing" in capsys.readouterr().out
+    assert result["score_pending"] and result["reason"] == "awaiting_cursor_agent"
+    assert result["line"] == "SCORE_PENDING cursor lin nude"
+    out = capsys.readouterr().out
+    assert "SCORE_PENDING cursor lin nude" in out
+    assert "SCORE_REQUEST" in out
     assert json.loads(image.with_suffix(".json").read_text())["passed"] is False
-    assert image.with_suffix(".score-fail.json").exists()
-    source = (COMFY / "codex_still_score.py").read_text(encoding="utf-8")
+    assert image.with_suffix(".score-request.json").exists()
+    source = (COMFY / "cursor_still_score.py").read_text(encoding="utf-8")
     code = source.split('"""', 2)[2].lower()
-    for banned in ("grok", "deepseek", "opencode", "kimi", "agy"):
+    for banned in ("grok", "deepseek", "opencode", "kimi", "agy", "codex_binary", "subprocess"):
         assert banned not in code
+
+
+def test_scorer_apply_cursor_payload(tmp_path, capsys):
+    image = tmp_path / "elena-armor-centaur-nude.png"
+    Image.new("RGB", (8, 8)).save(image)
+    payload = {
+        "identity": 9, "distinction": 9, "interaction": 9, "aesthetics": 9,
+        "anatomy": 9, "wardrobe": 9, "motif": 9, "photoreal": 9,
+        "gates": [], "notes": "ok",
+    }
+    image.with_suffix(".cursor-score.json").write_text(json.dumps(payload), encoding="utf-8")
+    result = score.score_image("elena", "nude", image)
+    assert result["scorer"] == "cursor" and result["passed"] is True and result["mean"] == 9.0
+    assert "SCORE cursor elena nude" in capsys.readouterr().out
+    assert not image.with_suffix(".score-request.json").exists()
+    assert score.is_blocking({"score_pending": True}) is True
+    assert score.is_blocking({"gates": ["clothes_remain"]}) is True
+    assert score.is_blocking({"mean": 9, "gates": []}) is False
 
 
 def test_parse_and_normalise_score():
