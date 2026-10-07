@@ -576,12 +576,12 @@ def undress_one(
                     y_cut = int(plan.horse_guard_y / sem.BASE[1] * shape[0])
                     # Buffer above mare so residual does not chew the human/horse seam.
                     redo_mask[max(0, y_cut - 16) :, :] = False
-                # Lin: torso residual above hips; skirt residual below hips uses LOWER prompts
-                # (generic residual-skin below hips smears thighs and can leave floral print).
+                # Lin: torso residual above hips; skirt residual (tight grow) uses LOWER prompts.
+                # Wide skirt grow + denoise 0.92 caused extra_limb (a47).
                 skirt_mask = np.zeros_like(redo_mask)
                 if actor == "lin":
                     hip_cut = int(720 / sem.BASE[1] * shape[0])
-                    skirt_mask = redo_mask.copy()
+                    skirt_mask = sem.dilate(target, 4) & sem.box_array(shape, plan.roi)
                     skirt_mask[:hip_cut, :] = False
                     redo_mask[hip_cut:, :] = False
                 tiny = best_ratio <= LAMA_RESIDUAL_MAX_RATIO and leftover_px <= LAMA_RESIDUAL_MAX_PIXELS
@@ -629,10 +629,10 @@ def undress_one(
                 current = _lama_then_fooocus(
                     current, redo_mask, RESIDUAL_SKIN_POS, RESIDUAL_SKIN_NEG, "torso", RESIDUAL_FOOOCUS_DENOISE
                 )
-                if skirt_mask.any():
+                # Skirt only on first residual pass — repeating it grows extra limbs.
+                if skirt_mask.any() and n == 1:
                     current = _lama_then_fooocus(
-                        current, skirt_mask, LOWER_POS, LOWER_NEG, "skirt",
-                        min(0.92, RESIDUAL_FOOOCUS_DENOISE + 0.04),
+                        current, skirt_mask, LOWER_POS, LOWER_NEG, "skirt", 0.78,
                     )
             tmp = work / f"{stem}-p{n}-result.png"
             current.save(tmp)
