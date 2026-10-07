@@ -28,6 +28,7 @@ MODELS=(
   "models/segformer_b2_clothes/config.json|mattmdjaga/segformer_b2_clothes|config.json"
   "models/segformer_b2_clothes/preprocessor_config.json|mattmdjaga/segformer_b2_clothes|preprocessor_config.json"
   "models/segformer_b2_clothes/model.safetensors|mattmdjaga/segformer_b2_clothes|model.safetensors"
+  "models/grounding-dino/GroundingDINO_SwinT_OGC.cfg.py|ShilongLiu/GroundingDINO|GroundingDINO_SwinT_OGC.cfg.py"
 )
 
 # Beijing B cannot reach github.com directly (git clone hangs). AutoDL's academic acceleration
@@ -113,6 +114,15 @@ PYEOF
   fi
 }
 
+# GroundingDINO's text encoder is bert-base-uncased; huggingface.co is unreachable here, so warm the cache
+# through the mirror (ComfyUI is started with the same HF_ENDPOINT).
+prefetch_bert() {
+  HF_ENDPOINT="${HF}" "${PY}" - <<'PYEOF' || say "BERT_PREFETCH_FAILED"
+from huggingface_hub import snapshot_download
+print(snapshot_download("bert-base-uncased", allow_patterns=["*.json", "*.txt", "model.safetensors"]))
+PYEOF
+}
+
 case "${MODE}" in
   inventory) inventory ;;
   install)
@@ -123,6 +133,7 @@ case "${MODE}" in
       fetch "${dest}" "${repo}" "${file}"
     done
     patch_segformer_init
+    prefetch_bert
     say "== after"
     inventory
     ;;

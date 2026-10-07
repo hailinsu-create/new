@@ -167,7 +167,7 @@ def restart_comfy() -> None:
     # "main.py --listen ..." would match its own pattern and kill the ssh session.
     ssh("for pid in $(pgrep -f '[m]ain.py --listen 127.0.0.1 --port 8188'); do kill $pid; done; sleep 3; echo OLD_COMFY_STOPPED", check=False)
     ssh(
-        f"cd {COMFY_DIR}; setsid nohup {REMOTE_PY} main.py --listen 127.0.0.1 --port 8188 --disable-auto-launch "
+        f"cd {COMFY_DIR}; HF_ENDPOINT=https://hf-mirror.com setsid nohup {REMOTE_PY} main.py --listen 127.0.0.1 --port 8188 --disable-auto-launch "
         "< /dev/null > /root/autodl-tmp/comfyui.log 2>&1 & sleep 1; echo COMFY_STARTED"
     )
     ssh(
@@ -177,7 +177,7 @@ def restart_comfy() -> None:
 
 
 def remote_run(args: str, *, check: bool = True) -> subprocess.CompletedProcess:
-    return ssh(f"cd {REMOTE_ROOT} && {REMOTE_PY} workflows/comfyui/run_fox_centaur_semantic.py {args}", check=check)
+    return ssh(f"cd {REMOTE_ROOT} && {REMOTE_PY} -u workflows/comfyui/run_fox_centaur_semantic.py {args}", check=check)
 
 
 def pull(local: Path) -> None:
