@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
-# Cloud Agent start hook (copied into the environment snapshot).
+# Cloud Agent start helper (also copied into environment snapshots).
 # 1) Ensure Grok CLI + PATH
 # 2) Ensure other quota CLIs (agy, opencode, kimi) — NOT Codex/GPT
-# 3) If this checkout does not already contain the grok CLI router, inject it so
-#    every Cloud Agent on this environment can route onto grok.com CLI.
+# 3) Do NOT inject force-routing hooks/rules. Grok CLI is opt-in only.
 set -euo pipefail
 
 export PATH="${HOME}/.grok/bin:${HOME}/.local/bin:${HOME}/.opencode/bin:${HOME}/.kimi-code/bin:${PATH}"
@@ -34,33 +33,23 @@ else
   echo "quota-clis: install-all.sh not found yet; Grok-only this boot" >&2
 fi
 
-if [[ ! -d "${ROOT}" ]]; then
-  echo "grok-cli: snapshot router missing at ${ROOT}" >&2
-  exit 0
-fi
-
-if [[ ! -d "${WS}/.git" ]]; then
-  echo "grok-cli: no git workspace at ${WS}" >&2
-  exit 0
-fi
-
-if git -C "${WS}" ls-files --error-unmatch .cursor/grok/run.sh >/dev/null 2>&1; then
-  chmod +x "${WS}/.cursor/grok/run.sh" "${WS}/.cursor/grok/install.sh" 2>/dev/null || true
-  chmod +x "${WS}/.cursor/hooks/force-grok-cli.py" 2>/dev/null || true
+# Opt-in tooling only: never copy hooks.json / alwaysApply rules / force-grok-cli.py
+if [[ -d "${WS}/.git" && -d "${ROOT}/grok" ]]; then
+  mkdir -p "${WS}/.cursor/grok" "${WS}/.cursor/quota-clis"
+  for f in run.sh install.sh oidc_refresh.py test_oidc_refresh.py inject-from-snapshot.sh; do
+    if [[ -e "${ROOT}/grok/${f}" && ! -e "${WS}/.cursor/grok/${f}" ]]; then
+      cp -a "${ROOT}/grok/${f}" "${WS}/.cursor/grok/${f}"
+    fi
+  done
+  if [[ -d "${ROOT}/quota-clis" ]]; then
+    for f in install-all.sh CALL-RECIPES.md; do
+      if [[ -e "${ROOT}/quota-clis/${f}" && ! -e "${WS}/.cursor/quota-clis/${f}" ]]; then
+        cp -a "${ROOT}/quota-clis/${f}" "${WS}/.cursor/quota-clis/${f}"
+      fi
+    done
+  fi
+  chmod +x "${WS}/.cursor/grok/"*.sh 2>/dev/null || true
   chmod +x "${WS}/.cursor/quota-clis/install-all.sh" 2>/dev/null || true
-  chmod +x "${WS}/.cursor/grok/inject-from-snapshot.sh" 2>/dev/null || true
-  echo "grok-cli: workspace already has router from git"
-  exit 0
 fi
 
-mkdir -p "${WS}/.cursor/rules" "${WS}/.cursor/grok" "${WS}/.cursor/hooks" "${WS}/.cursor/quota-clis"
-cp -a "${ROOT}/rules/." "${WS}/.cursor/rules/"
-cp -a "${ROOT}/grok/." "${WS}/.cursor/grok/"
-cp -a "${ROOT}/hooks/." "${WS}/.cursor/hooks/"
-cp -a "${ROOT}/hooks.json" "${WS}/.cursor/hooks.json"
-if [[ -d "${ROOT}/quota-clis" ]]; then
-  cp -a "${ROOT}/quota-clis/." "${WS}/.cursor/quota-clis/"
-fi
-chmod +x "${WS}/.cursor/grok/run.sh" "${WS}/.cursor/grok/install.sh" "${WS}/.cursor/hooks/force-grok-cli.py" "${WS}/.cursor/grok/inject-from-snapshot.sh" || true
-chmod +x "${WS}/.cursor/quota-clis/install-all.sh" 2>/dev/null || true
-echo "grok-cli: injected grok.com CLI router + quota-clis into ${WS}/.cursor"
+echo "grok-cli: start helper OK (CLI/PATH only; force-routing disabled)"

@@ -101,7 +101,9 @@ kimi -c -p "follow-up"
 
 ## Cursor hooks note
 
-`.cursor/hooks.json` still defaults the Cursor Agent to **route via Grok CLI** (spend grok.com quota, not Cursor-billed compute). Shell invocations of `agy`, `opencode`, and `kimi` are allowlisted so you can call them explicitly when you want those quotas instead.
+Forced Grok CLI routing is **disabled**. `.cursor/hooks.json` is empty; agents use normal Cursor tools.
+
+Call `agy` / `opencode` / `kimi` / `bash .cursor/grok/run.sh` only when you explicitly want those quotas.
 
 Do **not** use Cloud Agents as free R&D compute; provision binaries via this Environment snapshot / install scripts, then Save once after auth.
 
@@ -110,7 +112,7 @@ Do **not** use Cloud Agents as free R&D compute; provision binaries via this Env
 ## One-time Environment Save checklist
 
 1. Scripts land in the repo that feeds the Environment (this tree).
-2. Environment start hook runs `inject-from-snapshot.sh` (installs Grok + quota CLIs + PATH).
+2. Environment start hook installs Grok + quota CLIs + PATH only (no force-routing hooks/rules).
 3. User completes: Grok device login, `agy` Google OAuth, OpenCode Go key (`OPENCODE_API_KEY` or auth.json), Kimi `/login`.
 4. **Environment → Save** once so binaries + auth survive new Cloud Agent VMs.
 5. Never commit `auth.json`, API keys, or OAuth tokens.
