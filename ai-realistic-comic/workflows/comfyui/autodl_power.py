@@ -16,8 +16,8 @@ F34 and G09 UUIDs are refused. A "no idle GPU" answer is retried with backoff; a
 other failure (auth, unknown instance) stops at once so nothing burns money.
 
     python autodl_power.py balance
-    python autodl_power.py power-on [--max-minutes 120]
-    python autodl_power.py ensure-on [--max-minutes 120]   # web JWT, then developer token, else NEED_AUTODL_TOKEN
+    python autodl_power.py power-on [--max-minutes 0]   # 0 = keep waiting
+    python autodl_power.py ensure-on [--max-minutes 0]   # 0 = no deadline; web JWT then developer token
     python autodl_power.py power-on-once      # exit 0 ok, 5 no GPU, 6 transient, 2 fatal, 4 no web auth
 """
 
@@ -166,13 +166,13 @@ def ensure_on(uuid: str, *, max_minutes: float, sleep=time.sleep, now=time.monot
 
 
 def power_on_loop_dev(uuid: str, token: str, first: str, *, max_minutes: float, sleep, now) -> int:
-    deadline = now() + max_minutes * 60
+    deadline = None if max_minutes <= 0 else now() + max_minutes * 60
     verdict = first
     attempt = 0
     while verdict in ("no_gpu", "retry"):
         wait = BACKOFF[min(attempt, len(BACKOFF) - 1)]
         attempt += 1
-        if now() + wait > deadline:
+        if deadline is not None and now() + wait > deadline:
             print("POWER_ON_GAVE_UP deadline reached; still no GPU.", flush=True)
             return 3
         sleep(wait)
@@ -182,7 +182,7 @@ def power_on_loop_dev(uuid: str, token: str, first: str, *, max_minutes: float, 
 
 
 def power_on_loop(uuid: str, authorization: str, *, max_minutes: float, sleep=time.sleep, now=time.monotonic) -> int:
-    deadline = now() + max_minutes * 60
+    deadline = None if max_minutes <= 0 else now() + max_minutes * 60
     attempt = 0
     while True:
         verdict, reply = power_on_once(uuid, authorization)
@@ -195,7 +195,7 @@ def power_on_loop(uuid: str, authorization: str, *, max_minutes: float, sleep=ti
             return 2
         wait = BACKOFF[min(attempt, len(BACKOFF) - 1)]
         attempt += 1
-        if now() + wait > deadline:
+        if deadline is not None and now() + wait > deadline:
             print("POWER_ON_GAVE_UP deadline reached; still no GPU.", flush=True)
             return 3
         sleep(wait)
@@ -227,12 +227,12 @@ def main() -> None:
     sub.add_parser("balance")
     ensure = sub.add_parser("ensure-on")
     ensure.add_argument("--uuid")
-    ensure.add_argument("--max-minutes", type=float, default=120)
+    ensure.add_argument("--max-minutes", type=float, default=0, help="0 = no deadline")
     once = sub.add_parser("power-on-once")
     once.add_argument("--uuid")
     on = sub.add_parser("power-on")
     on.add_argument("--uuid")
-    on.add_argument("--max-minutes", type=float, default=120)
+    on.add_argument("--max-minutes", type=float, default=0, help="0 = no deadline")
     args = parser.parse_args()
     if args.cmd == "balance":
         raise SystemExit(balance())

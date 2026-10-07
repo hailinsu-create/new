@@ -86,7 +86,7 @@ python workflows/comfyui/autodl_power.py power-on-once    # 单次；退出码 0
 `workflows/comfyui/bringup_and_run.py` 一条命令走完整条链路，不用等人点网页：
 
 ```bash
-python workflows/comfyui/bringup_and_run.py            # 开机 → SSH → 装栈 → check-stack → 四张 → 打分 → 关机 → 余额
+python workflows/comfyui/bringup_and_run.py            # 开机（默认一直等到有卡，`--power-minutes 0`）→ SSH → 装栈 → 四张 → 打分 → 关机 → 余额
 python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器已开，不关机
 ```
 

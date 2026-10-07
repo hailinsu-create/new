@@ -369,6 +369,26 @@ def test_power_on_uses_web_endpoint_gpu_payload_and_backs_off_on_no_gpu(monkeypa
     assert body == {"instance_uuid": "359a49a1c3-4cda10df", "payload": "gpu"}
 
 
+def test_power_on_with_zero_minutes_has_no_deadline(monkeypatch):
+    n = {"i": 0}
+
+    def fake_post(url, headers, body, timeout=30):
+        n["i"] += 1
+        if n["i"] < 3:
+            return 200, {"code": "InstanceError", "msg": "该主机空闲GPU不足"}
+        return 200, {"code": "Success", "msg": ""}
+
+    monkeypatch.setattr(power, "post", fake_post)
+    clock = {"t": 0.0}
+
+    def now():
+        clock["t"] += 1000  # each call jumps far past any 120-minute window
+        return clock["t"]
+
+    assert power.power_on_loop("u", "JWT", max_minutes=0, sleep=lambda s: None, now=now) == 0
+    assert n["i"] == 3
+
+
 def test_power_on_stops_on_auth_failure_and_on_deadline(monkeypatch):
     monkeypatch.setattr(power, "post", lambda *a, **k: (401, {"code": "AuthorizeFailed", "msg": "token expired"}))
     assert power.power_on_loop("u", "JWT", max_minutes=60, sleep=lambda s: None, now=lambda: 0.0) == 2

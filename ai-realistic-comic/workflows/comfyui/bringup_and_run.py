@@ -243,7 +243,7 @@ def main() -> None:
         action="store_true",
         help="Also shut down when a step failed. Default: stay on so the fix can be retried without waiting for a GPU again.",
     )
-    parser.add_argument("--power-minutes", type=float, default=120)
+    parser.add_argument("--power-minutes", type=float, default=0, help="GPU wait minutes. 0 = keep trying, no deadline.")
     parser.add_argument("--ssh-minutes", type=float, default=15)
     parser.add_argument("--out", type=Path, default=LOCAL_ARTIFACTS)
     args = parser.parse_args()
