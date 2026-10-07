@@ -422,3 +422,23 @@ def test_bringup_ships_no_secrets_or_forbidden_machines():
     for secret_name in ("autodl-token", "autodl-web-auth", "cast-ssh"):
         assert secret_name not in " ".join(bring.SHIP)
     assert all((ROOT / m).exists() for m in bring.SHIP)
+
+
+keyinst = _load("install_ssh_key")
+
+
+def test_key_install_command_is_idempotent_and_quotes_safely():
+    cmd = keyinst.append_command("ssh-ed25519 AAAA test'key")
+    assert "grep -qxF" in cmd and "chmod 600 /root/.ssh/authorized_keys" in cmd
+    assert "test'\\''key" in cmd
+
+
+def test_key_install_needs_a_password_and_never_prints_it(monkeypatch, capsys):
+    monkeypatch.delenv("BJB_SSH_PASSWORD", raising=False)
+    monkeypatch.setattr(keyinst, "PASSWORD_FILES", ())
+    assert keyinst.read_password() is None
+    assert keyinst.main() == 4
+    assert "NEED_SSH_PASSWORD" in capsys.readouterr().out
+    monkeypatch.setenv("BJB_SSH_PASSWORD", "hunter2")
+    assert keyinst.read_password() == "hunter2"
+    assert "hunter2" not in (COMFY / "install_ssh_key.py").read_text(encoding="utf-8")
