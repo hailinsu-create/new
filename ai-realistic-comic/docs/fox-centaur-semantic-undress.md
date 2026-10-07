@@ -108,11 +108,11 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 
 P0/P1 已写入脚本：
 
-1. **残留岛**：首 pass 仍 Fooocus denoise 1.0（LaMa 预填）；之后每轮先  硬擦，再 denoise 0.35 贴肤。不再对残留跑 denoise 1.0。
-2. **伊莲甲件**：（颈/左右臂/腰）+  对甲件 DINO 命中外扩 32 px，避免半截护腕留在洞外。
-3. **林领口/左侧裙片**： + 领口分带提示（y≤380 用 COLLAR_*）；胯下仍用 LOWER_*。
-4. **torn**：rim denoise 0.40；洞心不重绘；伊莲  以下不做 rim，接缝条带只 LaMa。
-5. **门禁**： 先 nude→Codex；有 / 的演员跳过 torn。
+1. 残留岛：首 pass 仍 Fooocus denoise 1.0（LaMa 预填）；之后每轮先 big-lama 硬擦，再 denoise 0.35 贴肤。不再对残留跑 denoise 1.0。
+2. 伊莲甲件：force_boxes（颈/左右臂/腰）+ expand_prompts 对甲件 DINO 命中外扩 32 px。
+3. 林领口/左侧裙片：force_boxes + 领口分带提示（y<=380）；胯下仍用 LOWER 分带。
+4. torn：rim denoise 0.40；洞心不重绘；伊莲 horse_guard_y 以下不做 rim，接缝条带只 LaMa。
+5. 门禁：bringup --mode both 先 nude 再 Codex；有 clothes_remain/armor_remain 的演员跳过 torn。
 
 ## 状态（2026-10-07）
 
