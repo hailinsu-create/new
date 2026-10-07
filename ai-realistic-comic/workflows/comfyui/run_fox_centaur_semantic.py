@@ -4,8 +4,8 @@
 
 Run it on the Beijing B machine (ComfyUI on 127.0.0.1:8188). Per actor and mode:
 semantic garment mask -> neutral MaskedFill -> Fooocus inpaint patch -> 1024
-crop-and-stitch bands -> residual re-segmentation -> edge blend -> Cursor score
-sidecar. Scoring is Cursor-agent only; missing payload writes SCORE_PENDING and the images
+crop-and-stitch bands -> residual re-segmentation -> edge blend -> Codex score
+sidecar. Scoring is Codex only; a missing CLI writes SCORE_FAILED and the images
 still ship. F34 and G09 are never touched.
 """
 
@@ -23,7 +23,7 @@ import numpy as np
 from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import cursor_still_score as scorer  # noqa: E402
+import codex_still_score as scorer  # noqa: E402
 import scheme_still_fox_centaur_undress as legacy  # noqa: E402
 import semantic_undress as sem  # noqa: E402
 from comfy_util import get_json, post_json, resolve_base_models  # noqa: E402

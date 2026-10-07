@@ -13,4 +13,4 @@
 
 身份：林必须是第一张那张东方黑发清冷脸（黑褐眼）；伊莲必须是第二张那张棕卷发褐眼脸。眼镜待定，戴或不戴都不进硬门。
 
-只输出一个 JSON 对象，字段：identity, distinction, interaction, aesthetics, anatomy, wardrobe, motif, photoreal, mean, gates, notes, scorer。scorer 固定 "cursor"。gates 是字符串数组，没有硬门就 []。
+只输出一个 JSON 对象，字段：identity, distinction, interaction, aesthetics, anatomy, wardrobe, motif, photoreal, mean, gates, notes, scorer。scorer 固定 "codex"。gates 是字符串数组，没有硬门就 []。

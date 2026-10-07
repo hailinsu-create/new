@@ -1,4 +1,4 @@
-按 JSON 打分。第一张是锁脸 ref-face.png，第二张是去衣结果。八项 0–10：identity distinction interaction aesthetics anatomy wardrobe motif photoreal。interaction 指单人站姿是否仍挺拔。mean 是均分。scorer 固定 "cursor"。gates 为字符串数组。
+按 JSON 打分。第一张是锁脸 ref-face.png，第二张是去衣结果。八项 0–10：identity distinction interaction aesthetics anatomy wardrobe motif photoreal。interaction 指单人站姿是否仍挺拔。mean 是均分。scorer 固定 "codex"。gates 为字符串数组。
 
 这张是旗袍九尾狐或铠甲半人马的去衣静帧，不是身体板。硬门：extra_person, minor, clothes_remain（或 armor_remain）, tails_gone（仅林）, mare_gone（仅伊莲）, extra_limb, text。不要用蛇尾 H1–H3。去衣后人体躯干应是皮肤；狐尾/马身应还在。伊莲褐眼；绿眼或蓝灰眼走 elena_wrong_eyes。眼镜待定不进硬门。
 

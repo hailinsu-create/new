@@ -25,7 +25,7 @@
 
 ## 出图
 
-成衣：Cursor GenerateImage（历史板为 Codex CLI）。F34 / G09 未开。
+成衣：Codex CLI。F34 / G09 未开。
 
 - 双人：`lin-elena-embrace.png` 1536×1024。打分均分 9.3，硬门空，anatomy 8.8。
 - 林单人：`lin-qipao-nine-tail.png` 1024×1536。更挺拔。Codex 均分 9.0，硬门空；狐尾可辨约八条，第九条可能重叠。
@@ -40,8 +40,8 @@
 - 小洞 / 椭圆破洞；衣服 denoise **0.98**；破衣 **0.96**；收边 **0.42**；`MASK_BLUR=8`；`MAX_CONTENT_FRAC=0.52`
 - 默认 Fooocus + `INPAINT_MaskedFill(neutral)`；衣服 pass 关 DifferentialDiffusion（软边会留布）
 - InstantID 头肩裁已接，实跑去衣默认 `--no-instantid`
-- 打分：Cursor 读锁脸 + 结果，对照板心 `ref-face.png`；收留线均分 ≥ 9 且硬门空；scorer=`cursor`
-- 成衣板打分与新首图走 Cursor；露点/破甲编辑只走北京 Comfy（不去 Cursor/Codex imagegen）
+- 打分对照板心 `ref-face.png`；收留线均分 ≥ 9 且硬门空
+- Codex imagegen 拒绝对成衣板做露点/破甲编辑；只走北京 Comfy
 
 不要丢进 `scheme_b_from_plate.py`。北京 B `359a49a1c3-4cda10df`。F34 / G09 不开。不用 ReActor。
 

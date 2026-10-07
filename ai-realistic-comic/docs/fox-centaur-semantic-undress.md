@@ -48,10 +48,8 @@ python workflows/comfyui/run_fox_centaur_semantic.py --only elena --mode nude --
 # 已过门的跳过
 python workflows/comfyui/run_fox_centaur_semantic.py --resume
 
-# 只打分（Cursor agent 先写 .cursor-score.json 或 CURSOR_STILL_SCORE_JSON，再 --score-only）
+# 只打分（机器上没有 codex 时在别处补）
 python workflows/comfyui/run_fox_centaur_semantic.py --score-only --out <含 png 的目录>
-# 或 agent 直接 apply：
-python workflows/comfyui/cursor_still_score.py apply --actor lin --mode nude --image <png> --json-file <score.json>
 ```
 
 每张产物：`<stem>.png`、`<stem>.json`（打分 sidecar）、`<stem>.run.json`（种子、轮数、残留比）、`debug/<stem>-garment-overlay.png`、`work/`（各带的 api json 和中间图）。
@@ -60,7 +58,7 @@ python workflows/comfyui/cursor_still_score.py apply --actor lin --mode nude --i
 
 ## 打分
 
-只走 **Cursor agent**（本 Cloud Agent 读锁脸 + 结果图），沿用 `score-nude.txt` / `score-torn.txt`，第一张是各自的 `ref-face.png`，第二张是结果。八项加硬门，收留线均分 ≥ 9 且硬门空。脚本侧模块是 `cursor_still_score.py`：没有 agent 分数就写 `.score-request.json` 并打印 `SCORE_PENDING cursor <actor> <mode>`；agent 把 JSON 写成同名 `.cursor-score.json` 或跑 `cursor_still_score.py apply` 后再 `--score-only`。**不走 Codex CLI，不回退 Grok，不换别的视觉模型，也不本地估分**。出图不因此中断。成衣首图也由 Cursor GenerateImage 出（Comfy 只做去衣）。
+只走 Codex CLI，沿用 `score-nude.txt` / `score-torn.txt`，第一张是各自的 `ref-face.png`，第二张是结果。八项加硬门，收留线均分 ≥ 9 且硬门空。Codex 不可用（没有二进制、未登录、额度用完、超时、JSON 解析失败）就打印 `SCORE_FAILED codex <actor> <mode> reason=<原因>`，写 sidecar 和 `.score-fail.json`，**不回退 Grok，不换别的视觉模型，也不本地估分**。出图不因此中断。
 
 工作流 JSON：`workflows/comfyui/scheme-semantic-*.api.json` 八个（SegFormer、两个 DINO、四个 inpaint、收边），由 `--emit-examples <目录>` 生成，测试里核对和脚本一致。MASK 输出口在机器上按 `/object_info` 取，JSON 里写的是 1。
 
@@ -99,7 +97,7 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 2. 等 SSH：每 20 秒一次，每次重读 `bjb-ssh.env`，host/port 变了自动跟。连续 3 次 `Permission denied (publickey)` 就停，报 `NEED_SSH_KEY_AUTH`：机器开着但密钥没授权，需要把 `bjb791.pub` 追加进 `/root/.ssh/authorized_keys`，或在 `bjb-ssh.env` 放 `BJB_SSH_PASSWORD`。此时机器在计费，脚本不会假装成功。
 3. 装栈：把脚本、两张成衣底板、打分提示、两张锁脸用 tar 传到 `/root/autodl-tmp/arc/ai-realistic-comic`，跑 `install_undress_stack.sh install`，重启 ComfyUI（按进程号），然后 `--check-stack`。缺节点就停。
 4. 出图：先 nude（林、伊莲），再 torn（林、伊莲），`--no-score`，结果在机器上的 `/root/autodl-tmp/fox-semantic-out`。
-5. 回传到 `/opt/cursor/artifacts/fox-centaur-semantic`，Cursor agent 按 score-request 打分（`SCORE_PENDING` 时先打分再续 torn），过程文件之外的 png/json 拷进 `library/stills/fox-centaur-embrace/semantic/`。不走 Codex。
+5. 回传到 `/opt/cursor/artifacts/fox-centaur-semantic`，本机 Codex 打分，过程文件之外的 png/json 拷进 `library/stills/fox-centaur-embrace/semantic/`。Codex 不可用：`SCORE_FAILED codex ... reason=cli_missing`，不回退。
 6. 关机：全流程干净跑完才执行，机器内部 `shutdown`，数据盘保留；随后读余额（无 Token 打印 `BALANCE_PENDING`）。中途有步骤失败时默认**不关机**并打印 `MACHINE_STILL_ON`，因为拿到空卡不容易，修好后用 `--no-power-on` 接着跑；要失败也关机加 `--shutdown-on-failure`，要干净跑完也不关加 `--keep-on`。
 
 踩过的坑（2026-10-07）：远端重启 ComfyUI 时 `pgrep -f 'main.py ...'` 会匹配到执行它自己的 SSH 命令行，把自己杀掉，随后旧版「失败也关机」的收尾把机器关了。现在 pattern 写成 `[m]ain.py`，并有测试守着。
@@ -114,7 +112,7 @@ P0/P1 已写入脚本：
 2. 伊莲甲件：force_boxes（颈/左右臂/腰）+ expand_prompts 对甲件 DINO 命中外扩 32 px。
 3. 林领口/左侧裙片：force_boxes + 领口分带提示（y<=380）；胯下仍用 LOWER 分带。
 4. torn：rim denoise 0.40；洞心不重绘；伊莲 horse_guard_y 以下不做 rim，接缝条带只 LaMa。
-5. 门禁：bringup --mode both 先 nude 再 Cursor 打分；`SCORE_PENDING` / `SCORE_FAILED` 或有 clothes_remain/armor_remain 的演员跳过 torn。
+5. 门禁：bringup --mode both 先 nude 再 Codex；有 clothes_remain/armor_remain 的演员跳过 torn。
 
 ## 审核补丁（同日代码审）
 
@@ -126,9 +124,9 @@ P0/P1 已写入脚本：
 
 ## 状态（2026-10-07）
 
-上机结果（北京 B，RTX 5090，`--check-stack` 返回 `STACK_OK`，四张都出了图）。下面是迁 Cursor 打分前的历史 Codex 分数（过线 ≥9 且硬门空）。**四张都没过门。** 自本改起打分改 Cursor。
+上机结果（北京 B，RTX 5090，`--check-stack` 返回 `STACK_OK`，四张都出了图）。Codex CLI 已装到 VM 的 `~/.local/bin/codex` 并登录，下面是 Codex 真实打分（过线 ≥9 且硬门空）。**四张都没过门。**
 
-| 静帧 | 取用的轮次 | 均分（历史 Codex） | 硬门 |
+| 静帧 | 取用的轮次 | Codex 均分 | 硬门 |
 | --- | --- | --- | --- |
 | 林 nude | run9 | 7.75 | clothes_remain |
 | 伊莲 nude | run6 | 8.0 | armor_remain |
