@@ -640,7 +640,37 @@ def undress_one(
                 break
         current = best_image
         leftover = best_left if isinstance(best_left, np.ndarray) else np.zeros(shape, dtype=bool)
-        # Lin: Fooocus redraws mandarin collars from context. Always pixel-fill the standing collar.
+        meta["best_residual_ratio"] = round(best_ratio, 4)
+        meta["_leftover_pixels"] = int(leftover.sum())
+        edge_target = garment
+
+    if edge_target is None:
+        dest = out_dir / f"{stem}.png"
+        current.save(dest)
+        (out_dir / f"{stem}.run.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"STITCH {dest} {dest.stat().st_size}", flush=True)
+        return dest
+
+    edge_zone = sem.edge_band(edge_target, 14) & sem.box_array(shape, plan.roi)
+    face = sem.box_array(shape, plan.face_clear)
+    edge_zone &= ~face
+    # Keep Fooocus edge off the standing collar — it redraws the mandarin collar from context.
+    if actor == "lin":
+        edge_zone &= ~sem.dilate(sem.box_array(shape, (390, 278, 590, 390)), 8)
+    current = run_bands(
+        host, models, current, edge_zone,
+        positive=NUDE_EDGE_POS,
+        negative=NUDE_EDGE_NEG,
+        seed=seed + 900, stem=f"{stem}-edge",
+        denoise=EDGE_DENOISE, edge=True, input_dir=input_dir, out_dir=work,
+    )
+    meta["passes"].append({"kind": "edge", "denoise": EDGE_DENOISE})
+
+    # Pixel-fill AFTER edge so Fooocus cannot paint the collar/armor back.
+    if mode == "nude":
+        leftover = locals().get("leftover")
+        if not isinstance(leftover, np.ndarray):
+            leftover = np.zeros(shape, dtype=bool)
         if actor == "lin":
             collar_mask = sem.box_array(shape, (390, 278, 590, 390))
             collar_mask = sem.dilate(collar_mask, 6) & ~sem.box_array(shape, plan.face_clear)
@@ -657,8 +687,7 @@ def undress_one(
                 )
                 meta["passes"].append({"kind": "hip_pixelfill", "pixels": int(hip_mask.sum())})
                 print(f"HIP_PIXELFILL {stem} px={int(hip_mask.sum())}", flush=True)
-        # Elena: only pixel-fill leftover ∩ torso (full-torso fill looks like a mannequin).
-        if actor == "elena" and leftover.any():
+        elif actor == "elena" and leftover.any():
             torso = sem.dilate(leftover, 6) & sem.box_array(shape, (180, 250, 520, 680))
             if plan.horse_guard_y:
                 y_cut = int(plan.horse_guard_y / sem.BASE[1] * shape[0])
@@ -670,27 +699,6 @@ def undress_one(
                 )
                 meta["passes"].append({"kind": "elena_torso_pixelfill", "pixels": int(torso.sum())})
                 print(f"ELENA_TORSO_PIXELFILL {stem} px={int(torso.sum())}", flush=True)
-        meta["best_residual_ratio"] = round(best_ratio, 4)
-        edge_target = garment
-
-    if edge_target is None:
-        dest = out_dir / f"{stem}.png"
-        current.save(dest)
-        (out_dir / f"{stem}.run.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
-        print(f"STITCH {dest} {dest.stat().st_size}", flush=True)
-        return dest
-
-    edge_zone = sem.edge_band(edge_target, 14) & sem.box_array(shape, plan.roi)
-    face = sem.box_array(shape, plan.face_clear)
-    edge_zone &= ~face
-    current = run_bands(
-        host, models, current, edge_zone,
-        positive=NUDE_EDGE_POS,
-        negative=NUDE_EDGE_NEG,
-        seed=seed + 900, stem=f"{stem}-edge",
-        denoise=EDGE_DENOISE, edge=True, input_dir=input_dir, out_dir=work,
-    )
-    meta["passes"].append({"kind": "edge", "denoise": EDGE_DENOISE})
 
     dest = out_dir / f"{stem}.png"
     current.save(dest)
