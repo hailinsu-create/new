@@ -20,7 +20,7 @@ import urllib.request
 from pathlib import Path
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFilter
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import cursor_still_score as scorer  # noqa: E402
@@ -28,6 +28,37 @@ import scheme_still_fox_centaur_undress as legacy  # noqa: E402
 import semantic_undress as sem  # noqa: E402
 from comfy_util import get_json, post_json, resolve_base_models  # noqa: E402
 from inpaint_crop import inpaint_crop_graph, lama_only_graph, stitch  # noqa: E402
+
+
+def pixel_skin_fill(
+    image: Image.Image,
+    mask: np.ndarray,
+    sample_box: tuple[int, int, int, int],
+    *,
+    blur: int = 5,
+    noise_std: float = 3.0,
+    seed: int = 0,
+) -> Image.Image:
+    """Replace mask pixels with skin sampled from sample_box (Fooocus redraws collars/armor)."""
+    if not mask.any():
+        return image
+    arr = np.asarray(image.convert("RGB")).astype(np.float32)
+    x0, y0, x1, y1 = sample_box
+    patch = arr[y0:y1, x0:x1].reshape(-1, 3)
+    if patch.size == 0:
+        return image
+    mean = patch.mean(axis=0)
+    rng = np.random.default_rng(seed)
+    noise = rng.normal(0.0, noise_std, arr.shape).astype(np.float32)
+    filled = arr.copy()
+    filled[mask] = mean + noise[mask]
+    filled = np.clip(filled, 0, 255)
+    alpha = np.asarray(
+        Image.fromarray((mask.astype(np.uint8) * 255)).filter(ImageFilter.GaussianBlur(radius=blur))
+    ).astype(np.float32) / 255.0
+    out = filled * alpha[..., None] + arr * (1.0 - alpha[..., None])
+    return Image.fromarray(np.clip(out, 0, 255).astype(np.uint8))
+
 
 STILL_DIR = legacy.STILL_DIR
 DEFAULT_OUT = STILL_DIR / "semantic"
@@ -608,18 +639,37 @@ def undress_one(
                 )
                 break
         current = best_image
-        # Lin: one dedicated collar band after residual loop — standing collar often survives residual.
-        if actor == "lin" and collar is not None:
-            collar_mask = sem.box_array(shape, (330, 275, 610, 395))
-            collar_mask = sem.dilate(collar_mask, 10) & ~sem.box_array(shape, plan.face_clear)
+        leftover = best_left if isinstance(best_left, np.ndarray) else np.zeros(shape, dtype=bool)
+        # Lin: Fooocus redraws mandarin collars from context. Always pixel-fill the standing collar.
+        if actor == "lin":
+            collar_mask = sem.box_array(shape, (390, 278, 590, 390))
+            collar_mask = sem.dilate(collar_mask, 6) & ~sem.box_array(shape, plan.face_clear)
             if collar_mask.any():
-                current = run_bands(
-                    host, models, current, collar_mask,
-                    positive=collar[1], negative=collar[2], seed=seed + 77, stem=f"{stem}-collar-fin",
-                    denoise=0.85, edge=False, input_dir=input_dir, out_dir=work,
-                    cfg=NUDE_CFG, lama_prefill=True,
+                current = pixel_skin_fill(
+                    current, collar_mask, sample_box=(430, 430, 560, 510), blur=5, noise_std=3.0, seed=seed + 77
                 )
-                meta["passes"].append({"kind": "collar_fin", "denoise": 0.85})
+                meta["passes"].append({"kind": "collar_pixelfill", "pixels": int(collar_mask.sum())})
+                print(f"COLLAR_PIXELFILL {stem} px={int(collar_mask.sum())}", flush=True)
+            hip_mask = sem.dilate(leftover, 8) & sem.box_array(shape, (300, 720, 580, 1200))
+            if hip_mask.any():
+                current = pixel_skin_fill(
+                    current, hip_mask, sample_box=(380, 1100, 500, 1250), blur=8, noise_std=4.0, seed=seed + 88
+                )
+                meta["passes"].append({"kind": "hip_pixelfill", "pixels": int(hip_mask.sum())})
+                print(f"HIP_PIXELFILL {stem} px={int(hip_mask.sum())}", flush=True)
+        # Elena: only pixel-fill leftover ∩ torso (full-torso fill looks like a mannequin).
+        if actor == "elena" and leftover.any():
+            torso = sem.dilate(leftover, 6) & sem.box_array(shape, (180, 250, 520, 680))
+            if plan.horse_guard_y:
+                y_cut = int(plan.horse_guard_y / sem.BASE[1] * shape[0])
+                torso[y_cut:, :] = False
+            torso &= ~sem.box_array(shape, plan.face_clear)
+            if torso.any():
+                current = pixel_skin_fill(
+                    current, torso, sample_box=(280, 220, 420, 260), blur=6, noise_std=3.5, seed=seed + 99
+                )
+                meta["passes"].append({"kind": "elena_torso_pixelfill", "pixels": int(torso.sum())})
+                print(f"ELENA_TORSO_PIXELFILL {stem} px={int(torso.sum())}", flush=True)
         meta["best_residual_ratio"] = round(best_ratio, 4)
         edge_target = garment
 
