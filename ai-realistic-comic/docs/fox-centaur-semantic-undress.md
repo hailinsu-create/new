@@ -114,6 +114,14 @@ P0/P1 已写入脚本：
 4. torn：rim denoise 0.40；洞心不重绘；伊莲 horse_guard_y 以下不做 rim，接缝条带只 LaMa。
 5. 门禁：bringup --mode both 先 nude 再 Codex；有 clothes_remain/armor_remain 的演员跳过 torn。
 
+## 审核补丁（同日代码审）
+
+落地后又审了一遍，修了三处会直接影响出图的问题：
+
+1. 领口分带：420px 分带几乎从不整段落在 y≤380，原来的 `y1 <= COLLAR_TO_Y` 条件形同虚设；改为首 pass 把蒙版在 380 切开，领口带单独跑 COLLAR 提示。
+2. `MASK_SUSPECT` 从 0.35 提到 0.48——伊莲 force_boxes 单算约 11.5% 面积，叠上语义蒙版容易误触旧阈值。
+3. LaMa 安装源：HF `fashn-ai/LaMa` 会被 spandrel 拒；安装脚本改走 Sanster GitHub release（`network_turbo`）。伊莲 force_boxes 下沿裁到 `horse_guard_y` 以上，避免和马身保护打架。
+
 ## 状态（2026-10-07）
 
 上机结果（北京 B，RTX 5090，`--check-stack` 返回 `STACK_OK`，四张都出了图）。Codex CLI 已装到 VM 的 `~/.local/bin/codex` 并登录，下面是 Codex 真实打分（过线 ≥9 且硬门空）。**四张都没过门。**
