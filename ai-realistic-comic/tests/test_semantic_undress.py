@@ -116,8 +116,11 @@ def test_residual_ratio_and_bands():
 
 def test_graphs_use_semantic_nodes_and_unique_save_ids():
     seg = sem.segformer_graph("plate.png")
-    flags = seg["2"]["inputs"]
-    assert flags["Dress"] and flags["Upper-clothes"] and not flags["Face"] and not flags["Hair"]
+    keep = seg["2"]["inputs"]
+    assert not keep["Dress"] and not keep["Upper_clothes"] and keep["Face"] and keep["Hair"] and keep["leg"]
+    assert all(seg["5"]["inputs"][name] for name in sem.SEGFORMER_CLASSES)
+    assert seg[sem.SEGFORMER_GARMENT_SAVE]["class_type"] == "SaveImage"
+    assert seg[sem.SEGFORMER_BACKGROUND_SAVE]["class_type"] == "SaveImage"
     prompts = ("qipao", "face", "fox tail")
     graph = sem.dino_masks_graph("plate.png", prompts)
     ids = sem.dino_save_ids(prompts)
@@ -198,12 +201,16 @@ def test_emitted_examples_match_the_runner(tmp_path):
     assert committed == nude
 
 
-def test_segformer_graph_can_read_an_image_output():
-    graph = sem.segformer_graph("plate.png", kind="IMAGE", slot=0)
-    assert graph["4"]["inputs"]["images"] == ["2", 0]
-    assert "3" not in graph
-    default = sem.segformer_graph("plate.png")
-    assert default["3"]["inputs"]["mask"] == ["2", 1]
+def test_segformer_garment_is_class_run_minus_background_run():
+    background = _rect(0, 0, 100, 100)
+    with_classes = background | _rect(200, 200, 300, 400)
+    assert (sem.segformer_garment(with_classes, background) == _rect(200, 200, 300, 400)).all()
+
+
+def test_sam_option_is_resolved_from_object_info(monkeypatch):
+    info = {sem.SAM_LOADER_NODE: {"input": {"required": {"model_name": [["sam_vit_h (2.56GB)", "sam_vit_b (375MB)"]]}}}}
+    monkeypatch.setattr(run, "get_json", lambda url, timeout=0: info)
+    assert run.resolve_sam_model("http://x") == "sam_vit_b (375MB)"
 
 
 def test_dino_batch_failure_falls_back_per_prompt(tmp_path, monkeypatch):

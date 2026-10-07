@@ -25,9 +25,9 @@ NODES=(
 MODELS=(
   "models/inpaint/fooocus_inpaint_head.pth|lllyasviel/fooocus_inpaint|fooocus_inpaint_head.pth"
   "models/inpaint/inpaint_v26.fooocus.patch|lllyasviel/fooocus_inpaint|inpaint_v26.fooocus.patch"
-  "custom_nodes/Comfyui_segformer_b2_clothes/checkpoints/segformer_b2_clothes/config.json|mattmdjaga/segformer_b2_clothes|config.json"
-  "custom_nodes/Comfyui_segformer_b2_clothes/checkpoints/segformer_b2_clothes/preprocessor_config.json|mattmdjaga/segformer_b2_clothes|preprocessor_config.json"
-  "custom_nodes/Comfyui_segformer_b2_clothes/checkpoints/segformer_b2_clothes/model.safetensors|mattmdjaga/segformer_b2_clothes|model.safetensors"
+  "models/segformer_b2_clothes/config.json|mattmdjaga/segformer_b2_clothes|config.json"
+  "models/segformer_b2_clothes/preprocessor_config.json|mattmdjaga/segformer_b2_clothes|preprocessor_config.json"
+  "models/segformer_b2_clothes/model.safetensors|mattmdjaga/segformer_b2_clothes|model.safetensors"
 )
 
 # Beijing B cannot reach github.com directly (git clone hangs). AutoDL's academic acceleration
@@ -97,6 +97,22 @@ install_nodes() {
   done
 }
 
+# The node reads models/segformer_b2_clothes at import time, and its __init__ also imports the b3 fashion
+# variant, whose weights we do not use. Keep only the b2 clothes node so the package imports cleanly.
+patch_segformer_init() {
+  local init="${ROOT}/custom_nodes/Comfyui_segformer_b2_clothes/__init__.py"
+  [ -f "${init}" ] || return 0
+  if grep -q '^from .segformer_b3_fashion' "${init}"; then
+    cat > "${init}" <<'PYEOF'
+from .segformer_b2_clothes import *
+
+NODE_CLASS_MAPPINGS = {"segformer_b2_clothes": segformer_b2_clothes}
+NODE_DISPLAY_NAME_MAPPINGS = {"segformer_b2_clothes": "segformer_b2_clothes"}
+PYEOF
+    say "PATCHED segformer __init__ (b2 only)"
+  fi
+}
+
 case "${MODE}" in
   inventory) inventory ;;
   install)
@@ -106,6 +122,7 @@ case "${MODE}" in
       IFS='|' read -r dest repo file <<<"${spec}"
       fetch "${dest}" "${repo}" "${file}"
     done
+    patch_segformer_init
     say "== after"
     inventory
     ;;

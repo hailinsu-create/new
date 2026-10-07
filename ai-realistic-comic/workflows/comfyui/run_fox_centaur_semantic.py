@@ -68,6 +68,16 @@ def verify_stack(host: str) -> list[str]:
     return [name for name in sem.REQUIRED_NODES if name not in info]
 
 
+def resolve_sam_model(host: str) -> str:
+    """The SAM loader only accepts its own option labels, e.g. 'sam_vit_b (375MB)'. Pick the vit_b one."""
+    info = get_json(f"{host}/object_info/{sem.SAM_LOADER_NODE}", timeout=60)[sem.SAM_LOADER_NODE]
+    options = info["input"]["required"]["model_name"][0]
+    for option in options:
+        if "sam_vit_b" in option:
+            return option
+    raise SystemExit(f"NO_SAM_VIT_B options={options}")
+
+
 def mask_source(host: str, class_type: str) -> tuple[str, int]:
     """(kind, slot) of the output that carries the mask. MASK first, then IMAGE."""
     info = get_json(f"{host}/object_info/{class_type}")[class_type]
@@ -152,12 +162,21 @@ def segment(host: str, image_path: Path, plan: sem.ActorPlan, work: Path, tag: s
     upload(host, input_dir / name)
     size = Image.open(image_path).size
 
+    sem.SAM_MODEL = resolve_sam_model(host)
     seg_arr = None
     if plan.use_segformer:
-        kind, slot = mask_source(host, sem.SEGFORMER_NODE)
-        graph = sem.segformer_graph(name, prefix=f"{tag}-segformer", kind=kind, slot=slot)
-        got = run_graph(host, graph, {"segformer": "4"}, work, f"{tag}-segformer")
-        seg_arr = sem.to_bool(Image.open(got["segformer"]).resize(size))
+        graph = sem.segformer_graph(name, prefix=f"{tag}-segformer")
+        got = run_graph(
+            host,
+            graph,
+            {"garment": sem.SEGFORMER_GARMENT_SAVE, "background": sem.SEGFORMER_BACKGROUND_SAVE},
+            work,
+            f"{tag}-segformer",
+        )
+        seg_arr = sem.segformer_garment(
+            sem.to_bool(Image.open(got["garment"]).resize(size)),
+            sem.to_bool(Image.open(got["background"]).resize(size)),
+        )
 
     prompts = sem.all_dino_prompts(plan)
     _, dino_slot = mask_source(host, sem.DINO_SAM_NODE)

@@ -24,28 +24,27 @@ SEGFORMER_NODE = "segformer_b2_clothes"
 DINO_SAM_NODE = "GroundingDinoSAMSegment (segment anything)"
 SAM_LOADER_NODE = "SAMModelLoader (segment anything)"
 DINO_LOADER_NODE = "GroundingDinoModelLoader (segment anything)"
-SAM_MODEL = "sam_vit_b_01ec64.pth"
+SAM_MODEL = "sam_vit_b (375MB)"
 DINO_MODEL = "GroundingDINO_SwinT_OGC (694MB)"
 
+# Input names of the real StartHua node. A True flag excludes the class from the output; the output
+# image is white for background plus every class whose flag is False.
 SEGFORMER_CLASSES = (
     "Face",
-    "Hair",
     "Hat",
-    "Sunglass",
-    "Left-arm",
-    "Right-arm",
-    "Left-leg",
-    "Right-leg",
-    "Upper-clothes",
+    "Hair",
+    "Upper_clothes",
     "Skirt",
     "Pants",
     "Dress",
     "Belt",
     "shoe",
-    "bag",
+    "leg",
+    "arm",
+    "Bag",
     "Scarf",
 )
-GARMENT_CLASSES = ("Upper-clothes", "Skirt", "Pants", "Dress", "Belt", "Scarf")
+GARMENT_CLASSES = ("Upper_clothes", "Skirt", "Pants", "Dress", "Belt", "Scarf")
 
 REQUIRED_NODES = (
     "INPAINT_LoadFooocusInpaint",
@@ -326,26 +325,33 @@ def overlay(plate: Image.Image, arr: np.ndarray, color: tuple[int, int, int] = (
     return Image.composite(tint, base, to_image(arr)).convert("RGB")
 
 
+SEGFORMER_GARMENT_SAVE = "4"
+SEGFORMER_BACKGROUND_SAVE = "6"
+
+
 def segformer_graph(
     image_name: str,
     classes: tuple[str, ...] = GARMENT_CLASSES,
     prefix: str = "seg",
-    *,
-    kind: str = "MASK",
-    slot: int = 1,
 ) -> dict:
-    """kind/slot say which output of the SegFormer node carries the class mask."""
-    flags = {name: (name in classes) for name in SEGFORMER_CLASSES}
-    graph: dict = {
+    """Two runs of the SegFormer node on one image.
+
+    The node returns white for background plus every class whose flag is False, so the garment mask is
+    run A (only `classes` un-flagged) minus run B (every class flagged, i.e. background only).
+    """
+    keep = {name: (name not in classes) for name in SEGFORMER_CLASSES}
+    drop_all = {name: True for name in SEGFORMER_CLASSES}
+    return {
         "1": {"class_type": "LoadImage", "inputs": {"image": image_name}},
-        "2": {"class_type": SEGFORMER_NODE, "inputs": {"image": ["1", 0], **flags}},
+        "2": {"class_type": SEGFORMER_NODE, "inputs": {"image": ["1", 0], **keep}},
+        "4": {"class_type": "SaveImage", "inputs": {"images": ["2", 0], "filename_prefix": f"{prefix}-garment"}},
+        "5": {"class_type": SEGFORMER_NODE, "inputs": {"image": ["1", 0], **drop_all}},
+        "6": {"class_type": "SaveImage", "inputs": {"images": ["5", 0], "filename_prefix": f"{prefix}-background"}},
     }
-    if kind == "MASK":
-        graph["3"] = {"class_type": "MaskToImage", "inputs": {"mask": ["2", slot]}}
-        graph["4"] = {"class_type": "SaveImage", "inputs": {"images": ["3", 0], "filename_prefix": prefix}}
-    else:
-        graph["4"] = {"class_type": "SaveImage", "inputs": {"images": ["2", slot], "filename_prefix": prefix}}
-    return graph
+
+
+def segformer_garment(with_classes: np.ndarray, background: np.ndarray) -> np.ndarray:
+    return with_classes & ~background
 
 
 def dino_masks_graph(
