@@ -53,7 +53,7 @@ python workflows/comfyui/run_fox_centaur_semantic.py --score-only --out <含 png
 
 每张产物：`<stem>.png`、`<stem>.json`（打分 sidecar）、`<stem>.run.json`（种子、轮数、残留比）、`debug/<stem>-garment-overlay.png`、`work/`（各带的 api json 和中间图）。
 
-装栈：`bash workflows/comfyui/install_undress_stack.sh inventory|install`。幂等，已有的跳过，模型走 hf-mirror，装包前去代理、用清华源。清单：lquesada ComfyUI-Inpaint-CropAndStitch、Acly comfyui-inpaint-nodes、storyicon comfyui_segment_anything、StartHua Comfyui_segformer_b2_clothes、ComfyUI_InstantID；`lllyasviel/fooocus_inpaint` 两个文件，`mattmdjaga/segformer_b2_clothes`。
+装栈：`bash workflows/comfyui/install_undress_stack.sh inventory|install`。幂等，已有的跳过，模型走 hf-mirror，装包前去代理、用清华源。北京 B 直连 github.com 会卡死，`git clone` 只在子 shell 里 `source /etc/network_turbo`（AutoDL 学术加速），并带 300 秒超时，失败时清掉半截目录。清单：lquesada ComfyUI-Inpaint-CropAndStitch、Acly comfyui-inpaint-nodes、storyicon comfyui_segment_anything、StartHua Comfyui_segformer_b2_clothes、ComfyUI_InstantID；`lllyasviel/fooocus_inpaint` 两个文件，`mattmdjaga/segformer_b2_clothes`。
 
 ## 打分
 

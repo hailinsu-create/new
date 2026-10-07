@@ -30,6 +30,13 @@ MODELS=(
   "custom_nodes/Comfyui_segformer_b2_clothes/checkpoints/segformer_b2_clothes/model.safetensors|mattmdjaga/segformer_b2_clothes|model.safetensors"
 )
 
+# Beijing B cannot reach github.com directly (git clone hangs). AutoDL's academic acceleration
+# (/etc/network_turbo) makes GitHub work; use it for git only. pip and Hugging Face stay direct.
+gh_clone() {
+  local url="$1" dest="$2"
+  ( [ -f /etc/network_turbo ] && source /etc/network_turbo >/dev/null 2>&1; timeout 300 git clone --depth 1 "${url}" "${dest}" )
+}
+
 say() { printf '%s %s\n' "$(date -u +%FT%TZ)" "$*"; }
 
 inventory() {
@@ -80,7 +87,8 @@ install_nodes() {
     name="${spec%%|*}"; url="${spec#*|}"
     if [ -d "${ROOT}/custom_nodes/${name}/.git" ]; then say "SKIP node ${name}"; continue; fi
     say "CLONE ${url}"
-    git clone --depth 1 "${url}" "${ROOT}/custom_nodes/${name}" || { say "FAILED clone ${name}"; continue; }
+    rm -rf "${ROOT}/custom_nodes/${name}"
+    gh_clone "${url}" "${ROOT}/custom_nodes/${name}" || { say "FAILED clone ${name}"; rm -rf "${ROOT}/custom_nodes/${name}"; continue; }
     if [ -f "${ROOT}/custom_nodes/${name}/requirements.txt" ]; then
       grep -v -i -E '^(torch|torchvision|torchaudio|git\+)' "${ROOT}/custom_nodes/${name}/requirements.txt" > "/tmp/req-${name}.txt" || true
       "${PY}" -m pip install -q -i "${PIP_INDEX}" -r "/tmp/req-${name}.txt" || say "PIP_WARN ${name}"
