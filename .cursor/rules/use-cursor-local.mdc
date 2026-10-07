@@ -1,0 +1,12 @@
+---
+description: Use Cursor local tools. Do not force grok.com CLI routing.
+alwaysApply: true
+---
+
+# Use Cursor local tools
+
+Implement with Cursor tools (Write, StrReplace, Shell, Task, etc.).
+
+Do **not** route work through `.cursor/grok/run.sh`, force-grok hooks, or grok.com CLI quota. That force-router path is retired.
+
+Optional quota CLIs (agy / opencode / kimi) only when the user explicitly asks.
