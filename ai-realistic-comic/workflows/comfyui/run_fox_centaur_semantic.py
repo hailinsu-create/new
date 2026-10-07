@@ -84,7 +84,8 @@ MAX_NUDE_PASSES = 4
 RESIDUAL_OK = 0.05
 RESIDUAL_MIN_PIXELS = 3500
 RESIDUAL_REDO_GROW = {"lin": 8, "elena": 6}
-MAX_RESIDUAL_PASSES = {"lin": 3, "elena": 2}
+# Extra residual Fooocus passes smear lin legs; collar is handled by pixelfill.
+MAX_RESIDUAL_PASSES = {"lin": 2, "elena": 2}
 SEED = 20261008
 BANNED_HOST_PARTS = ("weste.seetacloud", "xaxna66hqt", "sa4eaxgcuq")
 
@@ -684,13 +685,16 @@ def undress_one(
                 )
                 meta["passes"].append({"kind": "collar_pixelfill", "pixels": int(collar_mask.sum())})
                 print(f"COLLAR_PIXELFILL {stem} px={int(collar_mask.sum())}", flush=True)
-            hip_mask = sem.dilate(leftover, 8) & sem.box_array(shape, (300, 720, 580, 1200))
-            if hip_mask.any():
+            # Only tiny hip leftovers — large hip pixelfill creates meat-smear thighs.
+            hip_mask = sem.dilate(leftover, 4) & sem.box_array(shape, (300, 720, 580, 1200))
+            if hip_mask.any() and int(hip_mask.sum()) <= 15000:
                 current = pixel_skin_fill(
-                    current, hip_mask, sample_box=(380, 1100, 500, 1250), blur=8, noise_std=4.0, seed=seed + 88
+                    current, hip_mask, sample_box=(380, 1100, 500, 1250), blur=6, noise_std=3.0, seed=seed + 88
                 )
                 meta["passes"].append({"kind": "hip_pixelfill", "pixels": int(hip_mask.sum())})
                 print(f"HIP_PIXELFILL {stem} px={int(hip_mask.sum())}", flush=True)
+            elif hip_mask.any():
+                print(f"HIP_PIXELFILL_SKIP {stem} px={int(hip_mask.sum())} (too large)", flush=True)
         elif actor == "elena" and leftover.any():
             torso = sem.dilate(leftover, 6) & sem.box_array(shape, (180, 250, 520, 680))
             if plan.horse_guard_y:
