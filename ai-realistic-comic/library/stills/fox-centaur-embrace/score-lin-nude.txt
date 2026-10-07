@@ -1,4 +1,4 @@
-按 JSON 打分。第一张是锁脸 ref-face.png，第二张是去衣结果。八项 0–10：identity distinction interaction aesthetics anatomy wardrobe motif photoreal。interaction 指单人站姿是否仍挺拔。mean 是均分。scorer 固定 "codex"。gates 为字符串数组。
+按 JSON 打分。第一张是锁脸 ref-face.png，第二张是去衣结果。八项 0–10：identity distinction interaction aesthetics anatomy wardrobe motif photoreal。interaction 指单人站姿是否仍挺拔。mean 是均分。scorer 固定 "cursor"。gates 为字符串数组。
 
 这张是林晚棠旗袍九尾狐去衣，不是白素贞蛇身。硬门：extra_person, minor, clothes_remain, tails_gone, text。不要用蛇尾 H1–H3。狐尾应还在；八条也记下但不要只因重叠难数就判硬门。去衣后旗袍应消失，胸腹髋腿是皮肤。
 
