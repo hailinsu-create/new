@@ -655,8 +655,10 @@ def undress_one(
     face = sem.box_array(shape, plan.face_clear)
     edge_zone &= ~face
     # Keep Fooocus edge off the standing collar — it redraws the mandarin collar from context.
+    # face_clear bottoms at y=300 and would swallow the collar; protect only above the chin (~265).
+    chin_y = 265
     if actor == "lin":
-        edge_zone &= ~sem.dilate(sem.box_array(shape, (390, 278, 590, 390)), 8)
+        edge_zone &= ~sem.dilate(sem.box_array(shape, (380, 255, 600, 395)), 8)
     current = run_bands(
         host, models, current, edge_zone,
         positive=NUDE_EDGE_POS,
@@ -672,8 +674,10 @@ def undress_one(
         if not isinstance(leftover, np.ndarray):
             leftover = np.zeros(shape, dtype=bool)
         if actor == "lin":
-            collar_mask = sem.box_array(shape, (390, 278, 590, 390))
-            collar_mask = sem.dilate(collar_mask, 6) & ~sem.box_array(shape, plan.face_clear)
+            # Standing collar sits under the chin at y≈260–320; do NOT use face_clear (y≤300).
+            collar_mask = sem.box_array(shape, (380, 255, 600, 395))
+            collar_mask = sem.dilate(collar_mask, 8)
+            collar_mask[:chin_y, :] = False
             if collar_mask.any():
                 current = pixel_skin_fill(
                     current, collar_mask, sample_box=(430, 430, 560, 510), blur=5, noise_std=3.0, seed=seed + 77
