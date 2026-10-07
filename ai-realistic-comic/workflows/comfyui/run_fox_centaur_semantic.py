@@ -592,6 +592,14 @@ def undress_one(
             base, target = best_image, best_left if best_left.any() else left
             if best_ratio < RESIDUAL_OK:
                 break
+            # Elena: further Fooocus residual passes chew the human/horse junction into smear.
+            if actor == "elena" and n == 0 and best_ratio < 0.28:
+                print(
+                    f"ELENA_STOP_RESIDUAL {stem} ratio={best_ratio:.4f} "
+                    "(protect centaur junction)",
+                    flush=True,
+                )
+                break
         current = best_image
         meta["best_residual_ratio"] = round(best_ratio, 4)
         edge_target = garment
