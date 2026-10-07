@@ -119,14 +119,14 @@ LIN = ActorPlan(
     tear_fraction=0.50,
     tear_anchors=(0.16, 0.30, 0.44),
     force_boxes=(
-        (340, 300, 600, 380),   # mandarin collar / upper chest cloth
+        (330, 275, 610, 395),   # mandarin collar / upper chest (raised to catch standing collar)
         (320, 360, 620, 700),   # torso dress panel (sheer print often survives)
         (300, 680, 560, 1200),  # skirt / hip cloth including right slit panel
         (280, 680, 420, 1250),  # left skirt panel beside the hip/leg
     ),
     expand_prompts=("mandarin collar", "shoulder strap", "skirt panel", "white cloth", "qipao", "cheongsam dress"),
-    expand_px=24,
-    mask_grow=22,
+    expand_px=28,
+    mask_grow=24,
 )
 
 ELENA = ActorPlan(
@@ -166,6 +166,7 @@ ELENA = ActorPlan(
     tear_anchors=(0.14, 0.34, 0.58),
     force_boxes=(
         (230, 220, 430, 300),   # choker / gorget (keep clear of horse barrel)
+        (200, 280, 480, 560),   # breastplate / human torso
         (70, 260, 220, 640),    # left arm / glove / bracer
         (310, 260, 510, 640),   # right arm / pauldron / vambrace
         (190, 540, 460, 670),   # waist / fauld strictly above horse_guard_y
@@ -174,8 +175,8 @@ ELENA = ActorPlan(
         "breastplate", "pauldron", "vambrace", "gauntlet", "fauld", "gorget",
         "black glove", "gold bracer", "black sleeve", "arm guard", "choker", "leather strap",
     ),
-    expand_px=28,
-    mask_grow=12,
+    expand_px=32,
+    mask_grow=14,
 )
 
 PLANS = {"lin": LIN, "elena": ELENA}
@@ -183,14 +184,20 @@ PLANS = {"lin": LIN, "elena": ELENA}
 
 def residual_plan(plan: ActorPlan) -> ActorPlan:
     # Narrow residual prompts only (full garment prompts false-fire on bare skin). SegFormer still joins.
+    # Keep a few force boxes: lin collar and Elena arms are the persistent hard-gate leftovers.
+    keep_force: tuple[tuple[int, int, int, int], ...] = ()
+    if plan.actor == "lin":
+        keep_force = ((330, 275, 610, 395),)
+    elif plan.actor == "elena":
+        keep_force = ((70, 260, 220, 640), (310, 260, 510, 640))
     return replace(
         plan,
         garment_prompts=plan.residual_prompts,
         garment_wins_prompts=plan.residual_wins_prompts,
         segformer_support_px=0,
-        force_boxes=(),
+        force_boxes=keep_force,
         expand_prompts=(),
-        mask_grow=6,
+        mask_grow=8,
     )
 
 

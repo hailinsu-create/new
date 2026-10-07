@@ -37,23 +37,23 @@ HEAD_BOX = {"lin": legacy.LIN_HEAD, "elena": legacy.ELENA_HEAD}
 
 NUDE_DENOISE = 1.0
 NUDE_CFG = 5.5
-# Residual: large leftover cloth/armor must be Fooocus-redrawn (LaMa copies nearby fur/print → "meat skin").
-# LaMa only for tiny islands; touch stays very low or is skipped when residual is still high.
-RESIDUAL_FOOOCUS_DENOISE = 1.0
-RESIDUAL_TOUCH_DENOISE = 0.18
+# Residual P0: always LaMa-hard-erase first, then mid denoise Fooocus (never 1.0 on leftover —
+# denoise 1.0 residual redraws were producing meat-smear legs / translucent Elena torso).
+RESIDUAL_FOOOCUS_DENOISE = 0.62
+RESIDUAL_TOUCH_DENOISE = 0.35
 RESIDUAL_TOUCH_CFG = 4.0
-LAMA_RESIDUAL_MAX_RATIO = 0.08
-LAMA_RESIDUAL_MAX_PIXELS = 8000
+LAMA_RESIDUAL_MAX_RATIO = 0.12
+LAMA_RESIDUAL_MAX_PIXELS = 12000
 TORN_RIM_DENOISE = 0.30
-EDGE_DENOISE = 0.38
+EDGE_DENOISE = 0.32
 BAND_HEIGHT = 420
 BAND_GROW = 0  # the garment mask is already grown and protection-clipped
-MAX_NUDE_PASSES = 4
+MAX_NUDE_PASSES = 3
 RESIDUAL_OK = 0.05
 RESIDUAL_MIN_PIXELS = 3500
-# When leftover is still large, grow it before the Fooocus redo so sheer print edges are covered.
-# Elena: keep growth small so redo does not chew the human/horse junction.
-RESIDUAL_REDO_GROW = {"lin": 18, "elena": 8}
+# Grow leftover before mid-denoise redo; keep Elena tiny so junction stays intact.
+RESIDUAL_REDO_GROW = {"lin": 12, "elena": 4}
+MAX_RESIDUAL_PASSES = {"lin": 2, "elena": 1}
 SEED = 20261008
 BANNED_HOST_PARTS = ("weste.seetacloud", "xaxna66hqt", "sa4eaxgcuq")
 
@@ -80,7 +80,7 @@ NUDE_EDGE_POS = "matching bare skin, seamless blend to surrounding skin and back
 NUDE_EDGE_NEG = "seam, hard edge, cloth, fabric, hem, smear, blur, plastic, text, watermark, extra limbs"
 
 # Lin collar band (below face_clear, above the bosom). First pass uses this instead of breast wording.
-COLLAR_TO_Y = {"lin": 380}
+COLLAR_TO_Y = {"lin": 395}
 COLLAR_POS = (
     "bare neck and upper chest skin only, skin tone matches the face and neck, smooth collarbone, "
     "same adult woman, one person only"
@@ -493,13 +493,15 @@ def undress_one(
         collar = (COLLAR_TO_Y[actor], COLLAR_POS, COLLAR_NEG) if actor in COLLAR_TO_Y else None
         base = plate
         target = garment.copy()
-        # Keep Elena's human/horse seam out of the first Fooocus hole — it becomes smear otherwise.
+        # Keep mare below horse_guard_y out of the hole. Do NOT raise the cut (old -48 left
+        # fauld/waist armor unmasked → floating junction plates).
         if actor == "elena" and plan.horse_guard_y:
             y_cut = int(plan.horse_guard_y / sem.BASE[1] * shape[0])
-            target[max(0, y_cut - 48) :, :] = False
-            print(f"ELENA_CLIP_JUNCTION y>={max(0, y_cut - 48)}", flush=True)
+            target[y_cut:, :] = False
+            print(f"ELENA_CLIP_JUNCTION y>={y_cut}", flush=True)
         best_ratio = float("inf")
         best_image, best_left = plate, garment
+        max_res = MAX_RESIDUAL_PASSES.get(actor, 2)
         for n in range(MAX_NUDE_PASSES):
             if n == 0:
                 # 420px bands rarely sit entirely above COLLAR_TO_Y, so split the collar mask explicitly.
@@ -534,18 +536,25 @@ def undress_one(
                 meta["passes"].append({"kind": "nude", "n": 0, "denoise": NUDE_DENOISE, "lama_prefill": True})
             else:
                 leftover_px = int(target.sum())
-                # Large leftovers: Fooocus redraw with neutral fill. Tiny leftovers: LaMa erase only.
-                use_lama = best_ratio <= LAMA_RESIDUAL_MAX_RATIO and leftover_px <= LAMA_RESIDUAL_MAX_PIXELS
-                if use_lama:
+                grow_px = RESIDUAL_REDO_GROW.get(actor, 12)
+                redo_mask = sem.dilate(target, grow_px) & sem.box_array(shape, plan.roi)
+                redo_mask &= ~sem.box_array(shape, plan.face_clear)
+                if plan.horse_guard_y:
+                    y_cut = int(plan.horse_guard_y / sem.BASE[1] * shape[0])
+                    # Buffer above mare so residual does not chew the human/horse seam.
+                    redo_mask[max(0, y_cut - 16) :, :] = False
+                tiny = best_ratio <= LAMA_RESIDUAL_MAX_RATIO and leftover_px <= LAMA_RESIDUAL_MAX_PIXELS
+                # Always LaMa-hard-erase leftovers first (P0). Tiny → light touch; large → mid Fooocus.
+                current = run_bands(
+                    host, models, base, redo_mask if redo_mask.any() else target,
+                    positive=RESIDUAL_SKIN_POS, negative=RESIDUAL_SKIN_NEG, seed=seed + n * 50,
+                    stem=f"{stem}-p{n}lama", denoise=0.0, edge=False, input_dir=input_dir, out_dir=work,
+                    lama_only=True,
+                )
+                meta["passes"].append({"kind": "lama_residual", "n": n, "pixels": leftover_px})
+                if tiny:
                     current = run_bands(
-                        host, models, base, target,
-                        positive=RESIDUAL_SKIN_POS, negative=RESIDUAL_SKIN_NEG, seed=seed + n * 50,
-                        stem=f"{stem}-p{n}lama", denoise=0.0, edge=False, input_dir=input_dir, out_dir=work,
-                        lama_only=True,
-                    )
-                    meta["passes"].append({"kind": "lama_residual", "n": n, "pixels": leftover_px})
-                    current = run_bands(
-                        host, models, current, target,
+                        host, models, current, redo_mask if redo_mask.any() else target,
                         positive=RESIDUAL_SKIN_POS, negative=RESIDUAL_SKIN_NEG, seed=seed + n * 50 + 3,
                         stem=f"{stem}-p{n}touch", denoise=RESIDUAL_TOUCH_DENOISE, edge=True,
                         input_dir=input_dir, out_dir=work, cfg=RESIDUAL_TOUCH_CFG,
@@ -554,21 +563,15 @@ def undress_one(
                         {"kind": "touch", "n": n, "denoise": RESIDUAL_TOUCH_DENOISE}
                     )
                 else:
-                    grow_px = RESIDUAL_REDO_GROW.get(actor, 12)
-                    redo_mask = sem.dilate(target, grow_px) & sem.box_array(shape, plan.roi)
-                    redo_mask &= ~sem.box_array(shape, plan.face_clear)
-                    if plan.horse_guard_y:
-                        y_cut = int(plan.horse_guard_y / sem.BASE[1] * shape[0])
-                        # Keep a buffer above the horse guard so junction is not Fooocus-chewed.
-                        redo_mask[max(0, y_cut - 24) :, :] = False
                     print(
                         f"RESIDUAL_FOOOCUS {stem} pass={n} ratio={best_ratio:.4f} "
-                        f"pixels={leftover_px} grow={grow_px} grown={int(redo_mask.sum())}",
+                        f"pixels={leftover_px} grow={grow_px} grown={int(redo_mask.sum())} "
+                        f"denoise={RESIDUAL_FOOOCUS_DENOISE}",
                         flush=True,
                     )
                     current = run_bands(
-                        host, models, base, redo_mask,
-                        positive=RESIDUAL_SKIN_POS, negative=RESIDUAL_SKIN_NEG, seed=seed + n * 50,
+                        host, models, current, redo_mask if redo_mask.any() else target,
+                        positive=RESIDUAL_SKIN_POS, negative=RESIDUAL_SKIN_NEG, seed=seed + n * 50 + 7,
                         stem=f"{stem}-p{n}redo", denoise=RESIDUAL_FOOOCUS_DENOISE, edge=False,
                         input_dir=input_dir, out_dir=work, cfg=NUDE_CFG, lama_prefill=True,
                     )
@@ -597,15 +600,25 @@ def undress_one(
             base, target = best_image, best_left if best_left.any() else left
             if best_ratio < RESIDUAL_OK:
                 break
-            # Elena: further Fooocus residual passes chew the human/horse junction into smear.
-            if actor == "elena" and n == 0 and best_ratio < 0.28:
+            if n >= max_res:
                 print(
-                    f"ELENA_STOP_RESIDUAL {stem} ratio={best_ratio:.4f} "
-                    "(protect centaur junction)",
+                    f"STOP_RESIDUAL {stem} n={n} max={max_res} ratio={best_ratio:.4f}",
                     flush=True,
                 )
                 break
         current = best_image
+        # Lin: one dedicated collar band after residual loop — standing collar often survives residual.
+        if actor == "lin" and collar is not None:
+            collar_mask = sem.box_array(shape, (330, 275, 610, 395))
+            collar_mask = sem.dilate(collar_mask, 10) & ~sem.box_array(shape, plan.face_clear)
+            if collar_mask.any():
+                current = run_bands(
+                    host, models, current, collar_mask,
+                    positive=collar[1], negative=collar[2], seed=seed + 77, stem=f"{stem}-collar-fin",
+                    denoise=0.85, edge=False, input_dir=input_dir, out_dir=work,
+                    cfg=NUDE_CFG, lama_prefill=True,
+                )
+                meta["passes"].append({"kind": "collar_fin", "denoise": 0.85})
         meta["best_residual_ratio"] = round(best_ratio, 4)
         edge_target = garment
 
