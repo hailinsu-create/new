@@ -42,7 +42,7 @@
     "2": {
       "class_type": "SAMModelLoader (segment anything)",
       "inputs": {
-        "model_name": "sam_vit_b_01ec64.pth"
+        "model_name": "sam_vit_b (375MB)"
       }
     },
     "3": {

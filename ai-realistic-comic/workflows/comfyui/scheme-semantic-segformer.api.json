@@ -18,41 +18,61 @@
           "1",
           0
         ],
-        "Face": false,
-        "Hair": false,
-        "Hat": false,
-        "Sunglass": false,
-        "Left-arm": false,
-        "Right-arm": false,
-        "Left-leg": false,
-        "Right-leg": false,
-        "Upper-clothes": true,
-        "Skirt": true,
-        "Pants": true,
-        "Dress": true,
-        "Belt": true,
-        "shoe": false,
-        "bag": false,
-        "Scarf": true
-      }
-    },
-    "3": {
-      "class_type": "MaskToImage",
-      "inputs": {
-        "mask": [
-          "2",
-          1
-        ]
+        "Face": true,
+        "Hat": true,
+        "Hair": true,
+        "Upper_clothes": false,
+        "Skirt": false,
+        "Pants": false,
+        "Dress": false,
+        "Belt": false,
+        "shoe": true,
+        "leg": true,
+        "arm": true,
+        "Bag": true,
+        "Scarf": false
       }
     },
     "4": {
       "class_type": "SaveImage",
       "inputs": {
         "images": [
-          "3",
+          "2",
           0
         ],
-        "filename_prefix": "seg"
+        "filename_prefix": "seg-garment"
+      }
+    },
+    "5": {
+      "class_type": "segformer_b2_clothes",
+      "inputs": {
+        "image": [
+          "1",
+          0
+        ],
+        "Face": true,
+        "Hat": true,
+        "Hair": true,
+        "Upper_clothes": true,
+        "Skirt": true,
+        "Pants": true,
+        "Dress": true,
+        "Belt": true,
+        "shoe": true,
+        "leg": true,
+        "arm": true,
+        "Bag": true,
+        "Scarf": true
+      }
+    },
+    "6": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "5",
+          0
+        ],
+        "filename_prefix": "seg-background"
       }
     }
   }
