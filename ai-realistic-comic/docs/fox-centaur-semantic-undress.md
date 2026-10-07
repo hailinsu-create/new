@@ -52,6 +52,12 @@ python workflows/comfyui/run_fox_centaur_semantic.py --score-only --out <含 png
 
 只走 Codex CLI，沿用 `score-nude.txt` / `score-torn.txt`，第一张是各自的 `ref-face.png`，第二张是结果。八项加硬门，收留线均分 ≥ 9 且硬门空。Codex 不可用（没有二进制、未登录、额度用完、超时、JSON 解析失败）就打印 `SCORE_FAILED codex <actor> <mode> reason=<原因>`，写 sidecar 和 `.score-fail.json`，**不回退 Grok，不换别的视觉模型，也不本地估分**。出图不因此中断。
 
-## 状态
+工作流 JSON：`workflows/comfyui/scheme-semantic-*.api.json` 八个（SegFormer、两个 DINO、四个 inpaint、收边），由 `--emit-examples <目录>` 生成，测试里核对和脚本一致。MASK 输出口在机器上按 `/object_info` 取，JSON 里写的是 1。
 
-实机结果见下一节「2026-10-07 实跑」，实跑后补。
+## 状态（2026-10-07）
+
+- 离线完成：蒙版逻辑、torn 挖洞、残留检查、Codex-only 打分、安装脚本、八个 API 图、说明文档；`tests/test_semantic_undress.py` 与 `tests/test_fox_centaur_undress.py` 通过。
+- **没在机器上跑过。** 节点类名（`segformer_b2_clothes` 的输出口、DINO+SAM 的节点名）和权重路径按公开仓库写，装完后以 `--check-stack` 和 `/object_info` 为准，不符就改常量。
+- 阻塞：北京 B `359a49a1c3-4cda10df` 已关机，开机弹窗「该主机空闲GPU不足…主机GPU空闲数量：0 卡」。需要用户给「克隆到有空卡主机」或其它开机授权。F34 不动。
+- 开机后顺序：`install_undress_stack.sh inventory` → `install` → `--check-stack` → 先两张 nude，再两张 torn → Codex 打分（VM 无 codex 则 `SCORE_FAILED codex ... reason=cli_missing`）→ 机内关机留盘 → 回传四张和 json。
+- AutoDL 余额：无开发者 Token，待读。

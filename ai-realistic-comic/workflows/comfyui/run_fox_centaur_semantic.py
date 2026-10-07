@@ -355,6 +355,44 @@ def already_passed(out_dir: Path, stem: str) -> bool:
         return False
 
 
+def emit_examples(directory: Path) -> None:
+    """Static API graphs for the ComfyUI UI. Node output slots follow /object_info at run time."""
+    directory.mkdir(parents=True, exist_ok=True)
+    ckpt = "RealVisXL_V5.0_fp16.safetensors"
+    why = "Semantic undress. Output slot for MASK is resolved from /object_info by the runner; slot 1 shown here."
+
+    def dump(name: str, prompt: dict, **extra: object) -> None:
+        body = {"source": {"why": why, "doc": "docs/fox-centaur-semantic-undress.md", **extra}, "prompt": prompt}
+        (directory / name).write_text(json.dumps(body, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    dump("scheme-semantic-segformer.api.json", sem.segformer_graph("plate.png"), stage="garment mask 1")
+    for actor, plan in sem.PLANS.items():
+        prompts = sem.all_dino_prompts(plan)
+        dump(
+            f"scheme-semantic-dino-{actor}.api.json",
+            sem.dino_masks_graph("plate.png", prompts),
+            stage="garment mask 2 + protect",
+            prompts=list(prompts),
+            save_ids=sem.dino_save_ids(prompts),
+        )
+        for mode, (pos, neg), denoise in (
+            ("nude", nude_text(actor), NUDE_DENOISE),
+            ("torn", torn_text(actor), TORN_DENOISE),
+        ):
+            graph = inpaint_crop_graph(
+                ckpt=ckpt, crop_name="band-crop.png", mask_name="band-crop-mask.png",
+                positive=pos, negative=neg, seed=SEED, prefix=f"{actor}-{mode}",
+                denoise=denoise, fooocus=True, differential=False, masked_fill=True, fill_mode="neutral",
+            )
+            dump(f"scheme-semantic-inpaint-{actor}-{mode}.api.json", graph, stage="neutral fill + Fooocus", denoise=denoise)
+    edge = inpaint_crop_graph(
+        ckpt=ckpt, crop_name="edge-crop.png", mask_name="edge-crop-mask.png",
+        positive=legacy.EDGE_POS, negative=legacy.EDGE_NEG, seed=SEED, prefix="edge",
+        denoise=EDGE_DENOISE, fooocus=True, differential=True, masked_fill=False,
+    )
+    dump("scheme-semantic-edge.api.json", edge, stage="edge blend", denoise=EDGE_DENOISE)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", default="http://127.0.0.1:8188")
@@ -367,8 +405,12 @@ def main() -> None:
     parser.add_argument("--check-stack", action="store_true", help="Only list missing ComfyUI nodes, then exit.")
     parser.add_argument("--no-score", action="store_true", help="Generate only.")
     parser.add_argument("--score-only", action="store_true", help="Score existing PNGs in --out. No ComfyUI needed.")
+    parser.add_argument("--emit-examples", type=Path, help="Write the API graphs to this directory and exit.")
     args = parser.parse_args()
     check_host(args.host)
+    if args.emit_examples:
+        emit_examples(args.emit_examples)
+        return
 
     actors = args.only or ["lin", "elena"]
     modes = ["nude", "torn"] if args.mode == "both" else [args.mode]

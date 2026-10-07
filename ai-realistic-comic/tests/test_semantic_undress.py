@@ -168,3 +168,17 @@ def test_forbidden_hosts_and_install_script_never_name_f34_or_g09():
         raise AssertionError("F34 host accepted")
     script = (COMFY / "install_undress_stack.sh").read_text(encoding="utf-8")
     assert "xaxna66hqt" not in script and "sa4eaxgcuq" not in script
+
+
+def test_emitted_examples_match_the_runner(tmp_path):
+    run.emit_examples(tmp_path)
+    names = sorted(p.name for p in tmp_path.glob("scheme-semantic-*.api.json"))
+    assert len(names) == 8
+    nude = json.loads((tmp_path / "scheme-semantic-inpaint-lin-nude.api.json").read_text())
+    assert nude["prompt"]["15"]["inputs"]["denoise"] == 1.0
+    assert nude["prompt"]["51"]["inputs"]["fill"] == "neutral"
+    assert "72" not in nude["prompt"]
+    edge = json.loads((tmp_path / "scheme-semantic-edge.api.json").read_text())
+    assert edge["prompt"]["72"]["class_type"] == "DifferentialDiffusion" and "51" not in edge["prompt"]
+    committed = json.loads((COMFY / "scheme-semantic-inpaint-lin-nude.api.json").read_text())
+    assert committed == nude
