@@ -97,7 +97,9 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 3. 装栈：把脚本、两张成衣底板、打分提示、两张锁脸用 tar 传到 `/root/autodl-tmp/arc/ai-realistic-comic`，跑 `install_undress_stack.sh install`，重启 ComfyUI（按进程号），然后 `--check-stack`。缺节点就停。
 4. 出图：先 nude（林、伊莲），再 torn（林、伊莲），`--no-score`，结果在机器上的 `/root/autodl-tmp/fox-semantic-out`。
 5. 回传到 `/opt/cursor/artifacts/fox-centaur-semantic`，本机 Codex 打分，过程文件之外的 png/json 拷进 `library/stills/fox-centaur-embrace/semantic/`。Codex 不可用：`SCORE_FAILED codex ... reason=cli_missing`，不回退。
-6. 关机：到过机器之后无论前面哪一步失败都会执行，机器内部 `shutdown`，数据盘保留；随后读余额（无 Token 打印 `BALANCE_PENDING`）。`--keep-on` 才跳过关机。
+6. 关机：全流程干净跑完才执行，机器内部 `shutdown`，数据盘保留；随后读余额（无 Token 打印 `BALANCE_PENDING`）。中途有步骤失败时默认**不关机**并打印 `MACHINE_STILL_ON`，因为拿到空卡不容易，修好后用 `--no-power-on` 接着跑；要失败也关机加 `--shutdown-on-failure`，要干净跑完也不关加 `--keep-on`。
+
+踩过的坑（2026-10-07）：远端重启 ComfyUI 时 `pgrep -f 'main.py ...'` 会匹配到执行它自己的 SSH 命令行，把自己杀掉，随后旧版「失败也关机」的收尾把机器关了。现在 pattern 写成 `[m]ain.py`，并有测试守着。
 
 2026-10-07 读到的余额是 ¥21.91（21910 厘），在任何开机之前。
 

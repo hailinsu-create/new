@@ -399,12 +399,12 @@ def test_wait_ssh_stops_with_clear_message_on_repeated_publickey_denial():
         raise AssertionError("no stop")
 
 
-def test_bringup_always_shuts_down_after_a_failed_step(monkeypatch):
+def _bringup_with_failure(monkeypatch, argv):
     log = []
-    monkeypatch.setattr(sys, "argv", ["bringup_and_run.py", "--no-power-on"])
-    monkeypatch.setattr(bring, "wait_ssh", lambda minutes: log.append("wait"))
-    monkeypatch.setattr(bring, "ship", lambda: log.append("ship"))
-    monkeypatch.setattr(bring, "ssh", lambda cmd, **k: log.append(f"ssh:{cmd[:30]}"))
+    monkeypatch.setattr(sys, "argv", ["bringup_and_run.py", "--no-power-on", *argv])
+    monkeypatch.setattr(bring, "wait_ssh", lambda minutes: None)
+    monkeypatch.setattr(bring, "ship", lambda light=False: None)
+    monkeypatch.setattr(bring, "ssh", lambda cmd, **k: None)
     monkeypatch.setattr(bring, "restart_comfy", lambda: (_ for _ in ()).throw(SystemExit("comfy never came up")))
     monkeypatch.setattr(bring, "shutdown_machine", lambda: log.append("shutdown"))
     monkeypatch.setattr(power, "balance", lambda: log.append("balance") or 0)
@@ -412,7 +412,18 @@ def test_bringup_always_shuts_down_after_a_failed_step(monkeypatch):
         bring.main()
     except SystemExit as exc:
         assert exc.code == 1
-    assert log[-2:] == ["shutdown", "balance"]
+    return log
+
+
+def test_failed_step_keeps_the_machine_on_unless_asked(monkeypatch, capsys):
+    assert _bringup_with_failure(monkeypatch, []) == ["balance"]
+    assert "MACHINE_STILL_ON" in capsys.readouterr().out
+    assert _bringup_with_failure(monkeypatch, ["--shutdown-on-failure"]) == ["shutdown", "balance"]
+
+
+def test_restart_command_cannot_match_itself():
+    source = (COMFY / "bringup_and_run.py").read_text(encoding="utf-8")
+    assert "pgrep -f '[m]ain.py" in source
 
 
 def test_bringup_ships_no_secrets_or_forbidden_machines():

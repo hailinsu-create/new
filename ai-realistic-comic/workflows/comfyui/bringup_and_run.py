@@ -9,10 +9,11 @@ Steps, in order:
  3. ship the scripts, plates and lock faces; run install_undress_stack.sh install; restart ComfyUI.
  4. run_fox_centaur_semantic.py --check-stack, then nude lin, nude elena, torn lin, torn elena.
  5. pull results back, score them with Codex only (no CLI -> SCORE_FAILED, no fallback).
- 6. shut the machine down from the inside (disk kept), then print the balance.
+ 6. after a clean run, shut the machine down from the inside (disk kept), then print the balance.
+    After a failed step the machine is left on (and says so) unless --shutdown-on-failure,
+    because a free GPU is hard to get twice.
 
-Never clones, never uses the no-GPU mode, never touches F34/G09. Once the machine has been
-reached, step 6 runs even when an earlier step failed, so a broken run does not keep billing.
+Never clones, never uses the no-GPU mode, never touches F34/G09.
 If SSH keeps answering "Permission denied (publickey)" the machine is on but the key is not
 authorised: the script stops with NEED_SSH_KEY_AUTH and tells you what to add.
 """
@@ -85,14 +86,24 @@ def ssh_argv(extra: list[str] | None = None) -> list[str]:
 
 
 def ssh(command: str, *, timeout: int = 7200, check: bool = True) -> subprocess.CompletedProcess:
+    """Run a remote command and stream its output line by line so a long install is visible."""
     print(f"$ ssh {command[:200]}", flush=True)
-    result = subprocess.run(ssh_argv([command]), capture_output=True, text=True, timeout=timeout)
-    if result.stdout:
-        print(result.stdout, end="", flush=True)
-    if result.stderr:
-        print(result.stderr, end="", file=sys.stderr, flush=True)
-    if check and result.returncode != 0:
-        raise SystemExit(f"REMOTE_FAILED rc={result.returncode} {command[:120]}")
+    proc = subprocess.Popen(ssh_argv([command]), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    lines: list[str] = []
+    start = time.monotonic()
+    assert proc.stdout is not None
+    for line in proc.stdout:
+        if "setlocale" in line:
+            continue
+        lines.append(line)
+        print(line, end="", flush=True)
+        if time.monotonic() - start > timeout:
+            proc.kill()
+            raise SystemExit(f"REMOTE_TIMEOUT {command[:120]}")
+    proc.wait()
+    result = subprocess.CompletedProcess(proc.args, proc.returncode, "".join(lines), "")
+    if check and proc.returncode != 0:
+        raise SystemExit(f"REMOTE_FAILED rc={proc.returncode} {command[:120]}")
     return result
 
 
@@ -129,9 +140,11 @@ def wait_ssh(minutes: float, *, sleep=time.sleep, state=ssh_state) -> None:
     raise SystemExit("SSH_TIMEOUT machine never became reachable")
 
 
-def ship() -> None:
-    members = [m for m in SHIP if (ROOT / m).exists()]
-    missing = sorted(set(SHIP) - set(members))
+def ship(light: bool = False) -> None:
+    """light: only the scripts. The plates and lock faces are megabytes and the link is slow."""
+    wanted = [m for m in SHIP if m.startswith("workflows/")] if light else list(SHIP)
+    members = [m for m in wanted if (ROOT / m).exists()]
+    missing = sorted(set(wanted) - set(members))
     if missing:
         raise SystemExit(f"SHIP_MISSING {missing}")
     tar = ["tar", "-C", str(ROOT), "-cf", "-"]
@@ -151,7 +164,7 @@ def ship() -> None:
 
 def restart_comfy() -> None:
     ssh(
-        "for pid in $(pgrep -f 'main.py --listen 127.0.0.1 --port 8188'); do kill $pid; done; sleep 3; "
+        "for pid in $(pgrep -f '[m]ain.py --listen 127.0.0.1 --port 8188'); do kill $pid; done; sleep 3; "
         f"cd {COMFY_DIR} && nohup {REMOTE_PY} main.py --listen 127.0.0.1 --port 8188 --disable-auto-launch "
         "> /root/autodl-tmp/comfyui.log 2>&1 &"
     )
@@ -205,7 +218,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--no-power-on", action="store_true", help="Machine is already on.")
     parser.add_argument("--skip-install", action="store_true")
+    parser.add_argument("--light-ship", action="store_true", help="Only re-send the scripts, not the plates.")
     parser.add_argument("--keep-on", action="store_true", help="Do not shut down at the end.")
+    parser.add_argument(
+        "--shutdown-on-failure",
+        action="store_true",
+        help="Also shut down when a step failed. Default: stay on so the fix can be retried without waiting for a GPU again.",
+    )
     parser.add_argument("--power-minutes", type=float, default=120)
     parser.add_argument("--ssh-minutes", type=float, default=15)
     parser.add_argument("--out", type=Path, default=LOCAL_ARTIFACTS)
@@ -221,7 +240,7 @@ def main() -> None:
 
     failure: BaseException | None = None
     try:
-        ship()
+        ship(args.light_ship)
         if not args.skip_install:
             ssh(f"bash {REMOTE_ROOT}/workflows/comfyui/install_undress_stack.sh install", timeout=7200)
         restart_comfy()
@@ -235,7 +254,10 @@ def main() -> None:
         failure = exc
         print(f"BRINGUP_FAILED {exc}", flush=True)
     finally:
-        if not args.keep_on:
+        if args.keep_on or (failure is not None and not args.shutdown_on_failure):
+            if failure is not None:
+                print("MACHINE_STILL_ON a step failed; not shutting down. It is billing. Fix and rerun with --no-power-on, or shut it down.", flush=True)
+        else:
             shutdown_machine()
         power.balance()
     if failure is not None:
