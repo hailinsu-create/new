@@ -105,6 +105,12 @@ def test_tear_mask_leaves_remnants_and_keeps_bands():
     assert (torn != other).any()
 
 
+def test_tear_anchors_force_holes_at_requested_rows():
+    garment = _rect(100, 100, 300, 1100)
+    torn = sem.tear_mask(garment, seed=3, fraction=0.2, anchors=(0.2, 0.5))
+    assert torn[300, 200] and torn[600, 200]
+
+
 def test_residual_ratio_and_bands():
     before = _rect(100, 100, 300, 1000)
     assert sem.residual_ratio(before, np.zeros_like(before)) == 0.0
@@ -249,7 +255,7 @@ def _fake_backend(monkeypatch, plan_name):
 
     def fake_segment(host, image_path, plan_, work, tag, input_dir):
         state["segments"] += 1
-        garment_left = torso if state["segments"] == 1 else np.zeros(shape, dtype=bool)
+        garment_left = torso if tag.endswith("-src") else np.zeros(shape, dtype=bool)
         garment = {plan_.garment_prompts[0]: garment_left}
         protect = {plan_.protect_prompts[0]: _rect(380, 40, 560, 280)}
         return sem.MaskEvidence(segformer=None, garment=garment, protect=protect, horse={})

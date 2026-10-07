@@ -2,8 +2,8 @@
   "source": {
     "why": "Semantic undress. Output slot for MASK is resolved from /object_info by the runner; slot 1 shown here.",
     "doc": "docs/fox-centaur-semantic-undress.md",
-    "stage": "neutral fill + Fooocus",
-    "denoise": 0.96
+    "stage": "torn = nude composite through jagged holes, then this rim pass",
+    "denoise": 0.55
   },
   "prompt": {
     "3": {
@@ -15,7 +15,7 @@
     "4": {
       "class_type": "CLIPTextEncode",
       "inputs": {
-        "text": "shattered cracked breastplate with jagged broken metal edges, large holes in armor, bare breasts and belly skin visible through wrecked plates, armor shards still on shoulders and waist, same adult woman, brown eyes, round gold wire glasses, waist still joins bay mare body, one person only, no extra arms",
+        "text": "broken jagged golden armor plate edge around the hole, bent cracked metal rim, bare skin showing through, same adult woman, one person only",
         "clip": [
           "3",
           1
@@ -25,7 +25,7 @@
     "5": {
       "class_type": "CLIPTextEncode",
       "inputs": {
-        "text": "child, teen, extra person, fully nude, armor completely gone, green eyes, blue-grey eyes, blue-gray eyes, pointed ears, stallion, extra legs, smear, plastic, text, watermark",
+        "text": "intact armor, smooth plate, seam, child, teen, extra person, smear, plastic, text, watermark",
         "clip": [
           "3",
           1
@@ -35,13 +35,13 @@
     "1": {
       "class_type": "LoadImage",
       "inputs": {
-        "image": "band-crop.png"
+        "image": "rim-crop.png"
       }
     },
     "2": {
       "class_type": "LoadImage",
       "inputs": {
-        "image": "band-crop-mask.png"
+        "image": "rim-crop-mask.png"
       }
     },
     "50": {
@@ -52,21 +52,6 @@
           0
         ],
         "channel": "red"
-      }
-    },
-    "51": {
-      "class_type": "INPAINT_MaskedFill",
-      "inputs": {
-        "image": [
-          "1",
-          0
-        ],
-        "mask": [
-          "50",
-          0
-        ],
-        "fill": "neutral",
-        "falloff": 0
       }
     },
     "40": {
@@ -85,7 +70,7 @@
           2
         ],
         "pixels": [
-          "51",
+          "1",
           0
         ],
         "mask": [
@@ -99,7 +84,7 @@
       "class_type": "KSampler",
       "inputs": {
         "model": [
-          "71",
+          "72",
           0
         ],
         "seed": 20261008,
@@ -119,7 +104,7 @@
           "40",
           2
         ],
-        "denoise": 0.96
+        "denoise": 0.55
       }
     },
     "16": {
@@ -142,7 +127,7 @@
           "16",
           0
         ],
-        "filename_prefix": "elena-torn"
+        "filename_prefix": "elena-torn-rim"
       }
     },
     "70": {
@@ -167,6 +152,16 @@
           "40",
           2
         ]
+      }
+    },
+    "72": {
+      "class_type": "DifferentialDiffusion",
+      "inputs": {
+        "model": [
+          "71",
+          0
+        ],
+        "strength": 1.0
       }
     }
   }

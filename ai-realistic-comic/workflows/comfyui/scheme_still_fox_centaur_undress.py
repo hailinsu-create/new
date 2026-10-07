@@ -75,6 +75,7 @@ ELENA_NUDE_POS = (
 ELENA_NUDE_NEG = (
     "child, teen, extra person, extra face, armor, plate, gauntlet, gorget, pauldron, mail, "
     "clothes, bra, green eyes, blue-grey eyes, blue-gray eyes, pointed ears, stallion, "
+    "glove, black glove, bracer, gold bracer, strap, leather belt, choker, feathers, black cloth, "
     "extra legs, smear, plastic, text, watermark"
 )
 

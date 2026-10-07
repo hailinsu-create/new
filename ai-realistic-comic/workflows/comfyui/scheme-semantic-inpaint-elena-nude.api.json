@@ -25,7 +25,7 @@
     "5": {
       "class_type": "CLIPTextEncode",
       "inputs": {
-        "text": "child, teen, extra person, extra face, armor, plate, gauntlet, gorget, pauldron, mail, clothes, bra, green eyes, blue-grey eyes, blue-gray eyes, pointed ears, stallion, extra legs, smear, plastic, text, watermark",
+        "text": "child, teen, extra person, extra face, armor, plate, gauntlet, gorget, pauldron, mail, clothes, bra, green eyes, blue-grey eyes, blue-gray eyes, pointed ears, stallion, glove, black glove, bracer, gold bracer, strap, leather belt, choker, feathers, black cloth, extra legs, smear, plastic, text, watermark",
         "clip": [
           "3",
           1

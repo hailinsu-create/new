@@ -11,6 +11,10 @@
       "fauld",
       "gorget",
       "golden armor",
+      "black glove",
+      "gold bracer",
+      "black cloth",
+      "leather strap",
       "face",
       "hair",
       "glasses",
@@ -25,11 +29,15 @@
       "fauld": "24",
       "gorget": "27",
       "golden armor": "30",
-      "face": "33",
-      "hair": "36",
-      "glasses": "39",
-      "horse body": "42",
-      "horse tail": "45"
+      "black glove": "33",
+      "gold bracer": "36",
+      "black cloth": "39",
+      "leather strap": "42",
+      "face": "45",
+      "hair": "48",
+      "glasses": "51",
+      "horse body": "54",
+      "horse tail": "57"
     }
   },
   "prompt": {
@@ -332,7 +340,7 @@
           "1",
           0
         ],
-        "prompt": "face",
+        "prompt": "black glove",
         "threshold": 0.3
       }
     },
@@ -370,7 +378,7 @@
           "1",
           0
         ],
-        "prompt": "hair",
+        "prompt": "gold bracer",
         "threshold": 0.3
       }
     },
@@ -408,7 +416,7 @@
           "1",
           0
         ],
-        "prompt": "glasses",
+        "prompt": "black cloth",
         "threshold": 0.3
       }
     },
@@ -446,7 +454,7 @@
           "1",
           0
         ],
-        "prompt": "horse body",
+        "prompt": "leather strap",
         "threshold": 0.3
       }
     },
@@ -484,7 +492,7 @@
           "1",
           0
         ],
-        "prompt": "horse tail",
+        "prompt": "face",
         "threshold": 0.3
       }
     },
@@ -505,6 +513,158 @@
           0
         ],
         "filename_prefix": "dino-11"
+      }
+    },
+    "46": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "hair",
+        "threshold": 0.3
+      }
+    },
+    "47": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "46",
+          1
+        ]
+      }
+    },
+    "48": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "47",
+          0
+        ],
+        "filename_prefix": "dino-12"
+      }
+    },
+    "49": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "glasses",
+        "threshold": 0.3
+      }
+    },
+    "50": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "49",
+          1
+        ]
+      }
+    },
+    "51": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "50",
+          0
+        ],
+        "filename_prefix": "dino-13"
+      }
+    },
+    "52": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "horse body",
+        "threshold": 0.3
+      }
+    },
+    "53": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "52",
+          1
+        ]
+      }
+    },
+    "54": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "53",
+          0
+        ],
+        "filename_prefix": "dino-14"
+      }
+    },
+    "55": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "horse tail",
+        "threshold": 0.3
+      }
+    },
+    "56": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "55",
+          1
+        ]
+      }
+    },
+    "57": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "56",
+          0
+        ],
+        "filename_prefix": "dino-15"
       }
     }
   }

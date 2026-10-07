@@ -182,7 +182,7 @@ def remote_run(args: str, *, check: bool = True) -> subprocess.CompletedProcess:
 
 def pull(local: Path) -> None:
     local.mkdir(parents=True, exist_ok=True)
-    remote = subprocess.Popen(ssh_argv([f"tar -C {REMOTE_OUT} -cf - ."]), stdout=subprocess.PIPE)
+    remote = subprocess.Popen(ssh_argv([f"tar -C {REMOTE_OUT} --exclude=work -cf - ."]), stdout=subprocess.PIPE)
     unpack = subprocess.run(["tar", "-C", str(local), "--no-overwrite-dir", "--no-same-permissions", "-xf", "-"], stdin=remote.stdout, capture_output=True)
     remote.stdout.close()
     remote.wait()
@@ -221,6 +221,9 @@ def main() -> None:
     parser.add_argument("--no-power-on", action="store_true", help="Machine is already on.")
     parser.add_argument("--skip-install", action="store_true")
     parser.add_argument("--light-ship", action="store_true", help="Only re-send the scripts, not the plates.")
+    parser.add_argument("--only", nargs="*", choices=("lin", "elena"), default=["lin", "elena"])
+    parser.add_argument("--mode", choices=("nude", "torn", "both"), default="both")
+    parser.add_argument("--attempt", type=int, default=0)
     parser.add_argument("--keep-on", action="store_true", help="Do not shut down at the end.")
     parser.add_argument(
         "--shutdown-on-failure",
@@ -248,7 +251,11 @@ def main() -> None:
         restart_comfy()
         remote_run("--check-stack")
         ssh(f"mkdir -p {REMOTE_OUT}")
-        run = remote_run(f"--only lin elena --mode both --no-score --out {shlex.quote(REMOTE_OUT)}", check=False)
+        run = remote_run(
+            f"--only {' '.join(args.only)} --mode {args.mode} --attempt {args.attempt} --no-score "
+            f"--out {shlex.quote(REMOTE_OUT)}",
+            check=False,
+        )
         pull(args.out)
         score_local(args.out)
         keep_in_repo(args.out)

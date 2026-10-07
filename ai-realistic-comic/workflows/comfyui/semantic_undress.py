@@ -79,6 +79,8 @@ class ActorPlan:
     keep_top_frac: float = 0.0
     keep_bottom_frac: float = 0.0
     tear_fraction: float = 0.62
+    # Rows (fraction of the garment's height) that must always carry a hole, so breasts and belly show.
+    tear_anchors: tuple[float, ...] = ()
     # SegFormer only counts within this many px of a DINO garment hit. 0 = trust SegFormer alone.
     segformer_support_px: int = 0
 
@@ -97,8 +99,9 @@ LIN = ActorPlan(
     roi=(280, 260, 680, 1400),
     face_clear=(300, 10, 620, 300),
     keep_top_frac=0.07,
-    keep_bottom_frac=0.18,
-    tear_fraction=0.62,
+    keep_bottom_frac=0.40,
+    tear_fraction=0.50,
+    tear_anchors=(0.16, 0.30, 0.44),
 )
 
 ELENA = ActorPlan(
@@ -111,18 +114,25 @@ ELENA = ActorPlan(
         "fauld",
         "gorget",
         "golden armor",
+        "black glove",
+        "gold bracer",
+        "black cloth",
+        "leather strap",
     ),
     protect_prompts=("face", "hair", "glasses"),
     roi=(60, 230, 560, 900),
     face_clear=(240, 10, 520, 230),
     use_segformer=True,
     segformer_support_px=40,
-    garment_wins_prompts=("breastplate", "pauldron", "vambrace", "gauntlet", "fauld", "gorget"),
+    garment_wins_prompts=(
+        "breastplate", "pauldron", "vambrace", "gauntlet", "fauld", "gorget", "black glove", "gold bracer", "leather strap",
+    ),
     horse_guard_y=690,
     horse_prompts=("horse body", "horse tail"),
     keep_top_frac=0.0,
     keep_bottom_frac=0.10,
-    tear_fraction=0.68,
+    tear_fraction=0.55,
+    tear_anchors=(0.14, 0.34, 0.58),
 )
 
 PLANS = {"lin": LIN, "elena": ELENA}
@@ -272,6 +282,7 @@ def tear_mask(
     keep_top_frac: float = 0.0,
     keep_bottom_frac: float = 0.0,
     max_blobs: int = 60,
+    anchors: tuple[float, ...] = (),
 ) -> np.ndarray:
     """Carve jagged holes inside the garment so remnants stay on the body."""
     if not garment.any():
@@ -293,10 +304,20 @@ def tear_mask(
     target = int(garment.sum() * fraction)
     base_radius = max(24, int(math.sqrt(garment.sum()) * 0.16))
     covered = 0
-    for _ in range(max_blobs):
-        idx = rng.randrange(len(axs))
-        cx, cy = int(axs[idx]), int(ays[idx])
-        radius = base_radius * rng.uniform(0.6, 1.3)
+    anchor_points: list[tuple[int, int]] = []
+    for frac in anchors:
+        row = top + int(span * frac)
+        cols = np.nonzero(allowed[row])[0] if 0 <= row < allowed.shape[0] else np.array([], dtype=int)
+        if cols.size:
+            anchor_points.append((int(np.median(cols)), row))
+    for blob in range(max_blobs):
+        if blob < len(anchor_points):
+            cx, cy = anchor_points[blob]
+            radius = base_radius * rng.uniform(1.0, 1.3)
+        else:
+            idx = rng.randrange(len(axs))
+            cx, cy = int(axs[idx]), int(ays[idx])
+            radius = base_radius * rng.uniform(0.6, 1.3)
         points = []
         spikes = rng.randint(9, 15)
         for k in range(spikes):
@@ -305,7 +326,7 @@ def tear_mask(
             points.append((cx + math.cos(angle) * jag, cy + math.sin(angle) * jag * 1.15))
         draw.polygon(points, fill=255)
         covered = int((np.asarray(holes) > 127)[allowed].sum())
-        if covered >= target:
+        if blob >= len(anchor_points) - 1 and covered >= target:
             break
     carved = (np.asarray(holes) > 127) & allowed
     return carved

@@ -36,7 +36,7 @@ STEM = legacy.OUT_STEM
 HEAD_BOX = {"lin": legacy.LIN_HEAD, "elena": legacy.ELENA_HEAD}
 
 NUDE_DENOISE = 1.0
-TORN_DENOISE = 0.96
+TORN_RIM_DENOISE = 0.55
 EDGE_DENOISE = 0.42
 BAND_HEIGHT = 420
 BAND_GROW = 0  # the garment mask is already grown and protection-clipped
@@ -68,10 +68,23 @@ NUDE_EDGE_POS = "matching bare skin, seamless blend to surrounding skin and back
 NUDE_EDGE_NEG = "seam, hard edge, cloth, fabric, hem, smear, blur, plastic, text, watermark, extra limbs"
 
 
+# The rim pass only repaints a narrow band along each hole, so it needs edge wording, not "heavily torn dress".
+LIN_RIM_POS = (
+    "ragged torn qipao silk edge, frayed threads, jagged tear along the hole, fabric curling away from bare skin, "
+    "same adult woman, one person only"
+)
+LIN_RIM_NEG = "intact dress, smooth hem, seam, child, teen, extra person, smear, plastic, text, watermark"
+ELENA_RIM_POS = (
+    "broken jagged golden armor plate edge around the hole, bent cracked metal rim, bare skin showing through, "
+    "same adult woman, one person only"
+)
+ELENA_RIM_NEG = "intact armor, smooth plate, seam, child, teen, extra person, smear, plastic, text, watermark"
+
+
 def torn_text(actor: str) -> tuple[str, str]:
     if actor == "lin":
-        return legacy.LIN_TORN_POS, legacy.LIN_TORN_NEG
-    return legacy.ELENA_TORN_POS, legacy.ELENA_TORN_NEG
+        return LIN_RIM_POS, LIN_RIM_NEG
+    return ELENA_RIM_POS, ELENA_RIM_NEG
 
 
 def check_host(host: str) -> None:
@@ -357,21 +370,33 @@ def undress_one(
     }
     if mode == "torn":
         positive, negative = torn_text(actor)
+        base_path = out_dir / f"{STEM[(actor, 'nude')]}.png"
+        if not base_path.exists():
+            base_path = undress_one(host, models, actor, "nude", out_dir, input_dir, attempt=attempt)
+        base = Image.open(base_path).convert("RGB")
         target = sem.tear_mask(
             garment,
             seed=seed,
             fraction=plan.tear_fraction,
             keep_top_frac=plan.keep_top_frac,
             keep_bottom_frac=plan.keep_bottom_frac,
+            anchors=plan.tear_anchors,
         )
         sem.overlay(plate, target, (40, 120, 220)).save(debug / f"{stem}-tear-overlay.png")
+        # Holes show the nude render, everything else keeps the original garment. Re-inpainting whole
+        # blobs made the model paint an intact dress again, so the tear is a composite plus a rim pass.
+        current = Image.composite(base, plate, sem.feather(target, radius=1))
+        meta["base"] = base_path.name
+        meta["passes"].append({"kind": "composite", "tear_fraction": plan.tear_fraction})
+        rim = sem.edge_band(target, 16) & sem.dilate(garment, 6) & sem.box_array(shape, plan.roi)
+        rim &= ~sem.box_array(shape, plan.face_clear)
         current = run_bands(
-            host, models, plate, target,
-            positive=positive, negative=negative, seed=seed, stem=f"{stem}-torn",
-            denoise=TORN_DENOISE, edge=False, input_dir=input_dir, out_dir=work,
+            host, models, current, rim,
+            positive=positive, negative=negative, seed=seed, stem=f"{stem}-rim",
+            denoise=TORN_RIM_DENOISE, edge=True, input_dir=input_dir, out_dir=work,
         )
-        meta["passes"].append({"kind": "torn", "denoise": TORN_DENOISE, "tear_fraction": plan.tear_fraction})
-        edge_target = target
+        meta["passes"].append({"kind": "rim", "denoise": TORN_RIM_DENOISE})
+        edge_target = None
     else:
         positive, negative = nude_text(actor)
         lower = (LOWER_FROM_Y[actor], LOWER_POS, LOWER_NEG) if actor in LOWER_FROM_Y else None
@@ -396,13 +421,20 @@ def undress_one(
             target = left
         edge_target = garment
 
+    if edge_target is None:
+        dest = out_dir / f"{stem}.png"
+        current.save(dest)
+        (out_dir / f"{stem}.run.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"STITCH {dest} {dest.stat().st_size}", flush=True)
+        return dest
+
     edge_zone = sem.edge_band(edge_target, 14) & sem.box_array(shape, plan.roi)
     face = sem.box_array(shape, plan.face_clear)
     edge_zone &= ~face
     current = run_bands(
         host, models, current, edge_zone,
-        positive=legacy.EDGE_POS if mode == "torn" else NUDE_EDGE_POS,
-        negative=legacy.EDGE_NEG if mode == "torn" else NUDE_EDGE_NEG,
+        positive=NUDE_EDGE_POS,
+        negative=NUDE_EDGE_NEG,
         seed=seed + 900, stem=f"{stem}-edge",
         denoise=EDGE_DENOISE, edge=True, input_dir=input_dir, out_dir=work,
     )
@@ -445,16 +477,21 @@ def emit_examples(directory: Path) -> None:
             prompts=list(prompts),
             save_ids=sem.dino_save_ids(prompts),
         )
-        for mode, (pos, neg), denoise in (
-            ("nude", nude_text(actor), NUDE_DENOISE),
-            ("torn", torn_text(actor), TORN_DENOISE),
-        ):
-            graph = inpaint_crop_graph(
-                ckpt=ckpt, crop_name="band-crop.png", mask_name="band-crop-mask.png",
-                positive=pos, negative=neg, seed=SEED, prefix=f"{actor}-{mode}",
-                denoise=denoise, fooocus=True, differential=False, masked_fill=True, fill_mode="neutral",
-            )
-            dump(f"scheme-semantic-inpaint-{actor}-{mode}.api.json", graph, stage="neutral fill + Fooocus", denoise=denoise)
+        graph = inpaint_crop_graph(
+            ckpt=ckpt, crop_name="band-crop.png", mask_name="band-crop-mask.png",
+            positive=nude_text(actor)[0], negative=nude_text(actor)[1], seed=SEED, prefix=f"{actor}-nude",
+            denoise=NUDE_DENOISE, fooocus=True, differential=False, masked_fill=True, fill_mode="neutral",
+        )
+        dump(f"scheme-semantic-inpaint-{actor}-nude.api.json", graph, stage="neutral fill + Fooocus", denoise=NUDE_DENOISE)
+        rim = inpaint_crop_graph(
+            ckpt=ckpt, crop_name="rim-crop.png", mask_name="rim-crop-mask.png",
+            positive=torn_text(actor)[0], negative=torn_text(actor)[1], seed=SEED, prefix=f"{actor}-torn-rim",
+            denoise=TORN_RIM_DENOISE, fooocus=True, differential=True, masked_fill=False,
+        )
+        dump(
+            f"scheme-semantic-inpaint-{actor}-torn.api.json", rim,
+            stage="torn = nude composite through jagged holes, then this rim pass", denoise=TORN_RIM_DENOISE,
+        )
     edge = inpaint_crop_graph(
         ckpt=ckpt, crop_name="edge-crop.png", mask_name="edge-crop-mask.png",
         positive=legacy.EDGE_POS, negative=legacy.EDGE_NEG, seed=SEED, prefix="edge",
