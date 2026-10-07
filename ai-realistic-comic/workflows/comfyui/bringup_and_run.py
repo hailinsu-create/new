@@ -25,6 +25,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -181,13 +182,24 @@ def remote_run(args: str, *, check: bool = True) -> subprocess.CompletedProcess:
 
 
 def pull(local: Path) -> None:
+    """Stream the remote output (minus the work dir) through a scratch dir.
+
+    Extracting straight into the artifacts mount fails on directory chmod, so unpack elsewhere and copy files.
+    """
     local.mkdir(parents=True, exist_ok=True)
-    remote = subprocess.Popen(ssh_argv([f"tar -C {REMOTE_OUT} --exclude=work -cf - ."]), stdout=subprocess.PIPE)
-    unpack = subprocess.run(["tar", "-C", str(local), "--no-overwrite-dir", "--no-same-permissions", "-xf", "-"], stdin=remote.stdout, capture_output=True)
+    scratch = Path(tempfile.mkdtemp(prefix="fox-semantic-pull-"))
+    remote = subprocess.Popen(ssh_argv([f"cd {REMOTE_OUT} && tar --exclude=work -cf - *"]), stdout=subprocess.PIPE)
+    unpack = subprocess.run(["tar", "-C", str(scratch), "-xf", "-"], stdin=remote.stdout, capture_output=True)
     remote.stdout.close()
     remote.wait()
     if remote.returncode != 0 or unpack.returncode != 0:
         raise SystemExit(f"PULL_FAILED {unpack.stderr[:200]!r}")
+    for source in scratch.rglob("*"):
+        if source.is_file():
+            target = local / source.relative_to(scratch)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(source, target)
+    shutil.rmtree(scratch, ignore_errors=True)
     print(f"PULLED -> {local}", flush=True)
 
 

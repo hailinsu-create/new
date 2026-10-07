@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import math
 import random
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
@@ -81,6 +81,10 @@ class ActorPlan:
     tear_fraction: float = 0.62
     # Rows (fraction of the garment's height) that must always carry a hole, so breasts and belly show.
     tear_anchors: tuple[float, ...] = ()
+    # Remnant check after a nude pass: the original garment prompts also fire on bare skin, so the re-check
+    # only trusts SegFormer plus these narrower prompts.
+    residual_prompts: tuple[str, ...] = ()
+    residual_wins_prompts: tuple[str, ...] = ()
     # SegFormer only counts within this many px of a DINO garment hit. 0 = trust SegFormer alone.
     segformer_support_px: int = 0
 
@@ -96,6 +100,7 @@ LIN = ActorPlan(
         "dress hem",
     ),
     protect_prompts=("face", "hair", "fox tail", "high heel shoes"),
+    residual_prompts=("silk cloth", "shoulder strap"),
     roi=(280, 260, 680, 1400),
     face_clear=(300, 10, 620, 300),
     keep_top_frac=0.07,
@@ -120,6 +125,8 @@ ELENA = ActorPlan(
         "leather strap",
     ),
     protect_prompts=("face", "hair", "glasses"),
+    residual_prompts=("glove", "bracer", "armor plate", "choker", "strap"),
+    residual_wins_prompts=("glove", "bracer", "armor plate", "strap"),
     roi=(60, 230, 560, 900),
     face_clear=(240, 10, 520, 230),
     use_segformer=True,
@@ -136,6 +143,15 @@ ELENA = ActorPlan(
 )
 
 PLANS = {"lin": LIN, "elena": ELENA}
+
+
+def residual_plan(plan: ActorPlan) -> ActorPlan:
+    return replace(
+        plan,
+        garment_prompts=plan.residual_prompts,
+        garment_wins_prompts=plan.residual_wins_prompts,
+        segformer_support_px=0,
+    )
 
 
 def scale_box(size: tuple[int, int], box: tuple[int, int, int, int]) -> tuple[int, int, int, int]:

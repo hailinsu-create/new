@@ -410,8 +410,9 @@ def undress_one(
             )
             tmp = work / f"{stem}-p{n}-result.png"
             current.save(tmp)
-            again = segment(host, tmp, plan, work, f"{stem}-a{attempt}-chk{n}", input_dir)
-            left = garment_from(plan, again, shape) & sem.dilate(garment, 24)
+            check_plan = sem.residual_plan(plan)
+            again = segment(host, tmp, check_plan, work, f"{stem}-a{attempt}-chk{n}", input_dir)
+            left = garment_from(check_plan, again, shape) & sem.dilate(garment, 24)
             sem.overlay(current, left).save(debug / f"{stem}-residual-p{n}.png")
             ratio = sem.residual_ratio(garment, left)
             meta["passes"].append({"kind": "nude", "n": n, "denoise": NUDE_DENOISE, "residual_ratio": round(ratio, 4)})
