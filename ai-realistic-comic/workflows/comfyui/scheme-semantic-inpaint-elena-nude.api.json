@@ -15,7 +15,7 @@
     "4": {
       "class_type": "CLIPTextEncode",
       "inputs": {
-        "text": "bare human torso skin only, natural breasts, visible nipples, skin tone matches the neck, bare arms, bare shoulders, bare forearms and bare hands, soft natural skin, waist joins the bay mare body, one person only",
+        "text": "smooth fair bare human torso skin only, skin pores, natural breasts, visible nipples, skin tone matches the neck, bare arms, bare shoulders, bare forearms and bare hands, soft natural skin, no leather or fur texture on belly, waist joins the bay mare body, one person only",
         "clip": [
           "3",
           1
@@ -25,7 +25,7 @@
     "5": {
       "class_type": "CLIPTextEncode",
       "inputs": {
-        "text": "child, teen, extra person, extra face, armor, plate, gauntlet, gorget, pauldron, mail, clothes, bra, green eyes, blue-grey eyes, blue-gray eyes, pointed ears, stallion, glove, black glove, bracer, gold bracer, strap, leather belt, choker, feathers, black cloth, sleeve, long sleeve, jacket, shirt, harness, belt, loincloth, skirt, saddle, reins, bridle, fabric, extra legs, smear, plastic, text, watermark",
+        "text": "child, teen, extra person, extra face, armor, plate, gauntlet, gorget, pauldron, mail, clothes, bra, green eyes, blue-grey eyes, blue-gray eyes, pointed ears, stallion, glove, black glove, bracer, gold bracer, strap, leather belt, choker, feathers, black cloth, sleeve, long sleeve, jacket, shirt, harness, belt, loincloth, skirt, saddle, reins, bridle, fabric, leather texture, marbled meat, roasted meat texture, fur texture on torso, horse hide on belly, extra legs, smear, plastic, text, watermark",
         "clip": [
           "3",
           1
@@ -104,7 +104,7 @@
         ],
         "seed": 20261008,
         "steps": 22,
-        "cfg": 7.0,
+        "cfg": 5.5,
         "sampler_name": "dpmpp_2m",
         "scheduler": "karras",
         "positive": [

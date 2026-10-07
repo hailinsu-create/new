@@ -36,17 +36,21 @@ STEM = legacy.OUT_STEM
 HEAD_BOX = {"lin": legacy.LIN_HEAD, "elena": legacy.ELENA_HEAD}
 
 NUDE_DENOISE = 1.0
-NUDE_CFG = 7.0
-# Residual islands: LaMa hard-erase first. Optional skin touch-up stays low so cloth/armor priors do not rebound.
-RESIDUAL_TOUCH_DENOISE = 0.35
-RESIDUAL_TOUCH_CFG = 3.5
-TORN_RIM_DENOISE = 0.40
-EDGE_DENOISE = 0.42
+NUDE_CFG = 5.5
+# Residual: large leftover cloth/armor must be Fooocus-redrawn (LaMa copies nearby fur/print → "meat skin").
+# LaMa only for tiny islands; touch stays very low or is skipped when residual is still high.
+RESIDUAL_FOOOCUS_DENOISE = 1.0
+RESIDUAL_TOUCH_DENOISE = 0.18
+RESIDUAL_TOUCH_CFG = 4.0
+LAMA_RESIDUAL_MAX_RATIO = 0.08
+LAMA_RESIDUAL_MAX_PIXELS = 8000
+TORN_RIM_DENOISE = 0.30
+EDGE_DENOISE = 0.38
 BAND_HEIGHT = 420
 BAND_GROW = 0  # the garment mask is already grown and protection-clipped
 MAX_NUDE_PASSES = 3
 RESIDUAL_OK = 0.05
-RESIDUAL_MIN_PIXELS = 2500
+RESIDUAL_MIN_PIXELS = 4000
 SEED = 20261008
 BANNED_HOST_PARTS = ("weste.seetacloud", "xaxna66hqt", "sa4eaxgcuq")
 
@@ -82,10 +86,15 @@ COLLAR_NEG = (
     "collar, mandarin collar, qipao neckline, embroidery, silk ribbon, buttons, frog closure, "
     "dress fabric, child, teen, extra person, smear, plastic, text, watermark"
 )
-RESIDUAL_SKIN_POS = "bare skin only, skin tone matches the neck, same adult woman, one person only"
+RESIDUAL_SKIN_POS = (
+    "smooth fair bare skin only, skin pores, skin tone matches the neck, natural breasts, "
+    "no fabric print on skin, same adult woman, one person only"
+)
 RESIDUAL_SKIN_NEG = (
     "clothes, dress, qipao, armor, plate, glove, bracer, sleeve, strap, fabric, embroidery, "
-    "metal, mail, child, teen, extra person, smear, plastic, text, watermark"
+    "fabric pattern, watercolor print on skin, floral print on skin, leather texture, "
+    "marbled meat, roasted meat texture, fur texture on torso, metal, mail, "
+    "child, teen, extra person, smear, plastic, text, watermark"
 )
 
 # The rim pass only repaints a narrow band along each hole, so it needs edge wording, not "heavily torn dress".
@@ -245,6 +254,7 @@ def garment_from(plan: sem.ActorPlan, evidence: sem.MaskEvidence, shape: tuple[i
         dino_garment=evidence.garment,
         dino_protect=evidence.protect,
         dino_horse=evidence.horse,
+        grow=plan.mask_grow,
     )
 
 
@@ -515,24 +525,45 @@ def undress_one(
                     )
                 meta["passes"].append({"kind": "nude", "n": 0, "denoise": NUDE_DENOISE, "lama_prefill": True})
             else:
-                # Hard erase residual islands with LaMa so cloth/armor priors cannot rebound.
-                current = run_bands(
-                    host, models, base, target,
-                    positive=RESIDUAL_SKIN_POS, negative=RESIDUAL_SKIN_NEG, seed=seed + n * 50,
-                    stem=f"{stem}-p{n}lama", denoise=0.0, edge=False, input_dir=input_dir, out_dir=work,
-                    lama_only=True,
-                )
-                meta["passes"].append({"kind": "lama_residual", "n": n})
-                # Optional low-denoise skin touch where LaMa left a soft smear.
-                current = run_bands(
-                    host, models, current, target,
-                    positive=RESIDUAL_SKIN_POS, negative=RESIDUAL_SKIN_NEG, seed=seed + n * 50 + 3,
-                    stem=f"{stem}-p{n}touch", denoise=RESIDUAL_TOUCH_DENOISE, edge=True,
-                    input_dir=input_dir, out_dir=work, cfg=RESIDUAL_TOUCH_CFG,
-                )
-                meta["passes"].append(
-                    {"kind": "touch", "n": n, "denoise": RESIDUAL_TOUCH_DENOISE}
-                )
+                leftover_px = int(target.sum())
+                # Large leftovers: Fooocus redraw with neutral fill. Tiny leftovers: LaMa erase only.
+                use_lama = best_ratio <= LAMA_RESIDUAL_MAX_RATIO and leftover_px <= LAMA_RESIDUAL_MAX_PIXELS
+                if use_lama:
+                    current = run_bands(
+                        host, models, base, target,
+                        positive=RESIDUAL_SKIN_POS, negative=RESIDUAL_SKIN_NEG, seed=seed + n * 50,
+                        stem=f"{stem}-p{n}lama", denoise=0.0, edge=False, input_dir=input_dir, out_dir=work,
+                        lama_only=True,
+                    )
+                    meta["passes"].append({"kind": "lama_residual", "n": n, "pixels": leftover_px})
+                    current = run_bands(
+                        host, models, current, target,
+                        positive=RESIDUAL_SKIN_POS, negative=RESIDUAL_SKIN_NEG, seed=seed + n * 50 + 3,
+                        stem=f"{stem}-p{n}touch", denoise=RESIDUAL_TOUCH_DENOISE, edge=True,
+                        input_dir=input_dir, out_dir=work, cfg=RESIDUAL_TOUCH_CFG,
+                    )
+                    meta["passes"].append(
+                        {"kind": "touch", "n": n, "denoise": RESIDUAL_TOUCH_DENOISE}
+                    )
+                else:
+                    print(
+                        f"RESIDUAL_FOOOCUS {stem} pass={n} ratio={best_ratio:.4f} pixels={leftover_px}",
+                        flush=True,
+                    )
+                    current = run_bands(
+                        host, models, base, target,
+                        positive=RESIDUAL_SKIN_POS, negative=RESIDUAL_SKIN_NEG, seed=seed + n * 50,
+                        stem=f"{stem}-p{n}redo", denoise=RESIDUAL_FOOOCUS_DENOISE, edge=False,
+                        input_dir=input_dir, out_dir=work, cfg=NUDE_CFG, lama_prefill=True,
+                    )
+                    meta["passes"].append(
+                        {
+                            "kind": "fooocus_residual",
+                            "n": n,
+                            "denoise": RESIDUAL_FOOOCUS_DENOISE,
+                            "pixels": leftover_px,
+                        }
+                    )
             tmp = work / f"{stem}-p{n}-result.png"
             current.save(tmp)
             check_plan = sem.residual_plan(plan)
@@ -546,7 +577,8 @@ def undress_one(
             print(f"RESIDUAL {stem} pass={n} ratio={ratio:.4f}", flush=True)
             if ratio < best_ratio:
                 best_ratio, best_image, best_left = ratio, current, left
-            base, target = best_image, best_left
+            # Next pass repaints whatever is still flagged, starting from the best image so far.
+            base, target = best_image, best_left if best_left.any() else left
             if best_ratio < RESIDUAL_OK:
                 break
         current = best_image

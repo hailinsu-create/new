@@ -59,25 +59,29 @@ F34_UUID = "xaxna66hqt-c5c9c7fc"
 G09_UUID = "sa4eaxgcuq-26e36fc9"
 
 LIN_NUDE_POS = (
-    "bare skin only, natural breasts, visible nipples, navel, skin tone matches the neck, "
+    "smooth fair bare skin only, skin pores, natural breasts, visible nipples, navel, "
+    "skin tone matches the neck, no fabric print on skin, "
     "same adult woman already in the photo, one person only"
 )
 LIN_NUDE_NEG = (
     "child, teen, extra person, second woman, extra face, extra head, clone, ghost, "
-    "qipao, cheongsam, dress, clothes, embroidery, fabric pattern, ribbon, bra, panties, "
-    "sash, belt, apron, cloth, fabric, hem, handbag, bag, box, luggage, "
-    "snake tail, extra limbs, extra arm, extra hand, smear, plastic, text, watermark"
+    "qipao, cheongsam, dress, clothes, embroidery, fabric pattern, watercolor print on skin, "
+    "floral print on skin, ribbon, bra, panties, sash, belt, apron, cloth, fabric, hem, "
+    "handbag, bag, box, luggage, snake tail, extra limbs, extra arm, extra hand, "
+    "smear, plastic, text, watermark"
 )
 ELENA_NUDE_POS = (
-    "bare human torso skin only, natural breasts, visible nipples, skin tone matches the neck, "
-    "bare arms, bare shoulders, bare forearms and bare hands, soft natural skin, "
-    "waist joins the bay mare body, one person only"
+    "smooth fair bare human torso skin only, skin pores, natural breasts, visible nipples, "
+    "skin tone matches the neck, bare arms, bare shoulders, bare forearms and bare hands, "
+    "soft natural skin, no leather or fur texture on belly, waist joins the bay mare body, "
+    "one person only"
 )
 ELENA_NUDE_NEG = (
     "child, teen, extra person, extra face, armor, plate, gauntlet, gorget, pauldron, mail, "
     "clothes, bra, green eyes, blue-grey eyes, blue-gray eyes, pointed ears, stallion, "
     "glove, black glove, bracer, gold bracer, strap, leather belt, choker, feathers, black cloth, "
     "sleeve, long sleeve, jacket, shirt, harness, belt, loincloth, skirt, saddle, reins, bridle, fabric, "
+    "leather texture, marbled meat, roasted meat texture, fur texture on torso, horse hide on belly, "
     "extra legs, smear, plastic, text, watermark"
 )
 

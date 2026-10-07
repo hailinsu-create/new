@@ -15,7 +15,7 @@
     "4": {
       "class_type": "CLIPTextEncode",
       "inputs": {
-        "text": "bare skin only, natural breasts, visible nipples, navel, skin tone matches the neck, same adult woman already in the photo, one person only",
+        "text": "smooth fair bare skin only, skin pores, natural breasts, visible nipples, navel, skin tone matches the neck, no fabric print on skin, same adult woman already in the photo, one person only",
         "clip": [
           "3",
           1
@@ -25,7 +25,7 @@
     "5": {
       "class_type": "CLIPTextEncode",
       "inputs": {
-        "text": "child, teen, extra person, second woman, extra face, extra head, clone, ghost, qipao, cheongsam, dress, clothes, embroidery, fabric pattern, ribbon, bra, panties, sash, belt, apron, cloth, fabric, hem, handbag, bag, box, luggage, snake tail, extra limbs, extra arm, extra hand, smear, plastic, text, watermark",
+        "text": "child, teen, extra person, second woman, extra face, extra head, clone, ghost, qipao, cheongsam, dress, clothes, embroidery, fabric pattern, watercolor print on skin, floral print on skin, ribbon, bra, panties, sash, belt, apron, cloth, fabric, hem, handbag, bag, box, luggage, snake tail, extra limbs, extra arm, extra hand, smear, plastic, text, watermark",
         "clip": [
           "3",
           1
@@ -104,7 +104,7 @@
         ],
         "seed": 20261008,
         "steps": 22,
-        "cfg": 7.0,
+        "cfg": 5.5,
         "sampler_name": "dpmpp_2m",
         "scheduler": "karras",
         "positive": [

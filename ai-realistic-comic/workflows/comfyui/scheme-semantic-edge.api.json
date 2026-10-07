@@ -3,7 +3,7 @@
     "why": "Semantic undress. Output slot for MASK is resolved from /object_info by the runner; slot 1 shown here.",
     "doc": "docs/fox-centaur-semantic-undress.md",
     "stage": "edge blend",
-    "denoise": 0.42
+    "denoise": 0.38
   },
   "prompt": {
     "3": {
@@ -104,7 +104,7 @@
           "40",
           2
         ],
-        "denoise": 0.42
+        "denoise": 0.38
       }
     },
     "16": {

@@ -94,6 +94,8 @@ class ActorPlan:
     # DINO prompts whose hits get a hard dilate so half a bracer cannot sit outside the hole.
     expand_prompts: tuple[str, ...] = ()
     expand_px: int = 28
+    # Final garment mask dilate after union/protect (try-on community: ~15–20 px to cover hems).
+    mask_grow: int = 10
 
 
 LIN = ActorPlan(
@@ -121,7 +123,8 @@ LIN = ActorPlan(
         (280, 680, 420, 1250),  # left skirt panel beside the hip/leg
     ),
     expand_prompts=("mandarin collar", "shoulder strap", "skirt panel", "white cloth"),
-    expand_px=12,
+    expand_px=20,
+    mask_grow=18,
 )
 
 ELENA = ActorPlan(
@@ -160,30 +163,32 @@ ELENA = ActorPlan(
     tear_fraction=0.55,
     tear_anchors=(0.14, 0.34, 0.58),
     force_boxes=(
-        (230, 220, 430, 310),   # choker / gorget
-        (70, 260, 230, 680),    # left arm / glove / bracer (stay above horse_guard_y)
-        (300, 260, 520, 660),   # right arm / pauldron / vambrace
-        (180, 540, 470, 690),   # waist / fauld (clip at horse_guard_y)
+        (230, 220, 430, 300),   # choker / gorget (keep clear of horse barrel)
+        (70, 260, 220, 640),    # left arm / glove / bracer
+        (310, 260, 510, 640),   # right arm / pauldron / vambrace
+        (190, 540, 460, 670),   # waist / fauld strictly above horse_guard_y
     ),
     expand_prompts=(
         "breastplate", "pauldron", "vambrace", "gauntlet", "fauld", "gorget",
         "black glove", "gold bracer", "black sleeve", "arm guard", "choker", "leather strap",
     ),
-    expand_px=32,
+    expand_px=28,
+    mask_grow=12,
 )
 
 PLANS = {"lin": LIN, "elena": ELENA}
 
 
 def residual_plan(plan: ActorPlan) -> ActorPlan:
+    # Narrow residual prompts only (full garment prompts false-fire on bare skin). SegFormer still joins.
     return replace(
         plan,
         garment_prompts=plan.residual_prompts,
         garment_wins_prompts=plan.residual_wins_prompts,
         segformer_support_px=0,
-        # Force boxes mark where armor/collar *was* on the plate; on a nude they would always fire.
         force_boxes=(),
         expand_prompts=(),
+        mask_grow=6,
     )
 
 

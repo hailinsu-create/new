@@ -3,7 +3,7 @@
     "why": "Semantic undress. Output slot for MASK is resolved from /object_info by the runner; slot 1 shown here.",
     "doc": "docs/fox-centaur-semantic-undress.md",
     "stage": "torn = nude composite through jagged holes, then this rim pass",
-    "denoise": 0.4
+    "denoise": 0.3
   },
   "prompt": {
     "3": {
@@ -104,7 +104,7 @@
           "40",
           2
         ],
-        "denoise": 0.4
+        "denoise": 0.3
       }
     },
     "16": {
