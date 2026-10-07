@@ -80,6 +80,25 @@ python workflows/comfyui/autodl_power.py power-on-once    # 单次；退出码 0
 
 「空闲GPU不足」按空卡处理并退避重试；鉴权失败、实例不存在这类致命回复立即停止，不重试。F34 / G09 的 UUID 直接拒绝。密钥不打印、不入库。
 
+### 自助开机和整条链路
+
+`workflows/comfyui/bringup_and_run.py` 一条命令走完整条链路，不用等人点网页：
+
+```bash
+python workflows/comfyui/bringup_and_run.py            # 开机 → SSH → 装栈 → check-stack → 四张 → 打分 → 关机 → 余额
+python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器已开，不关机
+```
+
+1. 开机：`autodl_power.ensure_on`。凭据来源优先级：环境变量（Cursor Secrets 注入到这里）→ `/cursor/stores/user/` 下的 `autodl-web-auth.env`、`autodl-token.env`（也读 `/workspace/cred-handoff/autodl-web-auth.env`）→ 都没有就打印 `NEED_AUTODL_TOKEN` 并退出（码 4）。这些文件不进仓库。
+   - 有网页 JWT：走普通实例的网页 `power_on`（`payload: gpu`），空卡按 20/30/45/60 s 退避重试。
+   - 只有开发者 Token：先试 `dev/instance/pro/power_on`。这台是普通容器实例，会返回 `RecordNotFoundError`，脚本立刻停并说明要网页 JWT，不死循环。
+   - 无论哪条路：不克隆，不用无卡模式，F34 / G09 的 UUID 直接拒绝。
+2. 等 SSH：每 20 秒一次，每次重读 `bjb-ssh.env`，host/port 变了自动跟。连续 3 次 `Permission denied (publickey)` 就停，报 `NEED_SSH_KEY_AUTH`：机器开着但密钥没授权，需要把 `bjb791.pub` 追加进 `/root/.ssh/authorized_keys`，或在 `bjb-ssh.env` 放 `BJB_SSH_PASSWORD`。此时机器在计费，脚本不会假装成功。
+3. 装栈：把脚本、两张成衣底板、打分提示、两张锁脸用 tar 传到 `/root/autodl-tmp/arc/ai-realistic-comic`，跑 `install_undress_stack.sh install`，重启 ComfyUI（按进程号），然后 `--check-stack`。缺节点就停。
+4. 出图：先 nude（林、伊莲），再 torn（林、伊莲），`--no-score`，结果在机器上的 `/root/autodl-tmp/fox-semantic-out`。
+5. 回传到 `/opt/cursor/artifacts/fox-centaur-semantic`，本机 Codex 打分，过程文件之外的 png/json 拷进 `library/stills/fox-centaur-embrace/semantic/`。Codex 不可用：`SCORE_FAILED codex ... reason=cli_missing`，不回退。
+6. 关机：到过机器之后无论前面哪一步失败都会执行，机器内部 `shutdown`，数据盘保留；随后读余额（无 Token 打印 `BALANCE_PENDING`）。`--keep-on` 才跳过关机。
+
 2026-10-07 读到的余额是 ¥21.91（21910 厘），在任何开机之前。
 
 ## 状态（2026-10-07）

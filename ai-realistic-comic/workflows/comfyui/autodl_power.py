@@ -17,6 +17,7 @@ other failure (auth, unknown instance) stops at once so nothing burns money.
 
     python autodl_power.py balance
     python autodl_power.py power-on [--max-minutes 120]
+    python autodl_power.py ensure-on [--max-minutes 120]   # web JWT, then developer token, else NEED_AUTODL_TOKEN
     python autodl_power.py power-on-once      # exit 0 ok, 5 no GPU, 6 transient, 2 fatal, 4 no web auth
 """
 
@@ -33,6 +34,7 @@ from pathlib import Path
 
 WEB_POWER_ON = "https://www.autodl.com/api/v1/instance/power_on"
 DEV_BALANCE = "https://api.autodl.com/api/v1/dev/wallet/balance"
+DEV_POWER_ON = "https://api.autodl.com/api/v1/dev/instance/pro/power_on"
 DEFAULT_UUID = "359a49a1c3-4cda10df"
 FORBIDDEN = {"xaxna66hqt-c5c9c7fc", "sa4eaxgcuq-26e36fc9"}
 WEB_AUTH_FILES = (
@@ -122,6 +124,63 @@ def power_on_once(uuid: str, authorization: str) -> tuple[str, dict]:
     return classify(status, reply), reply
 
 
+NEED_TOKEN_MESSAGE = (
+    "NEED_AUTODL_TOKEN no AUTODL_WEB_AUTHORIZATION and no AUTODL_TOKEN. Looked in the environment "
+    "(Cursor Secrets are injected there), then /cursor/stores/user/autodl-web-auth.env and "
+    "/cursor/stores/user/autodl-token.env (also /workspace/cred-handoff/autodl-web-auth.env). "
+    "Never commit them. Note: the developer token only works for Pro instances; Beijing B 791 is an "
+    "ordinary container instance and needs the web JWT."
+)
+
+
+def dev_power_on_once(uuid: str, token: str) -> tuple[str, dict]:
+    """Developer API. Pro instances only; an ordinary instance answers RecordNotFoundError."""
+    status, reply = post(DEV_POWER_ON, {"Authorization": token}, {"instance_uuid": uuid, "payload": "gpu"})
+    code = str(reply.get("code", ""))
+    if code == "RecordNotFoundError":
+        return "not_pro", reply
+    return classify(status, reply), reply
+
+
+def ensure_on(uuid: str, *, max_minutes: float, sleep=time.sleep, now=time.monotonic) -> int:
+    """Web JWT first (works for ordinary instances), developer token second. Exit 4 when neither exists."""
+    authorization = web_authorization()
+    token = dev_token()
+    if not authorization and not token:
+        print(NEED_TOKEN_MESSAGE, flush=True)
+        return 4
+    if authorization:
+        return power_on_loop(uuid, authorization, max_minutes=max_minutes, sleep=sleep, now=now)
+    verdict, reply = dev_power_on_once(uuid, token or "")
+    print(f"POWER_ON_DEV verdict={verdict} code={reply.get('code')} msg={str(reply.get('msg', ''))[:120]}", flush=True)
+    if verdict == "not_pro":
+        print(
+            "POWER_ON_STOP the developer token cannot power on an ordinary container instance "
+            "(RecordNotFoundError). Provide AUTODL_WEB_AUTHORIZATION. No clone, no no-GPU mode.",
+            flush=True,
+        )
+        return 2
+    if verdict == "success":
+        return 0
+    return power_on_loop_dev(uuid, token or "", verdict, max_minutes=max_minutes, sleep=sleep, now=now)
+
+
+def power_on_loop_dev(uuid: str, token: str, first: str, *, max_minutes: float, sleep, now) -> int:
+    deadline = now() + max_minutes * 60
+    verdict = first
+    attempt = 0
+    while verdict in ("no_gpu", "retry"):
+        wait = BACKOFF[min(attempt, len(BACKOFF) - 1)]
+        attempt += 1
+        if now() + wait > deadline:
+            print("POWER_ON_GAVE_UP deadline reached; still no GPU.", flush=True)
+            return 3
+        sleep(wait)
+        verdict, reply = dev_power_on_once(uuid, token)
+        print(f"POWER_ON_DEV attempt={attempt} verdict={verdict} code={reply.get('code')}", flush=True)
+    return 0 if verdict == "success" else 2
+
+
 def power_on_loop(uuid: str, authorization: str, *, max_minutes: float, sleep=time.sleep, now=time.monotonic) -> int:
     deadline = now() + max_minutes * 60
     attempt = 0
@@ -166,6 +225,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="cmd", required=True)
     sub.add_parser("balance")
+    ensure = sub.add_parser("ensure-on")
+    ensure.add_argument("--uuid")
+    ensure.add_argument("--max-minutes", type=float, default=120)
     once = sub.add_parser("power-on-once")
     once.add_argument("--uuid")
     on = sub.add_parser("power-on")
@@ -174,6 +236,8 @@ def main() -> None:
     args = parser.parse_args()
     if args.cmd == "balance":
         raise SystemExit(balance())
+    if args.cmd == "ensure-on":
+        raise SystemExit(ensure_on(instance_uuid(args.uuid), max_minutes=args.max_minutes))
     authorization = web_authorization()
     if not authorization:
         print("WEB_AUTH_MISSING set AUTODL_WEB_AUTHORIZATION or autodl-web-auth.env; the developer token cannot power on this instance.")

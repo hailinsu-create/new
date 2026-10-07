@@ -355,3 +355,70 @@ def test_balance_pending_without_token_and_uses_dev_endpoint(monkeypatch, capsys
     out = capsys.readouterr().out
     assert seen == ["https://api.autodl.com/api/v1/dev/wallet/balance"]
     assert "yuan=4.20" in out and "BALANCE_WARNING" in out and "TOKEN" not in out
+
+
+bring = _load("bringup_and_run")
+
+
+def test_ensure_on_layers_web_jwt_then_dev_token_then_need_token(monkeypatch, capsys):
+    monkeypatch.setattr(power, "web_authorization", lambda: None)
+    monkeypatch.setattr(power, "dev_token", lambda: None)
+    assert power.ensure_on("359a49a1c3-4cda10df", max_minutes=1) == 4
+    assert "NEED_AUTODL_TOKEN" in capsys.readouterr().out
+
+    monkeypatch.setattr(power, "dev_token", lambda: "TOK")
+    monkeypatch.setattr(power, "post", lambda url, h, b, timeout=30: (200, {"code": "RecordNotFoundError", "msg": "x"}))
+    assert power.ensure_on("359a49a1c3-4cda10df", max_minutes=1) == 2
+    out = capsys.readouterr().out
+    assert "POWER_ON_STOP" in out and "TOK" not in out
+
+    seen = []
+    monkeypatch.setattr(power, "web_authorization", lambda: "JWT")
+    monkeypatch.setattr(power, "post", lambda url, h, b, timeout=30: (seen.append(url) or (200, {"code": "Success"})))
+    assert power.ensure_on("359a49a1c3-4cda10df", max_minutes=1) == 0
+    assert seen == [power.WEB_POWER_ON]
+
+
+def test_dev_token_path_retries_no_gpu(monkeypatch):
+    monkeypatch.setattr(power, "web_authorization", lambda: None)
+    monkeypatch.setattr(power, "dev_token", lambda: "TOK")
+    replies = iter([(200, {"code": "X", "msg": "空闲GPU不足"}), (200, {"code": "Success"})])
+    monkeypatch.setattr(power, "post", lambda url, h, b, timeout=30: next(replies))
+    waits = []
+    assert power.ensure_on("359a49a1c3-4cda10df", max_minutes=30, sleep=waits.append, now=lambda: 0.0) == 0
+    assert waits == [20]
+
+
+def test_wait_ssh_stops_with_clear_message_on_repeated_publickey_denial():
+    states = iter(["down", "denied", "denied", "denied"])
+    try:
+        bring.wait_ssh(10, sleep=lambda s: None, state=lambda: next(states))
+    except SystemExit as exc:
+        assert "NEED_SSH_KEY_AUTH" in str(exc) and "authorized_keys" in str(exc)
+    else:
+        raise AssertionError("no stop")
+
+
+def test_bringup_always_shuts_down_after_a_failed_step(monkeypatch):
+    log = []
+    monkeypatch.setattr(sys, "argv", ["bringup_and_run.py", "--no-power-on"])
+    monkeypatch.setattr(bring, "wait_ssh", lambda minutes: log.append("wait"))
+    monkeypatch.setattr(bring, "ship", lambda: log.append("ship"))
+    monkeypatch.setattr(bring, "ssh", lambda cmd, **k: log.append(f"ssh:{cmd[:30]}"))
+    monkeypatch.setattr(bring, "restart_comfy", lambda: (_ for _ in ()).throw(SystemExit("comfy never came up")))
+    monkeypatch.setattr(bring, "shutdown_machine", lambda: log.append("shutdown"))
+    monkeypatch.setattr(power, "balance", lambda: log.append("balance") or 0)
+    try:
+        bring.main()
+    except SystemExit as exc:
+        assert exc.code == 1
+    assert log[-2:] == ["shutdown", "balance"]
+
+
+def test_bringup_ships_no_secrets_or_forbidden_machines():
+    source = (COMFY / "bringup_and_run.py").read_text(encoding="utf-8")
+    assert "xaxna66hqt" not in source and "sa4eaxgcuq" not in source
+    assert "clone" not in source.lower().replace("never clones", "")
+    for secret_name in ("autodl-token", "autodl-web-auth", "cast-ssh"):
+        assert secret_name not in " ".join(bring.SHIP)
+    assert all((ROOT / m).exists() for m in bring.SHIP)
