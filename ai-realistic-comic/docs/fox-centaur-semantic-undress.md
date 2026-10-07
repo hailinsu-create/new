@@ -106,8 +106,16 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 
 ## 状态（2026-10-07）
 
-- 离线完成：蒙版逻辑、torn 挖洞、残留检查、Codex-only 打分、安装脚本、八个 API 图、说明文档。25 个测试通过（`tests/test_semantic_undress.py`、`tests/test_fox_centaur_undress.py`），其中两个是用假 ComfyUI 后端在真实成衣底板上跑完整个 `undress_one`：脸区像素不变，衣服区被换成肤色，残留循环、收边、sidecar 落盘都走到；torn 保留残骸。假后端不画图，所以这只证明流程和拼接对，不证明画面质量。
-- **没在机器上跑过。** 节点类名（`segformer_b2_clothes` 的输出口、DINO+SAM 的节点名）和权重路径按公开仓库写，装完后以 `--check-stack` 和 `/object_info` 为准，不符就改常量。
-- 阻塞：北京 B `359a49a1c3-4cda10df` 已关机，开机弹窗「该主机空闲GPU不足…主机GPU空闲数量：0 卡」。需要用户给「克隆到有空卡主机」或其它开机授权。F34 不动。
-- 开机后顺序：`install_undress_stack.sh inventory` → `install` → `--check-stack` → 先两张 nude，再两张 torn → Codex 打分（VM 无 codex 则 `SCORE_FAILED codex ... reason=cli_missing`）→ 机内关机留盘 → 回传四张和 json。
-- AutoDL 余额：无开发者 Token，待读。
+上机结果（北京 B，RTX 5090，`--check-stack` 返回 `STACK_OK`，四张都出了图）。**没有 Codex 分数**：VM 上原来没有 Codex CLI，用户后来授权在这台 VM 装（`@openai/codex` 装到 `~/.local/bin/codex`，`codex_still_score.py` 会自己找到），登录要设备码，签完后用 `--score-only` 补打。下面只是我对画面的目测记录，不是分数。
+
+| 轮次 | 目测 |
+| --- | --- |
+| 基线（第一次通栈） | nude 两张胸腹腿已无衣，但林留裙片，伊莲留手套/护腕/腰带；torn 两张几乎是完整衣服（整块重绘把衣服画回来了）→ 改成「nude 合成 + 洞沿重绘」 |
+| run6（nude） | 伊莲胸肩裸，右臂残留护甲袖；林上身裸，领口、胯布、左侧裙片残留 |
+| run7（both） | 林 torn：胸腹露出，领口和下摆保留，是目前最像「破衣」的；伊莲 nude 变差（棕色长袖） |
+| run9（LaMa 残留 + 手臂分区） | 伊莲手臂分区把铠甲又画回来了（臂框盖到胸），已撤回；LaMa 预填对林有小改善，没有决定性变化 |
+
+已知残留问题：林的领口、胯部布片、左侧裙片；伊莲的右臂/手套/腰带。残留检查本身能框出这些位置（`debug/*-residual-p*.png`），但重绘会把同类物体再画回来。下一步候选：残留区域专用 LaMa 擦除（已接，`big-lama.pt` 必须是 Sanster 的 `add_big_lama` 发布版，fashn-ai 那份 spandrel 不认）加更小的分区、换种子重试（`--attempt`）。
+
+- 北京 B 机器仍开着（用户要求不关，等打分和决定），读到的余额 ¥16.02。
+- 流程里踩过的坑都已写进脚本和上面的各节：SegFormer 目录和 `__init__`、GroundingDINO 的 cfg/bert/transformers 版本、SAM 选项名、object_info URL 转义、tar 解包权限。

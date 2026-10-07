@@ -135,7 +135,6 @@ ELENA = ActorPlan(
         "choker",
     ),
     protect_prompts=("face", "hair", "glasses"),
-    arm_boxes=((330, 260, 500, 500), (230, 490, 500, 730), (90, 470, 215, 880)),
     residual_prompts=("glove", "bracer", "armor plate", "choker", "strap", "black sleeve"),
     residual_wins_prompts=("glove", "bracer", "armor plate", "strap", "black sleeve"),
     roi=(60, 226, 560, 900),
