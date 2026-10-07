@@ -511,12 +511,8 @@ def look_gates(actor: str, view: str, item: dict) -> list[str]:
 
 
 EYE_DETAIL_MIN_SIDE = 200
-GROK_SCORER = "grok-4.7-xhigh"
 CODEX_SCORER = "codex"
 LOCAL_SCORER = "local"
-# Fallback only. Codex CLI stays the default scorer.
-CURSOR_GROK_MODEL = "grok-4.7-xhigh"
-CURSOR_GROK_BINARY_NAME = "cursor-agent"
 
 
 def cap_identity_for_eyes(item: dict) -> dict:
@@ -555,62 +551,10 @@ def resolve_eyes(item: dict, short_side: int) -> dict:
     return item
 
 
-def codex_should_fallback(returncode: int | None, detail: str) -> bool:
-    """Quota, logout, a missing binary, or a Codex CLI error opens the grok fallback."""
-    if returncode not in (0, None):
-        return True
-    lowered = (detail or "").lower()
-    needles = (
-        "usage limit",
-        "logged out",
-        "not logged",
-        "codex_cli_missing",
-        "codex_cli_logged_out",
-        "codex_cli_failed",
-        "quota",
-        "insufficient",
-    )
-    return any(needle in lowered for needle in needles)
-
-
-def grok_channel_rejected(binary: str) -> str | None:
-    """Cursor's cursor-agent only. grok.com CLI, xAI, and OpenCode stay closed."""
-    raw = binary.replace("\\", "/").lower()
-    name = raw.rsplit("/", 1)[-1]
-    if name != CURSOR_GROK_BINARY_NAME:
-        return name or binary
-    for banned in ("opencode", ".grok/", "api.x.ai", "grok.com"):
-        if banned in raw:
-            return banned
-    return None
-
-
-def grok_score_argv(binary: str, images: list[str], prompt: str) -> list[str]:
-    """Cursor grok 4.7 xhigh. The prompt is last, after every --image flag."""
-    rejected = grok_channel_rejected(binary)
-    if rejected:
-        raise SystemExit(f"GROK_SCORE_CHANNEL {rejected}")
-    cmd = [
-        binary,
-        "-p",
-        "--output-format",
-        "text",
-        "--mode",
-        "ask",
-        "--trust",
-        "--model",
-        CURSOR_GROK_MODEL,
-    ]
-    for image in images:
-        cmd.extend(["--image", str(image)])
-    cmd.append(prompt)
-    joined = " ".join(cmd).lower()
-    for banned in ("deepseek", "agy", "gpt-", "opencode", "api.x.ai", "grok.com"):
-        if banned in joined:
-            raise SystemExit(f"GROK_SCORE_FORBIDDEN {banned}")
-    if CURSOR_GROK_MODEL not in cmd or cmd.count("--image") != len(images) or cmd[-1] != prompt:
-        raise SystemExit("GROK_SCORE_MODEL_DRIFT")
-    return cmd
+def codex_score_failure(actor: str, view: str, stage: str, reason: str) -> str:
+    """Codex is the only scorer. The reason stays on the failure line."""
+    detail = " ".join((reason or "CODEX_CLI_FAILED").split())
+    return f"SCORE_FAILED codex {actor} {view} {stage} reason={detail}"
 
 
 def local_background_score() -> dict:

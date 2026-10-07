@@ -289,36 +289,22 @@ def test_prompts_only_change_look_and_clothes():
     assert "deepseek-v4-flash-vision" not in score_joined
     assert "agy" not in score_joined
     assert score_argv.count("-i") == 3
-    grok_argv = mod.grok_score_argv(
-        "/home/ubuntu/.local/bin/cursor-agent",
-        ["/tmp/lock.png", "/tmp/eyes.jpg", "/tmp/plate.png"],
-        "score this",
+    assert not hasattr(mod, "grok_score_argv")
+    assert not hasattr(mod, "codex_should_fallback")
+    assert not hasattr(mod, "GROK_SCORER")
+    failure = mod.codex_score_failure(
+        "lin_wantang",
+        "front",
+        "pass1",
+        "CODEX_CLI_MISSING no codex binary",
     )
-    assert grok_argv[-1] == "score this"
-    assert grok_argv.index("--model") < grok_argv.index("score this")
-    assert grok_argv[grok_argv.index("--model") + 1] == "grok-4.7-xhigh"
-    assert grok_argv.count("--image") == 3
-    assert grok_argv.index("--image") < grok_argv.index("score this")
-    assert "cursor-agent" in grok_argv[0]
-    joined_grok = " ".join(grok_argv).lower()
-    assert "opencode" not in joined_grok
-    assert "api.x.ai" not in joined_grok
-    assert "grok.com" not in joined_grok
-    assert "deepseek" not in joined_grok
-    for blocked in (
-        "/home/ubuntu/.opencode/bin/opencode",
-        "/home/ubuntu/.grok/bin/grok",
-        "/home/ubuntu/.grok/bin/agent",
-    ):
-        try:
-            mod.grok_score_argv(blocked, ["/tmp/lock.png"], "score this")
-        except SystemExit as exc:
-            assert "GROK_SCORE_CHANNEL" in str(exc)
-        else:
-            raise AssertionError(f"{blocked} must stay off the grok fallback")
-    assert mod.codex_should_fallback(1, "usage limit")
-    assert mod.codex_should_fallback(None, "codex missing or logged out")
-    assert not mod.codex_should_fallback(0, "ok")
+    assert failure.startswith("SCORE_FAILED codex lin_wantang front pass1 ")
+    assert "reason=CODEX_CLI_MISSING" in failure
+    assert "cursor-agent" not in failure
+    lowered_failure = failure.lower()
+    assert "grok" not in lowered_failure
+    assert "opencode" not in lowered_failure
+    assert "deepseek" not in lowered_failure
     local = mod.local_background_score()
     assert local["scorer"] == "local"
     assert local["wardrobe"] <= 6
@@ -331,6 +317,36 @@ def test_prompts_only_change_look_and_clothes():
     assert mod.f34_should_power_off(finished=False, paused=False, keep_on=False) is False
     assert "关机留盘" in mod.F34_POWER_RULE
     assert "空转" in mod.F34_POWER_RULE
+
+
+def test_codex_miss_writes_the_reason_and_stops(tmp_path):
+    import json
+    import sys
+
+    autodl = Path(__file__).resolve().parents[1] / "autodl"
+    sys.path.insert(0, str(autodl))
+    import run_cast_body_two_stage as runner
+
+    png = tmp_path / "plate.png"
+    png.write_bytes(b"png")
+    try:
+        runner.record_score_failure(
+            png,
+            "lin_wantang",
+            "front",
+            "pass1",
+            "CODEX_CLI_MISSING no codex binary",
+        )
+    except SystemExit as exc:
+        assert "SCORE_FAILED" in str(exc)
+        assert "reason=CODEX_CLI_MISSING" in str(exc)
+    else:
+        raise AssertionError("a missing Codex CLI must SystemExit")
+    sidecar = json.loads(png.with_suffix(".score-fail.json").read_text(encoding="utf-8"))
+    assert sidecar["ok"] is False
+    assert sidecar["scorer"] == "codex"
+    assert sidecar["reason"].startswith("CODEX_CLI_MISSING")
+    assert "grok" not in json.dumps(sidecar).lower()
 
 
 def test_parse_score_keeps_the_last_score_object():
@@ -455,12 +471,13 @@ def test_diagnosis_keeps_the_prompt_and_records_the_vae_roundoff():
     assert "eyes_geometry" in docs
     assert "已撤" in docs
     assert "ref-face.png" in docs
-    assert "grok-4.7-xhigh" in docs
-    assert "cursor-agent" in docs
-    assert "打分默认仍是 Codex CLI" in docs
-    assert "opencode-go/grok-4.7" not in docs
-    assert "grok.com" in docs
-    assert "xAI" in docs
+    assert "打分只走 Codex CLI" in docs
+    assert "2026-10-07" in docs
+    assert "reason=" in docs
+    assert ".score-fail.json" in docs
+    assert "不换模型" in docs
+    assert "grok" not in docs.lower()
+    assert "cursor-agent" not in docs
     assert "背面不喂" in docs
     assert "wardrobe 最高 6" in docs or "最高 6" in docs
     assert "不扫" in docs
@@ -693,11 +710,14 @@ def test_runner_does_not_edit_explicit_still_files():
     assert '"kind": "clothed"' not in text
     assert "agy" not in text.lower()
     assert "opencode" not in text.lower()
-    assert "cursor-agent" in text
+    assert "cursor-agent" not in text
+    assert "grok" not in text.lower()
     assert "api.x.ai" not in text.lower()
     assert "deepseek-v4-flash-vision" not in text
-    assert "grok_binary" in text
-    assert "SCORER_FALLBACK" in text
+    assert "grok_binary" not in text
+    assert "SCORER_FALLBACK" not in text
+    assert "record_score_failure" in text
+    assert "codex_score_failure" in text
     assert "score_call" in text
     assert "score_exec_argv" in text
     assert "SCORE_PREFIX" in text
@@ -729,6 +749,8 @@ def test_runner_does_not_edit_explicit_still_files():
     ):
         page = (docs / name).read_text(encoding="utf-8")
         assert "agy" not in page.lower(), name
+        assert "grok" not in page.lower(), name
+        assert "cursor-agent" not in page, name
         assert "Codex CLI" in page
     score_entry = (docs / "codex-cast-score.md").read_text(encoding="utf-8")
     cast_doc = (docs / "cast-body-two-stage.md").read_text(encoding="utf-8")
@@ -745,9 +767,22 @@ def test_runner_does_not_edit_explicit_still_files():
     assert "文档与代码不一致算漂移" in cast_doc
     assert "不得只留在本机" in score_entry
     assert "文档与代码不一致算漂移" in score_entry
+    assert "打分只走 Codex CLI" in score_entry
+    assert "reason=" in score_entry
+    assert "2026-10-07" in score_entry
+    assert "grok" not in score_entry.lower()
+    assert "cursor-agent" not in score_entry
+    for extra in ("comfyui-setup.md", "cast-identity-rebuild.md", "still-score.md"):
+        extra_page = (docs / extra).read_text(encoding="utf-8")
+        assert "grok" not in extra_page.lower(), extra
+        assert "cursor-agent" not in extra_page, extra
     template_text = (
         Path(__file__).resolve().parents[1] / "autodl" / "cast_body_template.py"
     ).read_text(encoding="utf-8")
+    assert "grok" not in template_text.lower()
+    assert "cursor-agent" not in template_text
+    assert "def codex_score_failure" in template_text
+    assert "reason=" in template_text
     for banned in ("face was redrawn", "Nudity is a wardrobe failure", "light upscale"):
         assert banned not in text
         assert banned in template_text
@@ -764,8 +799,8 @@ def test_runner_does_not_edit_explicit_still_files():
     assert "ref_face_rel" in text
     assert "feeds_face" in text
     assert "torso_eaten_by_background" in text
-    assert "grok_score_argv" in text
-    assert "SCORER_FALLBACK" in text
+    assert "grok_score_argv" not in text
+    assert "codex_score_failure" in text
     assert "eye_crop" in text
     assert "SCORE_DEFERRED" in text
     assert "PASS1_NEW_SEED" not in text

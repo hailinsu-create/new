@@ -16,6 +16,7 @@ import subprocess
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import NoReturn
 
 import cast_body_template as tpl
 
@@ -276,30 +277,36 @@ def eye_crop(plate: Path, lock: Path) -> tuple[Path, Path, int]:
     return lock, crop_path, short_side
 
 
-def grok_binary() -> str | None:
-    """Cursor's cursor-agent. Other grok binaries are rejected by grok_channel_rejected."""
-    candidates: list[str] = []
-    override = os.environ.get("CURSOR_AGENT_BIN", "").strip()
-    if override:
-        candidates.append(override)
-    found = shutil.which("cursor-agent")
-    if found:
-        candidates.append(found)
-    candidates.append(str(Path.home() / ".local" / "bin" / "cursor-agent"))
-    for path in candidates:
-        if path and Path(path).is_file() and tpl.grok_channel_rejected(path) is None:
-            return path
-    return None
-
-
 def finish_score(parsed: dict, short_side: int, scorer: str) -> dict:
     resolved = tpl.resolve_eyes(parsed, short_side)
     resolved["scorer"] = scorer
     return resolved
 
 
+def record_score_failure(image: Path, actor: str, view: str, stage: str, reason: str) -> NoReturn:
+    """Write the Codex failure beside the plate, then stop. No other model runs."""
+    message = tpl.codex_score_failure(actor, view, stage, reason)
+    dest = image.with_suffix(".score-fail.json")
+    payload = {
+        "actor": actor,
+        "view": view,
+        "stage": stage,
+        "scorer": tpl.CODEX_SCORER,
+        "ok": False,
+        "reason": " ".join((reason or "CODEX_CLI_FAILED").split()),
+        "message": message,
+    }
+    try:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    except OSError as exc:
+        message = f"{message} record_io={exc}"
+    print(message, flush=True)
+    raise SystemExit(message)
+
+
 def score_image(image: Path, actor: str, view: str, stage: str) -> dict:
-    """Codex CLI first. Only a missing login, quota, or CLI error falls back to Cursor grok 4.7 xhigh."""
+    """Codex CLI only. A missing binary, logout, quota, CLI error, or timeout is a recorded failure."""
     face = ROOT / tpl.ref_face_rel(actor)
     makeup = face if face.is_file() else ROOT / "library" / "cast" / actor / "ref.png"
     if not makeup.is_file():
@@ -310,64 +317,49 @@ def score_image(image: Path, actor: str, view: str, stage: str) -> dict:
     if not prompt.startswith(tpl.SCORE_PREFIX):
         raise SystemExit("SCORE_PREFIX_DRIFT 打分前缀被改写。禁止换路。")
     binary = codex_binary()
-    logged = bool(binary) and codex_logged_in(binary)
-    codex_detail = ""
-    if binary and logged:
-        cmd = tpl.score_exec_argv(binary, logged_in=True, cwd=str(image.parent), images=images)
-        try:
-            result = subprocess.run(
-                cmd,
-                input=prompt,
-                capture_output=True,
-                text=True,
-                timeout=900,
-            )
-        except subprocess.TimeoutExpired as exc:
-            raise SystemExit(f"SCORE_FAILED codex timeout {actor} {view} {stage}") from exc
-        codex_detail = (result.stderr or result.stdout or "").strip()
-        parsed = None
-        if result.returncode == 0:
-            try:
-                parsed = tpl.parse_score(f"{result.stdout}\n{result.stderr}")
-            except ValueError as exc:
-                codex_detail = f"{codex_detail}\n{exc}"
-        if parsed is not None:
-            print(f"SCORER {tpl.CODEX_SCORER}", flush=True)
-            return finish_score(parsed, short_side, tpl.CODEX_SCORER)
-        if not tpl.codex_should_fallback(result.returncode, codex_detail) and result.returncode == 0:
-            codex_detail = f"{codex_detail}\nscore json missing"
-    else:
-        codex_detail = "codex missing or logged out"
-    fallback = grok_binary()
-    if not fallback:
-        raise SystemExit(
-            f"CODEX_CLI_FAILED score {actor} {view} {stage} {codex_detail[-300:]} "
-            "GROK_FALLBACK_MISSING"
+    if not binary or Path(binary).name != "codex":
+        record_score_failure(image, actor, view, stage, "CODEX_CLI_MISSING no codex binary")
+    logged, login_detail = codex_login_report(binary)
+    if not logged:
+        record_score_failure(
+            image,
+            actor,
+            view,
+            stage,
+            f"CODEX_CLI_LOGGED_OUT {login_detail[-300:]}",
         )
-    Path("/tmp/cast-score").mkdir(parents=True, exist_ok=True)
-    grok_cmd = tpl.grok_score_argv(fallback, images, prompt)
-    print(f"SCORER_FALLBACK {tpl.GROK_SCORER}", flush=True)
+    cmd = tpl.score_exec_argv(binary, logged_in=True, cwd=str(image.parent), images=images)
     try:
-        grok = subprocess.run(
-            grok_cmd,
+        result = subprocess.run(
+            cmd,
+            input=prompt,
             capture_output=True,
             text=True,
             timeout=900,
         )
-    except subprocess.TimeoutExpired as exc:
-        raise SystemExit(f"SCORE_FAILED grok timeout {actor} {view} {stage}") from exc
-    grok_text = f"{grok.stdout or ''}\n{grok.stderr or ''}"
-    if grok.returncode != 0:
-        detail = (grok.stderr or grok.stdout or "grok score missing").strip()
-        raise SystemExit(
-            f"SCORE_FAILED codex {codex_detail[-200:]} grok {detail[-300:]}"
+    except subprocess.TimeoutExpired:
+        record_score_failure(image, actor, view, stage, "CODEX_CLI_TIMEOUT 900s")
+    detail = (result.stderr or result.stdout or "").strip()
+    if result.returncode != 0:
+        record_score_failure(
+            image,
+            actor,
+            view,
+            stage,
+            f"CODEX_CLI_FAILED rc={result.returncode} {detail[-400:]}",
         )
     try:
-        parsed = tpl.parse_score(grok_text)
+        parsed = tpl.parse_score(f"{result.stdout}\n{result.stderr}")
     except ValueError as exc:
-        raise SystemExit(f"SCORE_FAILED grok json {actor} {view} {stage} {exc}") from exc
-    print(f"SCORER {tpl.GROK_SCORER}", flush=True)
-    return finish_score(parsed, short_side, tpl.GROK_SCORER)
+        record_score_failure(
+            image,
+            actor,
+            view,
+            stage,
+            f"CODEX_SCORE_JSON {exc} {detail[-200:]}",
+        )
+    print(f"SCORER {tpl.CODEX_SCORER}", flush=True)
+    return finish_score(parsed, short_side, tpl.CODEX_SCORER)
 
 
 def clothed_candidates(actor: str, view: str) -> list[str]:
@@ -675,15 +667,27 @@ def codex_binary() -> str | None:
     return None
 
 
+def codex_login_report(binary: str) -> tuple[bool, str]:
+    """Login status plus the CLI text, so a miss can be recorded."""
+    try:
+        result = subprocess.run(
+            [binary, "login", "status"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except subprocess.TimeoutExpired:
+        return False, "login status timeout"
+    except OSError as exc:
+        return False, str(exc)
+    text = f"{result.stdout or ''}{result.stderr or ''}".strip()
+    ok = result.returncode == 0 and "Logged in" in text
+    return ok, text or f"rc={result.returncode}"
+
+
 def codex_logged_in(binary: str) -> bool:
-    result = subprocess.run(
-        [binary, "login", "status"],
-        capture_output=True,
-        text=True,
-        timeout=30,
-    )
-    text = f"{result.stdout or ''}{result.stderr or ''}"
-    return result.returncode == 0 and "Logged in" in text
+    ok, _detail = codex_login_report(binary)
+    return ok
 
 
 def run_clothed_rebuild(client, remote: Remote, actor: str, view: str) -> Path:
@@ -1170,10 +1174,10 @@ def run_research(
             )
         except SystemExit as exc:
             text = str(exc)
-            if "CODEX_CLI_FAILED" not in text:
+            if "SCORE_FAILED" not in text and "CODEX_CLI_FAILED" not in text:
                 raise
             print(
-                f"SCORE_DEFERRED seed={seed} 图已留下，打分失败不中断后面的籽。{text[-180:]}",
+                f"SCORE_DEFERRED seed={seed} 图已留下，打分失败不中断后面的籽。{text[-400:]}",
                 flush=True,
             )
     print("RESEARCH_DONE 一采研究批结束。禁止二采。", flush=True)
@@ -1217,7 +1221,7 @@ def run_until_pass2(client, remote: Remote, actor: str, view: str, steps: int, d
                 continue
             if "SCORE_FAILED" in text:
                 print(
-                    f"SCORE_DEFERRED {actor} {view} seed={seed} 图已留下，打分失败不中断。{text[-160:]}",
+                    f"SCORE_DEFERRED {actor} {view} seed={seed} 图已留下，打分失败不中断。{text[-400:]}",
                     flush=True,
                 )
                 continue

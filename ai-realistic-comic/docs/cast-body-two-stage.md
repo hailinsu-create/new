@@ -19,7 +19,7 @@
 
 去衣只用 F34。穿衣过门之前禁止开机去衣。
 
-打分默认仍是 Codex CLI，再加固定标准前缀 `SCORE_PREFIX`（`autodl/cast_body_template.py`）。前缀含八项、硬门和 JSON schema，同一次运行里字节不变。`score_call` 只在末尾追加定妆路径、待打分图路径、眼睛裁切短边和一句任务。顺序固定：先走 Codex CLI。只有 Codex CLI 不可用（没有二进制、未登录、额度用完、CLI 报错或超时）才回退 grok 4.7 xhigh。回退只走 Cursor 提供的 grok 4.7，入口是 `cursor-agent -p --mode ask --model grok-4.7-xhigh --image <图>`。rubric 和九分阈值与 Codex 完全一致。不走 grok.com CLI，不走 xAI 直连 API，不走 OpenCode。每张分数 JSON 写 `scorer`：`codex`、`grok-4.7-xhigh` 或 `local`。头胸被背景吃掉时不送打分，`scorer` 为 `local`。禁止改用 DeepSeek vision。
+打分只走 Codex CLI，再加固定标准前缀 `SCORE_PREFIX`（`autodl/cast_body_template.py`）。前缀含八项、硬门和 JSON schema，同一次运行里字节不变。`score_call` 只在末尾追加定妆路径、待打分图路径、眼睛裁切短边和一句任务。2026-10-07 起没有第二条打分模型。Codex CLI 不可用（没有二进制、未登录、额度用完、CLI 报错、分数 JSON 解析失败或超时）就失败：标准输出打印 `SCORE_FAILED`，同一行带 `reason=`，并在图旁边写 `.score-fail.json`。不换模型。成功的分数 JSON 写 `scorer`：`codex` 或 `local`。头胸被背景吃掉时不送打分，`scorer` 为 `local`。禁止改用 DeepSeek vision。
 
 2026-10-06 的复盘见 `docs/cast-identity-rebuild.md`。林晚棠正面籽 `33`–`98` 没有一张八项都过门，二采没有开始。继续盲换籽不解决眼睛和锁脸。下一张试跑要先得到授权，不在本轮开机。
 
