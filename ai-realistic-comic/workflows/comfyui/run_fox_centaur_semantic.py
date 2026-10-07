@@ -576,10 +576,17 @@ def undress_one(
                     y_cut = int(plan.horse_guard_y / sem.BASE[1] * shape[0])
                     # Buffer above mare so residual does not chew the human/horse seam.
                     redo_mask[max(0, y_cut - 16) :, :] = False
+                # Lin: never Fooocus-redo below the hips — residual passes smear thighs/calves.
+                if actor == "lin":
+                    hip_cut = int(720 / sem.BASE[1] * shape[0])
+                    redo_mask[hip_cut:, :] = False
                 tiny = best_ratio <= LAMA_RESIDUAL_MAX_RATIO and leftover_px <= LAMA_RESIDUAL_MAX_PIXELS
+                if not redo_mask.any():
+                    print(f"RESIDUAL_SKIP_EMPTY {stem} pass={n} (protected zones)", flush=True)
+                    break
                 # Always LaMa-hard-erase leftovers first (P0). Tiny → light touch; large → mid Fooocus.
                 current = run_bands(
-                    host, models, base, redo_mask if redo_mask.any() else target,
+                    host, models, base, redo_mask,
                     positive=RESIDUAL_SKIN_POS, negative=RESIDUAL_SKIN_NEG, seed=seed + n * 50,
                     stem=f"{stem}-p{n}lama", denoise=0.0, edge=False, input_dir=input_dir, out_dir=work,
                     lama_only=True,
