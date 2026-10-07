@@ -292,3 +292,66 @@ def test_end_to_end_torn_leaves_remnants(tmp_path, monkeypatch):
     region = (slice(260, 560), slice(300, 500))
     changed = (np.abs(result[region] - source[region]).sum(axis=2) > 30).mean()
     assert 0.15 < changed < 0.9
+
+
+power = _load("autodl_power")
+
+
+def test_power_on_uses_web_endpoint_gpu_payload_and_backs_off_on_no_gpu(monkeypatch):
+    sent = []
+    replies = iter(
+        [
+            (200, {"code": "InstanceError", "msg": "该主机空闲GPU不足，主机GPU空闲数量：0 卡"}),
+            (200, {"code": "InstanceError", "msg": "该主机空闲GPU不足"}),
+            (200, {"code": "Success", "msg": ""}),
+        ]
+    )
+
+    def fake_post(url, headers, body, timeout=30):
+        sent.append((url, headers, body))
+        return next(replies)
+
+    monkeypatch.setattr(power, "post", fake_post)
+    waits = []
+    code = power.power_on_loop("359a49a1c3-4cda10df", "JWT", max_minutes=60, sleep=waits.append, now=lambda: 0.0)
+    assert code == 0 and waits == [20, 30]
+    url, headers, body = sent[0]
+    assert url == "https://www.autodl.com/api/v1/instance/power_on"
+    assert headers == {"Authorization": "JWT"}
+    assert body == {"instance_uuid": "359a49a1c3-4cda10df", "payload": "gpu"}
+
+
+def test_power_on_stops_on_auth_failure_and_on_deadline(monkeypatch):
+    monkeypatch.setattr(power, "post", lambda *a, **k: (401, {"code": "AuthorizeFailed", "msg": "token expired"}))
+    assert power.power_on_loop("u", "JWT", max_minutes=60, sleep=lambda s: None, now=lambda: 0.0) == 2
+    monkeypatch.setattr(power, "post", lambda *a, **k: (200, {"code": "X", "msg": "空闲GPU不足"}))
+    clock = iter(range(0, 100000, 100))
+    assert power.power_on_loop("u", "JWT", max_minutes=1, sleep=lambda s: None, now=lambda: float(next(clock))) == 3
+
+
+def test_power_on_refuses_f34_g09_and_never_prints_the_secret(monkeypatch, capsys, tmp_path):
+    for uuid in ("xaxna66hqt-c5c9c7fc", "sa4eaxgcuq-26e36fc9"):
+        try:
+            power.instance_uuid(uuid)
+        except SystemExit as exc:
+            assert "FORBIDDEN_INSTANCE" in str(exc)
+        else:
+            raise AssertionError(uuid)
+    monkeypatch.setattr(power, "post", lambda *a, **k: (200, {"code": "Success"}))
+    power.power_on_loop("359a49a1c3-4cda10df", "SECRET-JWT-VALUE", max_minutes=1)
+    assert "SECRET-JWT-VALUE" not in capsys.readouterr().out
+    env = tmp_path / "a.env"
+    env.write_text("AUTODL_WEB_AUTHORIZATION=abc\n# c\nOTHER='x'\n")
+    assert power.read_env_file(env) == {"AUTODL_WEB_AUTHORIZATION": "abc", "OTHER": "x"}
+
+
+def test_balance_pending_without_token_and_uses_dev_endpoint(monkeypatch, capsys):
+    monkeypatch.setattr(power, "dev_token", lambda: None)
+    assert power.balance() == 1 and "BALANCE_PENDING" in capsys.readouterr().out
+    seen = []
+    monkeypatch.setattr(power, "dev_token", lambda: "TOKEN")
+    monkeypatch.setattr(power, "post", lambda url, h, b, timeout=30: (seen.append(url) or (200, {"code": "Success", "data": {"assets": 4200}})))
+    assert power.balance() == 0
+    out = capsys.readouterr().out
+    assert seen == ["https://api.autodl.com/api/v1/dev/wallet/balance"]
+    assert "yuan=4.20" in out and "BALANCE_WARNING" in out and "TOKEN" not in out

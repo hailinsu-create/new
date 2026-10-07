@@ -61,6 +61,27 @@ python workflows/comfyui/run_fox_centaur_semantic.py --score-only --out <含 png
 
 工作流 JSON：`workflows/comfyui/scheme-semantic-*.api.json` 八个（SegFormer、两个 DINO、四个 inpaint、收边），由 `--emit-examples <目录>` 生成，测试里核对和脚本一致。MASK 输出口在机器上按 `/object_info` 取，JSON 里写的是 1。
 
+## 开机凭据与自动开机
+
+北京 B 791 `359a49a1c3-4cda10df` 是**普通容器实例**，不是 Pro。开发者 API 对它没用：`/api/v1/dev/instance/pro/power_on` 返回 RecordNotFoundError，`pro/list` 为空。所以两种凭据分工不同：
+
+| 凭据 | 来源 | 只用来 |
+| --- | --- | --- |
+| 网页会话 JWT `AUTODL_WEB_AUTHORIZATION` | 环境变量，或 `/cursor/stores/user/autodl-web-auth.env`、`/workspace/cred-handoff/autodl-web-auth.env` | 普通实例开机：`POST https://www.autodl.com/api/v1/instance/power_on`，body `{"instance_uuid": ..., "payload": "gpu"}`。`payload` 固定 `gpu`，禁止无卡模式 |
+| 开发者 Token `AUTODL_TOKEN` | 环境变量，或 `/cursor/stores/user/autodl-token.env` | 余额：`POST https://api.autodl.com/api/v1/dev/wallet/balance`。不用来开机 |
+
+`workflows/comfyui/autodl_power.py`：
+
+```bash
+python workflows/comfyui/autodl_power.py balance          # 读余额（厘 / 元），低于 5 元只警报
+python workflows/comfyui/autodl_power.py power-on         # 循环开机，空卡退避 20/30/45/60 s，默认最多 120 分钟
+python workflows/comfyui/autodl_power.py power-on-once    # 单次；退出码 0 成功 5 无空卡 6 暂时失败 2 致命 4 没有网页凭据
+```
+
+「空闲GPU不足」按空卡处理并退避重试；鉴权失败、实例不存在这类致命回复立即停止，不重试。F34 / G09 的 UUID 直接拒绝。密钥不打印、不入库。
+
+2026-10-07 读到的余额是 ¥21.91（21910 厘），在任何开机之前。
+
 ## 状态（2026-10-07）
 
 - 离线完成：蒙版逻辑、torn 挖洞、残留检查、Codex-only 打分、安装脚本、八个 API 图、说明文档。25 个测试通过（`tests/test_semantic_undress.py`、`tests/test_fox_centaur_undress.py`），其中两个是用假 ComfyUI 后端在真实成衣底板上跑完整个 `undress_one`：脸区像素不变，衣服区被换成肤色，残留循环、收边、sidecar 落盘都走到；torn 保留残骸。假后端不画图，所以这只证明流程和拼接对，不证明画面质量。
