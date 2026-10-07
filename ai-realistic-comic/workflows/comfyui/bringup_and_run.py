@@ -163,10 +163,12 @@ def ship(light: bool = False) -> None:
 
 
 def restart_comfy() -> None:
+    # Two calls on purpose: a single command line that both kills by pattern and starts
+    # "main.py --listen ..." would match its own pattern and kill the ssh session.
+    ssh("for pid in $(pgrep -f '[m]ain.py --listen 127.0.0.1 --port 8188'); do kill $pid; done; sleep 3; echo OLD_COMFY_STOPPED", check=False)
     ssh(
-        "for pid in $(pgrep -f '[m]ain.py --listen 127.0.0.1 --port 8188'); do kill $pid; done; sleep 3; "
-        f"cd {COMFY_DIR} && nohup {REMOTE_PY} main.py --listen 127.0.0.1 --port 8188 --disable-auto-launch "
-        "> /root/autodl-tmp/comfyui.log 2>&1 &"
+        f"cd {COMFY_DIR}; setsid nohup {REMOTE_PY} main.py --listen 127.0.0.1 --port 8188 --disable-auto-launch "
+        "< /dev/null > /root/autodl-tmp/comfyui.log 2>&1 & sleep 1; echo COMFY_STARTED"
     )
     ssh(
         "for i in $(seq 1 60); do curl -sf http://127.0.0.1:8188/system_stats >/dev/null && echo COMFY_UP && exit 0; sleep 5; done; "

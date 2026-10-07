@@ -424,6 +424,8 @@ def test_failed_step_keeps_the_machine_on_unless_asked(monkeypatch, capsys):
 def test_restart_command_cannot_match_itself():
     source = (COMFY / "bringup_and_run.py").read_text(encoding="utf-8")
     assert "pgrep -f '[m]ain.py" in source
+    kill_call = [line for line in source.splitlines() if "pgrep -f" in line][0]
+    assert "setsid" not in kill_call and "nohup" not in kill_call
 
 
 def test_bringup_ships_no_secrets_or_forbidden_machines():
