@@ -37,9 +37,10 @@ HEAD_BOX = {"lin": legacy.LIN_HEAD, "elena": legacy.ELENA_HEAD}
 
 NUDE_DENOISE = 1.0
 NUDE_CFG = 5.5
-# Residual P0: always LaMa-hard-erase first, then mid denoise Fooocus (never 1.0 on leftover —
-# denoise 1.0 residual redraws were producing meat-smear legs / translucent Elena torso).
-RESIDUAL_FOOOCUS_DENOISE = 0.62
+# Residual P0: always LaMa-hard-erase first, then high-mid Fooocus (0.88). Full 1.0 redo
+# smeared legs/Elena torso; 0.62 left sheer lace/armor ghosts (a31). Small grow so redo
+# stays on leftover islands instead of re-chewing clean skin.
+RESIDUAL_FOOOCUS_DENOISE = 0.88
 RESIDUAL_TOUCH_DENOISE = 0.35
 RESIDUAL_TOUCH_CFG = 4.0
 LAMA_RESIDUAL_MAX_RATIO = 0.12
@@ -48,12 +49,11 @@ TORN_RIM_DENOISE = 0.30
 EDGE_DENOISE = 0.32
 BAND_HEIGHT = 420
 BAND_GROW = 0  # the garment mask is already grown and protection-clipped
-MAX_NUDE_PASSES = 3
+MAX_NUDE_PASSES = 4
 RESIDUAL_OK = 0.05
 RESIDUAL_MIN_PIXELS = 3500
-# Grow leftover before mid-denoise redo; keep Elena tiny so junction stays intact.
-RESIDUAL_REDO_GROW = {"lin": 12, "elena": 4}
-MAX_RESIDUAL_PASSES = {"lin": 2, "elena": 1}
+RESIDUAL_REDO_GROW = {"lin": 8, "elena": 6}
+MAX_RESIDUAL_PASSES = {"lin": 3, "elena": 2}
 SEED = 20261008
 BANNED_HOST_PARTS = ("weste.seetacloud", "xaxna66hqt", "sa4eaxgcuq")
 
@@ -94,9 +94,10 @@ RESIDUAL_SKIN_POS = (
     "no fabric print on skin, same adult woman, one person only"
 )
 RESIDUAL_SKIN_NEG = (
-    "clothes, dress, qipao, armor, plate, glove, bracer, sleeve, strap, fabric, embroidery, "
-    "fabric pattern, watercolor print on skin, floral print on skin, leather texture, "
-    "marbled meat, roasted meat texture, fur texture on torso, metal, mail, "
+    "clothes, dress, qipao, cheongsam, armor, plate, glove, bracer, sleeve, strap, fabric, "
+    "embroidery, lace, sheer fabric, blue and white porcelain pattern, floral print on skin, "
+    "watercolor print on skin, fabric pattern, leather texture, "
+    "marbled meat, roasted meat texture, fur texture on torso, metal, mail, translucent skin, "
     "child, teen, extra person, smear, plastic, text, watermark"
 )
 
