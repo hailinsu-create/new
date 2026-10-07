@@ -120,11 +120,13 @@ LIN = ActorPlan(
     tear_anchors=(0.16, 0.30, 0.44),
     force_boxes=(
         (340, 300, 600, 380),   # mandarin collar / upper chest cloth
+        (320, 360, 620, 700),   # torso dress panel (sheer print often survives)
+        (300, 680, 560, 1200),  # skirt / hip cloth including right slit panel
         (280, 680, 420, 1250),  # left skirt panel beside the hip/leg
     ),
-    expand_prompts=("mandarin collar", "shoulder strap", "skirt panel", "white cloth"),
-    expand_px=20,
-    mask_grow=18,
+    expand_prompts=("mandarin collar", "shoulder strap", "skirt panel", "white cloth", "qipao", "cheongsam dress"),
+    expand_px=24,
+    mask_grow=22,
 )
 
 ELENA = ActorPlan(

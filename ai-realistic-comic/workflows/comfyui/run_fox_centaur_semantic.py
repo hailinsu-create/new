@@ -48,9 +48,11 @@ TORN_RIM_DENOISE = 0.30
 EDGE_DENOISE = 0.38
 BAND_HEIGHT = 420
 BAND_GROW = 0  # the garment mask is already grown and protection-clipped
-MAX_NUDE_PASSES = 3
+MAX_NUDE_PASSES = 4
 RESIDUAL_OK = 0.05
-RESIDUAL_MIN_PIXELS = 4000
+RESIDUAL_MIN_PIXELS = 3500
+# When leftover is still large, grow it before the Fooocus redo so sheer print edges are covered.
+RESIDUAL_REDO_GROW = 18
 SEED = 20261008
 BANNED_HOST_PARTS = ("weste.seetacloud", "xaxna66hqt", "sa4eaxgcuq")
 
@@ -546,12 +548,18 @@ def undress_one(
                         {"kind": "touch", "n": n, "denoise": RESIDUAL_TOUCH_DENOISE}
                     )
                 else:
+                    redo_mask = sem.dilate(target, RESIDUAL_REDO_GROW) & sem.box_array(shape, plan.roi)
+                    redo_mask &= ~sem.box_array(shape, plan.face_clear)
+                    if plan.horse_guard_y:
+                        y_cut = int(plan.horse_guard_y / sem.BASE[1] * shape[0])
+                        redo_mask[y_cut:, :] = False
                     print(
-                        f"RESIDUAL_FOOOCUS {stem} pass={n} ratio={best_ratio:.4f} pixels={leftover_px}",
+                        f"RESIDUAL_FOOOCUS {stem} pass={n} ratio={best_ratio:.4f} "
+                        f"pixels={leftover_px} grown={int(redo_mask.sum())}",
                         flush=True,
                     )
                     current = run_bands(
-                        host, models, base, target,
+                        host, models, base, redo_mask,
                         positive=RESIDUAL_SKIN_POS, negative=RESIDUAL_SKIN_NEG, seed=seed + n * 50,
                         stem=f"{stem}-p{n}redo", denoise=RESIDUAL_FOOOCUS_DENOISE, edge=False,
                         input_dir=input_dir, out_dir=work, cfg=NUDE_CFG, lama_prefill=True,
