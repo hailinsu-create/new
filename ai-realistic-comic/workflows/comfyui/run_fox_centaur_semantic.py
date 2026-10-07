@@ -492,7 +492,12 @@ def undress_one(
         lower = (LOWER_FROM_Y[actor], LOWER_POS, LOWER_NEG) if actor in LOWER_FROM_Y else None
         collar = (COLLAR_TO_Y[actor], COLLAR_POS, COLLAR_NEG) if actor in COLLAR_TO_Y else None
         base = plate
-        target = garment
+        target = garment.copy()
+        # Keep Elena's human/horse seam out of the first Fooocus hole — it becomes smear otherwise.
+        if actor == "elena" and plan.horse_guard_y:
+            y_cut = int(plan.horse_guard_y / sem.BASE[1] * shape[0])
+            target[max(0, y_cut - 48) :, :] = False
+            print(f"ELENA_CLIP_JUNCTION y>={max(0, y_cut - 48)}", flush=True)
         best_ratio = float("inf")
         best_image, best_left = plate, garment
         for n in range(MAX_NUDE_PASSES):
