@@ -400,7 +400,7 @@ def undress_one(
     print(f"MASK {stem} garment_share={share:.4f}", flush=True)
     if share < 0.005:
         raise SystemExit(f"MASK_EMPTY {stem} garment_share={share:.5f}")
-    if share > 0.35:
+    if share > 0.48:
         raise SystemExit(f"MASK_SUSPECT {stem} garment_share={share:.5f}; check the SegFormer output slot")
     sem.overlay(plate, garment).save(debug / f"{stem}-garment-overlay.png")
     sem.to_image(garment).save(debug / f"{stem}-garment-mask.png")
@@ -484,12 +484,35 @@ def undress_one(
         best_image, best_left = plate, garment
         for n in range(MAX_NUDE_PASSES):
             if n == 0:
-                current = run_bands(
-                    host, models, base, target,
-                    positive=positive, negative=negative, seed=seed, stem=f"{stem}-p0",
-                    denoise=NUDE_DENOISE, edge=False, input_dir=input_dir, out_dir=work,
-                    lower=lower, collar=collar, cfg=NUDE_CFG, lama_prefill=True,
-                )
+                # 420px bands rarely sit entirely above COLLAR_TO_Y, so split the collar mask explicitly.
+                current = base
+                if collar is not None:
+                    collar_cut = collar[0]
+                    collar_mask = target.copy()
+                    collar_mask[collar_cut:, :] = False
+                    body_mask = target.copy()
+                    body_mask[:collar_cut, :] = False
+                    if collar_mask.any():
+                        current = run_bands(
+                            host, models, current, collar_mask,
+                            positive=collar[1], negative=collar[2], seed=seed, stem=f"{stem}-p0c",
+                            denoise=NUDE_DENOISE, edge=False, input_dir=input_dir, out_dir=work,
+                            cfg=NUDE_CFG, lama_prefill=True,
+                        )
+                    if body_mask.any():
+                        current = run_bands(
+                            host, models, current, body_mask,
+                            positive=positive, negative=negative, seed=seed + 11, stem=f"{stem}-p0",
+                            denoise=NUDE_DENOISE, edge=False, input_dir=input_dir, out_dir=work,
+                            lower=lower, cfg=NUDE_CFG, lama_prefill=True,
+                        )
+                else:
+                    current = run_bands(
+                        host, models, current, target,
+                        positive=positive, negative=negative, seed=seed, stem=f"{stem}-p0",
+                        denoise=NUDE_DENOISE, edge=False, input_dir=input_dir, out_dir=work,
+                        lower=lower, cfg=NUDE_CFG, lama_prefill=True,
+                    )
                 meta["passes"].append({"kind": "nude", "n": 0, "denoise": NUDE_DENOISE, "lama_prefill": True})
             else:
                 # Hard erase residual islands with LaMa so cloth/armor priors cannot rebound.

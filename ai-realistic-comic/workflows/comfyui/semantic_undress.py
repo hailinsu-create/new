@@ -161,9 +161,9 @@ ELENA = ActorPlan(
     tear_anchors=(0.14, 0.34, 0.58),
     force_boxes=(
         (230, 220, 430, 310),   # choker / gorget
-        (70, 260, 230, 720),    # left arm / glove / bracer
-        (300, 260, 520, 680),   # right arm / pauldron / vambrace
-        (180, 540, 470, 730),   # waist / fauld
+        (70, 260, 230, 680),    # left arm / glove / bracer (stay above horse_guard_y)
+        (300, 260, 520, 660),   # right arm / pauldron / vambrace
+        (180, 540, 470, 690),   # waist / fauld (clip at horse_guard_y)
     ),
     expand_prompts=(
         "breastplate", "pauldron", "vambrace", "gauntlet", "fauld", "gorget",

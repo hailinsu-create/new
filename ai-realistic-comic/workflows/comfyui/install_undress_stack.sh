@@ -25,7 +25,6 @@ NODES=(
 MODELS=(
   "models/inpaint/fooocus_inpaint_head.pth|lllyasviel/fooocus_inpaint|fooocus_inpaint_head.pth"
   "models/inpaint/inpaint_v26.fooocus.patch|lllyasviel/fooocus_inpaint|inpaint_v26.fooocus.patch"
-  "models/inpaint/big-lama.pt|fashn-ai/LaMa|big-lama.pt"
   "models/segformer_b2_clothes/config.json|mattmdjaga/segformer_b2_clothes|config.json"
   "models/segformer_b2_clothes/preprocessor_config.json|mattmdjaga/segformer_b2_clothes|preprocessor_config.json"
   "models/segformer_b2_clothes/model.safetensors|mattmdjaga/segformer_b2_clothes|model.safetensors"
@@ -101,6 +100,29 @@ install_nodes() {
 
 # The node reads models/segformer_b2_clothes at import time, and its __init__ also imports the b3 fashion
 # variant, whose weights we do not use. Keep only the b2 clothes node so the package imports cleanly.
+
+# Acly/spandrel only accepts the Sanster big-lama weights. The Hugging Face mirror copy is a different
+# checkpoint and raises UnsupportedModel. Pull from GitHub releases through network_turbo on Beijing B.
+fetch_big_lama() {
+  local dest="${ROOT}/models/inpaint/big-lama.pt"
+  mkdir -p "$(dirname "${dest}")"
+  if [ -s "${dest}" ] && [ "$(stat -c %s "${dest}")" -gt 200000000 ]; then
+    say "SKIP ${dest#${ROOT}/} $(stat -c %s "${dest}")"
+    return 0
+  fi
+  local url="https://github.com/Sanster/models/releases/download/add_big_lama/big-lama.pt"
+  say "GET ${url}"
+  rm -f "${dest}.part"
+  if ( [ -f /etc/network_turbo ] && source /etc/network_turbo >/dev/null 2>&1; timeout 600 curl -fL --retry 3 --connect-timeout 20 -o "${dest}.part" "${url}" ); then
+    mv "${dest}.part" "${dest}"
+    printf '%s  %s\n' "$(sha256sum "${dest}" | cut -d' ' -f1)" "models/inpaint/big-lama.pt" >> "${MANIFEST}"
+  else
+    rm -f "${dest}.part"
+    say "FAILED big-lama.pt"
+    return 1
+  fi
+}
+
 patch_segformer_init() {
   local init="${ROOT}/custom_nodes/Comfyui_segformer_b2_clothes/__init__.py"
   [ -f "${init}" ] || return 0
@@ -148,6 +170,7 @@ case "${MODE}" in
     patch_segformer_init
     pin_transformers
     prefetch_bert
+    fetch_big_lama
     say "== after"
     inventory
     ;;
