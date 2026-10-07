@@ -114,6 +114,18 @@ PYEOF
   fi
 }
 
+# comfyui_segment_anything's GroundingDINO uses BertModel.get_extended_attention_mask, which transformers 5.x
+# removed. Pin the 4.46 line so the DINO text encoder builds.
+pin_transformers() {
+  local have
+  have="$("${PY}" -c 'import transformers; print(transformers.__version__)' 2>/dev/null)"
+  case "${have}" in
+    4.46.*) say "SKIP transformers ${have}" ;;
+    *) say "PIN transformers 4.46.3 (was ${have:-none})"
+       "${PY}" -m pip install -q -i "${PIP_INDEX}" "transformers==4.46.3" "tokenizers>=0.20,<0.21" "huggingface_hub<1.0" || say "PIN_FAILED transformers" ;;
+  esac
+}
+
 # GroundingDINO's text encoder is bert-base-uncased; huggingface.co is unreachable here, so warm the cache
 # through the mirror (ComfyUI is started with the same HF_ENDPOINT).
 prefetch_bert() {
@@ -133,6 +145,7 @@ case "${MODE}" in
       fetch "${dest}" "${repo}" "${file}"
     done
     patch_segformer_init
+    pin_transformers
     prefetch_bert
     say "== after"
     inventory

@@ -144,6 +144,7 @@ def dino_by_prompt(
     except SystemExit as exc:
         print(f"DINO_BATCH_FAILED {tag} {str(exc)[:160]}; retry per prompt", flush=True)
     out: dict[str, np.ndarray] = {}
+    failed = 0
     for i, prompt in enumerate(prompts):
         single = sem.dino_masks_graph(name, (prompt,), prefix=f"{tag}-dino{i}", slot=slot)
         try:
@@ -152,6 +153,9 @@ def dino_by_prompt(
         except SystemExit as exc:
             print(f"DINO_EMPTY {tag} prompt={prompt!r} {str(exc)[:120]}", flush=True)
             out[prompt] = empty
+            failed += 1
+    if failed == len(prompts):
+        raise SystemExit(f"DINO_ALL_FAILED {tag}: every prompt errored, this is a broken node and not an empty detection")
     return out
 
 
