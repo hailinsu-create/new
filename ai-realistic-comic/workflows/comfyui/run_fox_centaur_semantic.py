@@ -42,6 +42,7 @@ BAND_HEIGHT = 420
 BAND_GROW = 0  # the garment mask is already grown and protection-clipped
 MAX_NUDE_PASSES = 3
 RESIDUAL_OK = 0.05
+RESIDUAL_MIN_PIXELS = 2500
 SEED = 20261008
 BANNED_HOST_PARTS = ("weste.seetacloud", "xaxna66hqt", "sa4eaxgcuq")
 
@@ -57,12 +58,12 @@ def nude_text(actor: str) -> tuple[str, str]:
 LOWER_FROM_Y = {"lin": 640}
 LOWER_POS = (
     "bare legs, smooth bare thighs, knees and calves, skin tone matches the neck, same adult woman, "
-    "one person only, the space beside the legs shows the garden background and stone floor"
+    "one person only"
 )
 LOWER_NEG = (
     "skirt, long skirt, dress, hem, slit, hanging fabric, cloth panel, floral print, blue and white porcelain "
     "pattern, embroidery, silk, qipao, cheongsam, stockings, leggings, panties, child, teen, extra legs, "
-    "extra person, smear, plastic, text, watermark"
+    "handbag, bag, box, luggage, sash, apron, extra person, smear, plastic, text, watermark"
 )
 NUDE_EDGE_POS = "matching bare skin, seamless blend to surrounding skin and background"
 NUDE_EDGE_NEG = "seam, hard edge, cloth, fabric, hem, smear, blur, plastic, text, watermark, extra limbs"
@@ -412,7 +413,7 @@ def undress_one(
             current.save(tmp)
             check_plan = sem.residual_plan(plan)
             again = segment(host, tmp, check_plan, work, f"{stem}-a{attempt}-chk{n}", input_dir)
-            left = garment_from(check_plan, again, shape) & sem.dilate(garment, 24)
+            left = sem.drop_specks(garment_from(check_plan, again, shape) & sem.dilate(garment, 24), RESIDUAL_MIN_PIXELS)
             sem.overlay(current, left).save(debug / f"{stem}-residual-p{n}.png")
             ratio = sem.residual_ratio(garment, left)
             meta["passes"].append({"kind": "nude", "n": n, "denoise": NUDE_DENOISE, "residual_ratio": round(ratio, 4)})

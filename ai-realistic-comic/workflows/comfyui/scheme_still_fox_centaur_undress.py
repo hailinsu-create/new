@@ -65,10 +65,12 @@ LIN_NUDE_POS = (
 LIN_NUDE_NEG = (
     "child, teen, extra person, second woman, extra face, extra head, clone, ghost, "
     "qipao, cheongsam, dress, clothes, embroidery, fabric pattern, ribbon, bra, panties, "
+    "sash, belt, apron, cloth, fabric, hem, handbag, bag, box, luggage, "
     "snake tail, extra limbs, extra arm, extra hand, smear, plastic, text, watermark"
 )
 ELENA_NUDE_POS = (
     "bare human torso skin only, natural breasts, visible nipples, skin tone matches the neck, "
+    "bare arms, bare shoulders, bare forearms and bare hands, no sleeves, "
     "brown eyes, round gold wire glasses, no metal, no armor, waist joins the bay mare body, "
     "one person only"
 )
@@ -76,6 +78,7 @@ ELENA_NUDE_NEG = (
     "child, teen, extra person, extra face, armor, plate, gauntlet, gorget, pauldron, mail, "
     "clothes, bra, green eyes, blue-grey eyes, blue-gray eyes, pointed ears, stallion, "
     "glove, black glove, bracer, gold bracer, strap, leather belt, choker, feathers, black cloth, "
+    "sleeve, long sleeve, jacket, shirt, harness, belt, loincloth, skirt, saddle, reins, bridle, fabric, "
     "extra legs, smear, plastic, text, watermark"
 )
 
