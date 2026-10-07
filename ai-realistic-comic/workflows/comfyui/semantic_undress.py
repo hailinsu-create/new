@@ -50,6 +50,8 @@ REQUIRED_NODES = (
     "INPAINT_LoadFooocusInpaint",
     "INPAINT_ApplyFooocusInpaint",
     "INPAINT_MaskedFill",
+    "INPAINT_LoadInpaintModel",
+    "INPAINT_InpaintWithModel",
     "InpaintModelConditioning",
     "DifferentialDiffusion",
     SEGFORMER_NODE,
@@ -81,6 +83,9 @@ class ActorPlan:
     tear_fraction: float = 0.62
     # Rows (fraction of the garment's height) that must always carry a hole, so breasts and belly show.
     tear_anchors: tuple[float, ...] = ()
+    # Boxes (plate coords) around arms and hands. They are repainted in their own pass with arm wording,
+    # because the torso wording made the model draw sleeves and bracers back on the arms.
+    arm_boxes: tuple[tuple[int, int, int, int], ...] = ()
     # Remnant check after a nude pass: the original garment prompts also fire on bare skin, so the re-check
     # only trusts SegFormer plus these narrower prompts.
     residual_prompts: tuple[str, ...] = ()
@@ -130,6 +135,7 @@ ELENA = ActorPlan(
         "choker",
     ),
     protect_prompts=("face", "hair", "glasses"),
+    arm_boxes=((330, 260, 500, 500), (230, 490, 500, 730), (90, 470, 215, 880)),
     residual_prompts=("glove", "bracer", "armor plate", "choker", "strap", "black sleeve"),
     residual_wins_prompts=("glove", "bracer", "armor plate", "strap", "black sleeve"),
     roi=(60, 226, 560, 900),

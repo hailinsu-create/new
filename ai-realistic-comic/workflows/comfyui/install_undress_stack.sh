@@ -25,6 +25,7 @@ NODES=(
 MODELS=(
   "models/inpaint/fooocus_inpaint_head.pth|lllyasviel/fooocus_inpaint|fooocus_inpaint_head.pth"
   "models/inpaint/inpaint_v26.fooocus.patch|lllyasviel/fooocus_inpaint|inpaint_v26.fooocus.patch"
+  "models/inpaint/big-lama.pt|fashn-ai/LaMa|big-lama.pt"
   "models/segformer_b2_clothes/config.json|mattmdjaga/segformer_b2_clothes|config.json"
   "models/segformer_b2_clothes/preprocessor_config.json|mattmdjaga/segformer_b2_clothes|preprocessor_config.json"
   "models/segformer_b2_clothes/model.safetensors|mattmdjaga/segformer_b2_clothes|model.safetensors"

@@ -37,6 +37,7 @@ HEAD_BOX = {"lin": legacy.LIN_HEAD, "elena": legacy.ELENA_HEAD}
 
 NUDE_DENOISE = 1.0
 NUDE_CFG = 7.0
+RESIDUAL_DENOISE = 0.65
 TORN_RIM_DENOISE = 0.55
 EDGE_DENOISE = 0.42
 BAND_HEIGHT = 420
@@ -81,6 +82,16 @@ ELENA_RIM_POS = (
     "same adult woman, one person only"
 )
 ELENA_RIM_NEG = "intact armor, smooth plate, seam, child, teen, extra person, smear, plastic, text, watermark"
+
+
+ARM_POS = (
+    "bare human arm, smooth bare skin from shoulder to fingertips, natural elbow, wrist and fingers, bare hand, "
+    "same skin tone as the chest, one person only"
+)
+ARM_NEG = (
+    "sleeve, long sleeve, glove, gauntlet, bracer, vambrace, armor, mail, chainmail, mesh, black fabric, leather, "
+    "metal, strap, cuff, child, teen, extra arm, extra fingers, smear, plastic, text, watermark"
+)
 
 
 def torn_text(actor: str) -> tuple[str, str]:
@@ -262,6 +273,7 @@ def inpaint_band(
     input_dir: Path,
     out_dir: Path,
     cfg: float | None = None,
+    lama: bool = False,
 ) -> Image.Image:
     mask = sem.feather(sem.dilate(band, BAND_GROW if not edge else 0), radius=legacy.MASK_BLUR)
     prepared = legacy.prepare_job(stem, plate, mask, input_dir)
@@ -277,9 +289,10 @@ def inpaint_band(
         prefix=stem,
         denoise=denoise,
         fooocus=True,
-        differential=edge,
-        masked_fill=not edge,
+        differential=edge or lama,
+        masked_fill=not (edge or lama),
         fill_mode="neutral",
+        lama_prefill=lama,
         **({"cfg": cfg} if cfg is not None else {}),
     )
     (out_dir / f"{stem}.api.json").write_text(
@@ -308,6 +321,7 @@ def run_bands(
     out_dir: Path,
     lower: tuple[int, str, str] | None = None,
     cfg: float | None = None,
+    lama: bool = False,
 ) -> Image.Image:
     current = plate
     for i, band in enumerate(split_bands(mask)):
@@ -330,6 +344,7 @@ def run_bands(
             input_dir=input_dir,
             out_dir=out_dir,
             cfg=cfg,
+            lama=lama,
         )
     return current
 
@@ -411,11 +426,18 @@ def undress_one(
         best_ratio = float("inf")
         best_image, best_left = plate, garment
         for n in range(MAX_NUDE_PASSES):
-            current = run_bands(
-                host, models, base, target,
-                positive=positive, negative=negative, seed=seed + n * 50, stem=f"{stem}-p{n}",
-                denoise=NUDE_DENOISE, edge=False, input_dir=input_dir, out_dir=work, lower=lower, cfg=NUDE_CFG,
-            )
+            arms = sem.union(*(sem.box_array(shape, b) for b in plan.arm_boxes), shape=shape) if plan.arm_boxes else None
+            zones = [("t", target & ~arms, positive, negative), ("a", target & arms, ARM_POS, ARM_NEG)] if arms is not None else [("t", target, positive, negative)]
+            current = base
+            for tag, zone_mask, zone_pos, zone_neg in zones:
+                if not zone_mask.any():
+                    continue
+                current = run_bands(
+                    host, models, current, zone_mask,
+                    positive=zone_pos, negative=zone_neg, seed=seed + n * 50, stem=f"{stem}-p{n}{tag}",
+                    denoise=NUDE_DENOISE if n == 0 else RESIDUAL_DENOISE, edge=False, input_dir=input_dir, out_dir=work,
+                    lower=lower if tag == "t" else None, cfg=NUDE_CFG, lama=n > 0,
+                )
             tmp = work / f"{stem}-p{n}-result.png"
             current.save(tmp)
             check_plan = sem.residual_plan(plan)

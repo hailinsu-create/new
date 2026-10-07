@@ -9,16 +9,16 @@
 ## 管线
 
 1. 语义蒙版（`semantic_undress.py`）
-   - SegFormer B2 clothes（StartHua）：Upper-clothes、Skirt、Pants、Dress、Belt、Scarf 的并集。
-   - GroundingDINO + SAM（storyicon）补件。林：qipao、cheongsam dress、silk fabric skirt、mandarin collar、shoulder strap、dress hem。伊莲：breastplate、pauldron、vambrace、gauntlet、fauld、gorget、golden armor。
+   - SegFormer B2 clothes（StartHua）：Upper_clothes、Skirt、Pants、Dress、Belt、Scarf 的并集。这个节点只有一个 IMAGE 输出，布尔输入 True 表示「排除该类」，输出里背景加上 flag 为 False 的类是白色。所以跑两遍：A 遍只放开衣服类，B 遍全部排除（只剩背景），衣服蒙版 = A 且非 B。
+   - GroundingDINO + SAM（storyicon，threshold 0.25）补件。林：qipao、cheongsam dress、silk fabric skirt、mandarin collar、shoulder strap、dress hem、white cloth、skirt panel。伊莲：breastplate、pauldron、vambrace、gauntlet、fauld、gorget、golden armor、black glove、gold bracer、black cloth、leather strap、black sleeve、arm guard、choker。SAM 选项名按 `/object_info` 取（`sam_vit_b (375MB)`），不写文件名。
    - 保护区先减掉：脸框、face、hair、glasses、fox tail、高跟鞋；伊莲再加 horse body / horse tail，但只在 y>720（1024×1536 板坐标）以下生效，而且 DINO 明确点名的甲件优先于马身保护，免得腰甲被当成马。
    - 裁到演员 ROI，丢掉过小的碎块，再外扩 10 px，外扩之后再减一次保护区。分带重绘时不再二次外扩，所以蒙版不会越过脸和狐尾的保护边。
    - 伊莲的 SegFormer 只在 DINO 甲件命中 40 px 之内才算数，防止把马背毛色当成衣服。ROI 是 (60,230,560,900)，马身保护线 y=690，对照两张成衣底板核过坐标。
-2. torn：在 nude 蒙版里用固定种子的锯齿多边形挖洞（林 62%，伊莲 68%），林保留领口 7% 和下摆 18%，伊莲保留下摆 10%，所以残骸留在身上，不会全裸。
+2. torn：不再整块重绘（第一次上机实测：把 62% 衣服区整块交给模型重绘，模型会把完整旗袍/铠甲重新画出来，只剩零星小洞）。现在是：先有同一张的 nude 结果，在衣服蒙版里按固定种子挖锯齿多边形洞（锚点行保证胸、腹一定有洞：林 0.16/0.30/0.44，伊莲 0.14/0.34/0.58；林洞面积 50%、保留领口 7% 和下摆 40%，伊莲 55%、保留下摆 10%），洞里贴 nude 的皮肤，洞外保持原衣服，再对洞沿 16 px 环带跑一遍 denoise 0.55 的「撕裂边」重绘（DifferentialDiffusion，不预填），把边缘画成破口。没有 nude 文件时 torn 先自己跑 nude。
 3. 预填：Acly `INPAINT_MaskedFill`，`fill=neutral`。不用 Telea / NS 当去衣预填。等价 Fooocus 的 Disable initial latent + Modify Content。
 4. Crop and Stitch：SDXL 固定 1024。蒙版按 420 px 高度分带，每带单独裁剪重绘再贴回，不用一个大洞。内容占比封顶 `MAX_CONTENT_FRAC=0.52`，伊莲只裁人躯干、手臂、腰接缝，不进马身。
-5. 重绘：RealVisXL V5.0 fp16（非蒸馏写实 SDXL）+ Fooocus inpaint v2.6 patch（`fooocus_inpaint_head.pth`、`inpaint_v26.fooocus.patch`）。nude denoise 1.0，torn 0.96。衣服 pass 不开 DifferentialDiffusion。
-6. 残留检查（nude）：对结果再跑一遍 1 的蒙版，残留面积占原衣服面积的比例 <5% 才算净；否则只对残留区域再重绘，最多 3 轮。这是代替抬 denoise 的手段。
+5. 重绘：RealVisXL V5.0 fp16（非蒸馏写实 SDXL）+ Fooocus inpaint v2.6 patch（`fooocus_inpaint_head.pth`、`inpaint_v26.fooocus.patch`）。nude denoise 1.0，cfg 7。衣服 pass 不开 DifferentialDiffusion。正向提示词里**不写否定句**（「no armor」「no metal」CLIP 会当成概念加进去，实测会把铠甲画回来），否定词只放负向提示词。林的下半身分带（y≥640）用单独的腿部提示词，因为通用提示词里的乳房/肚脐词在腿上没意义，而且旧提示词会让模型在腿侧重画裙片，甚至画出手提包。
+6. 残留检查（nude）：对结果再跑一遍，**只信 SegFormer 加窄提示词**（林：silk cloth、shoulder strap、white cloth、mandarin collar；伊莲：glove、bracer、armor plate、choker、strap、black sleeve），再限制在原衣服蒙版外扩 24 px 内、丢掉 <2500 px 的碎块。原来的整套衣服提示词在裸身上也会命中，残留比会大于 1，是误报。残留面积 / 原衣服面积 <5% 才算净；否则只对残留区域再重绘，最多 3 轮，**保留残留最小的那一轮**，不用最后一轮。
 7. 收边：蒙版边界 14 px 环带，denoise 0.42，开 DifferentialDiffusion，关预填。
 8. InstantID：默认不开。脸在保护区里没被重绘，锁脸是多余的；去衣后 identity 若掉到 9 以下再手动加。头肩图和 `ApplyInstantID` 图在 `scheme_still_fox_centaur_undress.py` 的 `instantid_inpaint_graph`。
 
@@ -27,7 +27,8 @@
 ## 容错
 
 - DINO 一批提示词里有一条没检出导致整图报错时，改成逐条提示词重跑，没检出的按空蒙版处理，日志 `DINO_EMPTY`。
-- SegFormer 节点的蒙版输出口按 `/object_info` 找：先 MASK，再 IMAGE。不再写死槽位。
+- DINO 节点的 MASK 输出口按 `/object_info` 找。SegFormer 节点只有 IMAGE 输出，用两遍相减，不再猜槽位。
+- 一批 DINO 提示词全部逐条重跑也都报错（节点本身坏了，不是没检出）时报 `DINO_ALL_FAILED` 并停，不再把它当空蒙版继续出图。
 - 衣服蒙版占整图 <0.5% 报 `MASK_EMPTY`，>35% 报 `MASK_SUSPECT`（多半是输出口取错），都不继续出图。
 
 ## 入口
@@ -53,7 +54,7 @@ python workflows/comfyui/run_fox_centaur_semantic.py --score-only --out <含 png
 
 每张产物：`<stem>.png`、`<stem>.json`（打分 sidecar）、`<stem>.run.json`（种子、轮数、残留比）、`debug/<stem>-garment-overlay.png`、`work/`（各带的 api json 和中间图）。
 
-装栈：`bash workflows/comfyui/install_undress_stack.sh inventory|install`。幂等，已有的跳过，模型走 hf-mirror，装包前去代理、用清华源。北京 B 直连 github.com 会卡死，`git clone` 只在子 shell 里 `source /etc/network_turbo`（AutoDL 学术加速），并带 300 秒超时，失败时清掉半截目录。清单：lquesada ComfyUI-Inpaint-CropAndStitch、Acly comfyui-inpaint-nodes、storyicon comfyui_segment_anything、StartHua Comfyui_segformer_b2_clothes、ComfyUI_InstantID；`lllyasviel/fooocus_inpaint` 两个文件，`mattmdjaga/segformer_b2_clothes`。
+装栈：`bash workflows/comfyui/install_undress_stack.sh inventory|install`。幂等，已有的跳过，模型走 hf-mirror，装包前去代理、用清华源。2026-10-07 上机踩出来、脚本已处理的几处：SegFormer 节点在 import 时读 `models/segformer_b2_clothes/`（不是节点目录里的 checkpoints），并且它的 `__init__` 还会 import 用不上的 b3 fashion 变体、缺权重就整包 import 失败，脚本改成只导出 b2；GroundingDINO 需要 `models/grounding-dino/GroundingDINO_SwinT_OGC.cfg.py` 和 `bert-base-uncased`，北京 B 连不上 huggingface.co，两者都走 hf-mirror，ComfyUI 启动时带 `HF_ENDPOINT=https://hf-mirror.com`；机器上的 transformers 5.x 没有 `BertModel.get_extended_attention_mask`，GroundingDINO 建模直接报 AttributeError，所以固定 `transformers==4.46.3`、`tokenizers<0.21`、`huggingface_hub<1.0`。北京 B 直连 github.com 会卡死，`git clone` 只在子 shell 里 `source /etc/network_turbo`（AutoDL 学术加速），并带 300 秒超时，失败时清掉半截目录。清单：lquesada ComfyUI-Inpaint-CropAndStitch、Acly comfyui-inpaint-nodes、storyicon comfyui_segment_anything、StartHua Comfyui_segformer_b2_clothes、ComfyUI_InstantID；`lllyasviel/fooocus_inpaint` 两个文件，`mattmdjaga/segformer_b2_clothes`。
 
 ## 打分
 
