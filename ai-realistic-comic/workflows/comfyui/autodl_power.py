@@ -44,6 +44,8 @@ WEB_AUTH_FILES = (
 TOKEN_FILES = (Path("/cursor/stores/user/autodl-token.env"),)
 SSH_ENV = Path("/cursor/stores/user/bjb-ssh.env")
 NO_GPU_MARKERS = ("GPU不足", "空闲GPU", "gpu不足", "no idle gpu", "InsufficientGpu")
+# Clone lock is temporary while a payg clone of this host is copying; keep waiting.
+RETRY_MARKERS = ("克隆锁定", "clone lock", "CloneLock", "正在克隆")
 BACKOFF = (20, 30, 45, 60)
 
 
@@ -110,10 +112,13 @@ def classify(status: int, reply: dict) -> str:
     """success | no_gpu | retry | fatal"""
     code = str(reply.get("code", ""))
     msg = str(reply.get("msg", ""))
+    blob = f"{code} {msg}".lower()
     if code == "Success":
         return "success"
-    if any(marker.lower() in msg.lower() or marker.lower() in code.lower() for marker in NO_GPU_MARKERS):
+    if any(marker.lower() in blob for marker in NO_GPU_MARKERS):
         return "no_gpu"
+    if any(marker.lower() in blob for marker in RETRY_MARKERS):
+        return "retry"
     if code == "NetworkError" or status >= 500 or status == 429:
         return "retry"
     return "fatal"
