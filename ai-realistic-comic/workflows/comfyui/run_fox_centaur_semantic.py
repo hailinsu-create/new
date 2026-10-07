@@ -52,6 +52,22 @@ def nude_text(actor: str) -> tuple[str, str]:
     return legacy.ELENA_NUDE_POS, legacy.ELENA_NUDE_NEG
 
 
+# Below the hips the first-pass prompt (breasts, nipples, navel) is wrong and the model re-draws the skirt
+# panels hanging beside the legs, so lower bands get their own text. Lin's hips sit near y=640 on the plate.
+LOWER_FROM_Y = {"lin": 640}
+LOWER_POS = (
+    "bare legs, smooth bare thighs, knees and calves, skin tone matches the neck, same adult woman, "
+    "one person only, the space beside the legs shows the garden background and stone floor"
+)
+LOWER_NEG = (
+    "skirt, long skirt, dress, hem, slit, hanging fabric, cloth panel, floral print, blue and white porcelain "
+    "pattern, embroidery, silk, qipao, cheongsam, stockings, leggings, panties, child, teen, extra legs, "
+    "extra person, smear, plastic, text, watermark"
+)
+NUDE_EDGE_POS = "matching bare skin, seamless blend to surrounding skin and background"
+NUDE_EDGE_NEG = "seam, hard edge, cloth, fabric, hem, smear, blur, plastic, text, watermark, extra limbs"
+
+
 def torn_text(actor: str) -> tuple[str, str]:
     if actor == "lin":
         return legacy.LIN_TORN_POS, legacy.LIN_TORN_NEG
@@ -273,16 +289,22 @@ def run_bands(
     edge: bool,
     input_dir: Path,
     out_dir: Path,
+    lower: tuple[int, str, str] | None = None,
 ) -> Image.Image:
     current = plate
     for i, band in enumerate(split_bands(mask)):
+        band_positive, band_negative = positive, negative
+        if lower is not None:
+            ys = np.nonzero(band.any(axis=1))[0]
+            if ys.size and int(ys.min()) >= lower[0]:
+                band_positive, band_negative = lower[1], lower[2]
         current = inpaint_band(
             host,
             models,
             current,
             band,
-            positive=positive,
-            negative=negative,
+            positive=band_positive,
+            negative=band_negative,
             seed=seed + i,
             stem=f"{stem}-b{i}",
             denoise=denoise,
@@ -352,18 +374,20 @@ def undress_one(
         edge_target = target
     else:
         positive, negative = nude_text(actor)
+        lower = (LOWER_FROM_Y[actor], LOWER_POS, LOWER_NEG) if actor in LOWER_FROM_Y else None
         current = plate
         target = garment
         for n in range(MAX_NUDE_PASSES):
             current = run_bands(
                 host, models, current, target,
                 positive=positive, negative=negative, seed=seed + n * 50, stem=f"{stem}-p{n}",
-                denoise=NUDE_DENOISE, edge=False, input_dir=input_dir, out_dir=work,
+                denoise=NUDE_DENOISE, edge=False, input_dir=input_dir, out_dir=work, lower=lower,
             )
             tmp = work / f"{stem}-p{n}-result.png"
             current.save(tmp)
             again = segment(host, tmp, plan, work, f"{stem}-a{attempt}-chk{n}", input_dir)
-            left = garment_from(plan, again, shape)
+            left = garment_from(plan, again, shape) & sem.dilate(garment, 24)
+            sem.overlay(current, left).save(debug / f"{stem}-residual-p{n}.png")
             ratio = sem.residual_ratio(garment, left)
             meta["passes"].append({"kind": "nude", "n": n, "denoise": NUDE_DENOISE, "residual_ratio": round(ratio, 4)})
             print(f"RESIDUAL {stem} pass={n} ratio={ratio:.4f}", flush=True)
@@ -377,7 +401,9 @@ def undress_one(
     edge_zone &= ~face
     current = run_bands(
         host, models, current, edge_zone,
-        positive=legacy.EDGE_POS, negative=legacy.EDGE_NEG, seed=seed + 900, stem=f"{stem}-edge",
+        positive=legacy.EDGE_POS if mode == "torn" else NUDE_EDGE_POS,
+        negative=legacy.EDGE_NEG if mode == "torn" else NUDE_EDGE_NEG,
+        seed=seed + 900, stem=f"{stem}-edge",
         denoise=EDGE_DENOISE, edge=True, input_dir=input_dir, out_dir=work,
     )
     meta["passes"].append({"kind": "edge", "denoise": EDGE_DENOISE})
