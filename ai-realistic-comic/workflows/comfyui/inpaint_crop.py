@@ -118,6 +118,7 @@ def inpaint_crop_graph(
     fill_mode: str = "neutral",
     fooocus_head: str = FOOOCUS_HEAD,
     fooocus_patch: str = FOOOCUS_PATCH,
+    cfg: float = INPAINT_CFG,
 ) -> dict:
     """API graph: 1024 crop + MaskedFill + IMC (+ Fooocus + DifferentialDiffusion)."""
     graph: dict = {
@@ -157,7 +158,7 @@ def inpaint_crop_graph(
             "model": ["3", 0],
             "seed": seed,
             "steps": INPAINT_STEPS,
-            "cfg": INPAINT_CFG,
+            "cfg": cfg,
             "sampler_name": "dpmpp_2m",
             "scheduler": "karras",
             "positive": ["40", 0],

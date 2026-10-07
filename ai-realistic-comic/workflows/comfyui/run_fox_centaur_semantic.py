@@ -36,6 +36,7 @@ STEM = legacy.OUT_STEM
 HEAD_BOX = {"lin": legacy.LIN_HEAD, "elena": legacy.ELENA_HEAD}
 
 NUDE_DENOISE = 1.0
+NUDE_CFG = 7.0
 TORN_RIM_DENOISE = 0.55
 EDGE_DENOISE = 0.42
 BAND_HEIGHT = 420
@@ -260,6 +261,7 @@ def inpaint_band(
     edge: bool,
     input_dir: Path,
     out_dir: Path,
+    cfg: float | None = None,
 ) -> Image.Image:
     mask = sem.feather(sem.dilate(band, BAND_GROW if not edge else 0), radius=legacy.MASK_BLUR)
     prepared = legacy.prepare_job(stem, plate, mask, input_dir)
@@ -278,6 +280,7 @@ def inpaint_band(
         differential=edge,
         masked_fill=not edge,
         fill_mode="neutral",
+        **({"cfg": cfg} if cfg is not None else {}),
     )
     (out_dir / f"{stem}.api.json").write_text(
         json.dumps(legacy.envelope(graph, stem, "edge" if edge else "inpaint"), ensure_ascii=False, indent=2),
@@ -304,6 +307,7 @@ def run_bands(
     input_dir: Path,
     out_dir: Path,
     lower: tuple[int, str, str] | None = None,
+    cfg: float | None = None,
 ) -> Image.Image:
     current = plate
     for i, band in enumerate(split_bands(mask)):
@@ -325,6 +329,7 @@ def run_bands(
             edge=edge,
             input_dir=input_dir,
             out_dir=out_dir,
+            cfg=cfg,
         )
     return current
 
@@ -401,13 +406,15 @@ def undress_one(
     else:
         positive, negative = nude_text(actor)
         lower = (LOWER_FROM_Y[actor], LOWER_POS, LOWER_NEG) if actor in LOWER_FROM_Y else None
-        current = plate
+        base = plate
         target = garment
+        best_ratio = float("inf")
+        best_image, best_left = plate, garment
         for n in range(MAX_NUDE_PASSES):
             current = run_bands(
-                host, models, current, target,
+                host, models, base, target,
                 positive=positive, negative=negative, seed=seed + n * 50, stem=f"{stem}-p{n}",
-                denoise=NUDE_DENOISE, edge=False, input_dir=input_dir, out_dir=work, lower=lower,
+                denoise=NUDE_DENOISE, edge=False, input_dir=input_dir, out_dir=work, lower=lower, cfg=NUDE_CFG,
             )
             tmp = work / f"{stem}-p{n}-result.png"
             current.save(tmp)
@@ -418,9 +425,13 @@ def undress_one(
             ratio = sem.residual_ratio(garment, left)
             meta["passes"].append({"kind": "nude", "n": n, "denoise": NUDE_DENOISE, "residual_ratio": round(ratio, 4)})
             print(f"RESIDUAL {stem} pass={n} ratio={ratio:.4f}", flush=True)
-            if ratio < RESIDUAL_OK:
+            if ratio < best_ratio:
+                best_ratio, best_image, best_left = ratio, current, left
+            base, target = best_image, best_left
+            if best_ratio < RESIDUAL_OK:
                 break
-            target = left
+        current = best_image
+        meta["best_residual_ratio"] = round(best_ratio, 4)
         edge_target = garment
 
     if edge_target is None:
@@ -483,6 +494,7 @@ def emit_examples(directory: Path) -> None:
             ckpt=ckpt, crop_name="band-crop.png", mask_name="band-crop-mask.png",
             positive=nude_text(actor)[0], negative=nude_text(actor)[1], seed=SEED, prefix=f"{actor}-nude",
             denoise=NUDE_DENOISE, fooocus=True, differential=False, masked_fill=True, fill_mode="neutral",
+            cfg=NUDE_CFG,
         )
         dump(f"scheme-semantic-inpaint-{actor}-nude.api.json", graph, stage="neutral fill + Fooocus", denoise=NUDE_DENOISE)
         rim = inpaint_crop_graph(
