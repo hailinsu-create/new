@@ -27,7 +27,7 @@ import codex_still_score as scorer  # noqa: E402
 import scheme_still_fox_centaur_undress as legacy  # noqa: E402
 import semantic_undress as sem  # noqa: E402
 from comfy_util import get_json, post_json, resolve_base_models  # noqa: E402
-from inpaint_crop import inpaint_crop_graph, stitch  # noqa: E402
+from inpaint_crop import inpaint_crop_graph, lama_only_graph, stitch  # noqa: E402
 
 STILL_DIR = legacy.STILL_DIR
 DEFAULT_OUT = STILL_DIR / "semantic"
@@ -37,8 +37,10 @@ HEAD_BOX = {"lin": legacy.LIN_HEAD, "elena": legacy.ELENA_HEAD}
 
 NUDE_DENOISE = 1.0
 NUDE_CFG = 7.0
-RESIDUAL_DENOISE = 0.65
-TORN_RIM_DENOISE = 0.55
+# Residual islands: LaMa hard-erase first. Optional skin touch-up stays low so cloth/armor priors do not rebound.
+RESIDUAL_TOUCH_DENOISE = 0.35
+RESIDUAL_TOUCH_CFG = 3.5
+TORN_RIM_DENOISE = 0.40
 EDGE_DENOISE = 0.42
 BAND_HEIGHT = 420
 BAND_GROW = 0  # the garment mask is already grown and protection-clipped
@@ -70,6 +72,21 @@ LOWER_NEG = (
 NUDE_EDGE_POS = "matching bare skin, seamless blend to surrounding skin and background"
 NUDE_EDGE_NEG = "seam, hard edge, cloth, fabric, hem, smear, blur, plastic, text, watermark, extra limbs"
 
+# Lin collar band (below face_clear, above the bosom). First pass uses this instead of breast wording.
+COLLAR_TO_Y = {"lin": 380}
+COLLAR_POS = (
+    "bare neck and upper chest skin only, skin tone matches the face and neck, smooth collarbone, "
+    "same adult woman, one person only"
+)
+COLLAR_NEG = (
+    "collar, mandarin collar, qipao neckline, embroidery, silk ribbon, buttons, frog closure, "
+    "dress fabric, child, teen, extra person, smear, plastic, text, watermark"
+)
+RESIDUAL_SKIN_POS = "bare skin only, skin tone matches the neck, same adult woman, one person only"
+RESIDUAL_SKIN_NEG = (
+    "clothes, dress, qipao, armor, plate, glove, bracer, sleeve, strap, fabric, embroidery, "
+    "metal, mail, child, teen, extra person, smear, plastic, text, watermark"
+)
 
 # The rim pass only repaints a narrow band along each hole, so it needs edge wording, not "heavily torn dress".
 LIN_RIM_POS = (
@@ -82,16 +99,6 @@ ELENA_RIM_POS = (
     "same adult woman, one person only"
 )
 ELENA_RIM_NEG = "intact armor, smooth plate, seam, child, teen, extra person, smear, plastic, text, watermark"
-
-
-ARM_POS = (
-    "bare human arm, smooth bare skin from shoulder to fingertips, natural elbow, wrist and fingers, bare hand, "
-    "same skin tone as the chest, one person only"
-)
-ARM_NEG = (
-    "sleeve, long sleeve, glove, gauntlet, bracer, vambrace, armor, mail, chainmail, mesh, black fabric, leather, "
-    "metal, strap, cuff, child, teen, extra arm, extra fingers, smear, plastic, text, watermark"
-)
 
 
 def torn_text(actor: str) -> tuple[str, str]:
@@ -273,35 +280,45 @@ def inpaint_band(
     input_dir: Path,
     out_dir: Path,
     cfg: float | None = None,
-    lama: bool = False,
+    lama_prefill: bool = False,
+    lama_only: bool = False,
 ) -> Image.Image:
     mask = sem.feather(sem.dilate(band, BAND_GROW if not edge else 0), radius=legacy.MASK_BLUR)
     prepared = legacy.prepare_job(stem, plate, mask, input_dir)
     for filename in (prepared["crop_name"], prepared["crop_mask"]):
         upload(host, input_dir / filename)
-    graph = inpaint_crop_graph(
-        ckpt=models["ckpt"],
-        crop_name=prepared["crop_name"],
-        mask_name=prepared["crop_mask"],
-        positive=positive,
-        negative=negative,
-        seed=seed,
-        prefix=stem,
-        denoise=denoise,
-        fooocus=True,
-        differential=edge or lama,
-        masked_fill=not (edge or lama),
-        fill_mode="neutral",
-        lama_prefill=lama,
-        **({"cfg": cfg} if cfg is not None else {}),
-    )
+    if lama_only:
+        graph = lama_only_graph(prepared["crop_name"], prepared["crop_mask"], seed, stem)
+        stage = "lama"
+    else:
+        graph = inpaint_crop_graph(
+            ckpt=models["ckpt"],
+            crop_name=prepared["crop_name"],
+            mask_name=prepared["crop_mask"],
+            positive=positive,
+            negative=negative,
+            seed=seed,
+            prefix=stem,
+            denoise=denoise,
+            fooocus=True,
+            differential=edge,
+            masked_fill=not (edge or lama_prefill),
+            fill_mode="neutral",
+            lama_prefill=lama_prefill,
+            **({"cfg": cfg} if cfg is not None else {}),
+        )
+        stage = "edge" if edge else "inpaint"
     (out_dir / f"{stem}.api.json").write_text(
-        json.dumps(legacy.envelope(graph, stem, "edge" if edge else "inpaint"), ensure_ascii=False, indent=2),
+        json.dumps(legacy.envelope(graph, stem, stage), ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
     got = run_graph(host, graph, {"crop": "22"}, out_dir, stem)
     stitched = stitch(prepared["plate"], Image.open(got["crop"]), prepared["job"])
-    print(f"PASS {stem} denoise={denoise} opaque={prepared['opaque_ratio']:.3f} edge={edge}", flush=True)
+    print(
+        f"PASS {stem} denoise={denoise} opaque={prepared['opaque_ratio']:.3f} edge={edge} "
+        f"lama_only={lama_only} lama_prefill={lama_prefill}",
+        flush=True,
+    )
     return stitched
 
 
@@ -320,15 +337,21 @@ def run_bands(
     input_dir: Path,
     out_dir: Path,
     lower: tuple[int, str, str] | None = None,
+    collar: tuple[int, str, str] | None = None,
     cfg: float | None = None,
-    lama: bool = False,
+    lama_prefill: bool = False,
+    lama_only: bool = False,
 ) -> Image.Image:
     current = plate
     for i, band in enumerate(split_bands(mask)):
         band_positive, band_negative = positive, negative
-        if lower is not None:
-            ys = np.nonzero(band.any(axis=1))[0]
-            if ys.size and int(ys.min()) >= lower[0]:
+        ys = np.nonzero(band.any(axis=1))[0]
+        if ys.size:
+            y0 = int(ys.min())
+            y1 = int(ys.max())
+            if collar is not None and y1 <= collar[0]:
+                band_positive, band_negative = collar[1], collar[2]
+            elif lower is not None and y0 >= lower[0]:
                 band_positive, band_negative = lower[1], lower[2]
         current = inpaint_band(
             host,
@@ -344,7 +367,8 @@ def run_bands(
             input_dir=input_dir,
             out_dir=out_dir,
             cfg=cfg,
-            lama=lama,
+            lama_prefill=lama_prefill,
+            lama_only=lama_only,
         )
     return current
 
@@ -391,9 +415,25 @@ def undress_one(
     }
     if mode == "torn":
         positive, negative = torn_text(actor)
-        base_path = out_dir / f"{STEM[(actor, 'nude')]}.png"
+        nude_stem = STEM[(actor, "nude")]
+        base_path = out_dir / f"{nude_stem}.png"
+        nude_side = out_dir / f"{nude_stem}.json"
+        if nude_side.exists():
+            try:
+                nude_meta = json.loads(nude_side.read_text(encoding="utf-8"))
+            except json.JSONDecodeError:
+                nude_meta = {}
+            gates = set(nude_meta.get("gates") or [])
+            hard = gates & {"clothes_remain", "armor_remain"}
+            if hard:
+                raise SystemExit(
+                    f"SKIP_TORN {stem}: nude still has hard gates {sorted(hard)}; fix nude first"
+                )
+            if nude_meta.get("passed") is False:
+                print(f"TORN_FROM_SOFT_NUDE {stem} mean={nude_meta.get('mean')}", flush=True)
         if not base_path.exists():
             base_path = undress_one(host, models, actor, "nude", out_dir, input_dir, attempt=attempt)
+            nude_side = out_dir / f"{nude_stem}.json"
         base = Image.open(base_path).convert("RGB")
         target = sem.tear_mask(
             garment,
@@ -404,48 +444,82 @@ def undress_one(
             anchors=plan.tear_anchors,
         )
         sem.overlay(plate, target, (40, 120, 220)).save(debug / f"{stem}-tear-overlay.png")
-        # Holes show the nude render, everything else keeps the original garment. Re-inpainting whole
-        # blobs made the model paint an intact dress again, so the tear is a composite plus a rim pass.
+        # Holes show the nude render; hole centres are never re-Fooocus'd. Rim only.
         current = Image.composite(base, plate, sem.feather(target, radius=1))
         meta["base"] = base_path.name
         meta["passes"].append({"kind": "composite", "tear_fraction": plan.tear_fraction})
         rim = sem.edge_band(target, 16) & sem.dilate(garment, 6) & sem.box_array(shape, plan.roi)
         rim &= ~sem.box_array(shape, plan.face_clear)
-        current = run_bands(
-            host, models, current, rim,
-            positive=positive, negative=negative, seed=seed, stem=f"{stem}-rim",
-            denoise=TORN_RIM_DENOISE, edge=True, input_dir=input_dir, out_dir=work,
-        )
-        meta["passes"].append({"kind": "rim", "denoise": TORN_RIM_DENOISE})
+        junction = np.zeros(shape, dtype=bool)
+        if plan.horse_guard_y:
+            y_cut = int(plan.horse_guard_y / sem.BASE[1] * shape[0])
+            rim[y_cut:, :] = False
+            # Band around the human/horse seam: LaMa only, no Fooocus (avoids fleshy lumps).
+            junction[max(0, y_cut - 40) : y_cut, :] = True
+            junction &= sem.edge_band(target, 16) & sem.dilate(garment, 6) & sem.box_array(shape, plan.roi)
+            junction &= ~sem.box_array(shape, plan.face_clear)
+        rim_fooocus = rim & ~junction
+        if junction.any():
+            current = run_bands(
+                host, models, current, junction,
+                positive=positive, negative=negative, seed=seed, stem=f"{stem}-rim-lama",
+                denoise=0.0, edge=False, input_dir=input_dir, out_dir=work, lama_only=True,
+            )
+            meta["passes"].append({"kind": "rim_lama_junction"})
+        if rim_fooocus.any():
+            current = run_bands(
+                host, models, current, rim_fooocus,
+                positive=positive, negative=negative, seed=seed + 7, stem=f"{stem}-rim",
+                denoise=TORN_RIM_DENOISE, edge=True, input_dir=input_dir, out_dir=work,
+            )
+            meta["passes"].append({"kind": "rim", "denoise": TORN_RIM_DENOISE})
         edge_target = None
     else:
         positive, negative = nude_text(actor)
         lower = (LOWER_FROM_Y[actor], LOWER_POS, LOWER_NEG) if actor in LOWER_FROM_Y else None
+        collar = (COLLAR_TO_Y[actor], COLLAR_POS, COLLAR_NEG) if actor in COLLAR_TO_Y else None
         base = plate
         target = garment
         best_ratio = float("inf")
         best_image, best_left = plate, garment
         for n in range(MAX_NUDE_PASSES):
-            arms = sem.union(*(sem.box_array(shape, b) for b in plan.arm_boxes), shape=shape) if plan.arm_boxes else None
-            zones = [("t", target & ~arms, positive, negative), ("a", target & arms, ARM_POS, ARM_NEG)] if arms is not None else [("t", target, positive, negative)]
-            current = base
-            for tag, zone_mask, zone_pos, zone_neg in zones:
-                if not zone_mask.any():
-                    continue
+            if n == 0:
                 current = run_bands(
-                    host, models, current, zone_mask,
-                    positive=zone_pos, negative=zone_neg, seed=seed + n * 50, stem=f"{stem}-p{n}{tag}",
-                    denoise=NUDE_DENOISE if n == 0 else RESIDUAL_DENOISE, edge=False, input_dir=input_dir, out_dir=work,
-                    lower=lower if tag == "t" else None, cfg=NUDE_CFG, lama=n > 0,
+                    host, models, base, target,
+                    positive=positive, negative=negative, seed=seed, stem=f"{stem}-p0",
+                    denoise=NUDE_DENOISE, edge=False, input_dir=input_dir, out_dir=work,
+                    lower=lower, collar=collar, cfg=NUDE_CFG, lama_prefill=True,
+                )
+                meta["passes"].append({"kind": "nude", "n": 0, "denoise": NUDE_DENOISE, "lama_prefill": True})
+            else:
+                # Hard erase residual islands with LaMa so cloth/armor priors cannot rebound.
+                current = run_bands(
+                    host, models, base, target,
+                    positive=RESIDUAL_SKIN_POS, negative=RESIDUAL_SKIN_NEG, seed=seed + n * 50,
+                    stem=f"{stem}-p{n}lama", denoise=0.0, edge=False, input_dir=input_dir, out_dir=work,
+                    lama_only=True,
+                )
+                meta["passes"].append({"kind": "lama_residual", "n": n})
+                # Optional low-denoise skin touch where LaMa left a soft smear.
+                current = run_bands(
+                    host, models, current, target,
+                    positive=RESIDUAL_SKIN_POS, negative=RESIDUAL_SKIN_NEG, seed=seed + n * 50 + 3,
+                    stem=f"{stem}-p{n}touch", denoise=RESIDUAL_TOUCH_DENOISE, edge=True,
+                    input_dir=input_dir, out_dir=work, cfg=RESIDUAL_TOUCH_CFG,
+                )
+                meta["passes"].append(
+                    {"kind": "touch", "n": n, "denoise": RESIDUAL_TOUCH_DENOISE}
                 )
             tmp = work / f"{stem}-p{n}-result.png"
             current.save(tmp)
             check_plan = sem.residual_plan(plan)
             again = segment(host, tmp, check_plan, work, f"{stem}-a{attempt}-chk{n}", input_dir)
-            left = sem.drop_specks(garment_from(check_plan, again, shape) & sem.dilate(garment, 24), RESIDUAL_MIN_PIXELS)
+            left = sem.drop_specks(
+                garment_from(check_plan, again, shape) & sem.dilate(garment, 24), RESIDUAL_MIN_PIXELS
+            )
             sem.overlay(current, left).save(debug / f"{stem}-residual-p{n}.png")
             ratio = sem.residual_ratio(garment, left)
-            meta["passes"].append({"kind": "nude", "n": n, "denoise": NUDE_DENOISE, "residual_ratio": round(ratio, 4)})
+            meta["passes"][-1]["residual_ratio"] = round(ratio, 4)
             print(f"RESIDUAL {stem} pass={n} ratio={ratio:.4f}", flush=True)
             if ratio < best_ratio:
                 best_ratio, best_image, best_left = ratio, current, left

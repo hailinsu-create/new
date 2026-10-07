@@ -83,15 +83,17 @@ class ActorPlan:
     tear_fraction: float = 0.62
     # Rows (fraction of the garment's height) that must always carry a hole, so breasts and belly show.
     tear_anchors: tuple[float, ...] = ()
-    # Boxes (plate coords) around arms and hands. They are repainted in their own pass with arm wording,
-    # because the torso wording made the model draw sleeves and bracers back on the arms.
-    arm_boxes: tuple[tuple[int, int, int, int], ...] = ()
     # Remnant check after a nude pass: the original garment prompts also fire on bare skin, so the re-check
     # only trusts SegFormer plus these narrower prompts.
     residual_prompts: tuple[str, ...] = ()
     residual_wins_prompts: tuple[str, ...] = ()
     # SegFormer only counts within this many px of a DINO garment hit. 0 = trust SegFormer alone.
     segformer_support_px: int = 0
+    # Always OR these plate boxes into the garment mask (collar / arm / waist metal that DINO under-hits).
+    force_boxes: tuple[tuple[int, int, int, int], ...] = ()
+    # DINO prompts whose hits get a hard dilate so half a bracer cannot sit outside the hole.
+    expand_prompts: tuple[str, ...] = ()
+    expand_px: int = 28
 
 
 LIN = ActorPlan(
@@ -109,11 +111,17 @@ LIN = ActorPlan(
     protect_prompts=("face", "hair", "fox tail", "high heel shoes"),
     residual_prompts=("silk cloth", "shoulder strap", "white cloth", "mandarin collar"),
     roi=(280, 255, 680, 1400),
-    face_clear=(300, 10, 620, 268),
+    face_clear=(300, 10, 620, 300),
     keep_top_frac=0.07,
     keep_bottom_frac=0.40,
     tear_fraction=0.50,
     tear_anchors=(0.16, 0.30, 0.44),
+    force_boxes=(
+        (340, 300, 600, 380),   # mandarin collar / upper chest cloth
+        (280, 680, 420, 1250),  # left skirt panel beside the hip/leg
+    ),
+    expand_prompts=("mandarin collar", "shoulder strap", "skirt panel", "white cloth"),
+    expand_px=12,
 )
 
 ELENA = ActorPlan(
@@ -151,6 +159,17 @@ ELENA = ActorPlan(
     keep_bottom_frac=0.10,
     tear_fraction=0.55,
     tear_anchors=(0.14, 0.34, 0.58),
+    force_boxes=(
+        (230, 220, 430, 310),   # choker / gorget
+        (70, 260, 230, 720),    # left arm / glove / bracer
+        (300, 260, 520, 680),   # right arm / pauldron / vambrace
+        (180, 540, 470, 730),   # waist / fauld
+    ),
+    expand_prompts=(
+        "breastplate", "pauldron", "vambrace", "gauntlet", "fauld", "gorget",
+        "black glove", "gold bracer", "black sleeve", "arm guard", "choker", "leather strap",
+    ),
+    expand_px=32,
 )
 
 PLANS = {"lin": LIN, "elena": ELENA}
@@ -162,6 +181,9 @@ def residual_plan(plan: ActorPlan) -> ActorPlan:
         garment_prompts=plan.residual_prompts,
         garment_wins_prompts=plan.residual_wins_prompts,
         segformer_support_px=0,
+        # Force boxes mark where armor/collar *was* on the plate; on a nude they would always fire.
+        force_boxes=(),
+        expand_prompts=(),
     )
 
 
@@ -270,9 +292,21 @@ def build_garment_mask(
     roi = box_array(shape, plan.roi)
     face = box_array(shape, plan.face_clear)
     dino_union = union(*dino_garment.values(), shape=shape)
+    expanded = [
+        dilate(dino_garment[key], plan.expand_px)
+        for key in plan.expand_prompts
+        if key in dino_garment and dino_garment[key] is not None and dino_garment[key].any()
+    ]
+    forced = [box_array(shape, box) for box in plan.force_boxes]
     if segformer is not None and plan.segformer_support_px:
         segformer = segformer & dilate(dino_union, plan.segformer_support_px)
-    evidence = union(*(arr for arr in (segformer,) if arr is not None), dino_union, shape=shape)
+    evidence = union(
+        *(arr for arr in (segformer,) if arr is not None),
+        dino_union,
+        *expanded,
+        *forced,
+        shape=shape,
+    )
     evidence &= roi
 
     protect_face = union(*(dilate(a, 6) for a in dino_protect.values()), shape=shape)

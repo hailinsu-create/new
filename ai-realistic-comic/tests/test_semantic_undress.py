@@ -111,6 +111,34 @@ def test_tear_anchors_force_holes_at_requested_rows():
     assert torn[300, 200] and torn[600, 200]
 
 
+
+def test_force_boxes_and_expand_prompts_join_the_garment_mask():
+    plan = sem.PLANS["elena"]
+    shape = (1536, 1024)
+    tiny = _rect(200, 300, 220, 320)
+    mask = sem.build_garment_mask(
+        plan,
+        shape,
+        segformer=None,
+        dino_garment={"gold bracer": tiny},
+        dino_protect={},
+        dino_horse={},
+        grow=0,
+    )
+    # force_boxes for the right arm must appear even when DINO only hit a speck
+    assert mask[400:450, 350:400].any()
+    # expand_prompts dilates the bracer hit
+    assert mask.sum() > tiny.sum()
+
+
+def test_lama_only_graph_has_no_ksampler():
+    from inpaint_crop import lama_only_graph
+
+    graph = lama_only_graph("c.png", "m.png", 1, "x")
+    assert graph["51"]["class_type"] == "INPAINT_InpaintWithModel"
+    assert not any(n.get("class_type") == "KSampler" for n in graph.values())
+
+
 def test_residual_ratio_and_bands():
     before = _rect(100, 100, 300, 1000)
     assert sem.residual_ratio(before, np.zeros_like(before)) == 0.0
@@ -289,7 +317,7 @@ def test_end_to_end_with_fake_comfy_keeps_face_and_clears_garment(tmp_path, monk
     result = Image.open(dest).convert("RGB")
     source = Image.open(plate).convert("RGB")
     assert result.size == source.size == (1024, 1536)
-    face = (380, 40, 560, 280)
+    face = (380, 40, 560, 260)
     assert np.array_equal(np.asarray(result.crop(face)), np.asarray(source.crop(face)))
     cx, cy = 450, 700
     assert np.abs(np.asarray(result)[cy, cx].astype(int) - np.array([214, 170, 150])).max() < 40

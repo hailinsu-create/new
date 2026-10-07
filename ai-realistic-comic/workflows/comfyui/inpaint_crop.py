@@ -208,3 +208,18 @@ def save_crop_pair(job: CropJob, input_dir: Path, stem: str) -> tuple[str, str]:
     job.canvas.save(input_dir / rgb_name)
     job.canvas_mask.convert("RGB").save(input_dir / mask_name)
     return rgb_name, mask_name
+
+
+def lama_only_graph(crop_name: str, mask_name: str, seed: int, prefix: str, *, model_name: str = LAMA_MODEL) -> dict:
+    """Hard erase with LaMa only — no Fooocus, no KSampler. Residual islands use this."""
+    return {
+        "1": {"class_type": "LoadImage", "inputs": {"image": crop_name}},
+        "2": {"class_type": "LoadImage", "inputs": {"image": mask_name}},
+        "50": {"class_type": "ImageToMask", "inputs": {"image": ["2", 0], "channel": "red"}},
+        "60": {"class_type": LAMA_LOAD, "inputs": {"model_name": model_name}},
+        "51": {
+            "class_type": LAMA_RUN,
+            "inputs": {"inpaint_model": ["60", 0], "image": ["1", 0], "mask": ["50", 0], "seed": seed},
+        },
+        "22": {"class_type": "SaveImage", "inputs": {"images": ["51", 0], "filename_prefix": prefix}},
+    }

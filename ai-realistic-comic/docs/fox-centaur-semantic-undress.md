@@ -104,6 +104,16 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 
 2026-10-07 读到的余额是 ¥21.91（21910 厘），在任何开机之前。
 
+## 提升（2026-10-07 规划落地）
+
+P0/P1 已写入脚本：
+
+1. **残留岛**：首 pass 仍 Fooocus denoise 1.0（LaMa 预填）；之后每轮先  硬擦，再 denoise 0.35 贴肤。不再对残留跑 denoise 1.0。
+2. **伊莲甲件**：（颈/左右臂/腰）+  对甲件 DINO 命中外扩 32 px，避免半截护腕留在洞外。
+3. **林领口/左侧裙片**： + 领口分带提示（y≤380 用 COLLAR_*）；胯下仍用 LOWER_*。
+4. **torn**：rim denoise 0.40；洞心不重绘；伊莲  以下不做 rim，接缝条带只 LaMa。
+5. **门禁**： 先 nude→Codex；有 / 的演员跳过 torn。
+
 ## 状态（2026-10-07）
 
 上机结果（北京 B，RTX 5090，`--check-stack` 返回 `STACK_OK`，四张都出了图）。Codex CLI 已装到 VM 的 `~/.local/bin/codex` 并登录，下面是 Codex 真实打分（过线 ≥9 且硬门空）。**四张都没过门。**

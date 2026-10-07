@@ -21,6 +21,7 @@ authorised: the script stops with NEED_SSH_KEY_AUTH and tells you what to add.
 from __future__ import annotations
 
 import argparse
+import json
 import shlex
 import shutil
 import subprocess
@@ -263,16 +264,53 @@ def main() -> None:
         restart_comfy()
         remote_run("--check-stack")
         ssh(f"mkdir -p {REMOTE_OUT}")
-        run = remote_run(
-            f"--only {' '.join(args.only)} --mode {args.mode} --attempt {args.attempt} --no-score "
-            f"--out {shlex.quote(REMOTE_OUT)}",
-            check=False,
-        )
-        pull(args.out)
-        score_local(args.out)
+        only = " ".join(args.only)
+        if args.mode == "both":
+            # Nude first, score, then torn only for actors whose nude cleared clothes/armor hard gates.
+            run = remote_run(
+                f"--only {only} --mode nude --attempt {args.attempt} --no-score "
+                f"--out {shlex.quote(REMOTE_OUT)}",
+                check=False,
+            )
+            pull(args.out)
+            score_local(args.out)
+            if run.returncode != 0:
+                raise SystemExit(f"REMOTE_RUN_FAILED nude rc={run.returncode}")
+            torn_actors = []
+            for actor in args.only:
+                side = args.out / f"{'lin-qipao-nine-tail' if actor == 'lin' else 'elena-armor-centaur'}-nude.json"
+                if not side.exists():
+                    print(f"SKIP_TORN {actor}: no nude score sidecar", flush=True)
+                    continue
+                gates = set(json.loads(side.read_text(encoding="utf-8")).get("gates") or [])
+                hard = gates & {"clothes_remain", "armor_remain"}
+                if hard:
+                    print(f"SKIP_TORN {actor}: hard gates {sorted(hard)}", flush=True)
+                    continue
+                torn_actors.append(actor)
+            if torn_actors:
+                run = remote_run(
+                    f"--only {' '.join(torn_actors)} --mode torn --attempt {args.attempt} --no-score "
+                    f"--out {shlex.quote(REMOTE_OUT)}",
+                    check=False,
+                )
+                pull(args.out)
+                score_local(args.out)
+                if run.returncode != 0:
+                    raise SystemExit(f"REMOTE_RUN_FAILED torn rc={run.returncode}")
+            else:
+                print("NO_TORN every nude still has clothes/armor hard gates", flush=True)
+        else:
+            run = remote_run(
+                f"--only {only} --mode {args.mode} --attempt {args.attempt} --no-score "
+                f"--out {shlex.quote(REMOTE_OUT)}",
+                check=False,
+            )
+            pull(args.out)
+            score_local(args.out)
+            if run.returncode != 0:
+                raise SystemExit(f"REMOTE_RUN_FAILED rc={run.returncode} (partial results were pulled)")
         keep_in_repo(args.out)
-        if run.returncode != 0:
-            raise SystemExit(f"REMOTE_RUN_FAILED rc={run.returncode} (partial results were pulled)")
     except BaseException as exc:  # noqa: BLE001
         failure = exc
         print(f"BRINGUP_FAILED {exc}", flush=True)
