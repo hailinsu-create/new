@@ -52,7 +52,8 @@ MAX_NUDE_PASSES = 4
 RESIDUAL_OK = 0.05
 RESIDUAL_MIN_PIXELS = 3500
 # When leftover is still large, grow it before the Fooocus redo so sheer print edges are covered.
-RESIDUAL_REDO_GROW = 18
+# Elena: keep growth small so redo does not chew the human/horse junction.
+RESIDUAL_REDO_GROW = {"lin": 18, "elena": 8}
 SEED = 20261008
 BANNED_HOST_PARTS = ("weste.seetacloud", "xaxna66hqt", "sa4eaxgcuq")
 
@@ -548,14 +549,16 @@ def undress_one(
                         {"kind": "touch", "n": n, "denoise": RESIDUAL_TOUCH_DENOISE}
                     )
                 else:
-                    redo_mask = sem.dilate(target, RESIDUAL_REDO_GROW) & sem.box_array(shape, plan.roi)
+                    grow_px = RESIDUAL_REDO_GROW.get(actor, 12)
+                    redo_mask = sem.dilate(target, grow_px) & sem.box_array(shape, plan.roi)
                     redo_mask &= ~sem.box_array(shape, plan.face_clear)
                     if plan.horse_guard_y:
                         y_cut = int(plan.horse_guard_y / sem.BASE[1] * shape[0])
-                        redo_mask[y_cut:, :] = False
+                        # Keep a buffer above the horse guard so junction is not Fooocus-chewed.
+                        redo_mask[max(0, y_cut - 24) :, :] = False
                     print(
                         f"RESIDUAL_FOOOCUS {stem} pass={n} ratio={best_ratio:.4f} "
-                        f"pixels={leftover_px} grown={int(redo_mask.sum())}",
+                        f"pixels={leftover_px} grow={grow_px} grown={int(redo_mask.sum())}",
                         flush=True,
                     )
                     current = run_bands(
