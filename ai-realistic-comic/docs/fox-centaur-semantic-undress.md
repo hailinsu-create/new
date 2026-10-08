@@ -166,6 +166,42 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 4. torn：弱 rim；洞心不重绘；接缝条带只 LaMa。
 5. 打分 / hillclimb 取消；bringup 只打 `VISUAL_JUDGE`。
 
+
+## P0/P1 回归诊断与修正（2026-10-08，离线，未开机）
+
+对照 `dual/clone` 本轮产物 + debug 蒙版/残留，与 `run13`（旧 residual Fooocus 0.88）及 `PICKS.json` 旧 best。**不开机、不重跑。**
+
+### 逐张崩因（一句话）
+
+| 图 | 崩因 |
+| --- | --- |
+| 林 nude | 残留只靠 LaMa+0.35，清不掉大面积旗袍残留（ratio 0.51→0.60），髋 pixelfill 因 ≤4000 被跳过（实测 ~100k px），衣服留在身上 |
+| 伊莲 nude | 大块 torso 残留反复 LaMa+弱贴肤糊死（leftover ~174k），且取消了旧版 `elena_torso_pixelfill`，接缝 48px 冻结后躯干无硬擦出口 |
+| 林 torn | 建立在失败 nude 上，破口合成只能露出未去净旗袍+糊层 |
+| 伊莲 torn | 建立在失败 nude 上，中心糊块随 nude 继承，rim 救不回 |
+
+补充：初始 garment 蒙版覆盖尚可（share≈0.21，与旧轮同），**主因不是蒙版全漏**，而是 **残留清扫力度回退**。
+
+### 与旧 best / run13 参数 diff（关键）
+
+| 项 | 旧（run13 / 4b052e7 前） | P0/P1（4b052e7） | 本轮实测 |
+| --- | --- | --- | --- |
+| 残留主擦 | LaMa + Fooocus **0.88** | 仅 LaMa + touch **0.35** | 林 residual best 0.51（旧 0.34）；伊莲 0.53（旧 0.34） |
+| 髋 pixelfill | 可跑大岛（run13 ~89k） | 上限 **4000** | `HIP_PIXELFILL_SKIP` 100028 |
+| 伊莲躯干 pixelfill | 有（run13 ~64k） | **取消** | `ELENA_TORSO_PIXELFILL_SKIP` |
+| 接缝冻结 | ~16px | **48px** | 残留/edge 更难碰接缝，但躯干糊更依赖 pixelfill |
+| LEG_SOFT | 无 | LaMa+0.32 腿带 | 林跑了 ~126k px（可能加重腿糊） |
+| 打分 | 有门禁 | VISUAL_JUDGE | 保留 |
+
+### 修正方案（部分回退，先文档后代码）
+
+1. **残留**：恢复「小岛 touch / 大岛 Fooocus」双路径——`ratio` 与像素超阈时用 `RESIDUAL_FOOOCUS_DENOISE=0.72`（略低于旧 0.88，减 smear），否则仍 LaMa+0.35。
+2. **林髋**：`HIP_PIXELFILL_MAX_PX` 提到 **100000**（覆盖旧 best 量级），仍只填 leftover∩髋带。
+3. **伊莲**：恢复 **接缝上方** torso pixelfill（`y < horse_guard_y - 16`），保留冻结带不进马身；冻结缓冲改回 **24px**（介于 16 与 48）。
+4. **LEG_SOFT**：仅当腿带 leftover ≤ **40000** 才跑，避免整裙 LaMa。
+5. **VISUAL_JUDGE / 不打分** 不变。跑图仍需另行授权开机。
+
+
 ## 审核补丁（同日代码审）
 
 落地后又审了一遍，修了三处会直接影响出图的问题：
