@@ -1,19 +1,9 @@
 {
-  "identity": 9,
-  "distinction": 9,
-  "interaction": 9,
-  "aesthetics": 8,
-  "anatomy": 8,
-  "wardrobe": 9,
-  "motif": 9,
-  "photoreal": 9,
-  "mean": 8.75,
-  "gates": [],
-  "notes": "面部与锁脸参考高度一致；单人站姿挺拔。旗袍明显撕裂，大片躯体肌肤外露，仍保留领口、衣襟和长裙残骸，符合破衣要求。白色狐尾清晰，但尾根与各尾重叠，九尾数量不易逐一确认。胸腹及破布边缘局部融合略显不自然。",
-  "scorer": "codex",
+  "score_pending": true,
+  "scorer": "cursor",
+  "reason": "awaiting_cursor_agent",
+  "line": "SCORE_PENDING cursor lin torn",
   "passed": false,
-  "below": [
-    "aesthetics",
-    "anatomy"
-  ]
+  "mean": null,
+  "gates": []
 }

@@ -1,16 +1,16 @@
 {
-  "actor": "lin",
+  "actor": "elena",
   "mode": "nude",
   "attempt": 0,
-  "seed": 20261008,
-  "garment_share": 0.17830403645833334,
+  "seed": 20261208,
+  "garment_share": 0.2076746622721354,
   "passes": [
     {
       "kind": "nude",
       "n": 0,
       "denoise": 1.0,
       "lama_prefill": true,
-      "residual_ratio": 0.6587
+      "residual_ratio": 0.2491
     },
     {
       "kind": "lama_residual",
@@ -20,22 +20,12 @@
       "kind": "touch",
       "n": 1,
       "denoise": 0.35,
-      "residual_ratio": 0.7422
-    },
-    {
-      "kind": "lama_residual",
-      "n": 2
-    },
-    {
-      "kind": "touch",
-      "n": 2,
-      "denoise": 0.35,
-      "residual_ratio": 0.5915
+      "residual_ratio": 0.0
     },
     {
       "kind": "edge",
       "denoise": 0.42
     }
   ],
-  "best_residual_ratio": 0.5915
+  "best_residual_ratio": 0.0
 }

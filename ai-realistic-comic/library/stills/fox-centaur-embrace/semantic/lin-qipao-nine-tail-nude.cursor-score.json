@@ -7,21 +7,8 @@
   "wardrobe": 2,
   "motif": 9,
   "photoreal": 8,
-  "mean": 7.25,
-  "gates": [
-    "clothes_remain"
-  ],
+  "gates": ["clothes_remain"],
   "notes": "九尾在，但旗袍仍在（高领无袖+高开衩），躯干像印花贴皮而非真去衣皮肤。锁脸大致可对上东亚五官与深棕眼。",
   "scorer": "cursor",
-  "passed": false,
-  "below": [
-    "identity",
-    "distinction",
-    "interaction",
-    "aesthetics",
-    "anatomy",
-    "wardrobe",
-    "photoreal"
-  ],
   "tail_count": 9
 }

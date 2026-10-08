@@ -3,15 +3,18 @@
   "mode": "torn",
   "attempt": 0,
   "seed": 20261608,
-  "garment_share": 0.1667505900065104,
+  "garment_share": 0.2076746622721354,
   "passes": [
     {
       "kind": "composite",
       "tear_fraction": 0.55
     },
     {
+      "kind": "rim_lama_junction"
+    },
+    {
       "kind": "rim",
-      "denoise": 0.55
+      "denoise": 0.4
     }
   ],
   "base": "elena-armor-centaur-nude.png"
