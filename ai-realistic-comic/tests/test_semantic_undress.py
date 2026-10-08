@@ -279,6 +279,7 @@ def test_dual_collab_assignment_and_doc_gate(monkeypatch):
     assert "mutex_single_power" in src
     assert "ensure_peer_shutdown" in src
     assert "SYNC_MANIFEST" in src or "sync_manifest" in src
+    assert "verify_stack_aligned" in src
     docs = (ROOT / "docs" / "fox-centaur-semantic-undress.md").read_text(encoding="utf-8")
     assert "两机协作模式" in docs and "dual_collab_run.py" in docs
     assert "不另开第三台" in docs

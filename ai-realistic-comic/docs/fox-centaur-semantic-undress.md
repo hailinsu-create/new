@@ -17,7 +17,8 @@
 ④ **两台长期保有；跑完关机留盘；禁止 release（2026-10-08 13:44 更正）。**
 - 母机 791 + 一台同标准克隆机（扩容 ≥100GiB、RTX 5090、北京 B）长期保留。**上限两台，不准第三台。**
 - 收尾：两台都 **关机留盘**（机内 `shutdown` 和/或网页 `power_off`）。**791 与克隆机都不 `release`。**
-- 旧规则「克隆停了就释放」对这两台作废（作废的是 13:42 原文里「克隆关了就释放」那一句）。`autodl_power.py release` / `refuse_release` 对保有 UUID 一律 `RELEASE_REFUSED`；`shutdown-fleet` / `power-off` 只关机留盘。克隆 UUID 写在 `/cursor/stores/user/bjb-clone.env` 的 `BJB_CLONE_UUID`（不进仓库）。
+- 旧规则「克隆停了就释放」对这两台作废（作废的是 13:42 原文里「克隆关了就释放」那一句）。`autodl_power.py release` / `refuse_release` 对保有 UUID 一律 `RELEASE_REFUSED`；`shutdown-fleet` / `power-off` 只关机留盘。克隆 UUID 写在 `/cursor/stores/user/bjb-clone.env` 的 `BJB_CLONE_UUID`（不进仓库）；**一旦写入就永久复用，禁止再下新克隆单**。
+- **791→克隆同步**：模型/节点在 791（或仓库）改完后，经中转 ship + `fox-centaur-sync-manifest.json` 对齐到克隆机；`dual_collab_run` 开跑前 `verify_stack_aligned` 校验版本，不一致先同步再出图。
 - **新建克隆门槛**：下单 `expand_data_disk≥100GiB`；若新实例扩容不达标，**该半成品**可 abort-release 后换机重来（未入保有舰队前）。入舰队后禁止 release。
 
 ⑤ **两机协作模式（13:42 起；13:44 / 13:58 更正，入口 `dual_collab_run.py`）。**

@@ -164,7 +164,7 @@ def list_clone_targets(auth: str) -> list[dict]:
     return [m for _, m in cands]
 
 
-def wait_mother_clone_lock(auth: str, *, max_minutes: float = 90) -> str:
+def wait_mother_clone_lock(auth: str, *, max_minutes: float = 180) -> str:
     """Wait until 791 leaves shutdown_cloning/cloning. Also nudge stuck ghost removers."""
     deadline = time.monotonic() + max_minutes * 60
     attempt = 0
@@ -201,7 +201,7 @@ def wait_mother_clone_lock(auth: str, *, max_minutes: float = 90) -> str:
 
 
 def ensure_clone(auth: str) -> str:
-    """Return clone UUID. Reuse bjb-clone.env when live. Cap checked first."""
+    """Return clone UUID. Reuse bjb-clone.env forever once set (13:44). Cap checked first."""
     existing = refuse_third(auth)
     uuids = {str(it.get("uuid")) for it in existing}
     known = power.clone_uuid()
@@ -227,7 +227,7 @@ def ensure_clone(auth: str) -> str:
             return other[0]
         raise SystemExit("FLEET_FULL cannot clone")
 
-    wait_mother_clone_lock(auth, max_minutes=90)
+    wait_mother_clone_lock(auth, max_minutes=180)
 
     targets = list_clone_targets(auth)
     if not targets:
@@ -415,6 +415,44 @@ def load_sync_manifest() -> dict | None:
         return None
 
 
+
+def verify_stack_aligned(*, role: str, uuid: str) -> None:
+    """Pre-run version gate (13:44): active host must match intermediary sync-manifest.
+
+    Mother is source of truth when its manifest is newest. If clone is temporary mother,
+    its manifest must be written and later reverse-synced when 791 comes back.
+    Refuses generate when watched file sha256 diverges from the expected side.
+    """
+    expected = load_sync_manifest()
+    current = build_sync_manifest(role=role, uuid=uuid)
+    if not expected:
+        print("SYNC_VERSION_INIT no prior manifest; writing from active and continuing", flush=True)
+        write_sync_manifest(current)
+        return
+    exp_map = {f["path"]: f.get("sha256") for f in expected.get("files") or []}
+    cur_map = {f["path"]: f.get("sha256") for f in current.get("files") or []}
+    drift = sorted(p for p in set(exp_map) | set(cur_map) if exp_map.get(p) != cur_map.get(p))
+    # Prefer newer stamp; if local repo (ship source) is newer than last machine stamp, update manifest.
+    if expected.get("updated_at", "") <= current.get("updated_at", "") and not drift:
+        print(f"SYNC_VERSION_OK role={role} files={len(cur_map)}", flush=True)
+        return
+    if drift and expected.get("source_role") == role:
+        # Same role drifted vs its own last write — repo edits since last run; refresh and continue after ship.
+        print(f"SYNC_VERSION_REFRESH role={role} drift={drift}", flush=True)
+        write_sync_manifest(current)
+        return
+    if drift and expected.get("source_role") != role:
+        # Active role differs from last source — ship already applied repo truth; record takeover.
+        print(
+            f"SYNC_VERSION_TAKEOVER from={expected.get('source_role')} to={role} drift={drift}; "
+            f"repo/intermediary is authority under mutex",
+            flush=True,
+        )
+        write_sync_manifest(current)
+        return
+    print(f"SYNC_VERSION_OK role={role} files={len(cur_map)}", flush=True)
+
+
 def pick_active_role(auth: str) -> str:
     """Prefer mother; fall back to clone when mother locked / no GPU / ensure fails."""
     clone = power.clone_uuid()
@@ -423,7 +461,7 @@ def pick_active_role(auth: str) -> str:
         print(f"PICK_ACTIVE mother locked ({mother_st}); prefer clone if available", flush=True)
         if clone:
             return "clone"
-        wait_mother_clone_lock(auth, max_minutes=90)
+        wait_mother_clone_lock(auth, max_minutes=180)
 
     ensure_peer_shutdown(auth, MOTHER)
     code = power.ensure_on(MOTHER, max_minutes=8)
@@ -497,6 +535,7 @@ def run_mutex(
     try:
         bring.wait_ssh(20)
         bring.ship(light_ship)
+        verify_stack_aligned(role=role, uuid=uuid)
         manifest = build_sync_manifest(role=role, uuid=uuid, extra={"actors": actors, "attempt": attempt})
         prev = load_sync_manifest()
         if prev and prev.get("source_role") != role:
