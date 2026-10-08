@@ -6,7 +6,7 @@
 
 ① **取消打分门禁，改 Cursor 观感判定。** 用户明确取消狐/马去衣的均分 ≥9、硬门（`clothes_remain` / `armor_remain` 等）、以及 `SCORE_PENDING` 等待循环。出图后脚本只打印 `VISUAL_JUDGE <actor> <mode> <path>`；是否可用由 Cursor **看 PNG 观感**判定，不再写 `.score-request.json`、不再用 sidecar `passed` 挡 torn / bringup。
 
-② **本次管线参数改动（残留 / 接缝 / 髋 / 腿带）。** 写入 `run_fox_centaur_semantic.py`：
+② **（已由 2026-10-09 前提复盘废止微调）原残留 / 接缝 / 髋 / 腿带参数改动。** 不再开机微调；改走整片衣物方案 A，见「前提复盘」。历史记录： 写入 `run_fox_centaur_semantic.py`：
 - 残留：首 pass 仍 Fooocus denoise 1.0 + LaMa 预填；之后 LaMa 硬擦，**小岛** touch 0.35，**大岛** Fooocus `RESIDUAL_FOOOCUS_DENOISE=0.72`（2026-10-08 晚间部分回退：纯 0.35 去衣失败）。
 - 伊莲接缝：`ELENA_JUNCTION_BUFFER=24`；残留 / 收边不进缓冲带及以下；接缝**上方**可 `elena_torso_pixelfill`（≤80k）。
 - 林髋：`HIP_PIXELFILL_MAX_PX=100000`（覆盖旧 best 量级 leftover∩髋）。
@@ -200,6 +200,61 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 3. **伊莲**：恢复 **接缝上方** torso pixelfill（`y < horse_guard_y - 16`），保留冻结带不进马身；冻结缓冲改回 **24px**（介于 16 与 48）。
 4. **LEG_SOFT**：仅当腿带 leftover ≤ **40000** 才跑，避免整裙 LaMa。
 5. **VISUAL_JUDGE / 不打分** 不变。跑图仍需另行授权开机。
+
+
+
+## 前提复盘：局部擦衣路线停用（2026-10-09，不开机）
+
+两轮调参（P0/P1 `4b052e7`、部分回退 `01a2f6f`）与此前 hillclimb 同属一类失败：**大面积衣物区局部 inpaint / LaMa / pixelfill 后糊死**。停止微调 denoise / 冻结带 / pixelfill 上限。
+
+### 1) 历史 run 中最接近可用的版本
+
+对照本机 artifacts `fox-centaur-semantic/{baseline,run2–run7,run9,run10,run12,run13,best,dual/clone,rollback-01a2f6f}` 与 `best/PICKS.json`（Codex/Cursor 历史挑选，不以本轮糊图覆盖为准）：
+
+| 图 | 最接近可用 | 关键参数 / 管线特征 | 备注 |
+| --- | --- | --- | --- |
+| 林 torn | **run9** `lin-qipao-nine-tail-torn` | nude 底板 + 锯齿洞 composite（tear 0.5）+ rim **denoise 0.55** | Codex 均分 **8.75**，硬门空 — **全库最接近可用** |
+| 伊莲 torn | **run7** `elena-armor-centaur-torn` | 同上，tear 0.55 + rim 0.55 | Codex **8.56**，硬门空 |
+| 伊莲 nude | **run6** `elena-armor-centaur-nude` | 连续 **nude denoise 1.0**×3 + edge **0.42**；**无** LaMa 残留 / pixelfill | 躯干相对真裸、接缝可读；仍 `armor_remain`（臂甲）≈8.0 |
+| 林 nude | **run13 a35-collarfix** | LaMa + Fooocus residual **0.88** + collar pixelfill；edge 0.32 | 领口硬门清；腿仍肉糊 ≈7.1 |
+
+早期 **baseline–run5**：手画/粗语义 + denoise 1.0 分带，残留高、衣服常留。  
+**run10–run12**：开始加 LaMa residual / touch，观感抖动。  
+**run13 / dual(P0P1) / rollback(01a2f6f)**：残留 LaMa↔Fooocus↔pixelfill 越调，**糊死越稳**（伊莲 rollback residual≈0.84；双机 P0P1 四张全不可用）。
+
+**结论性挑选**：全库观感天花板在 **run7/run9 torn**（破口合成路线）与 **run6 伊莲 nude**（朴素多轮高 denoise、无 LaMa 补洞）；之后所有「残留擦补」迭代未超过这条线。
+
+### 2) 前提判断（一句）
+
+**在成衣大面积旗袍/铠甲上做分带局部擦衣补皮，对这套底板根本不可行**——洞太大时边界织物纹理泄漏、LaMa/弱贴肤只能糊泥，而抬 denoise / 多轮残留只是在「留衣」与「糊死/肉缝」之间摇摆，无法稳定出可用皮肤。
+
+### 3) 替代方案（≤2；推荐 A）
+
+共用约束：互斥单机、关机留盘、不开第三台、余额 ≈¥26.72 → **先单张试点再四张**；5090 payg ≈ **¥2.88/时**（2880 厘）。
+
+#### 方案 A（推荐）— 整片衣物蒙版一次高 denoise inpaint + 锁脸 InstantID + 姿势 OpenPose
+
+- **做法**：语义衣物蒙版（已有 SegFormer/DINO）合成**单块**身体衣物洞（林：躯干+裙；伊莲：人躯干甲，马身保护区外）；**一次** Fooocus denoise ≈0.9–1.0 + neutral/MaskedFill；**不开**分带残留 LaMa / pixelfill 循环。脸：已装 **InstantID**（`scheme_still_fox_centaur_undress.instantid_inpaint_graph` / `scheme_b_from_plate.py`）。姿势：成衣板提 OpenPose/DWPose，SDXL OpenPose ControlNet（`openpose-sdxl-xinsir`，scheme_b 已引用）。九尾/马身进保护区不重绘。torn 仍用「可用 nude + 锯齿贴洞 + rim」（run7/9 路径）。
+- **显存**：InstantID + OpenPose CN + SDXL inpaint ≈ **16–22 GiB**（5090 32G 富余）。
+- **耗时**：装/核权重 5–15 min（多数已在盘）；每张 nude ≈3–6 min；四张 + torn ≈ **25–40 min** 墙上时间。
+- **新模型**：优先复用盘上 InstantID + openpose-sdxl；若缺 openpose 权重再下 ≈1–2.5 GiB（hf-mirror）。**不新开节点全家桶**。
+- **开机花费（估）**：试点 1 张林 nude ≈开机+跑 **8–12 min → ¥0.4–0.6**；通过后再四张全套 ≈ **¥1.5–2.5**；单日硬顶建议 **≤¥5**。
+
+#### 方案 B — 成衣板作脸/姿势参考，裸体整图重生成再合成背景
+
+- **做法**：OpenPose + InstantID/IP-Adapter FaceID 从成衣板取条件，txt2img/img2img 整图重画裸体，再把背景/九尾/马身从原板蒙版贴回（或 high denoise 全图）。
+- **显存**：同类或略高（+IP-Adapter FaceID ≈再 +2–4 GiB）。
+- **耗时**：每张 4–8 min；半人马/九尾结构易漂，重试次数↑ → **40–70 min** 四张。
+- **新模型**：可能要 IP-Adapter FaceID Plus（scheme_b 已列）；半人马无可靠姿态先验，**伊莲风险高于 A**。
+- **花费**：估 **¥2.5–4**（含重试），更费余额。
+
+**推荐 A**：保留构图与九尾/马身，避开大洞 LaMa；栈侧 InstantID/OpenPose 已有图式可抄，省下载与试错。
+
+### 4) 实施状态
+
+- 文档本节已落盘；入口骨架见 `workflows/comfyui/run_fox_centaur_wholebody.py`（**未上机、默认拒绝无授权开机**）。
+- **禁止**再改 `RESIDUAL_*` / `HIP_PIXELFILL_*` / `ELENA_JUNCTION_*` 微调后开机。
+- 下次开机需用户明确授权「跑方案 A 试点」。
 
 
 ## 审核补丁（同日代码审）
