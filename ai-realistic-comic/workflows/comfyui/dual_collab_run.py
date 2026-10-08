@@ -585,7 +585,8 @@ def run_mutex(
     uuid = MOTHER if role == "mother" else power.clone_uuid()
     assert uuid
     ensure_peer_shutdown(auth, uuid)
-    code = power.ensure_on(uuid, max_minutes=45)
+    # max_minutes=0: wait for a card forever; no third machine; billing starts only after Success.
+    code = power.ensure_on(uuid, max_minutes=0)
     if code != 0:
         return {"role": role, "uuid": uuid, "actors": actors, "power_on": code, "failed": True}
     ensure_peer_shutdown(auth, uuid)
