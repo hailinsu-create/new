@@ -544,19 +544,32 @@ def pick_active_role(auth: str) -> str:
     return "clone"
 
 
+def instance_list_item(auth: str, uuid: str) -> dict:
+    status, reply = power.post(power.WEB_INSTANCE_LIST, {"Authorization": auth}, {"page_index": 1, "page_size": 50})
+    for it in (reply.get("data") or {}).get("list") or []:
+        if str(it.get("uuid")) == uuid:
+            return it
+    return {}
+
+
 def materialize_clone_ssh_env(auth: str, uuid: str) -> Path:
-    d = detail(auth, uuid)
+    d = detail(auth, uuid, soft=True)
     host = str(d.get("proxy_host") or "")
     port = str(d.get("ssh_port") or "")
     password = str(d.get("root_password") or "")
-    if not host or not port:
-        cmd = str(d.get("ssh_command") or "")
-        parts = cmd.split()
-        if "-p" in parts:
-            port = parts[parts.index("-p") + 1]
-        for p in parts:
-            if "@" in p:
-                host = p.split("@", 1)[1]
+    if not host or not port or not password:
+        it = instance_list_item(auth, uuid)
+        host = host or str(it.get("proxy_host") or "")
+        port = port or str(it.get("ssh_port") or "")
+        password = password or str(it.get("root_password") or "")
+        if not host or not port:
+            cmd = str(it.get("ssh_command") or d.get("ssh_command") or "")
+            parts = cmd.split()
+            if "-p" in parts:
+                port = port or parts[parts.index("-p") + 1]
+            for part in parts:
+                if "@" in part:
+                    host = host or part.split("@", 1)[1]
     path = Path("/tmp/bjb-clone-ssh.env")
     mother = power.read_env_file(bring.SSH_ENV)
     lines = [
@@ -585,8 +598,13 @@ def run_mutex(
     uuid = MOTHER if role == "mother" else power.clone_uuid()
     assert uuid
     ensure_peer_shutdown(auth, uuid)
-    # max_minutes=0: wait for a card forever; no third machine; billing starts only after Success.
-    code = power.ensure_on(uuid, max_minutes=0)
+    st_now = instance_status(auth, uuid)
+    if st_now == "running":
+        print(f"ALREADY_RUNNING skip power_on uuid={uuid}", flush=True)
+        code = 0
+    else:
+        # max_minutes=0: wait for a card forever; billing starts only after Success.
+        code = power.ensure_on(uuid, max_minutes=0)
     if code != 0:
         return {"role": role, "uuid": uuid, "actors": actors, "power_on": code, "failed": True}
     ensure_peer_shutdown(auth, uuid)

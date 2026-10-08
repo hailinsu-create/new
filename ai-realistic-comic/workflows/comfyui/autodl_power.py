@@ -62,7 +62,7 @@ CLONE_ENV_FILES = (
 )
 NO_GPU_MARKERS = ("GPU不足", "空闲GPU", "gpu不足", "no idle gpu", "InsufficientGpu")
 # Clone lock is temporary while a payg clone of this host is copying; keep waiting.
-RETRY_MARKERS = ("克隆锁定", "clone lock", "CloneLock", "正在克隆")
+RETRY_MARKERS = ("克隆锁定", "clone lock", "CloneLock", "正在克隆", "ServerBusy", "服务正忙", "状态无法进行开机", "稍后再试")
 BACKOFF = (20, 30, 45, 60)
 
 

@@ -44,6 +44,8 @@ python workflows/comfyui/dual_collab_run.py --force-role clone   # 强制克隆�
 python workflows/comfyui/dual_collab_run.py --wait-unlock --skip-clone --light-ship
   # ≥5min 轮询至 791 离开 shutdown_cloning → 母机互斥出图 → 关机留盘；不新建克隆
 python workflows/comfyui/autodl_power.py fleet-cap
+
+开机韧性（2026-10-08 补）：`ServerBusy` /「服务正忙」/「状态无法进行开机」按可重试处理，不直接 fatal；实例已是 `running` 时跳过再次 `power_on`；克隆 SSH 优先从实例列表取 `proxy_host`/`ssh_port`（detail 常缺这些字段）。
 python workflows/comfyui/fleet_sync.py status
 python workflows/comfyui/fleet_sync.py check --role mother --uuid 359a49a1c3-4cda10df
 python workflows/comfyui/fleet_sync.py apply --role mother --uuid 359a49a1c3-4cda10df
