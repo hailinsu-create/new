@@ -1,6 +1,18 @@
 # 狐 / 马去衣：语义蒙版管线
 
-2026-10-07。适用 `library/stills/fox-centaur-embrace/` 的四张：林晚棠旗袍九尾 nude / torn，伊莲铠甲半人马 nude / torn。不是身体板，不进 `library/cast/*/body-nude/`。机器只用北京 B `359a49a1c3-4cda10df`。F34 / G09 不开，脚本遇到它们的主机名直接 `FORBIDDEN_HOST`。
+2026-10-07 起稿；**2026-10-08 用户拍板修订**见下节。适用 `library/stills/fox-centaur-embrace/` 的四张：林晚棠旗袍九尾 nude / torn，伊莲铠甲半人马 nude / torn。不是身体板，不进 `library/cast/*/body-nude/`。机器只用北京 B `359a49a1c3-4cda10df`。F34 / G09 不开，脚本遇到它们的主机名直接 `FORBIDDEN_HOST`。
+
+## 2026-10-08 用户拍板（必须遵守）
+
+① **取消打分门禁，改 Cursor 观感判定。** 用户明确取消狐/马去衣的均分 ≥9、硬门（`clothes_remain` / `armor_remain` 等）、以及 `SCORE_PENDING` 等待循环。出图后脚本只打印 `VISUAL_JUDGE <actor> <mode> <path>`；是否可用由 Cursor **看 PNG 观感**判定，不再写 `.score-request.json`、不再用 sidecar `passed` 挡 torn / bringup。
+
+② **本次管线参数改动（残留 / 接缝 / 髋 / 腿带）。** 写入 `run_fox_centaur_semantic.py`：
+- 残留：首 pass 仍 Fooocus denoise 1.0 + LaMa 预填；之后每轮 **只** big-lama 硬擦 + `RESIDUAL_TOUCH_DENOISE=0.35` 弱贴肤。删除对残留的 mid/high Fooocus（原 0.62–0.88）。
+- 伊莲接缝：`ELENA_JUNCTION_BUFFER=48`（相对 `horse_guard_y`）；残留 / 收边 / pixelfill 都不进缓冲带及以下；取消 `elena_torso_pixelfill`。
+- 林髋：`HIP_PIXELFILL_MAX_PX=4000`；大于此值跳过，避免大块平涂肉糊。
+- 林腿带：残留不进髋下（y≥720）；髋下 leftover 单独 `LEG_SOFT`（LaMa + `LEG_SOFT_DENOISE=0.32` + LOWER 提示）；领口 pixelfill 只填 leftover∩领口带（小 fallback 上限 12000 px）。
+
+③ **hillclimb 已取消。** `workflows/comfyui/hillclimb_until_pass.py` 不再按 mean≥9 循环等分；调用即打印 `HILLCLIMB_CANCELLED` 并以退出码 2 结束。出图用 `bringup_and_run.py` 或 `run_fox_centaur_semantic.py`，然后 Cursor 观感判定。
 
 ## 为什么改
 
@@ -45,22 +57,19 @@ python workflows/comfyui/run_fox_centaur_semantic.py --only lin elena --mode bot
 # 单张重试：换种子（attempt 每加 1，所有种子 +1000）
 python workflows/comfyui/run_fox_centaur_semantic.py --only elena --mode nude --attempt 1
 
-# 已过门的跳过
+# 已有 PNG 的跳过（不再看 passed 分）
 python workflows/comfyui/run_fox_centaur_semantic.py --resume
 
-# 只打分（Cursor agent 先写 .cursor-score.json 或 CURSOR_STILL_SCORE_JSON，再 --score-only）
-python workflows/comfyui/run_fox_centaur_semantic.py --score-only --out <含 png 的目录>
-# 或 agent 直接 apply：
-python workflows/comfyui/cursor_still_score.py apply --actor lin --mode nude --image <png> --json-file <score.json>
+# --score / --score-only 已废弃：只打印 SCORING_CANCELLED + VISUAL_JUDGE，不当门禁
 ```
 
-每张产物：`<stem>.png`、`<stem>.run.json`（种子、轮数、残留比）、可选 `<stem>.json`（仅标记 `visual_judge`，不再当门禁）、`debug/<stem>-garment-overlay.png`、`work/`（各带的 api json 和中间图）。
+每张产物：`<stem>.png`、`<stem>.run.json`（种子、轮数、残留比）、可选 `<stem>.json`（仅标记 `visual_judge` / `scoring_cancelled`，不再当门禁）、`debug/<stem>-garment-overlay.png`、`work/`（各带的 api json 和中间图）。
 
 装栈：`bash workflows/comfyui/install_undress_stack.sh inventory|install`。幂等，已有的跳过，模型走 hf-mirror，装包前去代理、用清华源。2026-10-07 上机踩出来、脚本已处理的几处：SegFormer 节点在 import 时读 `models/segformer_b2_clothes/`（不是节点目录里的 checkpoints），并且它的 `__init__` 还会 import 用不上的 b3 fashion 变体、缺权重就整包 import 失败，脚本改成只导出 b2；GroundingDINO 需要 `models/grounding-dino/GroundingDINO_SwinT_OGC.cfg.py` 和 `bert-base-uncased`，北京 B 连不上 huggingface.co，两者都走 hf-mirror，ComfyUI 启动时带 `HF_ENDPOINT=https://hf-mirror.com`；机器上的 transformers 5.x 没有 `BertModel.get_extended_attention_mask`，GroundingDINO 建模直接报 AttributeError，所以固定 `transformers==4.46.3`、`tokenizers<0.21`、`huggingface_hub<1.0`。北京 B 直连 github.com 会卡死，`git clone` 只在子 shell 里 `source /etc/network_turbo`（AutoDL 学术加速），并带 300 秒超时，失败时清掉半截目录。清单：lquesada ComfyUI-Inpaint-CropAndStitch、Acly comfyui-inpaint-nodes、storyicon comfyui_segment_anything、StartHua Comfyui_segformer_b2_clothes、ComfyUI_InstantID；`lllyasviel/fooocus_inpaint` 两个文件，`mattmdjaga/segformer_b2_clothes`。
 
 ## 观感判定（打分已取消）
 
-**不再做均分 / 硬门 / SCORE_PENDING 门禁。** 出图后 Cursor 直接看 PNG 判定是否可用（脚本打印 `VISUAL_JUDGE <actor> <mode> <path>`）。`cursor_still_score.py` 与 `hillclimb_until_pass.py` 保留为兼容壳，调用只声明 `SCORING_CANCELLED`，不阻塞 torn、不循环等分。历史 `score-nude.txt` / `score-torn.txt` 仅作参考，不进流水线。成衣首图仍可由 Cursor GenerateImage 出（Comfy 只做去衣）。
+细则见文首 **2026-10-08 用户拍板** ①③。出图后 Cursor 直接看 PNG 判定是否可用（`VISUAL_JUDGE`）。`cursor_still_score.py` 与 `hillclimb_until_pass.py` 为兼容壳：前者写 `scoring_cancelled` 笔记，后者 `HILLCLIMB_CANCELLED` 退出。历史 `score-nude.txt` / `score-torn.txt` 仅作参考，不进流水线。成衣首图仍可由 Cursor GenerateImage 出（Comfy 只做去衣）。
 
 工作流 JSON：`workflows/comfyui/scheme-semantic-*.api.json` 八个（SegFormer、两个 DINO、四个 inpaint、收边），由 `--emit-examples <目录>` 生成，测试里核对和脚本一致。MASK 输出口在机器上按 `/object_info` 取，JSON 里写的是 1。
 
@@ -106,15 +115,15 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 
 2026-10-07 读到的余额是 ¥21.91（21910 厘），在任何开机之前。
 
-## 提升（2026-10-07 规划落地）
+## 提升（2026-10-07 规划落地 → 2026-10-08 再调）
 
-P0/P1 已写入脚本（2026-10-08 再调）：
+参数与门禁以文首 **2026-10-08 用户拍板** ①②③ 为准。摘要：
 
-1. 残留岛：首 pass 仍 Fooocus denoise 1.0（LaMa 预填）；之后每轮 **只** big-lama 硬擦 + denoise 0.35 弱贴肤。禁止对残留再跑 0.62–0.88 Fooocus。
-2. 伊莲接缝冻结：`horse_guard_y` 以上留 48px 缓冲，残留/收边/pixelfill 都不进；取消躯干 pixelfill。
-3. 林腿：残留不进髋下；髋下 leftover 单独 `LEG_SOFT`（LaMa + 0.32）；髋 pixelfill 上限 4000 px；领口 pixelfill 只填 leftover∩领口带。
-4. torn：rim 弱 denoise；洞心不重绘；伊莲接缝条带只 LaMa。
-5. **打分取消**：bringup 出完 nude+torn 后只打 `VISUAL_JUDGE`，Cursor 观感判定是否可用。
+1. 残留：LaMa + 0.35 touch only（禁止 0.62–0.88 Fooocus redo）。
+2. 伊莲接缝冻结 48px；无躯干 pixelfill。
+3. 林：髋 pixelfill ≤4000；`LEG_SOFT` 0.32；领口 leftover∩领带。
+4. torn：弱 rim；洞心不重绘；接缝条带只 LaMa。
+5. 打分 / hillclimb 取消；bringup 只打 `VISUAL_JUDGE`。
 
 ## 审核补丁（同日代码审）
 
