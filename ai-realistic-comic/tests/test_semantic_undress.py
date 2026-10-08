@@ -276,9 +276,13 @@ def test_dual_collab_assignment_and_doc_gate(monkeypatch):
     src = (COMFY / "dual_collab_run.py").read_text(encoding="utf-8")
     assert "refuse_third" in src
     assert "never release" in src.lower() or "Never release" in src
+    assert "mutex_single_power" in src
+    assert "ensure_peer_shutdown" in src
+    assert "SYNC_MANIFEST" in src or "sync_manifest" in src
     docs = (ROOT / "docs" / "fox-centaur-semantic-undress.md").read_text(encoding="utf-8")
     assert "两机协作模式" in docs and "dual_collab_run.py" in docs
     assert "不另开第三台" in docs
+    assert "互斥单机" in docs and "同步" in docs
 
 
 def test_forbidden_hosts_and_install_script_never_name_f34_or_g09():

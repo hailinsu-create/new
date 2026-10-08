@@ -20,18 +20,21 @@
 - 旧规则「克隆停了就释放」对这两台作废（作废的是 13:42 原文里「克隆关了就释放」那一句）。`autodl_power.py release` / `refuse_release` 对保有 UUID 一律 `RELEASE_REFUSED`；`shutdown-fleet` / `power-off` 只关机留盘。克隆 UUID 写在 `/cursor/stores/user/bjb-clone.env` 的 `BJB_CLONE_UUID`（不进仓库）。
 - **新建克隆门槛**：下单 `expand_data_disk≥100GiB`；若新实例扩容不达标，**该半成品**可 abort-release 后换机重来（未入保有舰队前）。入舰队后禁止 release。
 
-⑤ **两机协作模式（2026-10-08 13:42 拍板，入口 `dual_collab_run.py`）。**
-- **分工**：791 = 母机（环境 / 模型 / 权重真源，可同时出图）；克隆机 = 出图机。默认按演员拆分并行（林→791，伊莲→克隆）；也可只开一台时单机跑完全部。
+⑤ **两机协作模式（13:42 起；13:44 / 13:58 更正，入口 `dual_collab_run.py`）。**
+- **互斥单机（13:58）**：任何时刻最多一台开机。取消「两台并行出图」。开机前查对端状态，不是 `shutdown` 就先 `power_off` 或拒绝。优先 791；791 抢不到卡 / 克隆锁定中则开克隆机。
+- **分工**：791 = 首选母机（环境 / 模型 / 权重真源）；克隆机 = 长期保有出图机，791 不可用时临时当母机。演员全部在**当前开机的那一台**跑完（不再林/伊莲分机并行）。
 - **硬上限**：任何开新机 / 克隆前 `fleet-cap` / `refuse_third` 先数实例，已有 2 台直接拒绝第三台。
-- **抢卡**：791 无空卡时只等卡或只用克隆机跑，**不另开第三台**；克隆机同理。
-- **同步**：模型 / 节点改动只在 791（或本仓库）改；克隆机每次 ship + `install_undress_stack.sh` 对齐。产物回传 `/opt/cursor/artifacts/...` 与 `library/stills/.../semantic/`，不靠机器当档案馆。
+- **抢卡**：791 无空卡时只等卡或改开克隆机，**不另开第三台**；克隆机同理。
+- **同步（双向清单）**：`/cursor/stores/user/fox-centaur-sync-manifest.json` 记路径 / sha256 / mtime / 来源机。代码走 GitHub 中转；模型/节点改动写进清单。开跑前比对，落后方先对齐再出图；以清单较新一方为准，禁止旧盖新。两台不同时在线，不同双机直连 rsync。
+- **克隆复用**：UUID 固定写在 `bjb-clone.env`；以后复用，不反复克隆。新建仅当尚无保有克隆；门槛仍是扩容 ≥100GiB + 5090，半成品不达标才 abort-release。
 - **判定**：不打分；脚本打 `VISUAL_JUDGE`；Cursor 看图观感判可用。管线参数按拍板 ②。
-- **收尾**：`shutdown-fleet` 两台关机留盘（见 ④）。
+- **收尾**：`shutdown-fleet` 两台关机留盘（见 ④）；**绝不 release**。
 
 ```bash
-python workflows/comfyui/dual_collab_run.py --dry-plan          # 只打印分工
-python workflows/comfyui/dual_collab_run.py                     # 确保克隆→并行出图→回传→关机留盘→余额
+python workflows/comfyui/dual_collab_run.py --dry-plan          # 只打印互斥计划
+python workflows/comfyui/dual_collab_run.py                     # 确保克隆→互斥单机出图→回传→关机留盘→余额
 python workflows/comfyui/dual_collab_run.py --skip-clone         # 仅母机
+python workflows/comfyui/dual_collab_run.py --force-role clone   # 强制克隆机（仍先关 791）
 python workflows/comfyui/autodl_power.py fleet-cap
 ```
 
