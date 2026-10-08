@@ -1,4 +1,4 @@
-"""Semantic undress pipeline: mask math, graphs, and the Cursor-only scorer."""
+"""Semantic undress pipeline: mask math, graphs, and cancelled scoring / visual judge."""
 
 from __future__ import annotations
 
@@ -186,47 +186,48 @@ def test_inpaint_graph_is_fill_then_fooocus_without_diff_on_cloth_pass():
     assert "Telea" not in json.dumps(graph) and "NS" not in graph["51"]["inputs"]["fill"]
 
 
-def test_scorer_pending_without_payload_and_never_banned_backends(tmp_path, capsys):
+def test_scoring_cancelled_writes_visual_judge_and_never_blocks(tmp_path, capsys):
     image = tmp_path / "lin-qipao-nine-tail-nude.png"
     Image.new("RGB", (8, 8)).save(image)
+    (image.with_suffix(".score-request.json")).write_text("{}", encoding="utf-8")
     result = score.score_image("lin", "nude", image)
-    assert result["score_pending"] and result["reason"] == "awaiting_cursor_agent"
-    assert result["line"] == "SCORE_PENDING cursor lin nude"
+    assert score.SCORING_CANCELLED is True
+    assert result["scoring_cancelled"] and result["visual_judge"]
+    assert result["score_pending"] is False and result["passed"] is None
+    assert result["line"].startswith("VISUAL_JUDGE")
     out = capsys.readouterr().out
-    assert "SCORE_PENDING cursor lin nude" in out
-    assert "SCORE_REQUEST" in out
-    assert json.loads(image.with_suffix(".json").read_text())["passed"] is False
-    assert image.with_suffix(".score-request.json").exists()
+    assert "SCORING_CANCELLED" in out and "VISUAL_JUDGE" in out
+    assert not image.with_suffix(".score-request.json").exists()
+    assert score.is_blocking({"score_pending": True}) is False
+    assert score.is_blocking({"gates": ["clothes_remain"]}) is False
     source = (COMFY / "cursor_still_score.py").read_text(encoding="utf-8")
     code = source.split('"""', 2)[2].lower()
     for banned in ("grok", "deepseek", "opencode", "kimi", "agy", "codex_binary", "subprocess"):
         assert banned not in code
 
 
-def test_scorer_apply_cursor_payload(tmp_path, capsys):
-    image = tmp_path / "elena-armor-centaur-nude.png"
-    Image.new("RGB", (8, 8)).save(image)
-    payload = {
-        "identity": 9, "distinction": 9, "interaction": 9, "aesthetics": 9,
-        "anatomy": 9, "wardrobe": 9, "motif": 9, "photoreal": 9,
-        "gates": [], "notes": "ok",
-    }
-    image.with_suffix(".cursor-score.json").write_text(json.dumps(payload), encoding="utf-8")
-    result = score.score_image("elena", "nude", image)
-    assert result["scorer"] == "cursor" and result["passed"] is True and result["mean"] == 9.0
-    assert "SCORE cursor elena nude" in capsys.readouterr().out
-    assert not image.with_suffix(".score-request.json").exists()
-    assert score.is_blocking({"score_pending": True}) is True
-    assert score.is_blocking({"gates": ["clothes_remain"]}) is True
-    assert score.is_blocking({"mean": 9, "gates": []}) is False
-
-
-def test_parse_and_normalise_score():
+def test_parse_and_normalise_score_legacy_helper():
     text = 'noise {"identity":9,"distinction":9,"interaction":9,"aesthetics":9,"anatomy":9,"wardrobe":9,"motif":9,"photoreal":8,"gates":[],"notes":"x"} tail'
     item = score.normalise(score.parse_score(text))
-    assert item["mean"] == 8.875 and item["below"] == ["photoreal"] and item["passed"] is False
-    gated = score.normalise({**score.parse_score(text), "photoreal": 9, "gates": ["armor_remain"]})
-    assert gated["mean"] == 9.0 and gated["passed"] is False
+    assert item["mean"] == 8.875 and item["below"] == ["photoreal"]
+    assert item["scoring_cancelled"] is True
+
+
+def test_residual_touch_only_and_hip_cap_and_no_score_gate():
+    source = (COMFY / "run_fox_centaur_semantic.py").read_text(encoding="utf-8")
+    assert "RESIDUAL_TOUCH_DENOISE = 0.35" in source
+    assert "RESIDUAL_FOOOCUS_DENOISE" not in source
+    assert "HIP_PIXELFILL_MAX_PX = 4000" in source
+    assert "ELENA_JUNCTION_BUFFER = 48" in source
+    assert "LEG_SOFT_DENOISE" in source
+    assert "SCORING_CANCELLED" in source or "VISUAL_JUDGE" in source
+    assert "SKIP_TORN" not in source or "hard gates" not in source
+    bring_src = (COMFY / "bringup_and_run.py").read_text(encoding="utf-8")
+    assert "list_for_visual_judge" in bring_src
+    assert "score_local" not in bring_src
+    assert "score-nude.txt" not in bring_src
+    hill = (COMFY / "hillclimb_until_pass.py").read_text(encoding="utf-8")
+    assert "HILLCLIMB_CANCELLED" in hill
 
 
 def test_forbidden_hosts_and_install_script_never_name_f34_or_g09():
@@ -342,7 +343,10 @@ def test_end_to_end_with_fake_comfy_keeps_face_and_clears_garment(tmp_path, monk
     assert np.abs(np.asarray(result)[cy, cx].astype(int) - np.array([214, 170, 150])).max() < 40
     meta = json.loads((out / "lin-qipao-nine-tail-nude.run.json").read_text())
     kinds = [p["kind"] for p in meta["passes"]]
-    assert kinds == ["nude", "edge"] and meta["passes"][0]["residual_ratio"] == 0.0
+    assert kinds[0] == "nude" and "edge" in kinds
+    # Residual may add lama_torso/touch_torso when leftover remains; never mid/high Fooocus redo.
+    assert "fooocus_torso" not in kinds
+    assert all(p.get("denoise", 1) <= 0.35 for p in meta["passes"] if p["kind"].startswith("touch_"))
     assert (out / "debug" / "lin-qipao-nine-tail-nude-garment-overlay.png").exists()
 
 
