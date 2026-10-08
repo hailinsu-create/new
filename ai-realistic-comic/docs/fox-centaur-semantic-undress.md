@@ -17,7 +17,23 @@
 ④ **两台长期保有；跑完关机留盘；禁止 release（2026-10-08 13:44 更正）。**
 - 母机 791 + 一台同标准克隆机（扩容 ≥100GiB、RTX 5090、北京 B）长期保留。**上限两台，不准第三台。**
 - 收尾：两台都 **关机留盘**（机内 `shutdown` 和/或网页 `power_off`）。**791 与克隆机都不 `release`。**
-- 旧规则「克隆停了就释放」对这两台作废。`autodl_power.py release` / `refuse_release` 对保有 UUID 一律 `RELEASE_REFUSED`；`shutdown-fleet` / `power-off` 只关机留盘。克隆 UUID 写在 `/cursor/stores/user/bjb-clone.env` 的 `BJB_CLONE_UUID`（不进仓库）。
+- 旧规则「克隆停了就释放」对这两台作废（作废的是 13:42 原文里「克隆关了就释放」那一句）。`autodl_power.py release` / `refuse_release` 对保有 UUID 一律 `RELEASE_REFUSED`；`shutdown-fleet` / `power-off` 只关机留盘。克隆 UUID 写在 `/cursor/stores/user/bjb-clone.env` 的 `BJB_CLONE_UUID`（不进仓库）。
+- **新建克隆门槛**：下单 `expand_data_disk≥100GiB`；若新实例扩容不达标，**该半成品**可 abort-release 后换机重来（未入保有舰队前）。入舰队后禁止 release。
+
+⑤ **两机协作模式（2026-10-08 13:42 拍板，入口 `dual_collab_run.py`）。**
+- **分工**：791 = 母机（环境 / 模型 / 权重真源，可同时出图）；克隆机 = 出图机。默认按演员拆分并行（林→791，伊莲→克隆）；也可只开一台时单机跑完全部。
+- **硬上限**：任何开新机 / 克隆前 `fleet-cap` / `refuse_third` 先数实例，已有 2 台直接拒绝第三台。
+- **抢卡**：791 无空卡时只等卡或只用克隆机跑，**不另开第三台**；克隆机同理。
+- **同步**：模型 / 节点改动只在 791（或本仓库）改；克隆机每次 ship + `install_undress_stack.sh` 对齐。产物回传 `/opt/cursor/artifacts/...` 与 `library/stills/.../semantic/`，不靠机器当档案馆。
+- **判定**：不打分；脚本打 `VISUAL_JUDGE`；Cursor 看图观感判可用。管线参数按拍板 ②。
+- **收尾**：`shutdown-fleet` 两台关机留盘（见 ④）。
+
+```bash
+python workflows/comfyui/dual_collab_run.py --dry-plan          # 只打印分工
+python workflows/comfyui/dual_collab_run.py                     # 确保克隆→并行出图→回传→关机留盘→余额
+python workflows/comfyui/dual_collab_run.py --skip-clone         # 仅母机
+python workflows/comfyui/autodl_power.py fleet-cap
+```
 
 ## 为什么改
 

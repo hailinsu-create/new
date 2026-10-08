@@ -263,6 +263,22 @@ def test_fleet_keeps_two_machines_and_refuses_release(monkeypatch, capsys):
     assert "克隆停了就释放" in docs and "作废" in docs
 
 
+def test_dual_collab_assignment_and_doc_gate(monkeypatch):
+    dual = _load("dual_collab_run")
+    assert dual.EXPAND_MIN == 107374182400
+    monkeypatch.delenv("BJB_CLONE_UUID", raising=False)
+    monkeypatch.setattr(power, "CLONE_ENV_FILES", ())
+    assert dual.assignment(["lin", "elena"]) == {"mother": ["lin", "elena"], "clone": []}
+    monkeypatch.setenv("BJB_CLONE_UUID", "2kjsepgp4t-ae335d46")
+    assert dual.assignment(["lin", "elena"]) == {"mother": ["lin"], "clone": ["elena"]}
+    src = (COMFY / "dual_collab_run.py").read_text(encoding="utf-8")
+    assert "refuse_third" in src
+    assert "never release" in src.lower() or "Never release" in src
+    docs = (ROOT / "docs" / "fox-centaur-semantic-undress.md").read_text(encoding="utf-8")
+    assert "两机协作模式" in docs and "dual_collab_run.py" in docs
+    assert "不另开第三台" in docs
+
+
 def test_forbidden_hosts_and_install_script_never_name_f34_or_g09():
     try:
         run.check_host("http://connect.weste.seetacloud.com:8188")
