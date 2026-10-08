@@ -226,8 +226,41 @@ def test_residual_touch_only_and_hip_cap_and_no_score_gate():
     assert "list_for_visual_judge" in bring_src
     assert "score_local" not in bring_src
     assert "score-nude.txt" not in bring_src
+    assert "NEVER release" in bring_src or "never release" in bring_src.lower()
     hill = (COMFY / "hillclimb_until_pass.py").read_text(encoding="utf-8")
     assert "HILLCLIMB_CANCELLED" in hill
+
+
+def test_fleet_keeps_two_machines_and_refuses_release(monkeypatch, capsys):
+    """User 2026-10-08 13:44: mother+clone long-lived; shutdown keep disk; never release; cap=2."""
+    assert power.MOTHER_UUID == "359a49a1c3-4cda10df"
+    assert power.MAX_FLEET == 2
+    assert power.WEB_POWER_OFF.endswith("/instance/power_off")
+    monkeypatch.delenv("BJB_CLONE_UUID", raising=False)
+    monkeypatch.setattr(power, "CLONE_ENV_FILES", ())
+    assert power.kept_fleet_uuids() == {power.MOTHER_UUID}
+    assert power.refuse_release(power.MOTHER_UUID) == 2
+    assert "RELEASE_REFUSED" in capsys.readouterr().out
+    monkeypatch.setenv("BJB_CLONE_UUID", "2kjsepgp4t-ae335d46")
+    assert power.kept_fleet_uuids() == {power.MOTHER_UUID, "2kjsepgp4t-ae335d46"}
+    assert power.refuse_release("2kjsepgp4t-ae335d46") == 2
+    assert power.assert_fleet_cap([power.MOTHER_UUID, "2kjsepgp4t-ae335d46"]) == 0
+    assert power.assert_fleet_cap([power.MOTHER_UUID, "2kjsepgp4t-ae335d46", "third-uuid-xxx"]) == 2
+    seen = []
+    monkeypatch.setattr(power, "web_authorization", lambda: "JWT")
+    monkeypatch.setattr(
+        power,
+        "post",
+        lambda url, h, b, timeout=30: (
+            seen.append((url, b)) or (200, {"code": "Success", "msg": ""})
+        ),
+    )
+    assert power.power_off_keep_disk(power.MOTHER_UUID) == 0
+    assert seen[0][0] == power.WEB_POWER_OFF
+    assert "release" not in seen[0][0]
+    docs = (ROOT / "docs" / "fox-centaur-semantic-undress.md").read_text(encoding="utf-8")
+    assert "两台长期保有" in docs and "不准第三台" in docs
+    assert "克隆停了就释放" in docs and "作废" in docs
 
 
 def test_forbidden_hosts_and_install_script_never_name_f34_or_g09():
@@ -522,7 +555,9 @@ def test_restart_command_cannot_match_itself():
 def test_bringup_ships_no_secrets_or_forbidden_machines():
     source = (COMFY / "bringup_and_run.py").read_text(encoding="utf-8")
     assert "xaxna66hqt" not in source and "sa4eaxgcuq" not in source
-    assert "clone" not in source.lower().replace("never clones", "")
+    # One long-lived clone is allowed; release of the kept pair is forbidden.
+    assert "never release" in source.lower() or "NEVER release" in source
+    assert "instance/release" not in source
     for secret_name in ("autodl-token", "autodl-web-auth", "cast-ssh"):
         assert secret_name not in " ".join(bring.SHIP)
     assert all((ROOT / m).exists() for m in bring.SHIP)

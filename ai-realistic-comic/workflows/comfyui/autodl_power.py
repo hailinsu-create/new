@@ -1,4 +1,4 @@
-"""Power on / balance helper for the Beijing B ordinary container instance.
+"""Power / balance / fleet helper for the Beijing B fox/centaur undress machines.
 
 Two different credentials, two different APIs:
 
@@ -6,10 +6,15 @@ Two different credentials, two different APIs:
   Beijing B 791 `359a49a1c3-4cda10df` have no developer API. Power on goes through
   the web endpoint `POST https://www.autodl.com/api/v1/instance/power_on` with body
   `{"instance_uuid": ..., "payload": "gpu"}`. `payload` is always `gpu`; the no-card
-  mode is forbidden.
+  mode is forbidden. Power off is `POST .../instance/power_off` (disk kept).
 - Developer token (`AUTODL_TOKEN`): Pro-only developer APIs. Here it is used only for
   the wallet balance (`POST https://api.autodl.com/api/v1/dev/wallet/balance`).
   `/api/v1/dev/instance/pro/power_on` returns RecordNotFoundError for this instance.
+
+Fleet policy (user 2026-10-08 13:44):
+  - Keep at most **two** machines long-term: mother 791 + one payg clone.
+  - After a run: **shutdown both, keep disks**. Never ``release`` either.
+  - Old rule «clone stop ⇒ release» is void for this pair. No third machine.
 
 Secrets are read from the environment or the shared env files and never printed.
 F34 and G09 UUIDs are refused. A "no idle GPU" answer is retried with backoff; any
@@ -19,6 +24,9 @@ other failure (auth, unknown instance) stops at once so nothing burns money.
     python autodl_power.py power-on [--max-minutes 0]   # 0 = keep waiting
     python autodl_power.py ensure-on [--max-minutes 0]   # 0 = no deadline; web JWT then developer token
     python autodl_power.py power-on-once      # exit 0 ok, 5 no GPU, 6 transient, 2 fatal, 4 no web auth
+    python autodl_power.py power-off [--uuid ...]       # shutdown keep disk; never release
+    python autodl_power.py shutdown-fleet               # power-off mother + clone (if known)
+    python autodl_power.py release --uuid ...           # always refuses for kept fleet UUIDs
 """
 
 from __future__ import annotations
@@ -33,9 +41,14 @@ import urllib.request
 from pathlib import Path
 
 WEB_POWER_ON = "https://www.autodl.com/api/v1/instance/power_on"
+WEB_POWER_OFF = "https://www.autodl.com/api/v1/instance/power_off"
+WEB_RELEASE = "https://www.autodl.com/api/v1/instance/release"
+WEB_INSTANCE_LIST = "https://www.autodl.com/api/v1/instance"
 DEV_BALANCE = "https://api.autodl.com/api/v1/dev/wallet/balance"
 DEV_POWER_ON = "https://api.autodl.com/api/v1/dev/instance/pro/power_on"
 DEFAULT_UUID = "359a49a1c3-4cda10df"
+MOTHER_UUID = DEFAULT_UUID
+MAX_FLEET = 2
 FORBIDDEN = {"xaxna66hqt-c5c9c7fc", "sa4eaxgcuq-26e36fc9"}
 WEB_AUTH_FILES = (
     Path("/cursor/stores/user/autodl-web-auth.env"),
@@ -43,6 +56,10 @@ WEB_AUTH_FILES = (
 )
 TOKEN_FILES = (Path("/cursor/stores/user/autodl-token.env"),)
 SSH_ENV = Path("/cursor/stores/user/bjb-ssh.env")
+CLONE_ENV_FILES = (
+    Path("/cursor/stores/user/bjb-clone.env"),
+    Path("/workspace/cred-handoff/bjb-clone.env"),
+)
 NO_GPU_MARKERS = ("GPU不足", "空闲GPU", "gpu不足", "no idle gpu", "InsufficientGpu")
 # Clone lock is temporary while a payg clone of this host is copying; keep waiting.
 RETRY_MARKERS = ("克隆锁定", "clone lock", "CloneLock", "正在克隆")
@@ -226,6 +243,100 @@ def balance() -> int:
     return 0
 
 
+def clone_uuid() -> str | None:
+    """Optional long-lived payg clone UUID from env / bjb-clone.env."""
+    value = os.environ.get("BJB_CLONE_UUID") or find_secret("BJB_CLONE_UUID", CLONE_ENV_FILES)
+    if not value:
+        return None
+    if value in FORBIDDEN:
+        raise SystemExit(f"FORBIDDEN_INSTANCE {value}")
+    return value
+
+
+def kept_fleet_uuids() -> set[str]:
+    """Mother 791 + at most one clone. Both are permanent; never release."""
+    out = {MOTHER_UUID}
+    clone = clone_uuid()
+    if clone:
+        out.add(clone)
+    return out
+
+
+def refuse_release(uuid: str) -> int:
+    """Never release mother or the kept clone. Old stop⇒release rule is void."""
+    uuid = instance_uuid(uuid)
+    kept = kept_fleet_uuids()
+    if uuid in kept or uuid == MOTHER_UUID:
+        print(
+            f"RELEASE_REFUSED {uuid} fox/centaur fleet is long-lived; "
+            f"shutdown keep disk only (user 2026-10-08). kept={sorted(kept)}",
+            flush=True,
+        )
+        return 2
+    # Cap is two; refuse releasing unknown third via this helper too — call site must not create it.
+    print(
+        f"RELEASE_REFUSED {uuid} autodl_power will not release fox/centaur instances; "
+        f"use console only for non-fleet accidents. Fleet cap={MAX_FLEET}.",
+        flush=True,
+    )
+    return 2
+
+
+def power_off_keep_disk(uuid: str, authorization: str | None = None) -> int:
+    """Web power_off. Disk stays. Never calls release."""
+    uuid = instance_uuid(uuid)
+    if uuid in FORBIDDEN:
+        raise SystemExit(f"FORBIDDEN_INSTANCE {uuid}")
+    auth = authorization or web_authorization()
+    if not auth:
+        print("WEB_AUTH_MISSING cannot power_off without AUTODL_WEB_AUTHORIZATION.", flush=True)
+        return 4
+    status, reply = post(WEB_POWER_OFF, {"Authorization": auth}, {"instance_uuid": uuid})
+    code, msg = reply.get("code"), str(reply.get("msg", ""))[:120]
+    print(f"POWER_OFF uuid={uuid} http={status} code={code} msg={msg} (disk kept, no release)", flush=True)
+    return 0 if str(code) == "Success" else 2
+
+
+def shutdown_fleet() -> int:
+    """Power off mother + clone (if registered). Keep disks. Never release."""
+    auth = web_authorization()
+    if not auth:
+        print("WEB_AUTH_MISSING cannot shutdown-fleet without AUTODL_WEB_AUTHORIZATION.", flush=True)
+        return 4
+    codes = []
+    for uuid in sorted(kept_fleet_uuids()):
+        codes.append(power_off_keep_disk(uuid, auth))
+    print(f"SHUTDOWN_FLEET done kept={sorted(kept_fleet_uuids())} no_release=1", flush=True)
+    return 0 if all(c == 0 for c in codes) else 2
+
+
+def assert_fleet_cap(existing_uuids: list[str] | None = None) -> int:
+    """Refuse opening a third fox/centaur machine. Exit 0 ok, 2 over cap."""
+    kept = kept_fleet_uuids()
+    listed = set(existing_uuids or [])
+    # Prefer live list when auth is present and caller did not pass uuids.
+    if existing_uuids is None:
+        auth = web_authorization()
+        if auth:
+            status, reply = post(WEB_INSTANCE_LIST, {"Authorization": auth}, {"page_index": 1, "page_size": 50})
+            if str(reply.get("code")) == "Success":
+                items = (reply.get("data") or {}).get("list") or []
+                listed = {str(it.get("uuid") or "") for it in items if it.get("uuid")}
+    fleet_now = {u for u in listed if u} | kept
+    # Count only mother + known clone + any other non-forbidden payg we already track via env.
+    # Hard stop if more than MAX_FLEET distinct UUIDs already exist beyond forbidden.
+    active = fleet_now - FORBIDDEN - {""}
+    if len(active) > MAX_FLEET:
+        print(
+            f"FLEET_CAP_EXCEEDED n={len(active)} cap={MAX_FLEET} uuids={sorted(active)}; "
+            f"do not clone/open a third machine.",
+            flush=True,
+        )
+        return 2
+    print(f"FLEET_CAP_OK n={len(active)} cap={MAX_FLEET} kept={sorted(kept)}", flush=True)
+    return 0
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -238,9 +349,23 @@ def main() -> None:
     on = sub.add_parser("power-on")
     on.add_argument("--uuid")
     on.add_argument("--max-minutes", type=float, default=0, help="0 = no deadline")
+    off = sub.add_parser("power-off", help="Shutdown keep disk; never release.")
+    off.add_argument("--uuid")
+    sub.add_parser("shutdown-fleet", help="Power-off mother + clone; keep disks; never release.")
+    rel = sub.add_parser("release", help="Refused for fox/centaur fleet UUIDs.")
+    rel.add_argument("--uuid", required=True)
+    sub.add_parser("fleet-cap", help="Check ≤2 long-lived machines.")
     args = parser.parse_args()
     if args.cmd == "balance":
         raise SystemExit(balance())
+    if args.cmd == "release":
+        raise SystemExit(refuse_release(args.uuid))
+    if args.cmd == "fleet-cap":
+        raise SystemExit(assert_fleet_cap())
+    if args.cmd == "shutdown-fleet":
+        raise SystemExit(shutdown_fleet())
+    if args.cmd == "power-off":
+        raise SystemExit(power_off_keep_disk(instance_uuid(args.uuid)))
     if args.cmd == "ensure-on":
         raise SystemExit(ensure_on(instance_uuid(args.uuid), max_minutes=args.max_minutes))
     authorization = web_authorization()

@@ -1,4 +1,4 @@
-"""Self-service bring-up for the semantic undress run on Beijing B 791.
+"""Self-service bring-up for the semantic undress run on Beijing B 791 (+ optional clone).
 
     python bringup_and_run.py            # power on -> ssh -> install -> check-stack -> 4 stills -> shutdown
 
@@ -9,11 +9,13 @@ Steps, in order:
  3. ship the scripts, plates and lock faces; run install_undress_stack.sh install; restart ComfyUI.
  4. run_fox_centaur_semantic.py --check-stack, then nude lin/elena, then torn lin/elena.
  5. pull results back. No numeric score gate — Cursor judges PNGs by eye (VISUAL_JUDGE).
- 6. after a clean run, shut the machine down from the inside (disk kept), then print the balance.
+ 6. after a clean run, shut down **keep disk** (never release). If ``bjb-clone.env`` has a
+    clone UUID, also web power_off that clone. Old «clone stop ⇒ release» is void.
     After a failed step the machine is left on (and says so) unless --shutdown-on-failure,
     because a free GPU is hard to get twice.
 
-Never clones, never uses the no-GPU mode, never touches F34/G09.
+Fleet: at most two long-lived machines (791 + one clone). No third. No-GPU mode forbidden.
+Never touches F34/G09. Never calls AutoDL release on the kept pair.
 If SSH keeps answering "Permission denied (publickey)" the machine is on but the key is not
 authorised: the script stops with NEED_SSH_KEY_AUTH and tells you what to add.
 """
@@ -223,8 +225,22 @@ def keep_in_repo(local: Path) -> None:
 
 
 def shutdown_machine() -> None:
-    print("SHUTDOWN from inside the machine; the data disk stays.", flush=True)
+    """Shutdown keep disk on the SSH target; never release. Also power_off known clone."""
+    print("SHUTDOWN from inside the machine; the data disk stays. NEVER release.", flush=True)
     ssh('nohup sh -c "sleep 3; shutdown" >/dev/null 2>&1 &', check=False)
+    # Web power_off the SSH instance UUID as a belt-and-braces (disk kept).
+    try:
+        conn = connection()
+        power.power_off_keep_disk(conn.get("uuid") or power.MOTHER_UUID)
+    except SystemExit as exc:
+        print(f"POWER_OFF_WARN ssh-target {exc}", flush=True)
+    clone = power.clone_uuid()
+    if clone:
+        print(f"SHUTDOWN_CLONE_KEEP_DISK {clone} (no release; fleet long-lived)", flush=True)
+        try:
+            power.power_off_keep_disk(clone)
+        except SystemExit as exc:
+            print(f"POWER_OFF_WARN clone {exc}", flush=True)
 
 
 def main() -> None:

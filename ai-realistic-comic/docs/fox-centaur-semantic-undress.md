@@ -1,6 +1,6 @@
 # 狐 / 马去衣：语义蒙版管线
 
-2026-10-07 起稿；**2026-10-08 用户拍板修订**见下节。适用 `library/stills/fox-centaur-embrace/` 的四张：林晚棠旗袍九尾 nude / torn，伊莲铠甲半人马 nude / torn。不是身体板，不进 `library/cast/*/body-nude/`。机器只用北京 B `359a49a1c3-4cda10df`。F34 / G09 不开，脚本遇到它们的主机名直接 `FORBIDDEN_HOST`。
+2026-10-07 起稿；**2026-10-08 用户拍板修订**见下节。适用 `library/stills/fox-centaur-embrace/` 的四张：林晚棠旗袍九尾 nude / torn，伊莲铠甲半人马 nude / torn。不是身体板，不进 `library/cast/*/body-nude/`。机器：**北京 B 母机 791** `359a49a1c3-4cda10df` + **最多一台**同标准 payg 克隆机（见 ④）。F34 / G09 不开，脚本遇到它们的主机名直接 `FORBIDDEN_HOST`。
 
 ## 2026-10-08 用户拍板（必须遵守）
 
@@ -13,6 +13,11 @@
 - 林腿带：残留不进髋下（y≥720）；髋下 leftover 单独 `LEG_SOFT`（LaMa + `LEG_SOFT_DENOISE=0.32` + LOWER 提示）；领口 pixelfill 只填 leftover∩领口带（小 fallback 上限 12000 px）。
 
 ③ **hillclimb 已取消。** `workflows/comfyui/hillclimb_until_pass.py` 不再按 mean≥9 循环等分；调用即打印 `HILLCLIMB_CANCELLED` 并以退出码 2 结束。出图用 `bringup_and_run.py` 或 `run_fox_centaur_semantic.py`，然后 Cursor 观感判定。
+
+④ **两台长期保有；跑完关机留盘；禁止 release（2026-10-08 13:44 更正）。**
+- 母机 791 + 一台同标准克隆机（扩容 ≥100GiB、RTX 5090、北京 B）长期保留。**上限两台，不准第三台。**
+- 收尾：两台都 **关机留盘**（机内 `shutdown` 和/或网页 `power_off`）。**791 与克隆机都不 `release`。**
+- 旧规则「克隆停了就释放」对这两台作废。`autodl_power.py release` / `refuse_release` 对保有 UUID 一律 `RELEASE_REFUSED`；`shutdown-fleet` / `power-off` 只关机留盘。克隆 UUID 写在 `/cursor/stores/user/bjb-clone.env` 的 `BJB_CLONE_UUID`（不进仓库）。
 
 ## 为什么改
 
@@ -88,9 +93,13 @@ python workflows/comfyui/run_fox_centaur_semantic.py --resume
 python workflows/comfyui/autodl_power.py balance          # 读余额（厘 / 元），低于 5 元只警报
 python workflows/comfyui/autodl_power.py power-on         # 循环开机，空卡退避 20/30/45/60 s，默认最多 120 分钟
 python workflows/comfyui/autodl_power.py power-on-once    # 单次；退出码 0 成功 5 无空卡 6 暂时失败 2 致命 4 没有网页凭据
+python workflows/comfyui/autodl_power.py power-off        # 关机留盘（不 release）
+python workflows/comfyui/autodl_power.py shutdown-fleet   # 791 + 克隆机都关机留盘
+python workflows/comfyui/autodl_power.py release --uuid … # 对保有舰队一律 REFUSED
+python workflows/comfyui/autodl_power.py fleet-cap        # 检查 ≤2 台
 ```
 
-「空闲GPU不足」按空卡处理并退避重试；鉴权失败、实例不存在这类致命回复立即停止，不重试。F34 / G09 的 UUID 直接拒绝。密钥不打印、不入库。
+「空闲GPU不足」按空卡处理并退避重试；鉴权失败、实例不存在这类致命回复立即停止，不重试。F34 / G09 的 UUID 直接拒绝。密钥不打印、不入库。舰队规则见文首拍板 ④。
 
 ### 自助开机和整条链路
 
@@ -104,12 +113,12 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 1. 开机：`autodl_power.ensure_on`。凭据来源优先级：环境变量（Cursor Secrets 注入到这里）→ `/cursor/stores/user/` 下的 `autodl-web-auth.env`、`autodl-token.env`（也读 `/workspace/cred-handoff/autodl-web-auth.env`）→ 都没有就打印 `NEED_AUTODL_TOKEN` 并退出（码 4）。这些文件不进仓库。
    - 有网页 JWT：走普通实例的网页 `power_on`（`payload: gpu`），空卡按 20/30/45/60 s 退避重试。
    - 只有开发者 Token：先试 `dev/instance/pro/power_on`。这台是普通容器实例，会返回 `RecordNotFoundError`，脚本立刻停并说明要网页 JWT，不死循环。
-   - 无论哪条路：不克隆，不用无卡模式，F34 / G09 的 UUID 直接拒绝。
+   - 无论哪条路：不用无卡模式，F34 / G09 的 UUID 直接拒绝。克隆仅用于补齐「791 + 一台克隆」舰队（上限两台，见拍板 ④），禁止开第三台。
 2. 等 SSH：每 20 秒一次，每次重读 `bjb-ssh.env`，host/port 变了自动跟。连续 3 次 `Permission denied (publickey)` 就停，报 `NEED_SSH_KEY_AUTH`：机器开着但密钥没授权，需要把 `bjb791.pub` 追加进 `/root/.ssh/authorized_keys`，或在 `bjb-ssh.env` 放 `BJB_SSH_PASSWORD`。此时机器在计费，脚本不会假装成功。
 3. 装栈：把脚本、两张成衣底板、两张锁脸用 tar 传到 `/root/autodl-tmp/arc/ai-realistic-comic`，跑 `install_undress_stack.sh install`，重启 ComfyUI（按进程号），然后 `--check-stack`。缺节点就停。
 4. 出图：先 nude（林、伊莲），再 torn（林、伊莲），结果在机器上的 `/root/autodl-tmp/fox-semantic-out`。无打分门禁。
 5. 回传到 `/opt/cursor/artifacts/fox-centaur-semantic`，打印 `VISUAL_JUDGE`；Cursor 看图判定是否可用。过程文件之外的 png/json 拷进 `library/stills/fox-centaur-embrace/semantic/`。
-6. 关机：全流程干净跑完才执行，机器内部 `shutdown`，数据盘保留；随后读余额（无 Token 打印 `BALANCE_PENDING`）。中途有步骤失败时默认**不关机**并打印 `MACHINE_STILL_ON`，因为拿到空卡不容易，修好后用 `--no-power-on` 接着跑；要失败也关机加 `--shutdown-on-failure`，要干净跑完也不关加 `--keep-on`。
+6. 关机留盘：全流程干净跑完才执行——机内 `shutdown` + 网页 `power_off`（若 `bjb-clone.env` 有克隆 UUID 则两台都关）。**绝不 `release`。** 随后读余额。中途失败默认不关机（`MACHINE_STILL_ON`）；`--shutdown-on-failure` / `--keep-on` 语义不变。
 
 踩过的坑（2026-10-07）：远端重启 ComfyUI 时 `pgrep -f 'main.py ...'` 会匹配到执行它自己的 SSH 命令行，把自己杀掉，随后旧版「失败也关机」的收尾把机器关了。现在 pattern 写成 `[m]ain.py`，并有测试守着。
 
