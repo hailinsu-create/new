@@ -213,12 +213,14 @@ def test_parse_and_normalise_score_legacy_helper():
     assert item["scoring_cancelled"] is True
 
 
-def test_residual_touch_only_and_hip_cap_and_no_score_gate():
+def test_residual_hybrid_and_hip_cap_and_no_score_gate():
     source = (COMFY / "run_fox_centaur_semantic.py").read_text(encoding="utf-8")
     assert "RESIDUAL_TOUCH_DENOISE = 0.35" in source
-    assert "RESIDUAL_FOOOCUS_DENOISE" not in source
-    assert "HIP_PIXELFILL_MAX_PX = 4000" in source
-    assert "ELENA_JUNCTION_BUFFER = 48" in source
+    assert "RESIDUAL_FOOOCUS_DENOISE = 0.72" in source
+    assert "LEG_SOFT_MAX_PX = 40000" in source
+    assert "HIP_PIXELFILL_MAX_PX = 100000" in source
+    assert "ELENA_JUNCTION_BUFFER = 24" in source
+    assert "_lama_then_residual" in source
     assert "LEG_SOFT_DENOISE" in source
     assert "SCORING_CANCELLED" in source or "VISUAL_JUDGE" in source
     assert "SKIP_TORN" not in source or "hard gates" not in source
@@ -412,9 +414,11 @@ def test_end_to_end_with_fake_comfy_keeps_face_and_clears_garment(tmp_path, monk
     meta = json.loads((out / "lin-qipao-nine-tail-nude.run.json").read_text())
     kinds = [p["kind"] for p in meta["passes"]]
     assert kinds[0] == "nude" and "edge" in kinds
-    # Residual may add lama_torso/touch_torso when leftover remains; never mid/high Fooocus redo.
-    assert "fooocus_torso" not in kinds
+    # Hybrid residual: touch for tiny leftovers, fooocus_torso@0.72 for large (P0/P1 partial rollback).
     assert all(p.get("denoise", 1) <= 0.35 for p in meta["passes"] if p["kind"].startswith("touch_"))
+    for p in meta["passes"]:
+        if p["kind"].startswith("fooocus_"):
+            assert p.get("denoise") == 0.72
     assert (out / "debug" / "lin-qipao-nine-tail-nude-garment-overlay.png").exists()
 
 

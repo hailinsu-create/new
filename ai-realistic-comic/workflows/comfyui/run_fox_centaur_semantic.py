@@ -70,16 +70,20 @@ HEAD_BOX = {"lin": legacy.LIN_HEAD, "elena": legacy.ELENA_HEAD}
 
 NUDE_DENOISE = 1.0
 NUDE_CFG = 5.5
-# Residual: LaMa hard-erase first, then weak skin touch only. Mid/high Fooocus on
-# leftovers (0.62–0.88) left lace ghosts or meat smear; do not re-introduce that path.
+# Residual: LaMa hard-erase first. Tiny leftovers → weak touch 0.35; large leftovers →
+# Fooocus 0.72 (partial rollback from P0/P1: pure 0.35 left clothes/armor; full 0.88 smeared).
+RESIDUAL_FOOOCUS_DENOISE = 0.72
 RESIDUAL_TOUCH_DENOISE = 0.35
 RESIDUAL_TOUCH_CFG = 4.0
+LAMA_RESIDUAL_MAX_RATIO = 0.20
+LAMA_RESIDUAL_MAX_PIXELS = 25000
 LEG_SOFT_DENOISE = 0.32
 LEG_SOFT_CFG = 4.0
-# Hip pixelfill only for tiny leftover islands; large flat fills tank photoreal.
-HIP_PIXELFILL_MAX_PX = 4000
-# Buffer (px at base height) above Elena horse_guard_y that residual/Fooocus must not chew.
-ELENA_JUNCTION_BUFFER = 48
+LEG_SOFT_MAX_PX = 40000
+# Hip pixelfill: allow run13-scale leftover∩hip islands (old best ~89k).
+HIP_PIXELFILL_MAX_PX = 100000
+# Buffer above Elena horse_guard_y (was 48 in P0/P1; 16 historically). 24 balances seam vs cleanup.
+ELENA_JUNCTION_BUFFER = 24
 TORN_RIM_DENOISE = 0.30
 EDGE_DENOISE = 0.32
 BAND_HEIGHT = 420
@@ -574,30 +578,53 @@ def undress_one(
                     print(f"RESIDUAL_SKIP_EMPTY {stem} pass={n} (protected zones)", flush=True)
                     break
 
-                def _lama_then_touch(img, mask, pos, neg, tag: str):
-                    """Erase leftover cloth/armor, then weak skin touch — never mid/high Fooocus."""
+                def _lama_then_residual(img, mask, pos, neg, tag: str):
+                    """LaMa erase, then touch (tiny) or Fooocus 0.72 (large leftover) — P0/P1 partial rollback."""
                     if not mask.any():
                         return img
                     img = run_bands(
                         host, models, img, mask,
-                        positive=pos, negative=neg, seed=seed + n * 50,
+                        positive=pos, negative=neg, seed=seed + n * 50 + 1,
                         stem=f"{stem}-p{n}{tag}lama", denoise=0.0, edge=False,
                         input_dir=input_dir, out_dir=work, lama_only=True,
                     )
                     meta["passes"].append({"kind": f"lama_{tag}", "n": n, "pixels": int(mask.sum())})
-                    img = run_bands(
-                        host, models, img, mask,
-                        positive=pos, negative=neg, seed=seed + n * 50 + 3,
-                        stem=f"{stem}-p{n}{tag}touch", denoise=RESIDUAL_TOUCH_DENOISE, edge=True,
-                        input_dir=input_dir, out_dir=work, cfg=RESIDUAL_TOUCH_CFG,
-                    )
-                    meta["passes"].append(
-                        {"kind": f"touch_{tag}", "n": n, "denoise": RESIDUAL_TOUCH_DENOISE, "pixels": int(mask.sum())}
-                    )
+                    leftover_px = int(mask.sum())
+                    tiny = best_ratio <= LAMA_RESIDUAL_MAX_RATIO and leftover_px <= LAMA_RESIDUAL_MAX_PIXELS
+                    if tiny:
+                        img = run_bands(
+                            host, models, img, mask,
+                            positive=pos, negative=neg, seed=seed + n * 50 + 3,
+                            stem=f"{stem}-p{n}{tag}touch", denoise=RESIDUAL_TOUCH_DENOISE, edge=True,
+                            input_dir=input_dir, out_dir=work, cfg=RESIDUAL_TOUCH_CFG,
+                        )
+                        meta["passes"].append(
+                            {"kind": f"touch_{tag}", "n": n, "denoise": RESIDUAL_TOUCH_DENOISE, "pixels": leftover_px}
+                        )
+                    else:
+                        print(
+                            f"RESIDUAL_FOOOCUS {stem} pass={n} tag={tag} ratio={best_ratio:.4f} "
+                            f"grown={leftover_px} denoise={RESIDUAL_FOOOCUS_DENOISE}",
+                            flush=True,
+                        )
+                        img = run_bands(
+                            host, models, img, mask,
+                            positive=pos, negative=neg, seed=seed + n * 50 + 7,
+                            stem=f"{stem}-p{n}{tag}redo", denoise=RESIDUAL_FOOOCUS_DENOISE, edge=False,
+                            input_dir=input_dir, out_dir=work, cfg=NUDE_CFG, lama_prefill=True,
+                        )
+                        meta["passes"].append(
+                            {
+                                "kind": f"fooocus_{tag}",
+                                "n": n,
+                                "denoise": RESIDUAL_FOOOCUS_DENOISE,
+                                "pixels": leftover_px,
+                            }
+                        )
                     return img
 
                 current = base
-                current = _lama_then_touch(current, redo_mask, RESIDUAL_SKIN_POS, RESIDUAL_SKIN_NEG, "torso")
+                current = _lama_then_residual(current, redo_mask, RESIDUAL_SKIN_POS, RESIDUAL_SKIN_NEG, "torso")
             tmp = work / f"{stem}-p{n}-result.png"
             current.save(tmp)
             check_plan = sem.residual_plan(plan)
@@ -664,7 +691,8 @@ def undress_one(
         leg_y = int(LOWER_FROM_Y["lin"] / sem.BASE[1] * shape[0])
         leg_mask = sem.dilate(leftover, 6) & sem.box_array(shape, plan.roi)
         leg_mask[:leg_y, :] = False
-        if leg_mask.any():
+        leg_px = int(leg_mask.sum())
+        if leg_mask.any() and leg_px <= LEG_SOFT_MAX_PX:
             current = run_bands(
                 host, models, current, leg_mask,
                 positive=LOWER_POS, negative=LOWER_NEG, seed=seed + 910,
@@ -678,9 +706,11 @@ def undress_one(
                 input_dir=input_dir, out_dir=work, cfg=LEG_SOFT_CFG,
             )
             meta["passes"].append(
-                {"kind": "leg_soft", "denoise": LEG_SOFT_DENOISE, "pixels": int(leg_mask.sum())}
+                {"kind": "leg_soft", "denoise": LEG_SOFT_DENOISE, "pixels": leg_px}
             )
-            print(f"LEG_SOFT {stem} px={int(leg_mask.sum())} denoise={LEG_SOFT_DENOISE}", flush=True)
+            print(f"LEG_SOFT {stem} px={leg_px} denoise={LEG_SOFT_DENOISE}", flush=True)
+        elif leg_px:
+            print(f"LEG_SOFT_SKIP {stem} px={leg_px} (cap={LEG_SOFT_MAX_PX})", flush=True)
 
     # Tiny pixelfill AFTER soft passes so Fooocus cannot paint collar cloth back.
     # Elena: no torso pixelfill (marble/meat patches); junction stays frozen.
@@ -717,11 +747,24 @@ def undress_one(
                 flush=True,
             )
     elif mode == "nude" and actor == "elena" and leftover.any():
-        print(
-            f"ELENA_TORSO_PIXELFILL_SKIP {stem} leftover={int(leftover.sum())} "
-            f"(junction freeze; Cursor visual judge)",
-            flush=True,
-        )
+        # Partial rollback: fill leftover on human torso only, stop above junction freeze.
+        torso = sem.dilate(leftover, 6) & sem.box_array(shape, plan.roi)
+        if plan.horse_guard_y:
+            y_cut = int(plan.horse_guard_y / sem.BASE[1] * shape[0])
+            buf = int(16 / sem.BASE[1] * shape[0])  # keep fill clear of mare
+            torso[max(0, y_cut - buf) :, :] = False
+        torso_px = int(torso.sum())
+        if torso.any() and torso_px <= 80000:
+            current = pixel_skin_fill(
+                current, torso, sample_box=(430, 360, 560, 480), blur=5, noise_std=3.0, seed=seed + 99
+            )
+            meta["passes"].append({"kind": "elena_torso_pixelfill", "pixels": torso_px})
+            print(f"ELENA_TORSO_PIXELFILL {stem} px={torso_px}", flush=True)
+        else:
+            print(
+                f"ELENA_TORSO_PIXELFILL_SKIP {stem} leftover={int(leftover.sum())} torso_px={torso_px}",
+                flush=True,
+            )
 
     dest = out_dir / f"{stem}.png"
     current.save(dest)

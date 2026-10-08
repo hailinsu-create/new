@@ -7,10 +7,10 @@
 ① **取消打分门禁，改 Cursor 观感判定。** 用户明确取消狐/马去衣的均分 ≥9、硬门（`clothes_remain` / `armor_remain` 等）、以及 `SCORE_PENDING` 等待循环。出图后脚本只打印 `VISUAL_JUDGE <actor> <mode> <path>`；是否可用由 Cursor **看 PNG 观感**判定，不再写 `.score-request.json`、不再用 sidecar `passed` 挡 torn / bringup。
 
 ② **本次管线参数改动（残留 / 接缝 / 髋 / 腿带）。** 写入 `run_fox_centaur_semantic.py`：
-- 残留：首 pass 仍 Fooocus denoise 1.0 + LaMa 预填；之后每轮 **只** big-lama 硬擦 + `RESIDUAL_TOUCH_DENOISE=0.35` 弱贴肤。删除对残留的 mid/high Fooocus（原 0.62–0.88）。
-- 伊莲接缝：`ELENA_JUNCTION_BUFFER=48`（相对 `horse_guard_y`）；残留 / 收边 / pixelfill 都不进缓冲带及以下；取消 `elena_torso_pixelfill`。
-- 林髋：`HIP_PIXELFILL_MAX_PX=4000`；大于此值跳过，避免大块平涂肉糊。
-- 林腿带：残留不进髋下（y≥720）；髋下 leftover 单独 `LEG_SOFT`（LaMa + `LEG_SOFT_DENOISE=0.32` + LOWER 提示）；领口 pixelfill 只填 leftover∩领口带（小 fallback 上限 12000 px）。
+- 残留：首 pass 仍 Fooocus denoise 1.0 + LaMa 预填；之后 LaMa 硬擦，**小岛** touch 0.35，**大岛** Fooocus `RESIDUAL_FOOOCUS_DENOISE=0.72`（2026-10-08 晚间部分回退：纯 0.35 去衣失败）。
+- 伊莲接缝：`ELENA_JUNCTION_BUFFER=24`；残留 / 收边不进缓冲带及以下；接缝**上方**可 `elena_torso_pixelfill`（≤80k）。
+- 林髋：`HIP_PIXELFILL_MAX_PX=100000`（覆盖旧 best 量级 leftover∩髋）。
+- 林腿带：残留不进髋下（y≥720）；髋下 leftover 且 ≤`LEG_SOFT_MAX_PX=40000` 才 `LEG_SOFT`；领口 pixelfill 只填 leftover∩领口带（≤12000）。
 
 ③ **hillclimb 已取消。** `workflows/comfyui/hillclimb_until_pass.py` 不再按 mean≥9 循环等分；调用即打印 `HILLCLIMB_CANCELLED` 并以退出码 2 结束。出图用 `bringup_and_run.py` 或 `run_fox_centaur_semantic.py`，然后 Cursor 观感判定。
 
@@ -193,7 +193,7 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 | LEG_SOFT | 无 | LaMa+0.32 腿带 | 林跑了 ~126k px（可能加重腿糊） |
 | 打分 | 有门禁 | VISUAL_JUDGE | 保留 |
 
-### 修正方案（部分回退，先文档后代码）
+### 修正方案（部分回退 — 已落地代码，跑图待授权）
 
 1. **残留**：恢复「小岛 touch / 大岛 Fooocus」双路径——`ratio` 与像素超阈时用 `RESIDUAL_FOOOCUS_DENOISE=0.72`（略低于旧 0.88，减 smear），否则仍 LaMa+0.35。
 2. **林髋**：`HIP_PIXELFILL_MAX_PX` 提到 **100000**（覆盖旧 best 量级），仍只填 leftover∩髋带。
