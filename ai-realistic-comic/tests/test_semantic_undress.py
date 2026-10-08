@@ -278,6 +278,8 @@ def test_dual_collab_assignment_and_doc_gate(monkeypatch):
     assert "never release" in src.lower() or "Never release" in src
     assert "mutex_single_power" in src
     assert "ensure_peer_shutdown" in src
+    assert "ThreadPoolExecutor" not in src  # 13:58: no parallel dual power
+    assert "pick_active_role" in src and "run_mutex" in src
     assert "SYNC_MANIFEST" in src or "sync_manifest" in src
     assert "verify_stack_aligned" in src
     assert "fleet_sync" in src and "ensure_before_generate" in src
