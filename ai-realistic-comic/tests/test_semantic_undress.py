@@ -246,6 +246,8 @@ def test_fleet_keeps_two_machines_and_refuses_release(monkeypatch, capsys):
     assert power.refuse_release("2kjsepgp4t-ae335d46") == 2
     assert power.assert_fleet_cap([power.MOTHER_UUID, "2kjsepgp4t-ae335d46"]) == 0
     assert power.assert_fleet_cap([power.MOTHER_UUID, "2kjsepgp4t-ae335d46", "third-uuid-xxx"]) == 2
+    # Stale env UUID alone must not block a second live machine.
+    assert power.assert_fleet_cap([power.MOTHER_UUID]) == 0
     seen = []
     monkeypatch.setattr(power, "web_authorization", lambda: "JWT")
     monkeypatch.setattr(

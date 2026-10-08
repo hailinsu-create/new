@@ -311,10 +311,12 @@ def shutdown_fleet() -> int:
 
 
 def assert_fleet_cap(existing_uuids: list[str] | None = None) -> int:
-    """Refuse opening a third fox/centaur machine. Exit 0 ok, 2 over cap."""
-    kept = kept_fleet_uuids()
+    """Refuse opening a third live machine. Exit 0 ok, 2 over cap.
+
+    Counts **live** instance UUIDs only. A stale ``BJB_CLONE_UUID`` pointing at a
+    released box must not inflate the cap (that would block a legitimate second).
+    """
     listed = set(existing_uuids or [])
-    # Prefer live list when auth is present and caller did not pass uuids.
     if existing_uuids is None:
         auth = web_authorization()
         if auth:
@@ -322,10 +324,7 @@ def assert_fleet_cap(existing_uuids: list[str] | None = None) -> int:
             if str(reply.get("code")) == "Success":
                 items = (reply.get("data") or {}).get("list") or []
                 listed = {str(it.get("uuid") or "") for it in items if it.get("uuid")}
-    fleet_now = {u for u in listed if u} | kept
-    # Count only mother + known clone + any other non-forbidden payg we already track via env.
-    # Hard stop if more than MAX_FLEET distinct UUIDs already exist beyond forbidden.
-    active = fleet_now - FORBIDDEN - {""}
+    active = {u for u in listed if u} - FORBIDDEN
     if len(active) > MAX_FLEET:
         print(
             f"FLEET_CAP_EXCEEDED n={len(active)} cap={MAX_FLEET} uuids={sorted(active)}; "
@@ -333,7 +332,11 @@ def assert_fleet_cap(existing_uuids: list[str] | None = None) -> int:
             flush=True,
         )
         return 2
-    print(f"FLEET_CAP_OK n={len(active)} cap={MAX_FLEET} kept={sorted(kept)}", flush=True)
+    print(
+        f"FLEET_CAP_OK n={len(active)} cap={MAX_FLEET} live={sorted(active)} "
+        f"env_kept={sorted(kept_fleet_uuids())}",
+        flush=True,
+    )
     return 0
 
 

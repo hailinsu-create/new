@@ -154,6 +154,9 @@ def ensure_clone(auth: str) -> str:
     existing = refuse_third(auth)
     uuids = {str(it.get("uuid")) for it in existing}
     known = power.clone_uuid()
+    if known and known not in uuids:
+        print(f"CLONE_STALE_ENV {known} not in live list; ignoring and cloning fresh", flush=True)
+        known = None
     if known and known in uuids:
         print(f"CLONE_REUSE {known}", flush=True)
         return known
