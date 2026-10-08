@@ -629,11 +629,7 @@ def undress_one(
                 current = _lama_then_fooocus(
                     current, redo_mask, RESIDUAL_SKIN_POS, RESIDUAL_SKIN_NEG, "torso", RESIDUAL_FOOOCUS_DENOISE
                 )
-                # Skirt only on first residual pass — repeating it grows extra limbs.
-                if skirt_mask.any() and n == 1:
-                    current = _lama_then_fooocus(
-                        current, skirt_mask, LOWER_POS, LOWER_NEG, "skirt", 0.78,
-                    )
+                # Skip Fooocus skirt redo — a47/a48 grew extra limbs / meat; hip pixelfill handles skirt.
             tmp = work / f"{stem}-p{n}-result.png"
             current.save(tmp)
             check_plan = sem.residual_plan(plan)
@@ -703,16 +699,19 @@ def undress_one(
                 )
                 meta["passes"].append({"kind": "collar_pixelfill", "pixels": int(collar_mask.sum())})
                 print(f"COLLAR_PIXELFILL {stem} px={int(collar_mask.sum())}", flush=True)
-            # Only tiny hip leftovers — large hip pixelfill creates meat-smear thighs.
-            hip_mask = sem.dilate(leftover, 4) & sem.box_array(shape, (300, 720, 580, 1200))
-            if hip_mask.any() and int(hip_mask.sum()) <= 15000:
+            # Skirt/hip leftovers: pixel-fill from the already-bare left thigh (plate slit),
+            # not Fooocus — Fooocus skirt redo keeps growing meat/extra limbs.
+            skirt_boxes = ((300, 720, 580, 1200), (280, 680, 420, 1250))
+            hip_mask = np.zeros(shape, dtype=bool)
+            for box in skirt_boxes:
+                hip_mask |= sem.box_array(shape, box)
+            hip_mask = sem.dilate(leftover, 6) & hip_mask
+            if hip_mask.any():
                 current = pixel_skin_fill(
-                    current, hip_mask, sample_box=(380, 1100, 500, 1250), blur=6, noise_std=3.0, seed=seed + 88
+                    current, hip_mask, sample_box=(300, 900, 400, 1150), blur=7, noise_std=3.5, seed=seed + 88
                 )
                 meta["passes"].append({"kind": "hip_pixelfill", "pixels": int(hip_mask.sum())})
                 print(f"HIP_PIXELFILL {stem} px={int(hip_mask.sum())}", flush=True)
-            elif hip_mask.any():
-                print(f"HIP_PIXELFILL_SKIP {stem} px={int(hip_mask.sum())} (too large)", flush=True)
         elif actor == "elena" and leftover.any():
             torso = sem.dilate(leftover, 6) & sem.box_array(shape, (180, 250, 520, 680))
             if plan.horse_guard_y:
