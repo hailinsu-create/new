@@ -1,15 +1,14 @@
 """Self-service bring-up for the semantic undress run on Beijing B 791.
 
-    python bringup_and_run.py            # power on -> ssh -> install -> check-stack -> 4 stills -> score -> shutdown
+    python bringup_and_run.py            # power on -> ssh -> install -> check-stack -> 4 stills -> shutdown
 
 Steps, in order:
  1. ensure the instance is on (autodl_power.ensure_on: web JWT, then developer token;
     no credential -> NEED_AUTODL_TOKEN). Skipped when SSH already answers.
  2. wait for SSH (re-reads /cursor/stores/user/bjb-ssh.env every try, so a new host/port is picked up).
  3. ship the scripts, plates and lock faces; run install_undress_stack.sh install; restart ComfyUI.
- 4. run_fox_centaur_semantic.py --check-stack, then nude lin, nude elena, torn lin, torn elena.
- 5. pull results back, emit Cursor score requests; agent scores (no Codex).
-    Pending/failed nude scores skip torn for that actor.
+ 4. run_fox_centaur_semantic.py --check-stack, then nude lin/elena, then torn lin/elena.
+ 5. pull results back. No numeric score gate — Cursor judges PNGs by eye (VISUAL_JUDGE).
  6. after a clean run, shut the machine down from the inside (disk kept), then print the balance.
     After a failed step the machine is left on (and says so) unless --shutdown-on-failure,
     because a free GPU is hard to get twice.
@@ -22,7 +21,6 @@ authorised: the script stops with NEED_SSH_KEY_AUTH and tells you what to add.
 from __future__ import annotations
 
 import argparse
-import json
 import shlex
 import shutil
 import subprocess
@@ -40,8 +38,6 @@ SHIP = (
     "workflows/comfyui",
     f"{STILL}/lin-qipao-nine-tail.png",
     f"{STILL}/elena-armor-centaur.png",
-    f"{STILL}/score-nude.txt",
-    f"{STILL}/score-torn.txt",
     "library/cast/lin_wantang/ref-face.png",
     "library/cast/elena_voss/ref-face.png",
 )
@@ -205,16 +201,17 @@ def pull(local: Path) -> None:
     print(f"PULLED -> {local}", flush=True)
 
 
-def score_local(local: Path) -> None:
+def list_for_visual_judge(local: Path) -> None:
+    """Scoring cancelled. Print PNG paths for Cursor to judge by eye."""
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import run_fox_centaur_semantic as runner  # noqa: E402
-    import cursor_still_score as scorer  # noqa: E402
 
+    print("SCORING_CANCELLED Cursor visual judgment only", flush=True)
     for mode in ("nude", "torn"):
         for actor in ("lin", "elena"):
             image = local / f"{runner.STEM[(actor, mode)]}.png"
             if image.exists():
-                scorer.score_image(actor, mode, image)
+                print(f"VISUAL_JUDGE {actor} {mode} {image}", flush=True)
 
 
 def keep_in_repo(local: Path) -> None:
@@ -266,59 +263,21 @@ def main() -> None:
         remote_run("--check-stack")
         ssh(f"mkdir -p {REMOTE_OUT}")
         only = " ".join(args.only)
+        # Nude then torn for every requested actor. No score gate; Cursor judges PNGs visually.
         if args.mode == "both":
-            # Nude first, score, then torn only for actors whose nude cleared clothes/armor hard gates.
-            run = remote_run(
-                f"--only {only} --mode nude --attempt {args.attempt} --no-score "
-                f"--out {shlex.quote(REMOTE_OUT)}",
-                check=False,
-            )
-            pull(args.out)
-            score_local(args.out)
-            if run.returncode != 0:
-                raise SystemExit(f"REMOTE_RUN_FAILED nude rc={run.returncode}")
-            torn_actors = []
-            for actor in args.only:
-                side = args.out / f"{'lin-qipao-nine-tail' if actor == 'lin' else 'elena-armor-centaur'}-nude.json"
-                if not side.exists():
-                    print(f"SKIP_TORN {actor}: no nude score sidecar", flush=True)
-                    continue
-                payload = json.loads(side.read_text(encoding="utf-8"))
-                if payload.get("score_pending") or payload.get("score_failed"):
-                    print(
-                        f"SKIP_TORN {actor}: cursor score "
-                        f"{'pending' if payload.get('score_pending') else 'failed'}",
-                        flush=True,
-                    )
-                    continue
-                gates = set(payload.get("gates") or [])
-                hard = gates & {"clothes_remain", "armor_remain"}
-                if hard:
-                    print(f"SKIP_TORN {actor}: hard gates {sorted(hard)}", flush=True)
-                    continue
-                torn_actors.append(actor)
-            if torn_actors:
-                run = remote_run(
-                    f"--only {' '.join(torn_actors)} --mode torn --attempt {args.attempt} --no-score "
-                    f"--out {shlex.quote(REMOTE_OUT)}",
-                    check=False,
-                )
-                pull(args.out)
-                score_local(args.out)
-                if run.returncode != 0:
-                    raise SystemExit(f"REMOTE_RUN_FAILED torn rc={run.returncode}")
-            else:
-                print("NO_TORN every nude still has clothes/armor hard gates", flush=True)
+            modes = ("nude", "torn")
         else:
+            modes = (args.mode,)
+        for mode in modes:
             run = remote_run(
-                f"--only {only} --mode {args.mode} --attempt {args.attempt} --no-score "
+                f"--only {only} --mode {mode} --attempt {args.attempt} "
                 f"--out {shlex.quote(REMOTE_OUT)}",
                 check=False,
             )
             pull(args.out)
-            score_local(args.out)
+            list_for_visual_judge(args.out)
             if run.returncode != 0:
-                raise SystemExit(f"REMOTE_RUN_FAILED rc={run.returncode} (partial results were pulled)")
+                raise SystemExit(f"REMOTE_RUN_FAILED {mode} rc={run.returncode}")
         keep_in_repo(args.out)
     except BaseException as exc:  # noqa: BLE001
         failure = exc

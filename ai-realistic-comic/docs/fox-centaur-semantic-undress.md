@@ -54,13 +54,13 @@ python workflows/comfyui/run_fox_centaur_semantic.py --score-only --out <含 png
 python workflows/comfyui/cursor_still_score.py apply --actor lin --mode nude --image <png> --json-file <score.json>
 ```
 
-每张产物：`<stem>.png`、`<stem>.json`（打分 sidecar）、`<stem>.run.json`（种子、轮数、残留比）、`debug/<stem>-garment-overlay.png`、`work/`（各带的 api json 和中间图）。
+每张产物：`<stem>.png`、`<stem>.run.json`（种子、轮数、残留比）、可选 `<stem>.json`（仅标记 `visual_judge`，不再当门禁）、`debug/<stem>-garment-overlay.png`、`work/`（各带的 api json 和中间图）。
 
 装栈：`bash workflows/comfyui/install_undress_stack.sh inventory|install`。幂等，已有的跳过，模型走 hf-mirror，装包前去代理、用清华源。2026-10-07 上机踩出来、脚本已处理的几处：SegFormer 节点在 import 时读 `models/segformer_b2_clothes/`（不是节点目录里的 checkpoints），并且它的 `__init__` 还会 import 用不上的 b3 fashion 变体、缺权重就整包 import 失败，脚本改成只导出 b2；GroundingDINO 需要 `models/grounding-dino/GroundingDINO_SwinT_OGC.cfg.py` 和 `bert-base-uncased`，北京 B 连不上 huggingface.co，两者都走 hf-mirror，ComfyUI 启动时带 `HF_ENDPOINT=https://hf-mirror.com`；机器上的 transformers 5.x 没有 `BertModel.get_extended_attention_mask`，GroundingDINO 建模直接报 AttributeError，所以固定 `transformers==4.46.3`、`tokenizers<0.21`、`huggingface_hub<1.0`。北京 B 直连 github.com 会卡死，`git clone` 只在子 shell 里 `source /etc/network_turbo`（AutoDL 学术加速），并带 300 秒超时，失败时清掉半截目录。清单：lquesada ComfyUI-Inpaint-CropAndStitch、Acly comfyui-inpaint-nodes、storyicon comfyui_segment_anything、StartHua Comfyui_segformer_b2_clothes、ComfyUI_InstantID；`lllyasviel/fooocus_inpaint` 两个文件，`mattmdjaga/segformer_b2_clothes`。
 
-## 打分
+## 观感判定（打分已取消）
 
-只走 **Cursor agent**（本 Cloud Agent 读锁脸 + 结果图），沿用 `score-nude.txt` / `score-torn.txt`，第一张是各自的 `ref-face.png`，第二张是结果。八项加硬门，收留线均分 ≥ 9 且硬门空。脚本侧模块是 `cursor_still_score.py`：没有 agent 分数就写 `.score-request.json` 并打印 `SCORE_PENDING cursor <actor> <mode>`；agent 把 JSON 写成同名 `.cursor-score.json` 或跑 `cursor_still_score.py apply` 后再 `--score-only`。**不走 Codex CLI，不回退 Grok，不换别的视觉模型，也不本地估分**。出图不因此中断。成衣首图也由 Cursor GenerateImage 出（Comfy 只做去衣）。
+**不再做均分 / 硬门 / SCORE_PENDING 门禁。** 出图后 Cursor 直接看 PNG 判定是否可用（脚本打印 `VISUAL_JUDGE <actor> <mode> <path>`）。`cursor_still_score.py` 与 `hillclimb_until_pass.py` 保留为兼容壳，调用只声明 `SCORING_CANCELLED`，不阻塞 torn、不循环等分。历史 `score-nude.txt` / `score-torn.txt` 仅作参考，不进流水线。成衣首图仍可由 Cursor GenerateImage 出（Comfy 只做去衣）。
 
 工作流 JSON：`workflows/comfyui/scheme-semantic-*.api.json` 八个（SegFormer、两个 DINO、四个 inpaint、收边），由 `--emit-examples <目录>` 生成，测试里核对和脚本一致。MASK 输出口在机器上按 `/object_info` 取，JSON 里写的是 1。
 
@@ -88,7 +88,7 @@ python workflows/comfyui/autodl_power.py power-on-once    # 单次；退出码 0
 `workflows/comfyui/bringup_and_run.py` 一条命令走完整条链路，不用等人点网页：
 
 ```bash
-python workflows/comfyui/bringup_and_run.py            # 开机（默认一直等到有卡，`--power-minutes 0`）→ SSH → 装栈 → 四张 → 打分 → 关机 → 余额
+python workflows/comfyui/bringup_and_run.py            # 开机（默认一直等到有卡，`--power-minutes 0`）→ SSH → 装栈 → 四张 → 关机 → 余额；Cursor 观感判定
 python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器已开，不关机
 ```
 
@@ -97,9 +97,9 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
    - 只有开发者 Token：先试 `dev/instance/pro/power_on`。这台是普通容器实例，会返回 `RecordNotFoundError`，脚本立刻停并说明要网页 JWT，不死循环。
    - 无论哪条路：不克隆，不用无卡模式，F34 / G09 的 UUID 直接拒绝。
 2. 等 SSH：每 20 秒一次，每次重读 `bjb-ssh.env`，host/port 变了自动跟。连续 3 次 `Permission denied (publickey)` 就停，报 `NEED_SSH_KEY_AUTH`：机器开着但密钥没授权，需要把 `bjb791.pub` 追加进 `/root/.ssh/authorized_keys`，或在 `bjb-ssh.env` 放 `BJB_SSH_PASSWORD`。此时机器在计费，脚本不会假装成功。
-3. 装栈：把脚本、两张成衣底板、打分提示、两张锁脸用 tar 传到 `/root/autodl-tmp/arc/ai-realistic-comic`，跑 `install_undress_stack.sh install`，重启 ComfyUI（按进程号），然后 `--check-stack`。缺节点就停。
-4. 出图：先 nude（林、伊莲），再 torn（林、伊莲），`--no-score`，结果在机器上的 `/root/autodl-tmp/fox-semantic-out`。
-5. 回传到 `/opt/cursor/artifacts/fox-centaur-semantic`，Cursor agent 按 score-request 打分（`SCORE_PENDING` 时先打分再续 torn），过程文件之外的 png/json 拷进 `library/stills/fox-centaur-embrace/semantic/`。不走 Codex。
+3. 装栈：把脚本、两张成衣底板、两张锁脸用 tar 传到 `/root/autodl-tmp/arc/ai-realistic-comic`，跑 `install_undress_stack.sh install`，重启 ComfyUI（按进程号），然后 `--check-stack`。缺节点就停。
+4. 出图：先 nude（林、伊莲），再 torn（林、伊莲），结果在机器上的 `/root/autodl-tmp/fox-semantic-out`。无打分门禁。
+5. 回传到 `/opt/cursor/artifacts/fox-centaur-semantic`，打印 `VISUAL_JUDGE`；Cursor 看图判定是否可用。过程文件之外的 png/json 拷进 `library/stills/fox-centaur-embrace/semantic/`。
 6. 关机：全流程干净跑完才执行，机器内部 `shutdown`，数据盘保留；随后读余额（无 Token 打印 `BALANCE_PENDING`）。中途有步骤失败时默认**不关机**并打印 `MACHINE_STILL_ON`，因为拿到空卡不容易，修好后用 `--no-power-on` 接着跑；要失败也关机加 `--shutdown-on-failure`，要干净跑完也不关加 `--keep-on`。
 
 踩过的坑（2026-10-07）：远端重启 ComfyUI 时 `pgrep -f 'main.py ...'` 会匹配到执行它自己的 SSH 命令行，把自己杀掉，随后旧版「失败也关机」的收尾把机器关了。现在 pattern 写成 `[m]ain.py`，并有测试守着。
@@ -108,13 +108,13 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 
 ## 提升（2026-10-07 规划落地）
 
-P0/P1 已写入脚本：
+P0/P1 已写入脚本（2026-10-08 再调）：
 
-1. 残留岛：首 pass 仍 Fooocus denoise 1.0（LaMa 预填）；之后每轮先 big-lama 硬擦，再 denoise 0.35 贴肤。不再对残留跑 denoise 1.0。
-2. 伊莲甲件：force_boxes（颈/左右臂/腰）+ expand_prompts 对甲件 DINO 命中外扩 32 px。
-3. 林领口/左侧裙片：force_boxes + 领口分带提示（y<=380）；胯下仍用 LOWER 分带。
-4. torn：rim denoise 0.40；洞心不重绘；伊莲 horse_guard_y 以下不做 rim，接缝条带只 LaMa。
-5. 门禁：bringup --mode both 先 nude 再 Cursor 打分；`SCORE_PENDING` / `SCORE_FAILED` 或有 clothes_remain/armor_remain 的演员跳过 torn。
+1. 残留岛：首 pass 仍 Fooocus denoise 1.0（LaMa 预填）；之后每轮 **只** big-lama 硬擦 + denoise 0.35 弱贴肤。禁止对残留再跑 0.62–0.88 Fooocus。
+2. 伊莲接缝冻结：`horse_guard_y` 以上留 48px 缓冲，残留/收边/pixelfill 都不进；取消躯干 pixelfill。
+3. 林腿：残留不进髋下；髋下 leftover 单独 `LEG_SOFT`（LaMa + 0.32）；髋 pixelfill 上限 4000 px；领口 pixelfill 只填 leftover∩领口带。
+4. torn：rim 弱 denoise；洞心不重绘；伊莲接缝条带只 LaMa。
+5. **打分取消**：bringup 出完 nude+torn 后只打 `VISUAL_JUDGE`，Cursor 观感判定是否可用。
 
 ## 审核补丁（同日代码审）
 

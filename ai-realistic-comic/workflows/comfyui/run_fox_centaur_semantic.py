@@ -4,9 +4,12 @@
 
 Run it on the Beijing B machine (ComfyUI on 127.0.0.1:8188). Per actor and mode:
 semantic garment mask -> neutral MaskedFill -> Fooocus inpaint patch -> 1024
-crop-and-stitch bands -> residual re-segmentation -> edge blend -> Cursor score
-sidecar. Scoring is Cursor-agent only; missing payload writes SCORE_PENDING and the images
-still ship. F34 and G09 are never touched.
+crop-and-stitch bands -> residual re-segmentation (LaMa + weak touch only) ->
+edge blend -> optional tiny collar/hip pixelfill.
+
+No numeric scoring gate. Usability is decided by Cursor looking at the PNGs
+(visual judgment). ``--score`` is retained only as a legacy no-op opt-in.
+F34 and G09 are never touched.
 """
 
 from __future__ import annotations
@@ -23,7 +26,6 @@ import numpy as np
 from PIL import Image, ImageFilter
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import cursor_still_score as scorer  # noqa: E402
 import scheme_still_fox_centaur_undress as legacy  # noqa: E402
 import semantic_undress as sem  # noqa: E402
 from comfy_util import get_json, post_json, resolve_base_models  # noqa: E402
@@ -68,14 +70,16 @@ HEAD_BOX = {"lin": legacy.LIN_HEAD, "elena": legacy.ELENA_HEAD}
 
 NUDE_DENOISE = 1.0
 NUDE_CFG = 5.5
-# Residual P0: always LaMa-hard-erase first, then high-mid Fooocus (0.88). Full 1.0 redo
-# smeared legs/Elena torso; 0.62 left sheer lace/armor ghosts (a31). Small grow so redo
-# stays on leftover islands instead of re-chewing clean skin.
-RESIDUAL_FOOOCUS_DENOISE = 0.88
+# Residual: LaMa hard-erase first, then weak skin touch only. Mid/high Fooocus on
+# leftovers (0.62–0.88) left lace ghosts or meat smear; do not re-introduce that path.
 RESIDUAL_TOUCH_DENOISE = 0.35
 RESIDUAL_TOUCH_CFG = 4.0
-LAMA_RESIDUAL_MAX_RATIO = 0.12
-LAMA_RESIDUAL_MAX_PIXELS = 12000
+LEG_SOFT_DENOISE = 0.32
+LEG_SOFT_CFG = 4.0
+# Hip pixelfill only for tiny leftover islands; large flat fills tank photoreal.
+HIP_PIXELFILL_MAX_PX = 4000
+# Buffer (px at base height) above Elena horse_guard_y that residual/Fooocus must not chew.
+ELENA_JUNCTION_BUFFER = 48
 TORN_RIM_DENOISE = 0.30
 EDGE_DENOISE = 0.32
 BAND_HEIGHT = 420
@@ -84,7 +88,6 @@ MAX_NUDE_PASSES = 4
 RESIDUAL_OK = 0.05
 RESIDUAL_MIN_PIXELS = 3500
 RESIDUAL_REDO_GROW = {"lin": 8, "elena": 6}
-# Extra residual Fooocus passes smear lin legs; collar is handled by pixelfill.
 MAX_RESIDUAL_PASSES = {"lin": 2, "elena": 2}
 SEED = 20261008
 BANNED_HOST_PARTS = ("weste.seetacloud", "xaxna66hqt", "sa4eaxgcuq")
@@ -463,23 +466,9 @@ def undress_one(
         positive, negative = torn_text(actor)
         nude_stem = STEM[(actor, "nude")]
         base_path = out_dir / f"{nude_stem}.png"
-        nude_side = out_dir / f"{nude_stem}.json"
-        if nude_side.exists():
-            try:
-                nude_meta = json.loads(nude_side.read_text(encoding="utf-8"))
-            except json.JSONDecodeError:
-                nude_meta = {}
-            gates = set(nude_meta.get("gates") or [])
-            hard = gates & {"clothes_remain", "armor_remain"}
-            if hard:
-                raise SystemExit(
-                    f"SKIP_TORN {stem}: nude still has hard gates {sorted(hard)}; fix nude first"
-                )
-            if nude_meta.get("passed") is False:
-                print(f"TORN_FROM_SOFT_NUDE {stem} mean={nude_meta.get('mean')}", flush=True)
+        # Scoring cancelled: torn always builds from the nude PNG. Cursor judges usability visually.
         if not base_path.exists():
             base_path = undress_one(host, models, actor, "nude", out_dir, input_dir, attempt=attempt)
-            nude_side = out_dir / f"{nude_stem}.json"
         base = Image.open(base_path).convert("RGB")
         target = sem.tear_mask(
             garment,
@@ -568,28 +557,25 @@ def undress_one(
                     )
                 meta["passes"].append({"kind": "nude", "n": 0, "denoise": NUDE_DENOISE, "lama_prefill": True})
             else:
-                leftover_px = int(target.sum())
                 grow_px = RESIDUAL_REDO_GROW.get(actor, 12)
                 redo_mask = sem.dilate(target, grow_px) & sem.box_array(shape, plan.roi)
                 redo_mask &= ~sem.box_array(shape, plan.face_clear)
                 if plan.horse_guard_y:
                     y_cut = int(plan.horse_guard_y / sem.BASE[1] * shape[0])
-                    # Buffer above mare so residual does not chew the human/horse seam.
-                    redo_mask[max(0, y_cut - 16) :, :] = False
-                # Lin: torso residual above hips; skirt residual (tight grow) uses LOWER prompts.
-                # Wide skirt grow + denoise 0.92 caused extra_limb (a47).
-                skirt_mask = np.zeros_like(redo_mask)
+                    # Freeze junction: residual must stay well above the human/horse seam.
+                    buf = int(ELENA_JUNCTION_BUFFER / sem.BASE[1] * shape[0])
+                    redo_mask[max(0, y_cut - buf) :, :] = False
+                # Lin: torso residual above hips only. Skirt Fooocus abandoned (extra_limb);
+                # tiny hip leftovers use pixelfill later; legs get a soft polish pass.
                 if actor == "lin":
                     hip_cut = int(720 / sem.BASE[1] * shape[0])
-                    skirt_mask = sem.dilate(target, 4) & sem.box_array(shape, plan.roi)
-                    skirt_mask[:hip_cut, :] = False
                     redo_mask[hip_cut:, :] = False
-                tiny = best_ratio <= LAMA_RESIDUAL_MAX_RATIO and leftover_px <= LAMA_RESIDUAL_MAX_PIXELS
-                if not redo_mask.any() and not skirt_mask.any():
+                if not redo_mask.any():
                     print(f"RESIDUAL_SKIP_EMPTY {stem} pass={n} (protected zones)", flush=True)
                     break
 
-                def _lama_then_fooocus(img, mask, pos, neg, tag: str, denoise: float):
+                def _lama_then_touch(img, mask, pos, neg, tag: str):
+                    """Erase leftover cloth/armor, then weak skin touch — never mid/high Fooocus."""
                     if not mask.any():
                         return img
                     img = run_bands(
@@ -599,37 +585,19 @@ def undress_one(
                         input_dir=input_dir, out_dir=work, lama_only=True,
                     )
                     meta["passes"].append({"kind": f"lama_{tag}", "n": n, "pixels": int(mask.sum())})
-                    use_touch = tiny and tag == "torso"
-                    if use_touch:
-                        img = run_bands(
-                            host, models, img, mask,
-                            positive=pos, negative=neg, seed=seed + n * 50 + 3,
-                            stem=f"{stem}-p{n}{tag}touch", denoise=RESIDUAL_TOUCH_DENOISE, edge=True,
-                            input_dir=input_dir, out_dir=work, cfg=RESIDUAL_TOUCH_CFG,
-                        )
-                        meta["passes"].append({"kind": f"touch_{tag}", "n": n, "denoise": RESIDUAL_TOUCH_DENOISE})
-                    else:
-                        print(
-                            f"RESIDUAL_FOOOCUS {stem} pass={n} tag={tag} ratio={best_ratio:.4f} "
-                            f"grown={int(mask.sum())} denoise={denoise}",
-                            flush=True,
-                        )
-                        img = run_bands(
-                            host, models, img, mask,
-                            positive=pos, negative=neg, seed=seed + n * 50 + 7,
-                            stem=f"{stem}-p{n}{tag}redo", denoise=denoise, edge=False,
-                            input_dir=input_dir, out_dir=work, cfg=NUDE_CFG, lama_prefill=True,
-                        )
-                        meta["passes"].append(
-                            {"kind": f"fooocus_{tag}", "n": n, "denoise": denoise, "pixels": int(mask.sum())}
-                        )
+                    img = run_bands(
+                        host, models, img, mask,
+                        positive=pos, negative=neg, seed=seed + n * 50 + 3,
+                        stem=f"{stem}-p{n}{tag}touch", denoise=RESIDUAL_TOUCH_DENOISE, edge=True,
+                        input_dir=input_dir, out_dir=work, cfg=RESIDUAL_TOUCH_CFG,
+                    )
+                    meta["passes"].append(
+                        {"kind": f"touch_{tag}", "n": n, "denoise": RESIDUAL_TOUCH_DENOISE, "pixels": int(mask.sum())}
+                    )
                     return img
 
                 current = base
-                current = _lama_then_fooocus(
-                    current, redo_mask, RESIDUAL_SKIN_POS, RESIDUAL_SKIN_NEG, "torso", RESIDUAL_FOOOCUS_DENOISE
-                )
-                # Skip Fooocus skirt redo — a47/a48 grew extra limbs / meat; hip pixelfill handles skirt.
+                current = _lama_then_touch(current, redo_mask, RESIDUAL_SKIN_POS, RESIDUAL_SKIN_NEG, "torso")
             tmp = work / f"{stem}-p{n}-result.png"
             current.save(tmp)
             check_plan = sem.residual_plan(plan)
@@ -674,6 +642,10 @@ def undress_one(
     chin_y = 265
     if actor == "lin":
         edge_zone &= ~sem.dilate(sem.box_array(shape, (380, 255, 600, 395)), 8)
+    if actor == "elena" and plan.horse_guard_y:
+        y_cut = int(plan.horse_guard_y / sem.BASE[1] * shape[0])
+        buf = int(ELENA_JUNCTION_BUFFER / sem.BASE[1] * shape[0])
+        edge_zone[max(0, y_cut - buf) :, :] = False
     current = run_bands(
         host, models, current, edge_zone,
         positive=NUDE_EDGE_POS,
@@ -683,49 +655,73 @@ def undress_one(
     )
     meta["passes"].append({"kind": "edge", "denoise": EDGE_DENOISE})
 
-    # Pixel-fill AFTER edge so Fooocus cannot paint the collar/armor back.
-    if mode == "nude":
-        leftover = locals().get("leftover")
-        if not isinstance(leftover, np.ndarray):
-            leftover = np.zeros(shape, dtype=bool)
-        if actor == "lin":
-            # Standing collar sits under the chin at y≈260–320; do NOT use face_clear (y≤300).
-            collar_mask = sem.box_array(shape, (380, 255, 600, 395))
-            collar_mask = sem.dilate(collar_mask, 8)
-            collar_mask[:chin_y, :] = False
-            if collar_mask.any():
-                current = pixel_skin_fill(
-                    current, collar_mask, sample_box=(430, 430, 560, 510), blur=5, noise_std=3.0, seed=seed + 77
-                )
-                meta["passes"].append({"kind": "collar_pixelfill", "pixels": int(collar_mask.sum())})
-                print(f"COLLAR_PIXELFILL {stem} px={int(collar_mask.sum())}", flush=True)
-            # Skirt/hip leftovers: only tiny islands. Large flat fills look like meat patches.
-            skirt_boxes = ((300, 720, 580, 1200), (280, 680, 420, 1250))
-            hip_mask = np.zeros(shape, dtype=bool)
-            for box in skirt_boxes:
-                hip_mask |= sem.box_array(shape, box)
-            hip_mask = sem.dilate(leftover, 4) & hip_mask
-            hip_px = int(hip_mask.sum())
-            if hip_mask.any() and hip_px <= 20000:
-                current = pixel_skin_fill(
-                    current, hip_mask, sample_box=(300, 900, 400, 1150), blur=6, noise_std=3.0, seed=seed + 88
-                )
-                meta["passes"].append({"kind": "hip_pixelfill", "pixels": hip_px})
-                print(f"HIP_PIXELFILL {stem} px={hip_px}", flush=True)
-            elif hip_px:
-                print(f"HIP_PIXELFILL_SKIP {stem} px={hip_px} (need cleaner residual first)", flush=True)
-        elif actor == "elena" and leftover.any():
-            torso = sem.dilate(leftover, 6) & sem.box_array(shape, (180, 250, 520, 680))
-            if plan.horse_guard_y:
-                y_cut = int(plan.horse_guard_y / sem.BASE[1] * shape[0])
-                torso[y_cut:, :] = False
-            torso &= ~sem.box_array(shape, plan.face_clear)
-            if torso.any():
-                current = pixel_skin_fill(
-                    current, torso, sample_box=(280, 220, 420, 260), blur=6, noise_std=3.5, seed=seed + 99
-                )
-                meta["passes"].append({"kind": "elena_torso_pixelfill", "pixels": int(torso.sum())})
-                print(f"ELENA_TORSO_PIXELFILL {stem} px={int(torso.sum())}", flush=True)
+    leftover = locals().get("leftover")
+    if not isinstance(leftover, np.ndarray):
+        leftover = np.zeros(shape, dtype=bool)
+
+    # Lin legs: soft polish on leftover below hips only (LaMa + weak touch). No high denoise.
+    if mode == "nude" and actor == "lin":
+        leg_y = int(LOWER_FROM_Y["lin"] / sem.BASE[1] * shape[0])
+        leg_mask = sem.dilate(leftover, 6) & sem.box_array(shape, plan.roi)
+        leg_mask[:leg_y, :] = False
+        if leg_mask.any():
+            current = run_bands(
+                host, models, current, leg_mask,
+                positive=LOWER_POS, negative=LOWER_NEG, seed=seed + 910,
+                stem=f"{stem}-legsoft-lama", denoise=0.0, edge=False,
+                input_dir=input_dir, out_dir=work, lama_only=True,
+            )
+            current = run_bands(
+                host, models, current, leg_mask,
+                positive=LOWER_POS, negative=LOWER_NEG, seed=seed + 911,
+                stem=f"{stem}-legsoft", denoise=LEG_SOFT_DENOISE, edge=True,
+                input_dir=input_dir, out_dir=work, cfg=LEG_SOFT_CFG,
+            )
+            meta["passes"].append(
+                {"kind": "leg_soft", "denoise": LEG_SOFT_DENOISE, "pixels": int(leg_mask.sum())}
+            )
+            print(f"LEG_SOFT {stem} px={int(leg_mask.sum())} denoise={LEG_SOFT_DENOISE}", flush=True)
+
+    # Tiny pixelfill AFTER soft passes so Fooocus cannot paint collar cloth back.
+    # Elena: no torso pixelfill (marble/meat patches); junction stays frozen.
+    if mode == "nude" and actor == "lin":
+        # Collar: only leftover ∩ collar band (not the whole standing-collar box).
+        collar_box = sem.dilate(sem.box_array(shape, (400, 270, 580, 360)), 4)
+        collar_box[:chin_y, :] = False
+        collar_mask = sem.dilate(leftover, 10) & collar_box
+        if not collar_mask.any():
+            # Fallback: small fixed band if residual missed the mandarin collar.
+            collar_mask = collar_box
+        if collar_mask.any() and int(collar_mask.sum()) <= 12000:
+            current = pixel_skin_fill(
+                current, collar_mask, sample_box=(430, 430, 560, 510), blur=5, noise_std=3.0, seed=seed + 77
+            )
+            meta["passes"].append({"kind": "collar_pixelfill", "pixels": int(collar_mask.sum())})
+            print(f"COLLAR_PIXELFILL {stem} px={int(collar_mask.sum())}", flush=True)
+        # Skirt/hip leftovers: only tiny islands. Large flat fills look like meat patches.
+        skirt_boxes = ((300, 720, 580, 1200), (280, 680, 420, 1250))
+        hip_mask = np.zeros(shape, dtype=bool)
+        for box in skirt_boxes:
+            hip_mask |= sem.box_array(shape, box)
+        hip_mask = sem.dilate(leftover, 4) & hip_mask
+        hip_px = int(hip_mask.sum())
+        if hip_mask.any() and hip_px <= HIP_PIXELFILL_MAX_PX:
+            current = pixel_skin_fill(
+                current, hip_mask, sample_box=(300, 900, 400, 1150), blur=6, noise_std=3.0, seed=seed + 88
+            )
+            meta["passes"].append({"kind": "hip_pixelfill", "pixels": hip_px})
+            print(f"HIP_PIXELFILL {stem} px={hip_px}", flush=True)
+        elif hip_px:
+            print(
+                f"HIP_PIXELFILL_SKIP {stem} px={hip_px} (cap={HIP_PIXELFILL_MAX_PX}; leave for visual judge)",
+                flush=True,
+            )
+    elif mode == "nude" and actor == "elena" and leftover.any():
+        print(
+            f"ELENA_TORSO_PIXELFILL_SKIP {stem} leftover={int(leftover.sum())} "
+            f"(junction freeze; Cursor visual judge)",
+            flush=True,
+        )
 
     dest = out_dir / f"{stem}.png"
     current.save(dest)
@@ -734,14 +730,9 @@ def undress_one(
     return dest
 
 
-def already_passed(out_dir: Path, stem: str) -> bool:
-    sidecar = out_dir / f"{stem}.json"
-    if not sidecar.exists():
-        return False
-    try:
-        return bool(json.loads(sidecar.read_text(encoding="utf-8")).get("passed"))
-    except json.JSONDecodeError:
-        return False
+def already_done(out_dir: Path, stem: str) -> bool:
+    """Resume skips existing PNGs. Scoring cancelled — no passed=True gate."""
+    return (out_dir / f"{stem}.png").exists()
 
 
 def emit_examples(directory: Path) -> None:
@@ -796,10 +787,23 @@ def main() -> None:
     parser.add_argument("--only", choices=("lin", "elena"), nargs="*")
     parser.add_argument("--mode", choices=("nude", "torn", "both"), default="both")
     parser.add_argument("--attempt", type=int, default=0, help="Bumps every seed. Use for a single-image retry.")
-    parser.add_argument("--resume", action="store_true", help="Skip stills whose sidecar already passed.")
+    parser.add_argument("--resume", action="store_true", help="Skip stills that already have a PNG in --out.")
     parser.add_argument("--check-stack", action="store_true", help="Only list missing ComfyUI nodes, then exit.")
-    parser.add_argument("--no-score", action="store_true", help="Generate only.")
-    parser.add_argument("--score-only", action="store_true", help="Score existing PNGs in --out. No ComfyUI needed.")
+    parser.add_argument(
+        "--score",
+        action="store_true",
+        help="Deprecated. Scoring cancelled; prints VISUAL_JUDGE and does nothing else.",
+    )
+    parser.add_argument(
+        "--no-score",
+        action="store_true",
+        help="Deprecated no-op (scoring is off by default).",
+    )
+    parser.add_argument(
+        "--score-only",
+        action="store_true",
+        help="Deprecated. Scoring cancelled; list PNGs for Cursor visual judgment.",
+    )
     parser.add_argument("--emit-examples", type=Path, help="Write the API graphs to this directory and exit.")
     args = parser.parse_args()
     check_host(args.host)
@@ -813,12 +817,14 @@ def main() -> None:
     order = [(a, m) for m in modes for a in actors]
     args.out.mkdir(parents=True, exist_ok=True)
 
-    if args.score_only:
+    if args.score_only or args.score:
+        print("SCORING_CANCELLED usability is Cursor visual judgment of the PNGs", flush=True)
         for actor, mode in order:
             image = args.out / f"{STEM[(actor, mode)]}.png"
             if image.exists():
-                scorer.score_image(actor, mode, image)
-        return
+                print(f"VISUAL_JUDGE {actor} {mode} {image}", flush=True)
+        if args.score_only:
+            return
 
     missing = verify_stack(args.host)
     if args.check_stack:
@@ -831,16 +837,15 @@ def main() -> None:
     print("MODELS", json.dumps(models, ensure_ascii=False), flush=True)
     for actor, mode in order:
         stem = STEM[(actor, mode)]
-        if args.resume and already_passed(args.out, stem):
-            print(f"SKIP {stem} already passed", flush=True)
+        if args.resume and already_done(args.out, stem):
+            print(f"SKIP {stem} png exists", flush=True)
             continue
         try:
             image = undress_one(args.host, models, actor, mode, args.out, args.input, attempt=args.attempt)
         except SystemExit as exc:
             print(f"FAILED {stem} {exc}", flush=True)
             continue
-        if not args.no_score:
-            scorer.score_image(actor, mode, image)
+        print(f"VISUAL_JUDGE {actor} {mode} {image}", flush=True)
 
 
 if __name__ == "__main__":
