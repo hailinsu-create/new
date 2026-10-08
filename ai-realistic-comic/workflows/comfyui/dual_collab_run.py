@@ -90,7 +90,19 @@ def write_clone_env(uuid: str, *, host: str, port: str, alias: str, machine_id: 
     print(f"CLONE_ENV_WRITTEN {CLONE_ENV} uuid={uuid} alias={alias}", flush=True)
 
 
-def detail(auth: str, uuid: str) -> dict:
+class DetailError(RuntimeError):
+    """Soft detail failure (never SystemExit — waiters must stay alive)."""
+
+    def __init__(self, uuid: str, code: str, msg: str = ""):
+        self.uuid = uuid
+        self.code = code
+        self.msg = msg
+        super().__init__(f"DETAIL_FAILED {uuid} {code} {msg}".strip())
+
+
+def detail(auth: str, uuid: str, *, soft: bool = False) -> dict:
+    """Fetch instance detail. RecordNotFound → gone. soft=True returns {{'status':'gone'}}."""
+    import urllib.error
     import urllib.request
 
     req = urllib.request.Request(
@@ -98,17 +110,37 @@ def detail(auth: str, uuid: str) -> dict:
         headers={"Authorization": auth},
         method="GET",
     )
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        body = json.loads(resp.read().decode())
-    if str(body.get("code")) != "Success":
-        raise SystemExit(f"DETAIL_FAILED {uuid} {body.get('code')}")
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            body = json.loads(resp.read().decode())
+    except urllib.error.HTTPError as exc:
+        raw = exc.read().decode("utf-8", "replace")[:200]
+        if soft or exc.code == 404:
+            print(f"DETAIL_GONE {uuid} http={exc.code}", flush=True)
+            return {"status": "gone", "instance_uuid": uuid}
+        raise DetailError(uuid, f"HTTP_{exc.code}", raw) from exc
+    except Exception as exc:  # noqa: BLE001
+        if soft:
+            print(f"DETAIL_SOFT_ERR {uuid} {type(exc).__name__}: {exc}", flush=True)
+            return {"status": "unknown", "instance_uuid": uuid}
+        raise DetailError(uuid, type(exc).__name__, str(exc)) from exc
+    code = str(body.get("code") or "")
+    if code == "RecordNotFoundError":
+        print(f"DETAIL_GONE {uuid} RecordNotFoundError (treat as cleared)", flush=True)
+        return {"status": "gone", "instance_uuid": uuid}
+    if code != "Success":
+        if soft:
+            print(f"DETAIL_SOFT_FAIL {uuid} {code} {str(body.get('msg', ''))[:80]}", flush=True)
+            return {"status": "unknown", "instance_uuid": uuid, "code": code}
+        raise DetailError(uuid, code, str(body.get("msg", ""))[:120])
     return body["data"]
 
 
 def instance_status(auth: str, uuid: str) -> str:
+    """Never raises. RecordNotFound → 'gone'. Network blips → 'unknown'."""
     try:
-        return str(detail(auth, uuid).get("status") or "")
-    except Exception as exc:  # noqa: BLE001
+        return str(detail(auth, uuid, soft=True).get("status") or "unknown")
+    except Exception as exc:  # noqa: BLE001 — belt; detail(soft=True) should not raise
         print(f"STATUS_ERR {uuid} {exc}", flush=True)
         return "unknown"
 
@@ -116,15 +148,22 @@ def instance_status(auth: str, uuid: str) -> str:
 def release_bad_clone(auth: str, uuid: str, reason: str) -> None:
     """Only for a brand-new clone that failed the ≥100GiB gate before it joins the kept fleet."""
     print(f"CLONE_ABORT_RELEASE {uuid} reason={reason}", flush=True)
-    power.post(power.WEB_POWER_OFF, {"Authorization": auth}, {"instance_uuid": uuid})
-    time.sleep(5)
-    for _ in range(30):
-        d = detail(auth, uuid)
-        if d.get("status") in ("shutdown", "shutdown_by_starting_error"):
-            break
-        time.sleep(3)
-    status, reply = power.post(power.WEB_RELEASE, {"Authorization": auth}, {"instance_uuid": uuid})
-    print(f"CLONE_ABORT_RELEASE_RESULT code={reply.get('code')} msg={str(reply.get('msg', ''))[:120]}", flush=True)
+    try:
+        power.post(power.WEB_POWER_OFF, {"Authorization": auth}, {"instance_uuid": uuid})
+        time.sleep(5)
+        for _ in range(30):
+            d = detail(auth, uuid, soft=True)
+            st = d.get("status")
+            if st in ("shutdown", "shutdown_by_starting_error", "gone"):
+                break
+            time.sleep(3)
+        if detail(auth, uuid, soft=True).get("status") == "gone":
+            print(f"CLONE_ABORT_ALREADY_GONE {uuid}", flush=True)
+            return
+        status, reply = power.post(power.WEB_RELEASE, {"Authorization": auth}, {"instance_uuid": uuid})
+        print(f"CLONE_ABORT_RELEASE_RESULT code={reply.get('code')} msg={str(reply.get('msg', ''))[:120]}", flush=True)
+    except Exception as exc:  # noqa: BLE001
+        print(f"CLONE_ABORT_RELEASE_ERR {uuid} {exc}", flush=True)
 
 
 def list_clone_targets(auth: str) -> list[dict]:
@@ -165,40 +204,61 @@ def list_clone_targets(auth: str) -> list[dict]:
     return [m for _, m in cands]
 
 
-def wait_mother_clone_lock(auth: str, *, max_minutes: float = 180) -> str:
-    """Wait until 791 leaves shutdown_cloning/cloning. Also nudge stuck ghost removers."""
-    deadline = time.monotonic() + max_minutes * 60
+LOCK_POLL_SECONDS = 300  # ≥5 minutes between unlock polls (user 18:xx)
+
+
+def wait_mother_clone_lock(auth: str, *, max_minutes: float = 0, poll_seconds: float = LOCK_POLL_SECONDS) -> str:
+    """Wait until 791 leaves shutdown_cloning/cloning.
+
+    - Poll interval default 300s (≥5 min).
+    - Ghost RecordNotFound / status=gone → cleared; never DETAIL_FAILED-exit.
+    - max_minutes<=0 means wait indefinitely (waiter mode).
+    - Does not release 791; does not open a third machine; does not create clones.
+    """
+    poll_seconds = max(300.0, float(poll_seconds))
+    deadline = None if max_minutes <= 0 else time.monotonic() + max_minutes * 60
     attempt = 0
-    while time.monotonic() < deadline:
-        st = instance_status(auth, MOTHER)
-        print(f"LOCK_POLL attempt={attempt} mother={st}", flush=True)
-        if st not in ("shutdown_cloning", "cloning"):
-            print(f"LOCK_CLEAR mother={st}", flush=True)
-            return st
-        _, orders = power.post(
-            "https://www.autodl.com/api/v1/order/list",
-            {"Authorization": auth},
-            {"page_index": 1, "page_size": 10},
-        )
-        for o in (orders.get("data") or {}).get("list") or []:
-            if o.get("order_type") != "clone_instance":
-                continue
-            if o.get("migrate_instance_uuid") != MOTHER:
-                continue
-            ghost = str(o.get("product_uuid") or "")
-            if not ghost or ghost == MOTHER:
-                continue
-            gst = instance_status(auth, ghost)
-            print(f"GHOST_POLL uuid={ghost} status={gst}", flush=True)
-            if gst == "removing":
-                power.post(power.WEB_POWER_OFF, {"Authorization": auth}, {"instance_uuid": ghost})
-            elif gst in ("shutdown", "shutdown_by_starting_error", "create_failed", "clone_failed"):
-                if ghost not in power.kept_fleet_uuids():
-                    release_bad_clone(auth, ghost, f"ghost_{gst}")
-        wait = power.BACKOFF[min(attempt, len(power.BACKOFF) - 1)]
+    while True:
+        try:
+            st = instance_status(auth, MOTHER)
+            print(f"LOCK_POLL attempt={attempt} mother={st} sleep_s={poll_seconds}", flush=True)
+            if st not in ("shutdown_cloning", "cloning"):
+                if st in ("unknown",):
+                    print("LOCK_POLL mother status unknown; keep waiting", flush=True)
+                else:
+                    print(f"LOCK_CLEAR mother={st}", flush=True)
+                    return st
+            try:
+                _, orders = power.post(
+                    "https://www.autodl.com/api/v1/order/list",
+                    {"Authorization": auth},
+                    {"page_index": 1, "page_size": 10},
+                )
+                for o in (orders.get("data") or {}).get("list") or []:
+                    try:
+                        if o.get("order_type") != "clone_instance":
+                            continue
+                        if o.get("migrate_instance_uuid") != MOTHER:
+                            continue
+                        ghost = str(o.get("product_uuid") or "")
+                        if not ghost or ghost == MOTHER:
+                            continue
+                        gst = instance_status(auth, ghost)
+                        if gst in ("gone",):
+                            print(f"GHOST_CLEARED uuid={ghost} RecordNotFound/gone", flush=True)
+                        else:
+                            print(f"GHOST_POLL uuid={ghost} status={gst}", flush=True)
+                        # Console operator clears removing ghosts; waiter only observes.
+                    except Exception as ghost_exc:  # noqa: BLE001
+                        print(f"GHOST_POLL_ERR {ghost_exc}", flush=True)
+            except Exception as ord_exc:  # noqa: BLE001
+                print(f"ORDER_LIST_ERR {ord_exc}", flush=True)
+        except Exception as loop_exc:  # noqa: BLE001
+            print(f"LOCK_POLL_ERR {type(loop_exc).__name__}: {loop_exc}", flush=True)
         attempt += 1
-        time.sleep(wait)
-    raise SystemExit("CLONE_LOCK_TIMEOUT mother still locked")
+        if deadline is not None and time.monotonic() + poll_seconds > deadline:
+            raise SystemExit("CLONE_LOCK_TIMEOUT mother still locked")
+        time.sleep(poll_seconds)
 
 
 def ensure_clone(auth: str) -> str:
@@ -228,7 +288,7 @@ def ensure_clone(auth: str) -> str:
             return other[0]
         raise SystemExit("FLEET_FULL cannot clone")
 
-    wait_mother_clone_lock(auth, max_minutes=180)
+    wait_mother_clone_lock(auth, max_minutes=180, poll_seconds=LOCK_POLL_SECONDS)
 
     targets = list_clone_targets(auth)
     if not targets:
@@ -352,7 +412,7 @@ def ensure_peer_shutdown(auth: str, active_uuid: str) -> None:
     if st in ("shutdown_cloning", "cloning"):
         print(f"MUTEX_PEER_LOCKED {peer} status={st}; waiting", flush=True)
         if peer == MOTHER:
-            wait_mother_clone_lock(auth, max_minutes=60)
+            wait_mother_clone_lock(auth, max_minutes=60, poll_seconds=LOCK_POLL_SECONDS)
             return
     print(f"MUTEX_POWER_OFF_PEER {peer}", flush=True)
     power.power_off_keep_disk(peer, auth)
@@ -462,7 +522,7 @@ def pick_active_role(auth: str) -> str:
         print(f"PICK_ACTIVE mother locked ({mother_st}); prefer clone if available", flush=True)
         if clone:
             return "clone"
-        wait_mother_clone_lock(auth, max_minutes=180)
+        wait_mother_clone_lock(auth, max_minutes=180, poll_seconds=LOCK_POLL_SECONDS)
 
     ensure_peer_shutdown(auth, MOTHER)
     code = power.ensure_on(MOTHER, max_minutes=8)
@@ -606,6 +666,12 @@ def main() -> None:
     parser.add_argument("--keep-on", action="store_true")
     parser.add_argument("--no-power-on", action="store_true")
     parser.add_argument("--force-role", choices=("mother", "clone"), help="Skip pick_active; still enforces mutex.")
+    parser.add_argument(
+        "--wait-unlock",
+        action="store_true",
+        help="Poll ≥5min until 791 leaves shutdown_cloning, then mother-only mutex run (no new clone).",
+    )
+    parser.add_argument("--lock-poll-seconds", type=float, default=LOCK_POLL_SECONDS)
     args = parser.parse_args()
 
     auth = power.web_authorization()
@@ -616,6 +682,18 @@ def main() -> None:
     if args.dry_plan:
         print(plan_text(list(args.actors)))
         return
+
+    if args.wait_unlock:
+        # Mother-only path after unlock; do NOT create a kept clone (user: 等 791 解锁后再说).
+        args.skip_clone = True
+        args.force_role = args.force_role or "mother"
+        print(
+            f"WAIT_UNLOCK start poll_s={max(300.0, args.lock_poll_seconds)} "
+            f"no_new_clone=1 force_role={args.force_role}",
+            flush=True,
+        )
+        wait_mother_clone_lock(auth, max_minutes=0, poll_seconds=args.lock_poll_seconds)
+        print("WAIT_UNLOCK cleared; starting mother-only mutex generate", flush=True)
 
     if not args.skip_clone and not power.clone_uuid():
         ensure_clone(auth)

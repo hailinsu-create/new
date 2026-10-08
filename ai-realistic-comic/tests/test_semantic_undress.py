@@ -280,6 +280,9 @@ def test_dual_collab_assignment_and_doc_gate(monkeypatch):
     assert "ensure_peer_shutdown" in src
     assert "ThreadPoolExecutor" not in src  # 13:58: no parallel dual power
     assert "pick_active_role" in src and "run_mutex" in src
+    assert "wait-unlock" in src or "--wait-unlock" in src
+    assert "DETAIL_GONE" in src and "RecordNotFoundError" in src
+    assert "LOCK_POLL_SECONDS" in src
     assert "SYNC_MANIFEST" in src or "sync_manifest" in src
     assert "verify_stack_aligned" in src
     assert "fleet_sync" in src and "ensure_before_generate" in src
