@@ -280,10 +280,17 @@ def test_dual_collab_assignment_and_doc_gate(monkeypatch):
     assert "ensure_peer_shutdown" in src
     assert "SYNC_MANIFEST" in src or "sync_manifest" in src
     assert "verify_stack_aligned" in src
+    assert "fleet_sync" in src and "ensure_before_generate" in src
+    fs = (COMFY / "fleet_sync.py").read_text(encoding="utf-8")
+    assert "newer_entry" in fs and "merge_manifests" in fs
+    assert "clone_to_mother_reverse" in fs or "reverse" in fs.lower()
+    assert "Never overwrite newer" in fs or "never overwrite newer" in fs.lower()
     docs = (ROOT / "docs" / "fox-centaur-semantic-undress.md").read_text(encoding="utf-8")
     assert "两机协作模式" in docs and "dual_collab_run.py" in docs
     assert "不另开第三台" in docs
     assert "互斥单机" in docs and "同步" in docs
+    assert "fleet_sync.py" in docs and "反向同步" in docs
+    assert "较新一方" in docs or "较新" in docs
 
 
 def test_forbidden_hosts_and_install_script_never_name_f34_or_g09():

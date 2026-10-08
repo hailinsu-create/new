@@ -26,7 +26,12 @@
 - **分工**：791 = 首选母机（环境 / 模型 / 权重真源）；克隆机 = 长期保有出图机，791 不可用时临时当母机。演员全部在**当前开机的那一台**跑完（不再林/伊莲分机并行）。
 - **硬上限**：任何开新机 / 克隆前 `fleet-cap` / `refuse_third` 先数实例，已有 2 台直接拒绝第三台。
 - **抢卡**：791 无空卡时只等卡或改开克隆机，**不另开第三台**；克隆机同理。
-- **同步（双向清单）**：`/cursor/stores/user/fox-centaur-sync-manifest.json` 记路径 / sha256 / mtime / 来源机。代码走 GitHub 中转；模型/节点改动写进清单。开跑前比对，落后方先对齐再出图；以清单较新一方为准，禁止旧盖新。两台不同时在线，不同双机直连 rsync。
+- **同步（双向清单，入口 `fleet_sync.py`）**：
+  - 中转文件：`fox-centaur-sync-manifest.json`（合并真源）+ `.mother.json` / `.clone.json`（各机快照）。每条记录：路径、sha256、mtime、来源机 UUID/角色、recorded_at。
+  - **791 开不了机**：克隆机临时当母机，模型/节点/权重改动记入克隆快照并合并进中转清单；代码/参数仍推 GitHub。
+  - **791 恢复后**：必须先 `fleet_sync apply --role mother`（克隆→791 反向同步），`check` 清单与哈希一致后 **791 才允许出图**；不一致则只同步、不出图。
+  - **源不写死**：按清单逐文件比 mtime（同刻再比 recorded_at），较新一方胜；禁止旧版本覆盖新版本。`plan` 决定方向（mother↔clone via intermediary）。
+  - 开跑前 `dual_collab_run` 调 `fleet_sync.ensure_before_generate`；漂移则先 apply 再跑，仍不一致则 `SYNC_GATE_REFUSE`。
 - **克隆复用**：UUID 固定写在 `bjb-clone.env`；以后复用，不反复克隆。新建仅当尚无保有克隆；门槛仍是扩容 ≥100GiB + 5090，半成品不达标才 abort-release。
 - **判定**：不打分；脚本打 `VISUAL_JUDGE`；Cursor 看图观感判可用。管线参数按拍板 ②。
 - **收尾**：`shutdown-fleet` 两台关机留盘（见 ④）；**绝不 release**。
@@ -37,6 +42,9 @@ python workflows/comfyui/dual_collab_run.py                     # 确保克隆�
 python workflows/comfyui/dual_collab_run.py --skip-clone         # 仅母机
 python workflows/comfyui/dual_collab_run.py --force-role clone   # 强制克隆机（仍先关 791）
 python workflows/comfyui/autodl_power.py fleet-cap
+python workflows/comfyui/fleet_sync.py status
+python workflows/comfyui/fleet_sync.py check --role mother --uuid 359a49a1c3-4cda10df
+python workflows/comfyui/fleet_sync.py apply --role mother --uuid 359a49a1c3-4cda10df
 ```
 
 ## 为什么改

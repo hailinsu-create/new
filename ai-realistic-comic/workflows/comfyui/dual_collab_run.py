@@ -5,7 +5,7 @@ Clone     = long-lived peer (reuse BJB_CLONE_UUID; never release once kept).
 
 User 2026-10-08 13:58: **at most one machine powered on**. No parallel generate.
 Prefer 791; if 791 has no card / cannot start, run on clone only (clone may act as
-temporary mother). Sync via intermediary + sync-manifest (not dual-online rsync).
+temporary mother). Sync via intermediary + fleet_sync.py bidirectional sync-manifest (not dual-online rsync).
 
     python dual_collab_run.py                # ensure fleet, mutex run, pull, shutdown-fleet
     python dual_collab_run.py --dry-plan     # print plan only
@@ -32,6 +32,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import autodl_power as power  # noqa: E402
 import bringup_and_run as bring  # noqa: E402
+import fleet_sync  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 LOCAL_ARTIFACTS = Path("/opt/cursor/artifacts/fox-centaur-semantic/dual")
@@ -535,15 +536,10 @@ def run_mutex(
     try:
         bring.wait_ssh(20)
         bring.ship(light_ship)
-        verify_stack_aligned(role=role, uuid=uuid)
+        # Bidirectional intermediary sync (user supplement): compare manifests, sync first, else refuse.
+        fleet_sync.ensure_before_generate(role=role, uuid=uuid, include_remote=True)
+        # Keep legacy local manifest mirror for docs/tools that still read SYNC_MANIFEST_LOCAL.
         manifest = build_sync_manifest(role=role, uuid=uuid, extra={"actors": actors, "attempt": attempt})
-        prev = load_sync_manifest()
-        if prev and prev.get("source_role") != role:
-            print(
-                f"SYNC_MANIFEST_COMPARE prev_role={prev.get('source_role')} "
-                f"prev_at={prev.get('updated_at')} active={role}",
-                flush=True,
-            )
         write_sync_manifest(manifest)
         if not skip_install:
             bring.ssh(f"bash {bring.REMOTE_ROOT}/workflows/comfyui/install_undress_stack.sh install", timeout=7200)
@@ -571,6 +567,7 @@ def run_mutex(
                     "out": str(role_out),
                 }
         bring.keep_in_repo(out / role)
+        fleet_sync.record(role=role, uuid=uuid, include_remote=True)
         write_sync_manifest(build_sync_manifest(role=role, uuid=uuid, extra={"actors": actors, "ok": True}))
         return {"role": role, "uuid": uuid, "actors": actors, "failed": False, "out": str(role_out), "mutex": True}
     finally:
