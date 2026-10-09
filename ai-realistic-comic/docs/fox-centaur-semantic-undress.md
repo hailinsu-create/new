@@ -244,6 +244,7 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 - **R3 已实现**：`workflows/comfyui/run_fox_centaur_community_r3.py`（EmptyLatent + InstantID + OpenPose；马身 `horse_guard_y` 贴回；**无** Fooocus 甲壳 inpaint）。试点驱动 `run_r3_pilot.py`。需 `--i-know-authorized`。产物目录 `…/r3/`。
 - **R3 试点（2026-10-09 19:41 授权）**：首轮抢卡 60min 无卡；**续跑（2026-10-10 00:38）** 592 开机，sha 对齐，EmptyLatent+InstantID+OpenPose+马身贴回 → **不可用**（双头/多乳畸形，非甲壳残影）。产物 `…/r3/`，关机留盘。余额见当次 `VISUAL_JUDGE.json`。
 - **R3b 已实现**：`workflows/comfyui/run_fox_centaur_community_r3b.py`（上身 1024×768 EmptyLatent；OpenPose 0.50；InstantID 0.50；单人上身提示；马毛-only 贴回）。试点 `run_r3b_pilot.py`；产物 `…/r3b/`。
+- **R3b 试点（2026-10-10 00:55 授权，592，`8770408`）不可用**：上身解剖已好（无双头），但马毛贴回雾化/腰缝甲片/场景断裂。产物含 preview/torso webp。关机留盘。
 - AI 漫画工作流内 **grok 一律走 Cursor 本机**，禁止 grok.com / 其他渠道 CLI。
 
 
