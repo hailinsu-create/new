@@ -44,9 +44,13 @@ def log(msg: str) -> None:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     line = f"{now} {msg}"
     print(line, flush=True)
-    OUT.mkdir(parents=True, exist_ok=True)
-    with (OUT / "run.log").open("a", encoding="utf-8") as fh:
-        fh.write(line + "\n")
+    for path in (OUT / "run.log", Path("/tmp/r3-pilot-run.log")):
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with path.open("a", encoding="utf-8") as fh:
+                fh.write(line + "\n")
+        except OSError as exc:
+            print(f"LOG_WRITE_FAIL {path}: {exc}", flush=True)
 
 
 def balance_yuan() -> float:
