@@ -241,6 +241,7 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 - **R1 伊莲 nude 试点（592，commit `4a752aa`）不可用** → 见下节离线诊断；代码已定点修正为 **R1-fix**。
 - **R1-fix 复测（2026-10-09 授权，592，`de91cdf`）不可用**：盘上 sha 已对齐；参数确为 1.0×3 + edge 0.42 + OpenPose 0.40；成图胸腹仍半透明高光金属膜。产物 `/opt/cursor/artifacts/fox-centaur-semantic/r1-fix/`。其余三张跳过，关机留盘。花费 ≈¥0.45（26.11→25.66）。
 - **2026-10-09 终局（离线）**：现有 Fooocus/RealVis **擦衣 inpaint 栈对伊莲镜面金属甲已到头**；**禁止再微调同栈 denoise / OpenPose / 金属负向复跑**。下一步见「R1/R1-fix 终局与路线重排」。
+- **R3 已实现**：`workflows/comfyui/run_fox_centaur_community_r3.py`（EmptyLatent + InstantID + OpenPose；马身 `horse_guard_y` 贴回；**无** Fooocus 甲壳 inpaint）。试点驱动 `run_r3_pilot.py`。需 `--i-know-authorized`。产物目录 `…/r3/`。
 - AI 漫画工作流内 **grok 一律走 Cursor 本机**，禁止 grok.com / 其他渠道 CLI。
 
 
@@ -286,6 +287,13 @@ run6 **不是可用终态**（Codex 史约 8.0、`armor_remain`、`best_residual
 **砸钱建议**：余额 ¥25.66 下，**只授权 ① 单张伊莲 nude 试点（硬顶 ≤¥3）**；失败再决定是否上 ②。不要为同栈 denoise 再开机。
 
 授权口令建议：「R3 伊莲 nude 整图重生成试点」或（明确接受贵下载后）「R2 Qwen-Edit 试点」。
+
+### 4) R3 实施要点（2026-10-09 19:41 已授权试点）
+
+- 成衣板：**仅** DWPose 姿势 + 头肩 InstantID 脸参考；采样器用 **EmptyLatent denoise=1.0**。
+- 禁止：Fooocus inpaint、R1 甲壳洞擦、LaMa 残留环、装 Qwen/Flux 大模型。
+- 马身：生成后 PIL 贴回 `horse_guard_y=690`（BASE）以下并羽化。
+- 互斥：791 优先 → 592；抢卡 ≤1h；卡住 ≤15min；封顶 **¥3**；关机留盘。
 
 
 ## R1 伊莲 nude 试点离线诊断（2026-10-09，不开机、不出图）
