@@ -1,5 +1,5 @@
 ---
-description: Use Cursor local tools. Do not force grok.com CLI routing.
+description: Use Cursor local tools. Ban grok.com CLI for AI comic workflow.
 alwaysApply: true
 ---
 
@@ -7,6 +7,8 @@ alwaysApply: true
 
 Implement with Cursor tools (Write, StrReplace, Shell, Task, etc.).
 
-Do **not** route work through `.cursor/grok/run.sh`, force-grok hooks, or grok.com CLI quota. That force-router path is retired.
+Do **not** route work through `.cursor/grok/run.sh`, `/home/ubuntu/.grok-cursor-router/grok/run.sh`, force-grok hooks, or grok.com / x.ai device-auth CLI quota. That force-router path is retired.
+
+**AI 漫画工作流（`ai-realistic-comic/` 及 fox-centaur / undress / still / cast 相关任务）**：grok 一律走 **Cursor 本机**能力；禁止 grok.com、x.ai OAuth 设备授权、或其他外部 grok 渠道。不要发起或等待 grok.com 登录。
 
 Optional quota CLIs (agy / opencode / kimi) only when the user explicitly asks.

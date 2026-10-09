@@ -237,8 +237,61 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 ### 4) 实施状态
 
 - 方案 A：**暂不执行**。`run_fox_centaur_wholebody.py` 仅草稿。
-- R1 **已实现**：`workflows/comfyui/run_fox_centaur_community_r1.py`（denoise 0.82、CropAndStitch、可选 OpenPose；无 LaMa 残留/pixelfill）。需 `--i-know-authorized`。试点：伊莲 nude → 可用再补三张。
-- 下次开机须用户点名授权「R1 试点」或「R2」。
+- R1 **已实现**：`workflows/comfyui/run_fox_centaur_community_r1.py`（默认 denoise 0.82 + CropAndStitch + OpenPose；无 LaMa 残留/pixelfill）。需 `--i-know-authorized`。
+- **R1 伊莲 nude 试点（592，commit `4a752aa`）不可用** → 见下节离线诊断；代码已定点修正为 **R1-fix**（仍现有栈，未装大模型）。**未再开机出图。**
+- 下次开机须用户点名授权「R1-fix 伊莲 nude 复测」或「R2」。AI 漫画工作流内 **grok 一律走 Cursor 本机**，禁止 grok.com / 其他渠道 CLI。
+
+
+## R1 伊莲 nude 试点离线诊断（2026-10-09，不开机、不出图）
+
+产物：`/opt/cursor/artifacts/fox-centaur-semantic/r1/`（`elena-armor-centaur-nude.png`、`debug/*-garment-mask.png`、`*-garment-overlay.png`、`elena-armor-centaur-nude.run.json`、`VISUAL_JUDGE.json`）。对照历史较好 **run6** 同名图。
+
+### 1) 蒙版是否罩住铠甲？为何 denoise 0.82 仍留甲壳？
+
+| 检查 | 结果 |
+| --- | --- |
+| garment_share | R1 **0.208**（run.json）；run6 **0.150** — R1 蒙版并不更小 |
+| 躯干框内蒙版覆盖 | ≈**0.50–0.56**（中段胸腹 ROI） |
+| 成衣板躯干「金属像」像素被 mask 罩住 | ≈**0.71**（miss ≈0.29：臂/缝隙边缘有漏，但**不是**整片漏蒙） |
+| 成图 VISUAL_JUDGE | **不可用**：躯干仍是整片高光金属甲/贴身甲壳 |
+
+**结论**：蒙版大体罩住胸甲主面；崩因主要在 **重绘参数**，不是「蒙版完全没罩」。
+
+**为何 0.82×1 留甲壳（现有栈内因）**：
+
+1. **Denoise 过低**：Fooocus 换装常用 0.75–0.85 适合「换布料」；伊莲高光金属甲是强结构性纹理，**&lt;1.0 单次**会把镜面高光当可保留细节留在 latent 里。run6 能出相对真裸靠的是 **1.0×3**。
+2. **OpenPose 过强（0.75）**：姿态锁把「胸廓壳体」轮廓钉死，中等 denoise 更容易把甲壳当身体表面重画成真空贴身金属皮，而不是换成皮肤。
+3. **只 1 pass + edge 0.32**：无 run6 式多轮同洞硬擦；收边 denoise 也低于 run6 的 0.42。
+4. **提示词/负向**：试点未加金属镜面专项负向；正向仍走通用 nude（正确：否定句不进正向）。
+5. **参考图 = 成衣板**：inpaint 以甲壳板为 image；denoise&lt;1 时板面高光是直接泄漏源。
+6. **ControlNet / CropAndStitch / 模型**：OpenPose SDXL + CropAndStitch≤1024 + RealVisXL+Fooocus v2.6 — 与计划一致；**不是**模型装错或裁块把甲裁掉。裁块在蒙版内正常工作，只是洞内擦不穿。
+
+同洞近似对比（用 R1 mask 套在两张成图上）：R1 mask 内 residual_metalish≈**0.28** / skinish≈**0.37**；run6 ≈**0.16** / **0.59**。说明即使罩住的区域，0.82 也清不掉甲光。
+
+### 2) 与 run6（相对较好伊莲 nude）参数/蒙版差异
+
+| 项 | R1 试点（失败） | run6（较好） | R1-fix（已改代码，未跑） |
+| --- | --- | --- | --- |
+| 管线 | community_r1，无 LaMa | 旧 semantic，无 LaMa 残留环 | 同 R1 栈，仍无 LaMa |
+| nude denoise × passes | **0.82 × 1** | **1.0 × 3** | **1.0 × 3** |
+| edge denoise | 0.32 | **0.42** | **0.42** |
+| OpenPose | on，strength **0.75** | 无（当时未锁姿） | on，仅首 pass，**0.40** |
+| garment_share | 0.208 | 0.150 | 同 R1 蒙版逻辑 |
+| 金属负向 | 无 | 无专项 | `ELENA_METAL_NEG_EXTRA`（chrome/specular/plate…） |
+| seed | 20261209 | 20261208 | 沿用 runner 默认 |
+
+### 3) 下一步：R1-fix（推荐）vs R2
+
+**推荐 R1-fix**（定点修正、现有栈、不装大模型）。不推荐此刻切 R2（Qwen Edit 下载贵、身份/半人马风险高）。
+
+| | R1-fix | R2 |
+| --- | --- | --- |
+| 改动点 | `run_fox_centaur_community_r1.py`：伊莲 `denoise=1.0`、`nude_passes=3`、`edge=0.42`、`openpose_strength=0.40`（仅首 pass）、金属负向；林仍 0.82×1 | 新装 Qwen-Image-Edit + LoRA，新工作流 |
+| 新装 | **0** | 20–50GB+ |
+| 是否开机 | **要**（用户点名授权后）单张伊莲 nude 复测 | 要，且首次下载更久 |
+| 预计花费 | 复测 ≈**¥0.5–0.8**；过关再三张 → 合计硬顶 **≤¥4**（互斥单机、关机留盘） | 易 **¥4–8+** |
+
+授权口令建议：「R1-fix 伊莲 nude 复测」。失败再评估 R2。
 
 
 ## P0/P1 回归诊断与修正（2026-10-08，离线，未开机）

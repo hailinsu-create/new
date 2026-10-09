@@ -28,21 +28,33 @@ import semantic_undress as sem  # noqa: E402
 from comfy_util import get_json, post_json, resolve_base_models  # noqa: E402
 from inpaint_crop import inpaint_crop_graph, stitch  # noqa: E402
 
-R1_DENOISE = 0.82
+R1_DENOISE = 0.82  # default (lin / clothing-swap range)
+R1_ELENA_DENOISE = 1.0  # glossy armor needs full latent replace (run6 lesson; R1 pilot 0.82 left chrome shell)
+R1_ELENA_NUDE_PASSES = 3  # run6-style redo on same mask; still NO LaMa residual / pixelfill
 R1_CFG = 5.5
 R1_EDGE_DENOISE = 0.32
+R1_ELENA_EDGE_DENOISE = 0.42  # match run6 edge
 R1_OPENPOSE_STRENGTH = 0.75
+R1_ELENA_OPENPOSE_STRENGTH = 0.40  # weaker so specular plate is not re-locked as "chest shell"
 R1_SEED = 20261009
 TORN_RIM_DENOISE = 0.55
+ELENA_METAL_NEG_EXTRA = (
+    "chrome, glossy metal, specular highlight, latex catsuit, vacuum-formed armor, "
+    "gunmetal breastplate, shiny black plate, metallic skin, mirror finish"
+)
 
 PLAN = {
     "name": "community_r1_sdxl_crop_fooocus_openpose",
     "status": "implemented",
     "supersedes": "wholebody_garment_A_paused",
     "denoise": R1_DENOISE,
+    "elena_denoise": R1_ELENA_DENOISE,
+    "elena_nude_passes": R1_ELENA_NUDE_PASSES,
+    "elena_openpose_strength": R1_ELENA_OPENPOSE_STRENGTH,
     "cfg": R1_CFG,
     "crop_max": 1024,
     "use_openpose": True,
+    "note_2026_10_09": "R1 pilot left chrome shell at 0.82×1; Elena fix = 1.0×3 + weaker OpenPose, no LaMa loop",
     "forbid": [
         "lama_residual_loop",
         "hip_pixelfill",
@@ -160,6 +172,7 @@ def inpaint_band_r1(
     out_dir: Path,
     pose_full: Image.Image | None,
     pose_cn: str | None,
+    openpose_strength: float = R1_OPENPOSE_STRENGTH,
 ) -> Image.Image:
     mask = sem.feather(sem.dilate(band, base.BAND_GROW if not edge else 0), radius=legacy.MASK_BLUR)
     prepared = legacy.prepare_job(stem, plate, mask, input_dir)
@@ -187,6 +200,7 @@ def inpaint_band_r1(
             prefix=stem,
             denoise=denoise,
             cfg=R1_CFG,
+            strength=openpose_strength,
         )
         stage = "inpaint_openpose"
     elif edge:
@@ -255,6 +269,7 @@ def run_bands_r1(
     pose_full: Image.Image | None,
     pose_cn: str | None,
     lower: tuple[int, str, str] | None = None,
+    openpose_strength: float = R1_OPENPOSE_STRENGTH,
 ) -> Image.Image:
     current = plate
     for i, band in enumerate(base.split_bands(mask)):
@@ -277,6 +292,7 @@ def run_bands_r1(
             out_dir=out_dir,
             pose_full=pose_full,
             pose_cn=pose_cn,
+            openpose_strength=openpose_strength,
         )
     return current
 
@@ -384,31 +400,54 @@ def undress_one_r1(
             meta["passes"].append({"kind": "rim", "denoise": TORN_RIM_DENOISE})
     else:
         positive, negative = base.nude_text(actor)
+        denoise = R1_DENOISE
+        edge_denoise = R1_EDGE_DENOISE
+        pose_strength = R1_OPENPOSE_STRENGTH
+        nude_passes = 1
+        if actor == "elena":
+            # Offline diagnosis 2026-10-09: mask covered torso (share≈0.21) but 0.82×1 kept
+            # high-gloss metal. Match run6 full-replace intensity without LaMa residual.
+            denoise = R1_ELENA_DENOISE
+            edge_denoise = R1_ELENA_EDGE_DENOISE
+            pose_strength = R1_ELENA_OPENPOSE_STRENGTH
+            nude_passes = R1_ELENA_NUDE_PASSES
+            negative = f"{negative}, {ELENA_METAL_NEG_EXTRA}"
         lower = (base.LOWER_FROM_Y[actor], base.LOWER_POS, base.LOWER_NEG) if actor in base.LOWER_FROM_Y else None
         target = garment.copy()
         if actor == "elena" and plan.horse_guard_y:
             y_cut = int(plan.horse_guard_y / sem.BASE[1] * shape[0])
             target[y_cut:, :] = False
             print(f"ELENA_CLIP_JUNCTION y>={y_cut}", flush=True)
-        # Single Fooocus pass — no LaMa residual / pixelfill.
-        current = run_bands_r1(
-            host,
-            models,
-            plate,
-            target,
-            positive=positive,
-            negative=negative,
-            seed=seed,
-            stem=f"{stem}-r1",
-            denoise=R1_DENOISE,
-            edge=False,
-            input_dir=input_dir,
-            out_dir=work,
-            pose_full=pose_full,
-            pose_cn=pose_cn,
-            lower=lower,
-        )
-        meta["passes"].append({"kind": "nude_r1", "denoise": R1_DENOISE, "openpose": bool(pose_full)})
+        # Fooocus only — no LaMa residual / pixelfill. Elena: multiple denoise-1.0 passes.
+        current = plate
+        for n in range(nude_passes):
+            current = run_bands_r1(
+                host,
+                models,
+                current,
+                target,
+                positive=positive,
+                negative=negative,
+                seed=seed + n * 17,
+                stem=f"{stem}-r1-p{n}",
+                denoise=denoise,
+                edge=False,
+                input_dir=input_dir,
+                out_dir=work,
+                pose_full=pose_full if n == 0 else None,  # pose only first pass
+                pose_cn=pose_cn if n == 0 else None,
+                lower=lower,
+                openpose_strength=pose_strength,
+            )
+            meta["passes"].append(
+                {
+                    "kind": "nude_r1",
+                    "n": n,
+                    "denoise": denoise,
+                    "openpose": bool(pose_full) and n == 0,
+                    "openpose_strength": pose_strength if (pose_full and n == 0) else 0.0,
+                }
+            )
         edge_zone = sem.edge_band(target, 14) & sem.box_array(shape, plan.roi)
         edge_zone &= ~sem.box_array(shape, plan.face_clear)
         if actor == "elena" and plan.horse_guard_y:
@@ -424,14 +463,14 @@ def undress_one_r1(
                 negative=base.NUDE_EDGE_NEG,
                 seed=seed + 900,
                 stem=f"{stem}-edge",
-                denoise=R1_EDGE_DENOISE,
+                denoise=edge_denoise,
                 edge=True,
                 input_dir=input_dir,
                 out_dir=work,
                 pose_full=None,
                 pose_cn=None,
             )
-            meta["passes"].append({"kind": "edge", "denoise": R1_EDGE_DENOISE})
+            meta["passes"].append({"kind": "edge", "denoise": edge_denoise})
 
     dest = out_dir / f"{stem}.png"
     current.save(dest)
