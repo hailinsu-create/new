@@ -237,7 +237,7 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 ### 4) 实施状态
 
 - 方案 A：**暂不执行**。`run_fox_centaur_wholebody.py` 仅草稿。
-- R1 骨架：`workflows/comfyui/run_fox_centaur_community_r1.py`（只 emit 计划，不开机）。
+- R1 **已实现**：`workflows/comfyui/run_fox_centaur_community_r1.py`（denoise 0.82、CropAndStitch、可选 OpenPose；无 LaMa 残留/pixelfill）。需 `--i-know-authorized`。试点：伊莲 nude → 可用再补三张。
 - 下次开机须用户点名授权「R1 试点」或「R2」。
 
 
