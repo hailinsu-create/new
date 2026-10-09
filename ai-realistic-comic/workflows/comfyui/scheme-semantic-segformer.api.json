@@ -1,0 +1,79 @@
+{
+  "source": {
+    "why": "Semantic undress. Output slot for MASK is resolved from /object_info by the runner; slot 1 shown here.",
+    "doc": "docs/fox-centaur-semantic-undress.md",
+    "stage": "garment mask 1"
+  },
+  "prompt": {
+    "1": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "plate.png"
+      }
+    },
+    "2": {
+      "class_type": "segformer_b2_clothes",
+      "inputs": {
+        "image": [
+          "1",
+          0
+        ],
+        "Face": true,
+        "Hat": true,
+        "Hair": true,
+        "Upper_clothes": false,
+        "Skirt": false,
+        "Pants": false,
+        "Dress": false,
+        "Belt": false,
+        "shoe": true,
+        "leg": true,
+        "arm": true,
+        "Bag": true,
+        "Scarf": false
+      }
+    },
+    "4": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "2",
+          0
+        ],
+        "filename_prefix": "seg-garment"
+      }
+    },
+    "5": {
+      "class_type": "segformer_b2_clothes",
+      "inputs": {
+        "image": [
+          "1",
+          0
+        ],
+        "Face": true,
+        "Hat": true,
+        "Hair": true,
+        "Upper_clothes": true,
+        "Skirt": true,
+        "Pants": true,
+        "Dress": true,
+        "Belt": true,
+        "shoe": true,
+        "leg": true,
+        "arm": true,
+        "Bag": true,
+        "Scarf": true
+      }
+    },
+    "6": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "5",
+          0
+        ],
+        "filename_prefix": "seg-background"
+      }
+    }
+  }
+}

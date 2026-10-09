@@ -1,0 +1,386 @@
+"""Power / balance / fleet helper for the Beijing B fox/centaur undress machines.
+
+Two different credentials, two different APIs:
+
+- Web session JWT (`AUTODL_WEB_AUTHORIZATION`): ordinary container instances such as
+  Beijing B 791 `359a49a1c3-4cda10df` have no developer API. Power on goes through
+  the web endpoint `POST https://www.autodl.com/api/v1/instance/power_on` with body
+  `{"instance_uuid": ..., "payload": "gpu"}`. `payload` is always `gpu`; the no-card
+  mode is forbidden. Power off is `POST .../instance/power_off` (disk kept).
+- Developer token (`AUTODL_TOKEN`): Pro-only developer APIs. Here it is used only for
+  the wallet balance (`POST https://api.autodl.com/api/v1/dev/wallet/balance`).
+  `/api/v1/dev/instance/pro/power_on` returns RecordNotFoundError for this instance.
+
+Fleet policy (user 2026-10-08 13:44):
+  - Keep at most **two** machines long-term: mother 791 + one payg clone.
+  - After a run: **shutdown both, keep disks**. Never ``release`` either.
+  - Old rule «clone stop ⇒ release» is void for this pair. No third machine.
+
+Secrets are read from the environment or the shared env files and never printed.
+F34 and G09 UUIDs are refused. A "no idle GPU" answer is retried with backoff; any
+other failure (auth, unknown instance) stops at once so nothing burns money.
+
+    python autodl_power.py balance
+    python autodl_power.py power-on [--max-minutes 0]   # 0 = keep waiting
+    python autodl_power.py ensure-on [--max-minutes 0]   # 0 = no deadline; web JWT then developer token
+    python autodl_power.py power-on-once      # exit 0 ok, 5 no GPU, 6 transient, 2 fatal, 4 no web auth
+    python autodl_power.py power-off [--uuid ...]       # shutdown keep disk; never release
+    python autodl_power.py shutdown-fleet               # power-off mother + clone (if known)
+    python autodl_power.py release --uuid ...           # always refuses for kept fleet UUIDs
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+import time
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+WEB_POWER_ON = "https://www.autodl.com/api/v1/instance/power_on"
+WEB_POWER_OFF = "https://www.autodl.com/api/v1/instance/power_off"
+WEB_RELEASE = "https://www.autodl.com/api/v1/instance/release"
+WEB_INSTANCE_LIST = "https://www.autodl.com/api/v1/instance"
+DEV_BALANCE = "https://api.autodl.com/api/v1/dev/wallet/balance"
+DEV_POWER_ON = "https://api.autodl.com/api/v1/dev/instance/pro/power_on"
+DEFAULT_UUID = "359a49a1c3-4cda10df"
+MOTHER_UUID = DEFAULT_UUID
+MAX_FLEET = 2
+FORBIDDEN = {"xaxna66hqt-c5c9c7fc", "sa4eaxgcuq-26e36fc9"}
+WEB_AUTH_FILES = (
+    Path("/cursor/stores/user/autodl-web-auth.env"),
+    Path("/workspace/cred-handoff/autodl-web-auth.env"),
+)
+TOKEN_FILES = (Path("/cursor/stores/user/autodl-token.env"),)
+SSH_ENV = Path("/cursor/stores/user/bjb-ssh.env")
+CLONE_ENV_FILES = (
+    Path("/cursor/stores/user/bjb-clone.env"),
+    Path("/workspace/cred-handoff/bjb-clone.env"),
+)
+NO_GPU_MARKERS = ("GPU不足", "空闲GPU", "gpu不足", "no idle gpu", "InsufficientGpu")
+# Clone lock is temporary while a payg clone of this host is copying; keep waiting.
+RETRY_MARKERS = ("克隆锁定", "clone lock", "CloneLock", "正在克隆", "ServerBusy", "服务正忙", "状态无法进行开机", "稍后再试")
+BACKOFF = (20, 30, 45, 60)
+
+
+def read_env_file(path: Path) -> dict[str, str]:
+    out: dict[str, str] = {}
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return out
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        out[key.strip()] = value.strip().strip('"').strip("'")
+    return out
+
+
+def find_secret(name: str, files: tuple[Path, ...]) -> str | None:
+    value = os.environ.get(name)
+    if value:
+        return value
+    for path in files:
+        value = read_env_file(path).get(name)
+        if value:
+            return value
+    return None
+
+
+def web_authorization() -> str | None:
+    return find_secret("AUTODL_WEB_AUTHORIZATION", WEB_AUTH_FILES)
+
+
+def dev_token() -> str | None:
+    return find_secret("AUTODL_TOKEN", TOKEN_FILES)
+
+
+def instance_uuid(explicit: str | None = None) -> str:
+    uuid = explicit or os.environ.get("BJB_INSTANCE_UUID") or read_env_file(SSH_ENV).get("BJB_INSTANCE_UUID") or DEFAULT_UUID
+    if uuid in FORBIDDEN:
+        raise SystemExit(f"FORBIDDEN_INSTANCE {uuid}")
+    return uuid
+
+
+def post(url: str, headers: dict[str, str], body: dict | None, timeout: int = 30) -> tuple[int, dict]:
+    data = json.dumps(body if body is not None else {}).encode()
+    request = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json", **headers}, method="POST")
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            raw = response.read().decode("utf-8", "replace")
+            status = response.status
+    except urllib.error.HTTPError as exc:
+        raw = exc.read().decode("utf-8", "replace")
+        status = exc.code
+    except (urllib.error.URLError, TimeoutError) as exc:
+        return 0, {"code": "NetworkError", "msg": str(exc)}
+    try:
+        return status, json.loads(raw)
+    except json.JSONDecodeError:
+        return status, {"code": "BadResponse", "msg": raw[:200]}
+
+
+def classify(status: int, reply: dict) -> str:
+    """success | no_gpu | retry | fatal"""
+    code = str(reply.get("code", ""))
+    msg = str(reply.get("msg", ""))
+    blob = f"{code} {msg}".lower()
+    if code == "Success":
+        return "success"
+    if any(marker.lower() in blob for marker in NO_GPU_MARKERS):
+        return "no_gpu"
+    if any(marker.lower() in blob for marker in RETRY_MARKERS):
+        return "retry"
+    if code == "NetworkError" or status >= 500 or status == 429:
+        return "retry"
+    return "fatal"
+
+
+def power_on_once(uuid: str, authorization: str) -> tuple[str, dict]:
+    status, reply = post(WEB_POWER_ON, {"Authorization": authorization}, {"instance_uuid": uuid, "payload": "gpu"})
+    return classify(status, reply), reply
+
+
+NEED_TOKEN_MESSAGE = (
+    "NEED_AUTODL_TOKEN no AUTODL_WEB_AUTHORIZATION and no AUTODL_TOKEN. Looked in the environment "
+    "(Cursor Secrets are injected there), then /cursor/stores/user/autodl-web-auth.env and "
+    "/cursor/stores/user/autodl-token.env (also /workspace/cred-handoff/autodl-web-auth.env). "
+    "Never commit them. Note: the developer token only works for Pro instances; Beijing B 791 is an "
+    "ordinary container instance and needs the web JWT."
+)
+
+
+def dev_power_on_once(uuid: str, token: str) -> tuple[str, dict]:
+    """Developer API. Pro instances only; an ordinary instance answers RecordNotFoundError."""
+    status, reply = post(DEV_POWER_ON, {"Authorization": token}, {"instance_uuid": uuid, "payload": "gpu"})
+    code = str(reply.get("code", ""))
+    if code == "RecordNotFoundError":
+        return "not_pro", reply
+    return classify(status, reply), reply
+
+
+def ensure_on(uuid: str, *, max_minutes: float, sleep=time.sleep, now=time.monotonic) -> int:
+    """Web JWT first (works for ordinary instances), developer token second. Exit 4 when neither exists."""
+    authorization = web_authorization()
+    token = dev_token()
+    if not authorization and not token:
+        print(NEED_TOKEN_MESSAGE, flush=True)
+        return 4
+    if authorization:
+        return power_on_loop(uuid, authorization, max_minutes=max_minutes, sleep=sleep, now=now)
+    verdict, reply = dev_power_on_once(uuid, token or "")
+    print(f"POWER_ON_DEV verdict={verdict} code={reply.get('code')} msg={str(reply.get('msg', ''))[:120]}", flush=True)
+    if verdict == "not_pro":
+        print(
+            "POWER_ON_STOP the developer token cannot power on an ordinary container instance "
+            "(RecordNotFoundError). Provide AUTODL_WEB_AUTHORIZATION. No clone, no no-GPU mode.",
+            flush=True,
+        )
+        return 2
+    if verdict == "success":
+        return 0
+    return power_on_loop_dev(uuid, token or "", verdict, max_minutes=max_minutes, sleep=sleep, now=now)
+
+
+def power_on_loop_dev(uuid: str, token: str, first: str, *, max_minutes: float, sleep, now) -> int:
+    deadline = None if max_minutes <= 0 else now() + max_minutes * 60
+    verdict = first
+    attempt = 0
+    while verdict in ("no_gpu", "retry"):
+        wait = BACKOFF[min(attempt, len(BACKOFF) - 1)]
+        attempt += 1
+        if deadline is not None and now() + wait > deadline:
+            print("POWER_ON_GAVE_UP deadline reached; still no GPU.", flush=True)
+            return 3
+        sleep(wait)
+        verdict, reply = dev_power_on_once(uuid, token)
+        print(f"POWER_ON_DEV attempt={attempt} verdict={verdict} code={reply.get('code')}", flush=True)
+    return 0 if verdict == "success" else 2
+
+
+def power_on_loop(uuid: str, authorization: str, *, max_minutes: float, sleep=time.sleep, now=time.monotonic) -> int:
+    deadline = None if max_minutes <= 0 else now() + max_minutes * 60
+    attempt = 0
+    while True:
+        verdict, reply = power_on_once(uuid, authorization)
+        code, msg = reply.get("code"), str(reply.get("msg", ""))[:120]
+        print(f"POWER_ON attempt={attempt} verdict={verdict} code={code} msg={msg}", flush=True)
+        if verdict == "success":
+            return 0
+        if verdict == "fatal":
+            print("POWER_ON_STOP fatal reply; not retrying (auth expired or wrong instance).", flush=True)
+            return 2
+        wait = BACKOFF[min(attempt, len(BACKOFF) - 1)]
+        attempt += 1
+        if deadline is not None and now() + wait > deadline:
+            print("POWER_ON_GAVE_UP deadline reached; still no GPU.", flush=True)
+            return 3
+        sleep(wait)
+
+
+def balance() -> int:
+    token = dev_token()
+    if not token:
+        print("BALANCE_PENDING no AUTODL_TOKEN; read the balance on the web console.")
+        return 1
+    status, reply = post(DEV_BALANCE, {"Authorization": token}, None)
+    if str(reply.get("code")) != "Success":
+        print(f"BALANCE_FAILED code={reply.get('code')} msg={str(reply.get('msg', ''))[:120]}")
+        return 1
+    data = reply.get("data") or {}
+    assets = data.get("assets")
+    if assets is None:
+        print(f"BALANCE_UNKNOWN_SHAPE keys={sorted(data)}")
+        return 1
+    print(f"BALANCE assets_li={assets} yuan={assets / 1000:.2f}")
+    if assets < 5000:
+        print("BALANCE_WARNING below 5 yuan; alert only, do not top up.")
+    return 0
+
+
+def clone_uuid() -> str | None:
+    """Optional long-lived payg clone UUID from env / bjb-clone.env."""
+    value = os.environ.get("BJB_CLONE_UUID") or find_secret("BJB_CLONE_UUID", CLONE_ENV_FILES)
+    if not value:
+        return None
+    if value in FORBIDDEN:
+        raise SystemExit(f"FORBIDDEN_INSTANCE {value}")
+    return value
+
+
+def kept_fleet_uuids() -> set[str]:
+    """Mother 791 + at most one clone. Both are permanent; never release."""
+    out = {MOTHER_UUID}
+    clone = clone_uuid()
+    if clone:
+        out.add(clone)
+    return out
+
+
+def refuse_release(uuid: str) -> int:
+    """Never release mother or the kept clone. Old stop⇒release rule is void."""
+    uuid = instance_uuid(uuid)
+    kept = kept_fleet_uuids()
+    if uuid in kept or uuid == MOTHER_UUID:
+        print(
+            f"RELEASE_REFUSED {uuid} fox/centaur fleet is long-lived; "
+            f"shutdown keep disk only (user 2026-10-08). kept={sorted(kept)}",
+            flush=True,
+        )
+        return 2
+    # Cap is two; refuse releasing unknown third via this helper too — call site must not create it.
+    print(
+        f"RELEASE_REFUSED {uuid} autodl_power will not release fox/centaur instances; "
+        f"use console only for non-fleet accidents. Fleet cap={MAX_FLEET}.",
+        flush=True,
+    )
+    return 2
+
+
+def power_off_keep_disk(uuid: str, authorization: str | None = None) -> int:
+    """Web power_off. Disk stays. Never calls release."""
+    uuid = instance_uuid(uuid)
+    if uuid in FORBIDDEN:
+        raise SystemExit(f"FORBIDDEN_INSTANCE {uuid}")
+    auth = authorization or web_authorization()
+    if not auth:
+        print("WEB_AUTH_MISSING cannot power_off without AUTODL_WEB_AUTHORIZATION.", flush=True)
+        return 4
+    status, reply = post(WEB_POWER_OFF, {"Authorization": auth}, {"instance_uuid": uuid})
+    code, msg = reply.get("code"), str(reply.get("msg", ""))[:120]
+    print(f"POWER_OFF uuid={uuid} http={status} code={code} msg={msg} (disk kept, no release)", flush=True)
+    return 0 if str(code) == "Success" else 2
+
+
+def shutdown_fleet() -> int:
+    """Power off mother + clone (if registered). Keep disks. Never release."""
+    auth = web_authorization()
+    if not auth:
+        print("WEB_AUTH_MISSING cannot shutdown-fleet without AUTODL_WEB_AUTHORIZATION.", flush=True)
+        return 4
+    codes = []
+    for uuid in sorted(kept_fleet_uuids()):
+        codes.append(power_off_keep_disk(uuid, auth))
+    print(f"SHUTDOWN_FLEET done kept={sorted(kept_fleet_uuids())} no_release=1", flush=True)
+    return 0 if all(c == 0 for c in codes) else 2
+
+
+def assert_fleet_cap(existing_uuids: list[str] | None = None) -> int:
+    """Refuse opening a third live machine. Exit 0 ok, 2 over cap.
+
+    Counts **live** instance UUIDs only. A stale ``BJB_CLONE_UUID`` pointing at a
+    released box must not inflate the cap (that would block a legitimate second).
+    """
+    listed = set(existing_uuids or [])
+    if existing_uuids is None:
+        auth = web_authorization()
+        if auth:
+            status, reply = post(WEB_INSTANCE_LIST, {"Authorization": auth}, {"page_index": 1, "page_size": 50})
+            if str(reply.get("code")) == "Success":
+                items = (reply.get("data") or {}).get("list") or []
+                listed = {str(it.get("uuid") or "") for it in items if it.get("uuid")}
+    active = {u for u in listed if u} - FORBIDDEN
+    if len(active) > MAX_FLEET:
+        print(
+            f"FLEET_CAP_EXCEEDED n={len(active)} cap={MAX_FLEET} uuids={sorted(active)}; "
+            f"do not clone/open a third machine.",
+            flush=True,
+        )
+        return 2
+    print(
+        f"FLEET_CAP_OK n={len(active)} cap={MAX_FLEET} live={sorted(active)} "
+        f"env_kept={sorted(kept_fleet_uuids())}",
+        flush=True,
+    )
+    return 0
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    sub = parser.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("balance")
+    ensure = sub.add_parser("ensure-on")
+    ensure.add_argument("--uuid")
+    ensure.add_argument("--max-minutes", type=float, default=0, help="0 = no deadline")
+    once = sub.add_parser("power-on-once")
+    once.add_argument("--uuid")
+    on = sub.add_parser("power-on")
+    on.add_argument("--uuid")
+    on.add_argument("--max-minutes", type=float, default=0, help="0 = no deadline")
+    off = sub.add_parser("power-off", help="Shutdown keep disk; never release.")
+    off.add_argument("--uuid")
+    sub.add_parser("shutdown-fleet", help="Power-off mother + clone; keep disks; never release.")
+    rel = sub.add_parser("release", help="Refused for fox/centaur fleet UUIDs.")
+    rel.add_argument("--uuid", required=True)
+    sub.add_parser("fleet-cap", help="Check ≤2 long-lived machines.")
+    args = parser.parse_args()
+    if args.cmd == "balance":
+        raise SystemExit(balance())
+    if args.cmd == "release":
+        raise SystemExit(refuse_release(args.uuid))
+    if args.cmd == "fleet-cap":
+        raise SystemExit(assert_fleet_cap())
+    if args.cmd == "shutdown-fleet":
+        raise SystemExit(shutdown_fleet())
+    if args.cmd == "power-off":
+        raise SystemExit(power_off_keep_disk(instance_uuid(args.uuid)))
+    if args.cmd == "ensure-on":
+        raise SystemExit(ensure_on(instance_uuid(args.uuid), max_minutes=args.max_minutes))
+    authorization = web_authorization()
+    if not authorization:
+        print("WEB_AUTH_MISSING set AUTODL_WEB_AUTHORIZATION or autodl-web-auth.env; the developer token cannot power on this instance.")
+        raise SystemExit(4)
+    if args.cmd == "power-on-once":
+        verdict, reply = power_on_once(instance_uuid(args.uuid), authorization)
+        print(f"POWER_ON_ONCE verdict={verdict} code={reply.get('code')} msg={str(reply.get('msg', ''))[:120]}")
+        raise SystemExit({"success": 0, "no_gpu": 5, "retry": 6}.get(verdict, 2))
+    raise SystemExit(power_on_loop(instance_uuid(args.uuid), authorization, max_minutes=args.max_minutes))
+
+
+if __name__ == "__main__":
+    main()

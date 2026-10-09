@@ -1,0 +1,25 @@
+{
+  "identity": 8,
+  "distinction": 7,
+  "interaction": 8,
+  "aesthetics": 3,
+  "anatomy": 2,
+  "wardrobe": 6,
+  "motif": 8,
+  "photoreal": 4,
+  "mean": 5.75,
+  "gates": [],
+  "notes": "肩甲/颈甲/腰甲残骸与手套仍在，马身在，眼镜对得上。人躯干中段严重糊烂/烤肉状畸变，破甲露出也谈不上干净可读。",
+  "scorer": "cursor",
+  "passed": false,
+  "below": [
+    "identity",
+    "distinction",
+    "interaction",
+    "aesthetics",
+    "anatomy",
+    "wardrobe",
+    "motif",
+    "photoreal"
+  ]
+}
