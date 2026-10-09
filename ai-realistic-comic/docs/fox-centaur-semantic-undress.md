@@ -232,7 +232,7 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 - **开机**：首次下载 **0.5–2 h**（¥1.5–6）+ 出图；总成本易 **¥4–8+**，对 ¥26.72 不友好。
 - **预期**：普通人像去衣残影可能好于 SDXL；**身份/半人马**按本仓库既往 Qwen 经验仍高风险。
 
-**不推荐此刻**：Flux Fill/Kontext 全家桶；PowerPaint 主路径（SD1.5）；再调 `RESIDUAL_*`；原方案 A 整片 denoise≈1.0；**再调 R1/Fooocus denoise 擦伊莲金属甲**（R1-fix 已证到头）。
+**不推荐此刻（已由 2026-10-10 社区重扫修订）**：PowerPaint 主路径（SD1.5）；再调 `RESIDUAL_*`；原方案 A 整片 denoise≈1.0；**再调 R1/Fooocus denoise 擦伊莲金属甲**（R1-fix 已证到头）；**R3/R3b/R3c 重生贴回**。Qwen-Edit / Flux Fill 见上节「R1-fix 基线 + 社区重扫」，体积不再作为排除理由。
 
 ### 4) 实施状态
 
@@ -245,7 +245,93 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 - **R3 试点（2026-10-09 19:41 授权）**：首轮抢卡 60min 无卡；**续跑（2026-10-10 00:38）** 592 开机，sha 对齐，EmptyLatent+InstantID+OpenPose+马身贴回 → **不可用**（双头/多乳畸形，非甲壳残影）。产物 `…/r3/`，关机留盘。余额见当次 `VISUAL_JUDGE.json`。
 - **R3b 已实现**：`workflows/comfyui/run_fox_centaur_community_r3b.py`（上身 1024×768 EmptyLatent；OpenPose 0.50；InstantID 0.50；单人上身提示；马毛-only 贴回）。试点 `run_r3b_pilot.py`；产物 `…/r3b/`。
 - **R3b 试点（2026-10-10 00:55 授权，592，`8770408`）不可用**：上身解剖已好（无双头），但马毛贴回雾化/腰缝甲片/场景断裂。产物含 preview/torso webp。关机留盘。
+- **2026-10-10 01:28 用户停线**：R1-fix 之后 R3/R3b **越来越差** → **立即停掉 R3 / R3b / R3c 整图重生与合成方向**，不再继续。当前最好基线 = **R1-fix**。
 - AI 漫画工作流内 **grok 一律走 Cursor 本机**，禁止 grok.com / 其他渠道 CLI。
+
+## R1-fix 基线 + 社区重扫（2026-10-10，不开机、不出图）
+
+余额快照 **¥23.78**。用户追加：**不再因体积排除方案**（Qwen-Image-Edit-2509/2511+去衣/撕衣 LoRA、Flux Fill/Kontext+NSFW LoRA、最新社区去衣工作流均可）；该下就下。
+
+### 0) 停线与 R1-fix 残差（离线）
+
+| 项 | 结论 |
+| --- | --- |
+| **停** | R3 / R3b / R3c（EmptyLatent 重生、上身贴回、离线合成）一律停 |
+| **基线** | `…/r1-fix/elena-armor-centaur-nude.png`（`de91cdf`） |
+| **马身/背景** | below `y=690` vs 成衣板 MAE≈**0.06** → 已守住，定点修**不得**动 |
+| **残差** | 胸腹**半透明高光金属膜** + 领/肩/臂**黑线残边** + 腰缝甲片仍在（观感 + 躯干框 metalish≈0.24；板铬区 film≈0.12） |
+| **同栈微调** | **禁止**再拧 Fooocus denoise / OpenPose / 金属负向（R1-fix 终局已证） |
+
+### 1) 社区重扫（金属甲 / 大面积衣物去衣，2026-10-10）
+
+检索面：Civitai、Reddit r/StableDiffusion、HF、GitHub、OpenArt/Comfy 官方教程。按「对镜面甲/大面积去衣是否优于本仓 SDXL Fooocus」排序。
+
+| 序 | 路线 | 社区证据 | 对伊莲金属膜/残边 | 半人马/锁景 |
+| --- | --- | --- | --- | --- |
+| **①** | **Qwen-Image-Edit-2511 + 去衣/物体移除 LoRA + 蒙版区合成** | 官方 [2511 Comfy 教程](https://docs.comfy.org/tutorials/image/qwen/qwen-image-edit-2511)；蒙版 inpaint [stable-diffusion-art](https://stable-diffusion-art.com/qwen-image-edit-inpaint/)；去衣 LoRA [starsfriday](https://huggingface.co/starsfriday/Qwen-Image-Edit-Remove-Clothes)（~450MB，页面曾 Access disabled，权重仍列目录）、镜像/同族 [Sentinel7 remove-clothing ~295MB](https://huggingface.co/Sentinel7/qwen-image/blob/main/lora/qwen_image_edit_remove-clothing_v1.0.safetensors)、[CivArchive Remove-Clothing](https://civarchive.com/tensorart/models/911759246897463133)、2511 [Object-Remover](https://huggingface.co/prithivMLmods/Qwen-Image-Edit-2511-Object-Remover)、torn [nappa114514](https://huggingface.co/nappa114514/Qwen-Image-Edit-2511-torn-clothes)；Civitai 称 Qwen 为 [Kontext Terminator](https://civitai.com/models/1910411/qwen-image-editflux-kontext-terminator)；Reddit [Qwen vs Kontext](https://www.reddit.com/r/StableDiffusion/comments/1mueph4/comparison_qwen_image_editing_and_flux_kontext/)（Qwen 可去衣、审查弱于 Kontext）、[Fill+LoRA 去衣 / Kontext 常不行](https://www.reddit.com/r/StableDiffusion/comments/1qgsbz3/is_flux_klein_better_for_editing_than_flux_kontext/) | **最贴**：指令「去掉金属甲/高光膜显露皮肤」+ 只蒙胸腹/残边；不重生整图 | 全图编辑后 **mask_region 贴回**（马身 y≥690 + 背景外扩保护区）；BD Parts 类亦建议 edit 模型 `full_image_pass` + `mask_region`（[comfy.icu BD_PartsUnderpaint](https://comfy.icu/node/BD_PartsUnderpaint)） |
+| **②** | **Flux Fill + 衣物蒙版 + NSFW LoRA** | [lewdly.ai NSFW inpaint](https://lewdly.ai/blog/comfyui-nsfw-inpainting-clothing-workflow)；[9elements Fill 换装](https://9elements.com/blog/ai-clothes-swaps-with-flux-redux-and-flux-fill/)；Civitai [`[FLUX\|SDXL] Auto clothes inpainting`](https://civitai.com/models/967161/flux-or-sdxl-auto-clothes-inpainting)；HF [`FLUX.1-Fill-dev` 23.8GB](https://huggingface.co/black-forest-labs/FLUX.1-Fill-dev)（gated） | 蒙版洞内重填皮肤，缝比 SDXL 社区评价更好；金属甲仍依赖洞形+提示 | 洞外不碰 → 马身/背景天然安全 |
+| **③** | **Flux Kontext + Nudify LoRA** | 官方 [Kontext Comfy](https://docs.comfy.org/tutorials/flux/flux-1-kontext-dev)；本地指南 [celebdeep Kontext+Undress](https://celebdeep.com/blog/local-flux-undress-guide-flux-kontext-undress-lora-low-end-gpus-supported/)；Civitai [Clothing Removal Accelerated](https://civitai.com/models/1764387/fluxkontextdev-clothing-removal-accelerated-edition-v1-pre-installation)、[remove anything](https://civitai.com/models/1806480/flux-workflow-kontext-remove-anything)；Reddit [Kontext NSFW 受限](https://www.reddit.com/r/StableDiffusion/comments/1llpsk1/flux_kontext_dev_can_not_do_nfw/) | 布料去衣社区案例多；**金属甲/审查**不稳，作辅线 | 需强提示锁构图；半人马无先例 |
+| **禁** | R3/R3b/R3c 重生贴回；R1 Fooocus 再拧 | 本仓三轮变差 | — | — |
+
+### 2) 推荐方案（一句）
+
+**以 R1-fix 为底板，装 Qwen-Image-Edit-2511 FP8 + 去衣/物体移除 LoRA，只蒙胸腹金属膜与残边做指令编辑，再 mask_region 贴回（马身/背景锁死）；失败再加 Flux Fill 蒙版洞。**
+
+授权口令建议：「R4 Qwen-Edit 伊莲金属膜定点试点」。
+
+### 3) 5090 / sm_120 与盘空间
+
+| 检查 | 结论 |
+| --- | --- |
+| **GPU** | 791/592 = RTX 5090（sm_120）；Comfy `2.8.0+cu128` 已通 SDXL（`docs/comfyui-setup.md`）；社区 Qwen/Flux FP8 在 5090 有现成路径（[smeltcore](https://smeltcore.com/recipes/qwen-image-on-rtx-5090-20b-text-to-image-via-comfyui-fp8-blackwell-native-path/)、[ComfyUI #6643](https://github.com/Comfy-Org/ComfyUI/discussions/6643)） |
+| **显存** | 5090 32GB：Qwen Edit FP8 工作集约 **~24GB**（[vramready](https://vramready.com/vram/24gb/qwen-image-edit/)）；Fill/Kontext FP8/BF16 在 32GB 可跑 |
+| **盘（已知快照）** | 早期 `df`：`/root/autodl-tmp` **150G / 用 25G / 余 126G**（`mutex-run.log`）；扩容已是付费 **+100GiB**（免费 50 + 付费 100） |
+| **R4 净增** | Qwen 主栈 ≈ **30.7–32GB**（见下表）→ **余量够，可不扩盘** |
+| **若叠 Fill** | 再 +≈ **34GB**（Fill 23.8 + T5/CLIP/VAE；若与 Qwen 文本塔不共用）→ 建议余量 <50G 时扩到 **200GiB 总盘（再 +50GiB）** |
+| **扩盘报价** | AutoDL 付费数据盘 ≈ **¥0.0066/日/GB**（[文档](https://www.autodl.com/docs/local_disk/)，以网页为准）；**+50GB ≈ ¥0.33/日**（关机也计），约 **¥10/月**；两台各扩则 ×2。须另授权，且保有机禁止 release |
+
+### 4) 下载清单与体积（R4 首选）
+
+路径相对 ComfyUI `models/`；下载走 **hf-mirror**（北京 B）。
+
+| 文件 | 用途 | 约体积 | 来源 |
+| --- | --- | --- | --- |
+| `diffusion_models/qwen_image_edit_2511_fp8mixed.safetensors` | 2511 主模 FP8 | **20.5 GB** | [Comfy-Org/Qwen-Image-Edit_ComfyUI](https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/blob/main/split_files/diffusion_models/qwen_image_edit_2511_fp8mixed.safetensors) |
+| `text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors` | VL 文本塔 | **9.4 GB** | [Comfy-Org/Qwen-Image_ComfyUI](https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI) |
+| `vae/qwen_image_vae.safetensors` | VAE | **0.3 GB** | 同上 |
+| `loras/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors` | 4-step 加速（可选） | **~0.9 GB** | 官方 2511 教程链接 |
+| `loras/qwen-edit-remove-clothes.safetensors`（或 Sentinel7 / 2509 v2 同族） | 去衣 | **0.3–0.6 GB** | [starsfriday](https://huggingface.co/starsfriday/Qwen-Image-Edit-Remove-Clothes)（472MB；Access 若拒则 [Sentinel7 295MB](https://huggingface.co/Sentinel7/qwen-image) / CivArchive） |
+| `loras/Qwen-Image-Edit-2511-Object-Remover.safetensors` | 残边/小件移除 | **~0.2–0.5 GB** | [prithivMLmods](https://huggingface.co/prithivMLmods/Qwen-Image-Edit-2511-Object-Remover) |
+| （torn 另议）`nappa` torn-clothes LoRA | 撕衣 | **小** | [nappa114514](https://huggingface.co/nappa114514/Qwen-Image-Edit-2511-torn-clothes) |
+| **R4 合计** | | **≈31–33 GB** | |
+| **备选 Fill** `flux1-fill-dev.safetensors` | 蒙版 inpaint | **23.8 GB** | [BFL Fill-dev](https://huggingface.co/black-forest-labs/FLUX.1-Fill-dev)（gated，需 HF token） |
+| Fill 配套 T5/CLIP/ae | | **≈10 GB** | comfyanonymous / BFL |
+| **备选 Kontext** `flux1-kontext-dev.safetensors` | 指令编辑 | **23.8 GB** | [BFL Kontext-dev](https://huggingface.co/black-forest-labs/FLUX.1-Kontext-dev) + Nudify LoRA（Civitai/社区指南） |
+
+节点：Comfy 原生 Qwen Edit 工作流；可选 ComfyUI-GGUF（若改用 GGUF 量化）。**不**再装 R3 类 EmptyLatent 重生图。
+
+### 5) 开机下载 + 试点花费（余额 ¥23.78，≈¥2.88/时）
+
+| 阶段 | 估时 | 估费 |
+| --- | --- | --- |
+| 互斥开机 + 拉码/校验 | 5–15 min | ¥0.2–0.7 |
+| 下载 R4 ≈32GB（hf-mirror + 学术加速） | 40–90 min | ¥1.9–4.3 |
+| 伊莲 R1-fix→Qwen 金属膜定点试点（1–3 种子） | 15–30 min | ¥0.7–1.4 |
+| 关机留盘 | — | — |
+| **合计（仅 R4）** | **≈1–2.5 h** | **≈¥3.5–7** |
+| 硬顶建议 | | **≤¥8**（≈1/3 余额） |
+| 若同机会再下 Fill | +40–80 min | +¥2–4 → 合计易 **¥6–11**；建议 **第二授权** |
+| 扩盘 +50GB（可选） | 关机也扣 | **¥0.33/日** |
+
+**不做**：R3/R3b/R3c；成衣板再 Fooocus 甲壳大洞；未授权扩盘/双机同时开。
+
+### 6) 实施要点（授权后）
+
+1. 输入 = **R1-fix PNG**（非成衣板）。
+2. 蒙版 = 成衣板甲壳 ∪ R1-fix 高光膜 ∪ 黑线残边；**减去** y≥`horse_guard_y` 马身与宽背景。
+3. 提示：去掉半透明金属膜/铠甲残片，显露真实皮肤；保持脸、眼镜、姿势、马身、石台背景不变。
+4. 输出只在蒙版羽化带内 `mask_region` 合成回 R1-fix。
+5. 观感判定；失败再议 Fill，不自动开 Kontext 全家桶。
 
 
 ## R1/R1-fix 终局与路线重排（2026-10-09，不开机、不出图）
@@ -282,14 +368,14 @@ run6 **不是可用终态**（Codex 史约 8.0、`armor_remain`、`best_residual
 
 | 序 | 方案 | 做法要点 | 新装 | 5090 | 盘（100GiB） | 半人马风险 | 估费 | 是否值得砸 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **① 首选（修订）** | **R3b：上身竖幅定点修**（R3 整幅已失败） | 上身裁切 EmptyLatent；OpenPose≈0.5；InstantID≈0.5；提示词单人上身裸；马毛-only 贴回 | **0** | 已通 | 够 | 中 | 试点 **≈¥0.8–2**（余额 ¥24.02，硬顶 ≤¥3） | **是** |
+| **① 首选（修订→已废止）** | **~~R3b：上身竖幅定点修~~**（试点失败；停线） | 上身裁切 EmptyLatent；OpenPose≈0.5；InstantID≈0.5；提示词单人上身裸；马毛-only 贴回 | **0** | 已通 | 够 | 中 | 试点 **≈¥0.8–2**（余额 ¥24.02，硬顶 ≤¥3） | **是** |
 | **② 备选** | **R2：Qwen-Image-Edit-2511 + remove/torn LoRA** | 指令/蒙版去衣；可选后再 SDXL FaceDetailer | **20–50GB+** | 社区 FP8 可跑 | 紧但可塞 | **很高** | **¥4–8+** | 仅 ① 失败后再议 |
 
-**不进前二**：Flux Fill/Kontext 全家桶（盘与 NSFW LoRA 权限成本更高）；再调 Fooocus denoise；原方案 A 整洞 1.0 inpaint（与 R1-fix 同死结）。
+**不进前二（2026-10-09 原文；2026-10-10 废止）**：当时因体积排除 Flux/Qwen；现已改「R1-fix 基线 + 社区重扫」**允许大下载**。仍禁止：再调 Fooocus denoise；原方案 A 整洞 1.0；R3/R3b/R3c。
 
-**砸钱建议（余额 ¥24.02）**：**只授权 R3b 上身定点修（硬顶 ≤¥3）**；失败再议 R2。禁止 R1 Fooocus 甲壳 inpaint；禁止原样重跑 R3 整幅 0.90 OpenPose。
+**砸钱建议（已废止 → 见「R1-fix 基线 + 社区重扫」）**：R3b 试点已失败并停线；现余额 **¥23.78**，首选 **R4 Qwen-Edit 金属膜定点**（硬顶 ≤¥8）。禁止 R1 Fooocus 甲壳再拧；禁止 R3/R3b/R3c。
 
-授权口令建议：「R3b 伊莲上身重生试点」或（明确接受贵下载后）「R2 Qwen-Edit 试点」。
+授权口令建议：「R4 Qwen-Edit 伊莲金属膜定点试点」。
 
 ### 4) R3 实施要点（2026-10-09 19:41 已授权试点）
 
@@ -334,7 +420,7 @@ run6 **不是可用终态**（Codex 史约 8.0、`armor_remain`、`best_residual
 | 估费（¥24.02） | 试点 **≈¥0.8–2**，硬顶建议 **≤¥3** | 下载+试点易 **¥4–8+**（约 1/5～1/3 余额） |
 | 值得砸？ | **是——唯一低成本验证「骨架域」假设** | 仅 R3b 仍解剖崩再议 |
 
-**推荐下一步：R3b（上身竖幅 + 弱 OpenPose + 降 InstantID + 马毛-only 贴回）。** 授权口令：「R3b 伊莲上身重生试点」。失败后再授权 R2。
+**推荐下一步（2026-10-09 原文；已废止）**：R3b 试点已失败且用户停线。**现推荐见「R1-fix 基线 + 社区重扫」R4 Qwen-Edit。**
 
 
 ## R1 伊莲 nude 试点离线诊断（2026-10-09，不开机、不出图）
