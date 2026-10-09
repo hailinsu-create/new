@@ -247,6 +247,7 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 - **R3b 试点（2026-10-10 00:55 授权，592，`8770408`）不可用**：上身解剖已好（无双头），但马毛贴回雾化/腰缝甲片/场景断裂。产物含 preview/torso webp。关机留盘。
 - **2026-10-10 01:28 用户停线**：R1-fix 之后 R3/R3b **越来越差** → **立即停掉 R3 / R3b / R3c 整图重生与合成方向**，不再继续。当前最好基线 = **R1-fix**。
 - **R4 已实现（2026-10-10 01:38 授权）**：`workflows/comfyui/run_fox_centaur_community_r4.py` + `install_r4_qwen.sh` + 试点 `run_r4_pilot.py`。R1-fix 底板 + 金属膜/残边蒙版 + Qwen-Image-Edit-2511 FP8（Lightning+去衣+Object-Remover）；马身/背景 `mask_region` 锁死；**不含** Flux Fill。产物 `…/r4/`。需 `--i-know-authorized`。
+- **R4 试点（2026-10-10，592，`dbac2be`）不可用**：模型已下到 **592**（`MODEL_HOST.json` TOTAL≈31.55GB；starsfriday 去衣 LoRA Access 失败→Sentinel7）。成图胸腹金属膜仍在（metalish 0.236→0.194）；`r4-raw` 更干净但 mask_region 覆盖不足。马身/背景 MAE=0。关机留盘。花费见 `…/r4/VISUAL_JUDGE.json`（余额 23.78→≈21.42）。
 
 - AI 漫画工作流内 **grok 一律走 Cursor 本机**，禁止 grok.com / 其他渠道 CLI。
 
