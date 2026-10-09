@@ -228,7 +228,7 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 
 **在成衣大面积旗袍/铠甲上做分带局部擦衣补皮，对这套底板根本不可行**——洞太大时边界织物纹理泄漏、LaMa/弱贴肤只能糊泥，而抬 denoise / 多轮残留只是在「留衣」与「糊死/肉缝」之间摇摆，无法稳定出可用皮肤。
 
-### 3) 替代方案（≤2；推荐 A）
+### 3) 替代方案（≤2；**2026-10-09 复盘后方案 A 暂不执行，见下节「社区复盘」**）
 
 共用约束：互斥单机、关机留盘、不开第三台、余额 ≈¥26.72 → **先单张试点再四张**；5090 payg ≈ **¥2.88/时**（2880 厘）。
 
@@ -248,13 +248,13 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 - **新模型**：可能要 IP-Adapter FaceID Plus（scheme_b 已列）；半人马无可靠姿态先验，**伊莲风险高于 A**。
 - **花费**：估 **¥2.5–4**（含重试），更费余额。
 
-**推荐 A**：保留构图与九尾/马身，避开大洞 LaMa；栈侧 InstantID/OpenPose 已有图式可抄，省下载与试错。
+**原推荐 A 已搁置（2026-10-09）**：社区指出 Fooocus 大洞易糊、denoise>0.9 易漂体；整片高 denoise 假设需修正。见「社区复盘与修订推荐」。
 
 ### 4) 实施状态
 
 - 文档本节已落盘；入口骨架见 `workflows/comfyui/run_fox_centaur_wholebody.py`（**未上机、默认拒绝无授权开机**）。
 - **禁止**再改 `RESIDUAL_*` / `HIP_PIXELFILL_*` / `ELENA_JUNCTION_*` 微调后开机。
-- 下次开机需用户明确授权「跑方案 A 试点」。
+- **方案 A 暂不执行**；下次开机须用户明确授权「跑修订推荐 R1/R2」。
 
 
 ## 审核补丁（同日代码审）
