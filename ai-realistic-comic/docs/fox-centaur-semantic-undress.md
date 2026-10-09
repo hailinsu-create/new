@@ -239,8 +239,53 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 - 方案 A：**暂不执行**。`run_fox_centaur_wholebody.py` 仅草稿。
 - R1 **已实现**：`workflows/comfyui/run_fox_centaur_community_r1.py`（默认 denoise 0.82 + CropAndStitch + OpenPose；无 LaMa 残留/pixelfill）。需 `--i-know-authorized`。
 - **R1 伊莲 nude 试点（592，commit `4a752aa`）不可用** → 见下节离线诊断；代码已定点修正为 **R1-fix**。
-- **R1-fix 复测（2026-10-09 授权，592，`de91cdf`）不可用**：盘上 sha 已对齐；参数确为 1.0×3 + edge 0.42 + OpenPose 0.40；成图胸腹仍半透明高光金属膜。产物 `/opt/cursor/artifacts/fox-centaur-semantic/r1-fix/`。其余三张跳过，关机留盘。花费 ≈¥0.45（26.11→25.66）。**下一步须另议（R2 或新蒙版/路线），勿再盲复跑同参。**
+- **R1-fix 复测（2026-10-09 授权，592，`de91cdf`）不可用**：盘上 sha 已对齐；参数确为 1.0×3 + edge 0.42 + OpenPose 0.40；成图胸腹仍半透明高光金属膜。产物 `/opt/cursor/artifacts/fox-centaur-semantic/r1-fix/`。其余三张跳过，关机留盘。花费 ≈¥0.45（26.11→25.66）。
+- **2026-10-09 终局（离线）**：现有 Fooocus/RealVis **擦衣 inpaint 栈对伊莲镜面金属甲已到头**；**禁止再微调同栈 denoise / OpenPose / 金属负向复跑**。下一步见「R1/R1-fix 终局与路线重排」。
 - AI 漫画工作流内 **grok 一律走 Cursor 本机**，禁止 grok.com / 其他渠道 CLI。
+
+
+## R1/R1-fix 终局与路线重排（2026-10-09，不开机、不出图）
+
+余额快照 **¥25.66**。R1（0.82×1）与 R1-fix（1.0×3）均 VISUAL_JUDGE **不可用**。
+
+### 1) 结论：现有栈对镜面金属甲是否到头？
+
+**是——对「成衣甲壳板 + Fooocus inpaint 洞内擦成皮肤」这条路，伊莲高光金属甲已到头。**
+
+证据：
+
+| 轮次 | 参数 | 观感 | 躯干 skinish / metalish（框统计） |
+| --- | --- | --- | --- |
+| R1 | 0.82×1 + OpenPose 0.75 | 整片高光甲壳 | ≈0.28 / 0.19 |
+| R1-fix | **1.0×3** + edge 0.42 + OpenPose 0.40 + 金属负向 | 半透明贴身金属膜（仍非裸） | ≈0.34 / 0.14 |
+| run6（史优） | 1.0×3 + edge 0.42，无 OpenPose | 相对真裸但仍 `armor_remain` | ≈0.40 / 0.15 |
+
+同 mask 亮铬区相对成衣板的 MAE：run6 **69**、R1-fix **57**、R1 **81** —— fix 后像素更贴板面铬光，不是换成皮肤。说明 denoise 拉满只把「不透明甲」变成「半透明金属皮」，**结构高光仍由板面 latent / inpaint 条件泄漏**。再拧 denoise、负向、OpenPose 权重属于同栈微调，**禁止**。
+
+林旗袍等布料换装仍可能用 R1 栈；**本结论专指伊莲镜面甲 nude**。
+
+### 2) 为何「复刻 run6 参数」仍失败？
+
+run6 **不是可用终态**（Codex 史约 8.0、`armor_remain`、`best_residual_ratio=0.404`），只是「相对最好」。R1-fix 对齐了数字，**没有对齐同一条生成物理**：
+
+1. **管线不同**：run6 = 旧 `run_fox_centaur_semantic` 分带；R1-fix = CropAndStitch + community_r1 图。同 denoise≠同 latent/蒙版羽化/裁块。
+2. **蒙版不同**：garment_share run6 **0.150** vs R1/fix **0.208** —— 洞形、甲缘、臂缝覆盖不一致。
+3. **OpenPose**：run6 **无**；R1-fix 首 pass **0.40** —— 仍可能把胸廓「壳体」轮廓钉成可画金属曲面。
+4. **共同死结**：两边都以**成衣甲壳图**为 inpaint 图像条件。Fooocus+RealVis 在镜面结构上即使 denoise=1.0，仍易保留 specular 响应 → 半透明金属膜。run6「较好」是少一点残甲，不是擦穿。
+5. **禁止误读**：不是「没跑到 1.0×3」；`r1-fix/...run.json` passes 已记录 1.0 / 1.0 / 1.0 + edge 0.42。
+
+### 3) 下一步排序（最多两个；须另授权开机）
+
+| 序 | 方案 | 做法要点 | 新装 | 5090 | 盘（100GiB） | 半人马风险 | 估费（¥25.66） | 是否值得砸 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **① 首选** | **R3 / 方案 B：成衣只作姿势+脸参考，裸体整图重生成** | OpenPose(+可选深度) + InstantID 自底板；txt2img/高 denoise 出裸躯干；马身/背景/接缝甲保护区自原板贴回（复用 `scheme_b_from_plate` / InstantID 已装栈） | **≈0～2GB**（缺 FaceDetailer 才补） | 已通 SDXL+InstantID+OpenPose | **够** | **高**（接缝/马体易漂；靠保护区硬贴） | 试点伊莲 nude **≈¥1–2.5**；四张硬顶建议 **≤¥5** | **值得试一次便宜试点**——唯一避开「在甲壳 latent 上擦」的现栈路线 |
+| **② 备选** | **R2：Qwen-Image-Edit-2511 + remove/torn LoRA** | 指令/蒙版去衣；可选后再 SDXL FaceDetailer | **20–50GB+** | 社区 FP8 可跑；勿与大 Flux 同驻 | 紧但可塞（扩容 100GiB） | **很高**（本仓 Qwen 全身去衣 vs 锁脸历史互斥；半人马无先例） | 下载+试点易 **¥4–8+** | **暂不优先**；仅当 ① 失败且接受烧掉约 1/4～1/3 余额 |
+
+**不进前二**：Flux Fill/Kontext 全家桶（盘与 NSFW LoRA 权限成本更高）；再调 Fooocus denoise；原方案 A 整洞 1.0 inpaint（与 R1-fix 同死结）。
+
+**砸钱建议**：余额 ¥25.66 下，**只授权 ① 单张伊莲 nude 试点（硬顶 ≤¥3）**；失败再决定是否上 ②。不要为同栈 denoise 再开机。
+
+授权口令建议：「R3 伊莲 nude 整图重生成试点」或（明确接受贵下载后）「R2 Qwen-Edit 试点」。
 
 
 ## R1 伊莲 nude 试点离线诊断（2026-10-09，不开机、不出图）
@@ -271,28 +316,20 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 
 ### 2) 与 run6（相对较好伊莲 nude）参数/蒙版差异
 
-| 项 | R1 试点（失败） | run6（较好） | R1-fix（已改代码，未跑） |
+| 项 | R1 试点（失败） | run6（相对较好） | R1-fix（已跑，仍失败） |
 | --- | --- | --- | --- |
 | 管线 | community_r1，无 LaMa | 旧 semantic，无 LaMa 残留环 | 同 R1 栈，仍无 LaMa |
-| nude denoise × passes | **0.82 × 1** | **1.0 × 3** | **1.0 × 3** |
+| nude denoise × passes | **0.82 × 1** | **1.0 × 3** | **1.0 × 3**（已验证） |
 | edge denoise | 0.32 | **0.42** | **0.42** |
-| OpenPose | on，strength **0.75** | 无（当时未锁姿） | on，仅首 pass，**0.40** |
-| garment_share | 0.208 | 0.150 | 同 R1 蒙版逻辑 |
-| 金属负向 | 无 | 无专项 | `ELENA_METAL_NEG_EXTRA`（chrome/specular/plate…） |
-| seed | 20261209 | 20261208 | 沿用 runner 默认 |
+| OpenPose | on，strength **0.75** | 无 | on，仅首 pass，**0.40** |
+| garment_share | 0.208 | 0.150 | 0.208 |
+| 金属负向 | 无 | 无专项 | `ELENA_METAL_NEG_EXTRA` |
+| 观感 | 整片甲壳 | 相对真裸仍 `armor_remain` | 半透明金属膜 |
+| seed | 20261209 | 20261208 | 20261209 |
 
-### 3) 下一步：R1-fix（推荐）vs R2
+### 3) 下一步（本节原稿曾荐 R1-fix —— **已废止**）
 
-**推荐 R1-fix**（定点修正、现有栈、不装大模型）。不推荐此刻切 R2（Qwen Edit 下载贵、身份/半人马风险高）。
-
-| | R1-fix | R2 |
-| --- | --- | --- |
-| 改动点 | `run_fox_centaur_community_r1.py`：伊莲 `denoise=1.0`、`nude_passes=3`、`edge=0.42`、`openpose_strength=0.40`（仅首 pass）、金属负向；林仍 0.82×1 | 新装 Qwen-Image-Edit + LoRA，新工作流 |
-| 新装 | **0** | 20–50GB+ |
-| 是否开机 | **要**（用户点名授权后）单张伊莲 nude 复测 | 要，且首次下载更久 |
-| 预计花费 | 复测 ≈**¥0.5–0.8**；过关再三张 → 合计硬顶 **≤¥4**（互斥单机、关机留盘） | 易 **¥4–8+** |
-
-授权口令建议：「R1-fix 伊莲 nude 复测」。失败再评估 R2。
+R1-fix 已授权复测并失败。后续排序见上文 **「R1/R1-fix 终局与路线重排」**：① R3 整图重生成；② R2 Qwen-Edit。**禁止**再授权同栈 denoise 微调。
 
 
 ## P0/P1 回归诊断与修正（2026-10-08，离线，未开机）
