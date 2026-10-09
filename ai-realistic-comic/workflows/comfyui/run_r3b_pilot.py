@@ -1,6 +1,6 @@
 """Authorized R3b pilot: Elena nude via upper-body regen + mare-fur-only paste.
 
-User auth 2026-10-09 19:41:
+User auth 2026-10-10 00:55:
   - upper-band EmptyLatent; OpenPose 0.50; InstantID 0.50; single-woman prompt; mare-fur paste
   - existing stack; no big model; NO R1/Fooocus armor inpaint
   - prefer 791, else 592; never both

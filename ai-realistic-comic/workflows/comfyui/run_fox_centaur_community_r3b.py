@@ -209,34 +209,30 @@ def paste_mare_fur_only(
     upper_gen: Image.Image,
     y_cut: int,
 ) -> Image.Image:
-    """Full canvas: generated upper body on top; plate mare fur below (skip armor)."""
+    """Full canvas: generated upper on top; extend skin downward; overlay mare fur only."""
     plate_r = plate.convert("RGB").resize((R3B_FULL_W, R3B_FULL_H), Image.Resampling.LANCZOS)
-    # Place upper gen into [0, y_cut)
-    upper_fit = upper_gen.convert("RGB").resize((R3B_FULL_W, y_cut), Image.Resampling.LANCZOS)
-    canvas = plate_r.copy()
+    upper_fit = upper_gen.convert("RGB").resize((R3B_FULL_W, max(y_cut, 64)), Image.Resampling.LANCZOS)
+    canvas = Image.new("RGB", (R3B_FULL_W, R3B_FULL_H))
     canvas.paste(upper_fit, (0, 0))
+    # Fill below cut by repeating the last row of upper (avoids leaving plate armor)
+    if y_cut < R3B_FULL_H:
+        edge = upper_fit.crop((0, upper_fit.size[1] - 1, R3B_FULL_W, upper_fit.size[1]))
+        fill = edge.resize((R3B_FULL_W, R3B_FULL_H - y_cut), Image.Resampling.NEAREST)
+        canvas.paste(fill, (0, y_cut))
 
     plate_a = np.asarray(plate_r, dtype=np.float32)
-    canvas_a = np.asarray(canvas, dtype=np.float32)
     fur = mare_fur_mask(plate_a)
     alpha = np.zeros((R3B_FULL_H, R3B_FULL_W), dtype=np.float32)
-    # Only paste fur below cut
-    below = np.zeros_like(fur)
-    below[y_cut:, :] = True
-    alpha[below & fur] = 1.0
-    # Feather near cut for fur pixels
+    alpha[y_cut:, :] = np.where(fur[y_cut:, :], 1.0, 0.0)
     for i in range(HORSE_FEATHER):
-        y = y_cut - HORSE_FEATHER // 2 + i
+        y = y_cut - HORSE_FEATHER // 3 + i
         if 0 <= y < R3B_FULL_H:
-            row = fur[y]
-            alpha[y, row] = max(float(alpha[y, row].max() if row.any() else 0), (i + 1) / (HORSE_FEATHER + 1))
-            alpha[y] = np.where(fur[y], np.maximum(alpha[y], (i + 1) / (HORSE_FEATHER + 1) * 0.85), alpha[y])
+            t = (i + 1) / (HORSE_FEATHER + 1)
+            alpha[y] = np.where(fur[y], np.maximum(alpha[y], t), alpha[y])
 
     alpha_img = Image.fromarray(np.clip(alpha * 255, 0, 255).astype(np.uint8), mode="L")
-    alpha_img = alpha_img.filter(ImageFilter.GaussianBlur(radius=HORSE_FEATHER / 3))
-    # composite(plate, canvas, alpha) → plate where alpha=1
-    out = Image.composite(plate_r, Image.fromarray(canvas_a.astype(np.uint8)), alpha_img)
-    return out
+    alpha_img = alpha_img.filter(ImageFilter.GaussianBlur(radius=max(1, HORSE_FEATHER // 3)))
+    return Image.composite(plate_r, canvas, alpha_img)
 
 
 def save_previews(out_dir: Path, final: Image.Image, upper: Image.Image, stem: str) -> None:

@@ -243,6 +243,7 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 - **2026-10-09 终局（离线）**：现有 Fooocus/RealVis **擦衣 inpaint 栈对伊莲镜面金属甲已到头**；**禁止再微调同栈 denoise / OpenPose / 金属负向复跑**。下一步见「R1/R1-fix 终局与路线重排」。
 - **R3 已实现**：`workflows/comfyui/run_fox_centaur_community_r3.py`（EmptyLatent + InstantID + OpenPose；马身 `horse_guard_y` 贴回；**无** Fooocus 甲壳 inpaint）。试点驱动 `run_r3_pilot.py`。需 `--i-know-authorized`。产物目录 `…/r3/`。
 - **R3 试点（2026-10-09 19:41 授权）**：首轮抢卡 60min 无卡；**续跑（2026-10-10 00:38）** 592 开机，sha 对齐，EmptyLatent+InstantID+OpenPose+马身贴回 → **不可用**（双头/多乳畸形，非甲壳残影）。产物 `…/r3/`，关机留盘。余额见当次 `VISUAL_JUDGE.json`。
+- **R3b 已实现**：`workflows/comfyui/run_fox_centaur_community_r3b.py`（上身 1024×768 EmptyLatent；OpenPose 0.50；InstantID 0.50；单人上身提示；马毛-only 贴回）。试点 `run_r3b_pilot.py`；产物 `…/r3b/`。
 - AI 漫画工作流内 **grok 一律走 Cursor 本机**，禁止 grok.com / 其他渠道 CLI。
 
 
