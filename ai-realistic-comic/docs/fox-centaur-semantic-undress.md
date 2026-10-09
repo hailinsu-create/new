@@ -242,6 +242,7 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 - **R1-fix 复测（2026-10-09 授权，592，`de91cdf`）不可用**：盘上 sha 已对齐；参数确为 1.0×3 + edge 0.42 + OpenPose 0.40；成图胸腹仍半透明高光金属膜。产物 `/opt/cursor/artifacts/fox-centaur-semantic/r1-fix/`。其余三张跳过，关机留盘。花费 ≈¥0.45（26.11→25.66）。
 - **2026-10-09 终局（离线）**：现有 Fooocus/RealVis **擦衣 inpaint 栈对伊莲镜面金属甲已到头**；**禁止再微调同栈 denoise / OpenPose / 金属负向复跑**。下一步见「R1/R1-fix 终局与路线重排」。
 - **R3 已实现**：`workflows/comfyui/run_fox_centaur_community_r3.py`（EmptyLatent + InstantID + OpenPose；马身 `horse_guard_y` 贴回；**无** Fooocus 甲壳 inpaint）。试点驱动 `run_r3_pilot.py`。需 `--i-know-authorized`。产物目录 `…/r3/`。
+- **R3 试点（2026-10-09 19:41 授权）**：代码/文档已推（`d51ee12`）；抢卡 **60min** 791/592 均无空卡 → **按授权停表，未开机、未出图**；余额仍 ≈¥25.66。日志 `/opt/cursor/artifacts/fox-centaur-semantic/r3/`。须另授权再抢卡。
 - AI 漫画工作流内 **grok 一律走 Cursor 本机**，禁止 grok.com / 其他渠道 CLI。
 
 
