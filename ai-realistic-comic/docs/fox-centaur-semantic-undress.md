@@ -285,9 +285,9 @@ run6 **不是可用终态**（Codex 史约 8.0、`armor_remain`、`best_residual
 
 **不进前二**：Flux Fill/Kontext 全家桶（盘与 NSFW LoRA 权限成本更高）；再调 Fooocus denoise；原方案 A 整洞 1.0 inpaint（与 R1-fix 同死结）。
 
-**砸钱建议**：余额 ¥25.66 下，**只授权 ① 单张伊莲 nude 试点（硬顶 ≤¥3）**；失败再决定是否上 ②。不要为同栈 denoise 再开机。
+**砸钱建议（余额 ¥24.02）**：**只授权 R3b 上身定点修（硬顶 ≤¥3）**；失败再议 R2。禁止 R1 Fooocus 甲壳 inpaint；禁止原样重跑 R3 整幅 0.90 OpenPose。
 
-授权口令建议：「R3 伊莲 nude 整图重生成试点」或（明确接受贵下载后）「R2 Qwen-Edit 试点」。
+授权口令建议：「R3b 伊莲上身重生试点」或（明确接受贵下载后）「R2 Qwen-Edit 试点」。
 
 ### 4) R3 实施要点（2026-10-09 19:41 已授权试点）
 
