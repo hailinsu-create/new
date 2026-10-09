@@ -232,7 +232,7 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 - **开机**：首次下载 **0.5–2 h**（¥1.5–6）+ 出图；总成本易 **¥4–8+**，对 ¥26.72 不友好。
 - **预期**：普通人像去衣残影可能好于 SDXL；**身份/半人马**按本仓库既往 Qwen 经验仍高风险。
 
-**不推荐此刻**：Flux Fill/Kontext 全家桶；PowerPaint 主路径（SD1.5）；再调 `RESIDUAL_*`；原方案 A 整片 denoise≈1.0。
+**不推荐此刻**：Flux Fill/Kontext 全家桶；PowerPaint 主路径（SD1.5）；再调 `RESIDUAL_*`；原方案 A 整片 denoise≈1.0；**再调 R1/Fooocus denoise 擦伊莲金属甲**（R1-fix 已证到头）。
 
 ### 4) 实施状态
 
