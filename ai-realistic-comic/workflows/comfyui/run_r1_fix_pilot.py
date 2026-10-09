@@ -149,19 +149,11 @@ def wait_running(auth: str, uuid: str, minutes: float = 8.0) -> None:
 
 
 def remote_sha() -> str:
-    cmd = (
-        f"{bring.REMOTE_PY} - <<'PY'\n"
-        "import hashlib\n"
-        f"p={REMOTE_SCRIPT!r}\n"
-        "h=hashlib.sha256(open(p,'rb').read()).hexdigest()\n"
-        "print(h)\n"
-        "PY"
-    )
-    run = bring.ssh(cmd, check=True)
-    for line in reversed(run.stdout.splitlines()):
-        line = line.strip()
-        if len(line) == 64 and all(c in "0123456789abcdef" for c in line):
-            return line
+    run = bring.ssh(f"sha256sum {shlex.quote(REMOTE_SCRIPT)}", check=True)
+    for line in run.stdout.splitlines():
+        parts = line.strip().split()
+        if parts and len(parts[0]) == 64:
+            return parts[0]
     raise SystemExit(f"REMOTE_SHA_PARSE_FAIL {run.stdout[-200:]!r}")
 
 
