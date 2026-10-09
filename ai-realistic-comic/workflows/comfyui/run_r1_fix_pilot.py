@@ -51,17 +51,16 @@ def log(msg: str) -> None:
 
 
 def balance_yuan() -> float:
+    """Wallet balance in yuan (API assets / assets_li are in 厘 = 0.001 yuan)."""
     token = power.dev_token()
     if not token:
         return -1.0
     _status, reply = power.post(power.DEV_BALANCE, {"Authorization": token}, {})
     data = reply.get("data") or {}
-    # assets field historically used; also assets_li as milli-yuan
-    if "assets" in data:
-        return float(data["assets"])
-    if "assets_li" in data:
-        return float(data["assets_li"]) / 1000.0
-    return -1.0
+    raw = data.get("assets_li", data.get("assets"))
+    if raw is None:
+        return -1.0
+    return float(raw) / 1000.0
 
 
 def host_idle(auth: str, uuid: str) -> tuple[int, str, str]:
@@ -280,16 +279,18 @@ def main() -> None:
     log(f"START commit={COMMIT[:12]} sha={LOCAL_SHA} bal={start_bal:.2f} cap={CAP_YUAN}")
     if not LOCAL_SCRIPT.is_file():
         raise SystemExit("LOCAL_SCRIPT_MISSING")
-    # emit-plan sanity
-    plan = subprocess.check_output(
-        [sys.executable, str(LOCAL_SCRIPT), "--emit-plan"],
-        text=True,
-    )
-    plan_j = json.loads(plan)
-    assert plan_j.get("elena_denoise") == 1.0
-    assert plan_j.get("elena_nude_passes") == 3
-    assert abs(float(plan_j.get("elena_openpose_strength")) - 0.40) < 1e-6
-    log(f"PLAN_OK {json.dumps(plan_j, ensure_ascii=False)}")
+    # Local constant gate (avoid importing PIL on the cloud agent host).
+    src = LOCAL_SCRIPT.read_text(encoding="utf-8")
+    for needle in (
+        "R1_ELENA_DENOISE = 1.0",
+        "R1_ELENA_NUDE_PASSES = 3",
+        "R1_ELENA_OPENPOSE_STRENGTH = 0.40",
+        "R1_ELENA_EDGE_DENOISE = 0.42",
+        "ELENA_METAL_NEG_EXTRA",
+    ):
+        if needle not in src:
+            raise SystemExit(f"PLAN_GATE_FAIL missing {needle!r}")
+    log("PLAN_OK elena 1.0×3 edge0.42 openpose0.40 metal_neg")
 
     dual.refuse_third(auth)
     power.assert_fleet_cap()
