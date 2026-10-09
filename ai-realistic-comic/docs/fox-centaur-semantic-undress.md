@@ -238,8 +238,9 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 
 - 方案 A：**暂不执行**。`run_fox_centaur_wholebody.py` 仅草稿。
 - R1 **已实现**：`workflows/comfyui/run_fox_centaur_community_r1.py`（默认 denoise 0.82 + CropAndStitch + OpenPose；无 LaMa 残留/pixelfill）。需 `--i-know-authorized`。
-- **R1 伊莲 nude 试点（592，commit `4a752aa`）不可用** → 见下节离线诊断；代码已定点修正为 **R1-fix**（仍现有栈，未装大模型）。**未再开机出图。**
-- 下次开机须用户点名授权「R1-fix 伊莲 nude 复测」或「R2」。AI 漫画工作流内 **grok 一律走 Cursor 本机**，禁止 grok.com / 其他渠道 CLI。
+- **R1 伊莲 nude 试点（592，commit `4a752aa`）不可用** → 见下节离线诊断；代码已定点修正为 **R1-fix**。
+- **R1-fix 复测（2026-10-09 授权，592，`de91cdf`）不可用**：盘上 sha 已对齐；参数确为 1.0×3 + edge 0.42 + OpenPose 0.40；成图胸腹仍半透明高光金属膜。产物 `/opt/cursor/artifacts/fox-centaur-semantic/r1-fix/`。其余三张跳过，关机留盘。花费 ≈¥0.45（26.11→25.66）。**下一步须另议（R2 或新蒙版/路线），勿再盲复跑同参。**
+- AI 漫画工作流内 **grok 一律走 Cursor 本机**，禁止 grok.com / 其他渠道 CLI。
 
 
 ## R1 伊莲 nude 试点离线诊断（2026-10-09，不开机、不出图）
