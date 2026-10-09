@@ -162,13 +162,26 @@ def ship_r1fix() -> None:
         raise SystemExit(f"LOCAL_R1FIX_MISSING {LOCAL_R1FIX}")
     bring.ssh(f"mkdir -p {REMOTE_INPUT}", check=True)
     remote = f"{REMOTE_INPUT}/elena-armor-centaur-nude-r1fix.png"
-    cmd = bring.ssh_argv([f"cat > {shlex.quote(remote)}"])
-    with LOCAL_R1FIX.open("rb") as fh:
-        proc = subprocess.run(cmd, stdin=fh, capture_output=True)
+    conn = bring.connection()
+    scp = [
+        "scp",
+        "-i",
+        str(bring.KEY_COPY),
+        "-P",
+        conn["port"],
+        "-o",
+        "StrictHostKeyChecking=accept-new",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "ConnectTimeout=20",
+        str(LOCAL_R1FIX),
+        f"{conn['user']}@{conn['host']}:{remote}",
+    ]
+    proc = subprocess.run(scp, capture_output=True, text=True, timeout=180)
     if proc.returncode != 0:
-        raise SystemExit(f"SHIP_R1FIX_FAIL {proc.stderr[:200]!r}")
+        raise SystemExit(f"SHIP_R1FIX_FAIL {proc.stderr[:300]!r}")
     log(f"SHIP_R1FIX -> {remote} bytes={LOCAL_R1FIX.stat().st_size}")
-
 
 def remote_job(cmd: str, *, log_name: str, stuck_min: float = STUCK_MIN, hard_min: float = 150.0) -> int:
     remote_log = f"{REMOTE_OUT}/{log_name}.log"
@@ -288,53 +301,10 @@ def sync_store() -> None:
     log(f"STORE_SYNC -> {STORE}")
 
 
-def main() -> None:
-    OUT.mkdir(parents=True, exist_ok=True)
-    auth = power.web_authorization()
-    if not auth:
-        raise SystemExit("WEB_AUTH_MISSING")
-    start_bal = balance_yuan()
-    log(f"START commit={COMMIT[:12]} sha={LOCAL_SHA} bal={start_bal:.2f} cap={CAP_YUAN}")
-    if not LOCAL_SCRIPT.is_file() or not LOCAL_INSTALL.is_file():
-        raise SystemExit("LOCAL_SCRIPTS_MISSING")
-    src = LOCAL_SCRIPT.read_text(encoding="utf-8")
-    for needle in (
-        "community_r4_qwen_edit_metal_film_mask",
-        "TextEncodeQwenImageEditPlus",
-        "metal_film_mask",
-        "mask_region",
-        "flux_fill",
-    ):
-        if needle not in src:
-            raise SystemExit(f"PLAN_GATE_FAIL missing {needle!r}")
-    if "EmptyLatentImage" in src and "r3" in src.lower():
-        pass  # ok if mentioned in forbid comments
-    log("PLAN_OK R4 qwen metal-film mask")
-
-    (OUT / "AWAITING_JUDGE.json").write_text(
-        json.dumps(
-            {
-                "commit": COMMIT,
-                "sha256": LOCAL_SHA,
-                "start_bal": start_bal,
-                "awaiting_visual_judge": True,
-                "cap_yuan": CAP_YUAN,
-            },
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
-
-    dual.refuse_third(auth)
-    power.assert_fleet_cap()
-
-    role, uuid = pick_and_power(auth)
-    log(f"WINNER {role} {uuid}")
-    wait_running(auth, uuid)
-    wire_ssh(role, auth, uuid)
+def after_boot(auth: str, role: str, uuid: str, start_bal: float) -> None:
+    """Ship, download models, generate — shared by fresh boot and continue."""
     bring.wait_ssh(12)
     bring.ship(False)
-    # also ship install script (under workflows already) + r1-fix
     rem = remote_sha()
     log(f"REMOTE_SHA {rem}")
     if rem != LOCAL_SHA:
@@ -349,7 +319,6 @@ def main() -> None:
 
     ship_r1fix()
 
-    # record which machine gets the models
     alias = host_idle(auth, uuid)[2]
     (OUT / "MACHINE.json").write_text(
         json.dumps({"role": role, "uuid": uuid, "alias": alias, "commit": COMMIT}, indent=2),
@@ -357,7 +326,6 @@ def main() -> None:
     )
     log(f"MODEL_TARGET role={role} alias={alias} uuid={uuid}")
 
-    # update Comfy for Qwen nodes, then download models
     update_comfy()
     dl_cmd = (
         f"export HF_ENDPOINT=https://hf-mirror.com COMFY={bring.COMFY_DIR} "
@@ -403,6 +371,78 @@ def main() -> None:
     print("MACHINE_HELD_FOR_JUDGE", flush=True)
 
 
+def main() -> None:
+    OUT.mkdir(parents=True, exist_ok=True)
+    auth = power.web_authorization()
+    if not auth:
+        raise SystemExit("WEB_AUTH_MISSING")
+    start_bal = balance_yuan()
+    log(f"START commit={COMMIT[:12]} sha={LOCAL_SHA} bal={start_bal:.2f} cap={CAP_YUAN}")
+    if not LOCAL_SCRIPT.is_file() or not LOCAL_INSTALL.is_file():
+        raise SystemExit("LOCAL_SCRIPTS_MISSING")
+    src = LOCAL_SCRIPT.read_text(encoding="utf-8")
+    for needle in (
+        "community_r4_qwen_edit_metal_film_mask",
+        "TextEncodeQwenImageEditPlus",
+        "metal_film_mask",
+        "mask_region",
+        "flux_fill",
+    ):
+        if needle not in src:
+            raise SystemExit(f"PLAN_GATE_FAIL missing {needle!r}")
+    log("PLAN_OK R4 qwen metal-film mask")
+
+    (OUT / "AWAITING_JUDGE.json").write_text(
+        json.dumps(
+            {
+                "commit": COMMIT,
+                "sha256": LOCAL_SHA,
+                "start_bal": start_bal,
+                "awaiting_visual_judge": True,
+                "cap_yuan": CAP_YUAN,
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    dual.refuse_third(auth)
+    power.assert_fleet_cap()
+
+    role, uuid = pick_and_power(auth)
+    log(f"WINNER {role} {uuid}")
+    wait_running(auth, uuid)
+    wire_ssh(role, auth, uuid)
+    after_boot(auth, role, uuid, start_bal)
+
+
+def continue_on_running() -> None:
+    """Resume after a hung ship/download when clone/mother is already up (no re-power)."""
+    OUT.mkdir(parents=True, exist_ok=True)
+    auth = power.web_authorization()
+    if not auth:
+        raise SystemExit("WEB_AUTH_MISSING")
+    start_bal = balance_yuan()
+    if (OUT / "AWAITING_JUDGE.json").exists():
+        start_bal = float(json.loads((OUT / "AWAITING_JUDGE.json").read_text()).get("start_bal", start_bal))
+    mother = power.MOTHER_UUID
+    clone = power.clone_uuid()
+    role, uuid = None, None
+    for name, u in (("mother", mother), ("clone", clone)):
+        if u and dual.instance_status(auth, u) == "running":
+            role, uuid = name, u
+            break
+    if not role or not uuid:
+        raise SystemExit("CONTINUE_NO_RUNNING_INSTANCE")
+    # ensure peer off
+    dual.ensure_peer_shutdown(auth, uuid)
+    log(f"CONTINUE role={role} uuid={uuid} bal={start_bal:.2f}")
+    wire_ssh(role, auth, uuid)
+    # refresh script sha after local fix
+    bring.ship(True)
+    after_boot(auth, role, uuid, start_bal)
+
+
 def shutdown_only() -> None:
     log("SHUTDOWN_ONLY keep-disk")
     power.shutdown_fleet()
@@ -414,5 +454,7 @@ def shutdown_only() -> None:
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "shutdown":
         shutdown_only()
+    elif len(sys.argv) > 1 and sys.argv[1] == "continue":
+        continue_on_running()
     else:
         main()
