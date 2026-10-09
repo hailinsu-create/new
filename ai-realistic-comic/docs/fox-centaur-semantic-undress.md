@@ -278,10 +278,10 @@ run6 **不是可用终态**（Codex 史约 8.0、`armor_remain`、`best_residual
 
 ### 3) 下一步排序（最多两个；须另授权开机）
 
-| 序 | 方案 | 做法要点 | 新装 | 5090 | 盘（100GiB） | 半人马风险 | 估费（¥25.66） | 是否值得砸 |
+| 序 | 方案 | 做法要点 | 新装 | 5090 | 盘（100GiB） | 半人马风险 | 估费 | 是否值得砸 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **① 首选** | **R3 / 方案 B：成衣只作姿势+脸参考，裸体整图重生成** | OpenPose(+可选深度) + InstantID 自底板；txt2img/高 denoise 出裸躯干；马身/背景/接缝甲保护区自原板贴回（复用 `scheme_b_from_plate` / InstantID 已装栈） | **≈0～2GB**（缺 FaceDetailer 才补） | 已通 SDXL+InstantID+OpenPose | **够** | **高**（接缝/马体易漂；靠保护区硬贴） | 试点伊莲 nude **≈¥1–2.5**；四张硬顶建议 **≤¥5** | **值得试一次便宜试点**——唯一避开「在甲壳 latent 上擦」的现栈路线 |
-| **② 备选** | **R2：Qwen-Image-Edit-2511 + remove/torn LoRA** | 指令/蒙版去衣；可选后再 SDXL FaceDetailer | **20–50GB+** | 社区 FP8 可跑；勿与大 Flux 同驻 | 紧但可塞（扩容 100GiB） | **很高**（本仓 Qwen 全身去衣 vs 锁脸历史互斥；半人马无先例） | 下载+试点易 **¥4–8+** | **暂不优先**；仅当 ① 失败且接受烧掉约 1/4～1/3 余额 |
+| **① 首选（修订）** | **R3b：上身竖幅定点修**（R3 整幅已失败） | 上身裁切 EmptyLatent；OpenPose≈0.5；InstantID≈0.5；提示词单人上身裸；马毛-only 贴回 | **0** | 已通 | 够 | 中 | 试点 **≈¥0.8–2**（余额 ¥24.02，硬顶 ≤¥3） | **是** |
+| **② 备选** | **R2：Qwen-Image-Edit-2511 + remove/torn LoRA** | 指令/蒙版去衣；可选后再 SDXL FaceDetailer | **20–50GB+** | 社区 FP8 可跑 | 紧但可塞 | **很高** | **¥4–8+** | 仅 ① 失败后再议 |
 
 **不进前二**：Flux Fill/Kontext 全家桶（盘与 NSFW LoRA 权限成本更高）；再调 Fooocus denoise；原方案 A 整洞 1.0 inpaint（与 R1-fix 同死结）。
 
@@ -295,6 +295,44 @@ run6 **不是可用终态**（Codex 史约 8.0、`armor_remain`、`best_residual
 - 禁止：Fooocus inpaint、R1 甲壳洞擦、LaMa 残留环、装 Qwen/Flux 大模型。
 - 马身：生成后 PIL 贴回 `horse_guard_y=690`（BASE）以下并羽化。
 - 互斥：791 优先 → 592；抢卡 ≤1h；卡住 ≤15min；封顶 **¥3**；关机留盘。
+
+### 5) R3 失败离线诊断（2026-10-10，不开机、不出图）
+
+产物：`/opt/cursor/artifacts/fox-centaur-semantic/r3/`（`elena-armor-centaur-nude.png`、`*-r3-raw.png`、`debug/*-face-crop.png`、`run.json`、`VISUAL_JUDGE.json`）。余额快照 **¥24.02**。
+
+#### 崩因分层
+
+| 现象 | 主因 | 证据 |
+| --- | --- | --- |
+| **双头 / 多乳**（raw 已有） | **OpenPose×半人马画幅** 为主；InstantID/提示词放大 | DWPose 跑在**整幅**铠甲半人马板上（人体检测器无马体先验），`openpose_strength=0.90` 把乱骨架钉死；提示词同时写 `facing camera` + `full-body female centaur` + 马身，与乱骨架叠成双人/叠体；InstantID `weight=0.80` + 对 **512 头肩裁切** 提 `FaceKeypoints`（scheme_b 是对整板提 kps 再贴画布）易在上半幅复制脸 |
+| **接缝甲片** | **马身贴回策略** | `below y_cut MAE≈0.1` → 贴回成功；`horse_guard_y=690` 以下含 fauld/gorget/甲缘，羽化带把甲片留进成图。不是 Fooocus 甲壳残影 |
+
+画幅：整图 1024×1536 EmptyLatent 一次出「人+马」语义，却又准备整段贴回马身 → **生成区与贴回区职责重叠**，模型在腰线附近自由发挥解剖。
+
+#### 是否可定点修（R3b，仍现有栈）
+
+**值得一试（先于 R2）**，改动点明确、新装≈0：
+
+1. **上身单独竖幅**：只生成 `y∈[0, horse_guard_y]`（或略上），宽仍 1024、高≈690–800；OpenPose/采样都只看上身裁切。
+2. **单人正向骨架**：上身裁切上跑 DWPose；`openpose_strength` 降到 **0.45–0.55**；必要时手画/过滤只留一条人体棍图；负向加 `multiple heads, conjoined, extra breasts`。
+3. **降 InstantID**：`weight` **0.45–0.60**；`image_kps` 改回 scheme_b 式（上身裁切提点），脸参考用头肩裁切或 `ref-face`。
+4. **提示词**：生成阶段**不写 centaur/horse**（马身必贴回）；写 `single adult woman, one head, upper body nude, facing camera`。
+5. **接缝甲片**：贴回切线**下移或按马毛语义蒙版**（只贴马身/马尾，不贴 fauld）；接缝 24–40px 用皮肤色短 inpaint **仅环带**（非甲壳大洞 Fooocus 路线）或从 raw 上身多羽化盖住甲缘。
+
+**不推荐**：再跑当前 R3 整幅 0.90 OpenPose；回到 R1 Fooocus 甲壳 inpaint。
+
+#### 与 R2 比较 → 推荐一步
+
+| | **R3b（定点修）** | **R2 Qwen-Edit+remove LoRA** |
+| --- | --- | --- |
+| 针对崩因 | 直接拆开画幅/骨架/InstantID/贴回 | 换编辑器，不保证半人马骨架 |
+| 新装 | **0** | 20–50GB+ |
+| 5090 / 盘 | 已通 / 够 | FP8 可跑 / 100GiB 紧 |
+| 半人马风险 | 中（贴回仍在，但生成不再画马） | **很高**（本仓 Qwen 去衣↔锁脸互斥史；无半人马先例） |
+| 估费（¥24.02） | 试点 **≈¥0.8–2**，硬顶建议 **≤¥3** | 下载+试点易 **¥4–8+**（约 1/5～1/3 余额） |
+| 值得砸？ | **是——唯一低成本验证「骨架域」假设** | 仅 R3b 仍解剖崩再议 |
+
+**推荐下一步：R3b（上身竖幅 + 弱 OpenPose + 降 InstantID + 马毛-only 贴回）。** 授权口令：「R3b 伊莲上身重生试点」。失败后再授权 R2。
 
 
 ## R1 伊莲 nude 试点离线诊断（2026-10-09，不开机、不出图）
