@@ -246,6 +246,8 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 - **R3b 已实现**：`workflows/comfyui/run_fox_centaur_community_r3b.py`（上身 1024×768 EmptyLatent；OpenPose 0.50；InstantID 0.50；单人上身提示；马毛-only 贴回）。试点 `run_r3b_pilot.py`；产物 `…/r3b/`。
 - **R3b 试点（2026-10-10 00:55 授权，592，`8770408`）不可用**：上身解剖已好（无双头），但马毛贴回雾化/腰缝甲片/场景断裂。产物含 preview/torso webp。关机留盘。
 - **2026-10-10 01:28 用户停线**：R1-fix 之后 R3/R3b **越来越差** → **立即停掉 R3 / R3b / R3c 整图重生与合成方向**，不再继续。当前最好基线 = **R1-fix**。
+- **R4 已实现（2026-10-10 01:38 授权）**：`workflows/comfyui/run_fox_centaur_community_r4.py` + `install_r4_qwen.sh` + 试点 `run_r4_pilot.py`。R1-fix 底板 + 金属膜/残边蒙版 + Qwen-Image-Edit-2511 FP8（Lightning+去衣+Object-Remover）；马身/背景 `mask_region` 锁死；**不含** Flux Fill。产物 `…/r4/`。需 `--i-know-authorized`。
+
 - AI 漫画工作流内 **grok 一律走 Cursor 本机**，禁止 grok.com / 其他渠道 CLI。
 
 ## R1-fix 基线 + 社区重扫（2026-10-10，不开机、不出图）
