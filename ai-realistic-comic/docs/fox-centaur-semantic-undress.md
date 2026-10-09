@@ -167,6 +167,80 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 5. 打分 / hillclimb 取消；bringup 只打 `VISUAL_JUDGE`。
 
 
+
+## 社区复盘与修订推荐（2026-10-09，不开机、不出图；方案 A 暂不执行）
+
+本轮系统重看 artifacts（`baseline` / `run2–run7` / `run9` / `run10` / `run12` / `run13` / `best` / `dual/clone`=P0P1 / `rollback-01a2f6f`）成图与 `debug/*-garment-overlay` / `*-residual-p*`，并检索 Civitai、Reddit、GitHub、HF、Comfy 文档、B 站等（**只记实际打开到的链接**）。
+
+### 1) 失败类型归类（工具链上限 vs 参数）
+
+| 类型 | 典型出现 | 判据 | 上限还是参数 |
+| --- | --- | --- | --- |
+| **衣物残留** | baseline–run10 林 nude；run9 伊莲 nude residual≈0.89；领口/臂甲/护腕 | 成图仍见旗袍花纹/甲片；debug 蒙版漏领口或甲件洞 | **两者都有**：蒙版漏是分割上限（SegFormer 对旗袍领/甲片不稳）；denoise 过低是参数（P0P1 0.35 留下整衣） |
+| **大块糊死（泥巴/漆皮）** | run12 伊莲 nude；dual/clone；rollback 四张；baseline 林胸腹已偏糊 | 衣物区低频糊块、无皮肤高频；residual debug 大红块反复擦 | **工具链上限为主**：大洞 + LaMa 预填/残留把洞刷成泥；Fooocus 社区亦称一次洞不宜过大（见下） |
+| **接缝/半人马结构** | run13 及以后伊莲；rollback 伊莲 leftover≈274k | 人马交界糊进马胸、冻结带下方无可画区或马色渗入人躯干 | **工具链上限**：OpenPose/人体先验不含半人马；马毛↔皮肤交界无可靠条件；冻结带只能「少画」不能「画对」 |
+| **分带横缝 / 块状蒙版** | run6 residual debug 块状红罩；torn 髋横线 | debug 蒙版呈矩形块、漏岛；成图髋有硬横缝 | **工具链/实现上限**：SegFormer 低分辨率上采样 + CropAndStitch 分带接缝；不是单靠 denoise 能消 |
+| **锁脸漂** | 本狐/马系列**少见主因** | 脸多在保护区外，成图脸尚可读 | **非主失败**；InstantID 未默认开也未大面积毁脸 |
+| **姿势变** | 偶发腿肉糊/肢体增（run13 a48 `extra_limb`） | 高 denoise 裙带重画出多余肢 | **参数+缺姿态锁**：高 denoise 无 OpenPose 时会漂；非主型 |
+| **九尾** | 多数 run 尾部完好 | 尾在保护区 | **已守住**（保护逻辑有效） |
+
+**贯穿结论**：从 baseline 到 rollback，**主失败始终是「大面积衣物洞的皮肤重建」**（残留↔糊死摇摆）；LaMa/pixelfill/弱 touch 把糊死变成默认态。参数微调无法跨过「大洞无结构条件」上限。半人马接缝是第二硬上限。
+
+**对上轮方案 A 的检验**：A 主张「整片衣物一次 denoise≈0.95–1.0 + InstantID + OpenPose」。社区与 Fooocus 作者讨论指出：**单次 inpaint 区域不宜大于约 1024×1024**（[Fooocus Discussion #414](https://github.com/lllyasviel/Fooocus/discussions/414)）；换装类 NSFW 常用 denoise **0.75–0.85**，>0.9 易漂比例（[lewdly.ai 工作流文](https://lewdly.ai/blog/comfyui-nsfw-inpainting-clothing-workflow)）。因此「整片高 denoise 一洞」**假设过强，暂不执行**；OpenPose/InstantID 锁姿锁脸仍有价值，但必须与 **CropAndStitch 限洞** 和 **中高 denoise** 同用，且**废除 LaMa 残留环**。
+
+### 2) 社区主流做法（实测检索到的条目）
+
+1. **DINO+SAM 自动衣物蒙版 → mask blur 8–15 → Flux Fill 或 SDXL inpaint，denoise 换装 0.75–0.85，Face Detailer 收脸**  
+   来源：[lewdly.ai ComfyUI NSFW clothing inpaint](https://lewdly.ai/blog/comfyui-nsfw-inpainting-clothing-workflow)（[中文版](https://lewdly.ai/zh/blog/comfyui-nsfw-inpainting-clothing-workflow)）；显存文内约 **12–16GB**。5090(sm_120) 跑 SDXL/Flux 需匹配 cu128/cu130 的 PyTorch（[ComfyUI Discussion #6643](https://github.com/Comfy-Org/ComfyUI/discussions/6643)）；791 已是 `2.8.0+cu128` + 能力 `(12,0)`（见 `docs/comfyui-setup.md`），SDXL 路径已验证。
+
+2. **SegFormer 衣物分割 + ControlNet 锁结构 + Fooocus inpaint + CropAndStitch**（与我们栈高度同构）  
+   来源：Civitai workflow [`[FLUX|SDXL] Auto clothes inpainting`](https://civitai.com/models/967161/flux-or-sdxl-auto-clothes-inpainting)；资源 [segformer_b2_clothes](https://huggingface.co/mattmdjaga/segformer_b2_clothes)、[fooocus_inpaint](https://huggingface.co/lllyasviel/fooocus_inpaint)。SDXL 版强调 ControlNet；Flux Fill 版作者称可不靠 ControlNet。
+
+3. **Fooocus inpaint 补丁用法 + LaMa 预填定位**  
+   来源：[Acly/comfyui-inpaint-nodes](https://github.com/acly/comfyui-inpaint-nodes)（Fooocus patch、LaMa/MAT 预填、Differential Diffusion 蒙版强度）；B 站教程 [BV1xC411L7RJ Fooocus Inpaint](https://www.bilibili.com/video/BV1xC411L7RJ/)。作者讨论：**高质量时一次洞不要超过 ~1024**（[#414](https://github.com/lllyasviel/Fooocus/discussions/414)）。
+
+4. **Qwen-Image-Edit + 去衣/撕衣 LoRA（指令编辑，保构图主张）**  
+   来源：[starsfriday/Qwen-Image-Edit-Remove-Clothes](https://huggingface.co/starsfriday/Qwen-Image-Edit-Remove-Clothes)（触发句 `remove all the clothes of the figure in the picture`，`true_cfg_scale=4`，50 steps；检索时页面标 Access disabled，卡片正文仍可读）；[nappa114514/Qwen-Image-Edit-2511-torn-clothes](https://huggingface.co/nappa114514/Qwen-Image-Edit-2511-torn-clothes)（白区撕衣 + 可选参考图）；官方 [Qwen-Image-Edit-2511](https://huggingface.co/Qwen/Qwen-Image-Edit-2511) / [Comfy 教程](https://docs.comfy.org/tutorials/image/qwen/qwen-image-edit-2511)。VRAM/盘：社区写 5090 上 Qwen-Image FP8 约需 **~30GB 盘**（[smeltcore 5090 笔记](https://smeltcore.com/recipes/qwen-image-on-rtx-5090-20b-text-to-image-via-comfyui-fp8-blackwell-native-path/)）。本仓库既有结论：Qwen 全身去衣与锁脸难同时过门（`docs/cast-identity-rebuild.md`）。
+
+5. **Flux Fill / Kontext 换装与去衣**  
+   来源：[9elements Flux Redux+Fill 换装](https://9elements.com/blog/ai-clothes-swaps-with-flux-redux-and-flux-fill/)（分割 + Fill + CropAndStitch）；Reddit [Flux Fill+LoRA 去衣可用、Kontext 常不行](https://www.reddit.com/r/StableDiffusion/comments/1qgsbz3/is_flux_klein_better_for_editing_than_flux_kontext/)；[Kontext NSFW 受限讨论](https://www.reddit.com/r/StableDiffusion/comments/1llpsk1/flux_kontext_dev_can_not_do_nfw/)；HF `tensorbanana/Clothes-on-off-Flux-fill-LoRa` 检索时 **Access disabled**。盘与权重远大于当前余额舒适区。
+
+6. **BrushNet / PowerPaint（SD1.5 物体移除）**  
+   来源：[nullquant/ComfyUI-BrushNet](https://github.com/nullquant/ComfyUI-BrushNet)（PowerPaint `object removal`，prompt `empty scene blur`）。**偏 SD1.5**，与 RealVisXL 主栈不合，仅作旁证。
+
+7. **姿势锁**  
+   来源：[aiarty SD 去衣/换装指南](https://www.aiarty.com/stable-diffusion-guide/how-to-use-stable-diffusion-to-remove-clothes.htm)（OpenPose ControlNet，weight≈1）。半人马无社区可靠先例。
+
+**非常规体型**：公开检索**几乎没有**半人马/九尾专项去衣案例；九尾靠保护区可守，半人马接缝仍属未解。
+
+### 3) 结合 791/592 已装栈的修订推荐（排序）
+
+**盘上已有（`docs/comfyui-setup.md` + `install_undress_stack.sh`）**：RealVisXL V5.0 fp16、Fooocus inpaint v2.6、big-lama、SegFormer b2 clothes、GroundingDINO+SAM、InstantID + InstantID CN、**OpenPose SDXL (xinsir)**、Inpaint-CropAndStitch、ComfyUI `2.8.0+cu128` on RTX 5090。数据盘扩容 **100GiB**。Qwen **不在** 791 默认栈（历史在 F34；`docs/autodl.md` 记 HF 缓存 ≥50GB）。
+
+#### R1（首选，低成本）— 社区对齐的 SDXL 衣物 inpaint（**修订版，非原方案 A**）
+
+- **做法**：保留 SegFormer/DINO 蒙版与 CropAndStitch（单带 ≤1024）；**删除** LaMa 残留环 / pixelfill / 0.35 touch；主擦 **Fooocus denoise 0.78–0.85** + **OpenPose**（已有权重）锁人体上半；可选 InstantID/FaceDetailer 只修脸；伊莲马身保护区照旧；torn 继续 run7/9 贴洞+rim 0.55。
+- **新装**：尽量 **0～0.2GB**（若缺 FaceDetailer/`face_yolov8m.pt` 再下）；OpenPose 已在 `models/controlnet/openpose-sdxl-xinsir/`。
+- **显存**：约 12–20GB；5090 已跑通 SDXL。
+- **开机花费（≈¥2.88/时，余额 ¥26.72）**：试点林 nude **≈10–15 min → ¥0.5–0.8**；四张 **≈¥1.5–2.5**。建议硬顶 **≤¥4**。
+- **预期改善**：衣物残留（中高 denoise）、大块糊死（去掉 LaMa 环）、姿势小漂（OpenPose）。**不承诺**半人马接缝完美。
+
+#### R2（备选，贵）— Qwen-Image-Edit-2511 + torn/remove LoRA
+
+- **做法**：指令/蒙版编辑去衣或撕衣（HF nappa torn-clothes；starsfriday remove 下前复核 Access）；再可选 SDXL FaceDetailer。
+- **新装**：Qwen Edit FP8/GGUF + LoRA，盘 **约 20–50GB+**；可能要升 Comfy/依赖。
+- **开机**：首次下载 **0.5–2 h**（¥1.5–6）+ 出图；总成本易 **¥4–8+**，对 ¥26.72 不友好。
+- **预期**：普通人像去衣残影可能好于 SDXL；**身份/半人马**按本仓库既往 Qwen 经验仍高风险。
+
+**不推荐此刻**：Flux Fill/Kontext 全家桶；PowerPaint 主路径（SD1.5）；再调 `RESIDUAL_*`；原方案 A 整片 denoise≈1.0。
+
+### 4) 实施状态
+
+- 方案 A：**暂不执行**。`run_fox_centaur_wholebody.py` 仅草稿。
+- R1 骨架：`workflows/comfyui/run_fox_centaur_community_r1.py`（只 emit 计划，不开机）。
+- 下次开机须用户点名授权「R1 试点」或「R2」。
+
+
 ## P0/P1 回归诊断与修正（2026-10-08，离线，未开机）
 
 对照 `dual/clone` 本轮产物 + debug 蒙版/残留，与 `run13`（旧 residual Fooocus 0.88）及 `PICKS.json` 旧 best。**不开机、不重跑。**
