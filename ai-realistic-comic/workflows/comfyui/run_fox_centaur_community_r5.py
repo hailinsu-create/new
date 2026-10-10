@@ -123,12 +123,19 @@ def resolve_r5_models(host: str) -> dict[str, str]:
     clips = choices(host, "DualCLIPLoader", "clip_name1")
     clip_l = pick(clips, "clip_l")
     clips2 = choices(host, "DualCLIPLoader", "clip_name2")
-    t5 = pick(clips2, "t5xxl_fp16")
-    if "t5xxl_fp16" not in t5:
-        t5 = pick(clips2, "t5xxl_fp8")
-    vae = pick(choices(host, "VAELoader", "vae_name"), "ae.safetensors")
-    if "ae" not in vae.lower():
-        vae = pick(choices(host, "VAELoader", "vae_name"), "ae")
+    t5_hits = [x for x in clips2 if "t5xxl_fp16" in x] or [x for x in clips2 if "t5xxl_fp8" in x]
+    if not t5_hits:
+        raise SystemExit(f"MODEL_MISSING t5xxl_fp16|fp8 in {clips2}")
+    t5 = t5_hits[0]
+    vaes = choices(host, "VAELoader", "vae_name")
+    vae_hits = [x for x in vaes if x == "ae.safetensors" or x.endswith("/ae.safetensors")] or [
+        x for x in vaes if "ae.safetensors" in x or x == "ae.safetensors"
+    ] or [x for x in vaes if x.endswith("ae.safetensors") or x == "ae.safetensors" or "ae" == Path(x).stem]
+    if not vae_hits:
+        vae_hits = [x for x in vaes if "ae" in x.lower()]
+    if not vae_hits:
+        raise SystemExit(f"MODEL_MISSING ae in {vaes}")
+    vae = vae_hits[0]
     return {"unet": unet, "clip_l": clip_l, "t5": t5, "vae": vae}
 
 
