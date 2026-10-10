@@ -257,7 +257,8 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
   2. **备选 R5b：同盘 Qwen 蒙版 inpaint 图**（[SD Art inpaint](https://stable-diffusion-art.com/qwen-image-edit-inpaint/)）。下载 **0**；估 **¥0.5–1.5**。
   细则：`…/r4b-offline-diag/ROOT_CAUSE_AND_NEXT.json`。
 - **R5 已实现（2026-10-10 授权）**：`run_fox_centaur_community_r5.py` + `install_r5_flux_fill.sh` + `run_r5_pilot.py`。底板 R4b；只挖腰缝+护腕；优先 592；HF gated 立刻停报 URL；封顶 **¥6**；产物 `…/r5/`。磁盘快照 `…/r5-disk-check.json`。
-- **R5 试点（2026-10-10，592，`0cb6523`）停于 HF gated**：开机 live `df` **150G / 用 55G / 余 96G**；Fill 探测 **HTTP 401** → 立刻停、关机留盘、未下大文件。花费 ≈**¥0**（余额仍 **21.18**）。需用户在 HF 接受 [FLUX.1-Fill-dev](https://huggingface.co/black-forest-labs/FLUX.1-Fill-dev) 并提供 `HF_TOKEN` 后再续。见 `…/r5/HF_GATED.json`。
+- **R5 试点（2026-10-10，592，`0cb6523`）停于 HF gated**：开机 live `df` **150G / 用 55G / 余 96G**；Fill 探测 **HTTP 401** → 立刻停、关机留盘。后续用户提供 Agent Store `HF_TOKEN` 续跑。
+- **R5 续跑（2026-10-10，592，`c5b89c2`）不可用**：Fill+T5-fp8+clip_l+ae 已下（下完 `df` ≈**150G / 82G / 69G**）；token 下载后已 scrub。底板 R4b；mask_share≈**0.103**；below_cut MAE=0。成图腰缝甲+护腕仍在。关机留盘。花费 ≈**¥2.98**（21.05→18.07，封顶¥6）。见 `…/r5/VISUAL_JUDGE.json`。
 
 - AI 漫画工作流内 **grok 一律走 Cursor 本机**，禁止 grok.com / 其他渠道 CLI。
 
