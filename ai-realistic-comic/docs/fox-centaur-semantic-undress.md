@@ -268,7 +268,7 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 - **R4 batch3 已实现（2026-10-10 13:58 授权）**：`run_fox_centaur_community_r4_batch3.py` + `run_r4_batch3_pilot.py`。按归档配方跑林 nude / 林 torn / 伊莲 torn；正式产物=**贴回前 raw**；优先 592；封顶 **¥4**；产物 `…/r4-batch3/`。伊莲 nude 不重跑。需 `--i-know-authorized`。禁止 grok.com。
 - **R4 batch3 试点（2026-10-10，抢卡）停于 CARD_WAIT_TIMEOUT**：06:03–07:17 UTC 592/791 均 `机器空闲GPU不足`；按授权满 1 小时停并关机留盘。**未出图**。花费 ≈¥0（余额 17.47→17.47）。见 `…/r4-batch3/CARD_WAIT_TIMEOUT.json`。代码已推，卡空闲后可续跑同脚本。
 - **R4 batch3 续跑（2026-10-10 15:19 授权）再停于 CARD_WAIT_TIMEOUT**：07:19–08:20 UTC 仍无卡；墙钟 60min 停线生效。**未出图**。花费 ≈¥0（17.47→17.47）。关机留盘。
-- **R4 batch3 长等授权（2026-10-10 17:13）**：取消 1h 抢卡上限，一直等到有卡出林 nude/torn + 伊莲 torn；优先 592；封顶仍 ¥4（出图计费）；卡住/报错 >15min 关机留盘。脚本 `CARD_WAIT_MIN=None`。
+- **R4 batch3 长等+双机协同抢卡（2026-10-10 17:13）**：取消 1h 上限，一直抢到三张完成；互斥只开一台；同时有卡优先 791；592 有模型优先出图，791 先抢到则确认/hf-mirror 下模型再跑；封顶 ¥4；卡住/报错 >15min 关机留盘。`CARD_WAIT_MIN=None` + dual race。
 
 - AI 漫画工作流内 **grok 一律走 Cursor 本机**，禁止 grok.com / 其他渠道 CLI。
 

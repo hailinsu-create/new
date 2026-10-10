@@ -1,13 +1,12 @@
 """Authorized R4 batch3 pilot: Lin nude/torn + Elena torn (Qwen-Edit RAW).
 
-User auth 2026-10-10 13:58:
-  - prefer 592 (models ~31.55GB); 791 only if 592 no card AND models synced
-  - never both; push code first; verify remote sha
-  - success = adopt Qwen-Edit RAW; paste must not overwrite
-  - do NOT re-run Elena nude metal armor
+User auth 2026-10-10 13:58 + 17:13:
+  - dual collaborative card race; mutex: only one box on at a time
+  - whoever wins opens; if both have idle cards same poll → prefer 791
+  - 592 has ~31.55GB models → preferred for gen; if 791 wins, confirm models or download via hf-mirror
+  - card wait UNLIMITED until three shots done; cap ¥4 (gen billing); stuck ≤15min → shutdown keep-disk
+  - success = Qwen-Edit RAW (no paste overwrite); do NOT re-run Elena nude
   - artifacts -> …/r4-batch3/ + Agent Store
-  - cap ¥4 (generation billing); card wait UNLIMITED until win; stuck ≤15min → shutdown keep-disk
-  - Cursor visual judge each; usable → library/best; keep raw either way
   - no grok.com
 """
 from __future__ import annotations
@@ -91,24 +90,32 @@ def ensure_both_off(auth: str) -> None:
 
 
 def pick_and_power(auth: str) -> tuple[str, str]:
-    """Prefer clone/592; mother/791 only if clone cannot get a card. Wait forever."""
+    """Dual collaborative race; mutex one-on; simultaneous idle → 791 first. Wait forever."""
     mother = power.MOTHER_UUID
     clone = power.clone_uuid()
     assert clone
     ensure_both_off(auth)
     started = time.time()
     attempt = 0
-    order = (("clone", clone), ("mother", mother))
     while True:
         bal = balance_yuan()
         elapsed_min = (time.time() - started) / 60.0
-        log(f"CARD_POLL {attempt} bal={bal:.2f} elapsed_min={elapsed_min:.1f} wait=unlimited")
-        # Cap still applies if somehow billing while waiting (should not).
-        if bal >= 0 and (json.loads((OUT / "AWAITING_JUDGE.json").read_text()).get("start_bal", bal) - bal) >= CAP_YUAN:
-            raise SystemExit(f"CAP_DURING_CARD_WAIT spent>={CAP_YUAN}")
+        log(f"CARD_POLL {attempt} bal={bal:.2f} elapsed_min={elapsed_min:.1f} wait=unlimited race=dual")
+        if (OUT / "AWAITING_JUDGE.json").exists():
+            start_bal = float(json.loads((OUT / "AWAITING_JUDGE.json").read_text()).get("start_bal", bal))
+            if bal >= 0 and start_bal >= 0 and start_bal - bal >= CAP_YUAN:
+                raise SystemExit(f"CAP_DURING_CARD_WAIT spent>={CAP_YUAN}")
         mi, ms, ma = host_idle(auth, mother)
         ci, cs, ca = host_idle(auth, clone)
         log(f"CARD_POLL {attempt} mother={ma}:{ms}:idle={mi} clone={ca}:{cs}:idle={ci}")
+        # Simultaneous idle → 791 (mother) first; else whoever has idle; else poke both mother-first.
+        order: list[tuple[str, str]] = []
+        if mi > 0:
+            order.append(("mother", mother))
+        if ci > 0:
+            order.append(("clone", clone))
+        if not order:
+            order = [("mother", mother), ("clone", clone)]
         for name, uuid in order:
             try:
                 dual.ensure_peer_shutdown(auth, uuid)
@@ -124,9 +131,7 @@ def pick_and_power(auth: str) -> tuple[str, str]:
             log(f"POWER_TRY {name} -> {verdict} {reply.get('code')} {msg}")
             if verdict == "success":
                 dual.ensure_peer_shutdown(auth, uuid)
-                if name == "mother":
-                    log("WARN_MOTHER_BOOT must confirm R4 models present before gen")
-                log(f"CARD_WIN {name} after {elapsed_min:.1f}min")
+                log(f"CARD_WIN {name} after {elapsed_min:.1f}min order={[n for n,_ in order]}")
                 return name, uuid
             if verdict == "fatal":
                 code = str(reply.get("code") or "")
@@ -389,17 +394,14 @@ def after_boot(auth: str, role: str, uuid: str, start_bal: float) -> None:
     log(f"MODEL_TARGET role={role} alias={alias} uuid={uuid}")
 
     if models_present():
-        log("MODELS_SKIP already on disk (~31.55GB expected on 592)")
+        log(f"MODELS_SKIP already on disk role={role} alias={alias}")
         (OUT / "MODEL_HOST.json").write_text(
-            json.dumps({"skipped_download": True, "alias": alias, "uuid": uuid}, indent=2),
+            json.dumps({"skipped_download": True, "role": role, "alias": alias, "uuid": uuid}, indent=2),
             encoding="utf-8",
         )
     else:
-        if role == "mother":
-            log("MODELS_MISSING on 791 — refuse without sync; shutdown")
-            power.shutdown_fleet()
-            raise SystemExit("791_MODELS_MISSING_NEED_SYNC")
-        log("DOWNLOAD_START R4 models (unexpected on 592)")
+        # Mutex: no box-to-box rsync. 791 (or unexpected 592 miss) pulls via hf-mirror install.
+        log(f"DOWNLOAD_START R4 models role={role} alias={alias} via hf-mirror")
         dl_cmd = (
             f"export HF_ENDPOINT=https://hf-mirror.com COMFY={bring.COMFY_DIR} "
             f"OUT_JSON={REMOTE_OUT}/MODEL_HOST.json STUCK_SEC=900 "
@@ -415,6 +417,9 @@ def after_boot(auth: str, role: str, uuid: str, start_bal: float) -> None:
             end_bal = balance_yuan()
             log(f"END fail bal={end_bal:.2f} spent≈{max(0.0, start_bal - end_bal):.2f}")
             raise SystemExit(rc)
+        if not models_present():
+            power.shutdown_fleet()
+            raise SystemExit(f"MODELS_STILL_MISSING after download role={role}")
 
     bring.restart_comfy()
     bring.ssh(
