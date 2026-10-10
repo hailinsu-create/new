@@ -49,7 +49,9 @@
 | --- | --- | --- | --- | --- | --- |
 | 林 | `lin-qipao-nine-tail.png` | `lin-qipao-nine-tail-torn.png` | **8.75** | 空 | 近门；wardrobe 8，anatomy 9（保留此前最佳破衣） |
 | 林 | 同上 | `lin-qipao-nine-tail-nude.png` | 6.125 | `clothes_remain` | Fooocus 可开胸窗，裙/残布与 smear 仍过门 |
-| 伊莲 | `elena-armor-centaur.png` | `elena-armor-centaur-nude.png` | 7.375 | `armor_remain` | 躯干可露肤；护臂/腰甲与 smear 未净 |
+| 伊莲 | `elena-armor-centaur.png` | `elena-armor-centaur-nude.png`（= **r4-raw usable**） | 8.125† | 空（可接受腰缝/护腕） | **2026-10-10 归档**：Qwen-Edit raw；勿贴回覆盖；禁止再拧同甲 |
 | 伊莲 | 同上 | `elena-armor-centaur-torn.png` | 7.75 | `intact_clothes` | 破甲仍偏保守 |
 
-未过收留线。下一步优先 GroundingDINO 语义蒙版抠甲片轮廓，再叠 Fooocus。
+伊莲 nude 已过用户可用线（† scorer=`user_decision`，R4 Qwen raw）。林 nude / 破衣破甲仍未过收留线。
+
+~~未过收留线。下一步优先 GroundingDINO…~~（伊莲金属甲局部擦衣路线已停；见 `docs/fox-centaur-semantic-undress.md`「R4-raw 正式归档」。）

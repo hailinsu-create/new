@@ -1,13 +1,8 @@
 {
-  "identity": 8,
-  "distinction": 8,
-  "interaction": 8,
-  "aesthetics": 6,
-  "anatomy": 7,
-  "wardrobe": 8,
-  "motif": 9,
-  "photoreal": 6,
-  "gates": [],
-  "notes": "人躯干无铠甲、马身在；眼镜与褐发褐眼大致对锁脸。人躯干斑驳皮革/大理石肌理不像正常皮肤，观感偏怪。",
-  "scorer": "cursor"
+  "mean": 8.125,
+  "usable": true,
+  "source": "r4-raw",
+  "sha256": "1d2f259a31400174626fcab809569d2b77d1c712b52f9755b42b49675343f301",
+  "scorer": "user_decision",
+  "notes": "Official Elena nude = R4 Qwen raw (pre-paste)."
 }

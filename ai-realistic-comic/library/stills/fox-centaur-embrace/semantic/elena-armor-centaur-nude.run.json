@@ -1,31 +1,39 @@
 {
   "actor": "elena",
   "mode": "nude",
-  "attempt": 0,
-  "seed": 20261208,
-  "garment_share": 0.2076746622721354,
-  "passes": [
-    {
-      "kind": "nude",
-      "n": 0,
-      "denoise": 1.0,
-      "lama_prefill": true,
-      "residual_ratio": 0.2491
-    },
-    {
-      "kind": "lama_residual",
-      "n": 1
-    },
-    {
-      "kind": "touch",
-      "n": 1,
-      "denoise": 0.35,
-      "residual_ratio": 0.0
-    },
-    {
-      "kind": "edge",
-      "denoise": 0.42
-    }
+  "pipeline": "r4_qwen_image_edit_2511",
+  "adopted": "r4-raw",
+  "usable": true,
+  "forbid_further_metal_armor_spin": true,
+  "source_artifact": "/opt/cursor/artifacts/fox-centaur-semantic/r4/elena-armor-centaur-nude-r4-raw.png",
+  "library_paths": [
+    "library/stills/fox-centaur-embrace/semantic/elena-armor-centaur-nude.png",
+    "library/stills/fox-centaur-embrace/semantic/elena-armor-centaur-nude-r4-raw-usable.png"
   ],
-  "best_residual_ratio": 0.0
+  "sha256": "1d2f259a31400174626fcab809569d2b77d1c712b52f9755b42b49675343f301",
+  "params": {
+    "steps": 4,
+    "cfg": 1.0,
+    "seed": 20261010,
+    "lightning": true,
+    "remove_clothes_lora": "Sentinel7 fallback (starsfriday access failed)",
+    "object_remover": true,
+    "base_plate": "r1fix",
+    "success_artifact": "Qwen full-image edit RAW before mask paste-back"
+  },
+  "models": {
+    "unet": "qwen_image_edit_2511_fp8mixed.safetensors (~20.5GB)",
+    "clip": "qwen_2.5_vl_7b_fp8_scaled.safetensors (~9.4GB)",
+    "vae": "qwen_image_vae.safetensors (~0.3GB)",
+    "lightning": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16 (~0.85GB)",
+    "remove_clothes": "qwen-edit-remove-clothes (~0.3GB)",
+    "object_remover": "Qwen-Image-Edit-2511-Object-Remover (~0.24GB)",
+    "host_total_gb": 31.55
+  },
+  "gotchas": [
+    "mask_region paste-back reintroduces R1-fix chrome film (pilot mask_share 0.124)",
+    "R4b wider mask + waist/gauntlet prompt: MODEL_KEEP — opaque plates remain in raw",
+    "R5 Flux Fill waist+gauntlet holes: FILL_KEPT_METAL — do not retry same hole/prompt"
+  ],
+  "decided_at": "2026-10-10T13:48:00+08:00"
 }

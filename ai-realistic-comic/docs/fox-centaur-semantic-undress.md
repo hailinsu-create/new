@@ -247,7 +247,7 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 - **R3b 试点（2026-10-10 00:55 授权，592，`8770408`）不可用**：上身解剖已好（无双头），但马毛贴回雾化/腰缝甲片/场景断裂。产物含 preview/torso webp。关机留盘。
 - **2026-10-10 01:28 用户停线**：R1-fix 之后 R3/R3b **越来越差** → **立即停掉 R3 / R3b / R3c 整图重生与合成方向**，不再继续。当前最好基线 = **R1-fix**。
 - **R4 已实现（2026-10-10 01:38 授权）**：`workflows/comfyui/run_fox_centaur_community_r4.py` + `install_r4_qwen.sh` + 试点 `run_r4_pilot.py`。R1-fix 底板 + 金属膜/残边蒙版 + Qwen-Image-Edit-2511 FP8（Lightning+去衣+Object-Remover）；马身/背景 `mask_region` 锁死；**不含** Flux Fill。产物 `…/r4/`。需 `--i-know-authorized`。
-- **R4 试点（2026-10-10，592，`dbac2be`）不可用**：模型已下到 **592**（`MODEL_HOST.json` TOTAL≈31.55GB；starsfriday 去衣 LoRA Access 失败→Sentinel7）。成图胸腹金属膜仍在（metalish 0.236→0.194）；`r4-raw` 更干净但 mask_region 覆盖不足。马身/背景 MAE=0。关机留盘。花费见 `…/r4/VISUAL_JUDGE.json`（余额 23.78→≈21.42）。
+- **R4 试点（2026-10-10，592，`dbac2be`）贴回成图不可用 → 后采 raw**：模型已下到 **592**（`MODEL_HOST.json` TOTAL≈31.55GB；starsfriday 去衣 LoRA Access 失败→Sentinel7）。**贴回成图**胸腹金属膜仍在（metalish 0.236→0.194）；**`r4-raw` 去膜更干净**（当时因 mask 覆盖不足未采用，后于 13:48 拍板归档为可用）。马身/背景 MAE=0。关机留盘。花费见 `…/r4/VISUAL_JUDGE.json`（余额 23.78→≈21.42）。
 - **R4 离线贴回（2026-10-09/10，CPU，不开机）**：`workflows/comfyui/offline_r4_recomposite.py` 用已有 `r4-raw` + R1-fix 加宽蒙版重贴（mask_share 0.124→**0.249**，feather=10，y≥690 锁死）。产物 `…/r4-offline/`（preview/torso/compare + `VISUAL_JUDGE.json`）。**观感不可用**：贴回本身 OK（below_cut MAE=0，胸腹膜好于 R1-fix），但 raw 腰缝甲片/残边仍在（`raw_still_metal_on_r1_film=0.906` → `needs_qwen_rerun=true`）。见同目录 `QWEN_RERUN_PLAN.json`。
 - **R4b 已实现（2026-10-10 08:22 授权）**：`run_fox_centaur_community_r4b.py` + 试点 `run_r4b_pilot.py`。offline 加宽蒙版 + 提示显式去腰缝甲/护腕；优先 592（模型已在）；封顶 **¥4**；产物 `…/r4b/`。需 `--i-know-authorized`。禁止 grok.com。
 - **R4b 试点（2026-10-10，592，`f93fd53`）不可用**：sha `336d828d…` 对齐；模型 SKIP TOTAL=31.55GB；mask_share≈**0.249**，below_cut MAE=0。成图腰缝甲片+护腕仍在（raw 亦留护腕）。关机留盘。花费 ≈**¥0.24**（21.42→21.18）。见 `…/r4b/VISUAL_JUDGE.json`。
@@ -260,12 +260,66 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 - **R5 试点（2026-10-10，592，`0cb6523`）停于 HF gated**：开机 live `df` **150G / 用 55G / 余 96G**；Fill 探测 **HTTP 401** → 立刻停、关机留盘。后续用户提供 Agent Store `HF_TOKEN` 续跑。
 - **R5 续跑（2026-10-10，592，`c5b89c2`）不可用**：Fill+T5-fp8+clip_l+ae 已下（下完 `df` ≈**150G / 82G / 69G**）；token 下载后已 scrub。底板 R4b；mask_share≈**0.103**；below_cut MAE=0。成图腰缝甲+护腕仍在。关机留盘。花费 ≈**¥2.98**（21.05→18.07，封顶¥6）。见 `…/r5/VISUAL_JUDGE.json`。
 - **R5 离线崩因（2026-10-10，不开机）**：对照 `r5-raw`/`waist-gauntlet-mask` vs R4b → 洞**已罩住**（ROI 覆盖≈1.0）；**denoise=1.0 / 20 步**非过低；洞内有实质变化（IN-mask MAE≈17–38）但 metal still≈0.70–0.99 ⇒ **FILL_KEPT_METAL**（Fill 重建金属，非漏蒙）。诊断 `…/r5-offline-diag/`。**禁止**未授权开机、禁止再拧同一 Fill 提示/同洞。
-- **下一步（最多两案，待授权；余额 ¥18.07）**：
-  1. **推荐：暂停伊莲金属甲，改试林旗袍 nude**（现有 SDXL/Fooocus，下载 0；估 **¥0.5–1.5**，硬顶 ≤¥2）。
-  2. **备选 R5b：同盘 Fill + 社区 undress LoRA** + 更大洞/28–40 步（[Reddit Fill+LoRA](https://www.reddit.com/r/StableDiffusion/comments/1qgsbz3/is_flux_klein_better_for_editing_than_flux_kontext/)、[lewdly NSFW inpaint](https://lewdly.ai/blog/comfyui-nsfw-inpainting-clothing-workflow)）；LoRA ≈0.3–2GB；估 **¥1–3**，硬顶 ≤¥3；金属甲仍可能失败。
+- **下一步（最多两案，待授权；余额 ¥18.07）**：~~已由用户拍板废止「再拧伊莲金属甲」~~ → 见下节 **R4-raw 正式归档**。
+  1. ~~暂停伊莲金属甲，改试林旗袍 nude~~（伊莲 nude 已归档可用；林旗袍另议）
+  2. ~~R5b Fill+LoRA~~（同洞金属甲无效，禁止空转）
   细则：`…/r5-offline-diag/ROOT_CAUSE_AND_NEXT.json`。
+- **R4-raw 正式归档（2026-10-10 13:48 用户拍板，不开机）**：伊莲 nude **当前 best = R4 Qwen-Image-Edit 原图** `elena-armor-centaur-nude-r4-raw.png`（贴回前）。**禁止**再为同一金属甲空转。详见下节「可复用做法」。
 
 - AI 漫画工作流内 **grok 一律走 Cursor 本机**，禁止 grok.com / 其他渠道 CLI。
+
+## 伊莲 nude 可复用做法：R4 Qwen-Edit 原图（2026-10-10 13:48 归档）
+
+**成功条件（硬规则）**：采用 **Qwen-Image-Edit-2511 全图编辑的 RAW 输出**（贴回蒙版之前的 `*-r4-raw.png`）。**勿**以 `mask_region` 贴回成图覆盖正式库——贴回会从 R1-fix 底板把半透明铬膜带回躯干。
+
+### 正式路径
+
+| 角色 | 路径 |
+| --- | --- |
+| 源 raw | `/opt/cursor/artifacts/fox-centaur-semantic/r4/elena-armor-centaur-nude-r4-raw.png` |
+| 库（canonical） | `library/stills/fox-centaur-embrace/semantic/elena-armor-centaur-nude.png` |
+| 库（命名清晰） | `…/semantic/elena-armor-centaur-nude-r4-raw-usable.png` |
+| best 指针 | `/opt/cursor/artifacts/fox-centaur-semantic/best/` + Agent Store `fox-centaur-best/` |
+| 归档包 | `/opt/cursor/artifacts/fox-centaur-semantic/r4-usable-archive/`（含 preview/torso/`BEST.json`） |
+| sha256 | `1d2f259a31400174626fcab809569d2b77d1c712b52f9755b42b49675343f301` |
+
+`PICKS.json` / `VISUAL_JUDGE.json` / `BEST_ELENA_NUDE.json` 已指向该 raw；`usable=true`；`forbid_further_metal_armor_spin=true`。
+
+### 模型清单（592 已装，TOTAL≈31.55GB）
+
+| 文件 | 约体积 | 角色 |
+| --- | ---: | --- |
+| `qwen_image_edit_2511_fp8mixed.safetensors` | 20.5GB | UNET |
+| `qwen_2.5_vl_7b_fp8_scaled.safetensors` | 9.4GB | CLIP/VL |
+| `qwen_image_vae.safetensors` | 0.3GB | VAE |
+| `Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16` | 0.85GB | Lightning LoRA |
+| `qwen-edit-remove-clothes`（Sentinel7 回退；starsfriday Access 失败） | 0.3GB | 去衣 LoRA |
+| `Qwen-Image-Edit-2511-Object-Remover` | 0.24GB | Object-Remover LoRA |
+
+清单快照：`…/r4/MODEL_HOST.json`。脚本：`workflows/comfyui/run_fox_centaur_community_r4.py`。
+
+### 参数（复用时对齐）
+
+| 项 | 值 |
+| --- | --- |
+| 底板 | R1-fix 伊莲 nude（非成衣板） |
+| 采样 | steps **4**，cfg **1.0**，seed **20261010**，Lightning on |
+| 提示 | 去胸腹颈臂半透明铬膜/残边 → 自然皮肤；锁脸/眼镜/发/姿/马身/石台背景 |
+| 负向 | chrome armor / glossy metal film / specular breastplate / black straps … |
+| 蒙版（编辑引导） | `metal_film_mask`：躯干金属膜+暗边；**y ≥ horse_guard（690）锁死** |
+| 正式取用 | **SaveImage 的全图 raw**，跳过后续 `mask_region` 贴回 |
+
+### 蒙版策略与已知坑
+
+1. **贴回回归**：试点 `mask_share≈0.124` 把 R1-fix 膜贴回 → 成图不可用；raw 本身去膜更好。离线加宽贴回（0.249）仍无法补 raw 内腰缝甲。
+2. **R4b MODEL_KEEP**：加宽蒙版 + 显式去腰缝/护腕提示后，ROI 覆盖≈1.0，但 raw 内不透明甲仍在 → 不是漏蒙，是模型保留。
+3. **R5 FILL_KEPT_METAL**：Flux Fill 定点洞罩住腰缝/护腕后重建金属 → 同洞再拧无效。
+4. **停线**：伊莲金属甲 undress **禁止再空转**（同 Qwen 提示/蒙版、同 Fill 洞）。新杠杆须另授权且非「再擦同一甲」。
+
+### 复用口令（若他图重跑同类金属膜）
+
+「按 R4 Qwen-Edit 配方出 raw，正式库只收 raw，禁止贴回覆盖。」
+
 
 ## R1-fix 基线 + 社区重扫（2026-10-10，不开机、不出图）
 
@@ -534,7 +588,7 @@ R1-fix 已授权复测并失败。后续排序见上文 **「R1/R1-fix 终局与
 | --- | --- | --- | --- |
 | 林 torn | **run9** `lin-qipao-nine-tail-torn` | nude 底板 + 锯齿洞 composite（tear 0.5）+ rim **denoise 0.55** | Codex 均分 **8.75**，硬门空 — **全库最接近可用** |
 | 伊莲 torn | **run7** `elena-armor-centaur-torn` | 同上，tear 0.55 + rim 0.55 | Codex **8.56**，硬门空 |
-| 伊莲 nude | **run6** `elena-armor-centaur-nude` | 连续 **nude denoise 1.0**×3 + edge **0.42**；**无** LaMa 残留 / pixelfill | 躯干相对真裸、接缝可读；仍 `armor_remain`（臂甲）≈8.0 |
+| 伊莲 nude | **R4-raw（现行 best）** `elena-armor-centaur-nude-r4-raw-usable`；史 **run6** 次之 | R4：Qwen-Edit-2511 FP8+Lightning+去衣/Object-Remover，取 **贴回前 raw** | 用户 2026-10-10 13:48 拍板可用；腰缝/护腕为可接受 MODEL_KEEP |
 | 林 nude | **run13 a35-collarfix** | LaMa + Fooocus residual **0.88** + collar pixelfill；edge 0.32 | 领口硬门清；腿仍肉糊 ≈7.1 |
 
 早期 **baseline–run5**：手画/粗语义 + denoise 1.0 分带，残留高、衣服常留。  
