@@ -6,7 +6,7 @@ User auth 2026-10-10 13:58:
   - success = adopt Qwen-Edit RAW; paste must not overwrite
   - do NOT re-run Elena nude metal armor
   - artifacts -> …/r4-batch3/ + Agent Store
-  - cap ¥4; card wait ≤60min; stuck ≤15min → shutdown keep-disk
+  - cap ¥4 (generation billing); card wait UNLIMITED until win; stuck ≤15min → shutdown keep-disk
   - Cursor visual judge each; usable → library/best; keep raw either way
   - no grok.com
 """
@@ -45,7 +45,7 @@ PLATES = (
 COMMIT = subprocess.check_output(["git", "-C", "/workspace", "rev-parse", "HEAD"], text=True).strip()
 LOCAL_SHA = hashlib.sha256(LOCAL_SCRIPT.read_bytes()).hexdigest()
 CAP_YUAN = 4.0
-CARD_WAIT_MIN = 60.0
+CARD_WAIT_MIN = None  # unlimited — idle wait does not burn GPU fee
 STUCK_MIN = 15.0
 
 
@@ -91,19 +91,21 @@ def ensure_both_off(auth: str) -> None:
 
 
 def pick_and_power(auth: str) -> tuple[str, str]:
-    """Prefer clone/592; mother/791 only if clone cannot get a card."""
+    """Prefer clone/592; mother/791 only if clone cannot get a card. Wait forever."""
     mother = power.MOTHER_UUID
     clone = power.clone_uuid()
     assert clone
     ensure_both_off(auth)
-    deadline = time.monotonic() + CARD_WAIT_MIN * 60
-    wall_deadline = time.time() + CARD_WAIT_MIN * 60
+    started = time.time()
     attempt = 0
     order = (("clone", clone), ("mother", mother))
-    while time.monotonic() < deadline and time.time() < wall_deadline:
+    while True:
         bal = balance_yuan()
-        left = max(0.0, wall_deadline - time.time())
-        log(f"CARD_POLL {attempt} bal={bal:.2f} left_min={left/60:.1f}")
+        elapsed_min = (time.time() - started) / 60.0
+        log(f"CARD_POLL {attempt} bal={bal:.2f} elapsed_min={elapsed_min:.1f} wait=unlimited")
+        # Cap still applies if somehow billing while waiting (should not).
+        if bal >= 0 and (json.loads((OUT / "AWAITING_JUDGE.json").read_text()).get("start_bal", bal) - bal) >= CAP_YUAN:
+            raise SystemExit(f"CAP_DURING_CARD_WAIT spent>={CAP_YUAN}")
         mi, ms, ma = host_idle(auth, mother)
         ci, cs, ca = host_idle(auth, clone)
         log(f"CARD_POLL {attempt} mother={ma}:{ms}:idle={mi} clone={ca}:{cs}:idle={ci}")
@@ -124,6 +126,7 @@ def pick_and_power(auth: str) -> tuple[str, str]:
                 dual.ensure_peer_shutdown(auth, uuid)
                 if name == "mother":
                     log("WARN_MOTHER_BOOT must confirm R4 models present before gen")
+                log(f"CARD_WIN {name} after {elapsed_min:.1f}min")
                 return name, uuid
             if verdict == "fatal":
                 code = str(reply.get("code") or "")
@@ -135,8 +138,6 @@ def pick_and_power(auth: str) -> tuple[str, str]:
                 raise SystemExit(f"POWER_FATAL {name} {reply}")
         attempt += 1
         time.sleep(30)
-    log("CARD_WAIT_TIMEOUT 60min — stopping")
-    raise SystemExit("CARD_WAIT_TIMEOUT 60min")
 
 
 def wire_ssh(role: str, auth: str, uuid: str) -> None:
@@ -471,6 +472,7 @@ def main() -> None:
                 "start_bal": start_bal,
                 "awaiting_visual_judge": True,
                 "cap_yuan": CAP_YUAN,
+                "card_wait": "unlimited",
                 "targets": [
                     "lin-qipao-nine-tail-nude",
                     "lin-qipao-nine-tail-torn",
