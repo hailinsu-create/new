@@ -10,7 +10,7 @@
 | LoRA | Lightning-4steps + `qwen-edit-remove-clothes` + `Object-Remover`（592 已装 ≈31.55GB） |
 | 采样 | steps **4**，cfg **1.0**，euler/simple，denoise 1.0 |
 | **成功条件** | 采用 Qwen 全图编辑的 **贴回前 RAW**（`*-r4-raw.png`）。**禁止**用 `mask_region` 贴回成图覆盖正式库 |
-| 成衣首图 | Cursor **GenerateImage**（锁脸 ref 作参考）；不去 Comfy 做成衣 |
+| 成衣首图 | Cursor **GenerateImage**（锁脸 ref；**先离线挑姿势**）；不去 Comfy / 不开 AutoDL 做成衣 |
 | 去衣 / 破衣 | 仅北京 B Comfy（791 / 592）；**禁止** Cursor/Codex imagegen 做露点编辑 |
 | 判定 | Cursor **观感**看 PNG（`VISUAL_JUDGE`）；取消均分≥9 / 硬门门禁 |
 | 机器 | 互斥只开一台；**两机协同抢卡**（同时有卡优先 791）；592 有模型优先出图；791 先抢到则确认模型或 hf-mirror 下载 |
@@ -44,5 +44,12 @@
 
 ## 情侣变体（林×顾，2026-10-10）
 
-- 成衣：GenerateImage；去衣/破衣：`run_fox_couple_r4.py`（只改林旗袍；锁顾/九尾/吻姿/背景；正式=raw）。
+**流程顺序（2026-10-10 19:28 更正）**
+
+1. **成衣姿势挑选（离线）**：只用 Cursor **GenerateImage**（锁脸 ref）出多张穿衣候选；**不开 AutoDL**。
+2. **用户挑定姿势**后，把选定图写入 `library/stills/fox-couple/lin-gu-embrace-clothed.png`，并写 `POSE_LOCKED.json`。
+3. **再授权开机**：`run_fox_couple_pilot.py` 两机协同抢卡做去衣/破衣（R4，只改林旗袍；锁顾/九尾/吻姿/背景；正式=raw）。
+4. **暂停态**：未挑定姿势前，禁止 AutoDL 开机与双人去衣/破衣抢卡。
+
+- 成衣：GenerateImage only；去衣/破衣：`run_fox_couple_r4.py` + `run_fox_couple_pilot.py`（需 `--pose-locked` / `POSE_LOCKED.json`）。
 - 产物：`library/stills/fox-couple/` + `/opt/cursor/artifacts/fox-couple/`。

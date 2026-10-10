@@ -16,6 +16,9 @@
 
 ## 出图
 
-- 成衣：Cursor GenerateImage（锁脸参考）。
-- 去衣 / 破衣：R4 标准（`docs/fox-undress-r4-standard.md`），只编辑林的衣物；正式=贴回前 raw。
-- 产物：`/opt/cursor/artifacts/fox-couple/` + `library/stills/fox-couple/`。
+**2026-10-10 19:28**：先只出成衣给用户挑姿势；**暂停** AutoDL 开机与去衣/破衣抢卡，挑定后再授权。
+
+1. 成衣候选：Cursor GenerateImage（锁脸参考）；不开 AutoDL。
+2. 用户挑定姿势 → 写入 `lin-gu-embrace-clothed.png` + `POSE_LOCKED.json`。
+3. 去衣 / 破衣：R4（`docs/fox-undress-r4-standard.md`），只编辑林的衣物；正式=贴回前 raw；需明确授权开机。
+4. 产物：`/opt/cursor/artifacts/fox-couple/` + `library/stills/fox-couple/`。

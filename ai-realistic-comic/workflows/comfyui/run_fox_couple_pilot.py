@@ -1,6 +1,10 @@
-"""Authorized fox-couple pilot: clothed already local; R4 nude+torn on 592/791 race.
+"""Fox-couple R4 nude+torn pilot (AutoDL dual race).
 
-User 2026-10-10 18:59:
+2026-10-10 19:28: DO NOT boot until user locks clothed pose.
+Requires library/stills/fox-couple/POSE_LOCKED.json (or --pose-locked) plus local plate.
+Clothed plate must come from Cursor GenerateImage (offline); never GenerateImage on AutoDL.
+
+User 2026-10-10 18:59 (once authorized after pose lock):
   - dual race mutex; unlimited card wait; cap ¥4
   - R4 raw-official for Lin wardrobe only; lock Gu/tails/bg
   - artifacts /opt/cursor/artifacts/fox-couple/ + Store
@@ -37,6 +41,23 @@ COMMIT = subprocess.check_output(["git", "-C", "/workspace", "rev-parse", "HEAD"
 LOCAL_SHA = hashlib.sha256(LOCAL_SCRIPT.read_bytes()).hexdigest()
 CAP_YUAN = 4.0
 STUCK_MIN = 15.0
+
+POSE_LOCK = ROOT / "library/stills/fox-couple/POSE_LOCKED.json"
+
+
+def require_pose_locked() -> None:
+    """Refuse AutoDL boot until user picked clothed pose (2026-10-10 19:28)."""
+    if "--pose-locked" in sys.argv:
+        return
+    if POSE_LOCK.is_file():
+        data = json.loads(POSE_LOCK.read_text(encoding="utf-8"))
+        if data.get("locked") is True:
+            return
+    raise SystemExit(
+        "POSE_NOT_LOCKED: clothed pose still pending user pick. "
+        "Use Cursor GenerateImage offline; write POSE_LOCKED.json or pass --pose-locked only after authorization."
+    )
+
 
 
 def log(msg: str) -> None:
@@ -339,6 +360,7 @@ def after_boot(auth: str, role: str, uuid: str, start_bal: float) -> None:
 
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
+    require_pose_locked()
     auth = power.web_authorization()
     if not auth:
         raise SystemExit("WEB_AUTH_MISSING")
