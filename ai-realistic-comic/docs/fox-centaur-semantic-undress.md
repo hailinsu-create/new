@@ -250,6 +250,7 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 - **R4 试点（2026-10-10，592，`dbac2be`）不可用**：模型已下到 **592**（`MODEL_HOST.json` TOTAL≈31.55GB；starsfriday 去衣 LoRA Access 失败→Sentinel7）。成图胸腹金属膜仍在（metalish 0.236→0.194）；`r4-raw` 更干净但 mask_region 覆盖不足。马身/背景 MAE=0。关机留盘。花费见 `…/r4/VISUAL_JUDGE.json`（余额 23.78→≈21.42）。
 - **R4 离线贴回（2026-10-09/10，CPU，不开机）**：`workflows/comfyui/offline_r4_recomposite.py` 用已有 `r4-raw` + R1-fix 加宽蒙版重贴（mask_share 0.124→**0.249**，feather=10，y≥690 锁死）。产物 `…/r4-offline/`（preview/torso/compare + `VISUAL_JUDGE.json`）。**观感不可用**：贴回本身 OK（below_cut MAE=0，胸腹膜好于 R1-fix），但 raw 腰缝甲片/残边仍在（`raw_still_metal_on_r1_film=0.906` → `needs_qwen_rerun=true`）。见同目录 `QWEN_RERUN_PLAN.json`。
 - **R4b 已实现（2026-10-10 08:22 授权）**：`run_fox_centaur_community_r4b.py` + 试点 `run_r4b_pilot.py`。offline 加宽蒙版 + 提示显式去腰缝甲/护腕；优先 592（模型已在）；封顶 **¥4**；产物 `…/r4b/`。需 `--i-know-authorized`。禁止 grok.com。
+- **R4b 试点（2026-10-10，592，`f93fd53`）不可用**：sha `336d828d…` 对齐；模型 SKIP TOTAL=31.55GB；mask_share≈**0.249**，below_cut MAE=0。成图腰缝甲片+护腕仍在（raw 亦留护腕）。关机留盘。花费 ≈**¥0.24**（21.42→21.18）。见 `…/r4b/VISUAL_JUDGE.json`。
 
 - AI 漫画工作流内 **grok 一律走 Cursor 本机**，禁止 grok.com / 其他渠道 CLI。
 
