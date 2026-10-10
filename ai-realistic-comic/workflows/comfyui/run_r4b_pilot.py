@@ -438,10 +438,15 @@ def main() -> None:
         "wider_metal_mask",
         "waist belt",
         "gauntlet",
-        "TextEncodeQwenImageEditPlus",
+        "qwen_edit_graph",
+        "composite_mask_region",
     ):
         if needle not in src:
             raise SystemExit(f"PLAN_GATE_FAIL missing {needle!r}")
+    # Qwen node class lives in run_fox_centaur_community_r4 (imported by r4b)
+    r4_src = (ROOT / "workflows/comfyui/run_fox_centaur_community_r4.py").read_text(encoding="utf-8")
+    if "TextEncodeQwenImageEditPlus" not in r4_src:
+        raise SystemExit("PLAN_GATE_FAIL missing TextEncodeQwenImageEditPlus in r4 module")
     log("PLAN_OK R4b wider mask + waist/gauntlet")
 
     (OUT / "AWAITING_JUDGE.json").write_text(
