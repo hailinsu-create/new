@@ -38,27 +38,27 @@ SHOTS = (
         stem="lin-gu-embrace-nude",
         seed=20261014,
         prompt=(
-            "Edit only the woman's decorative floral qipao: remove it completely so her adult body is bare "
-            "natural skin with realistic pores. Keep her half-pinning him on the bed, kiss and pose unchanged. "
-            "Keep the man exactly as in the photo (modern short hair, same clothes, face, hands). "
-            "Keep all nine fluffy pure white fox tails, her face and hair, bed sheets and background unchanged."
+            "Edit only the woman's red embroidered decorative qipao: remove it completely so her adult body is bare "
+            "natural skin with realistic pores. Keep her half-lying over him on the bed, pose and faces unchanged. "
+            "Keep the man exactly as in the photo (modern short hair, dark blue robe, face, hands). "
+            "Keep all nine fluffy pure white fox tails, her face and hair, bed, lanterns and background unchanged."
         ),
         negative=(
-            "qipao remaining, silk dress, embroidery, clothes on the woman, sheer fabric smear, "
-            "changed man, topknot, hair ornament, extra limbs, broken kiss pose, missing fox tails, "
-            "cream tails, garden background, blurry, watermark, child"
+            "qipao remaining, red dress, gold embroidery, clothes on the woman, sheer fabric smear, "
+            "changed man, topknot, hair ornament, extra limbs, broken pose, missing fox tails, "
+            "cream tails, blurry, watermark, child"
         ),
     ),
     Shot(
         stem="lin-gu-embrace-torn",
         seed=20261015,
         prompt=(
-            "Edit only the woman's decorative floral qipao: rip large jagged holes through the chest, "
+            "Edit only the woman's red embroidered decorative qipao: rip large jagged holes through the chest, "
             "breasts, and midriff so abundant bare adult skin shows; leave only torn collar strips and "
             "hip/skirt remnants with frayed silk edges — clothing must look clearly destroyed, not intact. "
-            "Keep her half-pinning him on the bed, kiss and pose unchanged. "
-            "Keep the man exactly as in the photo (modern short hair, same clothes, face, hands). "
-            "Keep all nine fluffy pure white fox tails, her face and hair, bed and background unchanged."
+            "Keep her half-lying over him on the bed, pose and faces unchanged. "
+            "Keep the man exactly as in the photo (modern short hair, dark blue robe, face, hands). "
+            "Keep all nine fluffy pure white fox tails, her face and hair, bed, lanterns and background unchanged."
         ),
         negative=(
             "intact undamaged qipao, fully clothed seamless dress, only tiny tears, almost clothed, "
@@ -66,7 +66,7 @@ SHOTS = (
             "blurry, watermark, child"
         ),
     ),
-)
+))
 
 
 def run_shot(host: str, out_dir: Path, plate: Path, shot: Shot, models: dict, use_ref: bool) -> Path:
