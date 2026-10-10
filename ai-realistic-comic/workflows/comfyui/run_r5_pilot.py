@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shlex
 import shutil
 import subprocess
@@ -37,6 +38,15 @@ REMOTE_OUT = "/root/autodl-tmp/fox-semantic-out-r5"
 REMOTE_INPUT = "/root/autodl-tmp/fox-r5-input"
 LOCAL_BASELINE = Path("/opt/cursor/artifacts/fox-centaur-semantic/r4b/elena-armor-centaur-nude.png")
 GATED_URL = "https://huggingface.co/black-forest-labs/FLUX.1-Fill-dev"
+TOKEN_CANDIDATES = (
+    Path("/cursor/stores/self/secrets/HF_TOKEN"),
+    Path("/cursor/stores/bc-ce2a871f-6243-545d-b7e1-efe5cb17dbe2/secrets/HF_TOKEN"),
+)
+REMOTE_TOKEN_PATHS = (
+    "/root/.cache/huggingface/token",
+    "/root/.huggingface/token",
+    "/tmp/.r5_hf_token",
+)
 COMMIT = subprocess.check_output(["git", "-C", "/workspace", "rev-parse", "HEAD"], text=True).strip()
 LOCAL_SHA = hashlib.sha256(LOCAL_SCRIPT.read_bytes()).hexdigest()
 CAP_YUAN = 6.0
@@ -44,9 +54,18 @@ CARD_WAIT_MIN = 60.0
 STUCK_MIN = 15.0
 
 
+def _redact(text: str) -> str:
+    """Strip HF token-like strings from log tails (never echo secrets)."""
+    import re
+
+    text = re.sub(r"hf_[A-Za-z0-9]+", "hf_[REDACTED]", text)
+    text = re.sub(r"Bearer\s+\S+", "Bearer [REDACTED]", text)
+    return text
+
+
 def log(msg: str) -> None:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    line = f"{now} {msg}"
+    line = f"{now} {_redact(msg)}"
     print(line, flush=True)
     for path in (OUT / "run.log", Path("/tmp/r5-pilot-console.log")):
         try:
@@ -55,6 +74,34 @@ def log(msg: str) -> None:
                 fh.write(line + "\n")
         except OSError as exc:
             print(f"LOG_WRITE_FAIL {path}: {exc}", flush=True)
+
+
+def resolve_token_path() -> Path:
+    for p in TOKEN_CANDIDATES:
+        if p.is_file() and p.stat().st_size > 10:
+            return p
+    raise SystemExit("HF_TOKEN_FILE_MISSING under Agent Store secrets/")
+
+
+def load_token_into_env() -> None:
+    """Set HF_TOKEN / HUGGING_FACE_HUB_TOKEN from Agent Store; never print value."""
+    path = resolve_token_path()
+    raw = path.read_text(encoding="utf-8").strip().splitlines()
+    token = ""
+    for line in raw:
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("HF_TOKEN="):
+            token = line.split("=", 1)[1].strip().strip('"').strip("'")
+        else:
+            token = line
+        break
+    if len(token) < 10:
+        raise SystemExit("HF_TOKEN_EMPTY_OR_SHORT")
+    os.environ["HF_TOKEN"] = token
+    os.environ["HUGGING_FACE_HUB_TOKEN"] = token
+    log(f"HF_TOKEN_LOADED from_store bytes={len(token)} path_kind=agent_store")
 
 
 def balance_yuan() -> float:
@@ -184,6 +231,70 @@ def ship_baseline() -> None:
     log(f"SHIP_BASELINE -> {remote} bytes={LOCAL_BASELINE.stat().st_size}")
 
 
+def ship_hf_token() -> None:
+    """SCP token to remote HF cache paths only; never put token in ssh argv/log."""
+    src = resolve_token_path()
+    # Normalize to a single-line temp file (no KEY= prefix) for HF cache format
+    tmp = Path("/tmp/.r5_hf_token_ship")
+    raw = src.read_text(encoding="utf-8").strip()
+    token = raw
+    for line in raw.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        token = line.split("=", 1)[1].strip().strip('"').strip("'") if line.startswith("HF_TOKEN=") else line
+        break
+    tmp.write_text(token + "\n", encoding="utf-8")
+    tmp.chmod(0o600)
+    bring.ssh("mkdir -p /root/.cache/huggingface /root/.huggingface", check=True)
+    conn = bring.connection()
+    for remote in REMOTE_TOKEN_PATHS:
+        scp = [
+            "scp",
+            "-i",
+            str(bring.KEY_COPY),
+            "-P",
+            conn["port"],
+            "-o",
+            "StrictHostKeyChecking=accept-new",
+            "-o",
+            "BatchMode=yes",
+            "-o",
+            "ConnectTimeout=20",
+            str(tmp),
+            f"{conn['user']}@{conn['host']}:{remote}",
+        ]
+        proc = subprocess.run(scp, capture_output=True, text=True, timeout=60)
+        if proc.returncode != 0:
+            tmp.unlink(missing_ok=True)
+            raise SystemExit(f"SHIP_HF_TOKEN_FAIL remote={remote} rc={proc.returncode}")
+    bring.ssh(
+        "chmod 600 /root/.cache/huggingface/token /root/.huggingface/token /tmp/.r5_hf_token 2>/dev/null || true",
+        check=False,
+    )
+    tmp.unlink(missing_ok=True)
+    log("SHIP_HF_TOKEN ok (remote cache files only; value not logged)")
+
+
+def scrub_hf_token_remote() -> None:
+    """Delete token files and unset env leftovers on the GPU box after download."""
+    script = (
+        "set +x; "
+        "rm -f /root/.cache/huggingface/token /root/.huggingface/token /tmp/.r5_hf_token "
+        "/root/autodl-tmp/.r5_hf_token /tmp/r5-fill-probe.body /tmp/r5-fill-probe.hdr 2>/dev/null; "
+        "unset HF_TOKEN HUGGING_FACE_HUB_TOKEN huggingface_hub_token; "
+        "sed -i '/HF_TOKEN/d;/HUGGING_FACE_HUB_TOKEN/d' /root/.bashrc /root/.profile 2>/dev/null || true; "
+        "echo SCRUB_HF_TOKEN_DONE"
+    )
+    run = bring.ssh(script, check=False)
+    log(_redact((run.stdout or "").strip()[-80:] or "SCRUB_attempted"))
+    # also drop from this process
+    os.environ.pop("HF_TOKEN", None)
+    os.environ.pop("HUGGING_FACE_HUB_TOKEN", None)
+    Path("/tmp/.r5_hf_token_ship").unlink(missing_ok=True)
+    log("SCRUB_HF_TOKEN local+remote done")
+
+
 def record_live_df(role: str) -> None:
     run = bring.ssh("df -h /root/autodl-tmp | tail -1", check=False)
     line = (run.stdout or "").strip().splitlines()[-1] if run.stdout else ""
@@ -261,20 +372,20 @@ def remote_job(cmd: str, *, log_name: str, stuck_min: float = STUCK_MIN, hard_mi
                     break
                 except ValueError:
                     pass
-        tail = " | ".join(probe.stdout.strip().splitlines()[-8:])
+        tail = _redact(" | ".join(probe.stdout.strip().splitlines()[-8:]))
         log(f"PROG {log_name} size={size} alive={'ALIVE' if alive else 'DEAD'} | {tail[:350]}")
         if "HF_GATED_LOGIN_WALL" in probe.stdout or "GATED_URL" in probe.stdout:
             log(f"GATED_DETECTED during {log_name}")
             bring.ssh(f"kill {pid} 2>/dev/null; sleep 1; kill -9 {pid} 2>/dev/null || true", check=False)
             end = bring.ssh(f"tail -n 100 {remote_log}", check=False)
-            (OUT / f"{log_name}.log").write_text(end.stdout, encoding="utf-8")
+            (OUT / f"{log_name}.log").write_text(_redact(end.stdout or ""), encoding="utf-8")
             return 41
         if size > last_size:
             last_size = size
             last_progress = time.monotonic()
         if not alive:
             end = bring.ssh(f"tail -n 120 {remote_log}", check=False)
-            (OUT / f"{log_name}.log").write_text(end.stdout, encoding="utf-8")
+            (OUT / f"{log_name}.log").write_text(_redact(end.stdout or ""), encoding="utf-8")
             if "HF_GATED_LOGIN_WALL" in end.stdout or "GATED_URL" in end.stdout:
                 return 41
             if any(
@@ -351,6 +462,10 @@ def sync_store() -> None:
 
 def handle_gated(start_bal: float) -> None:
     log(f"STOP_HF_GATED {GATED_URL}")
+    try:
+        scrub_hf_token_remote()
+    except Exception as exc:  # noqa: BLE001
+        log(f"SCRUB_ON_GATED_ERR {type(exc).__name__}")
     (OUT / "HF_GATED.json").write_text(
         json.dumps(
             {
@@ -389,6 +504,7 @@ def after_boot(auth: str, role: str, uuid: str, start_bal: float) -> None:
 
     record_live_df(role)
     ship_baseline()
+    ship_hf_token()
 
     alias = host_idle(auth, uuid)[2]
     (OUT / "MACHINE.json").write_text(
@@ -400,6 +516,7 @@ def after_boot(auth: str, role: str, uuid: str, start_bal: float) -> None:
                 "commit": COMMIT,
                 "sha256_r5": LOCAL_SHA,
                 "gated_url": GATED_URL,
+                "hf_token_shipped": True,
             },
             indent=2,
         ),
@@ -407,19 +524,31 @@ def after_boot(auth: str, role: str, uuid: str, start_bal: float) -> None:
     )
     log(f"MODEL_TARGET role={role} alias={alias} uuid={uuid}")
 
-    # Prefer official HF for gated Fill (mirror often breaks auth)
+    # Prefer official HF for gated Fill (mirror often breaks auth).
+    # Token is read from remote cache files by install script — NOT in argv.
     dl_cmd = (
         f"export HF_ENDPOINT=https://huggingface.co COMFY={bring.COMFY_DIR} "
         f"OUT_JSON={REMOTE_OUT}/MODEL_HOST.json STUCK_SEC=900 "
         f"AUTODL_MACHINE_ALIAS={shlex.quote(alias)} AUTODL_INSTANCE_UUID={uuid}; "
-        f"bash {bring.REMOTE_ROOT}/{INSTALL_REL}"
+        f"bash {bring.REMOTE_ROOT}/{INSTALL_REL}; ec=$?; "
+        f"rm -f /root/.cache/huggingface/token /root/.huggingface/token /tmp/.r5_hf_token; "
+        f"unset HF_TOKEN HUGGING_FACE_HUB_TOKEN; exit $ec"
     )
-    log("DOWNLOAD_START R5 Fill (probe gated first)")
+    log("DOWNLOAD_START R5 Fill (token via remote cache file; scrub after)")
     rc = remote_job(dl_cmd, log_name="download-r5", stuck_min=STUCK_MIN, hard_min=120.0)
+    # Always scrub after download attempt (success, gate, or fail)
+    try:
+        scrub_hf_token_remote()
+    except Exception as exc:  # noqa: BLE001
+        log(f"SCRUB_AFTER_DL_ERR {type(exc).__name__}")
     if rc == 41:
         handle_gated(start_bal)
     pull_out()
     sync_store()
+    # Redact any pulled download logs
+    dl_log = OUT / "download-r5.log"
+    if dl_log.is_file():
+        dl_log.write_text(_redact(dl_log.read_text(encoding="utf-8", errors="replace")), encoding="utf-8")
     if rc != 0:
         log(f"DOWNLOAD_FAIL rc={rc} shutdown")
         power.shutdown_fleet()
@@ -459,6 +588,8 @@ def main() -> None:
     global COMMIT, LOCAL_SHA
     COMMIT = subprocess.check_output(["git", "-C", "/workspace", "rev-parse", "HEAD"], text=True).strip()
     LOCAL_SHA = hashlib.sha256(LOCAL_SCRIPT.read_bytes()).hexdigest()
+
+    load_token_into_env()
 
     auth = power.web_authorization()
     if not auth:

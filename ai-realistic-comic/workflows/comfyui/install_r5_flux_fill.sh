@@ -42,11 +42,14 @@ fi
 
 AUTH_HDR=()
 if [[ -n "${HF_TOKEN:-}" ]]; then
+  export HUGGING_FACE_HUB_TOKEN="${HUGGING_FACE_HUB_TOKEN:-$HF_TOKEN}"
   AUTH_HDR=(-H "Authorization: Bearer ${HF_TOKEN}")
   echo "HF_TOKEN_PRESENT yes"
 else
   echo "HF_TOKEN_PRESENT no"
 fi
+# Never echo token value; avoid xtrace leaking secrets
+set +x
 
 echo "DF_BEFORE"
 df -h /root/autodl-tmp | tail -1 || true
