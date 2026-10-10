@@ -55,3 +55,11 @@
 
 - 成衣：GenerateImage only；去衣/破衣：`run_fox_couple_r4.py` + `run_fox_couple_pilot.py`（需 `POSE_LOCKED.json` / `--pose-locked`）。
 - 产物：`library/stills/fox-couple/` + `/opt/cursor/artifacts/fox-couple/`。
+
+## 情侣变体（伊莲×男配，2026-10-10）
+
+- 成衣：GenerateImage 离线挑姿势；**男演员形象/衣服不锁**，按伊莲画面配合。
+- 去衣/破衣：R4，只改伊莲上身甲/衣；锁姿势、马身、男配（底板内）、背景；正式=raw。
+- 产物：`library/stills/elena-couple/` + `/opt/cursor/artifacts/elena-couple/`。
+- 与林×顾双人去衣可同队列抢卡；总花费封顶以当次授权为准。
+
