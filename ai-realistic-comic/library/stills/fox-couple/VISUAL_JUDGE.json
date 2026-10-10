@@ -1,0 +1,39 @@
+{
+  "commit": "03811e2ec90757cc944f5f6f136c7663f9ab4e84",
+  "machine": "592 clone",
+  "pipeline": "fox_couple_r4",
+  "official_is_raw": true,
+  "verdicts": {
+    "lin-gu-embrace-clothed": {
+      "usable": true,
+      "adopted": "generateimage",
+      "reason": "成衣拥吻可用：旗袍+狐尾+顾西装；成人双人。",
+      "path": "/opt/cursor/artifacts/fox-couple/lin-gu-embrace-clothed.png",
+      "mean_est": 8.5,
+      "sha256": "0af8c548a6d6b97d64cf8a71ea3657dd420fda8cef1a200e06b3cccc2ffdd758"
+    },
+    "lin-gu-embrace-nude": {
+      "usable": true,
+      "adopted": "r4-raw",
+      "reason": "R4 raw：林去衣干净，顾西装/拥吻/狐尾/背景锁住。正式=贴回前 raw。",
+      "path": "/opt/cursor/artifacts/fox-couple/lin-gu-embrace-nude-r4-raw.png",
+      "mean_est": 8.4,
+      "sha256": "1416d82854fa17fc6d64797f99deb4a6a300fe28f0d04cd30be78d991d11fada"
+    },
+    "lin-gu-embrace-torn": {
+      "usable": false,
+      "adopted": null,
+      "reason": "R4 raw 保留：旗袍仍大体完好，撕破露肤不足（近成衣），不作正式破衣。",
+      "path": "/opt/cursor/artifacts/fox-couple/lin-gu-embrace-torn-r4-raw.png",
+      "mean_est": 6.5,
+      "sha256": "466f288a248f880fd50cdef4f150d718fa88d74a7df99f1d051d496eafe8aadd"
+    }
+  },
+  "start_bal": 14.9,
+  "end_bal": 13.2,
+  "spent_cny_approx": 1.7,
+  "judged_at": "2026-10-10T15:32:36Z",
+  "end_bal_after_shutdown": 11.63,
+  "spent_cny_approx_after_shutdown": 3.27,
+  "note": "judged end_bal 13.2 was pre-settlement; live wallet after shutdown = 11.63"
+}
