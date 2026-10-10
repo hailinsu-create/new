@@ -1,0 +1,9 @@
+{
+  "usable": true,
+  "mean_est": 8.3,
+  "scorer": "cursor",
+  "notes": "R4 raw：伊莲上身甲/衣去除；马身/男配/石院姿势背景锁住。正式=raw。",
+  "sha256": "5ecaa01c20134b3c2b6e5fba0bfa8a060f7009538d05cb38c53befc0e1ae4a95",
+  "adopted": "r4-raw",
+  "gates": []
+}
