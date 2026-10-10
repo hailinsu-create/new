@@ -259,6 +259,11 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 - **R5 已实现（2026-10-10 授权）**：`run_fox_centaur_community_r5.py` + `install_r5_flux_fill.sh` + `run_r5_pilot.py`。底板 R4b；只挖腰缝+护腕；优先 592；HF gated 立刻停报 URL；封顶 **¥6**；产物 `…/r5/`。磁盘快照 `…/r5-disk-check.json`。
 - **R5 试点（2026-10-10，592，`0cb6523`）停于 HF gated**：开机 live `df` **150G / 用 55G / 余 96G**；Fill 探测 **HTTP 401** → 立刻停、关机留盘。后续用户提供 Agent Store `HF_TOKEN` 续跑。
 - **R5 续跑（2026-10-10，592，`c5b89c2`）不可用**：Fill+T5-fp8+clip_l+ae 已下（下完 `df` ≈**150G / 82G / 69G**）；token 下载后已 scrub。底板 R4b；mask_share≈**0.103**；below_cut MAE=0。成图腰缝甲+护腕仍在。关机留盘。花费 ≈**¥2.98**（21.05→18.07，封顶¥6）。见 `…/r5/VISUAL_JUDGE.json`。
+- **R5 离线崩因（2026-10-10，不开机）**：对照 `r5-raw`/`waist-gauntlet-mask` vs R4b → 洞**已罩住**（ROI 覆盖≈1.0）；**denoise=1.0 / 20 步**非过低；洞内有实质变化（IN-mask MAE≈17–38）但 metal still≈0.70–0.99 ⇒ **FILL_KEPT_METAL**（Fill 重建金属，非漏蒙）。诊断 `…/r5-offline-diag/`。**禁止**未授权开机、禁止再拧同一 Fill 提示/同洞。
+- **下一步（最多两案，待授权；余额 ¥18.07）**：
+  1. **推荐：暂停伊莲金属甲，改试林旗袍 nude**（现有 SDXL/Fooocus，下载 0；估 **¥0.5–1.5**，硬顶 ≤¥2）。
+  2. **备选 R5b：同盘 Fill + 社区 undress LoRA** + 更大洞/28–40 步（[Reddit Fill+LoRA](https://www.reddit.com/r/StableDiffusion/comments/1qgsbz3/is_flux_klein_better_for_editing_than_flux_kontext/)、[lewdly NSFW inpaint](https://lewdly.ai/blog/comfyui-nsfw-inpainting-clothing-workflow)）；LoRA ≈0.3–2GB；估 **¥1–3**，硬顶 ≤¥3；金属甲仍可能失败。
+  细则：`…/r5-offline-diag/ROOT_CAUSE_AND_NEXT.json`。
 
 - AI 漫画工作流内 **grok 一律走 Cursor 本机**，禁止 grok.com / 其他渠道 CLI。
 
