@@ -1,0 +1,19 @@
+{
+  "src": "/root/autodl-tmp/dual-couple-2k-input/USER_LOCKED_lin-gu-C.jpg",
+  "dest": "/root/autodl-tmp/dual-couple-2k-out/USER_LOCKED_lin-gu-C-2k.png",
+  "src_size": [
+    1280,
+    720
+  ],
+  "out_size": [
+    2560,
+    1440
+  ],
+  "target": [
+    2560,
+    1440
+  ],
+  "model": "4x-UltraSharp.pth",
+  "mode": "ultrasharp",
+  "bytes": 5733366
+}

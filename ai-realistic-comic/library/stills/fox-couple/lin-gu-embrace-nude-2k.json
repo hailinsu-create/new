@@ -1,0 +1,19 @@
+{
+  "src": "/root/autodl-tmp/dual-couple-2k-input/lin-gu-embrace-nude.png",
+  "dest": "/root/autodl-tmp/dual-couple-2k-out/lin-gu-embrace-nude-2k.png",
+  "src_size": [
+    1392,
+    752
+  ],
+  "out_size": [
+    2560,
+    1383
+  ],
+  "target": [
+    2560,
+    1383
+  ],
+  "model": "4x-UltraSharp.pth",
+  "mode": "ultrasharp",
+  "bytes": 4689165
+}
