@@ -252,10 +252,11 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 - **R4b 已实现（2026-10-10 08:22 授权）**：`run_fox_centaur_community_r4b.py` + 试点 `run_r4b_pilot.py`。offline 加宽蒙版 + 提示显式去腰缝甲/护腕；优先 592（模型已在）；封顶 **¥4**；产物 `…/r4b/`。需 `--i-know-authorized`。禁止 grok.com。
 - **R4b 试点（2026-10-10，592，`f93fd53`）不可用**：sha `336d828d…` 对齐；模型 SKIP TOTAL=31.55GB；mask_share≈**0.249**，below_cut MAE=0。成图腰缝甲片+护腕仍在（raw 亦留护腕）。关机留盘。花费 ≈**¥0.24**（21.42→21.18）。见 `…/r4b/VISUAL_JUDGE.json`。
 - **R4b 离线崩因（2026-10-10，不开机）**：对照 `r4b-raw` + `debug/wider-metal-mask.png` → 腰缝/护腕 **已进蒙版**（ROI 覆盖≈1.0），但 raw 内 r1 金属仍在（still≈0.79–0.97）⇒ **MODEL_KEEP**（Qwen 全图 edit 去不掉不透明甲），不是贴回漏蒙。诊断产物 `…/r4b-offline-diag/`（`ANALYSIS.json`、腰缝/护腕四格对照）。**禁止**再微调同一 Qwen 提示/贴回蒙版出下一张。
-- **下一步（最多两案，待授权）**：
-  1. **推荐 R5：Flux Fill 定点洞**擦腰缝甲+护腕（底板优先 R4b 成图；洞外+ y≥690 锁死）。来源：[FLUX.1-Fill-dev](https://huggingface.co/black-forest-labs/FLUX.1-Fill-dev)（gated）、[9elements Fill 换装](https://9elements.com/blog/ai-clothes-swaps-with-flux-redux-and-flux-fill/)、[lewdly NSFW inpaint](https://lewdly.ai/blog/comfyui-nsfw-inpainting-clothing-workflow)。下载 **≈33–35GB**（Fill 23.8 + T5/ae；`clip_l` 栈上或已有）；**592 无 Fill**，余盘快照约 **96G** 够用。估 **¥2.5–5**，硬顶建议 **≤¥6**。
-  2. **备选 R5b：同盘 Qwen 蒙版 inpaint 图**（改图结构，非再拧提示/加宽贴回；[SD Art inpaint](https://stable-diffusion-art.com/qwen-image-edit-inpaint/)）。下载 **0**；估 **¥0.5–1.5**；同族已失败，成功不确定。
+- **下一步（最多两案）**：
+  1. **推荐 R5：Flux Fill 定点洞**擦腰缝甲+护腕（底板优先 R4b 成图；洞外+ y≥690 锁死）。来源：[FLUX.1-Fill-dev](https://huggingface.co/black-forest-labs/FLUX.1-Fill-dev)（gated）、[9elements Fill 换装](https://9elements.com/blog/ai-clothes-swaps-with-flux-redux-and-flux-fill/)、[lewdly NSFW inpaint](https://lewdly.ai/blog/comfyui-nsfw-inpainting-clothing-workflow)。下载 **≈33–35GB**；**592 无 Fill**，余盘快照约 **96G** → 下完约 **61–63G**。估 **¥2.5–5**，硬顶 **≤¥6**。
+  2. **备选 R5b：同盘 Qwen 蒙版 inpaint 图**（[SD Art inpaint](https://stable-diffusion-art.com/qwen-image-edit-inpaint/)）。下载 **0**；估 **¥0.5–1.5**。
   细则：`…/r4b-offline-diag/ROOT_CAUSE_AND_NEXT.json`。
+- **R5 已实现（2026-10-10 授权）**：`run_fox_centaur_community_r5.py` + `install_r5_flux_fill.sh` + `run_r5_pilot.py`。底板 R4b；只挖腰缝+护腕；优先 592；HF gated 立刻停报 URL；封顶 **¥6**；产物 `…/r5/`。磁盘快照 `…/r5-disk-check.json`。
 
 - AI 漫画工作流内 **grok 一律走 Cursor 本机**，禁止 grok.com / 其他渠道 CLI。
 
