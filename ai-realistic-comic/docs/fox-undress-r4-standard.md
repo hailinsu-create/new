@@ -41,3 +41,8 @@
 | hillclimb 均分门禁 | **废弃**（改 Cursor 观感） |
 
 历史细节与实验记录仍见 `docs/fox-centaur-semantic-undress.md`（文首指向本标准）。
+
+## 情侣变体（林×顾，2026-10-10）
+
+- 成衣：GenerateImage；去衣/破衣：`run_fox_couple_r4.py`（只改林旗袍；锁顾/九尾/吻姿/背景；正式=raw）。
+- 产物：`library/stills/fox-couple/` + `/opt/cursor/artifacts/fox-couple/`。

@@ -1,0 +1,10 @@
+{
+  "usable": false,
+  "mean_est": 6.5,
+  "scorer": "cursor",
+  "notes": "R4 raw 保留：旗袍仍大体完好，撕破露肤不足（近成衣），不作正式破衣。",
+  "sha256": "466f288a248f880fd50cdef4f150d718fa88d74a7df99f1d051d496eafe8aadd",
+  "gates": [
+    "intact_clothes"
+  ]
+}
