@@ -97,11 +97,13 @@ def pick_and_power(auth: str) -> tuple[str, str]:
     assert clone
     ensure_both_off(auth)
     deadline = time.monotonic() + CARD_WAIT_MIN * 60
+    wall_deadline = time.time() + CARD_WAIT_MIN * 60
     attempt = 0
     order = (("clone", clone), ("mother", mother))
-    while time.monotonic() < deadline:
+    while time.monotonic() < deadline and time.time() < wall_deadline:
         bal = balance_yuan()
-        log(f"CARD_POLL {attempt} bal={bal:.2f}")
+        left = max(0.0, wall_deadline - time.time())
+        log(f"CARD_POLL {attempt} bal={bal:.2f} left_min={left/60:.1f}")
         mi, ms, ma = host_idle(auth, mother)
         ci, cs, ca = host_idle(auth, clone)
         log(f"CARD_POLL {attempt} mother={ma}:{ms}:idle={mi} clone={ca}:{cs}:idle={ci}")
@@ -133,6 +135,7 @@ def pick_and_power(auth: str) -> tuple[str, str]:
                 raise SystemExit(f"POWER_FATAL {name} {reply}")
         attempt += 1
         time.sleep(30)
+    log("CARD_WAIT_TIMEOUT 60min — stopping")
     raise SystemExit("CARD_WAIT_TIMEOUT 60min")
 
 
