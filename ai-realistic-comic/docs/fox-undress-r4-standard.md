@@ -44,12 +44,14 @@
 
 ## 情侣变体（林×顾，2026-10-10）
 
-**流程顺序（2026-10-10 19:28 更正）**
+**流程顺序（2026-10-10 19:28 更正；10-10 锁板补充）**
 
 1. **成衣姿势挑选（离线）**：只用 Cursor **GenerateImage**（锁脸 ref）出多张穿衣候选；**不开 AutoDL**。
 2. **用户挑定姿势**后，把选定图写入 `library/stills/fox-couple/lin-gu-embrace-clothed.png`，并写 `POSE_LOCKED.json`。
-3. **再授权开机**：`run_fox_couple_pilot.py` 两机协同抢卡做去衣/破衣（R4，只改林旗袍；锁顾/九尾/吻姿/背景；正式=raw）。
+3. **再授权开机**：`run_fox_couple_pilot.py` 两机协同抢卡做去衣/破衣（R4，只改林衣物；锁姿势/白九尾/顾承安当下形象/背景；正式=raw）。
 4. **暂停态**：未挑定姿势前，禁止 AutoDL 开机与双人去衣/破衣抢卡。
 
-- 成衣：GenerateImage only；去衣/破衣：`run_fox_couple_r4.py` + `run_fox_couple_pilot.py`（需 `--pose-locked` / `POSE_LOCKED.json`）。
+**顾承安锁定规则（2026-10-10）**：成衣再出图时，**不锁**顾的形象/衣服——按林晚棠画面氛围配合即可（现代短发、无发髻头饰等随场景）。R4 去衣/破衣编辑时，仍锁住**底板里的顾**（脸、姿势、衣服、手）与白九尾/背景，只改林的衣物。
+
+- 成衣：GenerateImage only；去衣/破衣：`run_fox_couple_r4.py` + `run_fox_couple_pilot.py`（需 `POSE_LOCKED.json` / `--pose-locked`）。
 - 产物：`library/stills/fox-couple/` + `/opt/cursor/artifacts/fox-couple/`。

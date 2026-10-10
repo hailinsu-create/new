@@ -19,8 +19,9 @@ PLAN = {
     "status": "implemented",
     "success": "adopt Qwen-Edit RAW before paste-back",
     "targets": ["lin-gu-embrace-nude", "lin-gu-embrace-torn"],
-    "lock": ["gu_chengan", "nine_fox_tails", "kiss_pose", "background"],
+    "lock": ["gu_as_in_plate", "white_nine_fox_tails", "kiss_pose", "background"],
     "edit": ["lin_qipao_only"],
+    "gu_future_unlocked": "future clothed gens: Gu look/wardrobe not locked; match Lin scene",
 }
 
 
@@ -37,29 +38,32 @@ SHOTS = (
         stem="lin-gu-embrace-nude",
         seed=20261014,
         prompt=(
-            "Edit only the woman's floral qipao: remove it completely so her adult body is bare "
-            "natural skin with realistic pores. Keep the passionate kiss and embrace pose unchanged. "
-            "Keep the man fully clothed in his black suit, same face and hands. "
-            "Keep all nine fluffy cream fox tails, her face and hair, and the garden background unchanged."
+            "Edit only the woman's decorative floral qipao: remove it completely so her adult body is bare "
+            "natural skin with realistic pores. Keep her half-pinning him on the bed, kiss and pose unchanged. "
+            "Keep the man exactly as in the photo (modern short hair, same clothes, face, hands). "
+            "Keep all nine fluffy pure white fox tails, her face and hair, bed sheets and background unchanged."
         ),
         negative=(
             "qipao remaining, silk dress, embroidery, clothes on the woman, sheer fabric smear, "
-            "changed man, extra limbs, broken kiss pose, missing fox tails, blurry, watermark, child"
+            "changed man, topknot, hair ornament, extra limbs, broken kiss pose, missing fox tails, "
+            "cream tails, garden background, blurry, watermark, child"
         ),
     ),
     Shot(
         stem="lin-gu-embrace-torn",
         seed=20261015,
         prompt=(
-            "Edit only the woman's floral qipao: tear it open with jagged frayed silk edges across "
-            "chest and abdomen, revealing bare adult skin in the tears while leaving collar and "
-            "hip fabric remnants. Keep the passionate kiss and embrace unchanged. "
-            "Keep the man fully clothed in his black suit, same face and hands. "
-            "Keep all nine fluffy cream fox tails, her face and hair, and the garden background unchanged."
+            "Edit only the woman's decorative floral qipao: rip large jagged holes through the chest, "
+            "breasts, and midriff so abundant bare adult skin shows; leave only torn collar strips and "
+            "hip/skirt remnants with frayed silk edges — clothing must look clearly destroyed, not intact. "
+            "Keep her half-pinning him on the bed, kiss and pose unchanged. "
+            "Keep the man exactly as in the photo (modern short hair, same clothes, face, hands). "
+            "Keep all nine fluffy pure white fox tails, her face and hair, bed and background unchanged."
         ),
         negative=(
-            "intact undamaged qipao, fully clothed seamless dress, changed man, extra limbs, "
-            "missing fox tails, completely nude with no fabric remnants, blurry, watermark, child"
+            "intact undamaged qipao, fully clothed seamless dress, only tiny tears, almost clothed, "
+            "changed man, topknot, extra limbs, missing fox tails, completely nude with no fabric remnants, "
+            "blurry, watermark, child"
         ),
     ),
 )

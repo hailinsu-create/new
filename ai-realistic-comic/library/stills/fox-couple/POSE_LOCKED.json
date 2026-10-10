@@ -1,0 +1,17 @@
+{
+  "locked": true,
+  "locked_at": "2026-10-10T15:40:40.528353+00:00",
+  "pose": "C-rev-bed-lin-half-pin",
+  "source_box_path": "/home/box/agent-data/agents/18fbb3ce-a6ce-46b2-a28f-88e6e5544025/assets/72122d5e755a735a6ddf40a3b097da8f321f7231084372c027dae60040472ec8.jpg",
+  "source_box_reachable": false,
+  "plate_note": "box path not mounted on cloud VM; GenerateImage revision matching user lock brief (white nine tails, decorative qipao, Lin half-pinning Gu on bed, Gu modern short hair no topknot)",
+  "plate": "/workspace/ai-realistic-comic/library/stills/fox-couple/lin-gu-embrace-clothed.png",
+  "sha256": "1ee8c6e5e4830356a5a197bc38ebb9749dc35962f7aec7a6698ad9876bb07b55",
+  "gu_wardrobe_unlocked_for_future": true,
+  "locks_for_r4_edit": [
+    "pose",
+    "white_nine_tails",
+    "gu_as_in_plate",
+    "background"
+  ]
+}
