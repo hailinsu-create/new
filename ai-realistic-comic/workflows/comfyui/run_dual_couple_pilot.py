@@ -173,13 +173,15 @@ def pick_and_power(auth: str, cap: spend_cap.SpendCap) -> tuple[str, str]:
         mi, ms, ma = host_idle(auth, mother)
         ci, cs, ca = host_idle(auth, clone)
         log(f"CARD_POLL {attempt} mother={ma}:{ms}:idle={mi} clone={ca}:{cs}:idle={ci}")
+        # Prefer 592 clone first: R4 Qwen weights already on disk there (~31GB).
+        # 791 winning without models burns the spend cap on download.
         order: list[tuple[str, str]] = []
-        if mi > 0:
-            order.append(("mother", mother))
         if ci > 0:
             order.append(("clone", clone))
+        if mi > 0:
+            order.append(("mother", mother))
         if not order:
-            order = [("mother", mother), ("clone", clone)]
+            order = [("clone", clone), ("mother", mother)]
         for name, uuid in order:
             try:
                 dual.ensure_peer_shutdown(auth, uuid)
