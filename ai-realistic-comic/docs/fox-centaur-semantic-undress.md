@@ -269,6 +269,7 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 - **R4 batch3 试点（2026-10-10，抢卡）停于 CARD_WAIT_TIMEOUT**：06:03–07:17 UTC 592/791 均 `机器空闲GPU不足`；按授权满 1 小时停并关机留盘。**未出图**。花费 ≈¥0（余额 17.47→17.47）。见 `…/r4-batch3/CARD_WAIT_TIMEOUT.json`。代码已推，卡空闲后可续跑同脚本。
 - **R4 batch3 续跑（2026-10-10 15:19 授权）再停于 CARD_WAIT_TIMEOUT**：07:19–08:20 UTC 仍无卡；墙钟 60min 停线生效。**未出图**。花费 ≈¥0（17.47→17.47）。关机留盘。
 - **R4 batch3 长等+双机协同抢卡（2026-10-10 17:13）**：取消 1h 上限，一直抢到三张完成；互斥只开一台；同时有卡优先 791；592 有模型优先出图，791 先抢到则确认/hf-mirror 下模型再跑；封顶 ¥4；卡住/报错 >15min 关机留盘。`CARD_WAIT_MIN=None` + dual race。
+- **R4 batch3 完成（2026-10-10，592，`4722641`/`be92652`）可用×3**：双机协同抢卡约 35min 后 592 胜出；正式=三张 `*-r4-raw.png`（贴回前）。林 nude / 林 torn / 伊莲 torn 均归档 library+best。花费见 `…/r4-batch3/VISUAL_JUDGE.json`。关机留盘。
 
 - AI 漫画工作流内 **grok 一律走 Cursor 本机**，禁止 grok.com / 其他渠道 CLI。
 
