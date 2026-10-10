@@ -465,8 +465,11 @@ def main() -> None:
     auth = power.web_authorization()
     if not auth:
         raise SystemExit("WEB_AUTH_MISSING")
-    start_bal = balance_yuan()
-    log(f"START commit={COMMIT[:12]} bal={start_bal:.2f} cap={CAP_YUAN}")
+    bal_now = balance_yuan()
+    # Allow continuing same authorized session after emergency stop (account prior GPU burn).
+    import os
+    start_bal = float(os.environ.get("DUAL_SESSION_START_BAL", bal_now))
+    log(f"START commit={COMMIT[:12]} bal_now={bal_now:.2f} session_start={start_bal:.2f} cap={CAP_YUAN}")
     cap = spend_cap.SpendCap(
         start_bal=start_bal,
         cap_yuan=CAP_YUAN,
