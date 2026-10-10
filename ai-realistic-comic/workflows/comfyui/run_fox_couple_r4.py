@@ -53,9 +53,10 @@ SHOTS = (
         stem="lin-gu-embrace-torn",
         seed=20261015,
         prompt=(
-            "Edit only the woman's red embroidered decorative qipao: rip large jagged holes through the chest, "
-            "breasts, and midriff so abundant bare adult skin shows; leave only torn collar strips and "
-            "hip/skirt remnants with frayed silk edges — clothing must look clearly destroyed, not intact. "
+            "Edit only the woman's red embroidered decorative qipao: violently tear it open with huge jagged "
+            "rips across both breasts, cleavage, belly and hips so large areas of bare adult skin show; "
+            "keep only shredded collar strips and hanging skirt rags with frayed silk — must look destroyed, "
+            "not a cutout dress, not intact fashion. "
             "Keep her half-lying over him on the bed, pose and faces unchanged. "
             "Keep the man exactly as in the photo (modern short hair, dark blue robe, face, hands). "
             "Keep all nine fluffy pure white fox tails, her face and hair, bed, lanterns and background unchanged."
@@ -66,7 +67,7 @@ SHOTS = (
             "blurry, watermark, child"
         ),
     ),
-))
+)
 
 
 def run_shot(host: str, out_dir: Path, plate: Path, shot: Shot, models: dict, use_ref: bool) -> Path:
@@ -75,9 +76,12 @@ def run_shot(host: str, out_dir: Path, plate: Path, shot: Shot, models: dict, us
     work = out_dir / "work"
     work.mkdir(parents=True, exist_ok=True)
     img = Image.open(plate).convert("RGB")
-    # Prefer portrait 1024x1536 for Qwen Edit consistency
+    # Preserve aspect; fit inside 1536 on long side (USER_LOCKED plates are often 1280x720).
     upload = work / f"plate-{shot.stem}.png"
-    img.resize((1024, 1536), Image.Resampling.LANCZOS).save(upload)
+    w, h = img.size
+    scale = min(1536 / max(w, h), 1.0) if max(w, h) > 1536 else 1.0
+    tw, th = max(64, int(w * scale) // 8 * 8), max(64, int(h * scale) // 8 * 8)
+    img.resize((tw, th), Image.Resampling.LANCZOS).save(upload)
     base.upload(host, upload)
     graph = r4.qwen_edit_graph(
         image_name=upload.name,

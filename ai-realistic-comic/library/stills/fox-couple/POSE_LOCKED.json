@@ -9,5 +9,6 @@
   "sha256": "e18301117bfe44814739c3cc9d17b1e12ab79a7242df6157feec63952d3bf679",
   "gu_wardrobe_unlocked_for_future": true,
   "prior_standin_superseded": true,
-  "r4_on_user_locked": "pending_reauth_cap_spent"
+  "r4_on_user_locked": "pending_reauth_cap_spent",
+  "r4_status": "authorized_2026-10-11"
 }

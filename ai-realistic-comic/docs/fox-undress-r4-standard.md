@@ -15,12 +15,13 @@
 | 判定 | Cursor **观感**看 PNG（`VISUAL_JUDGE`）；取消均分≥9 / 硬门门禁 |
 | 机器 | 互斥只开一台；**两机协同抢卡**（同时有卡优先 791）；592 有模型优先出图；791 先抢到则确认模型或 hf-mirror 下载 |
 | 收尾 | 关机留盘；**禁止 release**；封顶按当次授权（默认 ≤¥4） |
-| **封顶硬停** | `spend_cap.py`：钱包差额与**开机投影 GPU**取大；抢卡前 `refuse_power_on`；监控/`finally` 必 `shutdown_fleet`；**禁止为观感挂机**。盘费日结见 [超支核查](autodl-spend-cap-overspend-2026-10-10.md) |
+| **封顶硬停** | `spend_cap.py` + [关机看门狗](autodl-shutdown-watchdog.md)：钱包差额与**墙钟/开机投影 GPU**取大；抢卡前 `refuse_power_on`；信号/`finally`/独立 watchdog 必 `shutdown_fleet`；raw 即拉；**禁止为观感挂机**。超支案见 [核查](autodl-spend-cap-overspend-2026-10-10.md) |
 
 ## 入口脚本
 
 - 单人狐/马四张历史：`run_fox_centaur_community_r4.py` / `r4b` / `r4_batch3`
 - 情侣（林×顾，只改林衣）：`run_fox_couple_r4.py` + `run_fox_couple_pilot.py`
+- 双人情侣一次四张（林+伊莲）：`run_dual_couple_pilot.py` + `run_elena_couple_r4.py` + `autodl_watchdog.py`
 - 安装：`install_r4_qwen.sh`
 - 抢卡试点模板：`run_r4_batch3_pilot.py`（`CARD_WAIT_MIN=None`，dual race）
 
