@@ -2,6 +2,8 @@
 
 2026-10-07 起稿；**2026-10-08 用户拍板修订**见下节。适用 `library/stills/fox-centaur-embrace/` 的四张：林晚棠旗袍九尾 nude / torn，伊莲铠甲半人马 nude / torn。不是身体板，不进 `library/cast/*/body-nude/`。机器：**北京 B 母机 791** `359a49a1c3-4cda10df` + **最多一台**同标准 payg 克隆机（见 ④）。F34 / G09 不开，脚本遇到它们的主机名直接 `FORBIDDEN_HOST`。
 
+> **2026-10-10 18:59 标准已迁移**：狐/马去衣默认流程见 [`docs/fox-undress-r4-standard.md`](fox-undress-r4-standard.md)（Qwen-Edit-2511 + 贴回前 raw + 双机协同抢卡 + Cursor 观感）。本文以下 Fooocus / R1 / R3 / R5 实验记录**仅作历史**；开机默认勿再走这些路径。
+
 ## 2026-10-08 用户拍板（必须遵守）
 
 ① **取消打分门禁，改 Cursor 观感判定。** 用户明确取消狐/马去衣的均分 ≥9、硬门（`clothes_remain` / `armor_remain` 等）、以及 `SCORE_PENDING` 等待循环。出图后脚本只打印 `VISUAL_JUDGE <actor> <mode> <path>`；是否可用由 Cursor **看 PNG 观感**判定，不再写 `.score-request.json`、不再用 sidecar `passed` 挡 torn / bringup。
