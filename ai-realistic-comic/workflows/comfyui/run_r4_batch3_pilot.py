@@ -219,23 +219,19 @@ def ship_plates() -> None:
 
 def models_present() -> bool:
     """True if all R4 weights already on the active host."""
+    # Use shell tests — remote PATH often lacks bare `python3`.
+    files = [
+        f"{bring.COMFY_DIR}/models/diffusion_models/qwen_image_edit_2511_fp8mixed.safetensors",
+        f"{bring.COMFY_DIR}/models/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors",
+        f"{bring.COMFY_DIR}/models/vae/qwen_image_vae.safetensors",
+    ]
+    checks = " && ".join(f'test -s {shlex.quote(f)}' for f in files)
     probe = bring.ssh(
-        f"python3 - <<'PY'\n"
-        f"from pathlib import Path\n"
-        f"root = Path('{bring.COMFY_DIR}') / 'models'\n"
-        f"need = [\n"
-        f"  root/'diffusion_models'/'qwen_image_edit_2511_fp8mixed.safetensors',\n"
-        f"  root/'text_encoders'/'qwen_2.5_vl_7b_fp8_scaled.safetensors',\n"
-        f"  root/'vae'/'qwen_image_vae.safetensors',\n"
-        f"]\n"
-        f"ok = all(p.is_file() and p.stat().st_size > 1_000_000 for p in need)\n"
-        f"print('MODELS_PRESENT' if ok else 'MODELS_MISSING')\n"
-        f"for p in need:\n"
-        f"  print(p.name, p.is_file(), p.stat().st_size if p.is_file() else 0)\n"
-        f"PY",
+        f"if {checks}; then echo MODELS_PRESENT; ls -la {' '.join(shlex.quote(f) for f in files)}; "
+        f"else echo MODELS_MISSING; ls -la {' '.join(shlex.quote(f) for f in files)} 2>&1 || true; fi",
         check=False,
     )
-    log(f"MODEL_PROBE {probe.stdout.strip()[:400]}")
+    log(f"MODEL_PROBE {probe.stdout.strip()[:500]}")
     return "MODELS_PRESENT" in probe.stdout
 
 
