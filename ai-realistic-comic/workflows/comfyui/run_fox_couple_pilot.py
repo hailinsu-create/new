@@ -347,7 +347,17 @@ def after_boot(auth: str, role: str, uuid: str, start_bal: float) -> None:
         f"--plate {shlex.quote(REMOTE_INPUT + '/lin-gu-embrace-clothed.png')} --i-know-authorized"
     )
     log("GENERATE_START couple nude+torn")
-    rc = remote_job(gen, log_name="gen-couple", stuck_min=STUCK_MIN, hard_min=60.0)
+    try:
+        rc = remote_job(gen, log_name="gen-couple", stuck_min=STUCK_MIN, hard_min=60.0)
+    except SystemExit:
+        pull_out(); sync_store()
+        summary = OUT / "COUPLE_SUMMARY.json"
+        if summary.is_file() and "lin-gu-embrace-nude" in summary.read_text(encoding="utf-8"):
+            log("RECOVERED_AFTER_SSH_FAIL couple outputs present")
+            rc = 0
+        else:
+            power.shutdown_fleet()
+            raise
     pull_out(); sync_store()
     if rc != 0:
         power.shutdown_fleet()

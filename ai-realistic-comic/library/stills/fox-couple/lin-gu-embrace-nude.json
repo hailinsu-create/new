@@ -1,8 +1,9 @@
 {
   "usable": true,
-  "mean_est": 8.4,
+  "mean_est": 8.3,
   "scorer": "cursor",
-  "notes": "R4 raw：林去衣干净，顾西装/拥吻/狐尾/背景锁住。正式=贴回前 raw。",
-  "sha256": "1416d82854fa17fc6d64797f99deb4a6a300fe28f0d04cd30be78d991d11fada",
-  "gates": []
+  "notes": "R4 raw：林去衣干净；顾短发黑T/牛仔裤、白九尾、床上拥吻姿势与背景锁住。正式=贴回前 raw。",
+  "sha256": "a8800fcc2ec29ffb910c3e120d3e6640f12c8c9ad0c925383acc6c0a2b7d32c9",
+  "gates": [],
+  "adopted": "r4-raw"
 }
