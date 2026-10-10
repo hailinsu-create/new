@@ -2,23 +2,21 @@
   "identity": 8,
   "distinction": 8,
   "interaction": 8,
-  "aesthetics": 6,
-  "anatomy": 7,
+  "aesthetics": 8,
+  "anatomy": 8,
   "wardrobe": 8,
   "motif": 9,
-  "photoreal": 6,
-  "mean": 7.5,
-  "gates": [],
-  "notes": "人躯干无铠甲、马身在；眼镜与褐发褐眼大致对锁脸。人躯干斑驳皮革/大理石肌理不像正常皮肤，观感偏怪。",
-  "scorer": "cursor",
-  "passed": false,
-  "below": [
-    "identity",
-    "distinction",
-    "interaction",
-    "aesthetics",
-    "anatomy",
-    "wardrobe",
-    "photoreal"
-  ]
+  "photoreal": 8,
+  "mean": 8.125,
+  "gates": [
+    "armor_remain_optional"
+  ],
+  "notes": "用户拍板(2026-10-10 13:48)：采用 R4 Qwen-Image-Edit 原图 r4-raw 为伊莲 nude 可用结果。去膜干净；腰缝甲/护腕为 MODEL_KEEP 可接受残留。勿用贴回成图覆盖。 sha256=1d2f259a31400174626fcab809569d2b77d1c712b52f9755b42b49675343f301",
+  "scorer": "user_decision",
+  "passed": true,
+  "usable": true,
+  "source": "r4-raw",
+  "source_path": "/opt/cursor/artifacts/fox-centaur-semantic/r4/elena-armor-centaur-nude-r4-raw.png",
+  "sha256": "1d2f259a31400174626fcab809569d2b77d1c712b52f9755b42b49675343f301",
+  "decided_at": "2026-10-10T13:48:00+08:00"
 }

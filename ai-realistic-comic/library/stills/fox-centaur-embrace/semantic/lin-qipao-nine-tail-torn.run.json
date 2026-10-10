@@ -1,18 +1,10 @@
 {
-  "actor": "lin",
-  "mode": "torn",
-  "attempt": 1,
-  "seed": 20262408,
-  "garment_share": 0.1423028310139974,
-  "passes": [
-    {
-      "kind": "composite",
-      "tear_fraction": 0.5
-    },
-    {
-      "kind": "rim",
-      "denoise": 0.55
-    }
-  ],
-  "base": "lin-qipao-nine-tail-nude.png"
+  "pipeline": "community_r4_batch3",
+  "official_is_raw": true,
+  "usable": true,
+  "sha256": "274d02fb31b10307076d8453b5e9dbaf0de8109efebc0bf8ed67beea9fec39cd",
+  "source": "/opt/cursor/artifacts/fox-centaur-semantic/r4-batch3/lin-qipao-nine-tail-torn-r4-raw.png",
+  "decided_at": "2026-10-10T10:43:05Z",
+  "commit": "4722641f285a119510f735166b636e2bda1c0d8c",
+  "notes": "Qwen raw：旗袍胸腹撕开露肤，领口/下摆残骸与毛边可读；九尾与背景锁住。正式=贴回前 raw。"
 }

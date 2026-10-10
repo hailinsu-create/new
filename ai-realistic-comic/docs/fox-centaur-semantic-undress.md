@@ -2,6 +2,8 @@
 
 2026-10-07 起稿；**2026-10-08 用户拍板修订**见下节。适用 `library/stills/fox-centaur-embrace/` 的四张：林晚棠旗袍九尾 nude / torn，伊莲铠甲半人马 nude / torn。不是身体板，不进 `library/cast/*/body-nude/`。机器：**北京 B 母机 791** `359a49a1c3-4cda10df` + **最多一台**同标准 payg 克隆机（见 ④）。F34 / G09 不开，脚本遇到它们的主机名直接 `FORBIDDEN_HOST`。
 
+> **2026-10-10 18:59 标准已迁移**：狐/马去衣默认流程见 [`docs/fox-undress-r4-standard.md`](fox-undress-r4-standard.md)（Qwen-Edit-2511 + 贴回前 raw + 双机协同抢卡 + Cursor 观感）。本文以下 Fooocus / R1 / R3 / R5 实验记录**仅作历史**；开机默认勿再走这些路径。
+
 ## 2026-10-08 用户拍板（必须遵守）
 
 ① **取消打分门禁，改 Cursor 观感判定。** 用户明确取消狐/马去衣的均分 ≥9、硬门（`clothes_remain` / `armor_remain` 等）、以及 `SCORE_PENDING` 等待循环。出图后脚本只打印 `VISUAL_JUDGE <actor> <mode> <path>`；是否可用由 Cursor **看 PNG 观感**判定，不再写 `.score-request.json`、不再用 sidecar `passed` 挡 torn / bringup。
@@ -232,7 +234,7 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 - **开机**：首次下载 **0.5–2 h**（¥1.5–6）+ 出图；总成本易 **¥4–8+**，对 ¥26.72 不友好。
 - **预期**：普通人像去衣残影可能好于 SDXL；**身份/半人马**按本仓库既往 Qwen 经验仍高风险。
 
-**不推荐此刻**：Flux Fill/Kontext 全家桶；PowerPaint 主路径（SD1.5）；再调 `RESIDUAL_*`；原方案 A 整片 denoise≈1.0；**再调 R1/Fooocus denoise 擦伊莲金属甲**（R1-fix 已证到头）。
+**不推荐此刻（已由 2026-10-10 社区重扫修订）**：PowerPaint 主路径（SD1.5）；再调 `RESIDUAL_*`；原方案 A 整片 denoise≈1.0；**再调 R1/Fooocus denoise 擦伊莲金属甲**（R1-fix 已证到头）；**R3/R3b/R3c 重生贴回**。Qwen-Edit / Flux Fill 见上节「R1-fix 基线 + 社区重扫」，体积不再作为排除理由。
 
 ### 4) 实施状态
 
@@ -245,7 +247,171 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
 - **R3 试点（2026-10-09 19:41 授权）**：首轮抢卡 60min 无卡；**续跑（2026-10-10 00:38）** 592 开机，sha 对齐，EmptyLatent+InstantID+OpenPose+马身贴回 → **不可用**（双头/多乳畸形，非甲壳残影）。产物 `…/r3/`，关机留盘。余额见当次 `VISUAL_JUDGE.json`。
 - **R3b 已实现**：`workflows/comfyui/run_fox_centaur_community_r3b.py`（上身 1024×768 EmptyLatent；OpenPose 0.50；InstantID 0.50；单人上身提示；马毛-only 贴回）。试点 `run_r3b_pilot.py`；产物 `…/r3b/`。
 - **R3b 试点（2026-10-10 00:55 授权，592，`8770408`）不可用**：上身解剖已好（无双头），但马毛贴回雾化/腰缝甲片/场景断裂。产物含 preview/torso webp。关机留盘。
+- **2026-10-10 01:28 用户停线**：R1-fix 之后 R3/R3b **越来越差** → **立即停掉 R3 / R3b / R3c 整图重生与合成方向**，不再继续。当前最好基线 = **R1-fix**。
+- **R4 已实现（2026-10-10 01:38 授权）**：`workflows/comfyui/run_fox_centaur_community_r4.py` + `install_r4_qwen.sh` + 试点 `run_r4_pilot.py`。R1-fix 底板 + 金属膜/残边蒙版 + Qwen-Image-Edit-2511 FP8（Lightning+去衣+Object-Remover）；马身/背景 `mask_region` 锁死；**不含** Flux Fill。产物 `…/r4/`。需 `--i-know-authorized`。
+- **R4 试点（2026-10-10，592，`dbac2be`）贴回成图不可用 → 后采 raw**：模型已下到 **592**（`MODEL_HOST.json` TOTAL≈31.55GB；starsfriday 去衣 LoRA Access 失败→Sentinel7）。**贴回成图**胸腹金属膜仍在（metalish 0.236→0.194）；**`r4-raw` 去膜更干净**（当时因 mask 覆盖不足未采用，后于 13:48 拍板归档为可用）。马身/背景 MAE=0。关机留盘。花费见 `…/r4/VISUAL_JUDGE.json`（余额 23.78→≈21.42）。
+- **R4 离线贴回（2026-10-09/10，CPU，不开机）**：`workflows/comfyui/offline_r4_recomposite.py` 用已有 `r4-raw` + R1-fix 加宽蒙版重贴（mask_share 0.124→**0.249**，feather=10，y≥690 锁死）。产物 `…/r4-offline/`（preview/torso/compare + `VISUAL_JUDGE.json`）。**观感不可用**：贴回本身 OK（below_cut MAE=0，胸腹膜好于 R1-fix），但 raw 腰缝甲片/残边仍在（`raw_still_metal_on_r1_film=0.906` → `needs_qwen_rerun=true`）。见同目录 `QWEN_RERUN_PLAN.json`。
+- **R4b 已实现（2026-10-10 08:22 授权）**：`run_fox_centaur_community_r4b.py` + 试点 `run_r4b_pilot.py`。offline 加宽蒙版 + 提示显式去腰缝甲/护腕；优先 592（模型已在）；封顶 **¥4**；产物 `…/r4b/`。需 `--i-know-authorized`。禁止 grok.com。
+- **R4b 试点（2026-10-10，592，`f93fd53`）不可用**：sha `336d828d…` 对齐；模型 SKIP TOTAL=31.55GB；mask_share≈**0.249**，below_cut MAE=0。成图腰缝甲片+护腕仍在（raw 亦留护腕）。关机留盘。花费 ≈**¥0.24**（21.42→21.18）。见 `…/r4b/VISUAL_JUDGE.json`。
+- **R4b 离线崩因（2026-10-10，不开机）**：对照 `r4b-raw` + `debug/wider-metal-mask.png` → 腰缝/护腕 **已进蒙版**（ROI 覆盖≈1.0），但 raw 内 r1 金属仍在（still≈0.79–0.97）⇒ **MODEL_KEEP**（Qwen 全图 edit 去不掉不透明甲），不是贴回漏蒙。诊断产物 `…/r4b-offline-diag/`（`ANALYSIS.json`、腰缝/护腕四格对照）。**禁止**再微调同一 Qwen 提示/贴回蒙版出下一张。
+- **下一步（最多两案）**：
+  1. **推荐 R5：Flux Fill 定点洞**擦腰缝甲+护腕（底板优先 R4b 成图；洞外+ y≥690 锁死）。来源：[FLUX.1-Fill-dev](https://huggingface.co/black-forest-labs/FLUX.1-Fill-dev)（gated）、[9elements Fill 换装](https://9elements.com/blog/ai-clothes-swaps-with-flux-redux-and-flux-fill/)、[lewdly NSFW inpaint](https://lewdly.ai/blog/comfyui-nsfw-inpainting-clothing-workflow)。下载 **≈33–35GB**；**592 无 Fill**，余盘快照约 **96G** → 下完约 **61–63G**。估 **¥2.5–5**，硬顶 **≤¥6**。
+  2. **备选 R5b：同盘 Qwen 蒙版 inpaint 图**（[SD Art inpaint](https://stable-diffusion-art.com/qwen-image-edit-inpaint/)）。下载 **0**；估 **¥0.5–1.5**。
+  细则：`…/r4b-offline-diag/ROOT_CAUSE_AND_NEXT.json`。
+- **R5 已实现（2026-10-10 授权）**：`run_fox_centaur_community_r5.py` + `install_r5_flux_fill.sh` + `run_r5_pilot.py`。底板 R4b；只挖腰缝+护腕；优先 592；HF gated 立刻停报 URL；封顶 **¥6**；产物 `…/r5/`。磁盘快照 `…/r5-disk-check.json`。
+- **R5 试点（2026-10-10，592，`0cb6523`）停于 HF gated**：开机 live `df` **150G / 用 55G / 余 96G**；Fill 探测 **HTTP 401** → 立刻停、关机留盘。后续用户提供 Agent Store `HF_TOKEN` 续跑。
+- **R5 续跑（2026-10-10，592，`c5b89c2`）不可用**：Fill+T5-fp8+clip_l+ae 已下（下完 `df` ≈**150G / 82G / 69G**）；token 下载后已 scrub。底板 R4b；mask_share≈**0.103**；below_cut MAE=0。成图腰缝甲+护腕仍在。关机留盘。花费 ≈**¥2.98**（21.05→18.07，封顶¥6）。见 `…/r5/VISUAL_JUDGE.json`。
+- **R5 离线崩因（2026-10-10，不开机）**：对照 `r5-raw`/`waist-gauntlet-mask` vs R4b → 洞**已罩住**（ROI 覆盖≈1.0）；**denoise=1.0 / 20 步**非过低；洞内有实质变化（IN-mask MAE≈17–38）但 metal still≈0.70–0.99 ⇒ **FILL_KEPT_METAL**（Fill 重建金属，非漏蒙）。诊断 `…/r5-offline-diag/`。**禁止**未授权开机、禁止再拧同一 Fill 提示/同洞。
+- **下一步（最多两案，待授权；余额 ¥18.07）**：~~已由用户拍板废止「再拧伊莲金属甲」~~ → 见下节 **R4-raw 正式归档**。
+  1. ~~暂停伊莲金属甲，改试林旗袍 nude~~（伊莲 nude 已归档可用；林旗袍另议）
+  2. ~~R5b Fill+LoRA~~（同洞金属甲无效，禁止空转）
+  细则：`…/r5-offline-diag/ROOT_CAUSE_AND_NEXT.json`。
+- **R4-raw 正式归档（2026-10-10 13:48 用户拍板，不开机）**：伊莲 nude **当前 best = R4 Qwen-Image-Edit 原图** `elena-armor-centaur-nude-r4-raw.png`（贴回前）。**禁止**再为同一金属甲空转。详见下节「可复用做法」。
+- **R4 batch3 已实现（2026-10-10 13:58 授权）**：`run_fox_centaur_community_r4_batch3.py` + `run_r4_batch3_pilot.py`。按归档配方跑林 nude / 林 torn / 伊莲 torn；正式产物=**贴回前 raw**；优先 592；封顶 **¥4**；产物 `…/r4-batch3/`。伊莲 nude 不重跑。需 `--i-know-authorized`。禁止 grok.com。
+- **R4 batch3 试点（2026-10-10，抢卡）停于 CARD_WAIT_TIMEOUT**：06:03–07:17 UTC 592/791 均 `机器空闲GPU不足`；按授权满 1 小时停并关机留盘。**未出图**。花费 ≈¥0（余额 17.47→17.47）。见 `…/r4-batch3/CARD_WAIT_TIMEOUT.json`。代码已推，卡空闲后可续跑同脚本。
+- **R4 batch3 续跑（2026-10-10 15:19 授权）再停于 CARD_WAIT_TIMEOUT**：07:19–08:20 UTC 仍无卡；墙钟 60min 停线生效。**未出图**。花费 ≈¥0（17.47→17.47）。关机留盘。
+- **R4 batch3 长等+双机协同抢卡（2026-10-10 17:13）**：取消 1h 上限，一直抢到三张完成；互斥只开一台；同时有卡优先 791；592 有模型优先出图，791 先抢到则确认/hf-mirror 下模型再跑；封顶 ¥4；卡住/报错 >15min 关机留盘。`CARD_WAIT_MIN=None` + dual race。
+- **R4 batch3 完成（2026-10-10，592，`4722641`/`be92652`）可用×3**：双机协同抢卡约 35min 后 592 胜出；正式=三张 `*-r4-raw.png`（贴回前）。林 nude / 林 torn / 伊莲 torn 均归档 library+best。花费见 `…/r4-batch3/VISUAL_JUDGE.json`。关机留盘。
+
 - AI 漫画工作流内 **grok 一律走 Cursor 本机**，禁止 grok.com / 其他渠道 CLI。
+
+## 伊莲 nude 可复用做法：R4 Qwen-Edit 原图（2026-10-10 13:48 归档）
+
+**成功条件（硬规则）**：采用 **Qwen-Image-Edit-2511 全图编辑的 RAW 输出**（贴回蒙版之前的 `*-r4-raw.png`）。**勿**以 `mask_region` 贴回成图覆盖正式库——贴回会从 R1-fix 底板把半透明铬膜带回躯干。
+
+### 正式路径
+
+| 角色 | 路径 |
+| --- | --- |
+| 源 raw | `/opt/cursor/artifacts/fox-centaur-semantic/r4/elena-armor-centaur-nude-r4-raw.png` |
+| 库（canonical） | `library/stills/fox-centaur-embrace/semantic/elena-armor-centaur-nude.png` |
+| 库（命名清晰） | `…/semantic/elena-armor-centaur-nude-r4-raw-usable.png` |
+| best 指针 | `/opt/cursor/artifacts/fox-centaur-semantic/best/` + Agent Store `fox-centaur-best/` |
+| 归档包 | `/opt/cursor/artifacts/fox-centaur-semantic/r4-usable-archive/`（含 preview/torso/`BEST.json`） |
+| sha256 | `1d2f259a31400174626fcab809569d2b77d1c712b52f9755b42b49675343f301` |
+
+`PICKS.json` / `VISUAL_JUDGE.json` / `BEST_ELENA_NUDE.json` 已指向该 raw；`usable=true`；`forbid_further_metal_armor_spin=true`。
+
+### 模型清单（592 已装，TOTAL≈31.55GB）
+
+| 文件 | 约体积 | 角色 |
+| --- | ---: | --- |
+| `qwen_image_edit_2511_fp8mixed.safetensors` | 20.5GB | UNET |
+| `qwen_2.5_vl_7b_fp8_scaled.safetensors` | 9.4GB | CLIP/VL |
+| `qwen_image_vae.safetensors` | 0.3GB | VAE |
+| `Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16` | 0.85GB | Lightning LoRA |
+| `qwen-edit-remove-clothes`（Sentinel7 回退；starsfriday Access 失败） | 0.3GB | 去衣 LoRA |
+| `Qwen-Image-Edit-2511-Object-Remover` | 0.24GB | Object-Remover LoRA |
+
+清单快照：`…/r4/MODEL_HOST.json`。脚本：`workflows/comfyui/run_fox_centaur_community_r4.py`。
+
+### 参数（复用时对齐）
+
+| 项 | 值 |
+| --- | --- |
+| 底板 | R1-fix 伊莲 nude（非成衣板） |
+| 采样 | steps **4**，cfg **1.0**，seed **20261010**，Lightning on |
+| 提示 | 去胸腹颈臂半透明铬膜/残边 → 自然皮肤；锁脸/眼镜/发/姿/马身/石台背景 |
+| 负向 | chrome armor / glossy metal film / specular breastplate / black straps … |
+| 蒙版（编辑引导） | `metal_film_mask`：躯干金属膜+暗边；**y ≥ horse_guard（690）锁死** |
+| 正式取用 | **SaveImage 的全图 raw**，跳过后续 `mask_region` 贴回 |
+
+### 蒙版策略与已知坑
+
+1. **贴回回归**：试点 `mask_share≈0.124` 把 R1-fix 膜贴回 → 成图不可用；raw 本身去膜更好。离线加宽贴回（0.249）仍无法补 raw 内腰缝甲。
+2. **R4b MODEL_KEEP**：加宽蒙版 + 显式去腰缝/护腕提示后，ROI 覆盖≈1.0，但 raw 内不透明甲仍在 → 不是漏蒙，是模型保留。
+3. **R5 FILL_KEPT_METAL**：Flux Fill 定点洞罩住腰缝/护腕后重建金属 → 同洞再拧无效。
+4. **停线**：伊莲金属甲 undress **禁止再空转**（同 Qwen 提示/蒙版、同 Fill 洞）。新杠杆须另授权且非「再擦同一甲」。
+
+### 复用口令（若他图重跑同类金属膜）
+
+「按 R4 Qwen-Edit 配方出 raw，正式库只收 raw，禁止贴回覆盖。」
+
+
+## R1-fix 基线 + 社区重扫（2026-10-10，不开机、不出图）
+
+余额快照 **¥23.78**。用户追加：**不再因体积排除方案**（Qwen-Image-Edit-2509/2511+去衣/撕衣 LoRA、Flux Fill/Kontext+NSFW LoRA、最新社区去衣工作流均可）；该下就下。
+
+### 0) 停线与 R1-fix 残差（离线）
+
+| 项 | 结论 |
+| --- | --- |
+| **停** | R3 / R3b / R3c（EmptyLatent 重生、上身贴回、离线合成）一律停 |
+| **基线** | `…/r1-fix/elena-armor-centaur-nude.png`（`de91cdf`） |
+| **马身/背景** | below `y=690` vs 成衣板 MAE≈**0.06** → 已守住，定点修**不得**动 |
+| **残差** | 胸腹**半透明高光金属膜** + 领/肩/臂**黑线残边** + 腰缝甲片仍在（观感 + 躯干框 metalish≈0.24；板铬区 film≈0.12） |
+| **同栈微调** | **禁止**再拧 Fooocus denoise / OpenPose / 金属负向（R1-fix 终局已证） |
+
+### 1) 社区重扫（金属甲 / 大面积衣物去衣，2026-10-10）
+
+检索面：Civitai、Reddit r/StableDiffusion、HF、GitHub、OpenArt/Comfy 官方教程。按「对镜面甲/大面积去衣是否优于本仓 SDXL Fooocus」排序。
+
+| 序 | 路线 | 社区证据 | 对伊莲金属膜/残边 | 半人马/锁景 |
+| --- | --- | --- | --- | --- |
+| **①** | **Qwen-Image-Edit-2511 + 去衣/物体移除 LoRA + 蒙版区合成** | 官方 [2511 Comfy 教程](https://docs.comfy.org/tutorials/image/qwen/qwen-image-edit-2511)；蒙版 inpaint [stable-diffusion-art](https://stable-diffusion-art.com/qwen-image-edit-inpaint/)；去衣 LoRA [starsfriday](https://huggingface.co/starsfriday/Qwen-Image-Edit-Remove-Clothes)（~450MB，页面曾 Access disabled，权重仍列目录）、镜像/同族 [Sentinel7 remove-clothing ~295MB](https://huggingface.co/Sentinel7/qwen-image/blob/main/lora/qwen_image_edit_remove-clothing_v1.0.safetensors)、[CivArchive Remove-Clothing](https://civarchive.com/tensorart/models/911759246897463133)、2511 [Object-Remover](https://huggingface.co/prithivMLmods/Qwen-Image-Edit-2511-Object-Remover)、torn [nappa114514](https://huggingface.co/nappa114514/Qwen-Image-Edit-2511-torn-clothes)；Civitai 称 Qwen 为 [Kontext Terminator](https://civitai.com/models/1910411/qwen-image-editflux-kontext-terminator)；Reddit [Qwen vs Kontext](https://www.reddit.com/r/StableDiffusion/comments/1mueph4/comparison_qwen_image_editing_and_flux_kontext/)（Qwen 可去衣、审查弱于 Kontext）、[Fill+LoRA 去衣 / Kontext 常不行](https://www.reddit.com/r/StableDiffusion/comments/1qgsbz3/is_flux_klein_better_for_editing_than_flux_kontext/) | **最贴**：指令「去掉金属甲/高光膜显露皮肤」+ 只蒙胸腹/残边；不重生整图 | 全图编辑后 **mask_region 贴回**（马身 y≥690 + 背景外扩保护区）；BD Parts 类亦建议 edit 模型 `full_image_pass` + `mask_region`（[comfy.icu BD_PartsUnderpaint](https://comfy.icu/node/BD_PartsUnderpaint)） |
+| **②** | **Flux Fill + 衣物蒙版 + NSFW LoRA** | [lewdly.ai NSFW inpaint](https://lewdly.ai/blog/comfyui-nsfw-inpainting-clothing-workflow)；[9elements Fill 换装](https://9elements.com/blog/ai-clothes-swaps-with-flux-redux-and-flux-fill/)；Civitai [`[FLUX\|SDXL] Auto clothes inpainting`](https://civitai.com/models/967161/flux-or-sdxl-auto-clothes-inpainting)；HF [`FLUX.1-Fill-dev` 23.8GB](https://huggingface.co/black-forest-labs/FLUX.1-Fill-dev)（gated） | 蒙版洞内重填皮肤，缝比 SDXL 社区评价更好；金属甲仍依赖洞形+提示 | 洞外不碰 → 马身/背景天然安全 |
+| **③** | **Flux Kontext + Nudify LoRA** | 官方 [Kontext Comfy](https://docs.comfy.org/tutorials/flux/flux-1-kontext-dev)；本地指南 [celebdeep Kontext+Undress](https://celebdeep.com/blog/local-flux-undress-guide-flux-kontext-undress-lora-low-end-gpus-supported/)；Civitai [Clothing Removal Accelerated](https://civitai.com/models/1764387/fluxkontextdev-clothing-removal-accelerated-edition-v1-pre-installation)、[remove anything](https://civitai.com/models/1806480/flux-workflow-kontext-remove-anything)；Reddit [Kontext NSFW 受限](https://www.reddit.com/r/StableDiffusion/comments/1llpsk1/flux_kontext_dev_can_not_do_nfw/) | 布料去衣社区案例多；**金属甲/审查**不稳，作辅线 | 需强提示锁构图；半人马无先例 |
+| **禁** | R3/R3b/R3c 重生贴回；R1 Fooocus 再拧 | 本仓三轮变差 | — | — |
+
+### 2) 推荐方案（一句）
+
+**以 R1-fix 为底板，装 Qwen-Image-Edit-2511 FP8 + 去衣/物体移除 LoRA，只蒙胸腹金属膜与残边做指令编辑，再 mask_region 贴回（马身/背景锁死）；失败再加 Flux Fill 蒙版洞。**
+
+授权口令建议：「R4 Qwen-Edit 伊莲金属膜定点试点」。
+
+### 3) 5090 / sm_120 与盘空间
+
+| 检查 | 结论 |
+| --- | --- |
+| **GPU** | 791/592 = RTX 5090（sm_120）；Comfy `2.8.0+cu128` 已通 SDXL（`docs/comfyui-setup.md`）；社区 Qwen/Flux FP8 在 5090 有现成路径（[smeltcore](https://smeltcore.com/recipes/qwen-image-on-rtx-5090-20b-text-to-image-via-comfyui-fp8-blackwell-native-path/)、[ComfyUI #6643](https://github.com/Comfy-Org/ComfyUI/discussions/6643)） |
+| **显存** | 5090 32GB：Qwen Edit FP8 工作集约 **~24GB**（[vramready](https://vramready.com/vram/24gb/qwen-image-edit/)）；Fill/Kontext FP8/BF16 在 32GB 可跑 |
+| **盘（已知快照）** | 早期 `df`：`/root/autodl-tmp` **150G / 用 25G / 余 126G**（`mutex-run.log`）；扩容已是付费 **+100GiB**（免费 50 + 付费 100） |
+| **R4 净增** | Qwen 主栈 ≈ **30.7–32GB**（见下表）→ **余量够，可不扩盘** |
+| **若叠 Fill** | 再 +≈ **34GB**（Fill 23.8 + T5/CLIP/VAE；若与 Qwen 文本塔不共用）→ 建议余量 <50G 时扩到 **200GiB 总盘（再 +50GiB）** |
+| **扩盘报价** | AutoDL 付费数据盘 ≈ **¥0.0066/日/GB**（[文档](https://www.autodl.com/docs/local_disk/)，以网页为准）；**+50GB ≈ ¥0.33/日**（关机也计），约 **¥10/月**；两台各扩则 ×2。须另授权，且保有机禁止 release |
+
+### 4) 下载清单与体积（R4 首选）
+
+路径相对 ComfyUI `models/`；下载走 **hf-mirror**（北京 B）。
+
+| 文件 | 用途 | 约体积 | 来源 |
+| --- | --- | --- | --- |
+| `diffusion_models/qwen_image_edit_2511_fp8mixed.safetensors` | 2511 主模 FP8 | **20.5 GB** | [Comfy-Org/Qwen-Image-Edit_ComfyUI](https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/blob/main/split_files/diffusion_models/qwen_image_edit_2511_fp8mixed.safetensors) |
+| `text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors` | VL 文本塔 | **9.4 GB** | [Comfy-Org/Qwen-Image_ComfyUI](https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI) |
+| `vae/qwen_image_vae.safetensors` | VAE | **0.3 GB** | 同上 |
+| `loras/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors` | 4-step 加速（可选） | **~0.9 GB** | 官方 2511 教程链接 |
+| `loras/qwen-edit-remove-clothes.safetensors`（或 Sentinel7 / 2509 v2 同族） | 去衣 | **0.3–0.6 GB** | [starsfriday](https://huggingface.co/starsfriday/Qwen-Image-Edit-Remove-Clothes)（472MB；Access 若拒则 [Sentinel7 295MB](https://huggingface.co/Sentinel7/qwen-image) / CivArchive） |
+| `loras/Qwen-Image-Edit-2511-Object-Remover.safetensors` | 残边/小件移除 | **~0.2–0.5 GB** | [prithivMLmods](https://huggingface.co/prithivMLmods/Qwen-Image-Edit-2511-Object-Remover) |
+| （torn 另议）`nappa` torn-clothes LoRA | 撕衣 | **小** | [nappa114514](https://huggingface.co/nappa114514/Qwen-Image-Edit-2511-torn-clothes) |
+| **R4 合计** | | **≈31–33 GB** | |
+| **备选 Fill** `flux1-fill-dev.safetensors` | 蒙版 inpaint | **23.8 GB** | [BFL Fill-dev](https://huggingface.co/black-forest-labs/FLUX.1-Fill-dev)（gated，需 HF token） |
+| Fill 配套 T5/CLIP/ae | | **≈10 GB** | comfyanonymous / BFL |
+| **备选 Kontext** `flux1-kontext-dev.safetensors` | 指令编辑 | **23.8 GB** | [BFL Kontext-dev](https://huggingface.co/black-forest-labs/FLUX.1-Kontext-dev) + Nudify LoRA（Civitai/社区指南） |
+
+节点：Comfy 原生 Qwen Edit 工作流；可选 ComfyUI-GGUF（若改用 GGUF 量化）。**不**再装 R3 类 EmptyLatent 重生图。
+
+### 5) 开机下载 + 试点花费（余额 ¥23.78，≈¥2.88/时）
+
+| 阶段 | 估时 | 估费 |
+| --- | --- | --- |
+| 互斥开机 + 拉码/校验 | 5–15 min | ¥0.2–0.7 |
+| 下载 R4 ≈32GB（hf-mirror + 学术加速） | 40–90 min | ¥1.9–4.3 |
+| 伊莲 R1-fix→Qwen 金属膜定点试点（1–3 种子） | 15–30 min | ¥0.7–1.4 |
+| 关机留盘 | — | — |
+| **合计（仅 R4）** | **≈1–2.5 h** | **≈¥3.5–7** |
+| 硬顶建议 | | **≤¥8**（≈1/3 余额） |
+| 若同机会再下 Fill | +40–80 min | +¥2–4 → 合计易 **¥6–11**；建议 **第二授权** |
+| 扩盘 +50GB（可选） | 关机也扣 | **¥0.33/日** |
+
+**不做**：R3/R3b/R3c；成衣板再 Fooocus 甲壳大洞；未授权扩盘/双机同时开。
+
+### 6) 实施要点（授权后）
+
+1. 输入 = **R1-fix PNG**（非成衣板）。
+2. 蒙版 = 成衣板甲壳 ∪ R1-fix 高光膜 ∪ 黑线残边；**减去** y≥`horse_guard_y` 马身与宽背景。
+3. 提示：去掉半透明金属膜/铠甲残片，显露真实皮肤；保持脸、眼镜、姿势、马身、石台背景不变。
+4. 输出只在蒙版羽化带内 `mask_region` 合成回 R1-fix。
+5. 观感判定；失败再议 Fill，不自动开 Kontext 全家桶。
 
 
 ## R1/R1-fix 终局与路线重排（2026-10-09，不开机、不出图）
@@ -282,14 +448,14 @@ run6 **不是可用终态**（Codex 史约 8.0、`armor_remain`、`best_residual
 
 | 序 | 方案 | 做法要点 | 新装 | 5090 | 盘（100GiB） | 半人马风险 | 估费 | 是否值得砸 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **① 首选（修订）** | **R3b：上身竖幅定点修**（R3 整幅已失败） | 上身裁切 EmptyLatent；OpenPose≈0.5；InstantID≈0.5；提示词单人上身裸；马毛-only 贴回 | **0** | 已通 | 够 | 中 | 试点 **≈¥0.8–2**（余额 ¥24.02，硬顶 ≤¥3） | **是** |
+| **① 首选（修订→已废止）** | **~~R3b：上身竖幅定点修~~**（试点失败；停线） | 上身裁切 EmptyLatent；OpenPose≈0.5；InstantID≈0.5；提示词单人上身裸；马毛-only 贴回 | **0** | 已通 | 够 | 中 | 试点 **≈¥0.8–2**（余额 ¥24.02，硬顶 ≤¥3） | **是** |
 | **② 备选** | **R2：Qwen-Image-Edit-2511 + remove/torn LoRA** | 指令/蒙版去衣；可选后再 SDXL FaceDetailer | **20–50GB+** | 社区 FP8 可跑 | 紧但可塞 | **很高** | **¥4–8+** | 仅 ① 失败后再议 |
 
-**不进前二**：Flux Fill/Kontext 全家桶（盘与 NSFW LoRA 权限成本更高）；再调 Fooocus denoise；原方案 A 整洞 1.0 inpaint（与 R1-fix 同死结）。
+**不进前二（2026-10-09 原文；2026-10-10 废止）**：当时因体积排除 Flux/Qwen；现已改「R1-fix 基线 + 社区重扫」**允许大下载**。仍禁止：再调 Fooocus denoise；原方案 A 整洞 1.0；R3/R3b/R3c。
 
-**砸钱建议（余额 ¥24.02）**：**只授权 R3b 上身定点修（硬顶 ≤¥3）**；失败再议 R2。禁止 R1 Fooocus 甲壳 inpaint；禁止原样重跑 R3 整幅 0.90 OpenPose。
+**砸钱建议（已废止 → 见「R1-fix 基线 + 社区重扫」）**：R3b 试点已失败并停线；现余额 **¥23.78**，首选 **R4 Qwen-Edit 金属膜定点**（硬顶 ≤¥8）。禁止 R1 Fooocus 甲壳再拧；禁止 R3/R3b/R3c。
 
-授权口令建议：「R3b 伊莲上身重生试点」或（明确接受贵下载后）「R2 Qwen-Edit 试点」。
+授权口令建议：「R4 Qwen-Edit 伊莲金属膜定点试点」。
 
 ### 4) R3 实施要点（2026-10-09 19:41 已授权试点）
 
@@ -334,7 +500,7 @@ run6 **不是可用终态**（Codex 史约 8.0、`armor_remain`、`best_residual
 | 估费（¥24.02） | 试点 **≈¥0.8–2**，硬顶建议 **≤¥3** | 下载+试点易 **¥4–8+**（约 1/5～1/3 余额） |
 | 值得砸？ | **是——唯一低成本验证「骨架域」假设** | 仅 R3b 仍解剖崩再议 |
 
-**推荐下一步：R3b（上身竖幅 + 弱 OpenPose + 降 InstantID + 马毛-only 贴回）。** 授权口令：「R3b 伊莲上身重生试点」。失败后再授权 R2。
+**推荐下一步（2026-10-09 原文；已废止）**：R3b 试点已失败且用户停线。**现推荐见「R1-fix 基线 + 社区重扫」R4 Qwen-Edit。**
 
 
 ## R1 伊莲 nude 试点离线诊断（2026-10-09，不开机、不出图）
@@ -429,7 +595,7 @@ R1-fix 已授权复测并失败。后续排序见上文 **「R1/R1-fix 终局与
 | --- | --- | --- | --- |
 | 林 torn | **run9** `lin-qipao-nine-tail-torn` | nude 底板 + 锯齿洞 composite（tear 0.5）+ rim **denoise 0.55** | Codex 均分 **8.75**，硬门空 — **全库最接近可用** |
 | 伊莲 torn | **run7** `elena-armor-centaur-torn` | 同上，tear 0.55 + rim 0.55 | Codex **8.56**，硬门空 |
-| 伊莲 nude | **run6** `elena-armor-centaur-nude` | 连续 **nude denoise 1.0**×3 + edge **0.42**；**无** LaMa 残留 / pixelfill | 躯干相对真裸、接缝可读；仍 `armor_remain`（臂甲）≈8.0 |
+| 伊莲 nude | **R4-raw（现行 best）** `elena-armor-centaur-nude-r4-raw-usable`；史 **run6** 次之 | R4：Qwen-Edit-2511 FP8+Lightning+去衣/Object-Remover，取 **贴回前 raw** | 用户 2026-10-10 13:48 拍板可用；腰缝/护腕为可接受 MODEL_KEEP |
 | 林 nude | **run13 a35-collarfix** | LaMa + Fooocus residual **0.88** + collar pixelfill；edge 0.32 | 领口硬门清；腿仍肉糊 ≈7.1 |
 
 早期 **baseline–run5**：手画/粗语义 + denoise 1.0 分带，残留高、衣服常留。  

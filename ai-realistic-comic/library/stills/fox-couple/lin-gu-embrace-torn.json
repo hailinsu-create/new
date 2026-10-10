@@ -1,0 +1,11 @@
+{
+  "usable": false,
+  "mean_est": 6.2,
+  "scorer": "cursor",
+  "notes": "R4 raw 保留：旗袍大体完好（腰侧镂空/开叉感），撕破露肤不足，不作正式破衣。",
+  "sha256": "90491c8482e3a23688b6b149280eb7baf6d1c09534e10d7ec1c21528ef8cad04",
+  "gates": [
+    "intact_clothes"
+  ],
+  "adopted": null
+}

@@ -1,0 +1,40 @@
+{
+  "commit": "716234b2d9e01418becee0f347eb7c4964d3c163",
+  "machine": "592 clone",
+  "pipeline": "fox_couple_r4_poseC_rev",
+  "official_is_raw": true,
+  "plate": "pose-C-rev GenerateImage stand-in (box path unreachable)",
+  "verdicts": {
+    "lin-gu-embrace-clothed": {
+      "usable": true,
+      "adopted": "user-lock-generateimage-standin",
+      "reason": "姿势C修订穿衣底板（白九尾+装饰旗袍+床上；顾现代短发）。",
+      "path": "/opt/cursor/artifacts/fox-couple/lin-gu-embrace-clothed.png",
+      "sha256": "1ee8c6e5e4830356a5a197bc38ebb9749dc35962f7aec7a6698ad9876bb07b55"
+    },
+    "lin-gu-embrace-nude": {
+      "usable": true,
+      "adopted": "r4-raw",
+      "mean_est": 8.3,
+      "reason": "R4 raw：林去衣干净；顾/白九尾/姿势/背景锁住。正式=贴回前 raw。",
+      "path": "/opt/cursor/artifacts/fox-couple/lin-gu-embrace-nude-r4-raw.png",
+      "sha256": "a8800fcc2ec29ffb910c3e120d3e6640f12c8c9ad0c925383acc6c0a2b7d32c9"
+    },
+    "lin-gu-embrace-torn": {
+      "usable": false,
+      "adopted": null,
+      "mean_est": 6.2,
+      "reason": "R4 raw 保留：旗袍仍大体完好，撕破不足，不作正式破衣。",
+      "path": "/opt/cursor/artifacts/fox-couple/lin-gu-embrace-torn-r4-raw.png",
+      "sha256": "90491c8482e3a23688b6b149280eb7baf6d1c09534e10d7ec1c21528ef8cad04"
+    }
+  },
+  "start_bal": 11.63,
+  "end_bal_pre_shutdown": 7.61,
+  "spent_cny_approx": 4.02,
+  "cap_yuan": 4.0,
+  "cap_note": "slightly over due to SSH monitor timeout while machine kept running after gen done",
+  "judged_at": "2026-10-10T17:30:27.170354+00:00",
+  "end_bal_after_shutdown": 7.61,
+  "spent_cny_approx_after_shutdown": 4.02
+}

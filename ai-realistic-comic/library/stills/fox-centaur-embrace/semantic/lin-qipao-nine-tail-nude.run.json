@@ -1,41 +1,10 @@
 {
-  "actor": "lin",
-  "mode": "nude",
-  "attempt": 0,
-  "seed": 20261008,
-  "garment_share": 0.17830403645833334,
-  "passes": [
-    {
-      "kind": "nude",
-      "n": 0,
-      "denoise": 1.0,
-      "lama_prefill": true,
-      "residual_ratio": 0.6587
-    },
-    {
-      "kind": "lama_residual",
-      "n": 1
-    },
-    {
-      "kind": "touch",
-      "n": 1,
-      "denoise": 0.35,
-      "residual_ratio": 0.7422
-    },
-    {
-      "kind": "lama_residual",
-      "n": 2
-    },
-    {
-      "kind": "touch",
-      "n": 2,
-      "denoise": 0.35,
-      "residual_ratio": 0.5915
-    },
-    {
-      "kind": "edge",
-      "denoise": 0.42
-    }
-  ],
-  "best_residual_ratio": 0.5915
+  "pipeline": "community_r4_batch3",
+  "official_is_raw": true,
+  "usable": true,
+  "sha256": "b1e65a7ac013504d5abb455fca852b339f1368abc2c3f55954d4588a998f7c6c",
+  "source": "/opt/cursor/artifacts/fox-centaur-semantic/r4-batch3/lin-qipao-nine-tail-nude-r4-raw.png",
+  "decided_at": "2026-10-10T10:43:05Z",
+  "commit": "4722641f285a119510f735166b636e2bda1c0d8c",
+  "notes": "Qwen raw：全身去衣干净，九尾/脸/园景/高跟鞋保留；无旗袍残留与糊死。正式=贴回前 raw。"
 }

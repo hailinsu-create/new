@@ -11,7 +11,10 @@
   "gates": [
     "armor_remain"
   ],
-  "notes": "面容与锁脸参考高度一致，褐眼正确。半人马站姿仍挺拔，马身与四条马腿保留，未见其他硬门问题。但上身金色铠甲、护臂、手甲及腰部甲片明显残留，去衣要求未完成。圆框金丝眼镜不计硬门。",
+  "notes": "面容与锁脸参考高度一致，褐眼正确。半人马站姿仍挺拔，马身与四条马腿保留，未见其他硬门问题。但上身金色铠甲、护臂、手甲及腰部甲片明显残留，去衣要求未完成。圆框金丝眼镜不计硬门。 | 2026-10-10: replaced with R4 Qwen raw usable",
   "scorer": "codex",
-  "stack": "fooocus+maskedfill+elena_best"
+  "stack": "fooocus+maskedfill+elena_best",
+  "source": "r4-raw",
+  "usable": true,
+  "sha256": "1d2f259a31400174626fcab809569d2b77d1c712b52f9755b42b49675343f301"
 }
