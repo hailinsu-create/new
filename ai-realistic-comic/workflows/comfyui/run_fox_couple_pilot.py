@@ -26,6 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import autodl_power as power  # noqa: E402
 import bringup_and_run as bring  # noqa: E402
 import dual_collab_run as dual  # noqa: E402
+import spend_cap as spend_cap  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT_REL = "workflows/comfyui/run_fox_couple_r4.py"
@@ -41,6 +42,8 @@ COMMIT = subprocess.check_output(["git", "-C", "/workspace", "rev-parse", "HEAD"
 LOCAL_SHA = hashlib.sha256(LOCAL_SCRIPT.read_bytes()).hexdigest()
 CAP_YUAN = 4.0
 STUCK_MIN = 15.0
+SESSION_CAP = OUT / "SPEND_CAP_SESSION.json"
+HOLD_FOR_JUDGE = False  # always shutdown after pull; judge offline
 
 POSE_LOCK = ROOT / "library/stills/fox-couple/POSE_LOCKED.json"
 
@@ -109,10 +112,16 @@ def pick_and_power(auth: str) -> tuple[str, str]:
         bal = balance_yuan()
         elapsed = (time.time() - started) / 60.0
         log(f"CARD_POLL {attempt} bal={bal:.2f} elapsed_min={elapsed:.1f} wait=unlimited race=dual")
-        if (OUT / "AWAITING_JUDGE.json").exists():
+        cap = spend_cap.SpendCap.load(SESSION_CAP)
+        if cap is None and (OUT / "AWAITING_JUDGE.json").exists():
             start_bal = float(json.loads((OUT / "AWAITING_JUDGE.json").read_text()).get("start_bal", bal))
-            if bal >= 0 and start_bal - bal >= CAP_YUAN:
-                raise SystemExit(f"CAP_DURING_CARD_WAIT spent>={CAP_YUAN}")
+            cap = spend_cap.SpendCap(start_bal=start_bal, cap_yuan=CAP_YUAN, session_path=SESSION_CAP)
+            cap.save()
+        if cap is not None:
+            refuse = cap.refuse_power_on(bal)
+            if refuse:
+                power.shutdown_fleet()
+                raise SystemExit(refuse)
         mi, ms, ma = host_idle(auth, mother)
         ci, cs, ca = host_idle(auth, clone)
         log(f"CARD_POLL {attempt} mother={ma}:{ms}:idle={mi} clone={ca}:{cs}:idle={ci}")
@@ -267,7 +276,17 @@ def remote_job(cmd: str, *, log_name: str, stuck_min: float = STUCK_MIN, hard_mi
             bring.ssh(f"kill {pid} 2>/dev/null || true", check=False)
             return 3
         bal = balance_yuan()
-        if start_bal >= 0 and bal >= 0 and start_bal - bal >= CAP_YUAN:
+        cap = spend_cap.SpendCap.load(SESSION_CAP)
+        if cap is not None:
+            # ensure boot_mono set for projection even if process restarted
+            if cap.boot_mono is None and cap.boot_at:
+                cap.boot_mono = time.monotonic()  # conservative: treat as just booted if unknown
+            eff = cap.effective_spent(bal)
+            if cap.breached(bal):
+                log(f"CAP_HARD_KILL eff_spent={eff:.2f} wallet={cap.wallet_spent(bal):.2f} proj_gpu={cap.projected_gpu_yuan():.2f}")
+                bring.ssh(f"kill {pid} 2>/dev/null || true", check=False)
+                return 4
+        elif start_bal >= 0 and bal >= 0 and start_bal - bal >= CAP_YUAN:
             log(f"CAP_KILL spent>={CAP_YUAN}")
             bring.ssh(f"kill {pid} 2>/dev/null || true", check=False)
             return 4
@@ -321,6 +340,11 @@ def after_boot(auth: str, role: str, uuid: str, start_bal: float) -> None:
             power.shutdown_fleet()
             raise SystemExit(f"SHA_MISMATCH {rem} != {LOCAL_SHA}")
     log(f"SHA_MATCH {LOCAL_SHA}")
+    cap = spend_cap.SpendCap.load(SESSION_CAP) or spend_cap.SpendCap(
+        start_bal=start_bal, cap_yuan=CAP_YUAN, session_path=SESSION_CAP
+    )
+    cap.mark_boot()
+    log(f"SPEND_CAP boot marked cap={CAP_YUAN} start_bal={start_bal:.2f}")
     bring.ssh(f"mkdir -p {REMOTE_INPUT}", check=True)
     scp_to(LOCAL_PLATE, f"{REMOTE_INPUT}/lin-gu-embrace-clothed.png")
     alias = host_idle(auth, uuid)[2]
@@ -347,25 +371,30 @@ def after_boot(auth: str, role: str, uuid: str, start_bal: float) -> None:
         f"--plate {shlex.quote(REMOTE_INPUT + '/lin-gu-embrace-clothed.png')} --i-know-authorized"
     )
     log("GENERATE_START couple nude+torn")
+    rc = 1
     try:
-        rc = remote_job(gen, log_name="gen-couple", stuck_min=STUCK_MIN, hard_min=60.0)
-    except SystemExit:
+        try:
+            rc = remote_job(gen, log_name="gen-couple", stuck_min=STUCK_MIN, hard_min=60.0)
+        except SystemExit as exc:
+            log(f"GEN_MONITOR_EXIT {exc}")
+            pull_out(); sync_store()
+            summary = OUT / "COUPLE_SUMMARY.json"
+            if summary.is_file() and "lin-gu-embrace-nude" in summary.read_text(encoding="utf-8"):
+                log("RECOVERED_AFTER_SSH_FAIL couple outputs present")
+                rc = 0
+            else:
+                raise
         pull_out(); sync_store()
-        summary = OUT / "COUPLE_SUMMARY.json"
-        if summary.is_file() and "lin-gu-embrace-nude" in summary.read_text(encoding="utf-8"):
-            log("RECOVERED_AFTER_SSH_FAIL couple outputs present")
-            rc = 0
-        else:
-            power.shutdown_fleet()
-            raise
-    pull_out(); sync_store()
-    if rc != 0:
+        if rc != 0:
+            end = balance_yuan()
+            log(f"END fail bal={end:.2f} spent≈{max(0.0, start_bal - end):.2f}")
+            raise SystemExit(rc)
+        log("AWAITING_VISUAL_JUDGE fox-couple (offline; machine will shut down)")
+    finally:
+        # Hard rule 2026-10-10 overspend audit: never leave GPU on for judge / SSH death.
         power.shutdown_fleet()
         end = balance_yuan()
-        log(f"END fail bal={end:.2f} spent≈{max(0.0, start_bal - end):.2f}")
-        raise SystemExit(rc)
-    log("AWAITING_VISUAL_JUDGE fox-couple")
-    print("MACHINE_HELD_FOR_JUDGE", flush=True)
+        log(f"SHUTDOWN_FINALLY bal={end:.2f} spent≈{max(0.0, start_bal - end):.2f}")
 
 
 def main() -> None:
@@ -378,6 +407,11 @@ def main() -> None:
         raise SystemExit(f"CLOTHED_MISSING {LOCAL_PLATE}")
     start_bal = balance_yuan()
     log(f"START commit={COMMIT[:12]} sha={LOCAL_SHA} bal={start_bal:.2f} cap={CAP_YUAN}")
+    cap = spend_cap.SpendCap(start_bal=start_bal, cap_yuan=CAP_YUAN, session_path=SESSION_CAP)
+    cap.save()
+    refuse = cap.refuse_power_on(start_bal)
+    if refuse:
+        raise SystemExit(refuse)
     src = LOCAL_SCRIPT.read_text(encoding="utf-8")
     for needle in ("fox_couple_r4_lin_wardrobe_only", "official_is_raw", "qwen_edit_graph"):
         if needle not in src:

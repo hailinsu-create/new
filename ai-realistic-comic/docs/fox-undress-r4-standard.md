@@ -14,7 +14,8 @@
 | 去衣 / 破衣 | 仅北京 B Comfy（791 / 592）；**禁止** Cursor/Codex imagegen 做露点编辑 |
 | 判定 | Cursor **观感**看 PNG（`VISUAL_JUDGE`）；取消均分≥9 / 硬门门禁 |
 | 机器 | 互斥只开一台；**两机协同抢卡**（同时有卡优先 791）；592 有模型优先出图；791 先抢到则确认模型或 hf-mirror 下载 |
-| 收尾 | 关机留盘；**禁止 release**；封顶按当次授权（默认出图计费 ≤¥4） |
+| 收尾 | 关机留盘；**禁止 release**；封顶按当次授权（默认 ≤¥4） |
+| **封顶硬停** | `spend_cap.py`：钱包差额与**开机投影 GPU**取大；抢卡前 `refuse_power_on`；监控/`finally` 必 `shutdown_fleet`；**禁止为观感挂机**。盘费日结见 [超支核查](autodl-spend-cap-overspend-2026-10-10.md) |
 
 ## 入口脚本
 
