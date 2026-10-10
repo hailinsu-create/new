@@ -174,7 +174,7 @@ def remote_sha() -> str:
     raise SystemExit(f"REMOTE_SHA_PARSE_FAIL {run.stdout[-200:]!r}")
 
 
-def scp_to(local: Path, remote: str) -> None:
+def scp_to(local: Path, remote: str, *, timeout: int = 900, retries: int = 3) -> None:
     conn = bring.connection()
     scp = [
         "scp",
@@ -187,14 +187,25 @@ def scp_to(local: Path, remote: str) -> None:
         "-o",
         "BatchMode=yes",
         "-o",
-        "ConnectTimeout=20",
+        "ConnectTimeout=30",
         str(local),
         f"{conn['user']}@{conn['host']}:{remote}",
     ]
-    proc = subprocess.run(scp, capture_output=True, text=True, timeout=300)
-    if proc.returncode != 0:
-        raise SystemExit(f"SCP_FAIL {local.name} {proc.stderr[:300]!r}")
-    log(f"SCP_OK {local.name} -> {remote} bytes={local.stat().st_size}")
+    last_err = ""
+    for attempt in range(1, retries + 1):
+        try:
+            proc = subprocess.run(scp, capture_output=True, text=True, timeout=timeout)
+        except subprocess.TimeoutExpired as exc:
+            last_err = f"timeout@{timeout}s"
+            log(f"SCP_RETRY {local.name} attempt={attempt}/{retries} {last_err}")
+            continue
+        if proc.returncode == 0:
+            log(f"SCP_OK {local.name} -> {remote} bytes={local.stat().st_size}")
+            return
+        last_err = proc.stderr[:300]
+        log(f"SCP_RETRY {local.name} attempt={attempt}/{retries} rc={proc.returncode} {last_err!r}")
+        time.sleep(5)
+    raise SystemExit(f"SCP_FAIL {local.name} {last_err!r}")
 
 
 def ship_plates() -> None:
@@ -499,6 +510,32 @@ def main() -> None:
     after_boot(auth, role, uuid, start_bal)
 
 
+
+def continue_on_running() -> None:
+    """Resume after ship/SCP failure when a box is already up (no re-power)."""
+    OUT.mkdir(parents=True, exist_ok=True)
+    auth = power.web_authorization()
+    if not auth:
+        raise SystemExit("WEB_AUTH_MISSING")
+    start_bal = balance_yuan()
+    if (OUT / "AWAITING_JUDGE.json").exists():
+        start_bal = float(json.loads((OUT / "AWAITING_JUDGE.json").read_text()).get("start_bal", start_bal))
+    mother = power.MOTHER_UUID
+    clone = power.clone_uuid()
+    role, uuid = None, None
+    for name, u in (("clone", clone), ("mother", mother)):
+        if u and dual.instance_status(auth, u) == "running":
+            role, uuid = name, u
+            break
+    if not role or not uuid:
+        raise SystemExit("CONTINUE_NO_RUNNING_INSTANCE")
+    dual.ensure_peer_shutdown(auth, uuid)
+    log(f"CONTINUE role={role} uuid={uuid} bal={start_bal:.2f}")
+    wire_ssh(role, auth, uuid)
+    bring.ship(True)
+    after_boot(auth, role, uuid, start_bal)
+
+
 def shutdown_only() -> None:
     log("SHUTDOWN_ONLY keep-disk")
     power.shutdown_fleet()
@@ -510,5 +547,7 @@ def shutdown_only() -> None:
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "shutdown":
         shutdown_only()
+    elif len(sys.argv) > 1 and sys.argv[1] == "continue":
+        continue_on_running()
     else:
         main()
