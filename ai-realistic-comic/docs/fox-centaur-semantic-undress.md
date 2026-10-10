@@ -265,6 +265,7 @@ python workflows/comfyui/bringup_and_run.py --no-power-on --keep-on   # 机器�
   2. ~~R5b Fill+LoRA~~（同洞金属甲无效，禁止空转）
   细则：`…/r5-offline-diag/ROOT_CAUSE_AND_NEXT.json`。
 - **R4-raw 正式归档（2026-10-10 13:48 用户拍板，不开机）**：伊莲 nude **当前 best = R4 Qwen-Image-Edit 原图** `elena-armor-centaur-nude-r4-raw.png`（贴回前）。**禁止**再为同一金属甲空转。详见下节「可复用做法」。
+- **R4 batch3 已实现（2026-10-10 13:58 授权）**：`run_fox_centaur_community_r4_batch3.py` + `run_r4_batch3_pilot.py`。按归档配方跑林 nude / 林 torn / 伊莲 torn；正式产物=**贴回前 raw**；优先 592；封顶 **¥4**；产物 `…/r4-batch3/`。伊莲 nude 不重跑。需 `--i-know-authorized`。禁止 grok.com。
 
 - AI 漫画工作流内 **grok 一律走 Cursor 本机**，禁止 grok.com / 其他渠道 CLI。
 
