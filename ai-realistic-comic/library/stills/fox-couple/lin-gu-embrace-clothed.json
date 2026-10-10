@@ -1,7 +1,8 @@
 {
   "usable": true,
   "scorer": "user-lock",
-  "pose": "C-rev",
-  "sha256": "1ee8c6e5e4830356a5a197bc38ebb9749dc35962f7aec7a6698ad9876bb07b55",
-  "notes": "User-locked clothed plate 2026-10-10 (GenerateImage stand-in for unreachable box asset)."
+  "pose": "C-user-locked",
+  "source": "USER_LOCKED_lin-gu-C.jpg",
+  "sha256": "e18301117bfe44814739c3cc9d17b1e12ab79a7242df6157feec63952d3bf679",
+  "notes": "User-locked clothed plate (8d30232). Stand-in GenerateImage R4 run superseded (see standin-run-20261010)."
 }

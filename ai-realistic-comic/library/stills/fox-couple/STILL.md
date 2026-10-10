@@ -17,7 +17,7 @@
 
 ## 出图
 
-**2026-10-10 19:28**：先只出成衣给用户挑姿势；**暂停** AutoDL 开机与去衣/破衣抢卡，挑定后再授权。
+**2026-10-10**：成衣底板已锁定为 `USER_LOCKED_lin-gu-C.jpg`（commit `8d30232`）。顾形象/衣服以后不锁，按林画面配合。
 
 1. 成衣候选：Cursor GenerateImage（锁脸参考）；不开 AutoDL。
 2. 用户挑定姿势 → 写入 `lin-gu-embrace-clothed.png` + `POSE_LOCKED.json`。
