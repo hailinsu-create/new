@@ -41,11 +41,8 @@ class SpendCap:
             "boot_at": self.boot_at,
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }
-        self.session_path.write_text(
-            json.dumps(payload, ensure_ascii=False, indent=2) + "
-",
-            encoding="utf-8",
-        )
+        text = json.dumps(payload, ensure_ascii=False, indent=2) + chr(10)
+        self.session_path.write_text(text, encoding="utf-8")
 
     @classmethod
     def load(cls, path: Path) -> "SpendCap | None":
@@ -104,3 +101,4 @@ class SpendCap:
                 f"min_need {min_need:.2f} (disk_reserve+10min GPU)"
             )
         return None
+
