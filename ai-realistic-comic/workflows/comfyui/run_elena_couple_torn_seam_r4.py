@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
-"""Elena couple torn redo: Qwen-Edit + seam-above torso mask paste-back.
+"""Elena couple torn redo v3: nude-above-seam base + add thick plate shards.
 
-Edit keep-mask = human torso above waist/horse seam only.
-Below seam (horse / 鸾布 / male / background) = USER_LOCKED plate pixels.
-Narrow feather only at the seam band. Official out = composited (not pure raw).
+1) Build base = nude torso above seam, USER_LOCKED plate below seam.
+2) Qwen-Edit adds thick broken breastplate shards + cloth strips (remove LoRA ~0).
+3) Paste USER_LOCKED below seam again (narrow feather).
 """
 from __future__ import annotations
 
 import argparse
 import json
 import sys
-from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -19,47 +18,24 @@ from PIL import Image, ImageFilter
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import run_fox_centaur_community_r4 as r4  # noqa: E402
 import run_fox_centaur_semantic as base  # noqa: E402
-from comfy_util import choices, pick  # noqa: E402
 
-PLAN = {
-    "name": "elena_couple_torn_seam_r4",
-    "status": "implemented",
-    "success": "torso-above-seam edit; plate below seam; thick torn plates not wire",
-    "official": "seam_composite",
-}
-
+SEAM_RATIO = 0.38
+FEATHER = 16
+SEEDS = (20261031, 20261032, 20261033, 20261034)
 
 PROMPT = (
-    "Edit only the centaur woman's human torso clothing above the waist/horse seam: "
-    "replace her gold scale bodice with a damaged metal breastplate that has real thickness — "
-    "jagged broken armor plate shards and cloth strips hanging on the body, partial bare adult skin "
-    "showing through gaps. Must look like torn plate armor with weight, not wires or filigree cage. "
-    "Do not alter anything below the human-waist / horse-back seam. "
-    "Keep standing courtyard kiss pose, the man exactly as in the photo, her horse body, "
-    "golden caparison/鸾布, face, hair, glasses, and stone-courtyard background unchanged."
+    "She is already bare-chested. Add only thick jagged broken metal breastplate shards with real "
+    "plate thickness and bent cut edges, plus hanging torn cloth strips on her human torso. "
+    "Large patches of bare adult skin must remain visible between the heavy metal chunks. "
+    "Destroyed plate armor look — NOT thin wire, NOT filigree mesh, NOT lace cage. "
+    "Do not change the man, horse body, golden caparison/鸾布, face, hair, glasses, pose, or background."
 )
-
 NEGATIVE = (
     "human hips, human thighs, human legs, wire cage, thin wire, filigree cage, spider web metal, "
     "human buttocks on horse, skin patch on horse flank, intact undamaged breastplate, "
-    "fully clothed seamless armor, changed man, changed horse body, extra limbs, broken pose, "
-    "blurry, watermark, child"
+    "fully clothed seamless armor, completely bare with no metal scraps, changed man, "
+    "changed horse body, extra limbs, broken pose, blurry, watermark, child"
 )
-
-# Relative mask on the fitted edit canvas (after fit_resize / FluxKontext scale ~same ratio)
-SEAM_RATIO = 0.38
-FEATHER = 18
-TORSO_X0 = 0.30
-TORSO_X1 = 0.55
-TORSO_Y0 = 0.05
-
-SEEDS = (20261021, 20261022, 20261023, 20261024)
-
-
-@dataclass(frozen=True)
-class Shot:
-    stem: str
-    seed: int
 
 
 def fit_resize(img: Image.Image) -> Image.Image:
@@ -69,111 +45,90 @@ def fit_resize(img: Image.Image) -> Image.Image:
     return img.resize((tw, th), Image.Resampling.LANCZOS)
 
 
-def torso_seam_alpha(w: int, h: int) -> np.ndarray:
-    seam = int(h * SEAM_RATIO)
-    xa, xb = int(w * TORSO_X0), int(w * TORSO_X1)
-    ya = int(h * TORSO_Y0)
-    feather = FEATHER
-    mask = np.zeros((h, w), dtype=np.float32)
-    for y in range(max(0, ya), h):
+def seam_keep_edit_alpha(w: int, h: int, seam_ratio: float = SEAM_RATIO, feather: int = FEATHER) -> np.ndarray:
+    """Alpha=1 keep edit (above seam), 0 use plate (below). Full width."""
+    seam = int(h * seam_ratio)
+    alpha = np.zeros((h, w), dtype=np.float32)
+    for y in range(h):
         if y < seam - feather:
             v = 1.0
         elif y > seam + feather:
             v = 0.0
         else:
-            t = (y - (seam - feather)) / max(1, (2 * feather))
+            t = (y - (seam - feather)) / max(1, 2 * feather)
             v = 0.5 * (1.0 + np.cos(np.pi * t))
-        mask[y, xa:xb] = v
-    a = Image.fromarray((mask * 255).astype(np.uint8), "L").filter(ImageFilter.GaussianBlur(6))
-    alpha = np.asarray(a).astype(np.float32) / 255.0
-    alpha[seam + feather + 2 :, :] = 0.0
+        alpha[y, :] = v
     return alpha
 
 
-def composite_plate(plate: Image.Image, edited: Image.Image) -> tuple[Image.Image, Image.Image]:
-    base = plate.convert("RGB").resize(edited.size, Image.Resampling.LANCZOS)
-    edit = edited.convert("RGB")
-    w, h = edit.size
-    alpha = torso_seam_alpha(w, h)
-    out = np.asarray(base, dtype=np.float32) * (1.0 - alpha[:, :, None]) + np.asarray(
-        edit, dtype=np.float32
-    ) * alpha[:, :, None]
-    comp = Image.fromarray(np.clip(out, 0, 255).astype(np.uint8))
-    mask_img = Image.fromarray((alpha * 255).astype(np.uint8), "L")
-    return comp, mask_img
+def composite(base: Image.Image, edited: Image.Image, alpha: np.ndarray) -> Image.Image:
+    b = np.asarray(base.convert("RGB"), dtype=np.float32)
+    e = np.asarray(edited.convert("RGB").resize(base.size, Image.Resampling.LANCZOS), dtype=np.float32)
+    if alpha.shape[:2] != b.shape[:2]:
+        a_img = Image.fromarray((alpha * 255).astype(np.uint8), "L").resize(base.size, Image.Resampling.BILINEAR)
+        alpha = np.asarray(a_img).astype(np.float32) / 255.0
+    out = b * (1.0 - alpha[:, :, None]) + e * alpha[:, :, None]
+    return Image.fromarray(np.clip(out, 0, 255).astype(np.uint8))
 
 
-def qwen_edit_graph_torn(
-    *,
-    image_name: str,
-    models: dict[str, str],
-    prompt: str,
-    negative: str,
-    seed: int,
-    use_ref_method: bool,
-) -> dict:
-    """Like r4.qwen_edit_graph but lower remove LoRA so plates stay thick."""
+def build_nude_above_seam(locked_plate: Path, nude_raw: Path) -> Image.Image:
+    plate = fit_resize(Image.open(locked_plate).convert("RGB"))
+    nude = fit_resize(Image.open(nude_raw).convert("RGB")).resize(plate.size, Image.Resampling.LANCZOS)
+    alpha = seam_keep_edit_alpha(*plate.size)  # keep nude above
+    return composite(plate, nude, alpha)
+
+
+def qwen_add_armor_graph(*, image_name: str, models: dict, prompt: str, negative: str, seed: int, use_ref: bool) -> dict:
     g = r4.qwen_edit_graph(
         image_name=image_name,
         models=models,
         prompt=prompt,
         negative=negative,
         seed=seed,
-        use_ref_method=use_ref_method,
+        use_ref_method=use_ref,
     )
-    # node 8 = remove clothes lora; node 9 = object remover
-    g["8"]["inputs"]["strength_model"] = 0.62
-    g["9"]["inputs"]["strength_model"] = 0.45
+    g["8"]["inputs"]["strength_model"] = 0.08  # almost no remove
+    g["9"]["inputs"]["strength_model"] = 0.15
     return g
 
 
-def run_seed(host: str, out_dir: Path, plate: Path, seed: int, models: dict, use_ref: bool) -> Path:
+def run_seed(host: str, out_dir: Path, base_img: Image.Image, locked_plate: Path, seed: int, models: dict, use_ref: bool) -> Path:
     work = out_dir / "work"
     work.mkdir(parents=True, exist_ok=True)
     stem = f"elena-couple-torn-s{seed}"
-    img = fit_resize(Image.open(plate).convert("RGB"))
-    upload = work / f"plate-{stem}.png"
-    img.save(upload)
+    upload = work / f"base-{stem}.png"
+    base_img.save(upload)
     base.upload(host, upload)
-    graph = qwen_edit_graph_torn(
-        image_name=upload.name,
-        models=models,
-        prompt=PROMPT,
-        negative=NEGATIVE,
-        seed=seed,
-        use_ref_method=use_ref,
+    graph = qwen_add_armor_graph(
+        image_name=upload.name, models=models, prompt=PROMPT, negative=NEGATIVE, seed=seed, use_ref=use_ref
     )
-    print(f"ELENA_TORN_SEAM_GRAPH {stem} seed={seed}", flush=True)
+    print(f"ELENA_TORN_V3_GRAPH {stem} seed={seed}", flush=True)
     got = base.run_graph(host, graph, {"raw": "16"}, work, f"elena-{stem}")
     raw = Image.open(got["raw"]).convert("RGB")
     raw_path = out_dir / f"{stem}-r4-raw.png"
     raw.save(raw_path)
-    # plate for paste must be USER_LOCKED original at edit canvas size
-    plate_img = fit_resize(Image.open(plate).convert("RGB"))
-    comp, mask_img = composite_plate(plate_img, raw)
-    official = out_dir / f"{stem}.png"
-    comp.save(official)
-    mask_img.save(out_dir / f"{stem}-seam-mask.png")
-    w, h = comp.size
-    comp.resize((512, int(512 * h / w)), Image.Resampling.LANCZOS).save(
+    plate = fit_resize(Image.open(locked_plate).convert("RGB")).resize(raw.size, Image.Resampling.LANCZOS)
+    alpha = seam_keep_edit_alpha(*raw.size)
+    # keep edit above seam, plate below
+    official = composite(plate, raw, alpha)
+    official_path = out_dir / f"{stem}.png"
+    official.save(official_path)
+    Image.fromarray((alpha * 255).astype(np.uint8), "L").save(out_dir / f"{stem}-seam-mask.png")
+    w, h = official.size
+    official.resize((512, int(512 * h / w)), Image.Resampling.LANCZOS).save(
         out_dir / f"{stem}-preview.webp", "WEBP", quality=85
     )
     (out_dir / f"{stem}.run.json").write_text(
         json.dumps(
             {
-                "pipeline": "elena_couple_torn_seam_r4",
+                "pipeline": "elena_couple_torn_seam_v3_add_armor",
                 "stem": stem,
                 "seed": seed,
-                "plate": str(plate),
-                "official_is_raw": False,
-                "official_is_seam_composite": True,
                 "seam_ratio": SEAM_RATIO,
-                "feather": FEATHER,
-                "torso_box": [TORSO_X0, TORSO_Y0, TORSO_X1, SEAM_RATIO],
                 "prompt": PROMPT,
                 "negative": NEGATIVE,
-                "remove_lora": 0.62,
-                "object_lora": 0.45,
+                "remove_lora": 0.08,
+                "object_lora": 0.15,
                 "models": models,
             },
             ensure_ascii=False,
@@ -184,15 +139,16 @@ def run_seed(host: str, out_dir: Path, plate: Path, seed: int, models: dict, use
     )
     print(f"RAW_OK {stem}-r4-raw.png", flush=True)
     print(f"OFFICIAL_OK {stem}.png", flush=True)
-    print(f"VISUAL_JUDGE {stem} {official}", flush=True)
-    return official
+    print(f"VISUAL_JUDGE {stem} {official_path}", flush=True)
+    return official_path
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--host", default="http://127.0.0.1:8188")
     ap.add_argument("--out", type=Path, default=None)
-    ap.add_argument("--plate", type=Path, default=None)
+    ap.add_argument("--plate", type=Path, default=None, help="USER_LOCKED plate")
+    ap.add_argument("--nude", type=Path, default=None, help="usable nude r4 raw")
     ap.add_argument("--seeds", default=",".join(str(s) for s in SEEDS))
     ap.add_argument("--i-know-authorized", action="store_true")
     ap.add_argument("--check-stack", action="store_true")
@@ -202,20 +158,22 @@ def main() -> None:
         return
     if not args.i_know_authorized:
         raise SystemExit("NEED --i-know-authorized")
-    if args.out is None or args.plate is None:
-        raise SystemExit("NEED --out and --plate")
-    if not args.plate.is_file():
-        raise SystemExit(f"MISSING_PLATE {args.plate}")
+    if args.out is None or args.plate is None or args.nude is None:
+        raise SystemExit("NEED --out --plate --nude")
+    if not args.plate.is_file() or not args.nude.is_file():
+        raise SystemExit("MISSING plate/nude")
     args.out.mkdir(parents=True, exist_ok=True)
+    base_img = build_nude_above_seam(args.plate, args.nude)
+    base_img.save(args.out / "BASE_nude_above_seam.png")
     models = r4.resolve_r4_models(args.host)
     use_ref = r4.has_ref_method(args.host)
     seeds = [int(x) for x in args.seeds.split(",") if x.strip()]
     done = []
     for seed in seeds:
-        path = run_seed(args.host, args.out, args.plate, seed, models, use_ref)
+        path = run_seed(args.host, args.out, base_img, args.plate, seed, models, use_ref)
         done.append(path.name)
     (args.out / "ELENA_TORN_SEAM_SUMMARY.json").write_text(
-        json.dumps({"done": done, "plan": PLAN, "seeds": seeds}, ensure_ascii=False, indent=2) + "\n",
+        json.dumps({"done": done, "pipeline": "v3_add_armor", "seeds": seeds}, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
     print("ELENA_TORN_SEAM_DONE", done, flush=True)

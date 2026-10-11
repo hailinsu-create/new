@@ -37,15 +37,17 @@ STORE_ELENA = Path("/cursor/stores/self/artifacts/elena-couple")
 REMOTE_OUT = "/root/autodl-tmp/elena-torn-seam-out"
 REMOTE_INPUT = "/root/autodl-tmp/elena-torn-seam-input"
 PLATE = ROOT / "library/stills/elena-couple/USER_LOCKED_elena-C.jpg"
+NUDE_RAW = Path("/opt/cursor/artifacts/elena-couple/elena-couple-nude-r4-raw.png")
+NUDE_FALLBACK = ROOT / "library/stills/elena-couple/elena-couple-nude-r4-raw-usable.png"
 PICK = OUT / "PICK.json"
 
 CAP_YUAN = 2.0
 STUCK_MIN = 12.0
-PICK_WAIT_MIN = 8.0
+PICK_WAIT_MIN = 12.0
 SESSION_CAP = OUT / "SPEND_CAP_SESSION.json"
 WATCHDOG_LOG = OUT / "watchdog.log"
 COMMIT = subprocess.check_output(["git", "-C", "/workspace", "rev-parse", "HEAD"], text=True).strip()
-SEEDS = "20261021,20261022,20261023,20261024"
+SEEDS = "20261031,20261032,20261033,20261034"
 
 _SHUTDOWN_DONE = False
 _WATCHDOG_PROC: subprocess.Popen | None = None
@@ -432,6 +434,10 @@ def after_boot(auth: str, role: str, uuid: str, cap: spend_cap.SpendCap) -> None
     ):
         scp_to(ROOT / rel, f"{bring.REMOTE_ROOT}/{rel}")
     scp_to(PLATE, f"{REMOTE_INPUT}/USER_LOCKED_elena-C.jpg")
+    nude_local = NUDE_RAW if NUDE_RAW.is_file() else NUDE_FALLBACK
+    if not nude_local.is_file():
+        raise SystemExit(f"MISSING_NUDE {nude_local}")
+    scp_to(nude_local, f"{REMOTE_INPUT}/elena-couple-nude-r4-raw.png")
     if not models_present():
         raise SystemExit("MODELS_MISSING")
     log(f"MODELS_OK role={role}")
@@ -440,6 +446,7 @@ def after_boot(auth: str, role: str, uuid: str, cap: spend_cap.SpendCap) -> None
     gen = (
         f"{bring.REMOTE_PY} -u {SCRIPT_REL} --out {shlex.quote(REMOTE_OUT)} "
         f"--plate {shlex.quote(REMOTE_INPUT + '/USER_LOCKED_elena-C.jpg')} "
+        f"--nude {shlex.quote(REMOTE_INPUT + '/elena-couple-nude-r4-raw.png')} "
         f"--seeds {shlex.quote(SEEDS)} --i-know-authorized "
         f"&& echo ELENA_TORN_SEAM_DONE"
     )
