@@ -191,8 +191,8 @@ def run_seed(host: str, out_dir: Path, plate: Path, seed: int, models: dict, use
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--host", default="http://127.0.0.1:8188")
-    ap.add_argument("--out", type=Path, required=True)
-    ap.add_argument("--plate", type=Path, required=True)
+    ap.add_argument("--out", type=Path, default=None)
+    ap.add_argument("--plate", type=Path, default=None)
     ap.add_argument("--seeds", default=",".join(str(s) for s in SEEDS))
     ap.add_argument("--i-know-authorized", action="store_true")
     ap.add_argument("--check-stack", action="store_true")
@@ -202,6 +202,8 @@ def main() -> None:
         return
     if not args.i_know_authorized:
         raise SystemExit("NEED --i-know-authorized")
+    if args.out is None or args.plate is None:
+        raise SystemExit("NEED --out and --plate")
     if not args.plate.is_file():
         raise SystemExit(f"MISSING_PLATE {args.plate}")
     args.out.mkdir(parents=True, exist_ok=True)
