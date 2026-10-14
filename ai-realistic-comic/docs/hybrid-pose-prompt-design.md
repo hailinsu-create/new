@@ -258,3 +258,18 @@ atmosphere, photorealistic {anatomy|fabric}.
 - 上游：https://github.com/Arekejoker/qwen21-nsfw-pose-skill （`SKILL.md` §1–4，`install/setup.md`，`workflows/qwen21_*.json`，`VNCCS_PoseStudio_QI2.1.json`）
 - 本仓：`docs/fox-centaur-semantic-undress.md`；R4 标准 / `spend_cap` / watchdog（后续分支上的 `fox-undress-r4-standard.md`、`autodl-shutdown-watchdog.md`、`workflows/comfyui/spend_cap.py`）
 - HF 底模：`Comfy-Org/Qwen-Image-2.1`；VNCCS LoRA：`MIUProject/VNCCS_PoseStudio_QI2.1`；节点：`AHEKOT/ComfyUI_VNCCS_Utils`
+
+## 9. 试点状态（2026-10-14 14:40 授权）
+
+用户授权：互斥开机（791 优先→592）、装 Qwen-Image 2.1 int8 + NSFW LoRA + VNCCS、人形改姿 1–2 张 + 破衣长提示词 A/B，封顶 **¥5**，`spend_cap` + 看门狗，完成后关机留盘；文档/PR 不嵌裸图。
+
+| 项 | 状态 |
+| --- | --- |
+| Route C 文档 | 已写入 §2.4（commit 见 Git） |
+| `spend_cap` 会话 | `/opt/cursor/artifacts/hybrid-pose-ab/SPEND_CAP_SESSION.json` 已建，cap=¥5；余额快照约 **¥49.61** |
+| 开机 | **阻塞**：`AUTODL_WEB_AUTHORIZATION` 调 `power_on`/`power_off` 返回 `AuthorizeFailed` / 登录超时（JWT `exp` 仍在未来，疑会话被服务端吊销）。开发者 Token 仅能查余额，不能开北京 B 普通实例 |
+| 安装 / 改姿 / 破衣 A/B | 未开始（未开机） |
+| 关机 | N/A（两机本就未开；`fleet-cap` live=[]） |
+
+续跑前：把浏览器登录 AutoDL 后拿到的新网页 JWT 写入 `/cursor/stores/user/autodl-web-auth.env`（或 Cursor Secret `AUTODL_WEB_AUTHORIZATION`），再跑 `workflows/comfyui/run_hybrid_pose_install_ab.py`。
+
