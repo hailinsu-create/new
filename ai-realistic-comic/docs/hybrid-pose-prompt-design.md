@@ -259,17 +259,16 @@ atmosphere, photorealistic {anatomy|fabric}.
 - 本仓：`docs/fox-centaur-semantic-undress.md`；R4 标准 / `spend_cap` / watchdog（后续分支上的 `fox-undress-r4-standard.md`、`autodl-shutdown-watchdog.md`、`workflows/comfyui/spend_cap.py`）
 - HF 底模：`Comfy-Org/Qwen-Image-2.1`；VNCCS LoRA：`MIUProject/VNCCS_PoseStudio_QI2.1`；节点：`AHEKOT/ComfyUI_VNCCS_Utils`
 
-## 9. 试点状态（2026-10-14 14:40 授权）
-
-用户授权：互斥开机（791 优先→592）、装 Qwen-Image 2.1 int8 + NSFW LoRA + VNCCS、人形改姿 1–2 张 + 破衣长提示词 A/B，封顶 **¥5**，`spend_cap` + 看门狗，完成后关机留盘；文档/PR 不嵌裸图。
+## 9. 试点状态（2026-10-14 授权；当晚 791 跑通）
 
 | 项 | 状态 |
 | --- | --- |
-| Route C 文档 | 已写入 §2.4（commit 见 Git） |
-| `spend_cap` 会话 | `/opt/cursor/artifacts/hybrid-pose-ab/SPEND_CAP_SESSION.json` 已建，cap=¥5；余额快照约 **¥49.61** |
-| 开机 | **阻塞**：`AUTODL_WEB_AUTHORIZATION` 调 `power_on`/`power_off` 返回 `AuthorizeFailed` / 登录超时（JWT `exp` 仍在未来，疑会话被服务端吊销）。开发者 Token 仅能查余额，不能开北京 B 普通实例 |
-| 安装 / 改姿 / 破衣 A/B | 未开始（未开机） |
-| 关机 | N/A（两机本就未开；`fleet-cap` live=[]） |
-
-续跑前：把浏览器登录 AutoDL 后拿到的新网页 JWT 写入 `/cursor/stores/user/autodl-web-auth.env`（或 Cursor Secret `AUTODL_WEB_AUTHORIZATION`），再跑 `workflows/comfyui/run_hybrid_pose_install_ab.py`。
+| 机器 | **791** `359a49a1c3-4cda10df`（例程已开机；**未开 592**） |
+| 封顶 | ¥5 + `spend_cap`/`watchdog`；钱包 **48.27→45.70（约 ¥2.57）** |
+| 安装 | Qwen-Image 2.1 int8 三件套（6.8G+8.8G+645M）+ `VNCCS_QI2_PoseStudioV1.1`（153M）+ `ComfyUI_VNCCS_Utils` + 本地 55 姿势 JSON。Civitai NSFW LoRA 未下；edit LoRA HF **401**；R4 FP8 仍为 14G `.part` 未完成 |
+| df `/root/autodl-tmp` | 装前约 **112G** 空余 → 装后约 **95G** 空余（used ~56G） |
+| 改姿 | Qwen-Image 2.1 Edit（保脸保衣提示）：`gu_pose_stand.png`、`adrian_pose_sit.png` — 脸/衣大体保住，姿势已变 |
+| 破衣 A/B | 同锁姿底板短提示 vs 七要素长提示（2.1 Edit，非 R4）：长提示破口更大、更贴几何描述；缺 remove LoRA/R4 故未到正式去衣强度 |
+| 产物路径 | `/opt/cursor/artifacts/hybrid-pose-ab/`（及机上 `/root/autodl-tmp/hybrid-pose-ab/`）；详见 `RUN_REPORT.md`。**不嵌图** |
+| 关机 | `power_off` **Success**，留盘、未 release；SSH 随后断开 |
 
