@@ -1,6 +1,6 @@
 # 混合姿势控制 + 长提示词设计（VNCCS × 现有 R4）
 
-2026-10-14 起稿。**本文只做设计与安装/花费预估，不开 AutoDL、不下载权重、不嵌入裸图。**
+2026-10-14 起稿；**同日 14:40 用户授权**在 791/592 互斥安装上游栈并做小对照（封顶 ¥5）。文档本身不嵌入裸图，只记路径。
 
 借鉴公开 skill 仓库 [Arekejoker/qwen21-nsfw-pose-skill](https://github.com/Arekejoker/qwen21-nsfw-pose-skill)（README / `SKILL.md` / `install/setup.md` / `workflows/`），把其 **VNCCS 136 姿势 3D 人偶精确姿势** 与 **作者级长提示词（7 要素 / L0–L3）** 接到本仓狐/马去衣栈上；奇幻身体（九尾狐林晚棠、半人马伊莲）**不能**套标准人体人偶，继续走现有 **Cursor GenerateImage 穿衣底板 → 用户锁定 → R4 Qwen-Image-Edit-2511 FP8 + 去衣 LoRA**（见姊妹文档 `fox-undress-r4-standard.md`，在 `cursor/fox-centaur-r1fix-community-rescan-dbe2` 等后续分支；本分支历史见 `fox-centaur-semantic-undress.md`）。
 
@@ -15,7 +15,7 @@
 | 纯人体姿势：用 VNCCS 136 库精确摆姿出穿衣底板，再按需 Edit / R4 | 把 MakeHuman/VNCCS 人偶硬套半人马/九尾狐身体 |
 | 奇幻女主：保留 GenerateImage 锁板 + R4 去衣/破衣 | 为「跟上游配方」默默关掉 NSFW LoRA 或砍短提示词 |
 | 双人：男配可走人体姿势库；女主奇幻身体走我们的；男配**不锁**形象 | 两机同时开机；超 `spend_cap` / 无看门狗挂机观感 |
-| 长提示词结构同时服务「穿衣底板」与「破衣步」（解决撕不够） | 本文授权开机、上传/嵌入裸图、花钱下载 |
+| 长提示词结构同时服务「穿衣底板」与「破衣步」（解决撕不够） | 文档内嵌裸图；九尾/马身套 VNCCS 人偶 |
 
 ---
 
@@ -53,8 +53,36 @@
 | 上游 | 本仓用法 |
 | --- | --- |
 | ① T2I + NSFW LoRA | 仅**纯人体、从零 NSFW** 试点；狐/马成衣仍 GenerateImage |
-| ② Edit | 人体换姿保身份；奇幻身体谨慎，默认不替代锁板 |
+| ② Edit | **Route C 核心步**：人形穿衣图按 VNCCS 姿改肢体保脸衣；奇幻身体不走；改完须重锁板 |
 | ④ VNCCS PoseStudio | **纯人体底板**主路径；浏览器 CDP 跑 `VNCCS_PoseStudio_QI2.1.json` |
+
+
+### 2.4 Route C — Cursor 穿衣 → VNCCS 选姿 → Qwen-Image 2.1 Edit 改姿 → 重锁板 → R4
+
+**2026-10-14 14:40 用户拍板的人形改姿主路径。** 仅限**纯人体 / 画面中可套人偶的人形部分**。
+
+```
+Cursor GenerateImage（或已有穿衣 ref）
+        ↓
+VNCCS 人偶库选精确姿势（136；只驱动人形骨骼）
+        ↓
+Qwen-Image 2.1 Edit：以穿衣图为 input，按人偶姿势改肢体；
+        提示词明确 keep face / hair / outfit / identity
+        ↓
+用户重新锁定底板（USER_LOCKED / POSE_LOCKED）← 改姿后必须重锁，旧锁作废
+        ↓
+R4：Qwen-Image-Edit-2511 FP8 + 去衣/破衣 LoRA（正式=raw）
+```
+
+| 规则 | 说明 |
+| --- | --- |
+| **适用范围** | 顾承安等男配、纯人体女演员；双人里**男配人形**可走本路线 |
+| **禁止套人偶** | **九尾**（林晚棠多尾）、**马身**（伊莲下盘）——VNCCS MakeHuman 网格无对应骨骼；这些部位继续 Route F，整板女主不走 C |
+| **改姿后重锁板** | Edit 输出即使观感可用，也须写入新的锁定文件/路径后再 R4；禁止对「改姿未锁」图直接去衣 |
+| **保脸保衣** | Edit 提示词必须显式 `keep face, hair, wardrobe, identity`；失败则弃用该张，不进锁板 |
+| **破衣** | 锁板之后才允许 R4；破衣提示词仍用 §3 七要素加重第 6 点（破口几何） |
+
+与 §2.1 关系：Route C = Route V 的「已有穿衣图」变体（上游 ④ 选姿 + ② Edit），后端去衣仍接本仓 R4，不强制改用上游 T2I 裸体配方。
 
 ---
 
