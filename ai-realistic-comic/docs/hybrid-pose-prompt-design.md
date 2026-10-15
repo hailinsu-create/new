@@ -272,3 +272,17 @@ atmosphere, photorealistic {anatomy|fabric}.
 | 产物路径 | `/opt/cursor/artifacts/hybrid-pose-ab/`（及机上 `/root/autodl-tmp/hybrid-pose-ab/`）；详见 `RUN_REPORT.md`。**不嵌图** |
 | 关机 | `power_off` **Success**，留盘、未 release；SSH 随后断开 |
 
+## 10. LoRA 补装尝试（2026-10-15，¥2 封顶）
+
+授权：仅 791、`spend_cap`¥2 + watchdog；592 保持关机；密钥用 Agent Store `hf_token`/`civitai_token`（不入库）。
+
+| 项 | 结果 |
+| --- | --- |
+| 592 | 已关机（`power_off`：当前实例已关机） |
+| 791 `power_on` | **失败**：API `BadRequest` / `机器空闲GPU不足`（`no_gpu`）。按授权**不绕道、不开 592、不长等** |
+| LoRA 安装 | **未开始**（未开机） |
+| 花费 / 余额 | **¥0** / 见当次 `balance`（约 ¥45.70） |
+| 关机 | N/A（未上电） |
+
+待有卡后重试同清单：4×Civitai Bearer + HF edit（hf-mirror + `HF_TOKEN`），校验大小与 sha256。
+
