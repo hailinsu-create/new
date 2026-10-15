@@ -272,17 +272,29 @@ atmosphere, photorealistic {anatomy|fabric}.
 | 产物路径 | `/opt/cursor/artifacts/hybrid-pose-ab/`（及机上 `/root/autodl-tmp/hybrid-pose-ab/`）；详见 `RUN_REPORT.md`。**不嵌图** |
 | 关机 | `power_off` **Success**，留盘、未 release；SSH 随后断开 |
 
-## 10. LoRA 补装尝试（2026-10-15，¥2 封顶）
+## 10. LoRA 补装（双机轮流抢卡，¥2 封顶）
 
-授权：仅 791、`spend_cap`¥2 + watchdog；592 保持关机；密钥用 Agent Store `hf_token`/`civitai_token`（不入库）。
+策略：791↔592 最短间隔互斥抢卡；开机前强制对端关机；一台上电即停对端抢卡；装完关机留盘；`spend_cap`¥2 + watchdog。
+
+### 2026-10-15 轮次
 
 | 项 | 结果 |
 | --- | --- |
-| 592 | 已关机（`power_off`：当前实例已关机） |
-| 791 `power_on` | **失败**：API `BadRequest` / `机器空闲GPU不足`（`no_gpu`）。按授权**不绕道、不开 592、不长等** |
-| LoRA 安装 | **未开始**（未开机） |
-| 花费 / 余额 | **¥0** / 见当次 `balance`（约 ¥45.70） |
-| 关机 | N/A（未上电） |
+| 抢卡 | ~45min 轮询，**两台均 `no_gpu`（机器空闲GPU不足）**，无赢家 |
+| 安装机 | **无**（未上电） |
+| 5 个 LoRA | **均未装** |
+| 待同步 | **791、592 均待装**同一批文件（见下表期望名/大小）；下次任一开机先补装并以 sha256 对齐另一台 |
+| 花费 / 余额 | **¥0** / 约 **¥45.70**（抢卡未计 GPU） |
+| 关机 | 两台保持关机；未 release |
 
-待有卡后重试同清单：4×Civitai Bearer + HF edit（hf-mirror + `HF_TOKEN`），校验大小与 sha256。
+期望文件（装上后记 sha256）：
 
+| 文件名 | 来源 | 期望大小 |
+| --- | --- | --- |
+| `qwen2_1-femaledVaginus-nsfw-v1_3-fine_L22-31.safetensors` | Civitai 3388157 | ≈608 MiB |
+| `qwen2_1-femaledVaginus-nsfw-v1.3-fine.safetensors` | Civitai 3386403 | ≈608 MiB |
+| `thesealpacas-nsfw-v2.safetensors` | Civitai 3357315（下载后改名） | ≈79.7 MiB |
+| `nsfw-posture-v3.safetensors` | Civitai 3388118 | ≈84 MiB |
+| `qwen21-nsfw-image-edit.safetensors` | HF `RunningHubAI/rh-qwen-image-2.1-aio-nsfw-lora` | 83943552 B |
+
+日志：`/opt/cursor/artifacts/hybrid-lora-install/dual-race.log`
