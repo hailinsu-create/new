@@ -1,0 +1,41 @@
+{
+  "actor": "lin",
+  "mode": "nude",
+  "attempt": 0,
+  "seed": 20261008,
+  "garment_share": 0.17830403645833334,
+  "passes": [
+    {
+      "kind": "nude",
+      "n": 0,
+      "denoise": 1.0,
+      "lama_prefill": true,
+      "residual_ratio": 0.6587
+    },
+    {
+      "kind": "lama_residual",
+      "n": 1
+    },
+    {
+      "kind": "touch",
+      "n": 1,
+      "denoise": 0.35,
+      "residual_ratio": 0.7422
+    },
+    {
+      "kind": "lama_residual",
+      "n": 2
+    },
+    {
+      "kind": "touch",
+      "n": 2,
+      "denoise": 0.35,
+      "residual_ratio": 0.5915
+    },
+    {
+      "kind": "edge",
+      "denoise": 0.42
+    }
+  ],
+  "best_residual_ratio": 0.5915
+}

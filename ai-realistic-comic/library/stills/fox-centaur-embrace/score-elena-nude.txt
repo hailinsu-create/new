@@ -1,4 +1,4 @@
-按 JSON 打分。第一张是锁脸 ref-face.png，第二张是去衣结果。八项 0–10：identity distinction interaction aesthetics anatomy wardrobe motif photoreal。interaction 指半人马站姿是否仍挺拔。mean 是均分。scorer 固定 "codex"。gates 为字符串数组。
+按 JSON 打分。第一张是锁脸 ref-face.png，第二张是去衣结果。八项 0–10：identity distinction interaction aesthetics anatomy wardrobe motif photoreal。interaction 指半人马站姿是否仍挺拔。mean 是均分。scorer 固定 "cursor"。gates 为字符串数组。
 
 这张是伊莲·沃斯铠甲半人马去衣，不是珀耳塞福涅纱裙。硬门：extra_person, minor, armor_remain, horse_gone, green_eyes, blue_grey_eyes, pointed_ears, stallion_anatomy, text。不要用蛇尾 H1–H3。褐眼正确。圆框金丝眼镜待定，戴或不戴都不走硬门。去衣后上身铠甲应消失，马身和四条马腿还在。
 

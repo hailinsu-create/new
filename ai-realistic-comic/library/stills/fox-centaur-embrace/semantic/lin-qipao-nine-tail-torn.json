@@ -1,0 +1,9 @@
+{
+  "score_pending": true,
+  "scorer": "cursor",
+  "reason": "awaiting_cursor_agent",
+  "line": "SCORE_PENDING cursor lin torn",
+  "passed": false,
+  "mean": null,
+  "gates": []
+}

@@ -1,0 +1,24 @@
+{
+  "identity": 8,
+  "distinction": 8,
+  "interaction": 8,
+  "aesthetics": 6,
+  "anatomy": 7,
+  "wardrobe": 8,
+  "motif": 9,
+  "photoreal": 6,
+  "mean": 7.5,
+  "gates": [],
+  "notes": "人躯干无铠甲、马身在；眼镜与褐发褐眼大致对锁脸。人躯干斑驳皮革/大理石肌理不像正常皮肤，观感偏怪。",
+  "scorer": "cursor",
+  "passed": false,
+  "below": [
+    "identity",
+    "distinction",
+    "interaction",
+    "aesthetics",
+    "anatomy",
+    "wardrobe",
+    "photoreal"
+  ]
+}

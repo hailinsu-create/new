@@ -1,0 +1,173 @@
+{
+  "source": {
+    "why": "Semantic undress. Output slot for MASK is resolved from /object_info by the runner; slot 1 shown here.",
+    "doc": "docs/fox-centaur-semantic-undress.md",
+    "stage": "neutral fill + Fooocus",
+    "denoise": 1.0
+  },
+  "prompt": {
+    "3": {
+      "class_type": "CheckpointLoaderSimple",
+      "inputs": {
+        "ckpt_name": "RealVisXL_V5.0_fp16.safetensors"
+      }
+    },
+    "4": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "text": "smooth fair bare skin only, skin pores, natural breasts, visible nipples, navel, skin tone matches the neck, no fabric print on skin, same adult woman already in the photo, one person only",
+        "clip": [
+          "3",
+          1
+        ]
+      }
+    },
+    "5": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "text": "child, teen, extra person, second woman, extra face, extra head, clone, ghost, qipao, cheongsam, dress, clothes, embroidery, fabric pattern, watercolor print on skin, floral print on skin, ribbon, bra, panties, sash, belt, apron, cloth, fabric, hem, handbag, bag, box, luggage, snake tail, extra limbs, extra arm, extra hand, smear, plastic, text, watermark",
+        "clip": [
+          "3",
+          1
+        ]
+      }
+    },
+    "1": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "band-crop.png"
+      }
+    },
+    "2": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "band-crop-mask.png"
+      }
+    },
+    "50": {
+      "class_type": "ImageToMask",
+      "inputs": {
+        "image": [
+          "2",
+          0
+        ],
+        "channel": "red"
+      }
+    },
+    "51": {
+      "class_type": "INPAINT_MaskedFill",
+      "inputs": {
+        "image": [
+          "1",
+          0
+        ],
+        "mask": [
+          "50",
+          0
+        ],
+        "fill": "neutral",
+        "falloff": 0
+      }
+    },
+    "40": {
+      "class_type": "InpaintModelConditioning",
+      "inputs": {
+        "positive": [
+          "4",
+          0
+        ],
+        "negative": [
+          "5",
+          0
+        ],
+        "vae": [
+          "3",
+          2
+        ],
+        "pixels": [
+          "51",
+          0
+        ],
+        "mask": [
+          "50",
+          0
+        ],
+        "noise_mask": true
+      }
+    },
+    "15": {
+      "class_type": "KSampler",
+      "inputs": {
+        "model": [
+          "71",
+          0
+        ],
+        "seed": 20261008,
+        "steps": 22,
+        "cfg": 5.5,
+        "sampler_name": "dpmpp_2m",
+        "scheduler": "karras",
+        "positive": [
+          "40",
+          0
+        ],
+        "negative": [
+          "40",
+          1
+        ],
+        "latent_image": [
+          "40",
+          2
+        ],
+        "denoise": 1.0
+      }
+    },
+    "16": {
+      "class_type": "VAEDecode",
+      "inputs": {
+        "samples": [
+          "15",
+          0
+        ],
+        "vae": [
+          "3",
+          2
+        ]
+      }
+    },
+    "22": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "16",
+          0
+        ],
+        "filename_prefix": "lin-nude"
+      }
+    },
+    "70": {
+      "class_type": "INPAINT_LoadFooocusInpaint",
+      "inputs": {
+        "head": "fooocus_inpaint_head.pth",
+        "patch": "inpaint_v26.fooocus.patch"
+      }
+    },
+    "71": {
+      "class_type": "INPAINT_ApplyFooocusInpaint",
+      "inputs": {
+        "model": [
+          "3",
+          0
+        ],
+        "patch": [
+          "70",
+          0
+        ],
+        "latent": [
+          "40",
+          2
+        ]
+      }
+    }
+  }
+}

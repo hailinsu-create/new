@@ -1,0 +1,511 @@
+{
+  "source": {
+    "why": "Semantic undress. Output slot for MASK is resolved from /object_info by the runner; slot 1 shown here.",
+    "doc": "docs/fox-centaur-semantic-undress.md",
+    "stage": "garment mask 2 + protect",
+    "prompts": [
+      "qipao",
+      "cheongsam dress",
+      "silk fabric skirt",
+      "mandarin collar",
+      "shoulder strap",
+      "dress hem",
+      "white cloth",
+      "skirt panel",
+      "face",
+      "hair",
+      "fox tail",
+      "high heel shoes"
+    ],
+    "save_ids": {
+      "qipao": "12",
+      "cheongsam dress": "15",
+      "silk fabric skirt": "18",
+      "mandarin collar": "21",
+      "shoulder strap": "24",
+      "dress hem": "27",
+      "white cloth": "30",
+      "skirt panel": "33",
+      "face": "36",
+      "hair": "39",
+      "fox tail": "42",
+      "high heel shoes": "45"
+    }
+  },
+  "prompt": {
+    "1": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "plate.png"
+      }
+    },
+    "2": {
+      "class_type": "SAMModelLoader (segment anything)",
+      "inputs": {
+        "model_name": "sam_vit_b (375MB)"
+      }
+    },
+    "3": {
+      "class_type": "GroundingDinoModelLoader (segment anything)",
+      "inputs": {
+        "model_name": "GroundingDINO_SwinT_OGC (694MB)"
+      }
+    },
+    "10": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "qipao",
+        "threshold": 0.25
+      }
+    },
+    "11": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "10",
+          1
+        ]
+      }
+    },
+    "12": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "11",
+          0
+        ],
+        "filename_prefix": "dino-00"
+      }
+    },
+    "13": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "cheongsam dress",
+        "threshold": 0.25
+      }
+    },
+    "14": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "13",
+          1
+        ]
+      }
+    },
+    "15": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "14",
+          0
+        ],
+        "filename_prefix": "dino-01"
+      }
+    },
+    "16": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "silk fabric skirt",
+        "threshold": 0.25
+      }
+    },
+    "17": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "16",
+          1
+        ]
+      }
+    },
+    "18": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "17",
+          0
+        ],
+        "filename_prefix": "dino-02"
+      }
+    },
+    "19": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "mandarin collar",
+        "threshold": 0.25
+      }
+    },
+    "20": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "19",
+          1
+        ]
+      }
+    },
+    "21": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "20",
+          0
+        ],
+        "filename_prefix": "dino-03"
+      }
+    },
+    "22": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "shoulder strap",
+        "threshold": 0.25
+      }
+    },
+    "23": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "22",
+          1
+        ]
+      }
+    },
+    "24": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "23",
+          0
+        ],
+        "filename_prefix": "dino-04"
+      }
+    },
+    "25": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "dress hem",
+        "threshold": 0.25
+      }
+    },
+    "26": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "25",
+          1
+        ]
+      }
+    },
+    "27": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "26",
+          0
+        ],
+        "filename_prefix": "dino-05"
+      }
+    },
+    "28": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "white cloth",
+        "threshold": 0.25
+      }
+    },
+    "29": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "28",
+          1
+        ]
+      }
+    },
+    "30": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "29",
+          0
+        ],
+        "filename_prefix": "dino-06"
+      }
+    },
+    "31": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "skirt panel",
+        "threshold": 0.25
+      }
+    },
+    "32": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "31",
+          1
+        ]
+      }
+    },
+    "33": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "32",
+          0
+        ],
+        "filename_prefix": "dino-07"
+      }
+    },
+    "34": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "face",
+        "threshold": 0.25
+      }
+    },
+    "35": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "34",
+          1
+        ]
+      }
+    },
+    "36": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "35",
+          0
+        ],
+        "filename_prefix": "dino-08"
+      }
+    },
+    "37": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "hair",
+        "threshold": 0.25
+      }
+    },
+    "38": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "37",
+          1
+        ]
+      }
+    },
+    "39": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "38",
+          0
+        ],
+        "filename_prefix": "dino-09"
+      }
+    },
+    "40": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "fox tail",
+        "threshold": 0.25
+      }
+    },
+    "41": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "40",
+          1
+        ]
+      }
+    },
+    "42": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "41",
+          0
+        ],
+        "filename_prefix": "dino-10"
+      }
+    },
+    "43": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "high heel shoes",
+        "threshold": 0.25
+      }
+    },
+    "44": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "43",
+          1
+        ]
+      }
+    },
+    "45": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "44",
+          0
+        ],
+        "filename_prefix": "dino-11"
+      }
+    }
+  }
+}

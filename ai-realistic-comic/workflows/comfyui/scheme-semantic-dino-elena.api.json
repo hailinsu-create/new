@@ -1,0 +1,791 @@
+{
+  "source": {
+    "why": "Semantic undress. Output slot for MASK is resolved from /object_info by the runner; slot 1 shown here.",
+    "doc": "docs/fox-centaur-semantic-undress.md",
+    "stage": "garment mask 2 + protect",
+    "prompts": [
+      "breastplate",
+      "pauldron",
+      "vambrace",
+      "gauntlet",
+      "fauld",
+      "gorget",
+      "golden armor",
+      "black glove",
+      "gold bracer",
+      "black cloth",
+      "leather strap",
+      "black sleeve",
+      "arm guard",
+      "choker",
+      "face",
+      "hair",
+      "glasses",
+      "horse body",
+      "horse tail"
+    ],
+    "save_ids": {
+      "breastplate": "12",
+      "pauldron": "15",
+      "vambrace": "18",
+      "gauntlet": "21",
+      "fauld": "24",
+      "gorget": "27",
+      "golden armor": "30",
+      "black glove": "33",
+      "gold bracer": "36",
+      "black cloth": "39",
+      "leather strap": "42",
+      "black sleeve": "45",
+      "arm guard": "48",
+      "choker": "51",
+      "face": "54",
+      "hair": "57",
+      "glasses": "60",
+      "horse body": "63",
+      "horse tail": "66"
+    }
+  },
+  "prompt": {
+    "1": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "plate.png"
+      }
+    },
+    "2": {
+      "class_type": "SAMModelLoader (segment anything)",
+      "inputs": {
+        "model_name": "sam_vit_b (375MB)"
+      }
+    },
+    "3": {
+      "class_type": "GroundingDinoModelLoader (segment anything)",
+      "inputs": {
+        "model_name": "GroundingDINO_SwinT_OGC (694MB)"
+      }
+    },
+    "10": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "breastplate",
+        "threshold": 0.25
+      }
+    },
+    "11": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "10",
+          1
+        ]
+      }
+    },
+    "12": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "11",
+          0
+        ],
+        "filename_prefix": "dino-00"
+      }
+    },
+    "13": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "pauldron",
+        "threshold": 0.25
+      }
+    },
+    "14": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "13",
+          1
+        ]
+      }
+    },
+    "15": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "14",
+          0
+        ],
+        "filename_prefix": "dino-01"
+      }
+    },
+    "16": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "vambrace",
+        "threshold": 0.25
+      }
+    },
+    "17": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "16",
+          1
+        ]
+      }
+    },
+    "18": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "17",
+          0
+        ],
+        "filename_prefix": "dino-02"
+      }
+    },
+    "19": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "gauntlet",
+        "threshold": 0.25
+      }
+    },
+    "20": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "19",
+          1
+        ]
+      }
+    },
+    "21": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "20",
+          0
+        ],
+        "filename_prefix": "dino-03"
+      }
+    },
+    "22": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "fauld",
+        "threshold": 0.25
+      }
+    },
+    "23": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "22",
+          1
+        ]
+      }
+    },
+    "24": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "23",
+          0
+        ],
+        "filename_prefix": "dino-04"
+      }
+    },
+    "25": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "gorget",
+        "threshold": 0.25
+      }
+    },
+    "26": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "25",
+          1
+        ]
+      }
+    },
+    "27": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "26",
+          0
+        ],
+        "filename_prefix": "dino-05"
+      }
+    },
+    "28": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "golden armor",
+        "threshold": 0.25
+      }
+    },
+    "29": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "28",
+          1
+        ]
+      }
+    },
+    "30": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "29",
+          0
+        ],
+        "filename_prefix": "dino-06"
+      }
+    },
+    "31": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "black glove",
+        "threshold": 0.25
+      }
+    },
+    "32": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "31",
+          1
+        ]
+      }
+    },
+    "33": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "32",
+          0
+        ],
+        "filename_prefix": "dino-07"
+      }
+    },
+    "34": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "gold bracer",
+        "threshold": 0.25
+      }
+    },
+    "35": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "34",
+          1
+        ]
+      }
+    },
+    "36": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "35",
+          0
+        ],
+        "filename_prefix": "dino-08"
+      }
+    },
+    "37": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "black cloth",
+        "threshold": 0.25
+      }
+    },
+    "38": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "37",
+          1
+        ]
+      }
+    },
+    "39": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "38",
+          0
+        ],
+        "filename_prefix": "dino-09"
+      }
+    },
+    "40": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "leather strap",
+        "threshold": 0.25
+      }
+    },
+    "41": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "40",
+          1
+        ]
+      }
+    },
+    "42": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "41",
+          0
+        ],
+        "filename_prefix": "dino-10"
+      }
+    },
+    "43": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "black sleeve",
+        "threshold": 0.25
+      }
+    },
+    "44": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "43",
+          1
+        ]
+      }
+    },
+    "45": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "44",
+          0
+        ],
+        "filename_prefix": "dino-11"
+      }
+    },
+    "46": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "arm guard",
+        "threshold": 0.25
+      }
+    },
+    "47": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "46",
+          1
+        ]
+      }
+    },
+    "48": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "47",
+          0
+        ],
+        "filename_prefix": "dino-12"
+      }
+    },
+    "49": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "choker",
+        "threshold": 0.25
+      }
+    },
+    "50": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "49",
+          1
+        ]
+      }
+    },
+    "51": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "50",
+          0
+        ],
+        "filename_prefix": "dino-13"
+      }
+    },
+    "52": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "face",
+        "threshold": 0.25
+      }
+    },
+    "53": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "52",
+          1
+        ]
+      }
+    },
+    "54": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "53",
+          0
+        ],
+        "filename_prefix": "dino-14"
+      }
+    },
+    "55": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "hair",
+        "threshold": 0.25
+      }
+    },
+    "56": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "55",
+          1
+        ]
+      }
+    },
+    "57": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "56",
+          0
+        ],
+        "filename_prefix": "dino-15"
+      }
+    },
+    "58": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "glasses",
+        "threshold": 0.25
+      }
+    },
+    "59": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "58",
+          1
+        ]
+      }
+    },
+    "60": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "59",
+          0
+        ],
+        "filename_prefix": "dino-16"
+      }
+    },
+    "61": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "horse body",
+        "threshold": 0.25
+      }
+    },
+    "62": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "61",
+          1
+        ]
+      }
+    },
+    "63": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "62",
+          0
+        ],
+        "filename_prefix": "dino-17"
+      }
+    },
+    "64": {
+      "class_type": "GroundingDinoSAMSegment (segment anything)",
+      "inputs": {
+        "sam_model": [
+          "2",
+          0
+        ],
+        "grounding_dino_model": [
+          "3",
+          0
+        ],
+        "image": [
+          "1",
+          0
+        ],
+        "prompt": "horse tail",
+        "threshold": 0.25
+      }
+    },
+    "65": {
+      "class_type": "MaskToImage",
+      "inputs": {
+        "mask": [
+          "64",
+          1
+        ]
+      }
+    },
+    "66": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "65",
+          0
+        ],
+        "filename_prefix": "dino-18"
+      }
+    }
+  }
+}
