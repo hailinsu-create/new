@@ -141,8 +141,13 @@ def classify(status: int, reply: dict) -> str:
     return "fatal"
 
 
-def power_on_once(uuid: str, authorization: str) -> tuple[str, dict]:
-    status, reply = post(WEB_POWER_ON, {"Authorization": authorization}, {"instance_uuid": uuid, "payload": "gpu"})
+def power_on_once(uuid: str, authorization: str, *, payload: str = "gpu") -> tuple[str, dict]:
+    """payload default gpu. Some hosts reject non-gpu modes (不支持的启动模式)."""
+    status, reply = post(
+        WEB_POWER_ON,
+        {"Authorization": authorization},
+        {"instance_uuid": uuid, "payload": payload},
+    )
     return classify(status, reply), reply
 
 

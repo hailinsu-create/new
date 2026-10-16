@@ -272,29 +272,27 @@ atmosphere, photorealistic {anatomy|fabric}.
 | 产物路径 | `/opt/cursor/artifacts/hybrid-pose-ab/`（及机上 `/root/autodl-tmp/hybrid-pose-ab/`）；详见 `RUN_REPORT.md`。**不嵌图** |
 | 关机 | `power_off` **Success**，留盘、未 release；SSH 随后断开 |
 
-## 10. LoRA 补装（双机轮流抢卡，¥2 封顶）
+## 10. LoRA 补装（双机互斥抢卡，机上直下）
 
-策略：791↔592 最短间隔互斥抢卡；开机前强制对端关机；一台上电即停对端抢卡；装完关机留盘；`spend_cap`¥2 + watchdog。
+策略：791↔592 互斥抢卡（两台不同时开）；优先试无卡开机（本机型不支持则 GPU）；机上 `wget -c`（学术加速 / hf-mirror；HF Bearer `HF_TOKEN`；Civitai 先 Bearer 解析 Location 再裸下 CDN）；token 仅环境变量/临时文件，用完即删；装完 sha256 校验、关机留盘。预算：单次开机 ≤¥5，本轮总计 ≤¥8；保留 watchdog。
 
-### 2026-10-15 轮次
+### 2026-10-15 完成轮次
 
 | 项 | 结果 |
 | --- | --- |
-| 抢卡 | ~45min 轮询，**两台均 `no_gpu`（机器空闲GPU不足）**，无赢家 |
-| 安装机 | **无**（未上电） |
-| 5 个 LoRA | **均未装** |
-| 待同步 | **791、592 均待装**同一批文件（见下表期望名/大小）；下次任一开机先补装并以 sha256 对齐另一台 |
-| 花费 / 余额 | **¥0** / 约 **¥45.70**（抢卡未计 GPU） |
-| 关机 | 两台保持关机；未 release |
+| 抢卡 | 无卡模式 `不支持的启动模式`；GPU 互斥抢到 **791** |
+| 安装机 | **791**（`359a49a1c3-4cda10df`），路径 `/root/autodl-tmp/comfyui/models/loras/` |
+| 5 个 LoRA | **全部装妥且 sha256 对齐**（见下表） |
+| 待同步 | **592 待同步**同一批文件（下次 592 开机补装并对齐下表 hash） |
+| 花费 / 余额 | 本轮约 **¥3.27**（session start ¥44.29 → ¥41.02）；未超 ¥8 / 单次开机 ¥5 |
+| 关机 | 两台 `power_off` 留盘、未 release |
 
-期望文件（装上后记 sha256）：
+| 文件名 | 来源 | 大小 (B) | sha256 | 791 |
+| --- | --- | --- | --- | --- |
+| `qwen2_1-femaledVaginus-nsfw-v1_3-fine_L22-31.safetensors` | Civitai 3388157 | 637587392 | `4e1b8db3ef339aae3b5d2ef6d9b5c0261329559b6da790481535ebba9de77685` | ok |
+| `qwen2_1-femaledVaginus-nsfw-v1.3-fine.safetensors` | Civitai 3386403 | 637587392 | `085453e5e9996911b59b3a4548ae48a289b6130f5d21a4cfe4bca9abd9963cee` | ok |
+| `thesealpacas-nsfw-v2.safetensors` | Civitai 3357315 | 79744352 | `83aba822ad8ee10a1e836828f5088259d93bce7b5f3419b46dbc0258c2be46a9` | ok |
+| `nsfw-posture-v3.safetensors` | Civitai 3388118 | 83943880 | `8e4d3f830b61ae1e2a3d5a9fff1b6596f7a8ef79addaec9363444d6b90efe950` | ok |
+| `qwen21-nsfw-image-edit.safetensors` | HF mirror `RunningHubAI/rh-qwen-image-2.1-aio-nsfw-lora` | 83943552 | `9c143cbfe7b016efdce7499506c02d0bfa1842ae6524bb64e05888f2e325e67a` | ok |
 
-| 文件名 | 来源 | 期望大小 |
-| --- | --- | --- |
-| `qwen2_1-femaledVaginus-nsfw-v1_3-fine_L22-31.safetensors` | Civitai 3388157 | ≈608 MiB |
-| `qwen2_1-femaledVaginus-nsfw-v1.3-fine.safetensors` | Civitai 3386403 | ≈608 MiB |
-| `thesealpacas-nsfw-v2.safetensors` | Civitai 3357315（下载后改名） | ≈79.7 MiB |
-| `nsfw-posture-v3.safetensors` | Civitai 3388118 | ≈84 MiB |
-| `qwen21-nsfw-image-edit.safetensors` | HF `RunningHubAI/rh-qwen-image-2.1-aio-nsfw-lora` | 83943552 B |
-
-日志：`/opt/cursor/artifacts/hybrid-lora-install/dual-race.log`
+日志 / 清单：`/opt/cursor/artifacts/hybrid-lora-install/dual-race-cont.log`、`lora-manifest.json`
