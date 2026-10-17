@@ -1,0 +1,10 @@
+{
+  "mean": 8.4,
+  "usable": true,
+  "source": "r4-raw",
+  "sha256": "497f2b400a6211297392aea4eedfa08710a4d97fe124c40bf5c42cfbd87db165",
+  "scorer": "cursor",
+  "passed": true,
+  "notes": "Qwen raw：胸甲撕裂露肤，肩臂/腰甲残骸保留；马身与眼镜/脸未漂。正式=贴回前 raw。非金属甲 nude 空转。",
+  "gates": []
+}

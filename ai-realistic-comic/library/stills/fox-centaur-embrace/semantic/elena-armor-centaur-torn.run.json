@@ -1,21 +1,10 @@
 {
-  "actor": "elena",
-  "mode": "torn",
-  "attempt": 0,
-  "seed": 20261608,
-  "garment_share": 0.2076746622721354,
-  "passes": [
-    {
-      "kind": "composite",
-      "tear_fraction": 0.55
-    },
-    {
-      "kind": "rim_lama_junction"
-    },
-    {
-      "kind": "rim",
-      "denoise": 0.4
-    }
-  ],
-  "base": "elena-armor-centaur-nude.png"
+  "pipeline": "community_r4_batch3",
+  "official_is_raw": true,
+  "usable": true,
+  "sha256": "497f2b400a6211297392aea4eedfa08710a4d97fe124c40bf5c42cfbd87db165",
+  "source": "/opt/cursor/artifacts/fox-centaur-semantic/r4-batch3/elena-armor-centaur-torn-r4-raw.png",
+  "decided_at": "2026-10-10T10:43:05Z",
+  "commit": "4722641f285a119510f735166b636e2bda1c0d8c",
+  "notes": "Qwen raw：胸甲撕裂露肤，肩臂/腰甲残骸保留；马身与眼镜/脸未漂。正式=贴回前 raw。非金属甲 nude 空转。"
 }

@@ -1,0 +1,24 @@
+{
+  "commit": "5a8e1342c22487a7c561917d8ee5c1954c3f9d5b",
+  "pipeline": "dual_couple_2k_upscale",
+  "session_start_bal": 56.15,
+  "end_bal": 54.75,
+  "spent_cny_approx": 1.3999999999999986,
+  "cap_yuan": 3.0,
+  "files": [
+    "USER_LOCKED_lin-gu-C-2k.png",
+    "USER_LOCKED_elena-C-2k.png",
+    "lin-gu-embrace-nude-2k.png",
+    "lin-gu-embrace-torn-2k.png",
+    "elena-couple-nude-2k.png",
+    "elena-couple-torn-2k.png"
+  ],
+  "have": [
+    "USER_LOCKED_elena-C-2k.png",
+    "USER_LOCKED_lin-gu-C-2k.png",
+    "elena-couple-nude-2k.png",
+    "elena-couple-torn-2k.png",
+    "lin-gu-embrace-nude-2k.png",
+    "lin-gu-embrace-torn-2k.png"
+  ]
+}

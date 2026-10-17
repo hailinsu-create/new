@@ -1,0 +1,17 @@
+{
+  "locked": true,
+  "locked_at": "2026-10-10T17:32:09.788793+00:00",
+  "pose": "C-stone-courtyard-standing-kiss",
+  "source": "USER_LOCKED_elena-C.jpg",
+  "source_commit": "8d30232",
+  "plate": "ai-realistic-comic/library/stills/elena-couple/elena-couple-clothed.png",
+  "sha256": "37c5c90c51d1c9fd03944f574e9d6c183f37e0030b2182c0b241e195fe876f93",
+  "male_wardrobe_unlocked_for_future": true,
+  "r4_status": "authorized_2026-10-11",
+  "cap_stop_at": "2026-10-10T17:33:32.106535+00:00",
+  "cap_yuan": 4.0,
+  "couple_session_start_bal": 11.63,
+  "bal_now": 6.15,
+  "spent_session": 5.48,
+  "note": "2026-10-10 Elena auth received; ¥4 shared cap already exhausted by prior stand-in fox-couple race; no AutoDL boot"
+}

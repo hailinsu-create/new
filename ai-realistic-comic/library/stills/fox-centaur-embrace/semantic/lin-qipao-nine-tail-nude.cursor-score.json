@@ -1,14 +1,10 @@
 {
-  "identity": 8,
-  "distinction": 8,
-  "interaction": 8,
-  "aesthetics": 7,
-  "anatomy": 8,
-  "wardrobe": 2,
-  "motif": 9,
-  "photoreal": 8,
-  "gates": ["clothes_remain"],
-  "notes": "九尾在，但旗袍仍在（高领无袖+高开衩），躯干像印花贴皮而非真去衣皮肤。锁脸大致可对上东亚五官与深棕眼。",
+  "mean": 8.25,
+  "usable": true,
+  "source": "r4-raw",
+  "sha256": "b1e65a7ac013504d5abb455fca852b339f1368abc2c3f55954d4588a998f7c6c",
   "scorer": "cursor",
-  "tail_count": 9
+  "passed": true,
+  "notes": "Qwen raw：全身去衣干净，九尾/脸/园景/高跟鞋保留；无旗袍残留与糊死。正式=贴回前 raw。",
+  "gates": []
 }

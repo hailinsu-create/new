@@ -1,0 +1,45 @@
+{
+  "commit": "c8c1a838c410bf1b8f8eee2e62a7c1f2fad21dad",
+  "pipeline": "dual_couple_r4_user_locked",
+  "machine": "592 clone (after 791 abort for missing models)",
+  "official_is_raw": true,
+  "cap_yuan": 3.0,
+  "session_start_bal": 56.15,
+  "end_bal": 54.9,
+  "spent_cny_approx": 1.25,
+  "verdicts": {
+    "lin-gu-embrace-nude": {
+      "usable": true,
+      "adopted": "r4-raw",
+      "mean_est": 8.4,
+      "reason": "R4 raw：林去衣干净；顾/白九尾/姿势/灯笼背景锁住。正式=raw。",
+      "path": "/opt/cursor/artifacts/fox-couple/lin-gu-embrace-nude-r4-raw.png",
+      "sha256": "3aad164aa54912eee8096010cbe2dee5bef6208e637ef8f7dad3745c30d55653"
+    },
+    "lin-gu-embrace-torn": {
+      "usable": true,
+      "adopted": "r4-raw",
+      "mean_est": 8.2,
+      "reason": "R4 raw：旗袍明显撕裂露肤并留布片；顾/尾/姿势/背景锁住。正式=raw。",
+      "path": "/opt/cursor/artifacts/fox-couple/lin-gu-embrace-torn-r4-raw.png",
+      "sha256": "c9f3c4420310f6a2d6bfc6a68d4feea80645af34e7d23205ebcdb75772a8713e"
+    },
+    "elena-couple-nude": {
+      "usable": true,
+      "adopted": "r4-raw",
+      "mean_est": 8.3,
+      "reason": "R4 raw：伊莲上身甲/衣去除；马身/男配/石院姿势背景锁住。正式=raw。",
+      "path": "/opt/cursor/artifacts/elena-couple/elena-couple-nude-r4-raw.png",
+      "sha256": "5ecaa01c20134b3c2b6e5fba0bfa8a060f7009538d05cb38c53befc0e1ae4a95"
+    },
+    "elena-couple-torn": {
+      "usable": true,
+      "adopted": "r4-raw",
+      "mean_est": 8.1,
+      "reason": "R4 raw：上身甲衣明显撕破露肤留残片；马身/男配/背景锁住。正式=raw。",
+      "path": "/opt/cursor/artifacts/elena-couple/elena-couple-torn-r4-raw.png",
+      "sha256": "6fd77c7d193303f2b3b3975c3524af2d65c6ff256bd1b93015b0cf021cc10da2"
+    }
+  },
+  "judged_at": "2026-10-10T18:56:08.676418+00:00"
+}

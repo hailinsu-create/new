@@ -1,0 +1,9 @@
+{
+  "usable": true,
+  "mean_est": 8.2,
+  "scorer": "cursor",
+  "notes": "R4 raw：旗袍明显撕裂露肤并留布片；顾/尾/姿势/背景锁住。正式=raw。",
+  "sha256": "c9f3c4420310f6a2d6bfc6a68d4feea80645af34e7d23205ebcdb75772a8713e",
+  "adopted": "r4-raw",
+  "gates": []
+}

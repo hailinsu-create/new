@@ -1,0 +1,10 @@
+{
+  "mean": 8.5,
+  "usable": true,
+  "source": "r4-raw",
+  "sha256": "274d02fb31b10307076d8453b5e9dbaf0de8109efebc0bf8ed67beea9fec39cd",
+  "scorer": "cursor",
+  "passed": true,
+  "notes": "Qwen raw：旗袍胸腹撕开露肤，领口/下摆残骸与毛边可读；九尾与背景锁住。正式=贴回前 raw。",
+  "gates": []
+}
