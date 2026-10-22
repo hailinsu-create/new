@@ -1,0 +1,20 @@
+{
+  "comfyui": {
+    "repo": "https://github.com/comfyanonymous/ComfyUI.git",
+    "tag": "v0.39.0",
+    "commit": "b0b743566f65daafc423b4fea8a2fbda94b3384a",
+    "note": "matches docs/comfyui-setup.md Beijing B pin"
+  },
+  "custom_nodes": {
+    "ComfyUI_VNCCS_Utils": {
+      "repo": "https://github.com/AHEKOT/ComfyUI_VNCCS_Utils.git",
+      "commit": "2b0f4041b368e3408cfb826f4cf09e6f8dafa164"
+    }
+  },
+  "python_deps_extra": [
+    "pytorch-lightning",
+    "roma",
+    "dynamicprompts>=0.31,<1",
+    "sshpass"
+  ]
+}
