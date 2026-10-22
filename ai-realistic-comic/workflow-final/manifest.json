@@ -1,0 +1,144 @@
+{
+  "version": 1,
+  "hf_endpoint_env": "HF_ENDPOINT",
+  "hf_endpoint_default": "https://hf-mirror.com",
+  "token_env": {
+    "hf": "HF_TOKEN",
+    "civitai": "CIVITAI_API_TOKEN",
+    "autodl": "AUTODL_TOKEN"
+  },
+  "files": [
+    {
+      "id": "r4_unet",
+      "group": "r4",
+      "dest": "models/diffusion_models/qwen_image_edit_2511_fp8mixed.safetensors",
+      "url": "https://hf-mirror.com/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_2511_fp8mixed.safetensors",
+      "bytes": 20533762817,
+      "sha256": null,
+      "source": "hf"
+    },
+    {
+      "id": "r4_clip",
+      "group": "r4",
+      "dest": "models/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "url": "https://hf-mirror.com/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "bytes": 9384670680,
+      "sha256": null,
+      "source": "hf"
+    },
+    {
+      "id": "r4_vae",
+      "group": "r4",
+      "dest": "models/vae/qwen_image_vae.safetensors",
+      "url": "https://hf-mirror.com/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors",
+      "bytes": 253806246,
+      "sha256": null,
+      "source": "hf"
+    },
+    {
+      "id": "r4_lightning",
+      "group": "r4",
+      "dest": "models/loras/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+      "url": "https://hf-mirror.com/lightx2v/Qwen-Image-Edit-2511-Lightning/resolve/main/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+      "bytes": 849608296,
+      "sha256": null,
+      "source": "hf"
+    },
+    {
+      "id": "r4_remove",
+      "group": "r4",
+      "dest": "models/loras/qwen-edit-remove-clothes.safetensors",
+      "url": "https://hf-mirror.com/starsfriday/Qwen-Image-Edit-Remove-Clothes/resolve/main/qwen-edit-remove-clothes.safetensors",
+      "bytes": 472047184,
+      "sha256": null,
+      "source": "hf",
+      "fallback_url": "https://hf-mirror.com/Sentinel7/qwen-image/resolve/main/lora/qwen_image_edit_remove-clothing_v1.0.safetensors"
+    },
+    {
+      "id": "r4_object",
+      "group": "r4",
+      "dest": "models/loras/Qwen-Image-Edit-2511-Object-Remover.safetensors",
+      "url": "https://hf-mirror.com/prithivMLmods/Qwen-Image-Edit-2511-Object-Remover/resolve/main/Qwen-Image-Edit-2511-Object-Remover.safetensors",
+      "bytes": 236117064,
+      "sha256": null,
+      "source": "hf"
+    },
+    {
+      "id": "q21_unet",
+      "group": "qwen21",
+      "dest": "models/diffusion_models/qwen_image_2.1_int8_convrot.safetensors",
+      "url": "https://hf-mirror.com/Comfy-Org/Qwen-Image-2.1/resolve/main/diffusion_models/qwen_image_2.1_int8_convrot.safetensors",
+      "bytes": 7256783064,
+      "sha256": null,
+      "source": "hf"
+    },
+    {
+      "id": "q21_clip",
+      "group": "qwen21",
+      "dest": "models/text_encoders/qwen3vl_8b_int8_convrot.safetensors",
+      "url": "https://hf-mirror.com/Comfy-Org/Qwen-Image-2.1/resolve/main/text_encoders/qwen3vl_8b_int8_convrot.safetensors",
+      "bytes": 9350798360,
+      "sha256": null,
+      "source": "hf"
+    },
+    {
+      "id": "q21_vae",
+      "group": "qwen21",
+      "dest": "models/vae/qwen_image_2.1_vae_bf16.safetensors",
+      "url": "https://hf-mirror.com/Comfy-Org/Qwen-Image-2.1/resolve/main/vae/qwen_image_2.1_vae_bf16.safetensors",
+      "bytes": 675509688,
+      "sha256": null,
+      "source": "hf"
+    },
+    {
+      "id": "vnccs_lora",
+      "group": "qwen21",
+      "dest": "models/loras/VNCCS_QI2_PoseStudioV1.1.safetensors",
+      "url": "https://hf-mirror.com/MIUProject/VNCCS_PoseStudio_QI2.1/resolve/main/VNCCS_QI2_PoseStudioV1.1.safetensors",
+      "bytes": 159436408,
+      "sha256": null,
+      "source": "hf"
+    },
+    {
+      "id": "q21_edit_lora",
+      "group": "qwen21",
+      "dest": "models/loras/qwen21-nsfw-image-edit.safetensors",
+      "url": "https://hf-mirror.com/RunningHubAI/rh-qwen-image-2.1-aio-nsfw-lora/resolve/main/Qwen-Image-2.1%20NSFW%20Image%20Edit.safetensors",
+      "bytes": 83943552,
+      "sha256": "9c143cbfe7b016efdce7499506c02d0bfa1842ae6524bb64e05888f2e325e67a",
+      "source": "hf"
+    },
+    {
+      "id": "thesealpacas",
+      "group": "nsfw_lora",
+      "dest": "models/loras/thesealpacas-nsfw-v2.safetensors",
+      "url": "https://civitai.com/api/download/models/3357315?fileId=3244894",
+      "bytes": 79744352,
+      "sha256": "83aba822ad8ee10a1e836828f5088259d93bce7b5f3419b46dbc0258c2be46a9",
+      "source": "civitai",
+      "strength_recommend": 0.8
+    },
+    {
+      "id": "femaledVaginus_L22",
+      "group": "nsfw_lora",
+      "dest": "models/loras/qwen2_1-femaledVaginus-nsfw-v1_3-fine_L22-31.safetensors",
+      "url": "https://civitai.com/api/download/models/3388157?fileId=3277181",
+      "bytes": 637587392,
+      "sha256": "4e1b8db3ef339aae3b5d2ef6d9b5c0261329559b6da790481535ebba9de77685",
+      "source": "civitai",
+      "strength_recommend": 1.0
+    },
+    {
+      "id": "nsfw_posture",
+      "group": "nsfw_lora",
+      "dest": "models/loras/nsfw-posture-v3.safetensors",
+      "url": "https://civitai.com/api/download/models/3388118?fileId=3277132",
+      "bytes": 83943880,
+      "sha256": "8e4d3f830b61ae1e2a3d5a9fff1b6596f7a8ef79addaec9363444d6b90efe950",
+      "source": "civitai",
+      "strength_recommend": 0.85
+    }
+  ],
+  "total_bytes": 50057758983,
+  "total_gib_approx": 46.62
+}
