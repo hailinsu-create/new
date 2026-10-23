@@ -51,10 +51,10 @@ def dest_path(models_root: Path, w: dict) -> Path:
 
 
 def download(url: str, dest: Path, dry_run: bool) -> None:
-    dest.parent.mkdir(parents=True, exist_ok=True)
     if dry_run:
         print(f"[dry-run] GET {url} -> {dest}")
         return
+    dest.parent.mkdir(parents=True, exist_ok=True)
     if dest.exists() and dest.stat().st_size > 0:
         print(f"[skip] exists {dest}")
         return
@@ -82,8 +82,12 @@ def main() -> int:
     groups = args.group or ["i2v"]
     manifest = load_manifest()
     models_root = Path(args.models_root or "models")
-    forbidden = os.environ.get("FORBIDDEN_PREFIX", "ai-realistic-comic")
-    if forbidden and forbidden in str(models_root.resolve()):
+    forbidden_markers = {"ai-realistic-comic"}
+    extra_forbidden = os.environ.get("FORBIDDEN_PREFIX", "").strip()
+    if extra_forbidden:
+        forbidden_markers.add(extra_forbidden)
+    resolved_root = str(models_root.resolve())
+    if any(marker in resolved_root for marker in forbidden_markers):
         print(f"refusing models_root under forbidden tree: {models_root}", file=sys.stderr)
         return 2
     weights = collect_weights(manifest, groups)

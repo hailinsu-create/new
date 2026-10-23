@@ -4,7 +4,8 @@
 - **目录**：本文件与全部脚本/工作流仅在 `cat-anthropomorph-video/`
 - **隔离**：与 `ai-realistic-comic/` **物理隔离**——禁止引用、复制、链接其去衣/NSFW 工作流、LoRA、角色资产、提示词
 - **算力**：默认 AutoDL **RTX 4090 24GB**；充值/开机/租卡均 **需用户授权**；本文档 **不** 声称已租卡、已充值、已开机
-- **双机**：母机+克隆互斥同抢口径见 [`scripts/race_boot.md`](scripts/race_boot.md)（任意时刻只开一台，关机留盘）
+- **双机**：母-Comfy定妆 **025机** `9b4c40bda6-dad38bb9` / 克隆-Wan **003机** `bb8c4f8e12-00c8bdac`（重庆A · RTX 4090D · 扩盘 100G · shutdown 留盘）；互斥口径见 [`scripts/race_boot.md`](scripts/race_boot.md)（任意时刻只开一台，余额约 ¥17.25、未充值、开机需用户授权）
+- **离线验收**：`bash scripts/smoke_test.sh --dry-run`（默认 dry-run，exit 0 为通过）；本仓库仍 **未开机真跑 GPU**
 
 规划日：2026-10-23（Asia/Shanghai）
 
@@ -39,7 +40,8 @@
 2. 安装/更新 **ComfyUI 最新版**（需原生 Wan2.1 与 Qwen-Image-Edit-2511 模板/子图）。
 3. 按 `manifest.json` → `custom_nodes` 补齐（ControlNet aux 等）；**不要**装 NSFW 专用节点。
 4. `bash scripts/restore.sh`（默认 **dry-run**）核对 URL 与落盘路径。
-5. 准备输入目录：`$INPUT_ROOT/cats/{A,B,C}/raw/`、`looklock/`、`$INPUT_ROOT/shots/`、`$OUTPUT_ROOT/{i2v,flf2v,exports}/`。
+5. `bash scripts/smoke_test.sh --dry-run` 做离线验收（解析 workflow、对齐 manifest、检查定妆卡/双机 ID、调用 restore dry-run），必须 **exit 0**。
+6. 准备输入目录：`$INPUT_ROOT/cats/{A,B,C}/raw/`、`looklock/`、`$INPUT_ROOT/shots/`、`$OUTPUT_ROOT/{i2v,flf2v,exports}/`。
 
 **完成标准**：三份 workflow 能在 ComfyUI 打开（缺权重视为节点标红可接受）；路径不指向 comic 树。
 
@@ -48,7 +50,7 @@
 ## P1 · I2V smoke（需用户授权开机）
 
 1. 按 [`scripts/race_boot.md`](scripts/race_boot.md) **互斥**开机（母/克隆只开一台）。
-2. `bash scripts/restore.sh --apply --group i2v`。
+2. `bash scripts/restore.sh --apply --group i2v`；真跑前先执行 `bash scripts/smoke_test.sh --dry-run` 离线预检。
 3. 打开 `workflow/02_i2v_wan21_480p.json`：任意竖屏图 → 负向用 [`prompts/negative.txt`](prompts/negative.txt)。
 4. Smoke：`480×832`、`length≈33`、`steps≈20`；记录耗时与磁盘增量后 **关机留盘**。
 
@@ -58,7 +60,7 @@
 
 ## P2 · 定妆（Look-lock）
 
-1. 填 [`prompts/look_cards.md`](prompts/look_cards.md)；仍为 [待补] 则停在文档态。
+1. 三猫定妆已锁定：**A 小橘 / B 银宝 / C 墨墨**（见 [`prompts/look_cards.md`](prompts/look_cards.md)），直接使用各猫固定提示词前缀；照片仍由用户另传。
 2. `bash scripts/restore.sh --apply --group looklock`。
 3. 打开 `workflow/01_looklock_qwen_edit.json`：多图真猫参考 + 外观前缀 + [`prompts/positive_fragments.md`](prompts/positive_fragments.md) 露耳/少持枪片段。
 4. 备选：Flux + HuMeow 等 **SFW** LoRA——manifest 仅列 Civitai 检索说明，**需人工确认许可**。
@@ -80,9 +82,18 @@
 | 项 | 建议 |
 | --- | --- |
 | 磁盘 | I2V fp8 ≈15.3GiB + FLF2V ≈15.3GiB + umt5 ≈6.3GiB + 定妆 Qwen fp8mixed ≈19.1GiB 等；绑持久盘 |
-| 互斥双机 | 见 `race_boot.md` |
-| 花费帽 | `SPEND_CAP_CNY` 提醒 + 人工停机 |
+| 互斥双机 | 见 [`race_boot.md`](scripts/race_boot.md) / [`DUAL-CREATE-RESULT-2026-10-24.md`](DUAL-CREATE-RESULT-2026-10-24.md) |
+| 花费帽 | `SPEND_CAP_CNY` 提醒 + 人工停机；当前余额约 ¥17.25、未充值 |
 | 隔离 | `COMFYUI_ROOT` / `MODELS_ROOT` 禁止指向 comic/NSFW 树 |
+
+### 双机实体（2026-10-24）
+
+| 角色 | 实体 | 实例 ID | 区域 / 卡 / 盘 |
+| --- | --- | --- | --- |
+| 母-Comfy定妆 | 025机 | `9b4c40bda6-dad38bb9` | 重庆A · RTX 4090D · 扩盘 100G · shutdown 留盘 |
+| 克隆-Wan | 003机 | `bb8c4f8e12-00c8bdac` | 重庆A · RTX 4090D · 扩盘 100G · shutdown 留盘 |
+
+任意时刻只开一台；两台当前均未开机，开机需用户授权。`env.example` 已填 `AUTODL_INSTANCE_PRIMARY` / `AUTODL_INSTANCE_CLONE` / `AUTODL_REGION`。
 
 ---
 
@@ -101,6 +112,8 @@
 
 - 题材系列：[`SERIES-WW2.md`](SERIES-WW2.md)
 - 目录索引：[`README.md`](README.md)
+- 双机创建结果：[`DUAL-CREATE-RESULT-2026-10-24.md`](DUAL-CREATE-RESULT-2026-10-24.md)
+- 离线 smoke：[`scripts/smoke_test.sh`](scripts/smoke_test.sh)
 
 ---
 

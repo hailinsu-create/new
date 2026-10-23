@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Restore / sync SFW weights for cat-anthropomorph-video ComfyUI pipelines.
-# Default: dry-run. Does not boot AutoDL or claim balance changes.
+# Default: dry-run. Does not boot AutoDL, recharge, or touch ai-realistic-comic/.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "$ROOT"
 
-if [[ -f .env ]]; then
+if [[ -f .env && "${CAT_ANTHRO_SKIP_ENV:-0}" != "1" ]]; then
   # shellcheck disable=SC1091
   set -a
   source .env
@@ -19,6 +19,17 @@ DRY_RUN=1
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --group)
+      if [[ $# -lt 2 ]]; then
+        echo "Missing value for --group (looklock|i2v|flf2v)" >&2
+        exit 1
+      fi
+      case "$2" in
+        looklock|i2v|flf2v) ;;
+        *)
+          echo "Unknown group: $2 (expected looklock|i2v|flf2v)" >&2
+          exit 1
+          ;;
+      esac
       GROUP_ARGS+=(--group "$2")
       shift 2
       ;;
@@ -46,24 +57,44 @@ if [[ ${#GROUP_ARGS[@]} -eq 0 ]]; then
   GROUP_ARGS=(--group i2v)
 fi
 
-EXTRA=()
+refuse_comic() {
+  local name="$1"
+  local value="${2:-}"
+  if [[ "$value" == *ai-realistic-comic* ]]; then
+    echo "Refusing ${name} under ai-realistic-comic/: ${value}" >&2
+    exit 2
+  fi
+}
+
+refuse_comic MODELS_ROOT "${MODELS_ROOT:-}"
+refuse_comic COMFYUI_ROOT "${COMFYUI_ROOT:-}"
+refuse_comic INPUT_ROOT "${INPUT_ROOT:-}"
+refuse_comic OUTPUT_ROOT "${OUTPUT_ROOT:-}"
+
+INPUT_ROOT="${INPUT_ROOT:-./input}"
+OUTPUT_ROOT="${OUTPUT_ROOT:-./output}"
+
+mkdir -p \
+  "${INPUT_ROOT}/cats/A/raw" \
+  "${INPUT_ROOT}/cats/B/raw" \
+  "${INPUT_ROOT}/cats/C/raw" \
+  "${INPUT_ROOT}/looklock" \
+  "${INPUT_ROOT}/shots" \
+  "${OUTPUT_ROOT}/i2v" \
+  "${OUTPUT_ROOT}/flf2v" \
+  "${OUTPUT_ROOT}/exports"
+
+CMD=(python3 scripts/download_models.py "${GROUP_ARGS[@]}")
 if [[ "$DRY_RUN" -eq 1 ]]; then
-  EXTRA+=(--dry-run)
+  CMD+=(--dry-run)
   echo "restore.sh: dry-run (pass --apply to download)"
 else
   echo "restore.sh: APPLY downloads into MODELS_ROOT=${MODELS_ROOT:-models}"
 fi
-
-# Isolation: refuse comic tree
-if [[ "${MODELS_ROOT:-}" == *ai-realistic-comic* ]] || [[ "${COMFYUI_ROOT:-}" == *ai-realistic-comic* ]]; then
-  echo "Refusing paths under ai-realistic-comic/" >&2
-  exit 2
+if [[ -n "${MODELS_ROOT:-}" ]]; then
+  CMD+=(--models-root "$MODELS_ROOT")
 fi
 
-mkdir -p "${INPUT_ROOT:-./input}/cats/A/raw" "${INPUT_ROOT:-./input}/cats/B/raw" "${INPUT_ROOT:-./input}/cats/C/raw" \
-  "${INPUT_ROOT:-./input}/shots" "${OUTPUT_ROOT:-./output}/i2v" "${OUTPUT_ROOT:-./output}/flf2v" "${OUTPUT_ROOT:-./output}/exports"
-
-python3 scripts/download_models.py "${EXTRA[@]}" "${GROUP_ARGS[@]}" \
-  ${MODELS_ROOT:+--models-root "$MODELS_ROOT"}
+"${CMD[@]}"
 
 echo "Done. Next: open workflow JSON under workflow/ in ComfyUI."
