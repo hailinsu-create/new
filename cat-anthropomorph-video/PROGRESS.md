@@ -43,6 +43,21 @@
 - **请用户改用**：① 本机 `git` 直接加到分支；② PR 评论附 raw 链接；③ 文件 base64/zip 放到可访问处
 - **边界**：未碰 NSFW/`ai-realistic-comic`；未用 grok；未开机
 
+## 2026-10-24 Asia/Shanghai · 段6：三猫原图已入库 + 文档收尾
+
+- **入库确认**：仓库 tip `3abef51`，三猫原图六张 jpg 全部到位；每猫首选名与 `front.jpg` 兼容副本字节数一致
+- **六路径**：
+  - `cat-anthropomorph-video/refs/cats/A/cat-A-ginger-white.jpg` · 262169 B
+  - `cat-anthropomorph-video/refs/cats/A/front.jpg` · 262169 B
+  - `cat-anthropomorph-video/refs/cats/B/cat-B-silver-fold.jpg` · 247783 B
+  - `cat-anthropomorph-video/refs/cats/B/front.jpg` · 247783 B
+  - `cat-anthropomorph-video/refs/cats/C/cat-C-black-fold.jpg` · 183198 B
+  - `cat-anthropomorph-video/refs/cats/C/front.jpg` · 183198 B
+- **文档收尾**：`refs/cats/MISSING-UPLOADS.md` 改写为「已入库」状态页（保留文件名避免断链）；`refs/cats/README.md`、A/B/C README、`CHARACTER-LOCK-2026-10-24.md` 顶部及互链、项目 README / README-PIPELINE / DUAL / SERIES / look_cards / race_boot 同步去除待重传口径
+- **smoke**：`bash cat-anthropomorph-video/scripts/smoke_test.sh --dry-run` → **exit 0**；六张 jpg 非空，输出无「参考图待重传」或缺图类 WARN；完整日志 `/opt/cursor/artifacts/smoke-dry-run-cats-ok.log`
+- **提交**：GitHub：本轮文档收尾 commit 即将/已 push 到 PR #84 分支。
+- **边界**：未开机、未跑 GPU、未计费；禁止 grok；未触碰 `ai-realistic-comic/` 或任何 NSFW
+
 ## 约定落库
 
 - Notion Memory：[工作同步：GitHub + Notion](https://app.notion.com/p/402b407a692a81ecb2ddcd6b35b29320)

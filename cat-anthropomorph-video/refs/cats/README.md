@@ -7,21 +7,27 @@
 ```text
 refs/cats/
 ├── README.md
-├── MISSING-UPLOADS.md
+├── MISSING-UPLOADS.md  # 已入库状态页（文件名保留）
 ├── A/  # 小橘 · 橘白长毛 · 美军 / 诺曼底
+│   ├── cat-A-ginger-white.jpg
+│   └── front.jpg
 ├── B/  # 银宝 · 银虎斑折耳 · 苏军 / 斯大林格勒
+│   ├── cat-B-silver-fold.jpg
+│   └── front.jpg
 └── C/  # 墨墨 · 全黑折耳 · 飞行员 / 中途岛
+    ├── cat-C-black-fold.jpg
+    └── front.jpg
 ```
 
-## 期望文件
+## 已入库文件
 
-| 代号 | 名字 | 首选文件名 | 兼容文件名 | 状态 |
-| --- | --- | --- | --- | --- |
-| A | 小橘 | `A/cat-A-ginger-white.jpg` | `A/front.jpg` | **待重传** |
-| B | 银宝 | `B/cat-B-silver-fold.jpg` | `B/front.jpg` | **待重传** |
-| C | 墨墨 | `C/cat-C-black-fold.jpg` | `C/front.jpg` | **待重传** |
+| 代号 | 名字 | 首选文件名 | 兼容文件名 | 字节数 | 状态 |
+| --- | --- | --- | --- | --- | --- |
+| A | 小橘 | `A/cat-A-ginger-white.jpg` | `A/front.jpg` | 262169 | **已入库** |
+| B | 银宝 | `B/cat-B-silver-fold.jpg` | `B/front.jpg` | 247783 | **已入库** |
+| C | 墨墨 | `C/cat-C-black-fold.jpg` | `C/front.jpg` | 183198 | **已入库** |
 
-当前目录只有 `.gitkeep` 占位，**没有猫照片**；缺失说明与重传方式见 [`MISSING-UPLOADS.md`](MISSING-UPLOADS.md)。
+六张 jpg 均已入库且非空；首选名与 `front.jpg` 为同一原图副本。入库状态与完整路径见 [`MISSING-UPLOADS.md`](MISSING-UPLOADS.md)。
 
 ## 命名与质量
 

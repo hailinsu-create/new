@@ -26,7 +26,7 @@ AUTODL_REGION=重庆A
 - **余额约 ¥17.25，未充值**：开机/租卡必须由用户明确授权；脚本不自动开机、不自动充值。
 - **关机留盘**：停止实例但保留数据盘，不执行「释放并删盘」。
 - **当前状态**：两台均未开机；本轮仅完成实体登记、文档与离线 dry-run 验收。
-- **参考图**：`refs/cats/{A,B,C}/` 已建目录，三张真猫 jpg 仍**待重传**（见 [`refs/cats/MISSING-UPLOADS.md`](refs/cats/MISSING-UPLOADS.md)）；不影响本文的双机登记。
+- **参考图**：`refs/cats/{A,B,C}/` 三张真猫 jpg 已入库（首选名 + `front.jpg` 共六张，见 [`refs/cats/MISSING-UPLOADS.md`](refs/cats/MISSING-UPLOADS.md)）；不影响本文的双机登记。
 - **禁止 grok CLI / 设备码流程**。
 
 ## 离线验收
@@ -42,7 +42,7 @@ bash cat-anthropomorph-video/scripts/smoke_test.sh --dry-run
 ## 关联文档
 
 - 权威定妆锁定：[`CHARACTER-LOCK-2026-10-24.md`](CHARACTER-LOCK-2026-10-24.md)
-- 参考图索引：[`refs/cats/README.md`](refs/cats/README.md) · 缺失记录：[`refs/cats/MISSING-UPLOADS.md`](refs/cats/MISSING-UPLOADS.md)
+- 参考图索引：[`refs/cats/README.md`](refs/cats/README.md) · 入库状态：[`refs/cats/MISSING-UPLOADS.md`](refs/cats/MISSING-UPLOADS.md)
 - 双机运维口径：[`scripts/race_boot.md`](scripts/race_boot.md)
 - 管线 SOP：[`README-PIPELINE.md`](README-PIPELINE.md)
 - 定妆卡：[`prompts/look_cards.md`](prompts/look_cards.md)

@@ -5,8 +5,9 @@
 | 代号 / 名字 | B / 银宝 |
 | 外观 | 银虎斑折耳 |
 | 阵营 | 苏军 / 斯大林格勒 |
-| 期望文件 | `cat-B-silver-fold.jpg`（兼容 `front.jpg`） |
-| 当前状态 | **待重传**（目录仅 `.gitkeep`） |
+| 首选文件 | `cat-B-silver-fold.jpg`（247783 B） |
+| 兼容文件 | `front.jpg`（247783 B） |
+| 当前状态 | **已入库**（非空 jpg） |
 
 ## 照片要求
 
@@ -14,18 +15,17 @@
 - 浅绿色瞳色可辨；折耳形态清楚（小耳向前折下）。
 - 非空 `.jpg`，不要滤镜过度、不要遮挡耳朵、不要拼图。
 
-## 放置
+## 已入库文件
 
 ```text
-refs/cats/B/cat-B-silver-fold.jpg
-# 或
-refs/cats/B/front.jpg
+refs/cats/B/cat-B-silver-fold.jpg  247783 B
+refs/cats/B/front.jpg              247783 B
 ```
 
-放好后运行 `bash scripts/restore.sh --dry-run`，会把文件同步到 `$INPUT_ROOT/cats/B/raw/`。
+运行 `bash scripts/restore.sh --dry-run`，会把文件同步到 `$INPUT_ROOT/cats/B/raw/`。
 
 ## 关联
 
 - 锁定文档：[`../../../CHARACTER-LOCK-2026-10-24.md`](../../../CHARACTER-LOCK-2026-10-24.md)
 - 参考图索引：[`../README.md`](../README.md)
-- 缺失附件：[`../MISSING-UPLOADS.md`](../MISSING-UPLOADS.md)
+- 入库状态：[`../MISSING-UPLOADS.md`](../MISSING-UPLOADS.md)

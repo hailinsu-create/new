@@ -1,8 +1,10 @@
 # 三猫定妆锁定 · CHARACTER LOCK · 2026-10-24
 
-> **状态**：文档锁定生效（SFW）。锁定日 **2026-10-24（Asia/Shanghai）**。  
-> **来源**：`prompts/look_cards.md` 已锁定字段 + 用户权威字段重建。  
-> **附件说明**：用户所称 `CHARACTER-LOCK-2026-10-24_64b7.md`、`cat-A-ginger-white_2d3a.jpg`、`cat-B-silver-fold_0680.jpg`、`cat-C-black-fold_3796.jpg`、`DUAL-CREATE-RESULT-2026-10-24_d231.md` 在本机全盘搜索未找到；本文件不是二进制附件副本，**不伪造猫照片**。三张实拍参考图待重传，见 [`refs/cats/MISSING-UPLOADS.md`](refs/cats/MISSING-UPLOADS.md)。
+> **状态**：文档锁定生效（SFW）。锁定日 **2026-10-24（Asia/Shanghai）**。
+>
+> **原图状态**：三猫原图**已入库**（tip `3abef51`）；六张 jpg（首选名 + `front.jpg` 兼容副本）路径与字节数见 [`refs/cats/MISSING-UPLOADS.md`](refs/cats/MISSING-UPLOADS.md)（保留原文件名避免断链）。
+>
+> **来源**：`prompts/look_cards.md` 已锁定字段 + 用户权威字段重建；本文件为文本锁定，原图位于 `refs/cats/`。
 
 ## 权威角色表
 
@@ -95,7 +97,7 @@ anthropomorphic solid-black Scottish Fold cat pilot, the same individual cat in 
 
 - `refs/cats/` 是仓库内唯一参考图入口；索引见 [`refs/cats/README.md`](refs/cats/README.md)。
 - `scripts/restore.sh` 会把 `refs/cats/{A,B,C}/front.jpg` 或 `cat-*.jpg` **硬拷贝**到 `$INPUT_ROOT/cats/{A,B,C}/raw/`；目标已存在则跳过。
-- 当前三张 jpg 均未落地，`refs/cats/*/.gitkeep` 仅占位，见 [`refs/cats/MISSING-UPLOADS.md`](refs/cats/MISSING-UPLOADS.md)。
+- 三张 jpg 已入库（首选名 + `front.jpg` 共六张，均非空），见 [`refs/cats/MISSING-UPLOADS.md`](refs/cats/MISSING-UPLOADS.md)。
 - 参考图仅用于本 SFW 宠物拟人项目；不得转投 `ai-realistic-comic/` 或任何 NSFW 管线。
 
 ---
@@ -120,13 +122,13 @@ anthropomorphic solid-black Scottish Fold cat pilot, the same individual cat in 
 - 露耳优先：A 用钢盔耳洞，B/C 用帽 / 飞行帽耳部开口；不得用毛发或帽子完全遮耳。
 - 少持枪：默认空手、旗、望远镜、地图包；叙事确需枪械时用远景 / 背影，枪口不对镜头。
 - 群演、敌方均不得长得像 A/B/C；敌方只载具 / 剪影。
-- 参考图重传后必须是非空 jpg；文件名优先保持上表期望值。
+- 参考图必须保持为非空 jpg；文件名优先保持上表期望值。
 
 ## 互链
 
 - 定妆卡：[`prompts/look_cards.md`](prompts/look_cards.md)
 - 参考图索引：[`refs/cats/README.md`](refs/cats/README.md)
-- 缺失附件记录：[`refs/cats/MISSING-UPLOADS.md`](refs/cats/MISSING-UPLOADS.md)
+- 原图入库状态：[`refs/cats/MISSING-UPLOADS.md`](refs/cats/MISSING-UPLOADS.md)
 - 双机结果：[`DUAL-CREATE-RESULT-2026-10-24.md`](DUAL-CREATE-RESULT-2026-10-24.md)
 - 管线 SOP：[`README-PIPELINE.md`](README-PIPELINE.md)
 - 进度日志：[`PROGRESS.md`](PROGRESS.md)

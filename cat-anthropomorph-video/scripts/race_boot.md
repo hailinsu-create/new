@@ -12,7 +12,7 @@
 
 对应环境变量已写入 `env.example`：`AUTODL_INSTANCE_PRIMARY` / `AUTODL_INSTANCE_CLONE` / `AUTODL_REGION=重庆A`。
 
-角色与参考图：权威锁定见 [`../CHARACTER-LOCK-2026-10-24.md`](../CHARACTER-LOCK-2026-10-24.md)，仓库图像位在 [`../refs/cats/`](../refs/cats/)（三张 jpg 当前**待重传**，见 [`../refs/cats/MISSING-UPLOADS.md`](../refs/cats/MISSING-UPLOADS.md)）。
+角色与参考图：权威锁定见 [`../CHARACTER-LOCK-2026-10-24.md`](../CHARACTER-LOCK-2026-10-24.md)，仓库图像位在 [`../refs/cats/`](../refs/cats/)（三张 jpg 已入库，见 [`../refs/cats/MISSING-UPLOADS.md`](../refs/cats/MISSING-UPLOADS.md)）。
 
 ## 口径（母机 + 克隆）
 

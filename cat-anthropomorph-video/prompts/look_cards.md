@@ -2,7 +2,7 @@
 
 锁定日：**2026-10-24（Asia/Shanghai）**。以下名字 / 毛色 / 瞳色 / 耳形 / 主装 / 场景为量产锁定值；未经确认不得临时改毛色或瞳色。
 
-> **参考图路径约定**：仓库内优先使用 `refs/cats/{A,B,C}/`（期望 `cat-A-ginger-white.jpg` / `cat-B-silver-fold.jpg` / `cat-C-black-fold.jpg`，兼容 `front.jpg`）；运行时可从 refs 复制到 ComfyUI 的 `$INPUT_ROOT/cats/{A,B,C}/raw/`。三张实拍 jpg 当前**待重传**，见 `refs/cats/MISSING-UPLOADS.md`。
+> **参考图路径约定**：仓库内优先使用 `refs/cats/{A,B,C}/`（期望 `cat-A-ginger-white.jpg` / `cat-B-silver-fold.jpg` / `cat-C-black-fold.jpg`，兼容 `front.jpg`）；运行时可从 refs 复制到 ComfyUI 的 `$INPUT_ROOT/cats/{A,B,C}/raw/`。三张实拍 jpg **已入库**，见 `refs/cats/MISSING-UPLOADS.md`。
 >
 > **权威总锁**：[`../CHARACTER-LOCK-2026-10-24.md`](../CHARACTER-LOCK-2026-10-24.md)（角色表、固定前缀、双机 ID、SFW 隔离）。
 >
@@ -67,4 +67,4 @@
 
 - 权威定妆锁定：[`../CHARACTER-LOCK-2026-10-24.md`](../CHARACTER-LOCK-2026-10-24.md)
 - 参考图索引：[`../refs/cats/README.md`](../refs/cats/README.md)
-- 缺失附件与重传：[`../refs/cats/MISSING-UPLOADS.md`](../refs/cats/MISSING-UPLOADS.md)
+- 原图入库状态：[`../refs/cats/MISSING-UPLOADS.md`](../refs/cats/MISSING-UPLOADS.md)
