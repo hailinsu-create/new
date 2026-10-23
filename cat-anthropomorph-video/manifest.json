@@ -1,0 +1,142 @@
+{
+  "project": "cat-anthropomorph-video",
+  "sfw_only": true,
+  "isolation": {
+    "forbidden_trees": [
+      "ai-realistic-comic/"
+    ],
+    "note": "Do not copy, symlink, or reference NSFW/undress workflows, LoRAs, character packs, or prompts from the comic stack. Ops patterns (manifest/restore/spend_cap/race_boot) may be reimplemented here with new filenames only."
+  },
+  "target_gpu": "AutoDL RTX 4090 24GB",
+  "groups": {
+    "looklock": {
+      "description": "Qwen-Image-Edit-2511 multi-image look lock (cat fur + costume)",
+      "custom_nodes": [
+        "ComfyUI built-in Qwen-Image-Edit 2511 subgraph / template support (update ComfyUI to latest)",
+        "optional: comfyui_controlnet_aux (OpenPose/Depth for pose lock before I2V)"
+      ],
+      "weights": [
+        {
+          "id": "qwen_image_edit_2511_fp8mixed",
+          "filename": "qwen_image_edit_2511_fp8mixed.safetensors",
+          "dest": "diffusion_models/",
+          "bytes": 20533762817,
+          "url": "https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_2511_fp8mixed.safetensors",
+          "license_note": "Follow upstream Qwen / Comfy-Org terms"
+        },
+        {
+          "id": "qwen_image_edit_2511_bf16",
+          "filename": "qwen_image_edit_2511_bf16.safetensors",
+          "dest": "diffusion_models/",
+          "bytes": 40861031560,
+          "url": "https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_2511_bf16.safetensors",
+          "optional": true,
+          "note": "Higher quality / VRAM; prefer fp8mixed on 4090"
+        },
+        {
+          "id": "qwen_2.5_vl_7b_fp8_scaled",
+          "filename": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+          "dest": "text_encoders/",
+          "bytes": 9384670680,
+          "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors"
+        },
+        {
+          "id": "qwen_image_vae",
+          "filename": "qwen_image_vae.safetensors",
+          "dest": "vae/",
+          "bytes": 253806246,
+          "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors"
+        },
+        {
+          "id": "qwen_edit_2511_lightning_4steps",
+          "filename": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+          "dest": "loras/",
+          "bytes": 849608296,
+          "url": "https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning/resolve/main/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+          "optional": true,
+          "note": "Optional speed LoRA for Qwen-Image-Edit-2511"
+        }
+      ],
+      "sfw_lora_candidates": [
+        {
+          "id": "humewow_or_cat_anthro_sfw",
+          "name": "HuMeow / cat anthropomorph SFW LoRA (Flux route B)",
+          "page": "https://civitai.com/",
+          "requires_manual_license_check": true,
+          "note": "Search Civitai for HuMeow or equivalent SFW cat-anthro LoRA; confirm license + no NSFW merge before download. Do NOT list undress models."
+        }
+      ]
+    },
+    "i2v": {
+      "description": "Wan2.1 I2V 14B 480P fp8 draft clips",
+      "custom_nodes": [
+        "ComfyUI native WanImageToVideo / CreateVideo / SaveVideo (latest ComfyUI)"
+      ],
+      "weights": [
+        {
+          "id": "wan21_i2v_480p_14b_fp8",
+          "filename": "wan2.1_i2v_480p_14B_fp8_e4m3fn.safetensors",
+          "dest": "diffusion_models/",
+          "bytes": 16397245448,
+          "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_i2v_480p_14B_fp8_e4m3fn.safetensors"
+        },
+        {
+          "id": "umt5_xxl_fp8",
+          "filename": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+          "dest": "text_encoders/",
+          "bytes": 6735906897,
+          "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+          "shared_with": [
+            "flf2v"
+          ]
+        },
+        {
+          "id": "wan_2_1_vae",
+          "filename": "wan_2.1_vae.safetensors",
+          "dest": "vae/",
+          "bytes": 253815318,
+          "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors",
+          "shared_with": [
+            "flf2v"
+          ]
+        },
+        {
+          "id": "clip_vision_h",
+          "filename": "clip_vision_h.safetensors",
+          "dest": "clip_vision/",
+          "bytes": 1264219396,
+          "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/clip_vision/clip_vision_h.safetensors",
+          "shared_with": [
+            "flf2v"
+          ]
+        }
+      ]
+    },
+    "flf2v": {
+      "description": "Wan2.1 FLF2V 14B 720P fp8 climax first-last frame",
+      "custom_nodes": [
+        "ComfyUI native WanFirstLastFrameToVideo (latest ComfyUI)"
+      ],
+      "weights": [
+        {
+          "id": "wan21_flf2v_720p_14b_fp8",
+          "filename": "wan2.1_flf2v_720p_14B_fp8_e4m3fn.safetensors",
+          "dest": "diffusion_models/",
+          "bytes": 16397952536,
+          "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_flf2v_720p_14B_fp8_e4m3fn.safetensors"
+        }
+      ],
+      "also_requires_from_groups": [
+        "i2v"
+      ]
+    }
+  },
+  "banned": {
+    "note": "Explicitly excluded from this manifest",
+    "items": [
+      "Any Civitai undress / clothes-removal / NSFW character packs",
+      "Any path under ai-realistic-comic/",
+      "Axis-leader likeness LoRAs, swastika detail packs"
+    ]
+  }
+}
