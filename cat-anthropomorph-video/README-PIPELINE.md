@@ -101,3 +101,26 @@
 
 - 题材系列：[`SERIES-WW2.md`](SERIES-WW2.md)
 - 目录索引：[`README.md`](README.md)
+
+---
+
+## 定妆分工（Cursor 生图 vs Comfy）
+
+| 用途 | 工具 | 是否入库锁定包 |
+| --- | --- | --- |
+| 军装气质 / 构图 mood | Cursor 生图（可选） | **否** |
+| 真猫毛色/瞳色锁死 · 正侧 3/4 | **Qwen-Image-Edit-2511**（`01_looklock_qwen_edit.json`） | **是**（过盲测 ≥80%） |
+| 纯文生拟人（HuMeow 等） | Flux+SFW LoRA | 仅备选；不锁「你家某只猫」 |
+
+量产定妆以真猫多图条件编辑为准；Cursor 图只作前期探风格。
+
+## 社区口径摘要（2026-10-23）
+
+- **定妆**：Qwen-Image-Edit-2511 多图（图1身份 / 图2服装姿势 / 图3背景）为开源社区成熟免训练方案；可选 Identity Lock 提示或 Lightning（CFG≈1）。
+- **视频**：Wan I2V 草稿 + FLF2V 高潮仍稳；Wan2.2 I2V 在部分对比中更锐，可作为 P1 后升级（需另补权重，本仓库默认仍 2.1 fp8）。
+- **隔离**：禁止引用漫画 NSFW/去衣栈。
+
+## 进度同步
+
+每完成一段工作：更新 [`PROGRESS.md`](PROGRESS.md) 并 push/PR；同步写入 Notion「小猫拟人」题材页下的进度记录。
+
