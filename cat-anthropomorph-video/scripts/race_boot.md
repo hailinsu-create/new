@@ -12,6 +12,8 @@
 
 对应环境变量已写入 `env.example`：`AUTODL_INSTANCE_PRIMARY` / `AUTODL_INSTANCE_CLONE` / `AUTODL_REGION=重庆A`。
 
+角色与参考图：权威锁定见 [`../CHARACTER-LOCK-2026-10-24.md`](../CHARACTER-LOCK-2026-10-24.md)，仓库图像位在 [`../refs/cats/`](../refs/cats/)（三张 jpg 当前**待重传**，见 [`../refs/cats/MISSING-UPLOADS.md`](../refs/cats/MISSING-UPLOADS.md)）。
+
 ## 口径（母机 + 克隆）
 
 1. **两台实例**：同一镜像/数据盘策略下的「母机」与「克隆」，抢同一区域空闲 4090。
@@ -24,7 +26,7 @@
 
 1. 控制台确认另一台实例状态为关机。
 2. 经用户授权后启动其中一台（谁先抢到空闲卡谁开）；**不要两台一起 Running**。
-3. `source .env` → `bash scripts/restore.sh --group i2v`（首次可 `--apply`）。
+3. `source .env` → `bash scripts/restore.sh --group i2v`（首次可 `--apply`）。`restore.sh` 会把 `refs/cats/{A,B,C}/` 下的 `front.jpg` / `cat-*.jpg` 硬拷贝到 `$INPUT_ROOT/cats/{A,B,C}/raw/`，目标已存在则跳过。
 4. 跑完 P1/P2/P3 目标后 **关机留盘**。
 5. 若母机无卡：保持母机关机，再开克隆机；仍只允许一台 Running。
 
@@ -43,3 +45,4 @@
 | --- | --- |
 | 复用「互斥双机 / 关机留盘 / spend_cap」**思路** | 复制 comic 目录脚本、工作流、LoRA、角色资产、提示词 |
 | 本目录新建 `restore.sh` / `download_models.py` | symlink 到 `ai-realistic-comic/` |
+| 使用 `refs/cats/` 的 SFW 真猫参考图 | 把猫图或工作流复制进 `ai-realistic-comic/` / NSFW 树 |

@@ -5,6 +5,7 @@
 - **隔离**：与 `ai-realistic-comic/` **物理隔离**——禁止引用、复制、链接其去衣/NSFW 工作流、LoRA、角色资产、提示词
 - **算力**：默认 AutoDL **RTX 4090 24GB**；充值/开机/租卡均 **需用户授权**；本文档 **不** 声称已租卡、已充值、已开机
 - **双机**：母-Comfy定妆 **025机** `9b4c40bda6-dad38bb9` / 克隆-Wan **003机** `bb8c4f8e12-00c8bdac`（重庆A · RTX 4090D · 扩盘 100G · shutdown 留盘）；互斥口径见 [`scripts/race_boot.md`](scripts/race_boot.md)（任意时刻只开一台，余额约 ¥17.25、未充值、开机需用户授权）
+- **定妆锁定**：[`CHARACTER-LOCK-2026-10-24.md`](CHARACTER-LOCK-2026-10-24.md)（权威角色表 / 固定前缀 / 双机 ID）；参考图入口 [`refs/cats/`](refs/cats/)，三张 jpg 当前待重传
 - **离线验收**：`bash scripts/smoke_test.sh --dry-run`（默认 dry-run，exit 0 为通过）；本仓库仍 **未开机真跑 GPU**
 
 规划日：2026-10-23（Asia/Shanghai）
@@ -41,7 +42,7 @@
 3. 按 `manifest.json` → `custom_nodes` 补齐（ControlNet aux 等）；**不要**装 NSFW 专用节点。
 4. `bash scripts/restore.sh`（默认 **dry-run**）核对 URL 与落盘路径。
 5. `bash scripts/smoke_test.sh --dry-run` 做离线验收（解析 workflow、对齐 manifest、检查定妆卡/双机 ID、调用 restore dry-run），必须 **exit 0**。
-6. 准备输入目录：`$INPUT_ROOT/cats/{A,B,C}/raw/`、`looklock/`、`$INPUT_ROOT/shots/`、`$OUTPUT_ROOT/{i2v,flf2v,exports}/`。
+6. 准备输入目录：`$INPUT_ROOT/cats/{A,B,C}/raw/`、`looklock/`、`$INPUT_ROOT/shots/`、`$OUTPUT_ROOT/{i2v,flf2v,exports}/`。仓库参考图放 `refs/cats/{A,B,C}/`；`restore.sh` 会硬拷贝 `front.jpg` / `cat-*.jpg` 到 `$INPUT_ROOT/cats/{A,B,C}/raw/`（已存在则跳过）。
 
 **完成标准**：三份 workflow 能在 ComfyUI 打开（缺权重视为节点标红可接受）；路径不指向 comic 树。
 
@@ -60,7 +61,7 @@
 
 ## P2 · 定妆（Look-lock）
 
-1. 三猫定妆已锁定：**A 小橘 / B 银宝 / C 墨墨**（见 [`prompts/look_cards.md`](prompts/look_cards.md)），直接使用各猫固定提示词前缀；照片仍由用户另传。
+1. 三猫定妆已锁定：**A 小橘 / B 银宝 / C 墨墨**（权威总锁 [`CHARACTER-LOCK-2026-10-24.md`](CHARACTER-LOCK-2026-10-24.md)，提示词见 [`prompts/look_cards.md`](prompts/look_cards.md)），直接使用各猫固定提示词前缀；实拍参考图放 [`refs/cats/{A,B,C}/`](refs/cats/)，三张 jpg 当前待重传。
 2. `bash scripts/restore.sh --apply --group looklock`。
 3. 打开 `workflow/01_looklock_qwen_edit.json`：多图真猫参考 + 外观前缀 + [`prompts/positive_fragments.md`](prompts/positive_fragments.md) 露耳/少持枪片段。
 4. 备选：Flux + HuMeow 等 **SFW** LoRA——manifest 仅列 Civitai 检索说明，**需人工确认许可**。
@@ -112,6 +113,8 @@
 
 - 题材系列：[`SERIES-WW2.md`](SERIES-WW2.md)
 - 目录索引：[`README.md`](README.md)
+- 权威定妆锁定：[`CHARACTER-LOCK-2026-10-24.md`](CHARACTER-LOCK-2026-10-24.md)
+- 参考图索引：[`refs/cats/README.md`](refs/cats/README.md) · 缺失记录：[`refs/cats/MISSING-UPLOADS.md`](refs/cats/MISSING-UPLOADS.md)
 - 双机创建结果：[`DUAL-CREATE-RESULT-2026-10-24.md`](DUAL-CREATE-RESULT-2026-10-24.md)
 - 离线 smoke：[`scripts/smoke_test.sh`](scripts/smoke_test.sh)
 

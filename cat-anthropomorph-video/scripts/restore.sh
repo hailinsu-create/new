@@ -73,8 +73,12 @@ refuse_comic OUTPUT_ROOT "${OUTPUT_ROOT:-}"
 
 INPUT_ROOT="${INPUT_ROOT:-./input}"
 OUTPUT_ROOT="${OUTPUT_ROOT:-./output}"
+REFS_CATS="${ROOT}/refs/cats"
 
 mkdir -p \
+  "${REFS_CATS}/A" \
+  "${REFS_CATS}/B" \
+  "${REFS_CATS}/C" \
   "${INPUT_ROOT}/cats/A/raw" \
   "${INPUT_ROOT}/cats/B/raw" \
   "${INPUT_ROOT}/cats/C/raw" \
@@ -83,6 +87,40 @@ mkdir -p \
   "${OUTPUT_ROOT}/i2v" \
   "${OUTPUT_ROOT}/flf2v" \
   "${OUTPUT_ROOT}/exports"
+
+sync_ref_photos() {
+  local cat="$1"
+  local src_dir="${REFS_CATS}/${cat}"
+  local dest_dir="${INPUT_ROOT}/cats/${cat}/raw"
+  local candidates=()
+  local src dest name
+
+  shopt -s nullglob
+  candidates=("${src_dir}/front.jpg" "${src_dir}"/cat-*.jpg)
+  shopt -u nullglob
+
+  for src in "${candidates[@]}"; do
+    [[ -f "$src" ]] || continue
+    name="$(basename "$src")"
+    dest="${dest_dir}/${name}"
+    if [[ -e "$dest" || -L "$dest" ]]; then
+      echo "restore.sh: skip existing ${dest}"
+      continue
+    fi
+    if cp -p "$src" "$dest" 2>/dev/null; then
+      echo "restore.sh: copied ${src} -> ${dest}"
+    elif ln -s "$(cd "$(dirname "$src")" && pwd)/${name}" "$dest" 2>/dev/null; then
+      echo "restore.sh: symlinked ${src} -> ${dest}"
+    else
+      echo "restore.sh: failed to sync ${src} -> ${dest}" >&2
+      exit 1
+    fi
+  done
+}
+
+for cat in A B C; do
+  sync_ref_photos "$cat"
+done
 
 CMD=(python3 scripts/download_models.py "${GROUP_ARGS[@]}")
 if [[ "$DRY_RUN" -eq 1 ]]; then

@@ -59,7 +59,7 @@ for var in MODELS_ROOT COMFYUI_ROOT INPUT_ROOT OUTPUT_ROOT; do
   fi
 done
 
-echo "[smoke] 1/5 解析 workflow JSON 并核对 manifest 权重"
+echo "[smoke] 1/6 解析 workflow JSON 并核对 manifest 权重"
 python3 - "$ROOT" <<'PY'
 from __future__ import annotations
 
@@ -138,7 +138,7 @@ if errors:
     sys.exit(1)
 PY
 
-echo "[smoke] 2/5 检查三猫定妆卡"
+echo "[smoke] 2/6 检查三猫定妆卡"
 for name in 小橘 银宝 墨墨; do
   grep -q "$name" prompts/look_cards.md || fail "prompts/look_cards.md 缺少名字：${name}"
 done
@@ -147,7 +147,45 @@ if grep -q '\[待补\]' prompts/look_cards.md; then
 fi
 echo "[smoke]   A小橘 / B银宝 / C墨墨 已锁定"
 
-echo "[smoke] 3/5 检查双机实体 ID"
+echo "[smoke] 3/6 检查 CHARACTER-LOCK 与 refs/cats"
+LOCK_DOC="CHARACTER-LOCK-2026-10-24.md"
+[[ -f "$LOCK_DOC" ]] || fail "缺少定妆锁定文档：${LOCK_DOC}"
+for name in 小橘 银宝 墨墨; do
+  grep -q "$name" "$LOCK_DOC" || fail "${LOCK_DOC} 缺少名字：${name}"
+done
+for id in 9b4c40bda6-dad38bb9 bb8c4f8e12-00c8bdac; do
+  grep -q "$id" "$LOCK_DOC" || fail "${LOCK_DOC} 缺少实例 ID：${id}"
+done
+for cat in A B C; do
+  [[ -d "refs/cats/${cat}" ]] || fail "缺少参考图目录：refs/cats/${cat}"
+done
+missing_cats=0
+present_files=0
+for cat in A B C; do
+  candidates=()
+  if [[ -f "refs/cats/${cat}/front.jpg" ]]; then
+    candidates+=("refs/cats/${cat}/front.jpg")
+  fi
+  shopt -s nullglob
+  candidates+=(refs/cats/${cat}/cat-*.jpg)
+  shopt -u nullglob
+  if [[ ${#candidates[@]} -eq 0 ]]; then
+    echo "[smoke][WARN] 参考图待重传：refs/cats/${cat}/ 无 front.jpg 或 cat-*.jpg"
+    missing_cats=$((missing_cats + 1))
+    continue
+  fi
+  for ref in "${candidates[@]}"; do
+    [[ -s "$ref" ]] || fail "参考图为空文件：${ref}"
+    present_files=$((present_files + 1))
+  done
+done
+if [[ "$missing_cats" -eq 3 ]]; then
+  echo "[smoke][WARN] 参考图待重传（三张 jpg 均缺失）；文档锁定完成，继续验收"
+else
+  echo "[smoke]   refs/cats 非空 jpg ${present_files} 个；缺失 ${missing_cats} 只"
+fi
+
+echo "[smoke] 4/6 检查双机实体 ID"
 for doc in scripts/race_boot.md DUAL-CREATE-RESULT-2026-10-24.md; do
   [[ -f "$doc" ]] || fail "缺少双机文档：${doc}"
   grep -q '9b4c40bda6-dad38bb9' "$doc" || fail "${doc} 缺少母机 ID 9b4c40bda6-dad38bb9"
@@ -161,7 +199,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo "[smoke] 4/5 执行 restore.sh dry-run（i2v / looklock / flf2v）"
+echo "[smoke] 5/6 执行 restore.sh dry-run（i2v / looklock / flf2v）"
 for group in i2v looklock flf2v; do
   if ! env \
     CAT_ANTHRO_SKIP_ENV=1 \
@@ -192,7 +230,7 @@ for rel in \
 done
 echo "[smoke]   输入/输出目录结构完整"
 
-echo "[smoke] 5/5 检查 comic 路径拒绝"
+echo "[smoke] 6/6 检查 comic 路径拒绝"
 set +e
 env \
   CAT_ANTHRO_SKIP_ENV=1 \
@@ -210,6 +248,6 @@ fi
 grep -q 'Refusing' "$TMP_ROOT/refuse.log" || fail "restore.sh 拒绝信息不明确"
 echo "[smoke]   ai-realistic-comic 路径已被拒绝"
 
-echo "[smoke] PASS (dry-run): workflow/manifest、三猫定妆、双机 ID、restore 隔离均通过"
+echo "[smoke] PASS (dry-run): workflow/manifest、三猫定妆、CHARACTER-LOCK、refs/cats、双机 ID、restore 隔离均通过"
 echo "[smoke] 未开机、未跑 GPU、未产生计费。"
 exit 0
