@@ -89,7 +89,7 @@
       ]
     },
     "i2v": {
-      "description": "Wan2.1 I2V 14B 480P fp16 default (fp8 VRAM fallback is noisy, not recommended)",
+      "description": "Wan2.1 I2V 14B 480P fp16 default; length=49; strong-verb motion prompts; G1 noise_gate + G2m motion_gate required before claiming usable clip",
       "custom_nodes": [
         "ComfyUI native WanImageToVideo / CreateVideo / SaveVideo (latest ComfyUI)"
       ],
@@ -142,7 +142,44 @@
             "flf2v"
           ]
         }
-      ]
+      ],
+      "motion_policy": {
+        "length_default": 49,
+        "length_legacy_smoke": 33,
+        "ksampler_default": {
+          "steps": 20,
+          "cfg": 6,
+          "shift": 8
+        },
+        "r3_fallback_only": {
+          "cfg": 5,
+          "shift": 10
+        },
+        "positive": "motion-first strong verbs; ban gentle/slightly/small/soft/subtle",
+        "negative_must_include": [
+          "static",
+          "still",
+          "still picture",
+          "frozen",
+          "motionless",
+          "no motion",
+          "静态",
+          "静止",
+          "静止不动的画面"
+        ],
+        "gates": {
+          "G1": "scripts/noise_gate.py",
+          "G2m": "scripts/motion_gate.py",
+          "min_max_mad_default": 11.0,
+          "baseline_static_mad": 3.6,
+          "usable_clip_requires": [
+            "G1",
+            "G2",
+            "G2m"
+          ]
+        },
+        "crop_check": "scripts/crop_check_i2v.py"
+      }
     },
     "flf2v": {
       "description": "Wan2.1 FLF2V 14B 720P fp16 default (fp8 VRAM fallback is noisy, not recommended)",

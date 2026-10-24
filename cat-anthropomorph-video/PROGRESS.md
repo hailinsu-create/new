@@ -70,6 +70,15 @@
 - **尚未做**：未开机、未装 fp16 权重、未重跑 I2V、未复测 PSNR；下次按 [`NEXT-BOOT-CHECKLIST.md`](NEXT-BOOT-CHECKLIST.md) 验证后才可评价是否真修好。
 - **边界**：未充值、未 merge、未用 grok；未触碰 `ai-realistic-comic/` 或任何 NSFW。
 
+
+## 2026-10-25 Asia/Shanghai · 段8：I2V 近静帧 → 动作门禁 + length=49
+
+- **事故**：looklock→I2V fp16 身份 OK（G2），但 ~2s 几乎不动（MAD≈3.6）；根因是 soft 词 / 缺 static 负向 / length=33，**不是** fp16。
+- **Workflow `02`**：正向改 R1 敬礼强动词；负向追加 static/still/frozen… + Wan 中文静帧词；`WanImageToVideo.length` **33→49**；MarkdownNote 写明 R3(cfg5/shift10) 仅回退；仍 fp16 UNET；强制 `--force-upcast-attention`。
+- **门禁**：新增 `scripts/motion_gate.py`（G2m，默认 max MAD≥11；基线近静帧≈3.6 应 FAIL）；`scripts/crop_check_i2v.py` 做 1024²→480×832 构图预览。
+- **文档**：`reviews/COMMUNITY-I2V-MOTION-2026-10-25.md`、`README-PIPELINE`、`NEXT-BOOT-CHECKLIST`、`manifest.json` motion_policy、`prompts/*`、API 模板 `workflow/02_i2v_api_prompt_r1_r4.json`。
+- **口径**：**未过 G2m 不得写「可用片段」**；未开机重跑 GPU（兄弟执行器负责）；未充值、未 merge、未碰 comic/NSFW；未用 grok CLI。
+
 ## 约定落库
 
 - Notion Memory：[工作同步：GitHub + Notion](https://app.notion.com/p/402b407a692a81ecb2ddcd6b35b29320)

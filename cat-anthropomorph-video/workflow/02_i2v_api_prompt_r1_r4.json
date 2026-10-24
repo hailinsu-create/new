@@ -1,0 +1,38 @@
+{
+  "id": "cat-anthro-i2v-motion-2026-10-25",
+  "workflow": "workflow/02_i2v_wan21_480p.json",
+  "unet": "wan2.1_i2v_480p_14B_fp16.safetensors",
+  "comfy_launch": [
+    "--force-upcast-attention"
+  ],
+  "banned_launch": [
+    "--use-sage-attention"
+  ],
+  "wan_image_to_video": {
+    "width": 480,
+    "height": 832,
+    "length": 49,
+    "batch_size": 1
+  },
+  "ksampler": {
+    "steps": 20,
+    "cfg": 6,
+    "sampler_name": "uni_pc",
+    "scheduler": "simple"
+  },
+  "model_sampling_sd3_shift": 8,
+  "r3_fallback_only": {
+    "cfg": 5,
+    "shift": 10
+  },
+  "positive": {
+    "r1_salute_default": "The anthropomorphic cat soldier quickly raises her right paw to the brim of her helmet in a crisp military salute and holds the salute firmly; her chin lifts and she stares straight into the camera; her red neckerchief flutters strongly in the wind. Fixed camera, medium shot, same face, fur pattern and US Army uniform as the first frame.",
+    "r4_head_turn": "The anthropomorphic cat soldier snaps her head up and turns to stare directly into the camera, ears perking forward; strong wind whips her red neckerchief and blows dust across the frame. Fixed camera, medium close-up, same face, fur pattern and US Army uniform as the first frame."
+  },
+  "negative": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走, static, still, still picture, frozen, motionless, no motion, barely moving, idle breathing only, slow motion, weapon, rifle, gun, four-legged, realistic cat body, extra limbs, melting paws",
+  "gates": [
+    "scripts/noise_gate.py",
+    "scripts/motion_gate.py"
+  ],
+  "forbid_usable_claim_without": "G2m motion_gate PASS"
+}

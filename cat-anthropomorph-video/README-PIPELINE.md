@@ -7,7 +7,8 @@
 - **双机**：母-Comfy定妆 **025机** `9b4c40bda6-dad38bb9` / 克隆-Wan **003机** `bb8c4f8e12-00c8bdac`（重庆A · RTX 4090D · 扩盘 100G · shutdown 留盘）；互斥口径见 [`scripts/race_boot.md`](scripts/race_boot.md)（任意时刻只开一台，余额约 ¥17.25、未充值、开机需用户授权）
 - **定妆锁定**：[`CHARACTER-LOCK-2026-10-24.md`](CHARACTER-LOCK-2026-10-24.md)（权威角色表 / 固定前缀 / 双机 ID）；参考图入口 [`refs/cats/`](refs/cats/)，三张 jpg 已入库（首选名 + `front.jpg` 共六张）
 - **离线验收**：`bash scripts/smoke_test.sh --dry-run`（默认 dry-run，exit 0 为通过）；本仓库仍 **未开机真跑 GPU**
-- **2026-10-24 社区修正**：[`COMMUNITY-FIXES-2026-10-24.md`](COMMUNITY-FIXES-2026-10-24.md)（fp16 默认、禁 SageAttention、噪声门禁）；下次开机按 [`NEXT-BOOT-CHECKLIST.md`](NEXT-BOOT-CHECKLIST.md) 验证
+- **2026-10-24 社区修正**：[`COMMUNITY-FIXES-2026-10-24.md`](COMMUNITY-FIXES-2026-10-24.md)（fp16 默认、禁 SageAttention、噪声门禁）
+- **2026-10-25 动作修正**：[`reviews/COMMUNITY-I2V-MOTION-2026-10-25.md`](reviews/COMMUNITY-I2V-MOTION-2026-10-25.md)（强动词 + static 负向 + length=49 + **G2m motion_gate**）；下次开机按 [`NEXT-BOOT-CHECKLIST.md`](NEXT-BOOT-CHECKLIST.md) 验证
 
 规划日：2026-10-23（Asia/Shanghai）
 
@@ -54,16 +55,21 @@
 1. 按 [`scripts/race_boot.md`](scripts/race_boot.md) **互斥**开机（母/克隆只开一台）。
 2. `bash scripts/restore.sh --apply --group i2v` 下载 **fp16** 默认 UNET（`fp8` 已标 optional，默认跳过）；真跑前先执行 `bash scripts/smoke_test.sh --dry-run` 离线预检。
 3. 打开 `workflow/02_i2v_wan21_480p.json`：确认 UNET 为 `wan2.1_i2v_480p_14B_fp16.safetensors`，任意竖屏图 → 负向用 [`prompts/negative.txt`](prompts/negative.txt)。
-4. Smoke：`480×832`、`length≈33`、`steps=20`、`cfg=6`、`uni_pc/simple`；记录耗时与磁盘增量。
-5. 生成后先跑 `python3 scripts/noise_gate.py <输出视频或抽帧目录>`；exit 2 = FAIL，不得当成功。人眼确认主体可见后再 **关机留盘**。
+4. Smoke：`480×832`、`length=49`、`steps=20`、`cfg=6`、`shift=8`、`uni_pc/simple`；正向用 R1 敬礼（禁 soft 词）；记录耗时与磁盘增量。
+5. 生成后依次跑：
+   - `python3 scripts/noise_gate.py <输出视频>`（G1）
+   - `python3 scripts/motion_gate.py <输出视频>`（**G2m**；默认 max MAD≥11；上轮近静帧≈3.6 应 FAIL）
+   - 人眼 G2（同脸军装）+ 可见敬礼或抬头
+6. **未同时过 G1+G2+G2m，不得写「可用片段」**。通过后再 **关机留盘**。
 
-**完成标准**：可播短视频且 `noise_gate` PASS；**未**声称量产。
+**完成标准**：可播短视频且 G1+G2+G2m PASS；**未**声称量产。
 
 ### ComfyUI 启动参数（2026-10-24 强制）
 
 - **禁止** `--use-sage-attention`：Wan2.1 I2V 易出黑屏/噪点废片（ComfyUI#8573）。
-- **可选** `--force-upcast-attention`：规避部分注意力精度问题（ComfyUI#6987）。
-- 示例：`python main.py --listen 0.0.0.0 --port 6006`（不追加 sage-attention）。
+- **强制** `--force-upcast-attention`（本轮 Wan I2V；ComfyUI#6987）。
+- 示例：`python main.py --listen 0.0.0.0 --port 6006 --force-upcast-attention`。
+- **R3 回退（非默认）**：仅 R1/R2 未过 G2m 时试 cfg=5 / shift=10；默认仍 cfg=6 / shift=8。
 
 ---
 
@@ -79,6 +85,21 @@
 5. 每猫主装出正脸/侧面/3/4；盲测 ≥80%（见 `SERIES-WW2.md`）。
 
 ---
+
+
+---
+
+## looklock→I2V 构图（1024² → 480×832）
+
+方图定妆直接喂竖屏 I2V 时，cover 裁切会切掉左右约 40% 宽度，**手/前臂可能出画**——没有手就很难敬礼。
+
+```bash
+python3 scripts/crop_check_i2v.py path/to/cat_anthro_looklock_00001_.png
+# 打开生成的 *_i2v_480x832_crop.png，确认右手/前臂/肩在画内
+```
+
+- 手在画内 → 跑 R1/R2 敬礼。
+- 手不在画内 → 本轮改 R4 抬头+围巾；敬礼留待竖幅定妆后再做。
 
 ## P3 · 单段样片
 
@@ -130,7 +151,10 @@
 - 离线 smoke：[`scripts/smoke_test.sh`](scripts/smoke_test.sh)
 - 社区修正落库：[`COMMUNITY-FIXES-2026-10-24.md`](COMMUNITY-FIXES-2026-10-24.md)
 - 下次开机验证：[`NEXT-BOOT-CHECKLIST.md`](NEXT-BOOT-CHECKLIST.md)
-- 噪声门禁：[`scripts/noise_gate.py`](scripts/noise_gate.py)
+- 噪声门禁 G1：[`scripts/noise_gate.py`](scripts/noise_gate.py)
+- 动作门禁 G2m：[`scripts/motion_gate.py`](scripts/motion_gate.py)
+- 构图预览：[`scripts/crop_check_i2v.py`](scripts/crop_check_i2v.py)
+- 动作社区方案：[`reviews/COMMUNITY-I2V-MOTION-2026-10-25.md`](reviews/COMMUNITY-I2V-MOTION-2026-10-25.md)
 
 ---
 

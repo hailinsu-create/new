@@ -92,3 +92,8 @@
   <https://github.com/comfyanonymous/ComfyUI/issues/6987>
 - 官方模板：`/tmp/wan-official/image_to_video_wan_example.json`
 - 权重仓库：<https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged>
+
+## 7. 后续（2026-10-25）：近静帧 ≠ 精度问题
+
+fp16 修好噪点后，同链路仍可能产出 **身份 OK、动作近静**（MAD≈3.6）。根因改为 soft 提示词 / 缺 static 负向 / length=33。修正见 [`reviews/COMMUNITY-I2V-MOTION-2026-10-25.md`](reviews/COMMUNITY-I2V-MOTION-2026-10-25.md)：length=**49**、强动词、G2m `motion_gate.py`。**勿再回退 fp8。**
+

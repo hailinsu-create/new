@@ -7,6 +7,7 @@
 - **参考图入口**：[`refs/cats/`](refs/cats/)（三张实拍 jpg 已入库，见 [`MISSING-UPLOADS.md`](refs/cats/MISSING-UPLOADS.md)）
 - **ComfyUI 管线 SOP**：[`README-PIPELINE.md`](README-PIPELINE.md)（P0–P3、workflow/、manifest、双机互斥；Wan2.1 **fp16 默认**）
 - **社区修正（2026-10-24）**：[`COMMUNITY-FIXES-2026-10-24.md`](COMMUNITY-FIXES-2026-10-24.md)（fp16 默认、禁 SageAttention、噪声门禁）
+- **动作修正（2026-10-25）**：[`reviews/COMMUNITY-I2V-MOTION-2026-10-25.md`](reviews/COMMUNITY-I2V-MOTION-2026-10-25.md)（length=49、强动词、G2m）
 - **下次开机验证**：[`NEXT-BOOT-CHECKLIST.md`](NEXT-BOOT-CHECKLIST.md)
 - **进度日志**：[`PROGRESS.md`](PROGRESS.md)（每段工作同步 GitHub + Notion）
 - 修订说明：见 `SERIES-WW2.md` 文末变更记录（2026-10-23 Opus 5.5 Max 审核 v2：合并重排、一猫一阵营、定妆锁定包）

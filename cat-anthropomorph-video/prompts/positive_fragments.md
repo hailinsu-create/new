@@ -22,5 +22,29 @@
 
 ## 通用动作句（I2V / FLF2V 可改）
 
-- `slow push-in, dust and smoke in backlight, fabric and fur reacting to wind`
+- `dust and smoke in backlight, fabric and fur reacting to wind`
 - `decisive action hit on the beat, then brief hold`
+- 详见下方 **I2V 动作模板**（R1 敬礼 / R4 抬头）；勿用 soft 词
+
+
+## I2V 动作模板（2026-10-25 · 强动词，禁 soft 词）
+
+> 规则：动作放句首；用 raise / snap / hold / whip / stare；**禁止** gentle / slightly / small / soft / subtle。
+> Fixed camera；短锚 same face / fur / uniform。一条片段只做一个主动作。
+
+### R1 / R2 · 敬礼（workflow `02` 默认正向）
+
+```txt
+The anthropomorphic cat soldier quickly raises her right paw to the brim of her helmet in a crisp military salute and holds the salute firmly; her chin lifts and she stares straight into the camera; her red neckerchief flutters strongly in the wind. Fixed camera, medium shot, same face, fur pattern and US Army uniform as the first frame.
+```
+
+### R4 · 抬头 + 围巾（手被竖裁切掉时的低风险备胎）
+
+```txt
+The anthropomorphic cat soldier snaps her head up and turns to stare directly into the camera, ears perking forward; strong wind whips her red neckerchief and blows dust across the frame. Fixed camera, medium close-up, same face, fur pattern and US Army uniform as the first frame.
+```
+
+### R3 采样回退（非默认）
+
+仅当 R1、R2 未过 `motion_gate`（G2m）时：保持 length=49 与 R1 正向，改 **cfg=5 / shift=10**（steps 仍 20）。
+

@@ -59,7 +59,7 @@ for var in MODELS_ROOT COMFYUI_ROOT INPUT_ROOT OUTPUT_ROOT; do
   fi
 done
 
-echo "[smoke] 1/7 解析 workflow JSON 并核对 manifest 权重"
+echo "[smoke] 1/8 解析 workflow JSON 并核对 manifest 权重"
 python3 - "$ROOT" <<'PY'
 from __future__ import annotations
 
@@ -168,13 +168,38 @@ for rel, spec in workflows.items():
 
     print(f"[smoke]   {rel}: {len(found)} weight filenames, all within manifest")
 
+    if rel == "workflow/02_i2v_wan21_480p.json":
+        nodes = {node.get("id"): node for node in payload.get("nodes", [])}
+        wan = nodes.get(50, {})
+        vals = wan.get("widgets_values") or []
+        if len(vals) < 3 or int(vals[2]) != 49:
+            errors.append(
+                f"{rel}: WanImageToVideo.length expected 49, got "
+                f"{vals[2] if len(vals) > 2 else None}"
+            )
+        pos = str((nodes.get(6, {}).get("widgets_values") or [""])[0]).lower()
+        for token in ("gentle", "slightly", "subtle"):
+            if re.search(rf"\b{re.escape(token)}\b", pos):
+                errors.append(f"{rel}: positive prompt still has soft word {token!r}")
+        if re.search(r"\bsmall\b", pos):
+            errors.append(f"{rel}: positive prompt still has soft word 'small'")
+        if "salute" not in pos and "raises" not in pos:
+            errors.append(f"{rel}: positive prompt missing salute/raises strong verb")
+        if "fixed camera" not in pos:
+            errors.append(f"{rel}: positive prompt missing Fixed camera")
+        neg = str((nodes.get(7, {}).get("widgets_values") or [""])[0]).lower()
+        for need in ("static", "still picture", "frozen", "motionless", "no motion", "静止不动"):
+            if need.lower() not in neg:
+                errors.append(f"{rel}: negative missing {need!r}")
+
+
 if errors:
     for err in errors:
         print(f"[smoke][FAIL] {err}", file=sys.stderr)
     sys.exit(1)
 PY
 
-echo "[smoke] 2/7 检查三猫定妆卡"
+echo "[smoke] 2/8 检查三猫定妆卡"
 for name in 小橘 银宝 墨墨; do
   grep -q "$name" prompts/look_cards.md || fail "prompts/look_cards.md 缺少名字：${name}"
 done
@@ -183,7 +208,7 @@ if grep -q '\[待补\]' prompts/look_cards.md; then
 fi
 echo "[smoke]   A小橘 / B银宝 / C墨墨 已锁定"
 
-echo "[smoke] 3/7 检查 CHARACTER-LOCK 与 refs/cats"
+echo "[smoke] 3/8 检查 CHARACTER-LOCK 与 refs/cats"
 LOCK_DOC="CHARACTER-LOCK-2026-10-24.md"
 [[ -f "$LOCK_DOC" ]] || fail "缺少定妆锁定文档：${LOCK_DOC}"
 for name in 小橘 银宝 墨墨; do
@@ -221,7 +246,7 @@ else
   echo "[smoke]   refs/cats 非空 jpg ${present_files} 个；缺失 ${missing_cats} 只"
 fi
 
-echo "[smoke] 4/7 检查双机实体 ID"
+echo "[smoke] 4/8 检查双机实体 ID"
 for doc in scripts/race_boot.md DUAL-CREATE-RESULT-2026-10-24.md; do
   [[ -f "$doc" ]] || fail "缺少双机文档：${doc}"
   grep -q '9b4c40bda6-dad38bb9' "$doc" || fail "${doc} 缺少母机 ID 9b4c40bda6-dad38bb9"
@@ -235,7 +260,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo "[smoke] 5/7 噪声门禁（self-test + 合成噪声 FAIL + 猫参考图 PASS）"
+echo "[smoke] 5/8 噪声门禁（self-test + 合成噪声 FAIL + 猫参考图 PASS）"
 python3 scripts/noise_gate.py --self-test || fail "noise_gate self-test 失败"
 
 python3 - "$TMP_ROOT/noise-synthetic.pgm" <<'PY'
@@ -265,7 +290,58 @@ if ! python3 scripts/noise_gate.py refs/cats/A/front.jpg >"$TMP_ROOT/noise-cat.l
 fi
 echo "[smoke]   合成噪声 exit 2；refs/cats/A/front.jpg 正常 PASS"
 
-echo "[smoke] 6/7 执行 restore.sh dry-run（i2v / looklock / flf2v）"
+echo "[smoke] 6/8 动作门禁 motion_gate（self-test + 近静帧 FAIL + 合成运动 PASS）"
+python3 scripts/motion_gate.py --self-test || fail "motion_gate self-test 失败"
+
+python3 - "$TMP_ROOT/motion-static" <<'PY'
+from pathlib import Path
+import sys
+d = Path(sys.argv[1])
+d.mkdir(parents=True, exist_ok=True)
+w = h = 64
+n = w * h
+base = bytes([120] * n)
+for i in range(5):
+    buf = bytearray(base)
+    for j in range(i * 20, i * 20 + 40):
+        buf[j % n] = 130
+    (d / f"f{i:02d}.pgm").write_bytes(b"P5\n64 64\n255\n" + bytes(buf))
+PY
+
+set +e
+python3 scripts/motion_gate.py "$TMP_ROOT/motion-static" >"$TMP_ROOT/motion-static.log" 2>&1
+motion_static_rc=$?
+set -e
+if [[ "$motion_static_rc" -ne 2 ]]; then
+  cat "$TMP_ROOT/motion-static.log" >&2
+  fail "motion_gate 未以 exit 2 拒绝近静帧序列（实际 ${motion_static_rc}）"
+fi
+grep -q 'FAIL' "$TMP_ROOT/motion-static.log" || fail "motion_gate 近静帧日志缺少 FAIL"
+
+python3 - "$TMP_ROOT/motion-moving" <<'PY'
+from pathlib import Path
+import sys
+d = Path(sys.argv[1])
+d.mkdir(parents=True, exist_ok=True)
+w = h = 64
+n = w * h
+for i in range(5):
+    buf = bytearray([40] * n)
+    offset = min(i * 8, w - 16)
+    for y in range(16, 48):
+        for x in range(offset, offset + 16):
+            buf[y * w + x] = 220
+    (d / f"f{i:02d}.pgm").write_bytes(b"P5\n64 64\n255\n" + bytes(buf))
+PY
+
+if ! python3 scripts/motion_gate.py "$TMP_ROOT/motion-moving" >"$TMP_ROOT/motion-moving.log" 2>&1; then
+  cat "$TMP_ROOT/motion-moving.log" >&2
+  fail "motion_gate 拒绝了合成运动序列"
+fi
+echo "[smoke]   近静帧 exit 2；合成运动 PASS"
+
+echo "[smoke] 7/8 执行 restore.sh dry-run（i2v / looklock / flf2v）"
+
 for group in i2v looklock flf2v; do
   if ! env \
     CAT_ANTHRO_SKIP_ENV=1 \
@@ -330,7 +406,7 @@ for rel in \
 done
 echo "[smoke]   输入/输出目录结构完整"
 
-echo "[smoke] 7/7 检查 comic 路径拒绝"
+echo "[smoke] 8/8 检查 comic 路径拒绝"
 set +e
 env \
   CAT_ANTHRO_SKIP_ENV=1 \
@@ -348,6 +424,6 @@ fi
 grep -q 'Refusing' "$TMP_ROOT/refuse.log" || fail "restore.sh 拒绝信息不明确"
 echo "[smoke]   ai-realistic-comic 路径已被拒绝"
 
-echo "[smoke] PASS (dry-run): workflow/manifest、三猫定妆、CHARACTER-LOCK、refs/cats、双机 ID、噪声门禁、restore 隔离均通过"
+echo "[smoke] PASS (dry-run): workflow/manifest、三猫定妆、CHARACTER-LOCK、refs/cats、双机 ID、噪声门禁、动作门禁、restore 隔离均通过"
 echo "[smoke] 未开机、未跑 GPU、未生成真实视频、未产生计费；此 PASS 不代表生成成功。"
 exit 0
