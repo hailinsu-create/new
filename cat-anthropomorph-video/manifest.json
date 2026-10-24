@@ -1,0 +1,185 @@
+{
+  "project": "cat-anthropomorph-video",
+  "sfw_only": true,
+  "isolation": {
+    "forbidden_trees": [
+      "ai-realistic-comic/"
+    ],
+    "note": "Do not copy, symlink, or reference NSFW/undress workflows, LoRAs, character packs, or prompts from the comic stack. Ops patterns (manifest/restore/spend_cap/race_boot) may be reimplemented here with new filenames only."
+  },
+  "target_gpu": "AutoDL RTX 4090 24GB",
+  "groups": {
+    "looklock": {
+      "description": "Qwen-Image-Edit-2511 multi-image look lock (cat fur + costume); default UNET fp8mixed",
+      "custom_nodes": [
+        "ComfyUI built-in Qwen-Image-Edit 2511 subgraph / template support (update ComfyUI to latest)",
+        "optional: comfyui_controlnet_aux (OpenPose/Depth for pose lock before I2V)"
+      ],
+      "weights": [
+        {
+          "id": "qwen_image_edit_2511_fp8mixed",
+          "filename": "qwen_image_edit_2511_fp8mixed.safetensors",
+          "dest": "diffusion_models/",
+          "bytes": 20533762817,
+          "url": "https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_2511_fp8mixed.safetensors",
+          "license_note": "Follow upstream Qwen / Comfy-Org terms",
+          "default": true,
+          "note": "默认（必下）；Qwen looklock 用 fp8mixed OK，Wan fp16 禁令不适用于 Qwen"
+        },
+        {
+          "id": "qwen_image_edit_2511_bf16",
+          "filename": "qwen_image_edit_2511_bf16.safetensors",
+          "dest": "diffusion_models/",
+          "bytes": 40861031560,
+          "url": "https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_2511_bf16.safetensors",
+          "optional": true,
+          "note": "可选；仅 VRAM/磁盘允许时；4090 优先 fp8mixed；不可与 fused lightning checkpoint 叠加"
+        },
+        {
+          "id": "qwen_2.5_vl_7b_fp8_scaled",
+          "filename": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+          "dest": "text_encoders/",
+          "bytes": 9384670680,
+          "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors"
+        },
+        {
+          "id": "qwen_image_vae",
+          "filename": "qwen_image_vae.safetensors",
+          "dest": "vae/",
+          "bytes": 253806246,
+          "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors"
+        },
+        {
+          "id": "qwen_edit_2511_lightning_4steps",
+          "filename": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+          "dest": "loras/",
+          "bytes": 849608296,
+          "url": "https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning/resolve/main/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+          "optional": true,
+          "note": "仅加速可选：必须搭配 fp8mixed 基础模型，不可叠加到 fused lightning checkpoint；质量门禁默认 OFF（Enable 4steps LoRA? = false）"
+        }
+      ],
+      "sfw_lora_candidates": [
+        {
+          "id": "humewow_or_cat_anthro_sfw",
+          "name": "HuMeow / cat anthropomorph SFW LoRA (Flux route B)",
+          "page": "https://civitai.com/",
+          "requires_manual_license_check": true,
+          "note": "Search Civitai for HuMeow or equivalent SFW cat-anthro LoRA; confirm license + no NSFW merge before download. Do NOT list undress models."
+        }
+      ],
+      "precision_policy": {
+        "default_unet": "qwen_image_edit_2511_fp8mixed.safetensors",
+        "note": "Qwen looklock uses fp8mixed OK. The Wan fp16-only policy is separate and does NOT apply to Qwen."
+      },
+      "notes": [
+        "Qwen looklock default UNET = qwen_image_edit_2511_fp8mixed.safetensors (fp8mixed OK); Wan's 'ban fp8' policy does NOT apply to Qwen.",
+        "Do NOT add --force-fp16 for Qwen (black-image risk). Never launch with --use-sage-attention.",
+        "Lightning LoRA (qwen_edit_2511_lightning_4steps) is optional speed only: use only with the fp8mixed base and never stack it on a fused lightning checkpoint. The quality gate keeps Lightning OFF (Enable 4steps LoRA? = false).",
+        "Wan2.1 I2V / FLF2V remain fp16; that is a separate precision policy and must not be reverted by looklock changes.",
+        "Optional costume_ref path: $INPUT_ROOT/looklock/costume_ref_PLACEHOLDER.png (or a refs/ costume placeholder) feeds image2/image3 as a clothing reference; it is an input image, not a weight."
+      ],
+      "optional_inputs": [
+        {
+          "id": "costume_ref",
+          "path": "$INPUT_ROOT/looklock/costume_ref_PLACEHOLDER.png",
+          "dest": "input/looklock/",
+          "note": "Optional clothing/pose reference for image2/image3; workflow/01 uses looklock/costume_ref_PLACEHOLDER.png (ComfyUI input-relative)."
+        }
+      ]
+    },
+    "i2v": {
+      "description": "Wan2.1 I2V 14B 480P fp16 default (fp8 VRAM fallback is noisy, not recommended)",
+      "custom_nodes": [
+        "ComfyUI native WanImageToVideo / CreateVideo / SaveVideo (latest ComfyUI)"
+      ],
+      "weights": [
+        {
+          "id": "wan21_i2v_480p_14b_fp16",
+          "filename": "wan2.1_i2v_480p_14B_fp16.safetensors",
+          "dest": "diffusion_models/",
+          "bytes": 32791377504,
+          "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_i2v_480p_14B_fp16.safetensors",
+          "default": true,
+          "note": "首选/默认；与官方 I2V 模板一致（必下）"
+        },
+        {
+          "id": "wan21_i2v_480p_14b_fp8",
+          "filename": "wan2.1_i2v_480p_14B_fp8_e4m3fn.safetensors",
+          "dest": "diffusion_models/",
+          "bytes": 16397245448,
+          "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_i2v_480p_14B_fp8_e4m3fn.safetensors",
+          "optional": true,
+          "note": "VRAM 回退；最低档、易噪，不推荐作默认"
+        },
+        {
+          "id": "umt5_xxl_fp8",
+          "filename": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+          "dest": "text_encoders/",
+          "bytes": 6735906897,
+          "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+          "shared_with": [
+            "flf2v"
+          ]
+        },
+        {
+          "id": "wan_2_1_vae",
+          "filename": "wan_2.1_vae.safetensors",
+          "dest": "vae/",
+          "bytes": 253815318,
+          "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors",
+          "shared_with": [
+            "flf2v"
+          ]
+        },
+        {
+          "id": "clip_vision_h",
+          "filename": "clip_vision_h.safetensors",
+          "dest": "clip_vision/",
+          "bytes": 1264219396,
+          "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/clip_vision/clip_vision_h.safetensors",
+          "shared_with": [
+            "flf2v"
+          ]
+        }
+      ]
+    },
+    "flf2v": {
+      "description": "Wan2.1 FLF2V 14B 720P fp16 default (fp8 VRAM fallback is noisy, not recommended)",
+      "custom_nodes": [
+        "ComfyUI native WanFirstLastFrameToVideo (latest ComfyUI)"
+      ],
+      "weights": [
+        {
+          "id": "wan21_flf2v_720p_14b_fp16",
+          "filename": "wan2.1_flf2v_720p_14B_fp16.safetensors",
+          "dest": "diffusion_models/",
+          "bytes": 32792693440,
+          "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_flf2v_720p_14B_fp16.safetensors",
+          "default": true,
+          "note": "首选/默认；与官方 FLF2V 模板一致（必下）"
+        },
+        {
+          "id": "wan21_flf2v_720p_14b_fp8",
+          "filename": "wan2.1_flf2v_720p_14B_fp8_e4m3fn.safetensors",
+          "dest": "diffusion_models/",
+          "bytes": 16397952536,
+          "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_flf2v_720p_14B_fp8_e4m3fn.safetensors",
+          "optional": true,
+          "note": "VRAM 回退；最低档、易噪，不推荐作默认"
+        }
+      ],
+      "also_requires_from_groups": [
+        "i2v"
+      ]
+    }
+  },
+  "banned": {
+    "note": "Explicitly excluded from this manifest",
+    "items": [
+      "Any Civitai undress / clothes-removal / NSFW character packs",
+      "Any path under ai-realistic-comic/",
+      "Axis-leader likeness LoRAs, swastika detail packs"
+    ]
+  }
+}
