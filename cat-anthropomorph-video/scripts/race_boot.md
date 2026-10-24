@@ -22,13 +22,21 @@
 4. **未宣称**：本仓库 **不** 声称已开机、已跑 GPU 或已产生计费；实例已创建只代表实体登记。
 5. **余额**：账户余额约 **¥17.25**，**未充值**；任何开机/租卡动作均需用户明确授权。
 
+## ComfyUI 启动参数（2026-10-24 强制口径）
+
+- **禁止** `--use-sage-attention`：Wan2.1 I2V 易出黑屏/噪点废片（ComfyUI#8573）。
+- **可选** `--force-upcast-attention`：规避部分注意力精度问题（ComfyUI#6987），代价是略慢/略耗显存。
+- P1 默认 UNET 已切 **fp16**（`wan2.1_i2v_480p_14B_fp16.safetensors`）；`fp8_e4m3fn` 只是 VRAM 最低档回退，易噪，不推荐。
+- 启动示例：`python main.py --listen 0.0.0.0 --port 6006`（不要追加 sage-attention）。
+
 ## 推荐人工流程（AutoDL）
 
 1. 控制台确认另一台实例状态为关机。
 2. 经用户授权后启动其中一台（谁先抢到空闲卡谁开）；**不要两台一起 Running**。
-3. `source .env` → `bash scripts/restore.sh --group i2v`（首次可 `--apply`）。`restore.sh` 会把 `refs/cats/{A,B,C}/` 下的 `front.jpg` / `cat-*.jpg` 硬拷贝到 `$INPUT_ROOT/cats/{A,B,C}/raw/`，目标已存在则跳过。
-4. 跑完 P1/P2/P3 目标后 **关机留盘**。
-5. 若母机无卡：保持母机关机，再开克隆机；仍只允许一台 Running。
+3. `source .env` → `bash scripts/restore.sh --group i2v`（首次可 `--apply`）。默认下载 fp16 UNET；`fp8` 已标 optional，默认跳过。`restore.sh` 会把 `refs/cats/{A,B,C}/` 下的 `front.jpg` / `cat-*.jpg` 硬拷贝到 `$INPUT_ROOT/cats/{A,B,C}/raw/`，目标已存在则跳过。
+4. 启动 ComfyUI 前核对本页「启动参数」；跑 02/03 后先过 `noise_gate.py`，FAIL 即废片。
+5. 跑完 P1/P2/P3 目标后 **关机留盘**。
+6. 若母机无卡：保持母机关机，再开克隆机；仍只允许一台 Running。
 
 ## 花费帽
 

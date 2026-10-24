@@ -59,7 +59,7 @@ for var in MODELS_ROOT COMFYUI_ROOT INPUT_ROOT OUTPUT_ROOT; do
   fi
 done
 
-echo "[smoke] 1/6 解析 workflow JSON 并核对 manifest 权重"
+echo "[smoke] 1/7 解析 workflow JSON 并核对 manifest 权重"
 python3 - "$ROOT" <<'PY'
 from __future__ import annotations
 
@@ -85,20 +85,22 @@ workflows = {
     "workflow/02_i2v_wan21_480p.json": {
         "groups": ["i2v"],
         "required": [
-            "wan2.1_i2v_480p_14B_fp8_e4m3fn.safetensors",
+            "wan2.1_i2v_480p_14B_fp16.safetensors",
             "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
             "wan_2.1_vae.safetensors",
             "clip_vision_h.safetensors",
         ],
+        "require_fp16_unet": True,
     },
     "workflow/03_flf2v_wan21.json": {
         "groups": ["flf2v", "i2v"],
         "required": [
-            "wan2.1_flf2v_720p_14B_fp8_e4m3fn.safetensors",
+            "wan2.1_flf2v_720p_14B_fp16.safetensors",
             "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
             "wan_2.1_vae.safetensors",
             "clip_vision_h.safetensors",
         ],
+        "require_fp16_unet": True,
     },
 }
 
@@ -107,7 +109,7 @@ for rel, spec in workflows.items():
     path = root / rel
     text = path.read_text(encoding="utf-8")
     try:
-        json.loads(text)
+        payload = json.loads(text)
     except json.JSONDecodeError as exc:
         errors.append(f"{rel}: invalid JSON: {exc}")
         continue
@@ -126,9 +128,18 @@ for rel, spec in workflows.items():
         if name not in found:
             errors.append(f"{rel}: missing required weight {name}")
 
-    stale = sorted(set(re.findall(r"wan2\.1_[A-Za-z0-9._-]*fp16\.safetensors", text)))
-    if stale:
-        errors.append(f"{rel}: stale fp16 UNET references: {stale}")
+    if spec.get("require_fp16_unet"):
+        unet_nodes = [node for node in payload.get("nodes", []) if node.get("type") == "UNETLoader"]
+        if not unet_nodes:
+            errors.append(f"{rel}: missing UNETLoader node")
+        else:
+            unet_names = [str((node.get("widgets_values") or [""])[0]) for node in unet_nodes]
+            has_fp16 = any("fp16" in name for name in unet_names)
+            only_fp8 = any("fp8_e4m3fn" in name for name in unet_names) and not has_fp16
+            if only_fp8:
+                errors.append(f"{rel}: UNETLoader is fp8_e4m3fn only (expected fp16): {unet_names}")
+            if not has_fp16:
+                errors.append(f"{rel}: UNETLoader does not point at fp16: {unet_names}")
 
     print(f"[smoke]   {rel}: {len(found)} weight filenames, all within manifest")
 
@@ -138,7 +149,7 @@ if errors:
     sys.exit(1)
 PY
 
-echo "[smoke] 2/6 检查三猫定妆卡"
+echo "[smoke] 2/7 检查三猫定妆卡"
 for name in 小橘 银宝 墨墨; do
   grep -q "$name" prompts/look_cards.md || fail "prompts/look_cards.md 缺少名字：${name}"
 done
@@ -147,7 +158,7 @@ if grep -q '\[待补\]' prompts/look_cards.md; then
 fi
 echo "[smoke]   A小橘 / B银宝 / C墨墨 已锁定"
 
-echo "[smoke] 3/6 检查 CHARACTER-LOCK 与 refs/cats"
+echo "[smoke] 3/7 检查 CHARACTER-LOCK 与 refs/cats"
 LOCK_DOC="CHARACTER-LOCK-2026-10-24.md"
 [[ -f "$LOCK_DOC" ]] || fail "缺少定妆锁定文档：${LOCK_DOC}"
 for name in 小橘 银宝 墨墨; do
@@ -185,7 +196,7 @@ else
   echo "[smoke]   refs/cats 非空 jpg ${present_files} 个；缺失 ${missing_cats} 只"
 fi
 
-echo "[smoke] 4/6 检查双机实体 ID"
+echo "[smoke] 4/7 检查双机实体 ID"
 for doc in scripts/race_boot.md DUAL-CREATE-RESULT-2026-10-24.md; do
   [[ -f "$doc" ]] || fail "缺少双机文档：${doc}"
   grep -q '9b4c40bda6-dad38bb9' "$doc" || fail "${doc} 缺少母机 ID 9b4c40bda6-dad38bb9"
@@ -199,7 +210,37 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo "[smoke] 5/6 执行 restore.sh dry-run（i2v / looklock / flf2v）"
+echo "[smoke] 5/7 噪声门禁（self-test + 合成噪声 FAIL + 猫参考图 PASS）"
+python3 scripts/noise_gate.py --self-test || fail "noise_gate self-test 失败"
+
+python3 - "$TMP_ROOT/noise-synthetic.pgm" <<'PY'
+from pathlib import Path
+import random
+import sys
+
+path = Path(sys.argv[1])
+width = height = 128
+rng = random.Random(20261024)
+path.write_bytes(b"P5\n128 128\n255\n" + bytes(rng.randrange(256) for _ in range(width * height)))
+PY
+
+set +e
+python3 scripts/noise_gate.py "$TMP_ROOT/noise-synthetic.pgm" >"$TMP_ROOT/noise-gate.log" 2>&1
+noise_rc=$?
+set -e
+if [[ "$noise_rc" -ne 2 ]]; then
+  cat "$TMP_ROOT/noise-gate.log" >&2
+  fail "noise_gate 未以 exit 2 拒绝合成噪声（实际 ${noise_rc}）"
+fi
+grep -q 'FAIL' "$TMP_ROOT/noise-gate.log" || fail "noise_gate 拒绝日志缺少 FAIL"
+
+if ! python3 scripts/noise_gate.py refs/cats/A/front.jpg >"$TMP_ROOT/noise-cat.log" 2>&1; then
+  cat "$TMP_ROOT/noise-cat.log" >&2
+  fail "noise_gate 拒绝了正常猫参考图 refs/cats/A/front.jpg"
+fi
+echo "[smoke]   合成噪声 exit 2；refs/cats/A/front.jpg 正常 PASS"
+
+echo "[smoke] 6/7 执行 restore.sh dry-run（i2v / looklock / flf2v）"
 for group in i2v looklock flf2v; do
   if ! env \
     CAT_ANTHRO_SKIP_ENV=1 \
@@ -214,8 +255,10 @@ for group in i2v looklock flf2v; do
   echo "[smoke]   restore --dry-run --group ${group}: ok"
 done
 
-grep -q 'wan2.1_i2v_480p_14B_fp8_e4m3fn.safetensors' "$TMP_ROOT/restore-i2v.log" \
-  || fail "i2v restore 日志缺少 fp8 UNET"
+grep -q 'wan2.1_i2v_480p_14B_fp16.safetensors' "$TMP_ROOT/restore-i2v.log" \
+  || fail "i2v restore 日志缺少 fp16 UNET（默认权重未生效）"
+grep -q 'wan2.1_flf2v_720p_14B_fp16.safetensors' "$TMP_ROOT/restore-flf2v.log" \
+  || fail "flf2v restore 日志缺少 fp16 UNET（默认权重未生效）"
 
 for rel in \
   input/cats/A/raw \
@@ -230,7 +273,7 @@ for rel in \
 done
 echo "[smoke]   输入/输出目录结构完整"
 
-echo "[smoke] 6/6 检查 comic 路径拒绝"
+echo "[smoke] 7/7 检查 comic 路径拒绝"
 set +e
 env \
   CAT_ANTHRO_SKIP_ENV=1 \
@@ -248,6 +291,6 @@ fi
 grep -q 'Refusing' "$TMP_ROOT/refuse.log" || fail "restore.sh 拒绝信息不明确"
 echo "[smoke]   ai-realistic-comic 路径已被拒绝"
 
-echo "[smoke] PASS (dry-run): workflow/manifest、三猫定妆、CHARACTER-LOCK、refs/cats、双机 ID、restore 隔离均通过"
-echo "[smoke] 未开机、未跑 GPU、未产生计费。"
+echo "[smoke] PASS (dry-run): workflow/manifest、三猫定妆、CHARACTER-LOCK、refs/cats、双机 ID、噪声门禁、restore 隔离均通过"
+echo "[smoke] 未开机、未跑 GPU、未生成真实视频、未产生计费；此 PASS 不代表生成成功。"
 exit 0

@@ -58,6 +58,18 @@
 - **提交**：GitHub：本轮文档收尾 commit 即将/已 push 到 PR #84 分支。
 - **边界**：未开机、未跑 GPU、未计费；禁止 grok；未触碰 `ai-realistic-comic/` 或任何 NSFW
 
+## 2026-10-24 Asia/Shanghai · 段7：Wan2.1 I2V 噪点废片根因修正（社区方案落库）
+
+- **事故**：第一只猫 I2V 首片为 raw noise 废片，主体不可辨；用户报告对输入首帧 **PSNR≈10 dB** 量级。
+- **根因假设**：优先怀疑 ① 旧默认 `wan2.1_i2v_480p_14B_fp8_e4m3fn` 精度不足（官方模板为 fp16）；② ComfyUI `--use-sage-attention` 污染 Wan 注意力（ComfyUI#8573）；③ 未按需使用 `--force-upcast-attention`（ComfyUI#6987）。详见 [`COMMUNITY-FIXES-2026-10-24.md`](COMMUNITY-FIXES-2026-10-24.md)。
+- **Workflow**：`02_i2v_wan21_480p.json` → id `cat-anthro-i2v-wan21-480p-fp16`，UNET + properties.models 切 `wan2.1_i2v_480p_14B_fp16.safetensors`，正向换 A 小橘猫拟人前缀；`03_flf2v_wan21.json` → id `cat-anthro-flf2v-wan21-720p-fp16`，UNET 切 `wan2.1_flf2v_720p_14B_fp16.safetensors`。保留 ModelSamplingSD3(8)、CLIPVisionEncode(none)、WanImageToVideo、KSampler(20/6/uni_pc/simple)。
+- **Manifest**：i2v/flf2v 均新增 fp16 默认权重（约 32.79GB/个）；原 fp8 标 optional，注明「VRAM 回退；最低档、易噪，不推荐」。
+- **启动口径**：README-PIPELINE、`scripts/race_boot.md`、`scripts/restore.sh` 均写明 **禁止 `--use-sage-attention`**，可选 `--force-upcast-attention`；P1 默认权重改 fp16，磁盘说明更新。
+- **噪声门禁**：新增 `scripts/noise_gate.py`（图像/视频抽帧 + 熵/std/空间粗糙度；FAIL exit 2）；`smoke_test.sh` 增加 self-test、合成噪声必须 exit 2、`refs/cats/A/front.jpg` 必须 PASS，并强制 02/03 UNET 为 fp16、restore 日志含 fp16。
+- **验收**：`bash cat-anthropomorph-video/scripts/smoke_test.sh --dry-run` → **exit 0**；日志明示未生成真实视频、PASS 不代表生成成功。
+- **尚未做**：未开机、未装 fp16 权重、未重跑 I2V、未复测 PSNR；下次按 [`NEXT-BOOT-CHECKLIST.md`](NEXT-BOOT-CHECKLIST.md) 验证后才可评价是否真修好。
+- **边界**：未充值、未 merge、未用 grok；未触碰 `ai-realistic-comic/` 或任何 NSFW。
+
 ## 约定落库
 
 - Notion Memory：[工作同步：GitHub + Notion](https://app.notion.com/p/402b407a692a81ecb2ddcd6b35b29320)

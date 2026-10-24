@@ -135,4 +135,6 @@ fi
 
 "${CMD[@]}"
 
+echo "[remind] 默认 Wan UNET=fp16；fp8_e4m3fn 仅 VRAM 回退，最低档、易噪，不推荐。"
+echo "[remind] ComfyUI 禁止 --use-sage-attention（Wan I2V 黑废，ComfyUI#8573）；可选 --force-upcast-attention（#6987）。"
 echo "Done. Next: open workflow JSON under workflow/ in ComfyUI."

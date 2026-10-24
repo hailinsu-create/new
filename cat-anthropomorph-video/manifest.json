@@ -68,17 +68,28 @@
       ]
     },
     "i2v": {
-      "description": "Wan2.1 I2V 14B 480P fp8 draft clips",
+      "description": "Wan2.1 I2V 14B 480P fp16 default (fp8 VRAM fallback is noisy, not recommended)",
       "custom_nodes": [
         "ComfyUI native WanImageToVideo / CreateVideo / SaveVideo (latest ComfyUI)"
       ],
       "weights": [
         {
+          "id": "wan21_i2v_480p_14b_fp16",
+          "filename": "wan2.1_i2v_480p_14B_fp16.safetensors",
+          "dest": "diffusion_models/",
+          "bytes": 32791377504,
+          "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_i2v_480p_14B_fp16.safetensors",
+          "default": true,
+          "note": "首选/默认；与官方 I2V 模板一致（必下）"
+        },
+        {
           "id": "wan21_i2v_480p_14b_fp8",
           "filename": "wan2.1_i2v_480p_14B_fp8_e4m3fn.safetensors",
           "dest": "diffusion_models/",
           "bytes": 16397245448,
-          "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_i2v_480p_14B_fp8_e4m3fn.safetensors"
+          "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_i2v_480p_14B_fp8_e4m3fn.safetensors",
+          "optional": true,
+          "note": "VRAM 回退；最低档、易噪，不推荐作默认"
         },
         {
           "id": "umt5_xxl_fp8",
@@ -113,17 +124,28 @@
       ]
     },
     "flf2v": {
-      "description": "Wan2.1 FLF2V 14B 720P fp8 climax first-last frame",
+      "description": "Wan2.1 FLF2V 14B 720P fp16 default (fp8 VRAM fallback is noisy, not recommended)",
       "custom_nodes": [
         "ComfyUI native WanFirstLastFrameToVideo (latest ComfyUI)"
       ],
       "weights": [
         {
+          "id": "wan21_flf2v_720p_14b_fp16",
+          "filename": "wan2.1_flf2v_720p_14B_fp16.safetensors",
+          "dest": "diffusion_models/",
+          "bytes": 32792693440,
+          "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_flf2v_720p_14B_fp16.safetensors",
+          "default": true,
+          "note": "首选/默认；与官方 FLF2V 模板一致（必下）"
+        },
+        {
           "id": "wan21_flf2v_720p_14b_fp8",
           "filename": "wan2.1_flf2v_720p_14B_fp8_e4m3fn.safetensors",
           "dest": "diffusion_models/",
           "bytes": 16397952536,
-          "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_flf2v_720p_14B_fp8_e4m3fn.safetensors"
+          "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_flf2v_720p_14B_fp8_e4m3fn.safetensors",
+          "optional": true,
+          "note": "VRAM 回退；最低档、易噪，不推荐作默认"
         }
       ],
       "also_requires_from_groups": [

@@ -1,5 +1,5 @@
 {
-  "id": "cat-anthro-i2v-wan21-480p-fp8",
+  "id": "cat-anthro-i2v-wan21-480p-fp16",
   "revision": 0,
   "last_node_id": 57,
   "last_link_id": 113,
@@ -33,14 +33,14 @@
         "Node name for S&R": "UNETLoader",
         "models": [
           {
-            "name": "wan2.1_i2v_480p_14B_fp8_e4m3fn.safetensors",
-            "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_i2v_480p_14B_fp8_e4m3fn.safetensors",
+            "name": "wan2.1_i2v_480p_14B_fp16.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_i2v_480p_14B_fp16.safetensors",
             "directory": "diffusion_models"
           }
         ]
       },
       "widgets_values": [
-        "wan2.1_i2v_480p_14B_fp8_e4m3fn.safetensors",
+        "wan2.1_i2v_480p_14B_fp16.safetensors",
         "default"
       ]
     },
@@ -201,7 +201,7 @@
         "Node name for S&R": "CLIPTextEncode"
       },
       "widgets_values": [
-        "a cute anime girl with massive fennec ears and a big fluffy tail wearing a maid outfit turning around"
+        "anthropomorphic orange-and-white long-haired cat soldier, the same individual cat in every shot: orange tabby patches on head, back and tail, white muzzle, chest and paws, long fluffy fur, amber-copper eyes, large upright tufted ears clearly visible through a US M1 helmet with ear cutouts, olive-drab WWII US infantry jacket, red neckerchief, slow turn, vertical 9:16, SFW photoreal cinematic"
       ],
       "color": "#232",
       "bgcolor": "#353"
@@ -599,7 +599,7 @@
       "outputs": [],
       "properties": {},
       "widgets_values": [
-        "# 小猫拟人 · Wan2.1 I2V 480P fp8（草稿连击段）\n\n**用途**：定妆/分镜竖屏首帧 → 短视频草稿（约 2s@16fps smoke；量产可加长后剪映拼接）。\n\n## 占位输入\n- `Load Image`：竖屏首帧（建议 480×832 或同比例）→ `input/shots/B0-01_beat1_start.png`\n- 正向：外观卡前缀 + 动作句（`prompts/positive_fragments.md`）\n- 负向：`prompts/negative.txt`\n\n## 本仓库默认权重（4090）\n- UNET：`wan2.1_i2v_480p_14B_fp8_e4m3fn.safetensors`\n- CLIP：`umt5_xxl_fp8_e4m3fn_scaled.safetensors`（type=wan）\n- VAE：`wan_2.1_vae.safetensors`\n- CLIP Vision：`clip_vision_h.safetensors`\n\n来源：Hugging Face `Comfy-Org/Wan_2.1_ComfyUI_repackaged`（见 `manifest.json` group=i2v）。\n\n## 建议参数（P1 smoke）\n- WanImageToVideo：width=480 height=832 length=33 batch=1\n- steps≈20，CFG≈5–6，fps=16（CreateVideo）\n\n## 隔离\nSFW only；不引用 comic/NSFW 栈。\n\n\n---\nOfficial notes retained below for model URLs.\n\n[Tutorial](https://docs.comfy.org/tutorials/video/wan/wan-video)\n\n\n## Model links\n\n- [Hugging Face:Comfy-Org/Wan_2.1_ComfyUI_repackaged](https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged)\n- [ModelScope:Comfy-Org/Wan_2.1_ComfyUI_repackaged](https://modelscope.cn/models/Comfy-Org/Wan_2.1_ComfyUI_repackaged)\n\n**text_encoders**\n\n- [umt5_xxl_fp8_e4m3fn_scaled.safetensors](https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors) (6.27 GB)\n\n**clip_vision**\n\n- [clip_vision_h.safetensors](https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/clip_vision/clip_vision_h.safetensors) (1.18 GB)\n\n**diffusion_models**\n\n- [wan2.1_i2v_480p_14B_fp8_e4m3fn.safetensors](https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_i2v_480p_14B_fp8_e4m3fn.safetensors) (15.27 GB)\n\n**vae**\n\n- [wan_2.1_vae.safetensors](https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors) (242.1 MB)\n\n\nModel Storage Location\n\n```\n📂 ComfyUI/\n├── 📂 models/\n│   ├── 📂 text_encoders/\n│   │      └── umt5_xxl_fp8_e4m3fn_scaled.safetensors\n│   ├── 📂 clip_vision/\n│   │      └── clip_vision_h.safetensors\n│   ├── 📂 diffusion_models/\n│   │      └── wan2.1_i2v_480p_14B_fp8_e4m3fn.safetensors\n│   └── 📂 vae/\n│          └── wan_2.1_vae.safetensors\n```\n"
+        "# 小猫拟人 · Wan2.1 I2V 480P fp16（草稿连击段）\n\n**用途**：定妆/分镜竖屏首帧 → 短视频草稿（约 2s@16fps smoke；量产可加长后剪映拼接）。\n\n## 占位输入\n- `Load Image`：竖屏首帧（建议 480×832 或同比例）→ `input/shots/B0-01_beat1_start.png`\n- 正向：外观卡前缀 + 动作句（`prompts/positive_fragments.md`）\n- 负向：`prompts/negative.txt`\n\n## 本仓库默认权重（4090）\n- UNET：`wan2.1_i2v_480p_14B_fp16.safetensors`（**默认/首选**，与官方 I2V 模板一致）\n- CLIP：`umt5_xxl_fp8_e4m3fn_scaled.safetensors`（type=wan）\n- VAE：`wan_2.1_vae.safetensors`\n- CLIP Vision：`clip_vision_h.safetensors`\n\n来源：Hugging Face `Comfy-Org/Wan_2.1_ComfyUI_repackaged`（见 `manifest.json` group=i2v）。\n\n## 噪声回退口径（2026-10-24 社区修正）\n- `fp8_e4m3fn` 仅作 **VRAM 最低档回退**：更省显存，但 I2V 易出噪点废片，**不推荐**作默认。\n- ComfyUI 启动 **禁止** `--use-sage-attention`（参考 ComfyUI#8573：Wan I2V 黑屏/废片）。\n- 可选 `--force-upcast-attention`（参考 ComfyUI#6987）规避部分注意力精度问题。\n- 生成后先跑 `python3 scripts/noise_gate.py <输出视频或抽帧目录>`；FAIL 不得当成功。\n\n## 建议参数（P1 smoke，保留官方关键设置）\n- WanImageToVideo：width=480 height=832 length=33 batch=1（竖屏可保留）\n- ModelSamplingSD3：shift=8\n- CLIPVisionEncode：crop=none\n- KSampler：steps=20，cfg=6，sampler=uni_pc，scheduler=simple\n- CreateVideo：fps=16\n\n## 隔离\nSFW only；不引用 comic/NSFW 栈。\n\n\n---\nOfficial notes retained below for model URLs.\n\n[Tutorial](https://docs.comfy.org/tutorials/video/wan/wan-video)\n\n## Model links\n\n- [Hugging Face:Comfy-Org/Wan_2.1_ComfyUI_repackaged](https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged)\n- [ModelScope:Comfy-Org/Wan_2.1_ComfyUI_repackaged](https://modelscope.cn/models/Comfy-Org/Wan_2.1_ComfyUI_repackaged)\n\n**text_encoders**\n\n- [umt5_xxl_fp8_e4m3fn_scaled.safetensors](https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors) (6.27 GB)\n\n**clip_vision**\n\n- [clip_vision_h.safetensors](https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/clip_vision/clip_vision_h.safetensors) (1.18 GB)\n\n**diffusion_models**\n\n- [wan2.1_i2v_480p_14B_fp16.safetensors](https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_i2v_480p_14B_fp16.safetensors) (32.79 GB，默认)\n- [wan2.1_i2v_480p_14B_fp8_e4m3fn.safetensors](https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_i2v_480p_14B_fp8_e4m3fn.safetensors) (15.27 GB，VRAM 回退，易噪)\n\n**vae**\n\n- [wan_2.1_vae.safetensors](https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors) (242.1 MB)\n\n\nModel Storage Location\n\n```\n📂 ComfyUI/\n├── 📂 models/\n│   ├── 📂 text_encoders/\n│   │      └── umt5_xxl_fp8_e4m3fn_scaled.safetensors\n│   ├── 📂 clip_vision/\n│   │      └── clip_vision_h.safetensors\n│   ├── 📂 diffusion_models/\n│   │      └── wan2.1_i2v_480p_14B_fp16.safetensors\n│   └── 📂 vae/\n│          └── wan_2.1_vae.safetensors\n```\n"
       ],
       "color": "#222",
       "bgcolor": "#000"
