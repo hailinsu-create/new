@@ -57,6 +57,30 @@ if [[ ${#GROUP_ARGS[@]} -eq 0 ]]; then
   GROUP_ARGS=(--group i2v)
 fi
 
+SELECTED_GROUPS=()
+for ((idx = 0; idx < ${#GROUP_ARGS[@]}; idx += 2)); do
+  SELECTED_GROUPS+=("${GROUP_ARGS[$((idx + 1))]}")
+done
+
+group_selected() {
+  local needle="$1" g
+  for g in "${SELECTED_GROUPS[@]}"; do
+    if [[ "$g" == "$needle" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+# Fail closed: an explicit looklock selection is never rewritten to i2v here.
+if group_selected looklock; then
+  echo "[precision] Qwen looklock default UNET = qwen_image_edit_2511_fp8mixed.safetensors (fp8mixed OK)."
+  echo "[precision] Do NOT add --force-fp16 on Qwen (black-image risk)."
+  echo "[precision] Never --use-sage-attention."
+  echo "[precision] Lightning 4steps LoRA: optional speed only; only with fp8mixed base; never stack on a fused lightning checkpoint; quality default OFF."
+  echo "[precision] Wan2.1 I2V/FLF2V remain fp16 (separate policy)."
+fi
+
 refuse_comic() {
   local name="$1"
   local value="${2:-}"
@@ -135,6 +159,9 @@ fi
 
 "${CMD[@]}"
 
-echo "[remind] 默认 Wan UNET=fp16；fp8_e4m3fn 仅 VRAM 回退，最低档、易噪，不推荐。"
+echo "[remind] Wan 侧默认 UNET=fp16；fp8_e4m3fn 仅 VRAM 回退，最低档、易噪，不推荐。"
+if group_selected looklock; then
+  echo "[remind] Qwen looklock 默认 fp8mixed（OK）；不要对 Qwen 加 --force-fp16（黑图风险）。"
+fi
 echo "[remind] ComfyUI 禁止 --use-sage-attention（Wan I2V 黑废，ComfyUI#8573）；可选 --force-upcast-attention（#6987）。"
 echo "Done. Next: open workflow JSON under workflow/ in ComfyUI."

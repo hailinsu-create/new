@@ -70,8 +70,11 @@
 ## P2 · 定妆（Look-lock）
 
 1. 三猫定妆已锁定：**A 小橘 / B 银宝 / C 墨墨**（权威总锁 [`CHARACTER-LOCK-2026-10-24.md`](CHARACTER-LOCK-2026-10-24.md)，提示词见 [`prompts/look_cards.md`](prompts/look_cards.md)），直接使用各猫固定提示词前缀；实拍参考图已入库至 [`refs/cats/{A,B,C}/`](refs/cats/)。
-2. `bash scripts/restore.sh --apply --group looklock`。
-3. 打开 `workflow/01_looklock_qwen_edit.json`：多图真猫参考 + 外观前缀 + [`prompts/positive_fragments.md`](prompts/positive_fragments.md) 露耳/少持枪片段。
+2. `bash scripts/restore.sh --apply --group looklock`：默认下载 `qwen_image_edit_2511_fp8mixed.safetensors` + `qwen_2.5_vl_7b_fp8_scaled.safetensors` TE + `qwen_image_vae.safetensors`，并打印 looklock 精度策略、同步 `refs/cats/*/front.jpg` 到 `$INPUT_ROOT`。
+   - **Qwen 默认 fp8mixed（OK）**；Wan 的 fp16 政策**不适用**于 Qwen，**不要**对 Qwen 加 `--force-fp16`（黑图风险）。
+   - **禁止** `--use-sage-attention`。
+   - Lightning 4steps LoRA 仅加速可选：**只能搭配 fp8mixed 基础模型**，不可叠加 fused lightning checkpoint；质量门禁默认 **OFF**（`Enable 4steps LoRA?` = false）。
+3. 打开 `workflow/01_looklock_qwen_edit.json`：输入 `cats/A/raw/front.jpg` + 可选 `looklock/costume_ref_PLACEHOLDER.png`；正向已按 A 小橘前缀写为直立拟人美军诺曼底 / 二战步兵（露耳、SFW、不持枪），再接 [`prompts/positive_fragments.md`](prompts/positive_fragments.md) 动作/镜头片段。
 4. 备选：Flux + HuMeow 等 **SFW** LoRA——manifest 仅列 Civitai 检索说明，**需人工确认许可**。
 5. 每猫主装出正脸/侧面/3/4；盲测 ≥80%（见 `SERIES-WW2.md`）。
 

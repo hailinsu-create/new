@@ -26,11 +26,19 @@ def load_manifest() -> dict:
     return json.loads(MANIFEST.read_text(encoding="utf-8"))
 
 
+# Explicit group expansion only. looklock has no expansion: it must never be
+# silently remapped to i2v (fail closed instead).
+GROUP_EXPANSIONS = {"flf2v": {"i2v"}}
+
+
 def collect_weights(manifest: dict, groups: list[str]) -> list[dict]:
     wanted = set(groups)
-    # flf2v also needs shared i2v encoders/vae/clip
-    if "flf2v" in wanted:
-        wanted.add("i2v")
+    for gname in sorted(wanted):
+        if gname not in manifest["groups"]:
+            raise SystemExit(f"unknown group: {gname}")
+        wanted |= GROUP_EXPANSIONS.get(gname, set())
+    if GROUP_EXPANSIONS.get("looklock"):
+        raise SystemExit("refusing implicit looklock -> i2v remap")
     out: list[dict] = []
     seen = set()
     for gname in wanted:

@@ -62,7 +62,15 @@
   - [ ] 降低分辨率/length 排查显存，但不要优先退回 fp8。
   - [ ] 保存 ComfyUI 日志与失败视频到 artifacts，更新 `PROGRESS.md`。
 
-## G. 收尾
+## G. Looklock（Qwen-Image-Edit-2511，可选）
+
+- [ ] `bash cat-anthropomorph-video/scripts/restore.sh --apply --group looklock`；下载 `qwen_image_edit_2511_fp8mixed.safetensors` + `qwen_2.5_vl_7b_fp8_scaled.safetensors` + `qwen_image_vae.safetensors`。
+- [ ] **Qwen 默认 fp8mixed（OK）**；Wan 的 fp16 政策不适用，**不要**对 Qwen 加 `--force-fp16`（黑图风险）。
+- [ ] 启动命令仍**不得**包含 `--use-sage-attention`。
+- [ ] Lightning 4steps LoRA 仅加速可选：只能搭配 fp8mixed 基础模型，不可叠加 fused lightning checkpoint；质量门禁默认 **OFF**（`Enable 4steps LoRA?` = false）。
+- [ ] 打开 `workflow/01_looklock_qwen_edit.json`：确认 `LoadImage` #41 = `cats/A/raw/front.jpg`，#83 = `looklock/costume_ref_PLACEHOLDER.png`；正向为 A 小橘美军诺曼底拟人、SFW 不持枪。
+
+## H. 收尾
 
 - [ ] 记录本次是否通过、实际耗时、磁盘增量、PSNR。
 - [ ] 将输出/日志路径写入 `PROGRESS.md`；真实通过前不写“成功”。

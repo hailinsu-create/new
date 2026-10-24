@@ -141,6 +141,31 @@ for rel, spec in workflows.items():
             if not has_fp16:
                 errors.append(f"{rel}: UNETLoader does not point at fp16: {unet_names}")
 
+    if rel == "workflow/01_looklock_qwen_edit.json":
+        nodes = {node.get("id"): node for node in payload.get("nodes", [])}
+        front_path = str((nodes.get(41, {}).get("widgets_values") or [""])[0])
+        costume_path = str((nodes.get(83, {}).get("widgets_values") or [""])[0])
+        if front_path != "cats/A/raw/front.jpg":
+            errors.append(f"{rel}: LoadImage #41 default is {front_path!r}, expected 'cats/A/raw/front.jpg'")
+        if costume_path != "looklock/costume_ref_PLACEHOLDER.png":
+            errors.append(f"{rel}: LoadImage #83 default is {costume_path!r}, expected costume placeholder")
+
+        inner = {}
+        for subgraph in payload.get("definitions", {}).get("subgraphs", []):
+            for node in subgraph.get("nodes", []):
+                inner[node.get("id")] = node
+        prompt = str((inner.get(151, {}).get("widgets_values") or [""])[0])
+        if "furniture" in prompt.lower():
+            errors.append(f"{rel}: positive prompt still uses the official furniture demo")
+        for token in ("orange-and-white", "Normandy", "US infantry", "SFW", "no weapons"):
+            if token.lower() not in prompt.lower():
+                errors.append(f"{rel}: positive prompt missing {token!r}")
+        if inner.get(168, {}).get("widgets_values") != [False]:
+            errors.append(f"{rel}: 'Enable 4steps LoRA?' must stay false for the quality gate")
+        turbo = nodes.get(170, {})
+        if isinstance(turbo.get("widgets_values"), list) and any(v is True for v in turbo["widgets_values"]):
+            errors.append(f"{rel}: enable_turbo_mode must stay false")
+
     print(f"[smoke]   {rel}: {len(found)} weight filenames, all within manifest")
 
 if errors:
@@ -259,6 +284,38 @@ grep -q 'wan2.1_i2v_480p_14B_fp16.safetensors' "$TMP_ROOT/restore-i2v.log" \
   || fail "i2v restore 日志缺少 fp16 UNET（默认权重未生效）"
 grep -q 'wan2.1_flf2v_720p_14B_fp16.safetensors' "$TMP_ROOT/restore-flf2v.log" \
   || fail "flf2v restore 日志缺少 fp16 UNET（默认权重未生效）"
+grep -q 'Wan 侧默认 UNET=fp16' "$TMP_ROOT/restore-i2v.log" \
+  || fail "i2v restore 日志缺少 Wan fp16 提醒"
+
+LOOKLOCK_LOG="$TMP_ROOT/restore-looklock.log"
+grep -q 'qwen_image_edit_2511_fp8mixed.safetensors' "$LOOKLOCK_LOG" \
+  || fail "looklock restore 日志缺少 fp8mixed 默认 UNET"
+grep -q 'fp8mixed OK' "$LOOKLOCK_LOG" \
+  || fail "looklock restore 日志缺少 fp8mixed 精度策略"
+grep -q -- '--force-fp16 on Qwen' "$LOOKLOCK_LOG" \
+  || fail "looklock restore 日志缺少禁止 Qwen --force-fp16 警告"
+grep -q -- '--use-sage-attention' "$LOOKLOCK_LOG" \
+  || fail "looklock restore 日志缺少禁止 sage-attention 警告"
+grep -q 'Lightning 4steps LoRA' "$LOOKLOCK_LOG" \
+  || fail "looklock restore 日志缺少 Lightning 仅 fp8mixed/默认 OFF 说明"
+grep -q 'fp16 (separate policy)' "$LOOKLOCK_LOG" \
+  || fail "looklock restore 日志缺少 Wan fp16 独立策略说明"
+if grep -q 'wan2.1_i2v_480p_14B' "$LOOKLOCK_LOG"; then
+  cat "$LOOKLOCK_LOG" >&2
+  fail "looklock restore 静默回退到 i2v（fail-closed 被破坏）"
+fi
+echo "[smoke]   looklock 精度策略完整，且未回退到 i2v"
+
+for cat in A B C; do
+  src="refs/cats/${cat}/front.jpg"
+  [[ -f "$src" ]] || continue
+  dest="$TMP_ROOT/input/cats/${cat}/raw/front.jpg"
+  if [[ ! -s "$dest" ]]; then
+    fail "restore 未把 ${src} 同步到 ${dest}"
+  fi
+  cmp -s "$src" "$dest" || fail "同步后的参考图与 ${src} 不一致：${dest}"
+done
+echo "[smoke]   refs/cats/*/front.jpg 已同步到 INPUT_ROOT（内容一致）"
 
 for rel in \
   input/cats/A/raw \

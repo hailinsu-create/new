@@ -10,7 +10,7 @@
   "target_gpu": "AutoDL RTX 4090 24GB",
   "groups": {
     "looklock": {
-      "description": "Qwen-Image-Edit-2511 multi-image look lock (cat fur + costume)",
+      "description": "Qwen-Image-Edit-2511 multi-image look lock (cat fur + costume); default UNET fp8mixed",
       "custom_nodes": [
         "ComfyUI built-in Qwen-Image-Edit 2511 subgraph / template support (update ComfyUI to latest)",
         "optional: comfyui_controlnet_aux (OpenPose/Depth for pose lock before I2V)"
@@ -22,7 +22,9 @@
           "dest": "diffusion_models/",
           "bytes": 20533762817,
           "url": "https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_2511_fp8mixed.safetensors",
-          "license_note": "Follow upstream Qwen / Comfy-Org terms"
+          "license_note": "Follow upstream Qwen / Comfy-Org terms",
+          "default": true,
+          "note": "默认（必下）；Qwen looklock 用 fp8mixed OK，Wan fp16 禁令不适用于 Qwen"
         },
         {
           "id": "qwen_image_edit_2511_bf16",
@@ -31,7 +33,7 @@
           "bytes": 40861031560,
           "url": "https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_2511_bf16.safetensors",
           "optional": true,
-          "note": "Higher quality / VRAM; prefer fp8mixed on 4090"
+          "note": "可选；仅 VRAM/磁盘允许时；4090 优先 fp8mixed；不可与 fused lightning checkpoint 叠加"
         },
         {
           "id": "qwen_2.5_vl_7b_fp8_scaled",
@@ -54,7 +56,7 @@
           "bytes": 849608296,
           "url": "https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning/resolve/main/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
           "optional": true,
-          "note": "Optional speed LoRA for Qwen-Image-Edit-2511"
+          "note": "仅加速可选：必须搭配 fp8mixed 基础模型，不可叠加到 fused lightning checkpoint；质量门禁默认 OFF（Enable 4steps LoRA? = false）"
         }
       ],
       "sfw_lora_candidates": [
@@ -64,6 +66,25 @@
           "page": "https://civitai.com/",
           "requires_manual_license_check": true,
           "note": "Search Civitai for HuMeow or equivalent SFW cat-anthro LoRA; confirm license + no NSFW merge before download. Do NOT list undress models."
+        }
+      ],
+      "precision_policy": {
+        "default_unet": "qwen_image_edit_2511_fp8mixed.safetensors",
+        "note": "Qwen looklock uses fp8mixed OK. The Wan fp16-only policy is separate and does NOT apply to Qwen."
+      },
+      "notes": [
+        "Qwen looklock default UNET = qwen_image_edit_2511_fp8mixed.safetensors (fp8mixed OK); Wan's 'ban fp8' policy does NOT apply to Qwen.",
+        "Do NOT add --force-fp16 for Qwen (black-image risk). Never launch with --use-sage-attention.",
+        "Lightning LoRA (qwen_edit_2511_lightning_4steps) is optional speed only: use only with the fp8mixed base and never stack it on a fused lightning checkpoint. The quality gate keeps Lightning OFF (Enable 4steps LoRA? = false).",
+        "Wan2.1 I2V / FLF2V remain fp16; that is a separate precision policy and must not be reverted by looklock changes.",
+        "Optional costume_ref path: $INPUT_ROOT/looklock/costume_ref_PLACEHOLDER.png (or a refs/ costume placeholder) feeds image2/image3 as a clothing reference; it is an input image, not a weight."
+      ],
+      "optional_inputs": [
+        {
+          "id": "costume_ref",
+          "path": "$INPUT_ROOT/looklock/costume_ref_PLACEHOLDER.png",
+          "dest": "input/looklock/",
+          "note": "Optional clothing/pose reference for image2/image3; workflow/01 uses looklock/costume_ref_PLACEHOLDER.png (ComfyUI input-relative)."
         }
       ]
     },
