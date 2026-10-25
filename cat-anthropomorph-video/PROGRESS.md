@@ -176,3 +176,9 @@
 - **RESULT**：[`reviews/RESULT-v0.1e-2026-10-25.md`](reviews/RESULT-v0.1e-2026-10-25.md)
 - **Notion**：https://app.notion.com/p/404b407a692a81e0a961cbfecbb4cd09
 - **边界**：本回合文档同步；未再开机；未 merge；未碰 comic/NSFW
+
+## 2026-10-25 Asia/Shanghai · 段19：市面差距检索 + 提升方法（¥0）
+
+- **文档**：[`reviews/MARKET-GAP-IMPROVE-2026-10-25.md`](reviews/MARKET-GAP-IMPROVE-2026-10-25.md) — 对照 v0.1e；默认先 **音乐+剪辑**，再考虑新 I2V；禁同参碰运气。
+- **Notion**：待调度补链（本回合未写 Opus 页）。
+- **边界**：仅检索文档；未开机、未充值、未 merge；未碰 NSFW。
