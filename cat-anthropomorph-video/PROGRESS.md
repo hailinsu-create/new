@@ -198,3 +198,10 @@
 - 已写入 [`reviews/MARKET-GAP-IMPROVE-2026-10-25.md`](reviews/MARKET-GAP-IMPROVE-2026-10-25.md) §0 与差距表；[`reviews/V0.1F-PLAN-2026-10-25.md`](reviews/V0.1F-PLAN-2026-10-25.md) §2.5 题材¥0 + §2.6 v0.1g 验收。
 - **分界**：字幕/滤镜/裁切/战役符号叠层 = ¥0（v0.1f）；新 looklock / 战场镜 / 高清定妆 = 须授权 GPU（v0.1g）。
 - **边界**：未开机、未充值、未 release、未 merge。
+
+## 2026-10-25 Asia/Shanghai · 段22：Comfy 猫拟人社区对照（SFW）
+
+- **文档**：[`reviews/COMFY-CAT-ANTHRO-COMMUNITY-2026-10-25.md`](reviews/COMFY-CAT-ANTHRO-COMMUNITY-2026-10-25.md)
+- **结论**：Qwen-Edit 拟人 LoRA + Wan 系 I2V/超分 社区已成熟；本仓缺直立拟人硬提示、多参考密度、超分；二足易塌需专项防。
+- **v0.1g 默认栈**：Qwen-2511 多图 looklock（现权重）+ 拟人/军装提示强化 + 可选 SFW Animal→Human LoRA → Wan2.1 A（或授权评 Wan2.2）→ 4× 超分。
+- **边界**：未开机、未下载大权重、未 merge；未碰 NSFW。
