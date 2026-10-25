@@ -7,8 +7,8 @@
 
 | 角色 | 实体 | 实例 ID | 区域 | GPU | 系统盘 / 数据盘 | 关机策略 |
 | --- | --- | --- | --- | --- | --- | --- |
-| 母-Comfy定妆 | 025机 | `9b4c40bda6-dad38bb9` | 重庆A | RTX 4090D | 扩盘 100G | shutdown 留盘 |
-| 克隆-Wan | 003机 | `bb8c4f8e12-00c8bdac` | 重庆A | RTX 4090D | 扩盘 100G | shutdown 留盘 |
+| 母 · Wan/I2V only | 025机 | `9b4c40bda6-dad38bb9` | 重庆A | RTX 4090D | 扩盘 100G | shutdown 留盘 |
+| 克隆 · Qwen looklock only | 003机 | `bb8c4f8e12-00c8bdac` | 重庆A | RTX 4090D | 扩盘 100G | shutdown 留盘 |
 
 实例 ID 已与用户权威字段对齐：母 **`9b4c40bda6-dad38bb9`** / 克隆 **`bb8c4f8e12-00c8bdac`**；三猫角色与参考图见 [`CHARACTER-LOCK-2026-10-24.md`](CHARACTER-LOCK-2026-10-24.md) 与 [`refs/cats/`](refs/cats/)。
 

@@ -8,6 +8,8 @@
 - **定妆锁定**：[`CHARACTER-LOCK-2026-10-24.md`](CHARACTER-LOCK-2026-10-24.md)（权威角色表 / 固定前缀 / 双机 ID）；参考图入口 [`refs/cats/`](refs/cats/)，三张 jpg 已入库（首选名 + `front.jpg` 共六张）
 - **离线验收**：`bash scripts/smoke_test.sh --dry-run`（默认 dry-run，exit 0 为通过）；本仓库仍 **未开机真跑 GPU**
 - **2026-10-24 社区修正**：[`COMMUNITY-FIXES-2026-10-24.md`](COMMUNITY-FIXES-2026-10-24.md)（fp16 默认、禁 SageAttention、噪声门禁）
+- **2026-10-25 模板化**：[`workflow/TEMPLATES.md`](workflow/TEMPLATES.md) — I2V 方案 A / Qwen looklock 可复用；每镜只改槽位，勿另起 workflow
+- **v0-lite 装配**：15s 剪辑样片路径记在 **briefs / 本机 outputs**（如 `outputs/motion-fix-i2v-2026-10-25/`）；**二进制 mp4 可不入库**，以文档 + 路径为准（见 beat/storyboard）
 - **2026-10-25 动作修正**：[`reviews/COMMUNITY-I2V-MOTION-2026-10-25.md`](reviews/COMMUNITY-I2V-MOTION-2026-10-25.md)（强动词 + static 负向 + length=49 + **G2m motion_gate**）；下次开机按 [`NEXT-BOOT-CHECKLIST.md`](NEXT-BOOT-CHECKLIST.md) 验证
 
 规划日：2026-10-23（Asia/Shanghai）
@@ -29,8 +31,9 @@
 
 | 文件 | 阶段 |
 | --- | --- |
-| [`workflow/01_looklock_qwen_edit.json`](workflow/01_looklock_qwen_edit.json) | 定妆锁毛色（基于官方 Qwen-Image-Edit-2511 模板改编） |
-| [`workflow/02_i2v_wan21_480p.json`](workflow/02_i2v_wan21_480p.json) | 图生视频草稿（Wan2.1 I2V 480P **fp16 默认**） |
+| [`workflow/01_looklock_qwen_edit.json`](workflow/01_looklock_qwen_edit.json) | **定妆图形模板**（Qwen-Image-Edit-2511）；槽位见 [`01_looklock_api_slots.json`](workflow/01_looklock_api_slots.json) |
+| [`workflow/02_i2v_wan21_480p.json`](workflow/02_i2v_wan21_480p.json) | **I2V 方案 A 图形模板**（fp16 · length49）；槽位见 [`02_i2v_api_prompt_r1_r4.json`](workflow/02_i2v_api_prompt_r1_r4.json) |
+| [`workflow/TEMPLATES.md`](workflow/TEMPLATES.md) | 填槽 / 复用 / 与 crop_check·motion_gate 衔接 |
 | [`workflow/03_flf2v_wan21.json`](workflow/03_flf2v_wan21.json) | 首尾帧高潮（Wan2.1 FLF2V **fp16 默认**） |
 
 权重清单：[`manifest.json`](manifest.json)。提示词：[`prompts/`](prompts/)。

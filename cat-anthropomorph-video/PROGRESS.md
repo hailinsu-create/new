@@ -79,6 +79,14 @@
 - **文档**：`reviews/COMMUNITY-I2V-MOTION-2026-10-25.md`、`README-PIPELINE`、`NEXT-BOOT-CHECKLIST`、`manifest.json` motion_policy、`prompts/*`、API 模板 `workflow/02_i2v_api_prompt_r1_r4.json`。
 - **口径**：**未过 G2m 不得写「可用片段」**；未开机重跑 GPU（兄弟执行器负责）；未充值、未 merge、未碰 comic/NSFW；未用 grok CLI。
 
+## 2026-10-25 Asia/Shanghai · 段9：¥0 预备包 + Comfy 模板化
+
+- **¥0 离线包**：`reviews/BEAT-SHEET-B0-01-NORMANDY-2026-10-25.md`（128 BPM / 15s）、`STORYBOARD-B0-01-NORMANDY-2026-10-25.md`（GPU 镜标注）、`MOTION-GATE-CALIBRATION.md`（R1 max_mad=**16.27**；静帧基线≈**3.6**）、`BOOT-AUTH-ASK-2026-10-25.md`（母-only R2+R4；可选 Normandy looklock；禁 FLF2V/银宝墨墨/未授权充值）。
+- **双机分工**：`scripts/race_boot.md` — Wan/I2V **仅母 025** `9b4c40bda6-dad38bb9`；Qwen looklock **仅克隆 003**。
+- **已模板化**：`workflow/TEMPLATES.md`；I2V 方案 A 参数清单升级 `02_i2v_api_prompt_r1_r4.json`（slots: start_image/positive/seed）；新增 `01_looklock_api_slots.json`；`manifest.json` `templates` + groups.reusable_template。B0-01 缺镜复用同一 02，只改槽。
+- **v0-lite**：装配路径在 briefs/outputs；mp4 可不 commit（README-PIPELINE 已注）。
+- **边界**：未开机、未充值、未 merge；未碰 NSFW/comic；未用 grok CLI。
+
 ## 约定落库
 
 - Notion Memory：[工作同步：GitHub + Notion](https://app.notion.com/p/402b407a692a81ecb2ddcd6b35b29320)
