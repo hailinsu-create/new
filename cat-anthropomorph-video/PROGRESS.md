@@ -104,3 +104,16 @@
 ## 约定落库
 
 - Notion Memory：[工作同步：GitHub + Notion](https://app.notion.com/p/402b407a692a81ecb2ddcd6b35b29320)
+
+## 2026-10-25 Asia/Shanghai · 段11：装配编排 + G2 校准登记 + 15s 有声 + 双机 race 改写
+
+- **一键装配**：新增 [`scripts/assemble_clip.py`](scripts/assemble_clip.py) —— 无账本先写 `RENDER_DONE`，随后跑 **G1/G2/G2m**；三门禁全过才写 `AUTO_QC_PASS` 并进 `candidates.jsonl`，任一 FAIL 停在 `RENDER_DONE` 且不写候选；只有 `--human` 才写 `HUMAN_ACCEPTED`。支持 `--audio silent|bed|wav`（内部调 `stitch_audio.py`，对最终 mp4 跑门禁）；候选按 clip 绝对路径覆盖同一行，默认 `$OUTPUT_ROOT/candidates.jsonl`（未设则视频同目录）。
+- **自检**：`assemble_clip.py --self-test` 用 `fixtures/qc/` + ffmpeg 合成短视频，覆盖 AUTO→候选、`--human`、静帧 G2m FAIL、音频 bed；smoke 已接入。
+- **G2 校准**：新增 [`reviews/SUBJECT-GATE-CALIBRATION.md`](reviews/SUBJECT-GATE-CALIBRATION.md)：带宽仍 **0.25–0.92**，中带工作点约 **0.45**；fixtures 实测 moved=**0.5588**、flat=**0.2562**（中心 0.0213）、noise=**0.0057**；中心区只在 `--enforce-center --center-min-ssim 0.15` 时参与失败；默认值冻结，真机前不改。
+- **G2 缩放修正**：`subject_gate.py` 在 PGM 参考与视频采样宽度不同时按 256 宽最近邻对齐，消除假 `width mismatch`；不改 SSIM 带宽/默认值。
+- **15s 有声**：[`scripts/AUDIO-SWAP.md`](scripts/AUDIO-SWAP.md) 增 15s 竖屏 `assemble_clip`/`stitch_audio` 命令、1080×1920 检查、听检清单；默认 **silent 或自制 128 BPM 节拍床**，不塞盗版曲、不跨平台搬运。
+- **装配文档**：新增 [`scripts/ASSEMBLE.md`](scripts/ASSEMBLE.md)；更新 [`reviews/CLIP-STATUS.md`](reviews/CLIP-STATUS.md)、[`workflow/TEMPLATES.md`](workflow/TEMPLATES.md)、[`README-PIPELINE.md`](README-PIPELINE.md) 的装配/候选/音频/机位口径。
+- **开机请示改写**：`reviews/BOOT-AUTH-ASK-2026-10-25.md` 明确 **双机 race**、**克隆 003 可代跑 I2V**、任意时刻只开一台；先离线 **v0.1b**（R1/R2/R4，R4 场景漂移弱）；下一 GPU 包 **诺曼底艇/滩 looklock → R4 漂移修复或 R6 战场短动作**；不 FLF2V、不定妆银宝/墨墨、不充值、不 release；余额只以控制台为准。`scripts/race_boot.md`、`workflow/TEMPLATES.md`、`README-PIPELINE.md` 同步。
+- **离线验收**：`bash cat-anthropomorph-video/scripts/smoke_test.sh --dry-run` → **exit 0**（13 步；新增 assemble self-test）。
+- **GitHub**：本轮 commit 已 push 到 PR [#84](https://github.com/hailinsu-create/new/pull/84) 分支（同分支、无 force push）。
+- **未做（GPU 相关）**：未开机、未跑真实 I2V、未修 R4 漂移、未跑 R6、未出诺曼底艇/滩 looklock、未在真实 15s 样片上听检换轨、未做 G2 真机校准；不充值、不 release、未 merge、未碰 `ai-realistic-comic/` 或 NSFW。

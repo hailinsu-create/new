@@ -28,6 +28,32 @@ python3 scripts/clip_status.py --self-test
 
 `usable_clip=true` / `public_claim=usable_sfw_human_accepted` **只**出现在 `HUMAN_ACCEPTED`。
 
+## 一键装配（`assemble_clip.py`）
+
+`assemble_clip.py` 把上述三态串成一条命令：**RENDER_DONE → G1/G2/G2m →（全过）AUTO_QC_PASS → candidates.jsonl**；带 `--human` 才写 `HUMAN_ACCEPTED`。
+
+```bash
+# 自动 QC（G2 用显式首帧；不给 --start-image 时退回 frame0，较弱）
+python3 scripts/assemble_clip.py out.mp4 --start-image start_480x832.png
+
+# 人眼已确认身份/动作/音轨后
+python3 scripts/assemble_clip.py out.mp4 --start-image start_480x832.png --human \
+  --note "身份/围巾/音轨已听检"
+
+# 可选音轨：静音 / 程序化 128 BPM 节拍床 / 已授权 wav
+python3 scripts/assemble_clip.py out.mp4 --start-image start_480x832.png --audio bed
+python3 scripts/assemble_clip.py out.mp4 --start-image start_480x832.png --audio silent
+python3 scripts/assemble_clip.py out.mp4 --start-image start_480x832.png --audio wav --wav licensed.wav
+
+# 端到端自检（fixtures + ffmpeg 合成短视频；不依赖真猫图）
+python3 scripts/assemble_clip.py --self-test
+```
+
+- **三门禁全部跑完**才判；任一 FAIL：状态停在 `RENDER_DONE`，**不写** `candidates.jsonl`，exit 2。
+- `candidates.jsonl` 默认放 `$OUTPUT_ROOT/candidates.jsonl`（未设则放视频同目录）；按 `clip` 绝对路径**覆盖同一行**，`--human` 后更新为 `HUMAN_ACCEPTED`，不重复追加。
+- 音轨步骤先由 `stitch_audio.py` 生成目标 mp4，再对**最终文件**跑 G1/G2/G2m；状态与候选都指向最终文件。
+- 详细命令/口径见 [`scripts/ASSEMBLE.md`](../scripts/ASSEMBLE.md)。
+
 ## 门禁
 
 | 门 | 脚本 | 判据 | 失败 |
@@ -42,18 +68,16 @@ G2 细节：
 - **SSIM 不替代人眼身份**；带宽故意放宽以降低假阳性。
 - 中心区 SSIM 默认只报告；需要抓“边缘像、主体没了”时加 `--enforce-center --center-min-ssim 0.15`。
 - 高相似（全部帧 > 0.92）只警告，交给 G2m 判静帧。
-- 合成 fixtures：[`fixtures/qc/`](../fixtures/qc/)。
+- PGM 参考与视频采样宽度不同时，按 256 宽最近邻缩放对齐（不改 SSIM 带宽）。
+- 合成 fixtures：[`fixtures/qc/`](../fixtures/qc/)；校准记录见 [`SUBJECT-GATE-CALIBRATION.md`](SUBJECT-GATE-CALIBRATION.md)。
 
 ## 推荐顺序
 
 ```bash
 python3 scripts/crop_check_i2v.py start.png
-python3 scripts/noise_gate.py out.mp4
-python3 scripts/subject_gate.py --start-image start_480x832.png out.mp4
-python3 scripts/motion_gate.py out.mp4
-python3 scripts/clip_status.py set out.mp4 --state RENDER_DONE
-# 三门禁 exit 0 后
-python3 scripts/clip_status.py set out.mp4 --state AUTO_QC_PASS --g1 pass --g2 pass --g2m pass
+python3 scripts/assemble_clip.py out.mp4 --start-image start_480x832.png --audio bed
+# 人眼确认后
+python3 scripts/assemble_clip.py out.mp4 --start-image start_480x832.png --human --note "已听检"
 ```
 
-未过 G2m 或 G2 明显崩身份：不得写「可用片段」。R2/R4 真机校准待开机授权。
+也可继续手工分步跑 G1/G2/G2m + `clip_status.py set`（三态规则不变）。未过 G2m 或 G2 明显崩身份：不得写「可用片段」。R2/R4 真机校准待开机授权。

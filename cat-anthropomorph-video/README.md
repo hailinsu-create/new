@@ -9,6 +9,8 @@
 - **社区修正（2026-10-24）**：[`COMMUNITY-FIXES-2026-10-24.md`](COMMUNITY-FIXES-2026-10-24.md)（fp16 默认、禁 SageAttention、噪声门禁）
 - **动作修正（2026-10-25）**：[`reviews/COMMUNITY-I2V-MOTION-2026-10-25.md`](reviews/COMMUNITY-I2V-MOTION-2026-10-25.md)（length=49、强动词、G2m）
 - **社区优化（2026-10-25）**：[`reviews/COMMUNITY-OPTIMIZE-2026-10-25.md`](reviews/COMMUNITY-OPTIMIZE-2026-10-25.md)（Wan/Qwen/SSIM/BGM）；门禁与三态见 [`reviews/CLIP-STATUS.md`](reviews/CLIP-STATUS.md)
+- **一键装配**：[`scripts/assemble_clip.py`](scripts/assemble_clip.py) · [`scripts/ASSEMBLE.md`](scripts/ASSEMBLE.md)（RENDER_DONE → G1/G2/G2m → AUTO_QC_PASS → candidates.jsonl；`--human` 才可用）
+- **G2 校准**：[`reviews/SUBJECT-GATE-CALIBRATION.md`](reviews/SUBJECT-GATE-CALIBRATION.md)（SSIM 带宽 0.25–0.92；fixtures 与中心区读法）
 - **有声/换轨**：[`scripts/stitch_audio.py`](scripts/stitch_audio.py) · [`scripts/AUDIO-SWAP.md`](scripts/AUDIO-SWAP.md)；QC 合成小样 [`fixtures/qc/`](fixtures/qc/)
 - **Comfy 模板复用**：[`workflow/TEMPLATES.md`](workflow/TEMPLATES.md)（I2V 方案 A / looklock 填槽）
 - **¥0 预备（B0-01）**：`reviews/BEAT-SHEET-B0-01-NORMANDY-2026-10-25.md` · `STORYBOARD-…` · `MOTION-GATE-CALIBRATION.md` · `BOOT-AUTH-ASK-2026-10-25.md`

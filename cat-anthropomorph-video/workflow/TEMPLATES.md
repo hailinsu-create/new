@@ -32,23 +32,24 @@
 | positive | CLIPTextEncode Positive #6 | 动作前置强动词句；禁 soft 词；预设 R1/R2/R4 见参数清单 |
 | seed | KSampler #3 widgets[0] | 整数；R2=同 R1 句换 seed |
 
-衔接（三门禁 + 状态拆分）：
+衔接（一键装配；三门禁 + 状态拆分）：
 
 ```bash
 python3 scripts/crop_check_i2v.py path/to/looklock.png
-python3 scripts/noise_gate.py out.mp4
-python3 scripts/subject_gate.py --start-image path/to/start_480x832.png out.mp4
-python3 scripts/motion_gate.py out.mp4
-python3 scripts/clip_status.py set out.mp4 --state RENDER_DONE
-# 三门禁都 exit 0 后：
-python3 scripts/clip_status.py set out.mp4 --state AUTO_QC_PASS --g1 pass --g2 pass --g2m pass
+python3 scripts/assemble_clip.py out.mp4 --start-image path/to/start_480x832.png --audio bed
+# 人眼确认身份/动作/音轨后：
+python3 scripts/assemble_clip.py out.mp4 --start-image path/to/start_480x832.png --human --note "已听检"
+python3 scripts/assemble_clip.py --self-test
 ```
+
+也可手工分步：`noise_gate.py` → `subject_gate.py` → `motion_gate.py` → `clip_status.py set`。`assemble_clip` 全过才写 `AUTO_QC_PASS` 并进 `candidates.jsonl`；`--human` 才写 `HUMAN_ACCEPTED`。详见 [`../scripts/ASSEMBLE.md`](../scripts/ASSEMBLE.md)。
 
 - G2 `subject_gate`：相对首帧 SSIM 带宽 **0.25–0.92**；过低 FAIL，过高仅 WARN；中心区默认只报告。
 - G2m 阈值 11；R1 正例 max_mad=16.27；静帧基线约 3.6 应 FAIL。
 - **RENDER_DONE / AUTO_QC_PASS 都不是可用成片**；人眼确认后 `--state HUMAN_ACCEPTED --human` 才可对外。
 - 输出：SaveVideo 前缀默认 video/cat_anthro_i2v；建议 $OUTPUT_ROOT/i2v/<shot_id>/（briefs 可留副本；mp4 可不 commit）。
-- 有声：`scripts/stitch_audio.py`（默认生成 128 BPM 节拍床或 silent）；合规见 `scripts/AUDIO-SWAP.md`。
+- 有声：`scripts/assemble_clip.py --audio silent|bed|wav` 或直接 `scripts/stitch_audio.py`（默认 128 BPM 节拍床/静音）；合规见 `scripts/AUDIO-SWAP.md`。
+- 候选：全过后进 `candidates.jsonl`（默认 `$OUTPUT_ROOT/candidates.jsonl`）；`AUTO_QC_PASS` 仍非可用成片。
 
 ### 社区参数对照（2026-10-25）
 
@@ -80,7 +81,7 @@ python3 scripts/clip_status.py set out.mp4 --state AUTO_QC_PASS --g1 pass --g2 p
 - 推荐归档：$OUTPUT_ROOT/looklock/{cat}/{yyyy-mm-dd}/cat_anthro_looklock_<seed>.png
 - 过盲测后再作 I2V start_image；方图先 crop-check。
 
-机位：looklock → 克隆 003；I2V → 母 025（scripts/race_boot.md）。
+机位（双机 race）：looklock 优先克隆 003；I2V 优先母 025，**克隆 003 可代跑 I2V**；任意时刻只开一台（scripts/race_boot.md）。
 
 ## B0-01 复用示例
 
@@ -89,4 +90,5 @@ python3 scripts/clip_status.py set out.mp4 --state AUTO_QC_PASS --g1 pass --g2 p
 | R2 敬礼复验 | 02 方案 A | 同 R1 过线首帧 | r1_salute_default | 新 |
 | R4 抬头 | 02 方案 A | crop-check 过线帧 | r4_head_turn | 新 |
 | 门落/涉水/卧倒 | 02 方案 A | 各镜头竖屏首帧 | 自写强动词句 | 新 |
-| 场景定妆（可选） | 01 | cat_ref=A + costume/scene | A 前缀+诺曼底场景 | 新 |
+| R6 战场短动作（授权后） | 02 方案 A | 战场竖屏首帧 | 强动词短动作句 | 新 |
+| 诺曼底艇/滩场景定妆（授权后优先） | 01 | cat_ref=A + 艇/滩参考 | A 前缀+诺曼底场景 | 新 |

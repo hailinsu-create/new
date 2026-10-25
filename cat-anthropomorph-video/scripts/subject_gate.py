@@ -149,11 +149,37 @@ def center_crop(width: int, height: int, pixels: bytes, new_w: int, new_h: int) 
     return b"".join(rows)
 
 
+def resize_nearest(width: int, height: int, pixels: bytes, new_w: int, new_h: int) -> bytes:
+    new_w = max(2, new_w)
+    new_h = max(2, new_h)
+    if (new_w, new_h) == (width, height):
+        return pixels
+    rows = []
+    for y in range(new_h):
+        src_y = min(height - 1, int((y + 0.5) * height / new_h))
+        base = src_y * width
+        row = bytes(
+            pixels[base + min(width - 1, int((x + 0.5) * width / new_w))]
+            for x in range(new_w)
+        )
+        rows.append(row)
+    return b"".join(rows)
+
+
 def align_pair(
     ref: tuple[int, int, bytes], frame: tuple[int, int, bytes]
 ) -> tuple[tuple[int, int, bytes], tuple[int, int, bytes]]:
     rw, rh, rp = ref
     fw, fh, fp = frame
+    target_w = min(SCALE_WIDTH, max(rw, fw))
+    if rw != target_w:
+        target_h = max(2, round(rh * target_w / rw))
+        rp = resize_nearest(rw, rh, rp, target_w, target_h)
+        rw, rh = target_w, target_h
+    if fw != target_w:
+        target_h = max(2, round(fh * target_w / fw))
+        fp = resize_nearest(fw, fh, fp, target_w, target_h)
+        fw, fh = target_w, target_h
     if rw != fw:
         raise GateError(f"width mismatch after scaling: ref {rw} vs frame {fw}")
     height = min(rh, fh)

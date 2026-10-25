@@ -196,6 +196,8 @@ def mux(
         action = "replace"
     elif policy == "strip":
         action = "silent"
+    elif policy == "bed":
+        action = "bed"
     elif policy == "keep" or (policy == "auto" and info["has_audio"]):
         action = "keep"
     else:
@@ -292,9 +294,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--silent", action="store_true", help="strip audio from the output")
     parser.add_argument(
         "--audio-policy",
-        choices=["auto", "keep", "replace", "strip"],
+        choices=["auto", "keep", "replace", "strip", "bed"],
         default="auto",
-        help="auto: wav->replace, existing audio->keep, silent->beat bed",
+        help="auto: wav->replace, existing audio->keep, silent->beat bed; bed: force generated bed",
     )
     parser.add_argument("--bpm", type=int, default=DEFAULT_BPM)
     parser.add_argument("--sample-rate", type=int, default=DEFAULT_SAMPLE_RATE)
