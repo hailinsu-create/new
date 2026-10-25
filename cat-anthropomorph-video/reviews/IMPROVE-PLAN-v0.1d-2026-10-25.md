@@ -1,5 +1,7 @@
 # 提升方案 · v0.1d（2026-10-25）
 
+> **Notion**：https://app.notion.com/p/404b407a692a81e5ab71ec3656b50a99
+
 > **仅规划文档**。未开机、未充值、未 merge、未 stitch 正式成片。  
 > 默认路径 = **Opus A**（¥0 有声 + 蒙太奇换 S06 → 盲测）。B 仅条件触发；C 与出片解耦。  
 > 增量于既有：[`COMMUNITY-OPTIMIZE-2026-10-25.md`](COMMUNITY-OPTIMIZE-2026-10-25.md) / [`COMMUNITY-I2V-MOTION-2026-10-25.md`](COMMUNITY-I2V-MOTION-2026-10-25.md) / [`COMMUNITY-LOOKLOCK-2026-10-24.md`](COMMUNITY-LOOKLOCK-2026-10-24.md) / [`BEAT-SHEET-B0-01-NORMANDY-2026-10-25.md`](BEAT-SHEET-B0-01-NORMANDY-2026-10-25.md) / 段14 Opus 6.6。

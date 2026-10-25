@@ -149,4 +149,4 @@
 - **文档**：[`reviews/IMPROVE-PLAN-v0.1d-2026-10-25.md`](reviews/IMPROVE-PLAN-v0.1d-2026-10-25.md) — 社区检索增量 → 默认 **Opus A**（¥0 有声 + 蒙太奇换 S06 → 盲测）；B 护栏条件触发；C merge 与出片解耦。
 - **目标**：第一个有声、无「缺」字卡、成片层全 HUMAN_ACCEPTED = **v0.1d**。
 - **边界**：**仅规划文档**；未开机、未充值、未 stitch 正式成片、未 merge；未碰 comic/NSFW。
-- **Notion**：待本岗补链（本 VM 无 Notion token）。
+- **Notion**：https://app.notion.com/p/404b407a692a81e5ab71ec3656b50a99
