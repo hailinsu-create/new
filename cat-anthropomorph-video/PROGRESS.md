@@ -167,3 +167,12 @@
 - **RESULT**：[`reviews/RESULT-v0.1d-2026-10-25.md`](reviews/RESULT-v0.1d-2026-10-25.md)
 - **方案 / Notion**：[`reviews/IMPROVE-PLAN-v0.1d-2026-10-25.md`](reviews/IMPROVE-PLAN-v0.1d-2026-10-25.md) · https://app.notion.com/p/404b407a692a81e5ab71ec3656b50a99
 - **边界**：¥0；**未开机**；未充值；未 merge；未碰 comic/NSFW（本机 brief 段23 ↔ 本仓段17）
+
+## 2026-10-25 Asia/Shanghai · 段18：v0.1e 破¥8 补 S06 成片
+
+- **成片路径**（不入库）：`outputs/v0.1e-b0-01-2026-10-25/B0-01-normandy-v0.1e.mp4` · 720×1280 · 13.7s · 有声 128BPM
+- **S06**：`outputs/motion-test-i2v-2026-10-25-s06-battle/R6/cat_anthro_motion_R6_00001_.mp4` · seed **20261120** · G1/G2(minSSIM **0.4036**)/G2m **PASS** → **AUTO_QC_PASS**
+- **花费**：7350→6990 分（≈¥0.36）；克隆003+母机 **shutdown 留盘**；**未充值、未 release**
+- **RESULT**：[`reviews/RESULT-v0.1e-2026-10-25.md`](reviews/RESULT-v0.1e-2026-10-25.md)
+- **Notion**：https://app.notion.com/p/404b407a692a81e0a961cbfecbb4cd09
+- **边界**：本回合文档同步；未再开机；未 merge；未碰 comic/NSFW
