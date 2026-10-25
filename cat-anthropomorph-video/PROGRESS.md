@@ -221,3 +221,12 @@
 - **已改**：[`scripts/race_boot.md`](scripts/race_boot.md)（DUAL-RACE-MODE）、[`DUAL-CREATE-RESULT-2026-10-24.md`](DUAL-CREATE-RESULT-2026-10-24.md)、[`BOOT-v0.1g.md`](BOOT-v0.1g.md)、[`reviews/BOOT-AUTH-ASK-2026-10-25.md`](reviews/BOOT-AUTH-ASK-2026-10-25.md)、[`README-PIPELINE.md`](README-PIPELINE.md)、[`CHARACTER-LOCK-2026-10-24.md`](CHARACTER-LOCK-2026-10-24.md)、[`workflow/TEMPLATES.md`](workflow/TEMPLATES.md)、api `machine` 字段、`env.example`。
 - **作废**：一切「克隆只定妆 / 母机只 I2V / 代跑接力」表述。
 - **边界**：未开机；未充值；未 merge。
+
+## 2026-10-25 Asia/Shanghai · 段25：t59u 授权开机出新片（文档侧未开机）
+
+- **授权**：用户 t58u+t59u 已授权开机出片；**调度正在 GPU 出 v0.1g**。
+- **软顶**：**≤ ¥1.5** / 单轮；触顶停机留盘；**不充值、不 release**。
+- **本轮调度路径**：**克隆 003 定妆 → 母机 025 I2V**（出片执行记录；运维默认仍见段24 t60u 全栈对齐）。
+- **模板固化**：社区结论 → [`reviews/COMFY-TO-TEMPLATES-v0.1g.md`](reviews/COMFY-TO-TEMPLATES-v0.1g.md)；looklock slots + Wan A + 超分钩子 + [`BOOT-v0.1g.md`](BOOT-v0.1g.md) 已在 PR#84。
+- **本仓边界**：文档/模板 only；**未开机、未 SSH 花钱、未 merge**；未碰 NSFW。
+

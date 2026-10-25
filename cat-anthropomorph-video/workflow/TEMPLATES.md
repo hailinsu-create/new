@@ -1,5 +1,7 @@
 # Comfy 可复用模板 · 填槽说明
 
+> **社区结论固化表**：[`../reviews/COMFY-TO-TEMPLATES-v0.1g.md`](../reviews/COMFY-TO-TEMPLATES-v0.1g.md)（← [`COMFY-CAT-ANTHRO-COMMUNITY-2026-10-25.md`](../reviews/COMFY-CAT-ANTHRO-COMMUNITY-2026-10-25.md)）。
+
 > 原则：能模板化的不另起结构。图生视频与定妆都复用现有 workflow/01 与 02 JSON；参数清单在并列的 *_api_*.json 与 manifest.json。
 > B0-01 缺镜头（R2 / R4 / 门落 / 涉水 / 卧倒）→ 同一 I2V 方案 A 模板，只改 start_image / positive 动作句 / seed。
 

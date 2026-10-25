@@ -345,6 +345,11 @@
     "boot": {
       "doc": "BOOT-v0.1g.md",
       "race": "scripts/race_boot.md"
+    },
+    "community_map": {
+      "doc": "reviews/COMFY-TO-TEMPLATES-v0.1g.md",
+      "source": "reviews/COMFY-CAT-ANTHRO-COMMUNITY-2026-10-25.md",
+      "boot": "BOOT-v0.1g.md"
     }
   },
   "banned": {
