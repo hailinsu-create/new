@@ -226,7 +226,15 @@
 
 - **授权**：用户 t58u+t59u 已授权开机出片；**调度正在 GPU 出 v0.1g**。
 - **软顶**：**≤ ¥1.5** / 单轮；触顶停机留盘；**不充值、不 release**。
-- **本轮调度路径**：**克隆 003 定妆 → 母机 025 I2V**（出片执行记录；运维默认仍见段24 t60u 全栈对齐）。
+- **本轮调度路径（t60u）**：**全栈对齐**；race **抢到的那台**本机 looklock + I2V（+超分）**全流程**；**另一台关机**。~~曾误写「克隆定妆→母机 I2V」~~ → 见段26 废止。
 - **模板固化**：社区结论 → [`reviews/COMFY-TO-TEMPLATES-v0.1g.md`](reviews/COMFY-TO-TEMPLATES-v0.1g.md)；looklock slots + Wan A + 超分钩子 + [`BOOT-v0.1g.md`](BOOT-v0.1g.md) 已在 PR#84。
 - **本仓边界**：文档/模板 only；**未开机、未 SSH 花钱、未 merge**；未碰 NSFW。
+
+## 2026-10-25 Asia/Shanghai · 段26：t60u 再纠正（废止段25 分流笔误）
+
+- **废止**：commit `b22f397` 段25「克隆 003 定妆 → 母机 025 I2V」及 BOOT 同句——**一律作废**。
+- **现行**：双机同内容；**谁抢到谁全干**（本机 looklock→门禁→I2V→超分）；另一台关机；**禁止**定妆后换机 I2V。
+- **调度**：执行器已按 t60u 改；文档与调度口径对齐。
+- **已改文件**：`PROGRESS.md`、`BOOT-v0.1g.md`、`reviews/COMFY-TO-TEMPLATES-v0.1g.md`、`scripts/race_boot.md`（DUAL-RACE-MODE 重申）。
+- **边界**：文档 only；**未开机**。
 
