@@ -238,3 +238,11 @@
 - **已改文件**：`PROGRESS.md`、`BOOT-v0.1g.md`、`reviews/COMFY-TO-TEMPLATES-v0.1g.md`、`scripts/race_boot.md`（DUAL-RACE-MODE 重申）。
 - **边界**：文档 only；**未开机**。
 
+
+## 2026-10-25 ~23:00 Asia/Shanghai · 段27：v0.1g 成片交付 + 本岗自评入库
+
+- **成片**：v0.1g 已交付（本机 `outputs/v0.1g-b0-01-2026-10-25/`；二进制不入库）。
+- **本岗自评**：[`reviews/SELF-REVIEW-v0.1g-2026-10-25.md`](reviews/SELF-REVIEW-v0.1g-2026-10-25.md) · 综合约 **5.8** · Notion https://app.notion.com/p/404b407a692a81e59f09ef0e8e296a0a
+- **花费口径**：Δ **1620 分 ≈¥1.62**（约定 1000分=¥1；对照段 Δ-360≈¥0.36）。
+- **Opus 审核**：待进行。
+- **边界**：文档同步 only；未开机、未 GPU、未 merge；未用 grok CLI。
