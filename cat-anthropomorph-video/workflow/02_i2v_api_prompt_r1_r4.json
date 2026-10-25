@@ -1,6 +1,10 @@
 {
+  "template_id": "cat-anthro-i2v-scheme-a",
   "id": "cat-anthro-i2v-motion-2026-10-25",
+  "scheme": "A",
+  "comfy_workflow": "workflow/02_i2v_wan21_480p.json",
   "workflow": "workflow/02_i2v_wan21_480p.json",
+  "reuse": "Same Comfy graph for every I2V shot. Only change slots.start_image, slots.positive_action, slots.seed. Do not fork a new workflow JSON per shot.",
   "unet": "wan2.1_i2v_480p_14B_fp16.safetensors",
   "comfy_launch": [
     "--force-upcast-attention"
@@ -8,6 +12,20 @@
   "banned_launch": [
     "--use-sage-attention"
   ],
+  "locked": {
+    "unet": "wan2.1_i2v_480p_14B_fp16.safetensors",
+    "width": 480,
+    "height": 832,
+    "length": 49,
+    "batch_size": 1,
+    "steps": 20,
+    "cfg": 6,
+    "shift": 8,
+    "sampler_name": "uni_pc",
+    "scheduler": "simple",
+    "clip_vision_crop": "none",
+    "fps": 16
+  },
   "wan_image_to_video": {
     "width": 480,
     "height": 832,
@@ -25,8 +43,33 @@
     "cfg": 5,
     "shift": 10
   },
+  "slots": {
+    "start_image": {
+      "node_id": 52,
+      "node_type": "LoadImage",
+      "widget_index": 0,
+      "comfy_input_relative_default": "shots_PLACEHOLDER_i2v_start.png",
+      "recommended_path_pattern": "shots/B0-01_<shot_id>_start.png",
+      "preprocess": "scripts/crop_check_i2v.py when source is square looklock"
+    },
+    "positive_action": {
+      "node_id": 6,
+      "node_type": "CLIPTextEncode",
+      "title": "CLIP Text Encode (Positive Prompt)",
+      "widget_index": 0,
+      "rules": "motion-first strong verbs; ban gentle/slightly/small/soft/subtle"
+    },
+    "seed": {
+      "node_id": 3,
+      "node_type": "KSampler",
+      "widget_index": 0,
+      "control_widget_index": 1,
+      "recommended_control": "fixed"
+    }
+  },
   "positive": {
     "r1_salute_default": "The anthropomorphic cat soldier quickly raises her right paw to the brim of her helmet in a crisp military salute and holds the salute firmly; her chin lifts and she stares straight into the camera; her red neckerchief flutters strongly in the wind. Fixed camera, medium shot, same face, fur pattern and US Army uniform as the first frame.",
+    "r2_salute_replicate": "The anthropomorphic cat soldier quickly raises her right paw to the brim of her helmet in a crisp military salute and holds the salute firmly; her chin lifts and she stares straight into the camera; her red neckerchief flutters strongly in the wind. Fixed camera, medium shot, same face, fur pattern and US Army uniform as the first frame.",
     "r4_head_turn": "The anthropomorphic cat soldier snaps her head up and turns to stare directly into the camera, ears perking forward; strong wind whips her red neckerchief and blows dust across the frame. Fixed camera, medium close-up, same face, fur pattern and US Army uniform as the first frame."
   },
   "negative": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走, static, still, still picture, frozen, motionless, no motion, barely moving, idle breathing only, slow motion, weapon, rifle, gun, four-legged, realistic cat body, extra limbs, melting paws",
@@ -34,5 +77,19 @@
     "scripts/noise_gate.py",
     "scripts/motion_gate.py"
   ],
-  "forbid_usable_claim_without": "G2m motion_gate PASS"
+  "forbid_usable_claim_without": "G2m motion_gate PASS",
+  "calibration": {
+    "r1_positive_max_mad": 16.27,
+    "static_baseline_max_mad": 3.6,
+    "min_max_mad_default": 11.0
+  },
+  "output": {
+    "save_video_prefix_default": "video/cat_anthro_i2v",
+    "archive_pattern": "$OUTPUT_ROOT/i2v/<shot_id>/",
+    "binary_mp4_may_omit_from_git": true
+  },
+  "machine": {
+    "wan_i2v_only": "9b4c40bda6-dad38bb9",
+    "label": "mother-025"
+  }
 }

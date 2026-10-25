@@ -1,0 +1,55 @@
+{
+  "template_id": "cat-anthro-looklock-qwen-2511",
+  "comfy_workflow": "workflow/01_looklock_qwen_edit.json",
+  "reuse": "Same Comfy graph for every looklock still. Only change slots (cat_ref, costume_ref, positive, seed). Do not fork a new workflow JSON per cat/scene.",
+  "locked": {
+    "unet": "qwen_image_edit_2511_fp8mixed.safetensors",
+    "text_encoder": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+    "vae": "qwen_image_vae.safetensors",
+    "precision_note": "fp8mixed OK for Qwen; do NOT apply Wan fp16-only policy; never --force-fp16 on Qwen; never --use-sage-attention",
+    "lightning_4steps_lora_default": false
+  },
+  "slots": {
+    "cat_ref": {
+      "node_id": 41,
+      "node_type": "LoadImage",
+      "title": "Cat ref: A front",
+      "widget_index": 0,
+      "comfy_input_relative_default": "cats/A/raw/front.jpg",
+      "path_pattern": "cats/{A|B|C}/raw/front.jpg",
+      "source": "restore.sh copies refs/cats/{A,B,C}/front.jpg"
+    },
+    "costume_ref": {
+      "node_id": 83,
+      "node_type": "LoadImage",
+      "title": "Costume ref [optional placeholder]",
+      "widget_index": 0,
+      "comfy_input_relative_default": "looklock/costume_ref_PLACEHOLDER.png",
+      "path_pattern": "looklock/<costume_or_scene_ref>.png",
+      "note": "Optional; Normandy scene stills can replace placeholder"
+    },
+    "positive": {
+      "location": "subgraph positive_prompt",
+      "source_doc": "prompts/look_cards.md",
+      "rules": "Keep locked English prefix per cat; append scene/pose only"
+    },
+    "seed": {
+      "location": "sampler seed in official Qwen-Edit-2511 subgraph",
+      "type": "integer"
+    }
+  },
+  "output": {
+    "comfy_save_default_prefix": "looklock/cat_anthro_looklock_",
+    "archive_pattern": "$OUTPUT_ROOT/looklock/{cat}/{yyyy-mm-dd}/cat_anthro_looklock_<seed>.png",
+    "next_step": "crop_check_i2v.py then feed as I2V start_image slot"
+  },
+  "machine": {
+    "qwen_looklock_only": "bb8c4f8e12-00c8bdac",
+    "label": "clone-003"
+  },
+  "gates": {
+    "identity_blind_test": ">=80% before mass I2V",
+    "sfw": true,
+    "no_weapons_in_positive": true
+  }
+}

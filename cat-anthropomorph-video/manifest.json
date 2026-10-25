@@ -79,6 +79,12 @@
         "Wan2.1 I2V / FLF2V remain fp16; that is a separate precision policy and must not be reverted by looklock changes.",
         "Optional costume_ref path: $INPUT_ROOT/looklock/costume_ref_PLACEHOLDER.png (or a refs/ costume placeholder) feeds image2/image3 as a clothing reference; it is an input image, not a weight."
       ],
+      "reusable_template": {
+        "comfy_workflow": "workflow/01_looklock_qwen_edit.json",
+        "param_sheet": "workflow/01_looklock_api_slots.json",
+        "slots_only": ["cat_ref", "costume_ref", "positive", "seed"],
+        "docs": "workflow/TEMPLATES.md"
+      },
       "optional_inputs": [
         {
           "id": "costume_ref",
@@ -178,7 +184,13 @@
             "G2m"
           ]
         },
-        "crop_check": "scripts/crop_check_i2v.py"
+        "crop_check": "scripts/crop_check_i2v.py",
+        "reusable_template": {
+          "comfy_workflow": "workflow/02_i2v_wan21_480p.json",
+          "param_sheet": "workflow/02_i2v_api_prompt_r1_r4.json",
+          "slots_only": ["start_image", "positive_action", "seed"],
+          "docs": "workflow/TEMPLATES.md"
+        }
       }
     },
     "flf2v": {
@@ -209,6 +221,21 @@
       "also_requires_from_groups": [
         "i2v"
       ]
+    }
+  },
+  "templates": {
+    "docs": "workflow/TEMPLATES.md",
+    "i2v_scheme_a": {
+      "comfy_workflow": "workflow/02_i2v_wan21_480p.json",
+      "param_sheet": "workflow/02_i2v_api_prompt_r1_r4.json",
+      "slots_only": ["start_image", "positive_action", "seed"],
+      "machine": "9b4c40bda6-dad38bb9"
+    },
+    "looklock_qwen": {
+      "comfy_workflow": "workflow/01_looklock_qwen_edit.json",
+      "param_sheet": "workflow/01_looklock_api_slots.json",
+      "slots_only": ["cat_ref", "costume_ref", "positive", "seed"],
+      "machine": "bb8c4f8e12-00c8bdac"
     }
   },
   "banned": {

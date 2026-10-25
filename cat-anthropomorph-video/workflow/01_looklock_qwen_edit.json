@@ -97,7 +97,7 @@
         "cats/A/raw/front.jpg",
         "image"
       ],
-      "title": "Cat ref: A front"
+      "title": "SLOT cat_ref (looklock template)"
     },
     {
       "id": 83,
@@ -144,7 +144,7 @@
         "looklock/costume_ref_PLACEHOLDER.png",
         "image"
       ],
-      "title": "Costume ref [optional placeholder]"
+      "title": "SLOT costume_ref (looklock template)"
     },
     {
       "id": 170,
