@@ -191,3 +191,10 @@
 - **ffmpeg 草案**：[`scripts/assemble_v0.1f.sh`](scripts/assemble_v0.1f.sh)（BGM=平台曲库/CC0 待填；粗剪非成片）
 - **下一动作**：**本机 / 剪映做 v0.1f**（¥0，**不开机**）
 - **边界**：未开机、未充值、未 release、未 merge；未碰 NSFW
+
+## 2026-10-25 Asia/Shanghai · 段21：t56u 拟人/题材/精细差距补丁
+
+- 用户反馈：画面不够精细、拟人性不好、与诺曼底主题差距多。
+- 已写入 [`reviews/MARKET-GAP-IMPROVE-2026-10-25.md`](reviews/MARKET-GAP-IMPROVE-2026-10-25.md) §0 与差距表；[`reviews/V0.1F-PLAN-2026-10-25.md`](reviews/V0.1F-PLAN-2026-10-25.md) §2.5 题材¥0 + §2.6 v0.1g 验收。
+- **分界**：字幕/滤镜/裁切/战役符号叠层 = ¥0（v0.1f）；新 looklock / 战场镜 / 高清定妆 = 须授权 GPU（v0.1g）。
+- **边界**：未开机、未充值、未 release、未 merge。
