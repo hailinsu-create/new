@@ -146,7 +146,7 @@ for cat in A B C; do
   sync_ref_photos "$cat"
 done
 
-CMD=(python3 scripts/download_models.py "${GROUP_ARGS[@]}")
+CMD=(python3 scripts/download_models.py "${GROUP_ARGS[@]}" --require-sha256)
 if [[ "$DRY_RUN" -eq 1 ]]; then
   CMD+=(--dry-run)
   echo "restore.sh: dry-run (pass --apply to download)"
@@ -159,6 +159,7 @@ fi
 
 "${CMD[@]}"
 
+echo "[remind] 权重 sha256 必验（禁 size-only）；缺 sha256 的 apply 会被拒绝；--no-require-sha256 仅显式降级。"
 echo "[remind] Wan 侧默认 UNET=fp16；fp8_e4m3fn 仅 VRAM 回退，最低档、易噪，不推荐。"
 if group_selected looklock; then
   echo "[remind] Qwen looklock 默认 fp8mixed（OK）；不要对 Qwen 加 --force-fp16（黑图风险）。"

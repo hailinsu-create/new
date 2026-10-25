@@ -21,6 +21,8 @@
 - 480x832 · length=49 · steps=20 · cfg=6 · shift=8 · uni_pc/simple
 - 负向：含 static/still/frozen + Wan 中文静帧词（prompts/negative.txt）
 - R3（cfg=5/shift=10）仅双败回退，不是默认模板
+- Lightning 默认 **OFF**；FLF2V **不默认**；length 公式 16f+1（49=16×3+1）
+- 社区官方 480p 参考 shift=3 / steps=40；本仓因 R1 max_mad=16.27 已校准动作，**默认不改**；仅身份漂移时作回退
 
 每镜只改三槽：
 
@@ -30,16 +32,34 @@
 | positive | CLIPTextEncode Positive #6 | 动作前置强动词句；禁 soft 词；预设 R1/R2/R4 见参数清单 |
 | seed | KSampler #3 widgets[0] | 整数；R2=同 R1 句换 seed |
 
-衔接：
+衔接（三门禁 + 状态拆分）：
 
 ```bash
 python3 scripts/crop_check_i2v.py path/to/looklock.png
 python3 scripts/noise_gate.py out.mp4
+python3 scripts/subject_gate.py --start-image path/to/start_480x832.png out.mp4
 python3 scripts/motion_gate.py out.mp4
+python3 scripts/clip_status.py set out.mp4 --state RENDER_DONE
+# 三门禁都 exit 0 后：
+python3 scripts/clip_status.py set out.mp4 --state AUTO_QC_PASS --g1 pass --g2 pass --g2m pass
 ```
 
-G2m 阈值 11；R1 正例 max_mad=16.27；静帧基线约 3.6 应 FAIL。
-输出：SaveVideo 前缀默认 video/cat_anthro_i2v；建议 $OUTPUT_ROOT/i2v/<shot_id>/（briefs 可留副本；mp4 可不 commit）。
+- G2 `subject_gate`：相对首帧 SSIM 带宽 **0.25–0.92**；过低 FAIL，过高仅 WARN；中心区默认只报告。
+- G2m 阈值 11；R1 正例 max_mad=16.27；静帧基线约 3.6 应 FAIL。
+- **RENDER_DONE / AUTO_QC_PASS 都不是可用成片**；人眼确认后 `--state HUMAN_ACCEPTED --human` 才可对外。
+- 输出：SaveVideo 前缀默认 video/cat_anthro_i2v；建议 $OUTPUT_ROOT/i2v/<shot_id>/（briefs 可留副本；mp4 可不 commit）。
+- 有声：`scripts/stitch_audio.py`（默认生成 128 BPM 节拍床或 silent）；合规见 `scripts/AUDIO-SWAP.md`。
+
+### 社区参数对照（2026-10-25）
+
+| 来源 | shift | steps | cfg | length | 本仓取舍 |
+| --- | --- | --- | --- | --- | --- |
+| 官方 `generate.py` | 3（480p） | 40 | — | 81 | 仅身份/质感回退参考 |
+| 社区 kombitz | 3（480p）/5（720p） | ~20 | ~5 | 49 | cfg/shift 已由动作门禁校准，默认不改 |
+| 本仓方案 A | **8** | **20** | **6** | **49** | **默认**（R1 max_mad=16.27） |
+| R3 回退 | 10 | 20 | 5 | 49 | 仅 R1/R2 未过 G2m |
+
+详表：[`reviews/COMMUNITY-OPTIMIZE-2026-10-25.md`](../reviews/COMMUNITY-OPTIMIZE-2026-10-25.md)。
 
 ## Qwen looklock（多图槽）
 
@@ -50,6 +70,8 @@ G2m 阈值 11；R1 正例 max_mad=16.27；静帧基线约 3.6 应 FAIL。
 | positive | 子图 positive | look_cards 固定前缀 + 场景句；换猫只换前缀 |
 | seed | 采样 seed | 整数 |
 
+正向固定句（追加在猫前缀后）：`Preserve Image 1 cat face/fur identity; apply Image 2 costume/scene.`
+槽位顺序：Image1=身份（cat_ref），Image2=服装/场景（costume_ref）；**两图优先于硬上三图**（三参考 + 真 CFG 易伪影）。
 精度：Qwen fp8mixed OK；勿对 Qwen --force-fp16；禁 sage。Lightning 4steps 默认 OFF。
 
 输出路径约定：

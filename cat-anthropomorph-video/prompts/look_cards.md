@@ -7,6 +7,8 @@
 > **权威总锁**：[`../CHARACTER-LOCK-2026-10-24.md`](../CHARACTER-LOCK-2026-10-24.md)（角色表、固定前缀、双机 ID、SFW 隔离）。
 >
 > **用法**：先粘贴该猫「固定提示词前缀」，再接动作/镜头句（`prompts/positive_fragments.md`）；负向整段使用 `prompts/negative.txt`。露耳优先，少持枪。
+>
+> **多图槽**：Image 1 = 身份（cat_ref），Image 2 = 服装/场景（costume_ref）；正向固定追加 `Preserve Image 1 cat face/fur identity; apply Image 2 costume/scene.`。两图优先，三图仅在两图失败时试。Lightning 默认 OFF。
 
 ## A · 小橘（美军 / 诺曼底）
 

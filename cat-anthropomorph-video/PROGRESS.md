@@ -87,6 +87,20 @@
 - **v0-lite**：装配路径在 briefs/outputs；mp4 可不 commit（README-PIPELINE 已注）。
 - **边界**：未开机、未充值、未 merge；未碰 NSFW/comic；未用 grok CLI。
 
+## 2026-10-25 Asia/Shanghai · 段10：社区优化调研 + G2 主体门禁 + 三态状态 + 有声/换轨 + sha256 门禁
+
+- **调研（先写后改）**：[`reviews/COMMUNITY-OPTIMIZE-2026-10-25.md`](reviews/COMMUNITY-OPTIMIZE-2026-10-25.md) 四节（Wan2.1/2.2 I2V、Qwen-Edit looklock、SSIM 防假阳性、抖音/小红书 BGM 合规），每条含来源链接 / 可复用做法 / 与本仓冲突 / 推荐默认。
+- **G2 主体门禁**：新增 [`scripts/subject_gate.py`](scripts/subject_gate.py)（相对 start_image/frame0 的灰度 SSIM 带宽 **0.25–0.92**；过低 exit 2，过高仅 WARN；中心区可选 `--enforce-center`；`--self-test`）。文档 [`reviews/CLIP-STATUS.md`](reviews/CLIP-STATUS.md)；manifest `groups.i2v.motion_policy.gates` 挂 **G2=subject_gate**，looklock 也登记可选 G2。
+- **三态状态**：新增 [`scripts/clip_status.py`](scripts/clip_status.py) —— `RENDER_DONE`（渲染结束，不可用）→ `AUTO_QC_PASS`（G1+G2+G2m 全过，仍不可用）→ `HUMAN_ACCEPTED`（人眼确认，唯一可用）。状态写 `<clip>.status.json`；禁止把前两态当「可用成片」。
+- **QC fixtures**：[`fixtures/qc/`](fixtures/qc/) 合成噪点/渐变/位移/平场 PGM + README；smoke 引为 G1/G2 负样本，不依赖真猫图。
+- **方案 A（社区高置信落地）**：保留 fp16 / 480×832 / length=49 / steps20 / cfg6 / shift8；`workflow/TEMPLATES.md` 增社区对照表；`workflow/02_i2v_api_prompt_r1_r4.json` 增 `community_defaults` / `fallbacks` / `status_model` / `audio`，记录官方 **shift=3** 仅身份回退、R3 cfg5/shift10 仅双败回退；Lightning 默认 OFF；FLF2V 不默认；`prompts/positive_fragments.md` 补身份回退备注。
+- **Looklock**：槽位顺序明确 Image1=身份 / Image2=服装场景；01 workflow 正向追加 `Preserve Image 1 cat face/fur identity; apply Image 2 costume/scene.`；两图优先、Lightning OFF。
+- **有声/换轨**：新增 [`scripts/stitch_audio.py`](scripts/stitch_audio.py)（silent / 可选 wav / 自动生成 128 BPM 正弦滴答节拍床；`--self-test`）与 [`scripts/AUDIO-SWAP.md`](scripts/AUDIO-SWAP.md)（仅平台官方曲库或书面授权/CC0；勿盗版/跨平台搬运）。
+- **sha256 必验**：`manifest.json` 12 个权重全部填入 HF API `lfs.oid` 真实 sha256；新增 `checksum_policy`；`scripts/download_models.py` 默认 `--require-sha256`，下载后校验、已有文件重哈希后才 skip、缺 sha 非 dry-run 拒绝、`--validate-manifest` / `--checksum-only`；`restore.sh` 增加 sha 提醒并显式传 `--require-sha256`。
+- **离线验收**：`bash cat-anthropomorph-video/scripts/smoke_test.sh --dry-run` → **exit 0**（12 步：workflow/manifest+sha、三猫、CHARACTER-LOCK、双机、G1/G2/G2m、clip_status、stitch_audio、restore、缺 sha 拒绝、comic 隔离）。
+- **未做（GPU 相关）**：未开机、未跑真实 I2V、未做 subject_gate 真机校准、未试听真实换轨；见 [`reviews/BOOT-AUTH-ASK-2026-10-25.md`](reviews/BOOT-AUTH-ASK-2026-10-25.md) 新增「待 GPU」段。
+- **边界**：未充值、未 release、未发布、未 merge、未 force push；未用 grok CLI/设备码/OAuth；未碰 `ai-realistic-comic/` 与 NSFW LoRA。
+
 ## 约定落库
 
 - Notion Memory：[工作同步：GitHub + Notion](https://app.notion.com/p/402b407a692a81ecb2ddcd6b35b29320)

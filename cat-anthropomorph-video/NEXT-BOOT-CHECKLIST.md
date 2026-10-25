@@ -50,8 +50,10 @@
 - [ ] 记录开始/结束时间、显存峰值、输出路径、耗时、seed。
 - [ ] 输出先不要剪映加工，保留原始文件。
 - [ ] `python3 scripts/noise_gate.py <输出视频>`（G1）必须 exit 0。
+- [ ] `python3 scripts/subject_gate.py --start-image <首帧> <输出视频>`（**G2**）必须 exit 0；过低=噪点/身份崩。
 - [ ] `python3 scripts/motion_gate.py <输出视频>`（**G2m**）必须 exit 0；近静帧应 FAIL。
-- [ ] 人眼可见敬礼或抬头；**未过 G2m 不得写「可用片段」**。
+- [ ] 人眼可见敬礼或抬头；**未过 G2/G2m 不得写「可用片段」**。
+- [ ] `clip_status.py`：先 `RENDER_DONE`；三门禁全过后 `AUTO_QC_PASS`；人眼确认后 `HUMAN_ACCEPTED`。
 
 ## F. 人眼与指标验收
 

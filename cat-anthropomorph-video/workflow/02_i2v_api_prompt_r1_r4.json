@@ -75,9 +75,11 @@
   "negative": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走, static, still, still picture, frozen, motionless, no motion, barely moving, idle breathing only, slow motion, weapon, rifle, gun, four-legged, realistic cat body, extra limbs, melting paws",
   "gates": [
     "scripts/noise_gate.py",
-    "scripts/motion_gate.py"
+    "scripts/subject_gate.py",
+    "scripts/motion_gate.py",
+    "scripts/clip_status.py"
   ],
-  "forbid_usable_claim_without": "G2m motion_gate PASS",
+  "forbid_usable_claim_without": "G1+G2+G2m PASS and HUMAN_ACCEPTED (AUTO_QC_PASS alone is not a usable/public clip)",
   "calibration": {
     "r1_positive_max_mad": 16.27,
     "static_baseline_max_mad": 3.6,
@@ -91,5 +93,88 @@
   "machine": {
     "wan_i2v_only": "9b4c40bda6-dad38bb9",
     "label": "mother-025"
+  },
+  "community_defaults": {
+    "source_doc": "reviews/COMMUNITY-OPTIMIZE-2026-10-25.md",
+    "official_wan21_generate": {
+      "steps": 40,
+      "shift_480p": 3,
+      "frame_num": 81,
+      "source": "https://github.com/Wan-Video/Wan2.1/blob/main/generate.py"
+    },
+    "comfy_official": {
+      "unet_precision": "fp16",
+      "source": "https://docs.comfy.org/tutorials/video/wan/wan-video"
+    },
+    "kombitz": {
+      "shift_480p": 3,
+      "shift_720p": 5,
+      "cfg": 5,
+      "steps": 20,
+      "length": 49,
+      "negative": "official_zh",
+      "source": "https://www.kombitz.com/2025/03/03/simple-comfyui-workflow-for-wan2-1-image-to-video-i2v-using-gguf-models/"
+    },
+    "civitai_character_lora": {
+      "length_formula": "16*frames+1",
+      "identity_shift_range": [
+        5,
+        6
+      ],
+      "lightning": {
+        "cfg": 1,
+        "negative_disabled": true,
+        "needs_nag": true
+      },
+      "quality_first": true,
+      "source": "https://civitai.com/articles/18711/wan-2122-comfyui-workflows-for-my-character-lora"
+    },
+    "adopted": {
+      "fp16": true,
+      "length": 49,
+      "strong_verbs": true,
+      "static_negative": true,
+      "lightning_default": false,
+      "flf2v_default": false,
+      "shift_default": 8,
+      "cfg_default": 6,
+      "reason": "motion gate already calibrated with R1 max_mad=16.27"
+    }
+  },
+  "fallbacks": {
+    "identity_shift_3": {
+      "shift": 3,
+      "steps": 40,
+      "when": "only if identity drifts; official 480p baseline",
+      "default": false
+    },
+    "expression_shift_5_6": {
+      "shift": 5,
+      "when": "only if expression is lost and identity is stable",
+      "default": false
+    },
+    "r3_cfg5_shift10": {
+      "cfg": 5,
+      "shift": 10,
+      "when": "only after R1/R2 both fail G2m",
+      "default": false
+    }
+  },
+  "length_formula": "16*frames+1 (49 = 16*3+1)",
+  "negative_source": "prompts/negative.txt",
+  "status_model": {
+    "script": "scripts/clip_status.py",
+    "states": [
+      "RENDER_DONE",
+      "AUTO_QC_PASS",
+      "HUMAN_ACCEPTED"
+    ],
+    "usable_state": "HUMAN_ACCEPTED",
+    "doc": "reviews/CLIP-STATUS.md"
+  },
+  "audio": {
+    "script": "scripts/stitch_audio.py",
+    "default": "silent or generated 128 BPM sine-tick bed",
+    "doc": "scripts/AUDIO-SWAP.md"
   }
 }

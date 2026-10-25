@@ -11,6 +11,7 @@
 - **2026-10-25 模板化**：[`workflow/TEMPLATES.md`](workflow/TEMPLATES.md) — I2V 方案 A / Qwen looklock 可复用；每镜只改槽位，勿另起 workflow
 - **v0-lite 装配**：15s 剪辑样片路径记在 **briefs / 本机 outputs**（如 `outputs/motion-fix-i2v-2026-10-25/`）；**二进制 mp4 可不入库**，以文档 + 路径为准（见 beat/storyboard）
 - **2026-10-25 动作修正**：[`reviews/COMMUNITY-I2V-MOTION-2026-10-25.md`](reviews/COMMUNITY-I2V-MOTION-2026-10-25.md)（强动词 + static 负向 + length=49 + **G2m motion_gate**）；下次开机按 [`NEXT-BOOT-CHECKLIST.md`](NEXT-BOOT-CHECKLIST.md) 验证
+- **2026-10-25 社区优化**：[`reviews/COMMUNITY-OPTIMIZE-2026-10-25.md`](reviews/COMMUNITY-OPTIMIZE-2026-10-25.md)（Wan/Qwen/SSIM/BGM 四节 + 推荐默认）；门禁状态见 [`reviews/CLIP-STATUS.md`](reviews/CLIP-STATUS.md)
 
 规划日：2026-10-23（Asia/Shanghai）
 
@@ -46,7 +47,7 @@
 2. 安装/更新 **ComfyUI 最新版**（需原生 Wan2.1 与 Qwen-Image-Edit-2511 模板/子图）。
 3. 按 `manifest.json` → `custom_nodes` 补齐（ControlNet aux 等）；**不要**装 NSFW 专用节点。
 4. `bash scripts/restore.sh`（默认 **dry-run**）核对 URL 与落盘路径。
-5. `bash scripts/smoke_test.sh --dry-run` 做离线验收（解析 workflow、对齐 manifest、检查定妆卡/双机 ID、noise_gate 自检、调用 restore dry-run），必须 **exit 0**。
+5. `bash scripts/smoke_test.sh --dry-run` 做离线验收（解析 workflow、对齐 manifest、检查定妆卡/双机 ID、noise/subject/motion 门禁自检、fixtures 噪点负样本、clip_status、sha256 字段、restore dry-run），必须 **exit 0**。
 6. 准备输入目录：`$INPUT_ROOT/cats/{A,B,C}/raw/`、`looklock/`、`$INPUT_ROOT/shots/`、`$OUTPUT_ROOT/{i2v,flf2v,exports}/`。仓库参考图放 `refs/cats/{A,B,C}/`；`restore.sh` 会硬拷贝 `front.jpg` / `cat-*.jpg` 到 `$INPUT_ROOT/cats/{A,B,C}/raw/`（已存在则跳过）。
 
 **完成标准**：三份 workflow 能在 ComfyUI 打开（缺权重视为节点标红可接受）；路径不指向 comic 树。
@@ -61,9 +62,10 @@
 4. Smoke：`480×832`、`length=49`、`steps=20`、`cfg=6`、`shift=8`、`uni_pc/simple`；正向用 R1 敬礼（禁 soft 词）；记录耗时与磁盘增量。
 5. 生成后依次跑：
    - `python3 scripts/noise_gate.py <输出视频>`（G1）
+   - `python3 scripts/subject_gate.py --start-image <首帧> <输出视频>`（**G2**；SSIM 带宽 0.25–0.92）
    - `python3 scripts/motion_gate.py <输出视频>`（**G2m**；默认 max MAD≥11；上轮近静帧≈3.6 应 FAIL）
-   - 人眼 G2（同脸军装）+ 可见敬礼或抬头
-6. **未同时过 G1+G2+G2m，不得写「可用片段」**。通过后再 **关机留盘**。
+   - 人眼身份（同脸军装）+ 可见敬礼或抬头
+6. 状态：渲染结束只记 `RENDER_DONE`；G1+G2+G2m 全过记 `AUTO_QC_PASS`（仍非可用成片）；人眼确认后 `HUMAN_ACCEPTED` 才可对外。见 [`reviews/CLIP-STATUS.md`](reviews/CLIP-STATUS.md)。通过后再 **关机留盘**。
 
 **完成标准**：可播短视频且 G1+G2+G2m PASS；**未**声称量产。
 
@@ -109,7 +111,8 @@ python3 scripts/crop_check_i2v.py path/to/cat_anthro_looklock_00001_.png
 1. 定妆/分镜首帧 → `02_i2v_wan21_480p.json`（连击可多段）。
 2. 高潮首尾帧 → `03_flf2v_wan21.json`（720×1280 fp16 默认；fp8 仅回退）。
 3. 剪映：按主曲 **120–140 BPM** 对齐；补帧 30fps；导出 **1080×1920**；标 AI。
-4. 单条 GPU 硬上限约定约 **3h ≈ ¥6**（需用户授权）；对照系列发布检查清单。
+4. 有声：`python3 scripts/stitch_audio.py clip.mp4 --out clip_audio.mp4`（默认 128 BPM 程序化节拍床或 silent）；换轨只允许平台官方曲库/书面授权/CC0，见 [`scripts/AUDIO-SWAP.md`](scripts/AUDIO-SWAP.md)。
+5. 单条 GPU 硬上限约定约 **3h ≈ ¥6**（需用户授权）；对照系列发布检查清单。
 
 ---
 
@@ -155,7 +158,11 @@ python3 scripts/crop_check_i2v.py path/to/cat_anthro_looklock_00001_.png
 - 社区修正落库：[`COMMUNITY-FIXES-2026-10-24.md`](COMMUNITY-FIXES-2026-10-24.md)
 - 下次开机验证：[`NEXT-BOOT-CHECKLIST.md`](NEXT-BOOT-CHECKLIST.md)
 - 噪声门禁 G1：[`scripts/noise_gate.py`](scripts/noise_gate.py)
+- 主体门禁 G2：[`scripts/subject_gate.py`](scripts/subject_gate.py)
 - 动作门禁 G2m：[`scripts/motion_gate.py`](scripts/motion_gate.py)
+- 片段状态：[`scripts/clip_status.py`](scripts/clip_status.py) · [`reviews/CLIP-STATUS.md`](reviews/CLIP-STATUS.md)
+- 有声/换轨：[`scripts/stitch_audio.py`](scripts/stitch_audio.py) · [`scripts/AUDIO-SWAP.md`](scripts/AUDIO-SWAP.md)
+- 合成 QC 小样：[`fixtures/qc/`](fixtures/qc/)
 - 构图预览：[`scripts/crop_check_i2v.py`](scripts/crop_check_i2v.py)
 - 动作社区方案：[`reviews/COMMUNITY-I2V-MOTION-2026-10-25.md`](reviews/COMMUNITY-I2V-MOTION-2026-10-25.md)
 

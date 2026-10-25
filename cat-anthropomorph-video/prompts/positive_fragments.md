@@ -48,3 +48,7 @@ The anthropomorphic cat soldier snaps her head up and turns to stare directly in
 
 仅当 R1、R2 未过 `motion_gate`（G2m）时：保持 length=49 与 R1 正向，改 **cfg=5 / shift=10**（steps 仍 20）。
 
+### 身份回退（非默认，社区记录）
+
+仅当身份明显漂移且动作已过线：可试官方 480p 口径 **shift=3 / steps=40**（length 仍 49）；这会牺牲部分动作，**不改默认**。Lightning 默认 OFF，勿用 CFG=1 省步。
+

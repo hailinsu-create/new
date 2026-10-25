@@ -59,7 +59,7 @@ for var in MODELS_ROOT COMFYUI_ROOT INPUT_ROOT OUTPUT_ROOT; do
   fi
 done
 
-echo "[smoke] 1/8 解析 workflow JSON 并核对 manifest 权重"
+echo "[smoke] 1/12 解析 workflow JSON 并核对 manifest 权重 / sha256"
 python3 - "$ROOT" <<'PY'
 from __future__ import annotations
 
@@ -193,13 +193,38 @@ for rel, spec in workflows.items():
                 errors.append(f"{rel}: negative missing {need!r}")
 
 
+checksum_policy = manifest.get("checksum_policy") or {}
+if checksum_policy.get("algorithm") != "sha256":
+    errors.append("manifest.checksum_policy.algorithm must be sha256")
+if checksum_policy.get("size_only") != "forbidden":
+    errors.append("manifest.checksum_policy.size_only must be forbidden")
+
+hashed = 0
+for gname, group in groups.items():
+    for weight in group.get("weights") or []:
+        name = weight.get("filename") or weight.get("id")
+        value = str(weight.get("sha256") or "")
+        if not re.fullmatch(r"[0-9a-f]{64}", value):
+            errors.append(f"manifest {gname}/{name}: missing or invalid sha256")
+        else:
+            hashed += 1
+
+i2v_gates = groups["i2v"]["motion_policy"]["gates"]
+if i2v_gates.get("G2") != "scripts/subject_gate.py":
+    errors.append("manifest i2v gates.G2 must point at scripts/subject_gate.py")
+if i2v_gates.get("status_model") != "scripts/clip_status.py":
+    errors.append("manifest i2v gates.status_model must point at scripts/clip_status.py")
+if "HUMAN_ACCEPTED" not in (i2v_gates.get("usable_clip_requires") or []):
+    errors.append("manifest usable_clip_requires must include HUMAN_ACCEPTED")
+
 if errors:
     for err in errors:
         print(f"[smoke][FAIL] {err}", file=sys.stderr)
     sys.exit(1)
+print(f"[smoke]   manifest sha256 字段齐全：{hashed} 个权重；G2/G2m/status 已挂载")
 PY
 
-echo "[smoke] 2/8 检查三猫定妆卡"
+echo "[smoke] 2/12 检查三猫定妆卡"
 for name in 小橘 银宝 墨墨; do
   grep -q "$name" prompts/look_cards.md || fail "prompts/look_cards.md 缺少名字：${name}"
 done
@@ -208,7 +233,7 @@ if grep -q '\[待补\]' prompts/look_cards.md; then
 fi
 echo "[smoke]   A小橘 / B银宝 / C墨墨 已锁定"
 
-echo "[smoke] 3/8 检查 CHARACTER-LOCK 与 refs/cats"
+echo "[smoke] 3/12 检查 CHARACTER-LOCK 与 refs/cats"
 LOCK_DOC="CHARACTER-LOCK-2026-10-24.md"
 [[ -f "$LOCK_DOC" ]] || fail "缺少定妆锁定文档：${LOCK_DOC}"
 for name in 小橘 银宝 墨墨; do
@@ -246,7 +271,7 @@ else
   echo "[smoke]   refs/cats 非空 jpg ${present_files} 个；缺失 ${missing_cats} 只"
 fi
 
-echo "[smoke] 4/8 检查双机实体 ID"
+echo "[smoke] 4/12 检查双机实体 ID"
 for doc in scripts/race_boot.md DUAL-CREATE-RESULT-2026-10-24.md; do
   [[ -f "$doc" ]] || fail "缺少双机文档：${doc}"
   grep -q '9b4c40bda6-dad38bb9' "$doc" || fail "${doc} 缺少母机 ID 9b4c40bda6-dad38bb9"
@@ -260,37 +285,78 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo "[smoke] 5/8 噪声门禁（self-test + 合成噪声 FAIL + 猫参考图 PASS）"
+echo "[smoke] 5/12 噪声门禁 G1（self-test + fixtures 噪点 FAIL + 渐变/猫图 PASS）"
+for fixture in \
+  fixtures/qc/noise_uniform_96x96.pgm \
+  fixtures/qc/gradient_smooth_96x96.pgm \
+  fixtures/qc/subject_ref_128x128.pgm; do
+  [[ -s "$fixture" ]] || fail "缺少 QC fixture：${fixture}"
+done
 python3 scripts/noise_gate.py --self-test || fail "noise_gate self-test 失败"
 
-python3 - "$TMP_ROOT/noise-synthetic.pgm" <<'PY'
-from pathlib import Path
-import random
-import sys
-
-path = Path(sys.argv[1])
-width = height = 128
-rng = random.Random(20261024)
-path.write_bytes(b"P5\n128 128\n255\n" + bytes(rng.randrange(256) for _ in range(width * height)))
-PY
-
 set +e
-python3 scripts/noise_gate.py "$TMP_ROOT/noise-synthetic.pgm" >"$TMP_ROOT/noise-gate.log" 2>&1
+python3 scripts/noise_gate.py fixtures/qc/noise_uniform_96x96.pgm >"$TMP_ROOT/noise-gate.log" 2>&1
 noise_rc=$?
 set -e
 if [[ "$noise_rc" -ne 2 ]]; then
   cat "$TMP_ROOT/noise-gate.log" >&2
-  fail "noise_gate 未以 exit 2 拒绝合成噪声（实际 ${noise_rc}）"
+  fail "noise_gate 未以 exit 2 拒绝 fixtures 噪点（实际 ${noise_rc}）"
 fi
 grep -q 'FAIL' "$TMP_ROOT/noise-gate.log" || fail "noise_gate 拒绝日志缺少 FAIL"
 
+if ! python3 scripts/noise_gate.py fixtures/qc/gradient_smooth_96x96.pgm >"$TMP_ROOT/noise-gradient.log" 2>&1; then
+  cat "$TMP_ROOT/noise-gradient.log" >&2
+  fail "noise_gate 拒绝了平滑渐变正样本"
+fi
 if ! python3 scripts/noise_gate.py refs/cats/A/front.jpg >"$TMP_ROOT/noise-cat.log" 2>&1; then
   cat "$TMP_ROOT/noise-cat.log" >&2
   fail "noise_gate 拒绝了正常猫参考图 refs/cats/A/front.jpg"
 fi
-echo "[smoke]   合成噪声 exit 2；refs/cats/A/front.jpg 正常 PASS"
+echo "[smoke]   fixtures 噪点 exit 2；渐变与 refs/cats/A/front.jpg PASS"
 
-echo "[smoke] 6/8 动作门禁 motion_gate（self-test + 近静帧 FAIL + 合成运动 PASS）"
+echo "[smoke] 6/12 主体门禁 G2 subject_gate（self-test + fixtures 噪点 FAIL + 位移 PASS）"
+python3 scripts/subject_gate.py --self-test || fail "subject_gate self-test 失败"
+
+set +e
+python3 scripts/subject_gate.py \
+  --start-image fixtures/qc/subject_ref_128x128.pgm \
+  fixtures/qc/subject_noise_128x128.pgm >"$TMP_ROOT/subject-noise.log" 2>&1
+subject_noise_rc=$?
+set -e
+if [[ "$subject_noise_rc" -ne 2 ]]; then
+  cat "$TMP_ROOT/subject-noise.log" >&2
+  fail "subject_gate 未以 exit 2 拒绝噪点负样本（实际 ${subject_noise_rc}）"
+fi
+grep -q 'FAIL' "$TMP_ROOT/subject-noise.log" || fail "subject_gate 拒绝日志缺少 FAIL"
+
+if ! python3 scripts/subject_gate.py \
+  --start-image fixtures/qc/subject_ref_128x128.pgm \
+  fixtures/qc/subject_moved_128x128.pgm >"$TMP_ROOT/subject-moved.log" 2>&1; then
+  cat "$TMP_ROOT/subject-moved.log" >&2
+  fail "subject_gate 拒绝了带内位移正样本"
+fi
+if ! python3 scripts/subject_gate.py \
+  --start-image fixtures/qc/subject_ref_128x128.pgm \
+  fixtures/qc/subject_ref_128x128.pgm >"$TMP_ROOT/subject-same.log" 2>&1; then
+  cat "$TMP_ROOT/subject-same.log" >&2
+  fail "subject_gate 对高相似帧不应 FAIL（应 WARN）"
+fi
+grep -q 'WARN' "$TMP_ROOT/subject-same.log" || fail "subject_gate 高相似未给出 WARN"
+
+set +e
+python3 scripts/subject_gate.py \
+  --start-image fixtures/qc/subject_ref_128x128.pgm \
+  --enforce-center --center-min-ssim 0.15 \
+  fixtures/qc/subject_flat_128x128.pgm >"$TMP_ROOT/subject-flat.log" 2>&1
+subject_flat_rc=$?
+set -e
+if [[ "$subject_flat_rc" -ne 2 ]]; then
+  cat "$TMP_ROOT/subject-flat.log" >&2
+  fail "subject_gate 中心区门禁未以 exit 2 拒绝平场负样本（实际 ${subject_flat_rc}）"
+fi
+echo "[smoke]   噪点 exit 2；位移 PASS；高相似仅 WARN；中心区平场 exit 2"
+
+echo "[smoke] 7/12 动作门禁 motion_gate（self-test + 近静帧 FAIL + 合成运动 PASS）"
 python3 scripts/motion_gate.py --self-test || fail "motion_gate self-test 失败"
 
 python3 - "$TMP_ROOT/motion-static" <<'PY'
@@ -340,7 +406,47 @@ if ! python3 scripts/motion_gate.py "$TMP_ROOT/motion-moving" >"$TMP_ROOT/motion
 fi
 echo "[smoke]   近静帧 exit 2；合成运动 PASS"
 
-echo "[smoke] 7/8 执行 restore.sh dry-run（i2v / looklock / flf2v）"
+echo "[smoke] 8/12 片段三态 clip_status（RENDER_DONE → AUTO_QC_PASS → HUMAN_ACCEPTED）"
+python3 scripts/clip_status.py --self-test || fail "clip_status self-test 失败"
+STATUS_CLIP="$TMP_ROOT/clip.mp4"
+python3 scripts/clip_status.py set "$STATUS_CLIP" --state RENDER_DONE >"$TMP_ROOT/status.log" 2>&1 \
+  || fail "clip_status 无法记录 RENDER_DONE"
+grep -q 'usable=False' "$TMP_ROOT/status.log" || fail "RENDER_DONE 不应是可用的"
+set +e
+python3 scripts/clip_status.py set "$STATUS_CLIP" --state AUTO_QC_PASS --g1 pass >"$TMP_ROOT/status-bad.log" 2>&1
+status_bad_rc=$?
+set -e
+if [[ "$status_bad_rc" -ne 2 ]]; then
+  cat "$TMP_ROOT/status-bad.log" >&2
+  fail "clip_status 未以 exit 2 拒绝缺 G2/G2m 的 AUTO_QC_PASS（实际 ${status_bad_rc}）"
+fi
+python3 scripts/clip_status.py set "$STATUS_CLIP" --state AUTO_QC_PASS --g1 pass --g2 pass --g2m pass \
+  >"$TMP_ROOT/status-auto.log" 2>&1 || fail "clip_status 无法记录三门禁全过的 AUTO_QC_PASS"
+grep -q 'usable=False' "$TMP_ROOT/status-auto.log" || fail "AUTO_QC_PASS 不应是可用的"
+set +e
+python3 scripts/clip_status.py set "$STATUS_CLIP" --state HUMAN_ACCEPTED --g1 pass --g2 pass --g2m pass \
+  >"$TMP_ROOT/status-human-bad.log" 2>&1
+status_human_bad_rc=$?
+set -e
+if [[ "$status_human_bad_rc" -ne 2 ]]; then
+  cat "$TMP_ROOT/status-human-bad.log" >&2
+  fail "clip_status 未拒绝无 --human 的 HUMAN_ACCEPTED（实际 ${status_human_bad_rc}）"
+fi
+python3 scripts/clip_status.py set "$STATUS_CLIP" --state HUMAN_ACCEPTED \
+  --g1 pass --g2 pass --g2m pass --human >"$TMP_ROOT/status-human.log" 2>&1 \
+  || fail "clip_status 无法记录人眼确认的 HUMAN_ACCEPTED"
+grep -q 'usable=True' "$TMP_ROOT/status-human.log" || fail "HUMAN_ACCEPTED 应为唯一可用状态"
+python3 scripts/clip_status.py verify "$STATUS_CLIP" --require HUMAN_ACCEPTED >/dev/null \
+  || fail "clip_status verify HUMAN_ACCEPTED 失败"
+echo "[smoke]   三态严格；AUTO_QC_PASS 仍不可用；HUMAN_ACCEPTED 唯一可用"
+
+echo "[smoke] 9/12 有声/节拍床 stitch_audio self-test"
+python3 scripts/stitch_audio.py --self-test >"$TMP_ROOT/audio.log" 2>&1 \
+  || { cat "$TMP_ROOT/audio.log" >&2; fail "stitch_audio self-test 失败"; }
+grep -q 'PASS' "$TMP_ROOT/audio.log" || fail "stitch_audio self-test 未打印 PASS"
+echo "[smoke]   128 BPM 节拍床生成、混流、静音剥离均通过"
+
+echo "[smoke] 10/12 执行 restore.sh dry-run（i2v / looklock / flf2v）"
 
 for group in i2v looklock flf2v; do
   if ! env \
@@ -405,8 +511,58 @@ for rel in \
   [[ -d "$TMP_ROOT/$rel" ]] || fail "restore 未创建目录：${rel}"
 done
 echo "[smoke]   输入/输出目录结构完整"
+grep -q 'sha256 必验' "$TMP_ROOT/restore-i2v.log" || fail "restore 日志缺少 sha256 必验提醒"
+grep -q 'sha256=' "$TMP_ROOT/restore-i2v.log" || fail "restore dry-run 日志缺少 sha256（可能回退 size-only）"
 
-echo "[smoke] 8/8 检查 comic 路径拒绝"
+echo "[smoke] 11/12 manifest sha256 真实性 + 缺失拒绝（不下载大权重）"
+for group in i2v looklock flf2v; do
+  if ! python3 scripts/download_models.py --validate-manifest --group "$group" >"$TMP_ROOT/sha-${group}.log" 2>&1; then
+    cat "$TMP_ROOT/sha-${group}.log" >&2
+    fail "download_models --validate-manifest --group ${group} 失败"
+  fi
+done
+
+python3 - "$TMP_ROOT/manifest-missing.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+source = json.loads(Path("manifest.json").read_text(encoding="utf-8"))
+source["groups"]["i2v"]["weights"][0].pop("sha256", None)
+Path(sys.argv[1]).write_text(json.dumps(source), encoding="utf-8")
+PY
+
+set +e
+python3 scripts/download_models.py \
+  --group i2v \
+  --manifest "$TMP_ROOT/manifest-missing.json" \
+  --models-root "$TMP_ROOT/models-missing" >"$TMP_ROOT/sha-refuse.log" 2>&1
+sha_refuse_rc=$?
+set -e
+if [[ "$sha_refuse_rc" -ne 2 ]]; then
+  cat "$TMP_ROOT/sha-refuse.log" >&2
+  fail "缺 sha256 的非 dry-run 未以 exit 2 拒绝（实际 ${sha_refuse_rc}）"
+fi
+grep -q 'REFUSE' "$TMP_ROOT/sha-refuse.log" || fail "缺 sha256 拒绝日志缺少 REFUSE"
+if grep -q '^\[get\]' "$TMP_ROOT/sha-refuse.log"; then
+  fail "缺 sha256 时不应开始下载（size-only 被破坏）"
+fi
+
+set +e
+python3 scripts/download_models.py \
+  --dry-run \
+  --group i2v \
+  --manifest "$TMP_ROOT/manifest-missing.json" \
+  --models-root "$TMP_ROOT/models-missing" >"$TMP_ROOT/sha-dry.log" 2>&1
+sha_dry_rc=$?
+set -e
+if [[ "$sha_dry_rc" -ne 0 ]]; then
+  cat "$TMP_ROOT/sha-dry.log" >&2
+  fail "缺 sha256 的 dry-run 应 WARN 且 exit 0（实际 ${sha_dry_rc}）"
+fi
+grep -q 'WARN' "$TMP_ROOT/sha-dry.log" || fail "缺 sha256 的 dry-run 未打印 WARN"
+echo "[smoke]   三个 group sha256 齐全；缺 sha 的 apply 拒绝、dry-run WARN"
+
+echo "[smoke] 12/12 检查 comic 路径拒绝"
 set +e
 env \
   CAT_ANTHRO_SKIP_ENV=1 \
@@ -424,6 +580,6 @@ fi
 grep -q 'Refusing' "$TMP_ROOT/refuse.log" || fail "restore.sh 拒绝信息不明确"
 echo "[smoke]   ai-realistic-comic 路径已被拒绝"
 
-echo "[smoke] PASS (dry-run): workflow/manifest、三猫定妆、CHARACTER-LOCK、refs/cats、双机 ID、噪声门禁、动作门禁、restore 隔离均通过"
+echo "[smoke] PASS (dry-run): workflow/manifest+sha256、三猫定妆、CHARACTER-LOCK、refs/cats、双机 ID、G1/G2/G2m、clip_status、stitch_audio、restore 隔离均通过"
 echo "[smoke] 未开机、未跑 GPU、未生成真实视频、未产生计费；此 PASS 不代表生成成功。"
 exit 0

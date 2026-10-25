@@ -24,7 +24,9 @@
           "url": "https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_2511_fp8mixed.safetensors",
           "license_note": "Follow upstream Qwen / Comfy-Org terms",
           "default": true,
-          "note": "默认（必下）；Qwen looklock 用 fp8mixed OK，Wan fp16 禁令不适用于 Qwen"
+          "note": "默认（必下）；Qwen looklock 用 fp8mixed OK，Wan fp16 禁令不适用于 Qwen",
+          "sha256": "c9fdc158e46d3b61ef75f21ae866ca2fe808bf4a53643120d1c1e87c19280a4e",
+          "checksum_source": "HF API lfs.oid 2026-10-25"
         },
         {
           "id": "qwen_image_edit_2511_bf16",
@@ -33,21 +35,27 @@
           "bytes": 40861031560,
           "url": "https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_2511_bf16.safetensors",
           "optional": true,
-          "note": "可选；仅 VRAM/磁盘允许时；4090 优先 fp8mixed；不可与 fused lightning checkpoint 叠加"
+          "note": "可选；仅 VRAM/磁盘允许时；4090 优先 fp8mixed；不可与 fused lightning checkpoint 叠加",
+          "sha256": "ae42d927b5fac4f278b9a894554c727e619727a63622976f2d95625be4bce08c",
+          "checksum_source": "HF API lfs.oid 2026-10-25"
         },
         {
           "id": "qwen_2.5_vl_7b_fp8_scaled",
           "filename": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
           "dest": "text_encoders/",
           "bytes": 9384670680,
-          "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors"
+          "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors",
+          "sha256": "cb5636d852a0ea6a9075ab1bef496c0db7aef13c02350571e388aea959c5c0b4",
+          "checksum_source": "HF API lfs.oid 2026-10-25"
         },
         {
           "id": "qwen_image_vae",
           "filename": "qwen_image_vae.safetensors",
           "dest": "vae/",
           "bytes": 253806246,
-          "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors"
+          "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors",
+          "sha256": "a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f",
+          "checksum_source": "HF API lfs.oid 2026-10-25"
         },
         {
           "id": "qwen_edit_2511_lightning_4steps",
@@ -56,7 +64,9 @@
           "bytes": 849608296,
           "url": "https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning/resolve/main/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
           "optional": true,
-          "note": "仅加速可选：必须搭配 fp8mixed 基础模型，不可叠加到 fused lightning checkpoint；质量门禁默认 OFF（Enable 4steps LoRA? = false）"
+          "note": "仅加速可选：必须搭配 fp8mixed 基础模型，不可叠加到 fused lightning checkpoint；质量门禁默认 OFF（Enable 4steps LoRA? = false）",
+          "sha256": "22226e8d05d354bb356627d428809f5afd7819399b077238a2b70a82883a904f",
+          "checksum_source": "HF API lfs.oid 2026-10-25"
         }
       ],
       "sfw_lora_candidates": [
@@ -82,7 +92,12 @@
       "reusable_template": {
         "comfy_workflow": "workflow/01_looklock_qwen_edit.json",
         "param_sheet": "workflow/01_looklock_api_slots.json",
-        "slots_only": ["cat_ref", "costume_ref", "positive", "seed"],
+        "slots_only": [
+          "cat_ref",
+          "costume_ref",
+          "positive",
+          "seed"
+        ],
         "docs": "workflow/TEMPLATES.md"
       },
       "optional_inputs": [
@@ -92,10 +107,29 @@
           "dest": "input/looklock/",
           "note": "Optional clothing/pose reference for image2/image3; workflow/01 uses looklock/costume_ref_PLACEHOLDER.png (ComfyUI input-relative)."
         }
-      ]
+      ],
+      "gates": {
+        "G2": "scripts/subject_gate.py",
+        "subject_band": [
+          0.25,
+          0.92
+        ],
+        "note": "Optional looklock self-check vs cats/{A,B,C}/raw/front.jpg (--start-image); human identity blind test still required.",
+        "status_model": "scripts/clip_status.py"
+      },
+      "community_defaults": {
+        "slot_order": [
+          "cat_ref=identity",
+          "costume_ref=costume_scene"
+        ],
+        "positive_identity_sentence": "Preserve Image 1 cat face/fur identity; apply Image 2 costume/scene.",
+        "lightning_default": false,
+        "prefer_two_images": true,
+        "source_doc": "reviews/COMMUNITY-OPTIMIZE-2026-10-25.md"
+      }
     },
     "i2v": {
-      "description": "Wan2.1 I2V 14B 480P fp16 default; length=49; strong-verb motion prompts; G1 noise_gate + G2m motion_gate required before claiming usable clip",
+      "description": "Wan2.1 I2V 14B 480P fp16 default; length=49; strong-verb motion prompts; G1 noise_gate + G2 subject_gate + G2m motion_gate required; HUMAN_ACCEPTED before claiming usable",
       "custom_nodes": [
         "ComfyUI native WanImageToVideo / CreateVideo / SaveVideo (latest ComfyUI)"
       ],
@@ -107,7 +141,9 @@
           "bytes": 32791377504,
           "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_i2v_480p_14B_fp16.safetensors",
           "default": true,
-          "note": "首选/默认；与官方 I2V 模板一致（必下）"
+          "note": "首选/默认；与官方 I2V 模板一致（必下）",
+          "sha256": "27988f6b510eb8d5fdd7485671b54897f8683f2bba7a772c5671be21d3491253",
+          "checksum_source": "HF API lfs.oid 2026-10-25"
         },
         {
           "id": "wan21_i2v_480p_14b_fp8",
@@ -116,7 +152,9 @@
           "bytes": 16397245448,
           "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_i2v_480p_14B_fp8_e4m3fn.safetensors",
           "optional": true,
-          "note": "VRAM 回退；最低档、易噪，不推荐作默认"
+          "note": "VRAM 回退；最低档、易噪，不推荐作默认",
+          "sha256": "0ca75338e7a47ca7cacddb7e626647e65829c497387f718ecb6ea0bae456944a",
+          "checksum_source": "HF API lfs.oid 2026-10-25"
         },
         {
           "id": "umt5_xxl_fp8",
@@ -126,7 +164,9 @@
           "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
           "shared_with": [
             "flf2v"
-          ]
+          ],
+          "sha256": "c3355d30191f1f066b26d93fba017ae9809dce6c627dda5f6a66eaa651204f68",
+          "checksum_source": "HF API lfs.oid 2026-10-25"
         },
         {
           "id": "wan_2_1_vae",
@@ -136,7 +176,9 @@
           "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors",
           "shared_with": [
             "flf2v"
-          ]
+          ],
+          "sha256": "2fc39d31359a4b0a64f55876d8ff7fa8d780956ae2cb13463b0223e15148976b",
+          "checksum_source": "HF API lfs.oid 2026-10-25"
         },
         {
           "id": "clip_vision_h",
@@ -146,7 +188,9 @@
           "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/clip_vision/clip_vision_h.safetensors",
           "shared_with": [
             "flf2v"
-          ]
+          ],
+          "sha256": "64a7ef761bfccbadbaa3da77366aac4185a6c58fa5de5f589b42a65bcc21f161",
+          "checksum_source": "HF API lfs.oid 2026-10-25"
         }
       ],
       "motion_policy": {
@@ -181,15 +225,49 @@
           "usable_clip_requires": [
             "G1",
             "G2",
-            "G2m"
-          ]
+            "G2m",
+            "HUMAN_ACCEPTED"
+          ],
+          "G2": "scripts/subject_gate.py",
+          "subject_band": [
+            0.25,
+            0.92
+          ],
+          "subject_center_gate_default": false,
+          "status_model": "scripts/clip_status.py",
+          "status_states": [
+            "RENDER_DONE",
+            "AUTO_QC_PASS",
+            "HUMAN_ACCEPTED"
+          ],
+          "forbid_usable_claim_without": "AUTO_QC_PASS + human identity (HUMAN_ACCEPTED)"
         },
         "crop_check": "scripts/crop_check_i2v.py",
         "reusable_template": {
           "comfy_workflow": "workflow/02_i2v_wan21_480p.json",
           "param_sheet": "workflow/02_i2v_api_prompt_r1_r4.json",
-          "slots_only": ["start_image", "positive_action", "seed"],
+          "slots_only": [
+            "start_image",
+            "positive_action",
+            "seed"
+          ],
           "docs": "workflow/TEMPLATES.md"
+        },
+        "community_defaults": {
+          "lightning_default": false,
+          "flf2v_default": false,
+          "length_formula": "16*frames+1",
+          "official_shift_480p": 3,
+          "official_steps": 40,
+          "identity_fallback_shift": 3,
+          "identity_fallback_note": "Only if identity drifts; default stays shift=8 for motion. Community refs in reviews/COMMUNITY-OPTIMIZE-2026-10-25.md",
+          "source_doc": "reviews/COMMUNITY-OPTIMIZE-2026-10-25.md"
+        },
+        "audio": {
+          "script": "scripts/stitch_audio.py",
+          "default": "silent or generated 128 BPM sine-tick bed",
+          "doc": "scripts/AUDIO-SWAP.md",
+          "licensed_swap_only": true
         }
       }
     },
@@ -206,7 +284,9 @@
           "bytes": 32792693440,
           "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_flf2v_720p_14B_fp16.safetensors",
           "default": true,
-          "note": "首选/默认；与官方 FLF2V 模板一致（必下）"
+          "note": "首选/默认；与官方 FLF2V 模板一致（必下）",
+          "sha256": "bf4ac25667d00f53f49df02c5771f5aa7801c1dcb9b3ccade1407687c426d030",
+          "checksum_source": "HF API lfs.oid 2026-10-25"
         },
         {
           "id": "wan21_flf2v_720p_14b_fp8",
@@ -215,7 +295,9 @@
           "bytes": 16397952536,
           "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_flf2v_720p_14B_fp8_e4m3fn.safetensors",
           "optional": true,
-          "note": "VRAM 回退；最低档、易噪，不推荐作默认"
+          "note": "VRAM 回退；最低档、易噪，不推荐作默认",
+          "sha256": "d68ca694a695274e48e00974128337e06e497d95a1dc09e86fd2a01a405f455f",
+          "checksum_source": "HF API lfs.oid 2026-10-25"
         }
       ],
       "also_requires_from_groups": [
@@ -228,14 +310,30 @@
     "i2v_scheme_a": {
       "comfy_workflow": "workflow/02_i2v_wan21_480p.json",
       "param_sheet": "workflow/02_i2v_api_prompt_r1_r4.json",
-      "slots_only": ["start_image", "positive_action", "seed"],
+      "slots_only": [
+        "start_image",
+        "positive_action",
+        "seed"
+      ],
       "machine": "9b4c40bda6-dad38bb9"
     },
     "looklock_qwen": {
       "comfy_workflow": "workflow/01_looklock_qwen_edit.json",
       "param_sheet": "workflow/01_looklock_api_slots.json",
-      "slots_only": ["cat_ref", "costume_ref", "positive", "seed"],
+      "slots_only": [
+        "cat_ref",
+        "costume_ref",
+        "positive",
+        "seed"
+      ],
       "machine": "bb8c4f8e12-00c8bdac"
+    },
+    "qc": {
+      "docs": "reviews/CLIP-STATUS.md",
+      "fixtures": "fixtures/qc/",
+      "status_script": "scripts/clip_status.py",
+      "subject_gate": "scripts/subject_gate.py",
+      "audio_swap": "scripts/AUDIO-SWAP.md"
     }
   },
   "banned": {
@@ -245,5 +343,14 @@
       "Any path under ai-realistic-comic/",
       "Axis-leader likeness LoRAs, swastika detail packs"
     ]
+  },
+  "checksum_policy": {
+    "algorithm": "sha256",
+    "source": "Hugging Face API tree lfs.oid (fetched 2026-10-25)",
+    "size_only": "forbidden",
+    "missing_sha256": "dry-run WARN; non-dry-run refuse",
+    "verify_existing_before_skip": true,
+    "verify_after_download": true,
+    "require_flag": "--require-sha256 (default on)"
   }
 }

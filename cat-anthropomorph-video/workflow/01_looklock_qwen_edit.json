@@ -958,7 +958,7 @@
               "secondTabWidth": 65
             },
             "widgets_values": [
-              "anthropomorphic orange-and-white long-haired cat, the same individual cat in image 1: orange tabby patches on head, back and tail, white muzzle, chest and paws, long fluffy fur, amber-copper eyes, large upright tufted ears clearly visible through a US M1 helmet with ear cutouts. Transform the real cat in image 1 into an upright anthropomorphic US Normandy / WWII US infantry soldier wearing an olive-drab field jacket, red neckerchief and canvas belt (use image 2 as the clothing reference when available; otherwise follow this uniform description). Full-body photoreal cinematic still, SFW, empty-handed, no weapons, no rifle."
+              "anthropomorphic orange-and-white long-haired cat, the same individual cat in image 1: orange tabby patches on head, back and tail, white muzzle, chest and paws, long fluffy fur, amber-copper eyes, large upright tufted ears clearly visible through a US M1 helmet with ear cutouts. Transform the real cat in image 1 into an upright anthropomorphic US Normandy / WWII US infantry soldier wearing an olive-drab field jacket, red neckerchief and canvas belt (use image 2 as the clothing reference when available; otherwise follow this uniform description). Full-body photoreal cinematic still, SFW, empty-handed, no weapons, no rifle. Image 1 = cat identity; Image 2 = costume/scene reference. Preserve Image 1 cat face/fur identity; apply Image 2 costume/scene."
             ],
             "color": "#232",
             "bgcolor": "#353"

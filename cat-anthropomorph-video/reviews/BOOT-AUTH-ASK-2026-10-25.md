@@ -26,6 +26,10 @@
 - 方图首帧先 `crop_check_i2v.py`
 - 复用说明：`workflow/TEMPLATES.md`
 
+## 待 GPU（2026-10-25 追加，仍未授权/未开机）
+
+本轮仅完成 ¥0 代码与文档：R2/R4 敬礼压重拍仍未在真机验证；`subject_gate.py`（G2，SSIM 带宽 0.25–0.92）需用真实 I2V 样片校准弱带与中心区启发式，避免把动作/身份漂移误判；`stitch_audio.py` 生成的 128 BPM 节拍床及换轨流程只做了合成 self-test，需在真实 15s 有声样片上听检卡点与 `apad` 不截断；`clip_status.py` 三态需在真实产物上走一遍 `RENDER_DONE → AUTO_QC_PASS → HUMAN_ACCEPTED`。以上均待用户明确授权开机后执行，不充值、不 release。
+
 ## 授权回复模板（用户可复制）
 
 ```text

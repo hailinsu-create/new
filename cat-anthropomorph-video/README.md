@@ -8,6 +8,8 @@
 - **ComfyUI 管线 SOP**：[`README-PIPELINE.md`](README-PIPELINE.md)（P0–P3、workflow/、manifest、双机互斥；Wan2.1 **fp16 默认**）
 - **社区修正（2026-10-24）**：[`COMMUNITY-FIXES-2026-10-24.md`](COMMUNITY-FIXES-2026-10-24.md)（fp16 默认、禁 SageAttention、噪声门禁）
 - **动作修正（2026-10-25）**：[`reviews/COMMUNITY-I2V-MOTION-2026-10-25.md`](reviews/COMMUNITY-I2V-MOTION-2026-10-25.md)（length=49、强动词、G2m）
+- **社区优化（2026-10-25）**：[`reviews/COMMUNITY-OPTIMIZE-2026-10-25.md`](reviews/COMMUNITY-OPTIMIZE-2026-10-25.md)（Wan/Qwen/SSIM/BGM）；门禁与三态见 [`reviews/CLIP-STATUS.md`](reviews/CLIP-STATUS.md)
+- **有声/换轨**：[`scripts/stitch_audio.py`](scripts/stitch_audio.py) · [`scripts/AUDIO-SWAP.md`](scripts/AUDIO-SWAP.md)；QC 合成小样 [`fixtures/qc/`](fixtures/qc/)
 - **Comfy 模板复用**：[`workflow/TEMPLATES.md`](workflow/TEMPLATES.md)（I2V 方案 A / looklock 填槽）
 - **¥0 预备（B0-01）**：`reviews/BEAT-SHEET-B0-01-NORMANDY-2026-10-25.md` · `STORYBOARD-…` · `MOTION-GATE-CALIBRATION.md` · `BOOT-AUTH-ASK-2026-10-25.md`
 - **下次开机验证**：[`NEXT-BOOT-CHECKLIST.md`](NEXT-BOOT-CHECKLIST.md)
