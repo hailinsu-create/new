@@ -117,3 +117,13 @@
 - **离线验收**：`bash cat-anthropomorph-video/scripts/smoke_test.sh --dry-run` → **exit 0**（13 步；新增 assemble self-test）。
 - **GitHub**：本轮 commit 已 push 到 PR [#84](https://github.com/hailinsu-create/new/pull/84) 分支（同分支、无 force push）。
 - **未做（GPU 相关）**：未开机、未跑真实 I2V、未修 R4 漂移、未跑 R6、未出诺曼底艇/滩 looklock、未在真实 15s 样片上听检换轨、未做 G2 真机校准；不充值、不 release、未 merge、未碰 `ai-realistic-comic/` 或 NSFW。
+
+## 2026-10-25 ~18:30 Asia/Shanghai · 段12：v0.1c R4 真机过线短记（文档同步）
+
+- **GPU**：仅开 **克隆 003** `bb8c4f8e12-00c8bdac`；用 **boat_ramp looklock** 首帧重跑 **R4**（方案 A，seed **20261114**）；跑完双机关机留盘。
+- **门禁**：多帧 `subject_gate` **minSSIM=0.5663 PASS**（落中带，对照 [`reviews/SUBJECT-GATE-CALIBRATION.md`](reviews/SUBJECT-GATE-CALIBRATION.md) ≈0.45 工作点）；`noise_gate` / `motion_gate` 亦 PASS → 记 **AUTO_QC_PASS**（仍非 HUMAN_ACCEPTED）。
+- **成片路径**（二进制不入库）：本机 `outputs/v0.1c-b0-01-2026-10-25/B0-01-normandy-v0.1c.mp4`（替换 S05）。
+- **对照**：v0.1b R4 多帧 subject_gate **FAIL**（minSSIM **0.061**）已由本轮 R4 替换。
+- **花费**：余额 **7720→7350 分**（以控制台为准）；**未充值、未 release**；未 merge；未碰 comic/NSFW。
+- **Notion**：https://app.notion.com/p/404b407a692a8125a4e9f1d2e28590b0
+- **短 RESULT**：[`reviews/RESULT-R4-BOAT-RAMP-v0.1c-2026-10-25.md`](reviews/RESULT-R4-BOAT-RAMP-v0.1c-2026-10-25.md)

@@ -69,3 +69,7 @@ python3 scripts/subject_gate.py --start-image fixtures/qc/subject_ref_128x128.pg
 4. 调整前后假阳性/假阴性统计。
 
 在此之前只加 fixture 与文档，不改默认。
+
+## 真机短记（v0.1c R4）
+
+- 2026-10-25：boat_ramp looklock → R4（seed 20261114，克隆 003）多帧 **minSSIM=0.5663 PASS**；详见 [`RESULT-R4-BOAT-RAMP-v0.1c-2026-10-25.md`](RESULT-R4-BOAT-RAMP-v0.1c-2026-10-25.md)。默认带宽 **未改**。
