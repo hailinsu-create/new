@@ -151,9 +151,19 @@
 - **边界**：**仅规划文档**；未开机、未充值、未 stitch 正式成片、未 merge；未碰 comic/NSFW。
 - **Notion**：https://app.notion.com/p/404b407a692a81e5ab71ec3656b50a99
 
-## 2026-10-25 Asia/Shanghai · 段16：v0.1d ¥0 拼装（进行中）
+## 2026-10-25 Asia/Shanghai · 段16：v0.1d ¥0 拼装（进行中 → 见段17）
 
 - **状态**：本机执行器正在 box 上拼装 v0.1d（Opus **A**）；本仓无 outputs 二进制。
 - **方案 / Notion**：[`reviews/IMPROVE-PLAN-v0.1d-2026-10-25.md`](reviews/IMPROVE-PLAN-v0.1d-2026-10-25.md) · https://app.notion.com/p/404b407a692a81e5ab71ec3656b50a99
-- **占位 RESULT**：[`reviews/RESULT-v0.1d-PENDING.md`](reviews/RESULT-v0.1d-PENDING.md) → 目标 `outputs/v0.1d-b0-01-2026-10-25/`
+- **占位 RESULT**：[`reviews/RESULT-v0.1d-2026-10-25.md`](reviews/RESULT-v0.1d-2026-10-25.md) → 目标 `outputs/v0.1d-b0-01-2026-10-25/`
 - **边界**：¥0；**未开机**（B 须先报用户）；未充值；未 merge；未碰 comic/NSFW
+
+## 2026-10-25 Asia/Shanghai · 段17：v0.1d ¥0 成片
+
+- **成片路径**（不入库）：`outputs/v0.1d-b0-01-2026-10-25/B0-01-normandy-v0.1d.mp4` · 720×1280 · 13.6s · 有声 128BPM bed（同目录 silent）
+- **S06**：`segments/s06_montage.mp4` 蒙太奇替绿缺卡；绿幕扫描 **MAX_GREENISH=0**
+- **beatbed 作废**：`outputs/v0.1b-…/DO_NOT_USE-beatbed.md` + `.DEPRECATED`
+- **段状态**：S04 **HA**；S05 **AUTO_QC_PASS**；S06 **DRAFT-HA**；其余 **RENDER_DONE**
+- **RESULT**：[`reviews/RESULT-v0.1d-2026-10-25.md`](reviews/RESULT-v0.1d-2026-10-25.md)
+- **方案 / Notion**：[`reviews/IMPROVE-PLAN-v0.1d-2026-10-25.md`](reviews/IMPROVE-PLAN-v0.1d-2026-10-25.md) · https://app.notion.com/p/404b407a692a81e5ab71ec3656b50a99
+- **边界**：¥0；**未开机**；未充值；未 merge；未碰 comic/NSFW（本机 brief 段23 ↔ 本仓段17）
