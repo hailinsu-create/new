@@ -315,7 +315,8 @@
         "positive_action",
         "seed"
       ],
-      "machine": "9b4c40bda6-dad38bb9"
+      "machine": "either-025-or-003-winner",
+      "dual_race_mode": "full-stack-aligned-winner-runs-all"
     },
     "looklock_qwen": {
       "comfy_workflow": "workflow/01_looklock_qwen_edit.json",
@@ -326,7 +327,8 @@
         "positive",
         "seed"
       ],
-      "machine": "bb8c4f8e12-00c8bdac"
+      "machine": "either-025-or-003-winner",
+      "dual_race_mode": "full-stack-aligned-winner-runs-all"
     },
     "qc": {
       "docs": "reviews/CLIP-STATUS.md",
@@ -334,6 +336,15 @@
       "status_script": "scripts/clip_status.py",
       "subject_gate": "scripts/subject_gate.py",
       "audio_swap": "scripts/AUDIO-SWAP.md"
+    },
+    "upscale_4x": {
+      "param_sheet": "workflow/04_upscale_4x_api_slots.json",
+      "script_hook": "scripts/upscale_4x.sh",
+      "machine": "either-025-or-003-winner"
+    },
+    "boot": {
+      "doc": "BOOT-v0.1g.md",
+      "race": "scripts/race_boot.md"
     }
   },
   "banned": {

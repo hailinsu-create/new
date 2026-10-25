@@ -106,10 +106,11 @@ anthropomorphic solid-black Scottish Fold cat pilot, the same individual cat in 
 
 | 角色 | 实体 | 实例 ID | 区域 | GPU | 策略 |
 | --- | --- | --- | --- | --- | --- |
-| 母-Comfy定妆 | 025机 | `9b4c40bda6-dad38bb9` | 重庆A | RTX 4090D | shutdown 留盘 |
-| 克隆-Wan | 003机 | `bb8c4f8e12-00c8bdac` | 重庆A | RTX 4090D | shutdown 留盘 |
+| 母 · 全栈对齐 | 025机 | `9b4c40bda6-dad38bb9` | 重庆A | RTX 4090D | shutdown 留盘 |
+| 克隆 · 全栈对齐（同母） | 003机 | `bb8c4f8e12-00c8bdac` | 重庆A | RTX 4090D | shutdown 留盘 |
 
 - 任意时刻只开一台；两台当前均未开机，**不代表已开机或已跑 GPU**。
+- **t60u**：双机内容相同；不协同；抢到者本机全流程（见 `scripts/race_boot.md`）。
 - 余额约 ¥17.25、未充值；开机 / 租卡 / 充值必须由用户明确授权。
 - 详见 [`DUAL-CREATE-RESULT-2026-10-24.md`](DUAL-CREATE-RESULT-2026-10-24.md) 与 [`scripts/race_boot.md`](scripts/race_boot.md)。
 

@@ -10,7 +10,9 @@
 | I2V 图 | workflow/02_i2v_wan21_480p.json | Comfy 图形模板（方案 A 已写入默认节点） |
 | I2V 参数清单 | workflow/02_i2v_api_prompt_r1_r4.json | 锁定参数 + 可换槽（API/人工填槽契约） |
 | Looklock 图 | workflow/01_looklock_qwen_edit.json | Qwen-Image-Edit-2511 多图定妆图 |
-| Looklock 参数清单 | workflow/01_looklock_api_slots.json | 多图输入槽 + 输出路径约定 |
+| Looklock 参数清单 | workflow/01_looklock_api_slots.json | 多图输入槽（含 pose_or_scene_ref）+ 输出 ≥1024 + 可选 LoRA 开关默认 off |
+| 4× 超分钩子 | workflow/04_upscale_4x_api_slots.json · scripts/upscale_4x.sh | 权重路径占位，不入库 |
+| 开机清单 | BOOT-v0.1g.md | 管线就绪后调度开机；本仓文档不执行开机 |
 | 权重/策略 | manifest.json → groups.i2v / groups.looklock + 顶层 templates | 机器可读字段 |
 
 ## 方案 A · Wan I2V（锁定，勿每镜另存 workflow）
@@ -28,7 +30,7 @@
 
 | 槽 | Comfy 节点 | 填什么 |
 | --- | --- | --- |
-| start_image | LoadImage #52 | Comfy input 相对路径；方图定妆先 crop_check_i2v.py |
+| start_image / **scene_lock_first_frame** | LoadImage #52 | 场景锁首帧；方图定妆先 size_gate≥1024 再 crop_check_i2v.py |
 | positive | CLIPTextEncode Positive #6 | 动作前置强动词句；禁 soft 词；预设 R1/R2/R4 见参数清单 |
 | seed | KSampler #3 widgets[0] | 整数；R2=同 R1 句换 seed |
 
@@ -67,12 +69,14 @@ python3 scripts/assemble_clip.py --self-test
 | 槽 | 节点 | 约定路径 |
 | --- | --- | --- |
 | cat_ref | LoadImage #41 | cats/{A,B,C}/raw/front.jpg（restore 自 refs/cats/） |
-| costume_ref | LoadImage #83 | looklock/costume_ref_PLACEHOLDER.png 或真实军装/场景参考 |
-| positive | 子图 positive | look_cards 固定前缀 + 场景句；换猫只换前缀 |
+| costume_ref | LoadImage #83 | looklock/costume_ref_PLACEHOLDER.png 或真实美军野战服参考 |
+| pose_or_scene_ref | LoadImage #195 | looklock/pose_or_scene_ref_PLACEHOLDER.png（直立姿态/诺曼底场景） |
+| positive | 子图 positive | look_cards 固定前缀 + **upright bipedal** + 场景句；换猫只换前缀 |
+| optional_lora | 槽位+开关 | SFW Animal→Human；**默认 off**；权重名占位不入库 |
 | seed | 采样 seed | 整数 |
 
-正向固定句（追加在猫前缀后）：`Preserve Image 1 cat face/fur identity; apply Image 2 costume/scene.`
-槽位顺序：Image1=身份（cat_ref），Image2=服装/场景（costume_ref）；**两图优先于硬上三图**（三参考 + 真 CFG 易伪影）。
+正向固定句：`Preserve Image 1 cat face/fur identity; apply Image 2 costume; keep bipedal stance from Image 3 when present.`
+槽位：Image1=身份，Image2=服装，Image3=姿态/场景；定妆短边 **≥1024**（`scripts/looklock_size_gate.py`）。
 精度：Qwen fp8mixed OK；勿对 Qwen --force-fp16；禁 sage。Lightning 4steps 默认 OFF。
 
 输出路径约定：
@@ -81,7 +85,7 @@ python3 scripts/assemble_clip.py --self-test
 - 推荐归档：$OUTPUT_ROOT/looklock/{cat}/{yyyy-mm-dd}/cat_anthro_looklock_<seed>.png
 - 过盲测后再作 I2V start_image；方图先 crop-check。
 
-机位（双机 race）：looklock 优先克隆 003；I2V 优先母 025，**克隆 003 可代跑 I2V**；任意时刻只开一台（scripts/race_boot.md）。
+机位（双机 race / **t60u**）：**025=003 全栈对齐**；不协同；**抢到者本机**跑 looklock→I2V→超分；任意时刻只开一台（`scripts/race_boot.md` DUAL-RACE-MODE）。
 
 ## B0-01 复用示例
 

@@ -16,7 +16,7 @@
 
 ## 2026-10-24 Asia/Shanghai · 段3：双机实体 + 三猫定妆锁定 + 离线验收
 
-- **双机实体**：母-Comfy定妆 **025机** `9b4c40bda6-dad38bb9` / 克隆-Wan **003机** `bb8c4f8e12-00c8bdac`（重庆A · RTX 4090D · 扩盘 100G · shutdown 留盘）；任意时刻只开一台；余额约 ¥17.25、未充值；开机需用户授权
+- **双机实体**：母 **025机** `9b4c40bda6-dad38bb9` / 克隆 **003机** `bb8c4f8e12-00c8bdac`（重庆A · RTX 4090D · 扩盘 100G · shutdown 留盘）；任意时刻只开一台；余额约 ¥17.25、未充值；开机需用户授权。~~当时角色名「母-Comfy定妆/克隆-Wan」~~ → **段24 t60u：全栈对齐、抢到者全干**
 - **三猫定妆锁定**：A **小橘**（橘白长毛）/ B **银宝**（银虎斑折耳）/ C **墨墨**（全黑折耳）；英文固定前缀锁毛色瞳色、露耳、少持枪，见 `prompts/look_cards.md`
 - **管线对齐**：`scripts/restore.sh` 默认 dry-run，支持 `--apply` / `--group looklock|i2v|flf2v`；三份 workflow 的 UNET/CLIP/VAE/LoRA 与 `manifest.json`（4090 fp8）对齐；新增 `scripts/smoke_test.sh`
 - **离线验收**：`bash cat-anthropomorph-video/scripts/smoke_test.sh --dry-run` → **exit 0**（仅 dry-run；未开机真跑 GPU）
@@ -82,7 +82,7 @@
 ## 2026-10-25 Asia/Shanghai · 段9：¥0 预备包 + Comfy 模板化
 
 - **¥0 离线包**：`reviews/BEAT-SHEET-B0-01-NORMANDY-2026-10-25.md`（128 BPM / 15s）、`STORYBOARD-B0-01-NORMANDY-2026-10-25.md`（GPU 镜标注）、`MOTION-GATE-CALIBRATION.md`（R1 max_mad=**16.27**；静帧基线≈**3.6**）、`BOOT-AUTH-ASK-2026-10-25.md`（母-only R2+R4；可选 Normandy looklock；禁 FLF2V/银宝墨墨/未授权充值）。
-- **双机分工**：`scripts/race_boot.md` — Wan/I2V **仅母 025** `9b4c40bda6-dad38bb9`；Qwen looklock **仅克隆 003**。
+- **双机分工（历史·已废止）**：曾写 Wan/I2V 仅母 025、looklock 仅克隆 003 → **段24 t60u 废止**，见现行 `scripts/race_boot.md` DUAL-RACE-MODE。
 - **已模板化**：`workflow/TEMPLATES.md`；I2V 方案 A 参数清单升级 `02_i2v_api_prompt_r1_r4.json`（slots: start_image/positive/seed）；新增 `01_looklock_api_slots.json`；`manifest.json` `templates` + groups.reusable_template。B0-01 缺镜复用同一 02，只改槽。
 - **v0-lite**：装配路径在 briefs/outputs；mp4 可不 commit（README-PIPELINE 已注）。
 - **边界**：未开机、未充值、未 merge；未碰 NSFW/comic；未用 grok CLI。
@@ -113,7 +113,7 @@
 - **G2 缩放修正**：`subject_gate.py` 在 PGM 参考与视频采样宽度不同时按 256 宽最近邻对齐，消除假 `width mismatch`；不改 SSIM 带宽/默认值。
 - **15s 有声**：[`scripts/AUDIO-SWAP.md`](scripts/AUDIO-SWAP.md) 增 15s 竖屏 `assemble_clip`/`stitch_audio` 命令、1080×1920 检查、听检清单；默认 **silent 或自制 128 BPM 节拍床**，不塞盗版曲、不跨平台搬运。
 - **装配文档**：新增 [`scripts/ASSEMBLE.md`](scripts/ASSEMBLE.md)；更新 [`reviews/CLIP-STATUS.md`](reviews/CLIP-STATUS.md)、[`workflow/TEMPLATES.md`](workflow/TEMPLATES.md)、[`README-PIPELINE.md`](README-PIPELINE.md) 的装配/候选/音频/机位口径。
-- **开机请示改写**：`reviews/BOOT-AUTH-ASK-2026-10-25.md` 明确 **双机 race**、**克隆 003 可代跑 I2V**、任意时刻只开一台；先离线 **v0.1b**（R1/R2/R4，R4 场景漂移弱）；下一 GPU 包 **诺曼底艇/滩 looklock → R4 漂移修复或 R6 战场短动作**；不 FLF2V、不定妆银宝/墨墨、不充值、不 release；余额只以控制台为准。`scripts/race_boot.md`、`workflow/TEMPLATES.md`、`README-PIPELINE.md` 同步。
+- **开机请示改写**：`reviews/BOOT-AUTH-ASK-2026-10-25.md` 明确 **双机 race**、任意时刻只开一台；先离线 **v0.1b**；下一 GPU 包诺曼底 looklock→R4/R6；不 FLF2V、不定妆银宝/墨墨、不充值、不 release。~~「克隆可代跑 I2V / looklock 优先克隆」~~ → **段24 t60u：全栈对齐、不协同、抢到者本机全流程**（race_boot / BOOT-AUTH / TEMPLATES / README-PIPELINE 已改）。
 - **离线验收**：`bash cat-anthropomorph-video/scripts/smoke_test.sh --dry-run` → **exit 0**（13 步；新增 assemble self-test）。
 - **GitHub**：本轮 commit 已 push 到 PR [#84](https://github.com/hailinsu-create/new/pull/84) 分支（同分支、无 force push）。
 - **未做（GPU 相关）**：未开机、未跑真实 I2V、未修 R4 漂移、未跑 R6、未出诺曼底艇/滩 looklock、未在真实 15s 样片上听检换轨、未做 G2 真机校准；不充值、不 release、未 merge、未碰 `ai-realistic-comic/` 或 NSFW。
@@ -205,3 +205,19 @@
 - **结论**：Qwen-Edit 拟人 LoRA + Wan 系 I2V/超分 社区已成熟；本仓缺直立拟人硬提示、多参考密度、超分；二足易塌需专项防。
 - **v0.1g 默认栈**：Qwen-2511 多图 looklock（现权重）+ 拟人/军装提示强化 + 可选 SFW Animal→Human LoRA → Wan2.1 A（或授权评 Wan2.2）→ 4× 超分。
 - **边界**：未开机、未下载大权重、未 merge；未碰 NSFW。
+
+## 2026-10-25 Asia/Shanghai · 段23：t58u 管线就绪（v0.1g · 未开机）
+
+- **授权口径**：用户 t58u「做好管线就开机」→ **本回合只落代码/模板/清单**；真开机交调度，文档执行时 **未开机**。
+- **定妆**：`workflow/01_looklock_*.json` — upright bipedal + 美军野战服 + 橘白锁；`#195 pose_or_scene_ref`；短边≥1024（`scripts/looklock_size_gate.py`）；SFW Animal→Human LoRA **槽位默认 off**。
+- **I2V**：方案 A 不变；`scene_lock_first_frame` + B0-01 高光 brief 门落/爆破开路/插旗剪影。
+- **超分**：`workflow/04_upscale_4x_api_slots.json` + `scripts/upscale_4x.sh`（权重占位）。
+- **BOOT**：[`BOOT-v0.1g.md`](BOOT-v0.1g.md)（预算软顶约余额¥7、单轮≤¥1.5；禁 FLF2V/NSFW/扩B·C/充值/release）。
+- **边界**：未开机、未充值、未 release、未 merge；未下大权重进 git。
+
+## 2026-10-25 Asia/Shanghai · 段24：t60u 双机口径纠正（全栈对齐）
+
+- **纠正**：双机内容应相同；**不要协同**；哪个抢到哪个在本机全流程。
+- **已改**：[`scripts/race_boot.md`](scripts/race_boot.md)（DUAL-RACE-MODE）、[`DUAL-CREATE-RESULT-2026-10-24.md`](DUAL-CREATE-RESULT-2026-10-24.md)、[`BOOT-v0.1g.md`](BOOT-v0.1g.md)、[`reviews/BOOT-AUTH-ASK-2026-10-25.md`](reviews/BOOT-AUTH-ASK-2026-10-25.md)、[`README-PIPELINE.md`](README-PIPELINE.md)、[`CHARACTER-LOCK-2026-10-24.md`](CHARACTER-LOCK-2026-10-24.md)、[`workflow/TEMPLATES.md`](workflow/TEMPLATES.md)、api `machine` 字段、`env.example`。
+- **作废**：一切「克隆只定妆 / 母机只 I2V / 代跑接力」表述。
+- **边界**：未开机；未充值；未 merge。

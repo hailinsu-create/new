@@ -60,4 +60,4 @@
 
 ## 下次 GPU（需用户授权 · 另文）
 
-见 BOOT-AUTH-ASK-2026-10-25.md：母机-only R2 敬礼复验 + R4 抬头；可选诺曼底场景 looklock。
+见 BOOT-v0.1g.md / race_boot t60u：抢到者本机 R2/R4 + 诺曼底 looklock（全栈，不换机）。

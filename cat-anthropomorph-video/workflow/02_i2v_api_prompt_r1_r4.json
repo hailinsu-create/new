@@ -4,7 +4,7 @@
   "scheme": "A",
   "comfy_workflow": "workflow/02_i2v_wan21_480p.json",
   "workflow": "workflow/02_i2v_wan21_480p.json",
-  "reuse": "Same Comfy graph for every I2V shot. Only change slots.start_image, slots.positive_action, slots.seed. Do not fork a new workflow JSON per shot.",
+  "reuse": "Same Comfy graph (scheme A) for every I2V shot. Only change slots.start_image (= scene_lock_first_frame), slots.positive_action, slots.seed. Do not fork per shot. FLF2V not default.",
   "unet": "wan2.1_i2v_480p_14B_fp16.safetensors",
   "comfy_launch": [
     "--force-upcast-attention"
@@ -50,7 +50,9 @@
       "widget_index": 0,
       "comfy_input_relative_default": "shots_PLACEHOLDER_i2v_start.png",
       "recommended_path_pattern": "shots/B0-01_<shot_id>_start.png",
-      "preprocess": "scripts/crop_check_i2v.py when source is square looklock"
+      "preprocess": "scripts/crop_check_i2v.py when source is square looklock",
+      "also_known_as": "scene_lock_first_frame",
+      "role": "Scene-locked first frame: looklock still (≥1024 short side) cropped to 480×832 that already contains the Normandy symbol for this beat (ramp/door / blast / flag silhouette)."
     },
     "positive_action": {
       "node_id": 6,
@@ -65,12 +67,23 @@
       "widget_index": 0,
       "control_widget_index": 1,
       "recommended_control": "fixed"
+    },
+    "scene_lock_first_frame": {
+      "alias_of": "start_image",
+      "node_id": 52,
+      "node_type": "LoadImage",
+      "preprocess": "scripts/crop_check_i2v.py",
+      "recommended_path_pattern": "shots/B0-01_<beat>_scene_lock_480x832.png",
+      "note": "Same physical slot as start_image; naming emphasizes scene lock before motion."
     }
   },
   "positive": {
     "r1_salute_default": "The anthropomorphic cat soldier quickly raises her right paw to the brim of her helmet in a crisp military salute and holds the salute firmly; her chin lifts and she stares straight into the camera; her red neckerchief flutters strongly in the wind. Fixed camera, medium shot, same face, fur pattern and US Army uniform as the first frame.",
     "r2_salute_replicate": "The anthropomorphic cat soldier quickly raises her right paw to the brim of her helmet in a crisp military salute and holds the salute firmly; her chin lifts and she stares straight into the camera; her red neckerchief flutters strongly in the wind. Fixed camera, medium shot, same face, fur pattern and US Army uniform as the first frame.",
-    "r4_head_turn": "The anthropomorphic cat soldier snaps her head up and turns to stare directly into the camera, ears perking forward; strong wind whips her red neckerchief and blows dust across the frame. Fixed camera, medium close-up, same face, fur pattern and US Army uniform as the first frame."
+    "r4_head_turn": "The anthropomorphic cat soldier snaps her head up and turns to stare directly into the camera, ears perking forward; strong wind whips her red neckerchief and blows dust across the frame. Fixed camera, medium close-up, same face, fur pattern and US Army uniform as the first frame.",
+    "b0_01_ramp_door_drop": "The landing craft bow ramp suddenly drops open with a heavy slam; bright gray Normandy daylight floods the troop compartment; the upright bipedal anthropomorphic orange-and-white cat soldier in US olive-drab field kit braces and steps forward toward the open ramp. Fixed camera inside the Higgins boat looking out, medium-wide, same face, fur pattern and US Army uniform as the first frame; readable Normandy LCVP / ramp door symbol in frame.",
+    "b0_01_blast_breach": "A sharp beach obstacle blast erupts ahead in dust and smoke; the upright bipedal anthropomorphic orange-and-white cat soldier in US WWII field jacket ducks then surges forward through the clearing path on Omaha-like sand. Fixed camera, medium shot, same face, fur pattern and uniform as the first frame; clear Normandy beach / hedgehog / smoke symbol.",
+    "b0_01_flag_silhouette": "The upright bipedal anthropomorphic orange-and-white cat soldier plants a small US flag into the Normandy sand and holds the pose as a backlight silhouette; wind snaps the flag and her red neckerchief. Fixed camera, hero wide-to-medium, same face and fur as the first frame; unmistakable flag-planting Normandy silhouette."
   },
   "negative": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走, static, still, still picture, frozen, motionless, no motion, barely moving, idle breathing only, slow motion, weapon, rifle, gun, four-legged, realistic cat body, extra limbs, melting paws",
   "gates": [
@@ -91,8 +104,17 @@
     "binary_mp4_may_omit_from_git": true
   },
   "machine": {
-    "wan_i2v_only": "9b4c40bda6-dad38bb9",
-    "label": "mother-025"
+    "mode": "DUAL-RACE-MODE",
+    "rule": "full-stack-aligned; no cross-machine handoff; winner runs entire pipeline locally",
+    "instances": {
+      "primary_025": "9b4c40bda6-dad38bb9",
+      "clone_003": "bb8c4f8e12-00c8bdac"
+    },
+    "label": "either-winner-full-stack",
+    "docs": [
+      "scripts/race_boot.md",
+      "BOOT-v0.1g.md"
+    ]
   },
   "community_defaults": {
     "source_doc": "reviews/COMMUNITY-OPTIMIZE-2026-10-25.md",
@@ -176,5 +198,39 @@
     "script": "scripts/stitch_audio.py",
     "default": "silent or generated 128 BPM sine-tick bed",
     "doc": "scripts/AUDIO-SWAP.md"
+  },
+  "version": "v0.1g",
+  "b0_01_highlight_briefs": [
+    {
+      "id": "H1_ramp_door",
+      "zh": "门落",
+      "beat": "B0-01 门落重音",
+      "start_image_hint": "looklock inside LCVP facing closed/open ramp; steel bulkhead + gray sea light",
+      "positive_key": "b0_01_ramp_door_drop",
+      "acceptance": "一眼可读：登陆艇门/坡道 + 美军野战拟人猫（非四足）"
+    },
+    {
+      "id": "H2_blast_breach",
+      "zh": "爆破开路",
+      "beat": "B0-01 滩头爆破/开路",
+      "start_image_hint": "beach + Czech hedgehog / smoke column; cat soldier mid-stride bipedal",
+      "positive_key": "b0_01_blast_breach",
+      "acceptance": "一眼可读：滩头障碍/烟尘爆破 + 前进开路"
+    },
+    {
+      "id": "H3_flag_silhouette",
+      "zh": "插旗剪影",
+      "beat": "B0-01 插旗剪影收束",
+      "start_image_hint": "sand + backlight sky; flag staff in paws; silhouette-friendly contrast",
+      "positive_key": "b0_01_flag_silhouette",
+      "acceptance": "一眼可读：插旗剪影 / 诺曼底滩头胜利符号"
+    }
+  ],
+  "forbid": {
+    "flf2v_default": true,
+    "nsfw": true,
+    "expand_to_B_or_C": true,
+    "recharge": true,
+    "release": true
   }
 }

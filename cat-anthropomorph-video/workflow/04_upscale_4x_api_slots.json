@@ -1,0 +1,37 @@
+{
+  "template_id": "cat-anthro-upscale-4x-v0.1g",
+  "version": "v0.1g",
+  "purpose": "Post I2V / looklock export 4× upscale hook. Template only — weight path is a PLACEHOLDER; do not commit large weights.",
+  "comfy_nodes_suggested": [
+    "UpscaleModelLoader",
+    "ImageUpscaleWithModel",
+    "SaveImage / SaveVideo frame fold"
+  ],
+  "script_hook": "scripts/upscale_4x.sh",
+  "slots": {
+    "input_media": {
+      "type": "image_or_video",
+      "path_pattern": "$OUTPUT_ROOT/{looklock|i2v}/<id>/*"
+    },
+    "upscale_model": {
+      "filename_placeholder": "upscale_models/4x-ClearRealityV1_PLACEHOLDER.pth",
+      "enabled_default": true,
+      "download_into_git": false,
+      "approx_bytes_note": "~100MB class; confirm on HF/OpenModelDB before boot",
+      "alt_placeholders": [
+        "upscale_models/4x-UltraSharp_PLACEHOLDER.pth",
+        "upscale_models/RealESRGAN_x4plus_PLACEHOLDER.pth"
+      ]
+    },
+    "scale": {
+      "value": 4,
+      "locked": true
+    },
+    "output_pattern": "$OUTPUT_ROOT/upscale/<id>/<stem>_4x.png|mp4"
+  },
+  "fallback": "If Comfy upscale model missing: scripts/upscale_4x.sh --ffmpeg-lanczos (quality lower; still records hook ran)",
+  "gates": {
+    "sfw": true,
+    "no_nsfw_models": true
+  }
+}

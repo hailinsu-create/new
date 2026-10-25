@@ -8,7 +8,7 @@
 >
 > **用法**：先粘贴该猫「固定提示词前缀」，再接动作/镜头句（`prompts/positive_fragments.md`）；负向整段使用 `prompts/negative.txt`。露耳优先，少持枪。
 >
-> **多图槽**：Image 1 = 身份（cat_ref），Image 2 = 服装/场景（costume_ref）；正向固定追加 `Preserve Image 1 cat face/fur identity; apply Image 2 costume/scene.`。两图优先，三图仅在两图失败时试。Lightning 默认 OFF。
+> **多图槽（v0.1g）**：Image 1 = 身份（cat_ref），Image 2 = 美军野战服（costume_ref），Image 3 = 直立姿态/诺曼底场景（pose_or_scene_ref）。正向强制 upright bipedal；固定追加 `Preserve Image 1 cat face/fur identity; apply Image 2 costume; keep bipedal stance from Image 3 when present.`。可选 SFW Animal→Human LoRA **默认 OFF**。Lightning 默认 OFF。定妆短边 ≥1024。
 
 ## A · 小橘（美军 / 诺曼底）
 
@@ -24,7 +24,7 @@
 | 主装 | 美军 M1 钢盔（耳部开口露耳）+ 橄榄绿野战夹克 + 红领巾 + 帆布腰带 |
 | 场景 | 1944 诺曼底登陆艇内 / 沙滩，硝烟与冷灰天光 |
 | 参考图路径 | `refs/cats/A/`（`cat-A-ginger-white.jpg` 或 `front.jpg`；运行时同步到 `$INPUT_ROOT/cats/A/raw/`） |
-| 固定提示词前缀 | `anthropomorphic orange-and-white long-haired cat, the same individual cat in every shot: orange tabby patches on head, back and tail, white muzzle, chest and paws, long fluffy fur, amber-copper eyes, large upright tufted ears clearly visible through a US M1 helmet with ear cutouts, olive-drab WWII US infantry jacket, red neckerchief, empty-handed or holding a flag, binoculars or map case, no rifle by default, SFW, photoreal cinematic still` |
+| 固定提示词前缀 | `upright bipedal anthropomorphic orange-and-white long-haired cat-girl, the same individual cat in every shot: orange tabby patches on head, back and tail, white muzzle, chest and paws, long fluffy fur, amber-copper eyes, humanoid face with readable eyes nose mouth, large upright tufted ears clearly visible through a US M1 helmet with ear cutouts, standing on two legs, olive-drab WWII US Normandy field jacket (M1943), red neckerchief, canvas belt, empty-handed or holding a flag, binoculars or map case, no rifle by default, SFW, photoreal cinematic still, no quadruped, no muzzle-only cat face` |
 
 ## B · 银宝（苏军 / 斯大林格勒）
 

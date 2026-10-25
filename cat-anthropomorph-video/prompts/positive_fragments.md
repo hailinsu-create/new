@@ -52,3 +52,32 @@ The anthropomorphic cat soldier snaps her head up and turns to stare directly in
 
 仅当身份明显漂移且动作已过线：可试官方 480p 口径 **shift=3 / steps=40**（length 仍 49）；这会牺牲部分动作，**不改默认**。Lightning 默认 OFF，勿用 CFG=1 省步。
 
+
+## B0-01 三战役高光镜（v0.1g · 门落 / 爆破开路 / 插旗剪影）
+
+> 方案 A 锁定参数不变。首帧 = **scene_lock_first_frame**（诺曼底符号已在静帧里）。验收：一眼可读对应符号。参数键见 `workflow/02_i2v_api_prompt_r1_r4.json`。
+
+### H1 · 门落（ramp door drop）
+
+```txt
+The landing craft bow ramp suddenly drops open with a heavy slam; bright gray Normandy daylight floods the troop compartment; the upright bipedal anthropomorphic orange-and-white cat soldier in US olive-drab field kit braces and steps forward toward the open ramp. Fixed camera inside the Higgins boat looking out, medium-wide, same face, fur pattern and US Army uniform as the first frame; readable Normandy LCVP / ramp door symbol in frame.
+```
+
+验收：登陆艇门/坡道 + 直立美军拟人猫。
+
+### H2 · 爆破开路（blast breach）
+
+```txt
+A sharp beach obstacle blast erupts ahead in dust and smoke; the upright bipedal anthropomorphic orange-and-white cat soldier in US WWII field jacket ducks then surges forward through the clearing path on Omaha-like sand. Fixed camera, medium shot, same face, fur pattern and uniform as the first frame; clear Normandy beach / hedgehog / smoke symbol.
+```
+
+验收：滩头障碍/烟尘爆破 + 前进开路。
+
+### H3 · 插旗剪影（flag silhouette）
+
+```txt
+The upright bipedal anthropomorphic orange-and-white cat soldier plants a small US flag into the Normandy sand and holds the pose as a backlight silhouette; wind snaps the flag and her red neckerchief. Fixed camera, hero wide-to-medium, same face and fur as the first frame; unmistakable flag-planting Normandy silhouette.
+```
+
+验收：插旗剪影 / 诺曼底滩头符号。
+

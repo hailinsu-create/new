@@ -4,7 +4,7 @@
 - **目录**：本文件与全部脚本/工作流仅在 `cat-anthropomorph-video/`
 - **隔离**：与 `ai-realistic-comic/` **物理隔离**——禁止引用、复制、链接其去衣/NSFW 工作流、LoRA、角色资产、提示词
 - **算力**：默认 AutoDL **RTX 4090 24GB**；充值/开机/租卡均 **需用户授权**；本文档 **不** 声称已租卡、已充值、已开机
-- **双机**：母 **025机** `9b4c40bda6-dad38bb9` / 克隆 **003机** `bb8c4f8e12-00c8bdac`（重庆A · RTX 4090D · 扩盘 100G · shutdown 留盘）；双机 race、任意时刻只开一台；I2V 优先母 025，**克隆 003 可代跑 I2V**，looklock 优先克隆 003；口径见 [`scripts/race_boot.md`](scripts/race_boot.md)。余额只以控制台为准、不充值、开机需用户授权
+- **双机**：母 **025机** `9b4c40bda6-dad38bb9` / 克隆 **003机** `bb8c4f8e12-00c8bdac`（重庆A · RTX 4090D · 扩盘 100G · shutdown 留盘）；双机 race、任意时刻只开一台；**全栈对齐、不协同、抢到者本机全流程**；口径见 [`scripts/race_boot.md`](scripts/race_boot.md) DUAL-RACE-MODE。余额只以控制台为准、不充值、开机需用户授权
 - **定妆锁定**：[`CHARACTER-LOCK-2026-10-24.md`](CHARACTER-LOCK-2026-10-24.md)（权威角色表 / 固定前缀 / 双机 ID）；参考图入口 [`refs/cats/`](refs/cats/)，三张 jpg 已入库（首选名 + `front.jpg` 共六张）
 - **离线验收**：`bash scripts/smoke_test.sh --dry-run`（默认 dry-run，exit 0 为通过；含 `assemble_clip.py --self-test`）；本仓库仍 **未开机真跑 GPU**
 - **2026-10-24 社区修正**：[`COMMUNITY-FIXES-2026-10-24.md`](COMMUNITY-FIXES-2026-10-24.md)（fp16 默认、禁 SageAttention、噪声门禁）
@@ -124,7 +124,7 @@ python3 scripts/crop_check_i2v.py path/to/cat_anthro_looklock_00001_.png
 | 项 | 建议 |
 | --- | --- |
 | 磁盘 | I2V fp16 ≈32.8GB + FLF2V fp16 ≈32.8GB + umt5 ≈6.3GB + 定妆 Qwen fp8mixed ≈19.1GB 等；fp8 回退可各省约 16GB/个但易噪。100G 盘建议按阶段只装当前所需 fp16，并绑持久盘 |
-| 双机 race | 任意时刻只开一台；I2V 优先 025、克隆 003 可代跑；looklock 优先 003；见 [`race_boot.md`](scripts/race_boot.md) |
+| 双机 race | 任意时刻只开一台；**025=003 全栈对齐**；抢到者本机定妆→I2V→超分；见 [`race_boot.md`](scripts/race_boot.md) |
 | 花费帽 | `SPEND_CAP_CNY` 提醒 + 人工停机；余额只以控制台为准、未充值 |
 | 隔离 | `COMFYUI_ROOT` / `MODELS_ROOT` 禁止指向 comic/NSFW 树 |
 
@@ -132,10 +132,10 @@ python3 scripts/crop_check_i2v.py path/to/cat_anthro_looklock_00001_.png
 
 | 角色 | 实体 | 实例 ID | 区域 / 卡 / 盘 |
 | --- | --- | --- | --- |
-| 母 · I2V 优先 | 025机 | `9b4c40bda6-dad38bb9` | 重庆A · RTX 4090D · 扩盘 100G · shutdown 留盘 |
-| 克隆 · looklock 优先 / 可代跑 I2V | 003机 | `bb8c4f8e12-00c8bdac` | 重庆A · RTX 4090D · 扩盘 100G · shutdown 留盘 |
+| 母 · 全栈对齐 | 025机 | `9b4c40bda6-dad38bb9` | 重庆A · RTX 4090D · 扩盘 100G · shutdown 留盘 |
+| 克隆 · 全栈对齐（同母） | 003机 | `bb8c4f8e12-00c8bdac` | 重庆A · RTX 4090D · 扩盘 100G · shutdown 留盘 |
 
-任意时刻只开一台；两台当前均未开机，开机需用户授权。`env.example` 已填 `AUTODL_INSTANCE_PRIMARY` / `AUTODL_INSTANCE_CLONE` / `AUTODL_REGION`。克隆 003 可代跑 I2V（仍须单机互斥）。
+任意时刻只开一台；两台当前均未开机，开机需用户授权。`env.example` 已填 `AUTODL_INSTANCE_PRIMARY` / `AUTODL_INSTANCE_CLONE` / `AUTODL_REGION`。**t60u：不按机分工；抢到者全干。**
 
 ---
 

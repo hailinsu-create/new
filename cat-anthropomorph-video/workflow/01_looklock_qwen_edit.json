@@ -1,8 +1,8 @@
 {
   "id": "cat-anthro-looklock-qwen-edit-2511",
   "revision": 0,
-  "last_node_id": 194,
-  "last_link_id": 387,
+  "last_node_id": 195,
+  "last_link_id": 388,
   "nodes": [
     {
       "id": 82,
@@ -23,7 +23,7 @@
       "title": "Note: Model Links",
       "properties": {},
       "widgets_values": [
-        "# 小猫拟人 · 定妆锁毛色（SFW · Qwen-Image-Edit-2511）\n\n**用途**：真猫多图参考 → 军装拟人静帧（正脸/侧面/3/4）。一猫一阵营：A美军 / B苏军 / C飞行员。\n\n## 精度策略（Wan ≠ Qwen，勿混用）\n- **Wan2.1 I2V / FLF2V = fp16**（另一套策略；不要因为定妆是 fp8mixed 就改 Wan）。\n- **Qwen looklock 默认 = `qwen_image_edit_2511_fp8mixed.safetensors`（fp8mixed OK）**；Wan 的“禁 fp8”**不适用**于 Qwen。\n- **禁止** 对 Qwen 加 `--force-fp16`（黑图风险）；**禁止** `--use-sage-attention`。\n- Lightning 4steps LoRA 仅加速可选：**只能搭配 fp8mixed 基础模型**，不可叠加到 fused lightning checkpoint；质量门禁默认 **OFF**（`Enable 4steps LoRA?` = false）。\n\n## 输入路径（ComfyUI input-relative）\n- `Load Image` #41 真猫正面：`cats/A/raw/front.jpg`（`restore.sh` 会从 `refs/cats/A/` 同步 `front.jpg` / `cat-*.jpg`）。\n- `Load Image` #83 服装参考（可选占位）：`looklock/costume_ref_PLACEHOLDER.png`（有真实服装图就替换；没有则保留占位并用提示词约束主装）。\n- 需要第三张参考时在子图 image3 追加背景/侧面图。\n\n## 正向提示\n- 已按 `prompts/look_cards.md` A 小橘固定前缀改写：橘白长毛猫 → 直立拟人美军诺曼底 / 二战步兵；M1 钢盔耳洞露耳，SFW，空手/不持枪。\n- B/C 猫替换为各自 look card 前缀，只改动作/镜头/场景。\n\n## 负向\n整段粘贴 `prompts/negative.txt`\n\n## 权重（见仓库 manifest.json · group=looklock）\n- `qwen_image_edit_2511_fp8mixed.safetensors`（4090 默认；bf16 仅可选，见 manifest）\n- `qwen_2.5_vl_7b_fp8_scaled.safetensors`\n- `qwen_image_vae.safetensors`\n- 可选加速 LoRA：`Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors`（仅 fp8mixed 基础；质量门禁默认 OFF）\n\n## 隔离\n禁止加载 `ai-realistic-comic/` 任何 NSFW/去衣 LoRA 或工作流。\n\n## 官方模板来源\n基于 Comfy-Org `image_qwen_image_edit_2511`；子图缺失时请更新 ComfyUI 或从 Workflow Templates 重新拉取同名模板后只改输入与提示词。\n\n\n---\n\nGuide: [Subgraph](https://docs.comfy.org/interface/features/subgraph)\n\n## Model Links\n\n- [Hugging Face:Comfy-Org/Qwen-Image_ComfyUI](https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI)\n- [ModelScope:Comfy-Org/Qwen-Image_ComfyUI](https://modelscope.cn/models/Comfy-Org/Qwen-Image_ComfyUI)\n- [Hugging Face:Comfy-Org/Qwen-Image-Edit_ComfyUI](https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI)\n- [ModelScope:Comfy-Org/Qwen-Image-Edit_ComfyUI](https://modelscope.cn/models/Comfy-Org/Qwen-Image-Edit_ComfyUI)\n- [Hugging Face:Comfy-Org/Qwen-Image_ComfyUI](https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI)\n- [ModelScope:Comfy-Org/Qwen-Image_ComfyUI](https://modelscope.cn/models/Comfy-Org/Qwen-Image_ComfyUI)\n\n**vae**\n\n- [qwen_image_vae.safetensors](https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors) (242 MB)\n\n**loras**\n\n- [Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors](https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning/resolve/main/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors) (810.2 MB)\n\n**diffusion_models**\n\n- [qwen_image_edit_2511_fp8mixed.safetensors](https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_2511_fp8mixed.safetensors) (19.13 GB)\n\n**text_encoders**\n\n- [qwen_2.5_vl_7b_fp8_scaled.safetensors](https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors) (8.74 GB)\n\n\n## Model Storage Location\n\n```\n📂 ComfyUI/\n├── 📂 models/\n│   ├── 📂 vae/\n│   │   └── qwen_image_vae.safetensors\n│   ├── 📂 loras/\n│   │   └── Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors\n│   ├── 📂 diffusion_models/\n│   │   └── qwen_image_edit_2511_fp8mixed.safetensors\n│   └── 📂 text_encoders/\n│       └── qwen_2.5_vl_7b_fp8_scaled.safetensors\n```\n\n## Report Issue\n\nNote: Please update ComfyUI first ([guide](https://docs.comfy.org/installation/update_comfyui)) and prepare required models. Desktop/Cloud updates follow stable releases, so some nightly-supported models may not be available yet.\n\n- Cannot run / runtime errors: [ComfyUI/issues](https://github.com/comfyanonymous/ComfyUI/issues)\n- UI / frontend issues: [ComfyUI_frontend/issues](https://github.com/Comfy-Org/ComfyUI_frontend/issues)\n- Workflow issues: [workflow_templates/issues](https://github.com/Comfy-Org/workflow_templates/issues)\n"
+        "# 小猫拟人 · 定妆锁毛色（SFW · Qwen-Image-Edit-2511 · **v0.1g**）\n\n**v0.1g 定妆口径**（对照 `reviews/COMFY-CAT-ANTHRO-COMMUNITY-2026-10-25.md`）：\n- 强制 **upright bipedal** 拟人；美军野战服；橘白长毛锁；负向防四足/纯兽/换脸。\n- 多参考：#41 cat_ref · #83 costume_ref · **#195 pose_or_scene_ref**（直立姿态/诺曼底场景）。\n- 目标静帧 **短边 ≥1024**（边长 %16==0 优先）；I2V 前 `crop_check_i2v.py`。\n- 可选 SFW Animal→Human LoRA：**默认 OFF**（见 `01_looklock_api_slots.json` → `optional_lora`；权重名占位，不入库大文件）。\n- Lightning 4steps 仍默认 OFF。禁 NSFW / 去衣 / 漫监资产。\n\n\n**用途**：真猫多图参考 → 军装拟人静帧（正脸/侧面/3/4）。一猫一阵营：A美军 / B苏军 / C飞行员。\n\n## 精度策略（Wan ≠ Qwen，勿混用）\n- **Wan2.1 I2V / FLF2V = fp16**（另一套策略；不要因为定妆是 fp8mixed 就改 Wan）。\n- **Qwen looklock 默认 = `qwen_image_edit_2511_fp8mixed.safetensors`（fp8mixed OK）**；Wan 的“禁 fp8”**不适用**于 Qwen。\n- **禁止** 对 Qwen 加 `--force-fp16`（黑图风险）；**禁止** `--use-sage-attention`。\n- Lightning 4steps LoRA 仅加速可选：**只能搭配 fp8mixed 基础模型**，不可叠加到 fused lightning checkpoint；质量门禁默认 **OFF**（`Enable 4steps LoRA?` = false）。\n\n## 输入路径（ComfyUI input-relative）\n- `Load Image` #41 真猫正面：`cats/A/raw/front.jpg`（`restore.sh` 会从 `refs/cats/A/` 同步 `front.jpg` / `cat-*.jpg`）。\n- `Load Image` #83 服装参考（可选占位）：`looklock/costume_ref_PLACEHOLDER.png`（有真实服装图就替换；没有则保留占位并用提示词约束主装）。\n- 需要第三张参考时在子图 image3 追加背景/侧面图。\n\n## 正向提示\n- 已按 `prompts/look_cards.md` A 小橘固定前缀改写：橘白长毛猫 → 直立拟人美军诺曼底 / 二战步兵；M1 钢盔耳洞露耳，SFW，空手/不持枪。\n- B/C 猫替换为各自 look card 前缀，只改动作/镜头/场景。\n\n## 负向\n整段粘贴 `prompts/negative.txt`\n\n## 权重（见仓库 manifest.json · group=looklock）\n- `qwen_image_edit_2511_fp8mixed.safetensors`（4090 默认；bf16 仅可选，见 manifest）\n- `qwen_2.5_vl_7b_fp8_scaled.safetensors`\n- `qwen_image_vae.safetensors`\n- 可选加速 LoRA：`Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors`（仅 fp8mixed 基础；质量门禁默认 OFF）\n\n## 隔离\n禁止加载 `ai-realistic-comic/` 任何 NSFW/去衣 LoRA 或工作流。\n\n## 官方模板来源\n基于 Comfy-Org `image_qwen_image_edit_2511`；子图缺失时请更新 ComfyUI 或从 Workflow Templates 重新拉取同名模板后只改输入与提示词。\n\n\n---\n\nGuide: [Subgraph](https://docs.comfy.org/interface/features/subgraph)\n\n## Model Links\n\n- [Hugging Face:Comfy-Org/Qwen-Image_ComfyUI](https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI)\n- [ModelScope:Comfy-Org/Qwen-Image_ComfyUI](https://modelscope.cn/models/Comfy-Org/Qwen-Image_ComfyUI)\n- [Hugging Face:Comfy-Org/Qwen-Image-Edit_ComfyUI](https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI)\n- [ModelScope:Comfy-Org/Qwen-Image-Edit_ComfyUI](https://modelscope.cn/models/Comfy-Org/Qwen-Image-Edit_ComfyUI)\n- [Hugging Face:Comfy-Org/Qwen-Image_ComfyUI](https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI)\n- [ModelScope:Comfy-Org/Qwen-Image_ComfyUI](https://modelscope.cn/models/Comfy-Org/Qwen-Image_ComfyUI)\n\n**vae**\n\n- [qwen_image_vae.safetensors](https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors) (242 MB)\n\n**loras**\n\n- [Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors](https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning/resolve/main/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors) (810.2 MB)\n\n**diffusion_models**\n\n- [qwen_image_edit_2511_fp8mixed.safetensors](https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_2511_fp8mixed.safetensors) (19.13 GB)\n\n**text_encoders**\n\n- [qwen_2.5_vl_7b_fp8_scaled.safetensors](https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors) (8.74 GB)\n\n\n## Model Storage Location\n\n```\n📂 ComfyUI/\n├── 📂 models/\n│   ├── 📂 vae/\n│   │   └── qwen_image_vae.safetensors\n│   ├── 📂 loras/\n│   │   └── Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors\n│   ├── 📂 diffusion_models/\n│   │   └── qwen_image_edit_2511_fp8mixed.safetensors\n│   └── 📂 text_encoders/\n│       └── qwen_2.5_vl_7b_fp8_scaled.safetensors\n```\n\n## Report Issue\n\nNote: Please update ComfyUI first ([guide](https://docs.comfy.org/installation/update_comfyui)) and prepare required models. Desktop/Cloud updates follow stable releases, so some nightly-supported models may not be available yet.\n\n- Cannot run / runtime errors: [ComfyUI/issues](https://github.com/comfyanonymous/ComfyUI/issues)\n- UI / frontend issues: [ComfyUI_frontend/issues](https://github.com/Comfy-Org/ComfyUI_frontend/issues)\n- Workflow issues: [workflow_templates/issues](https://github.com/Comfy-Org/workflow_templates/issues)\n"
       ],
       "color": "#222",
       "bgcolor": "#000"
@@ -330,6 +330,46 @@
       "widgets_values": [
         "cat_anthro_looklock"
       ]
+    },
+    {
+      "id": 195,
+      "type": "LoadImage",
+      "pos": [
+        -900,
+        200
+      ],
+      "size": [
+        320,
+        314
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "localized_name": "IMAGE",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            388
+          ]
+        },
+        {
+          "localized_name": "MASK",
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "title": "SLOT pose_or_scene_ref (v0.1g upright/Normandy)",
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "looklock/pose_or_scene_ref_PLACEHOLDER.png",
+        "image"
+      ]
     }
   ],
   "links": [
@@ -355,6 +395,14 @@
       0,
       170,
       1,
+      "IMAGE"
+    ],
+    [
+      388,
+      195,
+      0,
+      170,
+      2,
       "IMAGE"
     ]
   ],
@@ -847,7 +895,7 @@
               "secondTabWidth": 65
             },
             "widgets_values": [
-              ""
+              "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走, static, still, still picture, frozen, motionless, no motion, barely moving, idle breathing only, slow motion, weapon, rifle, gun, four-legged, realistic cat body, extra limbs, melting paws, quadruped, on all fours, feral cat body, snout-dominant, animal face only, pure animal, face swap, different cat, identity drift, NSFW, undress, nude"
             ],
             "color": "#322",
             "bgcolor": "#533"
@@ -958,7 +1006,7 @@
               "secondTabWidth": 65
             },
             "widgets_values": [
-              "anthropomorphic orange-and-white long-haired cat, the same individual cat in image 1: orange tabby patches on head, back and tail, white muzzle, chest and paws, long fluffy fur, amber-copper eyes, large upright tufted ears clearly visible through a US M1 helmet with ear cutouts. Transform the real cat in image 1 into an upright anthropomorphic US Normandy / WWII US infantry soldier wearing an olive-drab field jacket, red neckerchief and canvas belt (use image 2 as the clothing reference when available; otherwise follow this uniform description). Full-body photoreal cinematic still, SFW, empty-handed, no weapons, no rifle. Image 1 = cat identity; Image 2 = costume/scene reference. Preserve Image 1 cat face/fur identity; apply Image 2 costume/scene."
+              "upright bipedal anthropomorphic orange-and-white long-haired cat-girl, the same individual as Image 1: orange tabby patches on head, back and tail, white muzzle, chest and paws, long fluffy fur, amber-copper eyes, large upright tufted ears clearly visible through a US M1 helmet with ear cutouts, humanoid face with readable eyes nose mouth, digitigrade optional but standing on two legs, US WWII Normandy US infantry olive-drab field jacket (M1943 style), red neckerchief, canvas belt, full-body photoreal cinematic still, short side at least 1024px, SFW, empty-handed, no weapons, no rifle. Image 1 = cat identity (fur/face lock); Image 2 = US field uniform / costume; Image 3 = upright pose or Normandy scene lock when provided. Preserve Image 1 cat face/fur identity; apply Image 2 costume; keep bipedal stance from Image 3 when present. no muzzle-only cat face, no quadruped."
             ],
             "color": "#232",
             "bgcolor": "#353"
