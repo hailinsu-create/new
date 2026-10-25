@@ -150,3 +150,10 @@
 - **目标**：第一个有声、无「缺」字卡、成片层全 HUMAN_ACCEPTED = **v0.1d**。
 - **边界**：**仅规划文档**；未开机、未充值、未 stitch 正式成片、未 merge；未碰 comic/NSFW。
 - **Notion**：https://app.notion.com/p/404b407a692a81e5ab71ec3656b50a99
+
+## 2026-10-25 Asia/Shanghai · 段16：v0.1d ¥0 拼装（进行中）
+
+- **状态**：本机执行器正在 box 上拼装 v0.1d（Opus **A**）；本仓无 outputs 二进制。
+- **方案 / Notion**：[`reviews/IMPROVE-PLAN-v0.1d-2026-10-25.md`](reviews/IMPROVE-PLAN-v0.1d-2026-10-25.md) · https://app.notion.com/p/404b407a692a81e5ab71ec3656b50a99
+- **占位 RESULT**：[`reviews/RESULT-v0.1d-PENDING.md`](reviews/RESULT-v0.1d-PENDING.md) → 目标 `outputs/v0.1d-b0-01-2026-10-25/`
+- **边界**：¥0；**未开机**（B 须先报用户）；未充值；未 merge；未碰 comic/NSFW

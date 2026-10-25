@@ -80,3 +80,9 @@ ffprobe -v error -show_entries stream=codec_type -of csv=p=0 outputs/B0-01_15s_f
 ```
 
 合规底线：**默认 silent 或自制节拍床；不塞盗版曲、不跨平台搬运**。无法证明授权的曲目直接弃用。
+
+## v0.1d · Opus A 有声
+
+- 临时轨：128 BPM 节拍床（`stitch_audio.py --audio-policy bed --bpm 128`），对齐 beat sheet。
+- 发布曲库 / 书面授权仍为 P2；勿用含坏 R4 的旧 beatbed。
+- 全流程见 [`../reviews/IMPROVE-PLAN-v0.1d-2026-10-25.md`](../reviews/IMPROVE-PLAN-v0.1d-2026-10-25.md)。

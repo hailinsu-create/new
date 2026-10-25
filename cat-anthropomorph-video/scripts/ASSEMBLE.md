@@ -47,3 +47,10 @@ python3 scripts/assemble_clip.py --self-test
 - G2 校准：[`reviews/SUBJECT-GATE-CALIBRATION.md`](../reviews/SUBJECT-GATE-CALIBRATION.md)
 - 有声/换轨：[`scripts/AUDIO-SWAP.md`](AUDIO-SWAP.md)
 - 模板与机位：[`workflow/TEMPLATES.md`](../workflow/TEMPLATES.md)
+
+## v0.1d · Opus A（¥0）
+
+- 目标目录：本机 `outputs/v0.1d-b0-01-2026-10-25/`（二进制可不入库）。
+- 成片层只收 **HUMAN_ACCEPTED**；作废含坏 R4 的 v0.1b-beatbed。
+- 步骤与蒙太奇配方见 [`../reviews/IMPROVE-PLAN-v0.1d-2026-10-25.md`](../reviews/IMPROVE-PLAN-v0.1d-2026-10-25.md)；占位 [`../reviews/RESULT-v0.1d-PENDING.md`](../reviews/RESULT-v0.1d-PENDING.md)。
+- **不开机**；B 须用户授权后再议。
