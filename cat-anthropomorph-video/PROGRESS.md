@@ -180,5 +180,14 @@
 ## 2026-10-25 Asia/Shanghai · 段19：市面差距检索 + 提升方法（¥0）
 
 - **文档**：[`reviews/MARKET-GAP-IMPROVE-2026-10-25.md`](reviews/MARKET-GAP-IMPROVE-2026-10-25.md) — 对照 v0.1e；默认先 **音乐+剪辑**，再考虑新 I2V；禁同参碰运气。
-- **Notion**：待调度补链（本回合未写 Opus 页）。
+- **Notion Opus 市面评**：https://app.notion.com/p/8d13d54360d2496cabd7c68b123dee6b（段20 续）。
 - **边界**：仅检索文档；未开机、未充值、未 merge；未碰 NSFW。
+
+## 2026-10-25 Asia/Shanghai · 段20：v0.1f ¥0 剪辑计划（Opus A）
+
+- **Opus 5.5（市面口径）**：**5.5/10** · https://app.notion.com/p/8d13d54360d2496cabd7c68b123dee6b
+- **MARKET-GAP**：[`reviews/MARKET-GAP-IMPROVE-2026-10-25.md`](reviews/MARKET-GAP-IMPROVE-2026-10-25.md) · commit `fe0d1e1`
+- **执行单**：[`reviews/V0.1F-PLAN-2026-10-25.md`](reviews/V0.1F-PLAN-2026-10-25.md)（10–14 刀、SFX/字幕/调色、1080 检查单）
+- **ffmpeg 草案**：[`scripts/assemble_v0.1f.sh`](scripts/assemble_v0.1f.sh)（BGM=平台曲库/CC0 待填；粗剪非成片）
+- **下一动作**：**本机 / 剪映做 v0.1f**（¥0，**不开机**）
+- **边界**：未开机、未充值、未 release、未 merge；未碰 NSFW
