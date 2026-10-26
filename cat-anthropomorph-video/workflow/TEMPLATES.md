@@ -4,6 +4,7 @@
 
 > 原则：能模板化的不另起结构。图生视频与定妆都复用现有 workflow/01 与 02 JSON；参数清单在并列的 *_api_*.json 与 manifest.json。
 > B0-01 缺镜头（R2 / R4 / 门落 / 涉水 / 卧倒）→ 同一 I2V 方案 A 模板，只改 start_image / positive 动作句 / seed。
+> **v0.2 例外**：FLF2V **仅** S04 门落 / S10 插旗两关键镜启用，其余镜仍默认 I2V；见 [`03_flf2v_api_slots.json`](03_flf2v_api_slots.json) 与 [`05_v0_2_shot_manifest.md`](05_v0_2_shot_manifest.md)。
 
 ## 文件名一览
 
@@ -12,8 +13,12 @@
 | I2V 图 | workflow/02_i2v_wan21_480p.json | Comfy 图形模板（方案 A 已写入默认节点） |
 | I2V 参数清单 | workflow/02_i2v_api_prompt_r1_r4.json | 锁定参数 + 可换槽（API/人工填槽契约） |
 | Looklock 图 | workflow/01_looklock_qwen_edit.json | Qwen-Image-Edit-2511 多图定妆图 |
-| Looklock 参数清单 | workflow/01_looklock_api_slots.json | 多图输入槽（含 pose_or_scene_ref）+ 输出 ≥1024 + 可选 LoRA 开关默认 off |
-| 4× 超分钩子 | workflow/04_upscale_4x_api_slots.json · scripts/upscale_4x.sh | 权重路径占位，不入库 |
+| Looklock 参数清单 | workflow/01_looklock_api_slots.json | 多图输入槽（含 pose_or_scene_ref）+ 输出 ≥1024 + 可选 LoRA 开关默认 off；v0.2 三场景预设 portrait/boat_ramp/battle |
+| 4× 超分钩子 | workflow/04_upscale_4x_api_slots.json · scripts/upscale_4x.sh | 权重路径占位，不入库；v0.2 4×→1080 策略 + UltraSharp/ClearRealityV1 二选一 |
+| FLF2V 参数清单 | workflow/03_flf2v_api_slots.json | v0.2 仅 S04 门落 / S10 插旗；首末帧、prompt、seed、length、gates |
+| v0.2 主镜 prompt | prompts/v0_2_shot_prompts.md | S04–S11 八条强动作句 + shared negative（static + 中文静态词 + morph/extra limbs） |
+| v0.2 镜头清单 | workflow/05_v0_2_shot_manifest.md | S01–S12 12 刀、t 区间、模板、GPU、验收、状态/路径占位 |
+| v0.2 人眼验收 | workflow/06_v0_2_human_acceptance.md | H1–H4 逐镜签字；human_subject / human_motion / human_edit；不替代 AUTO_QC |
 | 开机清单 | BOOT-v0.1g.md | 管线就绪后调度开机；本仓文档不执行开机 |
 | 权重/策略 | manifest.json → groups.i2v / groups.looklock + 顶层 templates | 机器可读字段 |
 

@@ -312,7 +312,7 @@
       "widgets_values": [
         720,
         1280,
-        33,
+        49,
         1
       ]
     },
@@ -371,7 +371,7 @@
         1012535162155917,
         "randomize",
         20,
-        3,
+        6,
         "uni_pc",
         "simple",
         1
@@ -415,7 +415,7 @@
         "ver": "0.3.29"
       },
       "widgets_values": [
-        "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走,过曝，"
+        "色调艳丽，过曝，静态，静止，静止不动的画面，画面停滞，细节模糊不清，字幕，风格，作品，画作，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，杂乱的背景，三条腿，背景人很多，倒着走, static, still, still picture, frozen, motionless, no motion, barely moving, idle breathing only, slow motion, morph, face morph, body morph, extra limbs, extra arms, extra legs, extra characters, duplicate character, text, watermark, weapon, rifle, gun, four-legged, realistic cat body, melting paws, quadruped, on all fours, feral cat body, snout-dominant, animal face only, pure animal, face swap, different cat, identity drift, NSFW, undress, nude, muzzle-only cat face"
       ],
       "color": "#323",
       "bgcolor": "#535"

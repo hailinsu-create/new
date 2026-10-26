@@ -257,3 +257,24 @@
 - **本轮边界**：文档 only；**未开机、未充值、未 release/删盘、未下载权重、未跑 GPU**；未碰 `ai-realistic-comic/` 或 NSFW；未用 grok CLI。
 - **废止**：v0.1h 仅剪映小修默认、每轮只动一项、同参重抽、克隆/母机任务分流、先 ¥0 剪映再议开机默认。
 - **下一步**：用户确认授权卡（充值授权或接受 v0.2-limited）→ Phase 0 补模板（¥0）→ 授权后 Phase 1。
+
+## 2026-10-26 Asia/Shanghai · 段29：t63u 充值授权 · v0.2 完整包 Phase 0 模板落地（¥0）
+
+- **用户 t63u**：已充值并授权 **v0.2 完整包 best edition**；余额约 **¥54**（以控制台为准）；GPU 渲染由 **local executor 并行**执行。
+- **预算口径**：完整包**软顶 ¥8.5**；触顶停并回报，不自动充值、不静默透支。
+- **本回合范围**：**仅 Phase 0 模板/文档**（**¥0**）；**未开机、未充值、未 release/删盘、未下载权重、未跑 GPU**。GPU 由 local executor 另线执行，本回合不代跑。
+- **新建**：
+  - `workflow/03_flf2v_api_slots.json` — S04 门落 / S10 插旗首末帧、prompt、seed、length、gates；FLF2V 仅此两镜。
+  - `prompts/v0_2_shot_prompts.md` — S04–S11 共 8 条强动作 prompt + shared negative。
+  - `workflow/05_v0_2_shot_manifest.md` — S01–S12 12 刀表、t 区间、模板、GPU、验收、状态/路径占位。
+  - `workflow/06_v0_2_human_acceptance.md` — H1–H4 逐镜签字；`human_subject` / `human_motion` / `human_edit`；不替代 AUTO_QC。
+- **增量更新**：
+  - `workflow/01_looklock_api_slots.json` — `portrait` / `boat_ramp` / `battle` 预设；optional LoRA 仍默认 **OFF**。
+  - `workflow/02_i2v_api_prompt_r1_r4.json` — `v0_2_shot_presets`（S05–S09/S11；每镜最多 2 seed）；S04/S10 重定向 FLF2V 03。
+  - `workflow/04_upscale_4x_api_slots.json` — v0.2 4×→1080 策略；UltraSharp | ClearRealityV1 二选一；时序检查。
+  - `workflow/03_flf2v_wan21.json` — 仅锁定值对齐（length 49、cfg 6、v0.2 negative），不改图结构。
+  - `workflow/TEMPLATES.md` — 文件一览补 v0.2 模板。
+- **锁定**：Wan FLF2V `wan2.1_flf2v_720p_14B_fp16` · 720×1280 · length 49（hero 65）· steps20/cfg6/shift8 · uni_pc/simple · fp16 · 禁 sage · `--force-upcast-attention`；I2V 仍 480×832 / length49；可用状态仅 **HUMAN_ACCEPTED**。
+- **Git**：提交并 push 到 **PR #84** 同分支；**不 merge、不 force-push**。
+- **边界**：未开机、未充值、未 release/删盘、未下载大权重、未跑 GPU；未碰 `ai-realistic-comic/` 或 NSFW；未用 grok CLI。
+- **下一步**：local executor 并行渲染 Phase 1–2；回填 `05` 状态/路径与 `06` H1–H3 签字，再做 Phase 3 超分/成片。

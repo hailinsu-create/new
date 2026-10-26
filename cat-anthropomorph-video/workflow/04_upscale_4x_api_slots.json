@@ -8,6 +8,41 @@
     "SaveImage / SaveVideo frame fold"
   ],
   "script_hook": "scripts/upscale_4x.sh",
+  "v0_2_strategy": {
+    "authority": "reviews/MAJOR-LEAP-PLAN-v0.2-2026-10-26.md §2.5 / §5",
+    "chain": "I2V/FLF2V accepted clip → 4× upscale → temporal consistency check → downsample to 1080×1920 → edit",
+    "model_choice": {
+      "mode": "choose-one",
+      "candidates": [
+        "4x-UltraSharp",
+        "4x-ClearRealityV1"
+      ],
+      "rule": "pick one for the whole film and freeze it; do not mix per shot",
+      "filename_placeholder": "upscale_models/4x-UltraSharp_PLACEHOLDER.pth",
+      "download_into_git": false
+    },
+    "source_sizes": {
+      "i2v_480x832": "1920×3328 after 4×",
+      "flf2v_720x1280": "2880×5120 after 4×; 2× then 1080 timeline allowed if VRAM/time is tight, label in shot manifest"
+    },
+    "delivery": {
+      "width": 1080,
+      "height": 1920,
+      "fps": 30,
+      "duration_s": "14.4–15.0",
+      "downsample": "1920×3328 → 1080×1920; crop ~14px per side or pad 24px top/bottom, choose one and keep consistent",
+      "codec": "H.264 high profile",
+      "audio": "AAC 192–320kbps",
+      "ai_label": true
+    },
+    "temporal_check": {
+      "required": true,
+      "method": "sample frames for SSIM / flicker visual check",
+      "fail": "do not enter the timeline; A/B SeedVR2 3B or FlashVSR (both optional, extra weights) or 2× + mild sharpen",
+      "sharpen": "mild unsharp + one global grade; no per-shot filter; no over-sharpen halos"
+    },
+    "naming": "v0.2 only after upscale + temporal check + H4 pass; otherwise v0.2-draft / v0.2-limited"
+  },
   "slots": {
     "input_media": {
       "type": "image_or_video",
