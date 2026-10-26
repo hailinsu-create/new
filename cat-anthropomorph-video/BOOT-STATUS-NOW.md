@@ -1,0 +1,13 @@
+# BOOT-STATUS-NOW — v0.2 full pack DONE
+- time: 2026-10-26 21:48 Asia/Shanghai
+- winner: clone003 `bb8c4f8e12-00c8bdac` Chongqing A 4090D
+- mother025: **shutdown** (disk kept)
+- clone003: **shutdown** (disk kept) · power_off OK · **not released**
+- balance_before: 54030 分 (~¥54.03)
+- balance_after: 49780 分 (~¥49.78)
+- spent: 4250 分 (~¥4.250) · soft_top ¥8.50 / floor 45000 · OK
+- Phase1 looklock: DONE (portrait/boat_ramp/battle @ 1024×1536)
+- Phase2 I2V+FLF: DONE (accepted S04–S11)
+- Phase3 upscale: DONE (8/8 spandrel-UltraSharp · ORCH_MOTION_DONE)
+- assemble: DONE → `outputs/v0.2-b0-01-2026-10-26/out/B0-01-normandy-v0.2.mp4` · 1080×1920 · 15.1s · audio+SFX+subs · 13 cuts
+- RESULT: `outputs/RESULT-v0.2.md`
