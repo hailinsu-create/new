@@ -383,10 +383,28 @@
 - **边界**：禁 grok / 禁 NSFW；大 mp4 不入库
 - **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支 `cursor/cat-anthropomorph-comfy-pipeline-db82`
 
-## 2026-10-27 Asia/Shanghai · 段37：本岗 v0.3 review ~6.8；Opus dual-review in progress
+## 2026-10-27 Asia/Shanghai · 段37：社区 style-lock 简报（Cursor 静帧 · t81u）
 
-- **本岗 v0.3 review ~6.8**（videoReview 校正：市面估 5.5–6.0 · 运动 4.5）；Opus dual-review in progress（2026-10-27）
-- **全文**：[`reviews/SELF-REVIEW-v0.3-2026-10-27.md`](reviews/SELF-REVIEW-v0.3-2026-10-27.md)
-- **Notion**：https://app.notion.com/p/406b407a692a81fba6f2e81eb0165a09
-- **边界**：文档 only；未开机、未 merge；大 mp4 不入库；未用 grok CLI
-- **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支 `cursor/cat-anthropomorph-comfy-pipeline-db82`
+- **触发**：v0.3 四镜硬切风格；用户「也看看社区方案」。
+- **新文档**：[`reviews/COMMUNITY-STYLE-LOCK-CURSOR-2026-10-27.md`](reviews/COMMUNITY-STYLE-LOCK-CURSOR-2026-10-27.md) — 单一 master 锚 + 禁 pose 链、三槽分工、冻结 style block（绑腿+爪垫/ soft cel）、并排闸门；Comfy IPAdapter/FaceID/LoRA 仅可选日后。
+- **下一步**：下一开机 H3 前先完成静帧过闸/重抽；本轮未 GenerateImage、未开机、¥0。
+- **边界**：禁 NSFW / `ai-realistic-comic/`；禁 grok CLI。
+- **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支（文档待 commit）。
+
+## 2026-10-27 23:28 Asia/Shanghai · 段38：H3 Phase4 四镜 + Normandy v0.3.1 PASS（t80u）
+
+- **结果**：**PASS** — 克隆003 FL2VA 四镜（looklock-v0.3.1 新静帧）；拼装 **v0.3.1** 15s 竖屏；双机 shutdown 留盘
+- **机**：克隆003 `bb8c4f8e12-00c8bdac` running→出片→power_off；母025 attempt1 短启失败（python PATH）后 shutdown，attempt2 竞速未抢到
+- **成片**（二进制不入库）：
+  - `outputs/h3-phase4-2026-10-27/h3_phase4_S04_boat_ramp_00001_.mp4` · 768×1344 · 124f/5.167s · 5.1MiB · `ad428345-…`
+  - `…/h3_phase4_S05_wade_00001_.mp4` · 5.9MiB · `be24e6da-…`
+  - `…/h3_phase4_S08_charge_00001_.mp4` · 4.5MiB · `32e3098b-…`
+  - `…/h3_phase4_S10_flag_00001_.mp4` · 3.9MiB · `7b14b4f0-…`
+  - `outputs/v0.3.1-b0-01-2026-10-27/out/B0-01-normandy-v0.3.1.mp4` · **1080×1920** · **15.000s** · H.264+AAC · 9.3MiB
+- **静帧**：`outputs/cursor-stills-looklock-v0.3.1/`（旧 cursor-stills-2026-10-27 **VOID**）
+- **花费**：43460→**42250** 分（Δ **−1210** / ≈¥12.10；含 attempt1 空转）；无软顶试点；未充值未 release
+- **编排坑修复**：orch 改用 miniconda python；watch 终态匹配 `ALL_DONE_OK`（修 phase3 误匹配）
+- **文档**：[`reviews/RESULT-H3-PHASE4-2026-10-27.md`](reviews/RESULT-H3-PHASE4-2026-10-27.md) · `BOOT-STATUS-NOW.md`
+- **边界**：禁 grok / 禁 NSFW；大 mp4 不入库
+- **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支（文档待 push）
+
