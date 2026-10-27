@@ -367,3 +367,18 @@
 - **文档**：[`reviews/RESULT-H3-PHASE2-2026-10-27.md`](reviews/RESULT-H3-PHASE2-2026-10-27.md) · `BOOT-STATUS-NOW.md`
 - **边界**：禁 grok / 禁 NSFW；静帧来自 Cursor GenerateImage（SFW）
 - **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支 `cursor/cat-anthropomorph-comfy-pipeline-db82`
+
+## 2026-10-27 19:12 Asia/Shanghai · 段36：H3 Phase3 S05+S08 + Normandy v0.3 PASS（t77u）
+
+- **结果**：**PASS** — 母机025 FL2VA 双镜出片；拼装 **v0.3** 15s 竖屏；双机 shutdown 留盘
+- **机**：母025 `9b4c40bda6-dad38bb9` running→出片→（watch 误报后短启拉片）→power_off；克隆003 全程 shutdown
+- **成片**（二进制不入库）：
+  - `outputs/h3-phase3-2026-10-27/h3_phase3_S05_wade_00001_.mp4` · 768×1344 · 124f/5.167s · 7.0MiB · `0bbc0478-…`
+  - `outputs/h3-phase3-2026-10-27/h3_phase3_S08_charge_00001_.mp4` · 768×1344 · 124f/5.167s · 5.4MiB · `f08c4cf9-…`
+  - `outputs/v0.3-b0-01-2026-10-27/out/B0-01-normandy-v0.3.mp4` · **1080×1920** · **15.000s** · H.264+AAC · 10.1MiB（S04+S05+S08+S10 + CC0 战鼓）
+- **花费**：44000→**43460** 分（Δ **−540** / ≈¥5.40）；无软顶试点；未充值未 release
+- **目检**：涉水/爆破高潮成立；半 Q 比例可读；SFW；S08 色温偏暖相对 S05 略跳
+- **编排坑**：`watch_phase3.sh` 匹配 `ALL_DONE status=ok` 但日志为 `ALL_DONE {dict}` → 误 WATCH_FAIL；已人工拉片+关机+拼片
+- **文档**：[`reviews/RESULT-H3-PHASE3-2026-10-27.md`](reviews/RESULT-H3-PHASE3-2026-10-27.md) · [`reviews/SELF-REVIEW-H3-PHASE3-2026-10-27.md`](reviews/SELF-REVIEW-H3-PHASE3-2026-10-27.md) · `BOOT-STATUS-NOW.md`
+- **边界**：禁 grok / 禁 NSFW；大 mp4 不入库
+- **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支 `cursor/cat-anthropomorph-comfy-pipeline-db82`
