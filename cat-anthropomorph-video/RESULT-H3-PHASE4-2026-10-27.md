@@ -53,3 +53,7 @@
 ## 边界
 - 禁 grok CLI / 禁 NSFW；未充值、未 release；未碰漫监去衣资产
 - 二进制 mp4 **不入库**；文档可入 PR#84
+
+## Docs push
+- PR#84 docs-only: https://github.com/hailinsu-create/new/pull/84 (commit `b69e807` on `cursor/cat-anthropomorph-comfy-pipeline-db82`)
+- Notion: skipped (not easy this turn)
