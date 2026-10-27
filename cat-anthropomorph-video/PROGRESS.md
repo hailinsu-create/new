@@ -328,3 +328,12 @@
 - **关机**：母机 power_off→**shutdown** 留盘。
 - **文档**：`reviews/RESULT-H3-SMOKE-2026-10-27.md` · `BOOT-STATUS-NOW.md`
 - **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支 push（仅 md；大 mp4 不入库）。
+
+## 2026-10-27 Asia/Shanghai · 段32：本岗+Opus 分别评审 H3 smoke S04
+
+- **本岗+Opus 分别评审 H3 smoke**：本岗 A≈7.6/B≈7.0；Opus A=7.2/B=6.3
+- **本岗全文**：[`reviews/SELF-REVIEW-H3-SMOKE-2026-10-27.md`](reviews/SELF-REVIEW-H3-SMOKE-2026-10-27.md)
+- **页**：https://app.notion.com/p/fc8a8967a6564bec90181b1db19facad
+- **材料**：https://app.notion.com/p/406b407a692a81f3bd35cac171d35813
+- **边界**：文档同步 only；未开机、未 merge；大 mp4 不入库；未用 grok CLI
+- **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支 `cursor/cat-anthropomorph-comfy-pipeline-db82`
