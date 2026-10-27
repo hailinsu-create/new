@@ -382,3 +382,11 @@
 - **文档**：[`reviews/RESULT-H3-PHASE3-2026-10-27.md`](reviews/RESULT-H3-PHASE3-2026-10-27.md) · [`reviews/SELF-REVIEW-H3-PHASE3-2026-10-27.md`](reviews/SELF-REVIEW-H3-PHASE3-2026-10-27.md) · `BOOT-STATUS-NOW.md`
 - **边界**：禁 grok / 禁 NSFW；大 mp4 不入库
 - **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支 `cursor/cat-anthropomorph-comfy-pipeline-db82`
+
+## 2026-10-27 Asia/Shanghai · 段37：本岗 v0.3 review ~6.8；Opus dual-review in progress
+
+- **本岗 v0.3 review ~6.8**（videoReview 校正：市面估 5.5–6.0 · 运动 4.5）；Opus dual-review in progress（2026-10-27）
+- **全文**：[`reviews/SELF-REVIEW-v0.3-2026-10-27.md`](reviews/SELF-REVIEW-v0.3-2026-10-27.md)
+- **Notion**：https://app.notion.com/p/406b407a692a81fba6f2e81eb0165a09
+- **边界**：文档 only；未开机、未 merge；大 mp4 不入库；未用 grok CLI
+- **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支 `cursor/cat-anthropomorph-comfy-pipeline-db82`
