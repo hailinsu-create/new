@@ -13,6 +13,8 @@
 
 **默认推荐（一句）**：下一开机窗前，用 Qwen looklock 重出 **semi-chibi（约 3.5 头身）美军小橘全身首帧**，再同一窗口用该首帧跑 **H3 S04+S10**；**不靠 H3 风格 LoRA「救」细高条**。
 
+> **旁注（t72u）**：静帧默认已改 **Cursor GenerateImage**；本句的 Qwen looklock 仅作可选对照。已入库 5 张首末帧见 [`outputs/cursor-stills-2026-10-27/`](../outputs/cursor-stills-2026-10-27/) 与 [`CURSOR-STILLS-2026-10-27.md`](CURSOR-STILLS-2026-10-27.md)。
+
 **备选（一句）**：若仍偏写实条 → 同窗加 **Qwen Edit Chibi / 潮玩手办 LoRA 旁路定妆对照**（仅 SFW；强度 ≤0.8）。
 
 ## §1 问题对齐表

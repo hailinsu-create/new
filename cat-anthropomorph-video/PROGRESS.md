@@ -346,3 +346,13 @@
 - **备选**：旁路 Qwen Edit Chibi/潮玩 LoRA（SFW vet，强度≤0.8）对照。
 - **边界**：纯文档；未开机、未下载新权重、未 merge；禁 grok CLI；未碰 NSFW/`ai-realistic-comic/`。
 - **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支 `cursor/cat-anthropomorph-comfy-pipeline-db82`。
+
+## 2026-10-27 Asia/Shanghai · 段34：Cursor 静帧包就绪（等人眼闸 + H3 授权）
+
+- **t71u/t72u**：定妆静帧默认改走 **Cursor GenerateImage（漫监老方案）**；不再默认开机跑 AutoDL Qwen looklock，Qwen 仅作可选对照。
+- **入库**：[`outputs/cursor-stills-2026-10-27/`](outputs/cursor-stills-2026-10-27/) · 5 张 720×1280 jpg 逐字节入库（Cloud Agent `uploads/` 未同步，自 bot-store attachments 入库）；清单 [`MANIFEST.md`](outputs/cursor-stills-2026-10-27/MANIFEST.md)。
+- **内容**：比例锚 `portrait/looklock_portrait_semi_chibi_A.jpg`（semi-chibi ≈3.5 头身 · 灰底全身）+ S04 `boat_ramp/S04_boat_ramp_{start,end}.jpg`（扶栏 START → 冲下坡道入水）+ S10 `flag/S10_flag_{start,end}.jpg`（握杆准备 → 高举美国旗）。
+- **短评**：[`reviews/CURSOR-STILLS-2026-10-27.md`](reviews/CURSOR-STILLS-2026-10-27.md)；对照 [`reviews/COMMUNITY-CUTE-PROPORTIONS-2026-10-27.md`](reviews/COMMUNITY-CUTE-PROPORTIONS-2026-10-27.md)。
+- **下一步**：先过人眼闸（3–4 头身、耳洞干净、军装可读）；下一窗用这些首末帧跑本地 **H3 S04+S10**，**仍须用户授权开机**。
+- **边界**：静帧入库 ¥0；未开机、未跑 GPU、未下载权重、未 merge；禁 grok CLI；未碰 NSFW / `ai-realistic-comic/`。
+- **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支 `cursor/cat-anthropomorph-comfy-pipeline-db82`。

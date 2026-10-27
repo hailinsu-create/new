@@ -12,6 +12,8 @@
 
 下一版（**v0.3**）图生视频主路 = **AutoDL ComfyUI + 本地 MiniMax H3-Base**（Comfy-Org 量化权重）；Wan2.1 I2V/FLF **降为遗留/对照，不再默认开机跑**。定妆仍 **Qwen looklock**。
 
+> **旁注（t72u）**：静帧已改 **Cursor GenerateImage** 默认；Qwen looklock 仅作可选对照。见 [`outputs/cursor-stills-2026-10-27/`](../outputs/cursor-stills-2026-10-27/) 与 [`CURSOR-STILLS-2026-10-27.md`](CURSOR-STILLS-2026-10-27.md)。
+
 ---
 
 ## B. 为什么换（对照事实）
@@ -36,7 +38,7 @@
 | 运行时 | AutoDL ComfyUI **≥ 0.30.0**（内置 MiniMax H3 模板） |
 | 模型 | **MiniMax H3-Base** 开源权重（本地）；**不用**海螺/即梦/可灵云端 API |
 | 模板族 | T2V / **I2V = FL2VA** / **R2V = Ref2VA**（Comfy Template Library） |
-| 定妆 | 仍 **Qwen-Image-Edit looklock**（`workflow/01_*`）；H3 吃 looklock 派生首帧 |
+| 定妆 | 默认 **Cursor GenerateImage 静帧包**（[`outputs/cursor-stills-2026-10-27/`](../outputs/cursor-stills-2026-10-27/)）；**Qwen-Image-Edit looklock**（`workflow/01_*`）仅作可选对照；H3 吃静帧派生首帧 |
 | 拒绝默认 | 8×B200 SGLang 拓扑；本岗默认 = **单卡 4090D/5090** 社区 **INT8 + offload** |
 
 ### C.2 权重（草案清单 · 须 Template Library 扫描后钉 revision）
@@ -86,7 +88,7 @@
 | --- | --- | --- |
 | **Phase0 ¥0** | 本文档 + H3 模板 slots/README 占位 + 镜头单对齐 + 换曲 A-lite 可并行；模型下载清单 + 校验脚本**草案**（不执行拉取） | **否**（纯文档） |
 | **Phase1 装机** | 开机一台 → 升 Comfy ≥0.30.0 → 拉 H3 权重（盘 **70–120GB** 级）→ **smoke 5s 竖屏 I2V** | **是** |
-| **Phase2 高潮补镜** | 用现有 looklock 首帧只重跑 **S04 门落 + S10 插旗**（及必要联镜）H3；门禁：人眼可见位移 + 非静帧 | **是** |
+| **Phase2 高潮补镜** | 用 Cursor 静帧包首末帧（Qwen looklock 可选对照）只重跑 **S04 门落 + S10 插旗**（及必要联镜）H3；门禁：人眼可见位移 + 非静帧 | **是** |
 | **Phase3 成片** | 超分（H3 已近 768 短边；竖屏 1080 可用现有 4× 或轻超分）+ 卡点包装 → **v0.3** | 含在开机窗 |
 
 模板占位：[`../workflow/templates/README-H3.md`](../workflow/templates/README-H3.md) · [`../workflow/templates/h3_fl2va_i2v_slots.json`](../workflow/templates/h3_fl2va_i2v_slots.json)。
@@ -151,7 +153,7 @@ comfy --version   # 或 python -c 读 package；须 ≥0.30.0
 #   --local-dir "$MODEL_ROOT/MiniMax-H3"
 
 # 2) Template Library：导入 H3 I2V/FL2VA 竖屏 768×1344；length ∈ 17n+5
-# 3) smoke：looklock 首帧 → ~5s 竖屏 MP4 → 人眼非静帧
+# 3) smoke：Cursor 静帧首帧（looklock 可选对照）→ ~5s 竖屏 MP4 → 人眼非静帧
 # 4) 成片拼装：默认去 H3 音轨；外置 CC0 BGM+SFX
 ```
 
