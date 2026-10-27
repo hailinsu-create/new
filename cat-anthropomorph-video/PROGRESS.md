@@ -291,3 +291,14 @@
 - **文档**：`reviews/RESULT-v0.2.md` · `BOOT-STATUS-NOW.md` / `BOOT-v0.2.md`
 - **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 分支 `cursor/cat-anthropomorph-comfy-pipeline-db82`（仅 md；大 mp4 不入库）
 
+
+## 2026-10-27 Asia/Shanghai · 段30：本岗评审 v0.2 入库（综合约 6.5）
+
+- **用户 t64u**：你和 notion 分别评审。
+- **本岗自评**：[`reviews/SELF-REVIEW-v0.2-2026-10-27.md`](reviews/SELF-REVIEW-v0.2-2026-10-27.md) · 综合约 **6.5**（等权六维：拟人 6.8 / 题材 6.8 / 精细 7.0 / 运动 5.0 / 卡点 6.2 / 工程 8.2）。
+- **相对 v0.1g**：本岗 5.8 → **约 6.5**；一次大改有进步，**未达规划市面 ≥7.0**。
+- **主缺口**：强动高潮（门落/插旗）未兑现；滩头直立一致性；音乐/卡点张力。
+- **成片锚点**（二进制不入库）：`outputs/v0.2-b0-01-2026-10-26/out/B0-01-normandy-v0.2.mp4` · 1080×1920 · 15.1s · ≈¥4.25。
+- **Notion 交付页**：https://app.notion.com/p/405b407a692a812a8706cf2b01b62c66
+- **Opus 审核**：待进行（并行）。
+- **边界**：文档同步 only；未开机、未 GPU、未 merge；大 mp4 不入库。
