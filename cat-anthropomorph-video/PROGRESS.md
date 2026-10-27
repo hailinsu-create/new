@@ -303,7 +303,6 @@
 - **Opus 审核**：待进行（并行）。
 - **边界**：文档同步 only；未开机、未 GPU、未 merge；大 mp4 不入库。
 
-
 ## 2026-10-27 Asia/Shanghai · 段31：t66u 拍板 · 废止 Wan 主路 → 本地 MiniMax H3（v0.3 文档）
 
 - **用户 t66u**：用**本地 MiniMax H3**设计方案；**Wan 太差了**。市面 Opus 6.0 / 本岗 6.5；S04 门落、S10 插旗高潮空。
@@ -317,3 +316,15 @@
 - **成本软顶（草案·须授权后实核）**：下载+smoke ¥1–3；S04+S10 试点 ¥2–5；默认不全片重跑；不走海螺云端积分。
 - **边界**：未开机、未充值、未 release、未下载大权重；未碰 NSFW/`ai-realistic-comic/`；**未用 grok CLI**；大 mp4 不入库。
 - **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支 `cursor/cat-anthropomorph-comfy-pipeline-db82`。
+
+## 2026-10-27 11:28 Asia/Shanghai · 段31：本地 MiniMax H3 smoke PASS（t68u）
+
+- **授权**：t68u 开机拉 H3 权重出一镜；软顶约 ¥8；盘不够可腾 Wan/扩盘。
+- **winner**：母机025 `9b4c40bda6-dad38bb9`（重庆A）；克隆003 全程 shutdown。
+- **权重**：diffusion 20G / TE 15G / video VAE 4.9G / audio VAE 578M / turbo LoRA 1.9G → `H3 DL DONE`。
+- **Comfy**：0.42.0 · 内置 `MiniMaxH3ImageToVideo` · prompt 无 node_errors。
+- **样片**：`outputs/h3-smoke-2026-10-27/h3_smoke_S04_boat_ramp_00001_.mp4` · **768×1344** · **5.167s** · 124f · H.264+AAC · Comfy 执行 359s（8-step turbo）。
+- **花费**：48440→46560 分（Δ **-1880** / ≈¥1.880）；软顶/地板未破；未充值未 release。
+- **关机**：母机 power_off→**shutdown** 留盘。
+- **文档**：`reviews/RESULT-H3-SMOKE-2026-10-27.md` · `BOOT-STATUS-NOW.md`
+- **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支 push（仅 md；大 mp4 不入库）。
