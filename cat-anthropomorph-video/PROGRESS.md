@@ -337,3 +337,12 @@
 - **材料**：https://app.notion.com/p/406b407a692a81f3bd35cac171d35813
 - **边界**：文档同步 only；未开机、未 merge；大 mp4 不入库；未用 grok CLI
 - **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支 `cursor/cat-anthropomorph-comfy-pipeline-db82`
+
+## 2026-10-27 Asia/Shanghai · 段33：t70u 社区检索 · 可爱/少细高条
+
+- **触发**：H3 smoke 观感「有点不可爱，细高条」；双边评审本岗 A≈7.6/B≈7.0、Opus A=7.2/B=6.3。
+- **新文档**：[`reviews/COMMUNITY-CUTE-PROPORTIONS-2026-10-27.md`](reviews/COMMUNITY-CUTE-PROPORTIONS-2026-10-27.md)（结论先行 + 社区来源表 + looklock/参考图/LoRA 改法 + Opus 选项 C 衔接）。
+- **默认推荐**：下一开机前用 Qwen looklock 重出 **semi-chibi 约 3.5 头身**美军小橘全身首帧，再同窗 H3 S04+S10；可爱靠首帧，不靠 H3 风格 LoRA 救细高条。
+- **备选**：旁路 Qwen Edit Chibi/潮玩 LoRA（SFW vet，强度≤0.8）对照。
+- **边界**：纯文档；未开机、未下载新权重、未 merge；禁 grok CLI；未碰 NSFW/`ai-realistic-comic/`。
+- **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支 `cursor/cat-anthropomorph-comfy-pipeline-db82`。
