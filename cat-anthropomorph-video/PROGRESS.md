@@ -302,3 +302,18 @@
 - **Notion 交付页**：https://app.notion.com/p/405b407a692a812a8706cf2b01b62c66
 - **Opus 审核**：待进行（并行）。
 - **边界**：文档同步 only；未开机、未 GPU、未 merge；大 mp4 不入库。
+
+
+## 2026-10-27 Asia/Shanghai · 段31：t66u 拍板 · 废止 Wan 主路 → 本地 MiniMax H3（v0.3 文档）
+
+- **用户 t66u**：用**本地 MiniMax H3**设计方案；**Wan 太差了**。市面 Opus 6.0 / 本岗 6.5；S04 门落、S10 插旗高潮空。
+- **结论**：下一版 **v0.3** 图生视频主路 = AutoDL ComfyUI + **本地 H3-Base**（Comfy-Org 量化）；Wan2.1 I2V/FLF → **遗留/对照，不再默认开机跑**；定妆仍 Qwen looklock。
+- **新文档**：[`reviews/LOCAL-H3-PLAN-v0.3-2026-10-27.md`](reviews/LOCAL-H3-PLAN-v0.3-2026-10-27.md)（A–H：结论/换因/选型/迁移/成本/验收/不做/调度一句话）。
+- **模板占位**：[`workflow/templates/`](workflow/templates/) — Comfy ≥0.30.0、竖屏 768×1344、FL2VA/Ref2VA slots、权重路径草案（**未下载**）。
+- **历史注记**：[`reviews/MAJOR-LEAP-PLAN-v0.2-2026-10-26.md`](reviews/MAJOR-LEAP-PLAN-v0.2-2026-10-26.md) 与 [`workflow/TEMPLATES.md`](workflow/TEMPLATES.md) 顶部加「默认 I2V 主路改为本地 H3」；**不删** v0.2 Wan 历史。
+- **仓内路径**：`cat-anthropomorph-video/`（无 `briefs/` 镜像目录；以本仓为准）。
+- **Phase0**：本轮仅文档/占位（**¥0**）；下载清单+命令为草案。
+- **下一步（调度）**：方案已落 LOCAL-H3-PLAN-v0.3；**等用户授权开机 Phase1 装机+smoke**（升 Comfy、拉 H3 估盘 70–120GB、5s 竖屏 I2V）。
+- **成本软顶（草案·须授权后实核）**：下载+smoke ¥1–3；S04+S10 试点 ¥2–5；默认不全片重跑；不走海螺云端积分。
+- **边界**：未开机、未充值、未 release、未下载大权重；未碰 NSFW/`ai-realistic-comic/`；**未用 grok CLI**；大 mp4 不入库。
+- **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支 `cursor/cat-anthropomorph-comfy-pipeline-db82`。

@@ -1,5 +1,8 @@
 # v0.2 一次大改 · 长规划（B0-01 诺曼底 · 小橘 · SFW）
 
+> ⚠️ **状态（2026-10-27 · t66u）**：默认 I2V 主路改为 **本地 MiniMax H3**，见 [`LOCAL-H3-PLAN-v0.3-2026-10-27.md`](LOCAL-H3-PLAN-v0.3-2026-10-27.md)。本文保留为 **v0.2 Wan 历史规划**，不删；Wan I2V/FLF **不再作为下一版默认开机路径**。
+>
+
 > 日期：2026-10-26 · 分支：`cursor/cat-anthropomorph-comfy-pipeline-db82` · PR [#84](https://github.com/hailinsu-create/new/pull/84)
 > 状态：**文档定稿 / 未开机 / 未充值 / 未 release / 未删盘**。Phase 1–3 须用户另授权；本轮只做到 Phase 0 的文档部分。
 > 边界：SFW；单猫 **A 小橘**优先；B 银宝 / C 墨墨二期；不碰 `ai-realistic-comic/` 与任何 NSFW。

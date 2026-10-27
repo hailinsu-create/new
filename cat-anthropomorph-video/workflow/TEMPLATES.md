@@ -1,5 +1,8 @@
 # Comfy 可复用模板 · 填槽说明
 
+> ⚠️ **状态（2026-10-27 · t66u）**：默认 I2V 主路改为 **本地 MiniMax H3**，见 [`../reviews/LOCAL-H3-PLAN-v0.3-2026-10-27.md`](../reviews/LOCAL-H3-PLAN-v0.3-2026-10-27.md) 与 [`templates/README-H3.md`](templates/README-H3.md)。下文 Wan 方案 A / FLF2V 表保留为 **遗留/对照**，不再默认开机跑。
+>
+
 > **社区结论固化表**：[`../reviews/COMFY-TO-TEMPLATES-v0.1g.md`](../reviews/COMFY-TO-TEMPLATES-v0.1g.md)（← [`COMFY-CAT-ANTHRO-COMMUNITY-2026-10-25.md`](../reviews/COMFY-CAT-ANTHRO-COMMUNITY-2026-10-25.md)）。
 
 > 原则：能模板化的不另起结构。图生视频与定妆都复用现有 workflow/01 与 02 JSON；参数清单在并列的 *_api_*.json 与 manifest.json。
@@ -19,6 +22,7 @@
 | v0.2 主镜 prompt | prompts/v0_2_shot_prompts.md | S04–S11 八条强动作句 + shared negative（static + 中文静态词 + morph/extra limbs） |
 | v0.2 镜头清单 | workflow/05_v0_2_shot_manifest.md | S01–S12 12 刀、t 区间、模板、GPU、验收、状态/路径占位 |
 | v0.2 人眼验收 | workflow/06_v0_2_human_acceptance.md | H1–H4 逐镜签字；human_subject / human_motion / human_edit；不替代 AUTO_QC |
+| **H3 主路占位（v0.3）** | [`templates/README-H3.md`](templates/README-H3.md) · [`templates/h3_fl2va_i2v_slots.json`](templates/h3_fl2va_i2v_slots.json) · [`templates/h3_ref2va_slots.json`](templates/h3_ref2va_slots.json) | Comfy≥0.30.0 · 768×1344 · FL2VA/Ref2VA；**默认主路**；未下载权重 |
 | 开机清单 | BOOT-v0.1g.md | 管线就绪后调度开机；本仓文档不执行开机 |
 | 权重/策略 | manifest.json → groups.i2v / groups.looklock + 顶层 templates | 机器可读字段 |
 
