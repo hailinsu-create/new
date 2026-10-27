@@ -356,3 +356,14 @@
 - **下一步**：先过人眼闸（3–4 头身、耳洞干净、军装可读）；下一窗用这些首末帧跑本地 **H3 S04+S10**，**仍须用户授权开机**。
 - **边界**：静帧入库 ¥0；未开机、未跑 GPU、未下载权重、未 merge；禁 grok CLI；未碰 NSFW / `ai-realistic-comic/`。
 - **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支 `cursor/cat-anthropomorph-comfy-pipeline-db82`。
+
+## 2026-10-27 Asia/Shanghai · 段35：H3 Phase2 S04+S10 FL2VA（克隆003）
+
+- **结果**：**PASS** — 双镜 mp4 拉回；双机 shutdown 留盘
+- **机**：克隆003 `bb8c4f8e12-00c8bdac` running→出片→power_off；母025 全程 shutdown
+- **成片**（二进制不入库）：`outputs/h3-phase2-2026-10-27/h3_phase2_S04_boat_ramp_00001_.mp4` · `…_S10_flag_00001_.mp4` · **768×1344** · **124f/5.167s** · H.264
+- **权重**：FL2VA 20G + Qwen3VL 15G + video VAE 4.9G + audio VAE 578M + turbo 8step LoRA 1.9G；`H3 DL done 16:55:06 +0800`
+- **花费**：46560→**44000** 分（≈¥25.60）；无软顶试点；未充值未 release
+- **文档**：[`reviews/RESULT-H3-PHASE2-2026-10-27.md`](reviews/RESULT-H3-PHASE2-2026-10-27.md) · `BOOT-STATUS-NOW.md`
+- **边界**：禁 grok / 禁 NSFW；静帧来自 Cursor GenerateImage（SFW）
+- **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支 `cursor/cat-anthropomorph-comfy-pipeline-db82`
