@@ -408,3 +408,17 @@
 - **边界**：禁 grok / 禁 NSFW；大 mp4 不入库
 - **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支（文档待 push）
 
+
+## 2026-10-28 00:45 Asia/Shanghai · 段39：v0.3.2 ¥0 精剪四件套（t84u）
+
+- **结果**：脚本 / 分镜 / 内容切刀 / 音乐节拍 四件套落地；锁点 **3.60 门落 drop · 9.20 爆破 · 12.80 插旗**；`scripts/assemble_v0.3.2.sh` 草案
+- **BGM**：主选 **Determined Pursuit**（Emma_MA · **CC0** · OGA）已下 wav → `outputs/v0.3.2-b0-01-2026-10-28/edit/`；弃用 Horde War Drums；备用 Adventure Intro Title（nene · CC0）
+- **剪辑手法**：门落闪白/震屏；S08 裁到异常前 + 闪白盖切；**不开机**
+- **文档**：
+  - `reviews/SCRIPT-B0-01-NORMANDY-v0.3.2-2026-10-28.md`
+  - `reviews/STORYBOARD-B0-01-NORMANDY-v0.3.2-2026-10-28.md`
+  - `reviews/CONTENT-CUTLIST-v0.3.2-2026-10-28.md`
+  - `reviews/MUSIC-BEAT-B0-01-v0.3.2-2026-10-28.md`
+- **边界**：禁 grok / NSFW / AutoDL 开机充值 release；大 wav/mp4 不入库
+- **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) docs-only push
+
