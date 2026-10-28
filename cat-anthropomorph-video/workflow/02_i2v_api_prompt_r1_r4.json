@@ -1,0 +1,312 @@
+{
+  "template_id": "cat-anthro-i2v-scheme-a",
+  "id": "cat-anthro-i2v-motion-2026-10-25",
+  "scheme": "A",
+  "comfy_workflow": "workflow/02_i2v_wan21_480p.json",
+  "workflow": "workflow/02_i2v_wan21_480p.json",
+  "reuse": "Same Comfy graph (scheme A) for every I2V shot. Only change slots.start_image (= scene_lock_first_frame), slots.positive_action, slots.seed. Do not fork per shot. FLF2V not default.",
+  "unet": "wan2.1_i2v_480p_14B_fp16.safetensors",
+  "comfy_launch": [
+    "--force-upcast-attention"
+  ],
+  "banned_launch": [
+    "--use-sage-attention"
+  ],
+  "locked": {
+    "unet": "wan2.1_i2v_480p_14B_fp16.safetensors",
+    "width": 480,
+    "height": 832,
+    "length": 49,
+    "batch_size": 1,
+    "steps": 20,
+    "cfg": 6,
+    "shift": 8,
+    "sampler_name": "uni_pc",
+    "scheduler": "simple",
+    "clip_vision_crop": "none",
+    "fps": 16
+  },
+  "wan_image_to_video": {
+    "width": 480,
+    "height": 832,
+    "length": 49,
+    "batch_size": 1
+  },
+  "ksampler": {
+    "steps": 20,
+    "cfg": 6,
+    "sampler_name": "uni_pc",
+    "scheduler": "simple"
+  },
+  "model_sampling_sd3_shift": 8,
+  "r3_fallback_only": {
+    "cfg": 5,
+    "shift": 10
+  },
+  "slots": {
+    "start_image": {
+      "node_id": 52,
+      "node_type": "LoadImage",
+      "widget_index": 0,
+      "comfy_input_relative_default": "shots_PLACEHOLDER_i2v_start.png",
+      "recommended_path_pattern": "shots/B0-01_<shot_id>_start.png",
+      "preprocess": "scripts/crop_check_i2v.py when source is square looklock",
+      "also_known_as": "scene_lock_first_frame",
+      "role": "Scene-locked first frame: looklock still (≥1024 short side) cropped to 480×832 that already contains the Normandy symbol for this beat (ramp/door / blast / flag silhouette)."
+    },
+    "positive_action": {
+      "node_id": 6,
+      "node_type": "CLIPTextEncode",
+      "title": "CLIP Text Encode (Positive Prompt)",
+      "widget_index": 0,
+      "rules": "motion-first strong verbs; ban gentle/slightly/small/soft/subtle"
+    },
+    "seed": {
+      "node_id": 3,
+      "node_type": "KSampler",
+      "widget_index": 0,
+      "control_widget_index": 1,
+      "recommended_control": "fixed"
+    },
+    "scene_lock_first_frame": {
+      "alias_of": "start_image",
+      "node_id": 52,
+      "node_type": "LoadImage",
+      "preprocess": "scripts/crop_check_i2v.py",
+      "recommended_path_pattern": "shots/B0-01_<beat>_scene_lock_480x832.png",
+      "note": "Same physical slot as start_image; naming emphasizes scene lock before motion."
+    }
+  },
+  "positive": {
+    "r1_salute_default": "The anthropomorphic cat soldier quickly raises her right paw to the brim of her helmet in a crisp military salute and holds the salute firmly; her chin lifts and she stares straight into the camera; her red neckerchief flutters strongly in the wind. Fixed camera, medium shot, same face, fur pattern and US Army uniform as the first frame.",
+    "r2_salute_replicate": "The anthropomorphic cat soldier quickly raises her right paw to the brim of her helmet in a crisp military salute and holds the salute firmly; her chin lifts and she stares straight into the camera; her red neckerchief flutters strongly in the wind. Fixed camera, medium shot, same face, fur pattern and US Army uniform as the first frame.",
+    "r4_head_turn": "The anthropomorphic cat soldier snaps her head up and turns to stare directly into the camera, ears perking forward; strong wind whips her red neckerchief and blows dust across the frame. Fixed camera, medium close-up, same face, fur pattern and US Army uniform as the first frame.",
+    "b0_01_ramp_door_drop": "The landing craft bow ramp suddenly drops open with a heavy slam; bright gray Normandy daylight floods the troop compartment; the upright bipedal anthropomorphic orange-and-white cat soldier in US olive-drab field kit braces and steps forward toward the open ramp. Fixed camera inside the Higgins boat looking out, medium-wide, same face, fur pattern and US Army uniform as the first frame; readable Normandy LCVP / ramp door symbol in frame.",
+    "b0_01_blast_breach": "A sharp beach obstacle blast erupts ahead in dust and smoke; the upright bipedal anthropomorphic orange-and-white cat soldier in US WWII field jacket ducks then surges forward through the clearing path on Omaha-like sand. Fixed camera, medium shot, same face, fur pattern and uniform as the first frame; clear Normandy beach / hedgehog / smoke symbol.",
+    "b0_01_flag_silhouette": "The upright bipedal anthropomorphic orange-and-white cat soldier plants a small US flag into the Normandy sand and holds the pose as a backlight silhouette; wind snaps the flag and her red neckerchief. Fixed camera, hero wide-to-medium, same face and fur as the first frame; unmistakable flag-planting Normandy silhouette."
+  },
+  "negative": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走, static, still, still picture, frozen, motionless, no motion, barely moving, idle breathing only, slow motion, weapon, rifle, gun, four-legged, realistic cat body, extra limbs, extra arms, extra legs, extra characters, duplicate character, morph, face morph, text, watermark, melting paws",
+  "gates": [
+    "scripts/noise_gate.py",
+    "scripts/subject_gate.py",
+    "scripts/motion_gate.py",
+    "scripts/clip_status.py"
+  ],
+  "forbid_usable_claim_without": "G1+G2+G2m PASS and HUMAN_ACCEPTED (AUTO_QC_PASS alone is not a usable/public clip)",
+  "calibration": {
+    "r1_positive_max_mad": 16.27,
+    "static_baseline_max_mad": 3.6,
+    "min_max_mad_default": 11.0
+  },
+  "output": {
+    "save_video_prefix_default": "video/cat_anthro_i2v",
+    "archive_pattern": "$OUTPUT_ROOT/i2v/<shot_id>/",
+    "binary_mp4_may_omit_from_git": true
+  },
+  "machine": {
+    "mode": "DUAL-RACE-MODE",
+    "rule": "full-stack-aligned; no cross-machine handoff; winner runs entire pipeline locally",
+    "instances": {
+      "primary_025": "9b4c40bda6-dad38bb9",
+      "clone_003": "bb8c4f8e12-00c8bdac"
+    },
+    "label": "either-winner-full-stack",
+    "docs": [
+      "scripts/race_boot.md",
+      "BOOT-v0.1g.md"
+    ]
+  },
+  "community_defaults": {
+    "source_doc": "reviews/COMMUNITY-OPTIMIZE-2026-10-25.md",
+    "official_wan21_generate": {
+      "steps": 40,
+      "shift_480p": 3,
+      "frame_num": 81,
+      "source": "https://github.com/Wan-Video/Wan2.1/blob/main/generate.py"
+    },
+    "comfy_official": {
+      "unet_precision": "fp16",
+      "source": "https://docs.comfy.org/tutorials/video/wan/wan-video"
+    },
+    "kombitz": {
+      "shift_480p": 3,
+      "shift_720p": 5,
+      "cfg": 5,
+      "steps": 20,
+      "length": 49,
+      "negative": "official_zh",
+      "source": "https://www.kombitz.com/2025/03/03/simple-comfyui-workflow-for-wan2-1-image-to-video-i2v-using-gguf-models/"
+    },
+    "civitai_character_lora": {
+      "length_formula": "16*frames+1",
+      "identity_shift_range": [
+        5,
+        6
+      ],
+      "lightning": {
+        "cfg": 1,
+        "negative_disabled": true,
+        "needs_nag": true
+      },
+      "quality_first": true,
+      "source": "https://civitai.com/articles/18711/wan-2122-comfyui-workflows-for-my-character-lora"
+    },
+    "adopted": {
+      "fp16": true,
+      "length": 49,
+      "strong_verbs": true,
+      "static_negative": true,
+      "lightning_default": false,
+      "flf2v_default": false,
+      "shift_default": 8,
+      "cfg_default": 6,
+      "reason": "motion gate already calibrated with R1 max_mad=16.27"
+    }
+  },
+  "fallbacks": {
+    "identity_shift_3": {
+      "shift": 3,
+      "steps": 40,
+      "when": "only if identity drifts; official 480p baseline",
+      "default": false
+    },
+    "expression_shift_5_6": {
+      "shift": 5,
+      "when": "only if expression is lost and identity is stable",
+      "default": false
+    },
+    "r3_cfg5_shift10": {
+      "cfg": 5,
+      "shift": 10,
+      "when": "only after R1/R2 both fail G2m",
+      "default": false
+    }
+  },
+  "length_formula": "16*frames+1 (49 = 16*3+1)",
+  "negative_source": "prompts/negative.txt",
+  "status_model": {
+    "script": "scripts/clip_status.py",
+    "states": [
+      "RENDER_DONE",
+      "AUTO_QC_PASS",
+      "HUMAN_ACCEPTED"
+    ],
+    "usable_state": "HUMAN_ACCEPTED",
+    "doc": "reviews/CLIP-STATUS.md"
+  },
+  "audio": {
+    "script": "scripts/stitch_audio.py",
+    "default": "silent or generated 128 BPM sine-tick bed",
+    "doc": "scripts/AUDIO-SWAP.md"
+  },
+  "version": "v0.1g",
+  "b0_01_highlight_briefs": [
+    {
+      "id": "H1_ramp_door",
+      "zh": "门落",
+      "beat": "B0-01 门落重音",
+      "start_image_hint": "looklock inside LCVP facing closed/open ramp; steel bulkhead + gray sea light",
+      "positive_key": "b0_01_ramp_door_drop",
+      "acceptance": "一眼可读：登陆艇门/坡道 + 美军野战拟人猫（非四足）"
+    },
+    {
+      "id": "H2_blast_breach",
+      "zh": "爆破开路",
+      "beat": "B0-01 滩头爆破/开路",
+      "start_image_hint": "beach + Czech hedgehog / smoke column; cat soldier mid-stride bipedal",
+      "positive_key": "b0_01_blast_breach",
+      "acceptance": "一眼可读：滩头障碍/烟尘爆破 + 前进开路"
+    },
+    {
+      "id": "H3_flag_silhouette",
+      "zh": "插旗剪影",
+      "beat": "B0-01 插旗剪影收束",
+      "start_image_hint": "sand + backlight sky; flag staff in paws; silhouette-friendly contrast",
+      "positive_key": "b0_01_flag_silhouette",
+      "acceptance": "一眼可读：插旗剪影 / 诺曼底滩头胜利符号"
+    }
+  ],
+  "v0_2_shot_presets": {
+    "authority": "reviews/MAJOR-LEAP-PLAN-v0.2-2026-10-26.md §2.2 / §2.4；prompts/v0_2_shot_prompts.md",
+    "version": "v0.2",
+    "max_seeds_per_shot": 2,
+    "after_two_failures": "change strategy (fix first frame / FLF2V / static + Ken Burns); never reseed the same parameters",
+    "shared_negative_doc": "prompts/v0_2_shot_prompts.md#shared-negative-v0-2",
+    "flf2v_redirect": {
+      "S04": "workflow/03_flf2v_api_slots.json#S04_door_drop",
+      "S10": "workflow/03_flf2v_api_slots.json#S10_flag_plant",
+      "rule": "S04/S10 are FLF2V only; do not run them on this I2V template"
+    },
+    "shots": {
+      "S05": {
+        "shot_id": "S05_wade",
+        "t": "4.80–6.10",
+        "first_frame": "S04 last frame or boat_ramp vertical crop; $OUTPUT_ROOT/i2v/S05_wade/start_480x832.png",
+        "positive": "Exactly one anthropomorphic orange-white cat soldier in US WWII Normandy gear. At frame 0 she drives her boot into the knee-deep surf and wades forward, water blasts up to her waist and the red neckerchief rips sideways in the wind. Handheld low tracking camera follows at her pace. Same face, fur pattern, helmet and red neckerchief as the first frame. Only one character, no extra soldiers, no text, no extra limbs.",
+        "length": 49,
+        "hero_length_optional": 65,
+        "max_seeds": 2,
+        "acceptance": "水花可见；身份不崩；围巾强风可读；非静帧"
+      },
+      "S06": {
+        "shot_id": "S06_smoke",
+        "t": "6.10–7.30",
+        "first_frame": "battle looklock; $OUTPUT_ROOT/i2v/S06_smoke/start_480x832.png",
+        "positive": "Exactly one anthropomorphic orange-white cat soldier in US WWII Normandy gear. At frame 0 she snaps her head toward the rising smoke column, drops her shoulder and presses low, ears flattening; thick smoke rolls across the beach and wind snaps her red neckerchief. Fixed medium close shot. Same face, fur pattern, helmet and red neckerchief as the first frame. Only one character, no extra soldiers, no text, no extra limbs.",
+        "length": 49,
+        "hero_length_optional": 65,
+        "max_seeds": 2,
+        "acceptance": "战场可读、非棚拍；回头/压低动作完成；身份不崩",
+        "downgrade": "static + smoke layer allowed when budget is compressed; label DOWNGRADED"
+      },
+      "S07": {
+        "shot_id": "S07_prone",
+        "t": "7.30–8.60",
+        "first_frame": "battle vertical crop; $OUTPUT_ROOT/i2v/S07_prone/start_480x832.png",
+        "positive": "Exactly one anthropomorphic orange-white cat soldier in US WWII Normandy gear. At frame 0 she dives flat onto the sand, elbows digging, helmet dipping, dust blasts over her back and the red neckerchief whips hard. Handheld low-angle camera tracks the fall. Same face, fur pattern, helmet and red neckerchief as the first frame. Only one character, no extra soldiers, no text, no extra limbs.",
+        "length": 49,
+        "hero_length_optional": 65,
+        "max_seeds": 2,
+        "acceptance": "卧倒动作完整；尘土可见；不穿模；无多肢"
+      },
+      "S08": {
+        "shot_id": "S08_charge",
+        "t": "8.60–9.70",
+        "first_frame": "battle vertical crop; $OUTPUT_ROOT/i2v/S08_charge/start_480x832.png",
+        "positive": "Exactly one anthropomorphic orange-white cat soldier in US WWII Normandy gear. At frame 0 an explosion bursts behind her and she launches forward in a low sprint, arms pumping, boots kicking sand, smoke and debris blast outward. Handheld camera tracks forward at her speed. Same face, fur pattern, helmet and red neckerchief as the first frame. Only one character, no extra soldiers, no text, no extra limbs.",
+        "length": 49,
+        "hero_length_optional": 65,
+        "max_seeds": 2,
+        "acceptance": "爆破可读；主体不糊；低姿前冲完整；无多余角色"
+      },
+      "S09": {
+        "shot_id": "S09_head_turn",
+        "t": "9.70–10.78",
+        "first_frame": "crop-check passed frame; $OUTPUT_ROOT/i2v/S09_head_turn/start_480x832.png",
+        "positive": "Exactly one anthropomorphic orange-white cat soldier in US WWII Normandy gear. At frame 0 she snaps her head up and locks her eyes on the camera, ears forward, jaw set; strong wind rips the red neckerchief sideways and dust streaks past. Fixed medium close-up. Same face, fur pattern, helmet and red neckerchief as the first frame. Only one character, no extra soldiers, no text, no extra limbs.",
+        "length": 49,
+        "hero_length_optional": 65,
+        "max_seeds": 2,
+        "acceptance": "抬头完成；眼神可读；围巾强风；身份不崩"
+      },
+      "S11": {
+        "shot_id": "S11_salute",
+        "t": "12.20–13.50",
+        "first_frame": "S09/S10 peak frame; $OUTPUT_ROOT/i2v/S11_salute/start_480x832.png",
+        "positive": "Exactly one anthropomorphic orange-white cat soldier in US WWII Normandy gear. At frame 0 she snaps her right paw to the brim of her helmet in a crisp salute and holds it firm, chin lifts, eyes lock the camera; the red neckerchief cracks in the wind. Fixed medium shot. Same face, fur pattern, helmet and red neckerchief as the first frame. Only one character, no extra soldiers, no text, no extra limbs.",
+        "length": 49,
+        "hero_length_optional": 65,
+        "max_seeds": 2,
+        "acceptance": "敬礼可读或定格干净；红围巾收束；身份不崩",
+        "downgrade": "freeze frame allowed when budget is compressed; label DOWNGRADED"
+      }
+    }
+  },
+  "forbid": {
+    "flf2v_default": true,
+    "nsfw": true,
+    "expand_to_B_or_C": true,
+    "recharge": true,
+    "release": true
+  }
+}

@@ -1,0 +1,183 @@
+{
+  "template_id": "cat-anthro-looklock-qwen-2511-v0.1g",
+  "version": "v0.1g",
+  "comfy_workflow": "workflow/01_looklock_qwen_edit.json",
+  "reuse": "Same Comfy graph for every looklock still. Change slots only. Do not fork a new workflow JSON per cat/scene.",
+  "docs": [
+    "reviews/COMFY-CAT-ANTHRO-COMMUNITY-2026-10-25.md",
+    "BOOT-v0.1g.md",
+    "prompts/look_cards.md"
+  ],
+  "locked": {
+    "unet": "qwen_image_edit_2511_fp8mixed.safetensors",
+    "text_encoder": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+    "vae": "qwen_image_vae.safetensors",
+    "precision_note": "fp8mixed OK for Qwen; do NOT apply Wan fp16-only policy; never --force-fp16 on Qwen; never --use-sage-attention",
+    "lightning_4steps_lora_default": false,
+    "output_min_short_side_px": 1024,
+    "output_side_multiple_of": 16
+  },
+  "slots": {
+    "cat_ref": {
+      "node_id": 41,
+      "node_type": "LoadImage",
+      "title": "SLOT cat_ref",
+      "widget_index": 0,
+      "comfy_input_relative_default": "cats/A/raw/front.jpg",
+      "path_pattern": "cats/{A|B|C}/raw/front.jpg",
+      "role": "Image1 identity — orange-and-white longhair lock for A",
+      "source": "restore.sh copies refs/cats/{A,B,C}/front.jpg"
+    },
+    "costume_ref": {
+      "node_id": 83,
+      "node_type": "LoadImage",
+      "title": "SLOT costume_ref",
+      "widget_index": 0,
+      "comfy_input_relative_default": "looklock/costume_ref_PLACEHOLDER.png",
+      "path_pattern": "looklock/<us_field_uniform_or_costume>.png",
+      "role": "Image2 — US WWII olive-drab field jacket / Normandy kit",
+      "note": "Replace placeholder with real uniform still when available"
+    },
+    "pose_or_scene_ref": {
+      "node_id": 195,
+      "node_type": "LoadImage",
+      "title": "SLOT pose_or_scene_ref (v0.1g)",
+      "widget_index": 0,
+      "comfy_input_relative_default": "looklock/pose_or_scene_ref_PLACEHOLDER.png",
+      "path_pattern": "looklock/<upright_pose_or_normandy_scene>.png",
+      "role": "Image3 — upright bipedal pose and/or Normandy scene lock",
+      "note": "SFW mood still only; never NSFW. Can reuse costume placeholder until a pose still exists."
+    },
+    "positive": {
+      "location": "subgraph TextEncodeQwenImageEditPlus #151",
+      "source_doc": "prompts/look_cards.md",
+      "must_include": [
+        "upright bipedal",
+        "anthropomorphic",
+        "US WWII / Normandy field jacket",
+        "orange-and-white long-haired",
+        "SFW",
+        "Preserve Image 1 cat face/fur identity"
+      ],
+      "rules": "Keep locked English prefix per cat; force bipedal; append scene/pose only"
+    },
+    "negative": {
+      "source_doc": "prompts/negative.txt",
+      "must_include": [
+        "quadruped",
+        "on all fours",
+        "feral cat body",
+        "snout-dominant",
+        "animal face only",
+        "face swap",
+        "NSFW",
+        "undress"
+      ]
+    },
+    "seed": {
+      "location": "sampler seed in official Qwen-Edit-2511 subgraph",
+      "type": "integer"
+    }
+  },
+  "optional_lora": {
+    "id": "sfw_animal_to_human_qwen_edit",
+    "enabled_default": false,
+    "switch_default": "off",
+    "filename_placeholder": "loras/PLACEHOLDER_qwen_animal_to_human_SFW.safetensors",
+    "strength_default": 0.7,
+    "vet_required": true,
+    "download_into_git": false,
+    "note": "Do not enable until human licenses a SFW Animal→Human / cat-anthro edit LoRA. Never undress/NSFW packs. Lightning LoRA remains a separate switch (also default OFF)."
+  },
+  "v0_2_scene_presets": {
+    "authority": "reviews/MAJOR-LEAP-PLAN-v0.2-2026-10-26.md §2.3 / §5",
+    "output_root": "outputs/v0.2-b0-01-2026-10-26/looklock",
+    "same_identity_rule": "Preserve Image 1 cat face/fur identity; keep the same helmet, red neckerchief and bipedal stance from Image 3.",
+    "required_positive": "upright bipedal anthropomorphic cat-girl, humanoid face with readable eyes nose mouth, ears visible, US WWII Normandy infantry uniform, SFW, no muzzle-only cat face, no quadruped",
+    "required_negative_additions": [
+      "quadruped",
+      "on all fours",
+      "feral cat body",
+      "snout-dominant",
+      "animal face only",
+      "extra limbs",
+      "extra characters",
+      "text",
+      "watermark"
+    ],
+    "max_seeds_per_scene": 3,
+    "recommended_seeds_per_scene": 2,
+    "min_short_side_px": 1024,
+    "optional_lora_default": "OFF",
+    "presets": {
+      "portrait": {
+        "image1": "cats/A/raw/front.jpg",
+        "image2": "looklock/costume_ref_PLACEHOLDER.png",
+        "image3": "looklock/pose_or_scene_ref_PLACEHOLDER.png",
+        "scene_suffix": "full-body upright bipedal portrait on a neutral Normandy staging ground, US M41 field jacket, M1 helmet with ear cutouts, red neckerchief, readable humanoid face, SFW, no rifle",
+        "output": "outputs/v0.2-b0-01-2026-10-26/looklock/portrait/cat_anthro_v02_portrait_<seed>.png",
+        "accepted": "outputs/v0.2-b0-01-2026-10-26/looklock/accepted/portrait.png",
+        "gates": [
+          "scripts/looklock_size_gate.py",
+          "scripts/crop_check_i2v.py",
+          "H1 identity"
+        ],
+        "acceptance": "一眼拟人；小橘毛色/瞳色/耳/钢盔/红围巾可读；短边≥1024"
+      },
+      "boat_ramp": {
+        "image1": "cats/A/raw/front.jpg",
+        "image2": "looklock/costume_ref_PLACEHOLDER.png",
+        "image3": "accepted portrait + LCVP interior mood",
+        "scene_suffix": "inside an LCVP landing craft, right paw on the closed steel ramp handle, ramp not yet lowered, gray sea light and spray, low angle, US WWII Normandy kit, red neckerchief, SFW, no rifle",
+        "output": "outputs/v0.2-b0-01-2026-10-26/looklock/boat_ramp/cat_anthro_v02_boat_ramp_<seed>.png",
+        "accepted": "outputs/v0.2-b0-01-2026-10-26/looklock/accepted/boat_ramp.png",
+        "gates": [
+          "scripts/looklock_size_gate.py",
+          "scripts/crop_check_i2v.py",
+          "H1 identity"
+        ],
+        "acceptance": "一眼登陆艇/门；手在竖裁内；同身份；短边≥1024"
+      },
+      "battle": {
+        "image1": "cats/A/raw/front.jpg",
+        "image2": "looklock/costume_ref_PLACEHOLDER.png",
+        "image3": "accepted portrait + Omaha beach smoke/blast mood",
+        "scene_suffix": "on the Normandy beachhead, smoke columns and distant blast dust, low prone-or-charge stance, backlit helmet and red neckerchief, US WWII Normandy kit, SFW, no gore, no rifle",
+        "output": "outputs/v0.2-b0-01-2026-10-26/looklock/battle/cat_anthro_v02_battle_<seed>.png",
+        "accepted": "outputs/v0.2-b0-01-2026-10-26/looklock/accepted/battle.png",
+        "gates": [
+          "scripts/looklock_size_gate.py",
+          "scripts/crop_check_i2v.py",
+          "H1 identity"
+        ],
+        "acceptance": "一眼诺曼底战场；主体不糊；同身份；短边≥1024；SFW 无血腥"
+      }
+    }
+  },
+  "output": {
+    "comfy_save_default_prefix": "looklock/cat_anthro_looklock_",
+    "min_short_side_px": 1024,
+    "size_gate": "scripts/looklock_size_gate.py",
+    "archive_pattern": "$OUTPUT_ROOT/looklock/{cat}/{yyyy-mm-dd}/cat_anthro_looklock_<seed>.png",
+    "next_step": "looklock_size_gate.py → crop_check_i2v.py → I2V start_image / scene_lock_first_frame"
+  },
+  "machine": {
+    "mode": "DUAL-RACE-MODE",
+    "rule": "full-stack-aligned; no cross-machine handoff; winner runs entire pipeline locally",
+    "instances": {
+      "primary_025": "9b4c40bda6-dad38bb9",
+      "clone_003": "bb8c4f8e12-00c8bdac"
+    },
+    "label": "either-winner-full-stack",
+    "docs": [
+      "scripts/race_boot.md",
+      "BOOT-v0.1g.md"
+    ]
+  },
+  "gates": {
+    "identity_blind_test": ">=80% before mass I2V",
+    "sfw": true,
+    "no_weapons_in_positive": true,
+    "bipedal_required": true
+  }
+}

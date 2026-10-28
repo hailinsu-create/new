@@ -1,0 +1,39 @@
+{
+  "id": "cat-anthro-h3-ref2va-slots-v0.3-placeholder",
+  "status": "PLACEHOLDER_OPTIONAL_ROUND1",
+  "comfy_min_version": "0.30.0",
+  "model_family": "MiniMax-H3-Base",
+  "template_kind": "Ref2VA",
+  "notes": [
+    "Optional fur/identity lock via up to 9 reference images.",
+    "Round-1 default is FL2VA I2V; enable Ref2VA only if looklock drift persists.",
+    "See LOCAL-H3-PLAN-v0.3."
+  ],
+  "canvas": {
+    "aspect": "9:16",
+    "width": 768,
+    "height": 1344,
+    "short_edge": 768,
+    "multiple_of": 32,
+    "fps": 24,
+    "length_grid": "17n+5"
+  },
+  "weights_placeholder": {
+    "repo": "https://huggingface.co/Comfy-Org/MiniMax-H3",
+    "ref2va": "minimax_h3_ref2va_pruned_int8_convrot",
+    "revision": "TBD"
+  },
+  "slots": {
+    "reference_images": {
+      "max": 9,
+      "preferred": ["refs/cats/A/front.jpg", "looklock portrait/boat_ramp/battle"]
+    },
+    "start_image": { "required": true },
+    "positive": { "required": true },
+    "seed": { "type": "int" },
+    "length": { "constraint": "17n+5" }
+  },
+  "audio_policy": {
+    "default": "strip_or_mute_h3_native_audio"
+  }
+}
