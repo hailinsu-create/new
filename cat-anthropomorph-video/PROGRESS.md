@@ -469,3 +469,18 @@
 - **旁注**：`reviews/STORYBOARD-B0-01-NORMANDY-v0.4-PLAN-2026-10-28.md` 本仓未检出 → 未改；若后续入库再补「静帧齐、Phase6 开机中」
 - **边界**：禁 grok.com CLI / 设备码；不碰漫监 NSFW / `ai-realistic-comic/`；大 jpg/mp4 不强制入库
 - **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支 docs-only
+
+
+
+## 2026-10-28 18:25 Asia/Shanghai · 段44：Normandy v0.4 ¥0 拼装 PASS（Phase6 五镜）
+
+- **结果**：**PASS** — Phase6 GATE 后本机拼装；**未开机**
+- **成片**（二进制不入库）：`outputs/v0.4-b0-01-2026-10-28/out/B0-01-normandy-v0.4.mp4` · **1080×1920** · **15.000s** · H.264+AAC · ~9.4MiB
+- **锁点**：DROP 3.600 · 炮火 9.200 · 插旗 12.800（Δ0）
+- **源**：Phase6 M04/M05/M08/M09/M10（`outputs/h3-phase6-2026-10-28/`）+ 真猫钩子 + v0.4 持旗静帧
+- **相对 v0.3.4**：同道具旗 + 群戏 + 可见炮火均已进成片
+- **GATE**：`outputs/h3-phase6-2026-10-28/GATE.md` PASS（旗连续/无幻肢/群戏≥2/M09非白场）
+- **文档**：`RESULT-v0.4-ASSEMBLE-2026-10-28.md` · `reviews/CONTENT-CUTLIST-v0.4-2026-10-28.md` · `scripts/assemble_v0.4.sh`
+- **Notion**：https://app.notion.com/p/407b407a692a8190bc57f9d522db11b7
+- **边界**：禁 grok / NSFW / AutoDL 开机充值 release；大 mp4 不入库
+- **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支 `cursor/cat-anthropomorph-comfy-pipeline-db82`
