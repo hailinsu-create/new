@@ -363,7 +363,7 @@
 - **机**：克隆003 `bb8c4f8e12-00c8bdac` running→出片→power_off；母025 全程 shutdown
 - **成片**（二进制不入库）：`outputs/h3-phase2-2026-10-27/h3_phase2_S04_boat_ramp_00001_.mp4` · `…_S10_flag_00001_.mp4` · **768×1344** · **124f/5.167s** · H.264
 - **权重**：FL2VA 20G + Qwen3VL 15G + video VAE 4.9G + audio VAE 578M + turbo 8step LoRA 1.9G；`H3 DL done 16:55:06 +0800`
-- **花费**：46560→**44000** 分（≈¥25.60）；无软顶试点；未充值未 release
+- **花费**：46560→**44000** 分（Δ2560 ≈¥2.56；旧记 ¥25.60 为笔误）；无软顶试点；未充值未 release
 - **文档**：[`reviews/RESULT-H3-PHASE2-2026-10-27.md`](reviews/RESULT-H3-PHASE2-2026-10-27.md) · `BOOT-STATUS-NOW.md`
 - **边界**：禁 grok / 禁 NSFW；静帧来自 Cursor GenerateImage（SFW）
 - **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支 `cursor/cat-anthropomorph-comfy-pipeline-db82`
@@ -376,7 +376,7 @@
   - `outputs/h3-phase3-2026-10-27/h3_phase3_S05_wade_00001_.mp4` · 768×1344 · 124f/5.167s · 7.0MiB · `0bbc0478-…`
   - `outputs/h3-phase3-2026-10-27/h3_phase3_S08_charge_00001_.mp4` · 768×1344 · 124f/5.167s · 5.4MiB · `f08c4cf9-…`
   - `outputs/v0.3-b0-01-2026-10-27/out/B0-01-normandy-v0.3.mp4` · **1080×1920** · **15.000s** · H.264+AAC · 10.1MiB（S04+S05+S08+S10 + CC0 战鼓）
-- **花费**：44000→**43460** 分（Δ **−540** / ≈¥5.40）；无软顶试点；未充值未 release
+- **花费**：44000→**43460** 分（Δ **−540** / ≈¥0.54；旧记 ¥5.40 为笔误）；无软顶试点；未充值未 release
 - **目检**：涉水/爆破高潮成立；半 Q 比例可读；SFW；S08 色温偏暖相对 S05 略跳
 - **编排坑**：`watch_phase3.sh` 匹配 `ALL_DONE status=ok` 但日志为 `ALL_DONE {dict}` → 误 WATCH_FAIL；已人工拉片+关机+拼片
 - **文档**：[`reviews/RESULT-H3-PHASE3-2026-10-27.md`](reviews/RESULT-H3-PHASE3-2026-10-27.md) · [`reviews/SELF-REVIEW-H3-PHASE3-2026-10-27.md`](reviews/SELF-REVIEW-H3-PHASE3-2026-10-27.md) · `BOOT-STATUS-NOW.md`
@@ -402,7 +402,7 @@
   - `…/h3_phase4_S10_flag_00001_.mp4` · 3.9MiB · `7b14b4f0-…`
   - `outputs/v0.3.1-b0-01-2026-10-27/out/B0-01-normandy-v0.3.1.mp4` · **1080×1920** · **15.000s** · H.264+AAC · 9.3MiB
 - **静帧**：`outputs/cursor-stills-looklock-v0.3.1/`（旧 cursor-stills-2026-10-27 **VOID**）
-- **花费**：43460→**42250** 分（Δ **−1210** / ≈¥12.10；含 attempt1 空转）；无软顶试点；未充值未 release
+- **花费**：43460→**42250** 分（Δ **−1210** / ≈¥1.21；含 attempt1 空转；旧记 ¥12.10 为笔误）；无软顶试点；未充值未 release
 - **编排坑修复**：orch 改用 miniconda python；watch 终态匹配 `ALL_DONE_OK`（修 phase3 误匹配）
 - **文档**：[`reviews/RESULT-H3-PHASE4-2026-10-27.md`](reviews/RESULT-H3-PHASE4-2026-10-27.md) · `BOOT-STATUS-NOW.md`
 - **边界**：禁 grok / 禁 NSFW；大 mp4 不入库
@@ -426,3 +426,12 @@
 ## 2026-10-28 · 双评 v0.3.2
 - 本岗约6.0 / Opus 6.2；未过7；默认C；仅内部
 - Notion Opus: https://app.notion.com/p/407b407a692a803f97ecf5f7f775ebb1
+
+## 2026-10-28 13:48 Asia/Shanghai · 段40：社区提升与迭代方案（docs-only）
+
+- 结果：动作硬伤疑为设置自伤（8 步 turbo / 两帧跨大状态变化 / Wan 负向遗留）；默认 C + D6 S04 定向 A/B（待授权）
+- 文档：reviews/COMMUNITY-ITERATE-2026-10-28.md；workflow/h3_ab_s04_v1~v3.json
+- 边界：禁 grok / NSFW / AutoDL 开机充值 release；大文件不入库
+- Notion：https://app.notion.com/p/63a904f7936f419badd70819d6a45068
+- 成本对账：smoke Δ1880=¥1.88 → Phase2 Δ2560≈¥2.56、Phase3 Δ540≈¥0.54、Phase4 Δ1210≈¥1.21（已改 RESULT）
+
