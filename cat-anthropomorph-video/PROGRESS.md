@@ -459,3 +459,13 @@
 - **边界**：禁 grok / NSFW / AutoDL 开机充值 release；大 mp4 不入库
 - **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支 docs-only
 
+
+## 2026-10-28 Asia/Shanghai · 段43：t97u 授权调试管线+开机 · v0.4 静帧齐 · H3 Phase6 五镜 race
+
+- **授权**：用户 **t97u** 授权调试管线+开机（本窗 docs-only 同步；开机/race 由已授权执行器跑，此处不代执行 AutoDL 开机脚本）
+- **静帧**：v0.4 静帧齐 — 十张 **M04/M05/M08/M09/M10** start+end；**同道具旗**；锁 **looklock-v0.3.1**；清单 [`outputs/cursor-stills-v0.4-2026-10-28/CURSOR-STILLS-v0.4.md`](outputs/cursor-stills-v0.4-2026-10-28/CURSOR-STILLS-v0.4.md)
+- **进行中**：**H3 Phase6** 五镜 race（M04+M05+M08+M09+M10 FL2VA）进行中
+- **余额**：开跑前 ≈ **39040** 分
+- **旁注**：`reviews/STORYBOARD-B0-01-NORMANDY-v0.4-PLAN-2026-10-28.md` 本仓未检出 → 未改；若后续入库再补「静帧齐、Phase6 开机中」
+- **边界**：禁 grok.com CLI / 设备码；不碰漫监 NSFW / `ai-realistic-comic/`；大 jpg/mp4 不强制入库
+- **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支 docs-only
