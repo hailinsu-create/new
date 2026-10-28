@@ -422,3 +422,7 @@
 - **边界**：禁 grok / NSFW / AutoDL 开机充值 release；大 wav/mp4 不入库
 - **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) docs-only push
 
+
+## 2026-10-28 · 双评 v0.3.2
+- 本岗约6.0 / Opus 6.2；未过7；默认C；仅内部
+- Notion Opus: https://app.notion.com/p/407b407a692a803f97ecf5f7f775ebb1
