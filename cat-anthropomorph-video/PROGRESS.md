@@ -445,3 +445,17 @@
 - **本岗评**：https://app.notion.com/p/407b407a692a8188a597dc8fe8eb1c8b
 - **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支 docs-only
 
+## 2026-10-28 15:52 Asia/Shanghai · 段42：H3 Phase5 + Normandy v0.3.4（t90u）
+
+- **结果**：**PASS** — **WATCH_PASS** / **PULL_OK**；winner 克隆003 `bb8c4f8e12-00c8bdac`；双机 **shutdown** 留盘；拼装 **v0.3.4** PASS
+- **机**：克隆003 出片；母025 `9b4c40bda6-dad38bb9` shutdown；授权 **t90u**；未充值 / 未 release
+- **花费**：40910→**40650** 分（Δ **−260** / ≈¥2.60）
+- **Phase5**：BEST_S04 = **S04_v2**；新 **S08_flag**（扛旗冲锋）；S04_v1/v3 为 A/B
+- **成片**（二进制不入库）：`outputs/v0.3.4-b0-01-2026-10-28/out/B0-01-normandy-v0.3.4.mp4` · **14.958s · 1080×1920 · H.264+AAC**
+- **拼装源**：S04=Phase5 v2 · S05=Phase4 涉水 · S08=Phase5 扛旗 · S10=Phase4 插旗；BGM Determined Pursuit CC0
+- **目检**：内部综合 **~5** → **仅内部**（门落靠黑切+音效；步枪→旗瞬消；扛旗成立、圆润一致）
+- **文档**：`RESULT-v0.3.4-ASSEMBLE-2026-10-28.md` · `reviews/SELF-REVIEW-v0.3.4-2026-10-28.md`
+- **Notion**：https://app.notion.com/p/407b407a692a81db9f7ae2be2470fa11
+- **边界**：禁 grok / NSFW / AutoDL 开机充值 release；大 mp4 不入库
+- **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支 docs-only
+
