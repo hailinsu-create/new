@@ -445,7 +445,7 @@
 - **本岗评**：https://app.notion.com/p/407b407a692a8188a597dc8fe8eb1c8b
 - **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支 docs-only
 
-## 2026-10-28 15:52 Asia/Shanghai · 段42：H3 Phase5 + Normandy v0.3.4（t90u）
+## 2026-10-28 15:52 Asia/Shanghai · 段42（本机/uploads 段40）：H3 Phase5 + Normandy v0.3.4（t90u）
 
 - **结果**：**PASS** — **WATCH_PASS** / **PULL_OK**；winner 克隆003 `bb8c4f8e12-00c8bdac`；双机 **shutdown** 留盘；拼装 **v0.3.4** PASS
 - **机**：克隆003 出片；母025 `9b4c40bda6-dad38bb9` shutdown；授权 **t90u**；未充值 / 未 release
