@@ -435,3 +435,13 @@
 - Notion：https://app.notion.com/p/63a904f7936f419badd70819d6a45068
 - 成本对账：smoke Δ1880=¥1.88 → Phase2 Δ2560≈¥2.56、Phase3 Δ540≈¥0.54、Phase4 Δ1210≈¥1.21（已改 RESULT）
 
+## 2026-10-28 13:55 Asia/Shanghai · 段41：v0.3.3 ¥0包装 PASS（docs-only）
+
+- **结果**：**PASS** — `outputs/v0.3.3-b0-01-2026-10-28/out/B0-01-normandy-v0.3.3.mp4` · 14.958s · 1080×1920 · h264+AAC；主 DROP→涉水首帧 **3.583**；门落降为 build；DROP 前黑场 **0.375s**；S05/S08 膝上裁；旗 **ss=2.00**；BGM Determined Pursuit CC0；**未开机**
+- **目检**：步枪仍瞬消 → **仅内部**
+- **文档**：`RESULT-v0.3.3-ASSEMBLE-2026-10-28.md` · `reviews/CONTENT-CUTLIST-v0.3.3-2026-10-28.md` · `scripts/assemble_v0.3.3.sh`（stub）
+- **边界**：禁 grok / NSFW / AutoDL 开机充值 release；大 mp4/wav 不入库
+- **Notion 交付**：https://app.notion.com/p/407b407a692a81e09c23f78935d9c9dc
+- **本岗评**：https://app.notion.com/p/407b407a692a8188a597dc8fe8eb1c8b
+- **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支 docs-only
+
