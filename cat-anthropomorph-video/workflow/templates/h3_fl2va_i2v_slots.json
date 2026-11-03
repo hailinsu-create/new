@@ -1,0 +1,67 @@
+{
+  "id": "cat-anthro-h3-fl2va-i2v-slots-v0.3-placeholder",
+  "status": "PLACEHOLDER_ONLY_NO_GPU",
+  "comfy_min_version": "0.30.0",
+  "model_family": "MiniMax-H3-Base",
+  "template_kind": "FL2VA",
+  "notes": [
+    "v0.3 default I2V path. Wan2.1 I2V/FLF is legacy/control only.",
+    "Pin revision/sha after Template Library scan on authorized boot.",
+    "Do not download weights in Phase0."
+  ],
+  "canvas": {
+    "aspect": "9:16",
+    "width": 768,
+    "height": 1344,
+    "short_edge": 768,
+    "multiple_of": 32,
+    "fps": 24,
+    "length_grid": "17n+5",
+    "length_smoke_example": 39
+  },
+  "weights_placeholder": {
+    "repo": "https://huggingface.co/Comfy-Org/MiniMax-H3",
+    "disk_budget_gb": "70-120",
+    "fl2va": "minimax_h3_fl2va_pruned_int8_convrot",
+    "text_vision": "qwen3vl_32b_minimax_h3_nvfp4_awq",
+    "vae_video": "TBD_FROM_TEMPLATE_LIBRARY",
+    "vae_audio": "TBD_FROM_TEMPLATE_LIBRARY",
+    "revision": "TBD",
+    "sha256": {}
+  },
+  "slots": {
+    "start_image": {
+      "required": true,
+      "source": "looklock derivative (Qwen 01_*)",
+      "shots": ["smoke", "S04_first", "S10_first", "other_i2v"]
+    },
+    "end_image": {
+      "required_for": ["S04_door_drop", "S10_flag_plant"],
+      "optional_elsewhere": true,
+      "notes": "FL2VA keyframes for hero beats"
+    },
+    "positive": {
+      "style": "strong action verbs first; upright bipedal; no soft/static wording"
+    },
+    "negative": {
+      "must_include": ["static", "still", "frozen", "slideshow"]
+    },
+    "seed": { "type": "int" },
+    "length": { "constraint": "17n+5" }
+  },
+  "audio_policy": {
+    "default": "strip_or_mute_h3_native_audio",
+    "mux": "external_CC0_BGM_plus_SFX",
+    "optional": "keep_ambient_only_if_does_not_fight_BGM"
+  },
+  "acceptance": {
+    "smoke": "vertical MP4, subject not still-frame, no major collapse",
+    "S04_S10": "human-visible door-drop / flag-plant (Opus P0)",
+    "no_fallback": "do not revert default path to Wan"
+  },
+  "shot_presets": {
+    "smoke_5s": { "mode": "I2V_start_only", "length": 39 },
+    "S04_door_drop": { "mode": "FL2VA_keyframes", "gpu": true },
+    "S10_flag_plant": { "mode": "FL2VA_keyframes", "gpu": true }
+  }
+}

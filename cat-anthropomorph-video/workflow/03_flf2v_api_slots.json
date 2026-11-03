@@ -1,0 +1,222 @@
+{
+  "template_id": "cat-anthro-flf2v-scheme-flf-v0.2",
+  "version": "v0.2",
+  "comfy_workflow": "workflow/03_flf2v_wan21.json",
+  "authority": "reviews/MAJOR-LEAP-PLAN-v0.2-2026-10-26.md §2.2 / §2.4 / §5",
+  "reuse": "Same Comfy FLF2V graph for S04 door-drop and S10 flag-plant. Change first_image, last_image, positive_action and seed only. Do not fork a new workflow JSON per shot.",
+  "policy": {
+    "enabled_shots": [
+      "S04",
+      "S10"
+    ],
+    "flf2v_only_for": [
+      "S04_door_drop",
+      "S10_flag_plant"
+    ],
+    "other_shots_default": "I2V via workflow/02_i2v_wan21_480p.json + workflow/02_i2v_api_prompt_r1_r4.json; FLF2V is not a default for other shots",
+    "max_seeds_per_shot": 2,
+    "after_two_failures": "change strategy (fix first/last frame, switch to I2V, or use static + Ken Burns); never reseed the same parameters",
+    "usable_only": "HUMAN_ACCEPTED",
+    "auto_qc_is_not_usable": true
+  },
+  "unet": "wan2.1_flf2v_720p_14B_fp16.safetensors",
+  "comfy_launch": [
+    "--force-upcast-attention"
+  ],
+  "banned_launch": [
+    "--use-sage-attention"
+  ],
+  "locked": {
+    "unet": "wan2.1_flf2v_720p_14B_fp16.safetensors",
+    "width": 720,
+    "height": 1280,
+    "length": 49,
+    "hero_length": 65,
+    "batch_size": 1,
+    "steps": 20,
+    "cfg": 6,
+    "shift": 8,
+    "sampler_name": "uni_pc",
+    "scheduler": "simple",
+    "clip_vision_crop": "none",
+    "fps": 16,
+    "precision": "fp16",
+    "sage_attention": "banned",
+    "force_upcast_attention": true,
+    "lightning_default": false,
+    "length_formula": "16*frames+1 (49 = 16*3+1; 65 = 16*4+1)"
+  },
+  "wan_first_last_frame_to_video": {
+    "node_id": 83,
+    "node_type": "WanFirstLastFrameToVideo",
+    "width": 720,
+    "height": 1280,
+    "length": 49,
+    "batch_size": 1
+  },
+  "ksampler": {
+    "node_id": 90,
+    "steps": 20,
+    "cfg": 6,
+    "sampler_name": "uni_pc",
+    "scheduler": "simple",
+    "denoise": 1
+  },
+  "model_sampling_sd3_shift": {
+    "node_id": 79,
+    "shift": 8
+  },
+  "slots": {
+    "first_image": {
+      "node_id": 52,
+      "node_type": "LoadImage",
+      "title": "Start_image",
+      "widget_index": 0,
+      "comfy_input_relative_default": "shots_PLACEHOLDER_climax_start.png",
+      "role": "Accepted same-identity looklock frame at the start of the key action; must pass H1 before FLF2V.",
+      "path_pattern": "$OUTPUT_ROOT/flf2v/<shot_id>/first.png"
+    },
+    "last_image": {
+      "node_id": 72,
+      "node_type": "LoadImage",
+      "title": "End_image",
+      "widget_index": 0,
+      "comfy_input_relative_default": "shots_PLACEHOLDER_climax_end.png",
+      "role": "Accepted same-identity looklock frame at the action payoff; identity must match first_image.",
+      "path_pattern": "$OUTPUT_ROOT/flf2v/<shot_id>/last.png"
+    },
+    "positive_action": {
+      "node_id": 6,
+      "node_type": "CLIPTextEncode",
+      "title": "CLIP Text Encode (Positive Prompt)",
+      "widget_index": 0,
+      "source_doc": "prompts/v0_2_shot_prompts.md",
+      "rules": "action starts at frame 0; strong verbs only; ban gentle/slightly/small/soft/subtle/barely; include identity lock and single-character constraints"
+    },
+    "negative": {
+      "node_id": 7,
+      "node_type": "CLIPTextEncode",
+      "title": "CLIP Text Encode (Negative Prompt)",
+      "widget_index": 0,
+      "source_doc": "prompts/v0_2_shot_prompts.md#shared-negative-v0-2",
+      "must_include": [
+        "static",
+        "still",
+        "frozen",
+        "motionless",
+        "no motion",
+        "barely moving",
+        "morph",
+        "extra limbs",
+        "静态",
+        "静止",
+        "静止不动的画面"
+      ]
+    },
+    "seed": {
+      "node_id": 90,
+      "node_type": "KSampler",
+      "widget_index": 0,
+      "control_widget_index": 1,
+      "recommended_control": "fixed",
+      "max_per_shot": 2
+    }
+  },
+  "negative": "色调艳丽，过曝，静态，静止，静止不动的画面，画面停滞，细节模糊不清，字幕，风格，作品，画作，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，杂乱的背景，三条腿，背景人很多，倒着走, static, still, still picture, frozen, motionless, no motion, barely moving, idle breathing only, slow motion, morph, face morph, body morph, extra limbs, extra arms, extra legs, extra characters, duplicate character, text, watermark, weapon, rifle, gun, four-legged, realistic cat body, melting paws, quadruped, on all fours, feral cat body, snout-dominant, animal face only, pure animal, face swap, different cat, identity drift, NSFW, undress, nude, muzzle-only cat face",
+  "shots": {
+    "S04": {
+      "shot_id": "S04_door_drop",
+      "t": "3.50–4.80",
+      "beat": "门落重音 / 主卡点① 3.75s",
+      "first_frame": {
+        "source": "outputs/v0.2-b0-01-2026-10-26/looklock/accepted/boat_ramp.png",
+        "content": "Same-identity cat soldier inside LCVP, right paw gripping the closed steel ramp handle, door not yet down",
+        "path": "outputs/v0.2-b0-01-2026-10-26/flf2v/S04_door_drop/first.png"
+      },
+      "last_frame": {
+        "source": "outputs/v0.2-b0-01-2026-10-26/looklock/accepted/boat_ramp.png",
+        "content": "Same identity stepping forward as the steel ramp slams into the surf, cold spray across frame",
+        "path": "outputs/v0.2-b0-01-2026-10-26/flf2v/S04_door_drop/last.png"
+      },
+      "positive": "Exactly one anthropomorphic orange-white cat soldier in US WWII Normandy gear. At frame 0 she grips the LCVP ramp handle and shoves the steel ramp down hard; the ramp slams into the surf, cold water sprays across the frame, she steps forward into the water. Fixed low-angle camera, medium shot. Same face, fur pattern, helmet and red neckerchief as the first frame. Only one character, no extra soldiers, no text, no extra limbs.",
+      "length": 49,
+      "hero_length_optional": 65,
+      "max_seeds": 2,
+      "acceptance": "一眼门落；动作完成帧踩 3.75s；首末帧同一身份；水花可见；无多肢/换脸"
+    },
+    "S10": {
+      "shot_id": "S10_flag_plant",
+      "t": "10.78–12.20",
+      "beat": "插旗剪影 / 主卡点③ 10.78s",
+      "first_frame": {
+        "source": "outputs/v0.2-b0-01-2026-10-26/looklock/accepted/battle.png",
+        "content": "Same-identity cat soldier on the beach with flagstaff, flag still low, smoke and backlight behind",
+        "path": "outputs/v0.2-b0-01-2026-10-26/flf2v/S10_flag/first.png"
+      },
+      "last_frame": {
+        "source": "outputs/v0.2-b0-01-2026-10-26/looklock/accepted/battle.png",
+        "content": "Same identity driving the staff into the sand with the flag at the top, clean silhouette, backlit dust",
+        "path": "outputs/v0.2-b0-01-2026-10-26/flf2v/S10_flag/last.png"
+      },
+      "positive": "Exactly one anthropomorphic orange-white cat soldier in US WWII Normandy gear. At frame 0 she drives the flagstaff into the sand with both paws and hauls the US flag to the top; the flag snaps open hard, dust and backlight flare behind her. Fixed low-angle wide-to-medium camera. Same face, fur pattern, helmet and red neckerchief as the first frame. Only one character, no extra soldiers, no text, no extra limbs.",
+      "length": 49,
+      "hero_length_optional": 65,
+      "max_seeds": 2,
+      "acceptance": "一眼插旗；旗升到顶；剪影不糊；首末帧同一身份；主体不裁手/旗；无多肢/换脸"
+    }
+  },
+  "gates": [
+    "scripts/noise_gate.py",
+    "scripts/subject_gate.py",
+    "scripts/motion_gate.py",
+    "scripts/clip_status.py"
+  ],
+  "status_model": {
+    "script": "scripts/clip_status.py",
+    "states": [
+      "RENDER_DONE",
+      "AUTO_QC_PASS",
+      "HUMAN_ACCEPTED"
+    ],
+    "usable_state": "HUMAN_ACCEPTED",
+    "human_fields": [
+      "human_subject",
+      "human_motion",
+      "human_edit"
+    ],
+    "doc": "workflow/06_v0_2_human_acceptance.md"
+  },
+  "calibration": {
+    "min_max_mad_default": 11.0,
+    "static_baseline_max_mad": 3.6,
+    "note": "AUTO_QC is an entry ticket only; H1/H2/H3 are required by human review"
+  },
+  "output": {
+    "root": "outputs/v0.2-b0-01-2026-10-26",
+    "archive_pattern": "$OUTPUT_ROOT/flf2v/<shot_id>/",
+    "files": [
+      "first.png",
+      "last.png",
+      "raw.mp4",
+      "gates.json",
+      "status.json"
+    ],
+    "accepted_copy": "$OUTPUT_ROOT/accepted/<shot_id>.mp4",
+    "binary_mp4_may_omit_from_git": true
+  },
+  "runtime_note": "t63u authorizes the local executor to render GPU work in parallel; this Phase 0 slots file does not boot AutoDL, download weights, or spend money.",
+  "forbid": {
+    "flf2v_for_other_shots": true,
+    "same_params_reseed": true,
+    "nsfw": true,
+    "release": true,
+    "merge_without_user_review": true
+  },
+  "docs": [
+    "reviews/MAJOR-LEAP-PLAN-v0.2-2026-10-26.md",
+    "prompts/v0_2_shot_prompts.md",
+    "workflow/05_v0_2_shot_manifest.md",
+    "workflow/06_v0_2_human_acceptance.md",
+    "workflow/TEMPLATES.md"
+  ]
+}
