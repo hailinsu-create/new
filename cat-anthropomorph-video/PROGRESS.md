@@ -484,3 +484,13 @@
 - **Notion**：https://app.notion.com/p/407b407a692a8190bc57f9d522db11b7
 - **边界**：禁 grok / NSFW / AutoDL 开机充值 release；大 mp4 不入库
 - **GitHub**：PR [#84](https://github.com/hailinsu-create/new/pull/84) 同分支 `cursor/cat-anthropomorph-comfy-pipeline-db82`
+
+
+## 2026-11-03 Asia/Shanghai · 释放双机（t99u）
+
+- **授权**：用户 **t99u**「管线存好，释放机器」；已在 AutoDL 网页释放双机（本岗只落文档，**不开机 / 不充值 / 不再 release**）
+- **账号**：炼丹师7717
+- **已释放**：母025 `9b4c40bda6-dad38bb9`；克隆003 `bb8c4f8e12-00c8bdac`（重庆A RTX 4090D，原先关机留盘）
+- **释放后**：实例列表 **0**；余额约 **¥28.53**；冻结 **¥0**
+- **管线**：GitHub PR [#84](https://github.com/hailinsu-create/new/pull/84) 分支 `cursor/cat-anthropomorph-comfy-pipeline-db82`（workflow/templates H3、RESULT-v0.4、Phase6 GATE/results）；本机 briefs 另有 `outputs/h3-phase6` 五镜与 RESULT-v0.4-ASSEMBLE
+- **记录**：[`RELEASE-DUAL-2026-11-03.md`](RELEASE-DUAL-2026-11-03.md)
