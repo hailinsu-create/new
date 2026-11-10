@@ -1,0 +1,672 @@
+{
+  "date": "2026-09-22",
+  "generatedAt": "2026-09-22T08:39:48+08:00",
+  "marketSummary": "9月22日盘前的核心冲突是“外部风险偏好回暖、内部换座位脆弱”。事实：隔夜纳指涨2.26%创收盘纪录、标普涨1.49%，10年期美债收益率回落至4.951%，油价大跌；但CME定价美联储10月再加息概率56.5%，更高更久仍是定价主线。国内9月LPR连续16个月不变，央行9月21日开展1650亿元逆回购全额满足需求，10年国债收益率1.675%低位；A股9月21日成交2.05万亿元、超4500只上涨，医药、通信设备偏强，但8月工商企业信用债净融资大幅收缩、取消发行环比增约88%，宽货币与紧信用并存。产业端存储涨价与光通信订单强劲，炭黑价格创新高却单吨亏损；豆粕外强内弱，用电量创新高但煤价上行。最可能错在把美股AI单日狂欢与元首会晤暖场当作趋势，以及把涨价当利润。",
+  "facts": [
+    {
+      "id": "F01",
+      "title": "9月21日美股全线走高：标普500涨1.49%至7764.70点，纳指涨2.26%至27122.09点创收盘纪录，道指涨0.71%至52048.83点；英特尔涨12%、AMD涨约10%市值首次突破1万亿美元、高通涨超9%",
+      "sourceName": "CNBC（美股直播）",
+      "sourceUrl": "https://www.cnbc.com/2026/09/20/stock-market-today-live-updates.html",
+      "publishedAt": "2026-09-21T16:26:00-04:00",
+      "reliability": 0.93,
+      "direction": 1,
+      "magnitude": 3,
+      "affects": [
+        "全部",
+        "sz159577",
+        "sh513310",
+        "sh515880",
+        "海外权益",
+        "A股科技"
+      ],
+      "rationale": "美股AI与半导体链风险偏好回升，对9月22日A股科技情绪和海外权益相关标的构成正向背景；传导限制在于上涨高度依赖AI叙事，若美债利率或油价反复，外溢效应会迅速衰减。",
+      "evidenceType": "market",
+      "independenceGroup": "us-equity-record-2026-09-21"
+    },
+    {
+      "id": "F02",
+      "title": "9月21日10年期美债收益率回落逾4个基点至4.951%，30年期回落至5.284%；国际油价同步大跌，WTI原油跌4.5%至95.78美元/桶、布伦特跌3.4%至100.34美元/桶",
+      "sourceName": "CNBC（美股直播）",
+      "sourceUrl": "https://www.cnbc.com/2026/09/20/stock-market-today-live-updates.html",
+      "publishedAt": "2026-09-21T16:26:00-04:00",
+      "reliability": 0.9,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "全部",
+        "sh511260",
+        "sh511030",
+        "sz159577",
+        "sh515880",
+        "sh513120",
+        "利率"
+      ],
+      "rationale": "美债收益率自5%附近回落，缓解全球长久期资产折现压力，对国内利率债和高估值成长偏正面，油价下跌同时压低通胀风险溢价；限制是单日回落不改变“更高更久”的中期路径。",
+      "evidenceType": "market",
+      "independenceGroup": "us-rates-oil-2026-09-21"
+    },
+    {
+      "id": "F03",
+      "title": "CME FedWatch显示市场对美联储10月会议再加息25个基点的概率为56.5%，高于一周前的约42.5%；美联储9月16日已加息25个基点至3.75%—4.00%，主席沃什称“通胀过高且持续太久”",
+      "sourceName": "Mitrade（编译Fxstreet）",
+      "sourceUrl": "https://www.mitrade.com/cn/insights/news/live-news/article-2-2101278-20260921",
+      "publishedAt": "2026-09-21T10:00:00+08:00",
+      "reliability": 0.9,
+      "direction": -1,
+      "magnitude": 3,
+      "affects": [
+        "全部",
+        "sz159577",
+        "sh513310",
+        "sh513120",
+        "sh515880",
+        "sh511260",
+        "sh511030"
+      ],
+      "rationale": "更高更久的加息路径抬高全球无风险利率，压制美股、港股与A股高估值科技板块，并通过汇率与利差渠道间接约束国内债市；限制是概率为市场定价而非政策承诺，且已被部分消化。",
+      "evidenceType": "event",
+      "independenceGroup": "fed-oct-hike-odds-2026-09"
+    },
+    {
+      "id": "F04",
+      "title": "9月21日A股三大指数集体收涨：上证指数涨0.97%、深证成指涨0.65%、创业板指涨0.80%；全市成交额2.05万亿元、超4500只个股上涨；医药板块走强、房地产午后爆发，生物科技、石化、油气、煤炭、通信设备上涨，半导体设备下挫、贵金属领跌",
+      "sourceName": "中国新闻网（中新经纬）",
+      "sourceUrl": "https://www.chinanews.com.cn/cj/2026/09-21/10700781.shtml",
+      "publishedAt": "2026-09-21T16:01:36+08:00",
+      "reliability": 0.93,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "全部",
+        "A股权益",
+        "sh515880",
+        "A股科技",
+        "sz300760",
+        "sz002068"
+      ],
+      "rationale": "普涨与2万亿成交显示风险偏好仍在，医药、通信设备与石化走强直接支持医疗器械、通信和化工材料相关标的；限制是半导体设备走弱与“换座位”特征说明增量资金有限，广度可能快速收窄。",
+      "evidenceType": "market",
+      "independenceGroup": "ashare-close-2026-09-21"
+    },
+    {
+      "id": "F05",
+      "title": "9月21日港股三大指数集体走强：恒生指数涨1.18%、恒生科技指数涨0.40%、恒生中国企业指数涨1.39%，恒生生物科技指数涨超5%；全日成交2027亿港元，南向资金净流入40.74亿港元",
+      "sourceName": "新时空",
+      "sourceUrl": "https://www.newtimespace.com/zh-cn/finance/1448601.html",
+      "publishedAt": "2026-09-21T16:30:00+08:00",
+      "reliability": 0.86,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sh513120",
+        "港股权益"
+      ],
+      "rationale": "港股的生物科技指数大涨、南向持续净流入，为港股创新药相关标的提供直接的正向动能；限制是全日成交额较前一交易日减少，涨势集中在单一板块，轮动持续性存疑。",
+      "evidenceType": "market",
+      "independenceGroup": "hk-close-2026-09-21"
+    },
+    {
+      "id": "F06",
+      "title": "翰森制药与宜联生物两款B7-H3 ADC在二线小细胞肺癌Ⅲ期研究中取得突破性结果，共同登上世界肺癌大会最高舞台；AI制药与国产ADC临床突破形成共振",
+      "sourceName": "金融界",
+      "sourceUrl": "https://fund.jrj.com.cn/2026/09/21134558498028.shtml",
+      "publishedAt": "2026-09-21T13:45:00+08:00",
+      "reliability": 0.82,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sh513120",
+        "港股权益"
+      ],
+      "rationale": "国产ADC关键临床数据在国际会议读出，强化港股创新药板块的产业逻辑与情绪；限制是临床数据距离商业化和收入确认仍远，股价对会议催化往往短促。",
+      "evidenceType": "event",
+      "independenceGroup": "adc-wclc-2026-09"
+    },
+    {
+      "id": "F07",
+      "title": "国家药监局披露2026年上半年我国创新药对外授权交易共81笔、交易总额超过1000亿美元，行业称“1100亿美元出海潮”，行情开始检验真实业绩",
+      "sourceName": "央广网",
+      "sourceUrl": "https://www.cnr.cn/jingji/ycbd/20260814/t20260814_527762570.shtml",
+      "publishedAt": "2026-08-14T09:00:00+08:00",
+      "reliability": 0.85,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sh513120",
+        "港股权益"
+      ],
+      "rationale": "创新药出海授权规模创历史高位，为板块提供结构性基本面支撑和估值锚；限制是交易总额含里程碑款，首付款与收入确认节奏不均衡，且板块已部分定价。",
+      "evidenceType": "structural",
+      "independenceGroup": "innovative-drug-bd-2026h1"
+    },
+    {
+      "id": "F08",
+      "title": "中美经贸团队当地时间9月20日上午在纽约开始举行经贸磋商，中方牵头人何立峰与美方牵头人贝森特、格里尔围绕落实历次磋商共识、促进双边贸易投资等议题交换意见",
+      "sourceName": "光明网（新华社）",
+      "sourceUrl": "https://world.gmw.cn/2026-09/20/content_39011018.htm",
+      "publishedAt": "2026-09-20T11:00:00+08:00",
+      "reliability": 0.92,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "全部",
+        "sh515880",
+        "sh513310",
+        "sz159985",
+        "A股权益"
+      ],
+      "rationale": "磋商为本周元首会晤铺路，提升风险偏好，并对科技、半导体与农产品贸易预期形成边际正向；限制是磋商本身不等于协议，暖场利好容易被一次性兑现。",
+      "evidenceType": "event",
+      "independenceGroup": "china-us-trade-talks-2026-09-20"
+    },
+    {
+      "id": "F09",
+      "title": "CSIS发布吹风会预告称，中美元首会晤预计于2026年9月24日在白宫举行，议题覆盖贸易、投资、AI、伊朗局势与台湾等",
+      "sourceName": "美国战略与国际研究中心（CSIS）",
+      "sourceUrl": "https://www.csis.org/events/press-previewing-trump-xi-summit",
+      "publishedAt": "2026-09-17T10:00:00-04:00",
+      "reliability": 0.85,
+      "direction": 1,
+      "magnitude": 1,
+      "affects": [
+        "全部",
+        "sh515880",
+        "sh513120",
+        "sh513310"
+      ],
+      "rationale": "会晤确认本周落地，为A股科技、港股与半导体主题提供情绪支撑；限制是议程广泛而成果不可预期，若会晤无实质共识，前期抢跑资金可能反向。",
+      "evidenceType": "structural",
+      "independenceGroup": "trump-xi-summit-2026-09-24"
+    },
+    {
+      "id": "F10",
+      "title": "央行9月21日以固定利率、数量招标方式开展1650亿元7天期逆回购操作，全额满足一级交易商需求",
+      "sourceName": "中国新闻网",
+      "sourceUrl": "https://www.chinanews.com.cn/cj/2026/09-21/10700546.shtml",
+      "publishedAt": "2026-09-21T10:16:40+08:00",
+      "reliability": 0.92,
+      "direction": 1,
+      "magnitude": 1,
+      "affects": [
+        "sh511260",
+        "sh511030",
+        "利率",
+        "全部"
+      ],
+      "rationale": "公开市场继续足额投放，显示央行维护流动性合理充裕的态度，对利率债和信用债估值形成温和支撑；限制是单日投放量属常规操作，不构成方向性宽松信号。",
+      "evidenceType": "event",
+      "independenceGroup": "pboc-omo-2026-09-21"
+    },
+    {
+      "id": "F11",
+      "title": "央行公布2026年9月20日LPR：1年期为3.0%、5年期以上为3.5%，均维持不变，LPR已连续16个月“按兵不动”",
+      "sourceName": "央视网",
+      "sourceUrl": "https://jingji.cctv.com/2026/09/20/ARTIF8PP8kwZd58Rr2yCO0VT260920.shtml",
+      "publishedAt": "2026-09-20T09:30:00+08:00",
+      "reliability": 0.95,
+      "direction": 0,
+      "magnitude": 2,
+      "affects": [
+        "sh511260",
+        "sh511030",
+        "利率",
+        "全部"
+      ],
+      "rationale": "政策利率不动意味着债券定价基础稳定、票息逻辑延续，对利率债与信用债构成中性偏稳的利率环境；限制是LPR长期持平也压缩了进一步宽松的想象空间。",
+      "evidenceType": "event",
+      "independenceGroup": "lpr-2026-09-20"
+    },
+    {
+      "id": "F12",
+      "title": "受买断式逆回购等量续做、7天期逆回购多为地量或零操作影响，9月以来货币市场隔夜资金利率DR001均值较上月小幅上行，1年期AAA级同业存单到期收益率也略有走高；商业银行二季度净息差1.41%仍处历史低位",
+      "sourceName": "经济参考报（中国经济网）",
+      "sourceUrl": "http://finance.ce.cn/bank12/scroll/202609/t20260921_3226246.shtml",
+      "publishedAt": "2026-09-21T07:10:00+08:00",
+      "reliability": 0.85,
+      "direction": -1,
+      "magnitude": 1,
+      "affects": [
+        "sh511260",
+        "sh511030",
+        "利率"
+      ],
+      "rationale": "银行批发性融资成本小幅上行，对债券短端与信用债利差形成轻微负面压力；限制是上行幅度有限、资金面整体仍属平稳，不构成趋势性收紧。",
+      "evidenceType": "event",
+      "independenceGroup": "funding-cost-sept-2026"
+    },
+    {
+      "id": "F13",
+      "title": "中国10年期国债收益率9月21日报1.675%，较前一交易日下行约2.62%，处于历史低位区间",
+      "sourceName": "聚金数据",
+      "sourceUrl": "https://www.jujindata.com/bond/detail/cn10y",
+      "publishedAt": "2026-09-21T18:00:00+08:00",
+      "reliability": 0.8,
+      "direction": 1,
+      "magnitude": 1,
+      "affects": [
+        "sh511260",
+        "sh511030",
+        "利率"
+      ],
+      "rationale": "长端收益率维持低位并小幅下行，直接利好十年期国债与利率债相关标的净值表现；限制是该数据为第三方整理、且收益率已处历史低位，进一步下行空间受政策观察期约束。",
+      "evidenceType": "market",
+      "independenceGroup": "cgb-10y-2026-09-21"
+    },
+    {
+      "id": "F14",
+      "title": "标普信评8月债市洞察：受城投融资监管收紧与偿债高峰影响，8月工商企业类信用债净融资大幅收缩、近半数省份呈净流出；8月债券市场取消发行规模环比增加约88%",
+      "sourceName": "标普信评（网易财经转载）",
+      "sourceUrl": "https://www.163.com/dy/article/L6G79J7T05568W0A.html",
+      "publishedAt": "2026-09-10T19:58:03+08:00",
+      "reliability": 0.85,
+      "direction": -1,
+      "magnitude": 2,
+      "affects": [
+        "sh511030",
+        "信用债",
+        "公司债",
+        "利率"
+      ],
+      "rationale": "信用债净融资收缩意味着供给与再融资压力上升，取消发行增多反映发行主体与资金方分歧加大，对公司债类资产偏负面；限制是利率债不受直接冲击，且9月数据尚待验证。",
+      "evidenceType": "structural",
+      "independenceGroup": "credit-bond-netfin-aug2026"
+    },
+    {
+      "id": "F15",
+      "title": "标普信评观察：2025年太阳能和风电分别贡献约52%和39%的新增发电量、火电增量为负；弃风弃光率回升暴露系统调节能力滞后，储能有效调用能力仍不足",
+      "sourceName": "标普信评（网易财经转载）",
+      "sourceUrl": "https://www.163.com/dy/article/L6G79J7T05568W0A.html",
+      "publishedAt": "2026-09-10T19:58:03+08:00",
+      "reliability": 0.8,
+      "direction": 0,
+      "magnitude": 1,
+      "affects": [
+        "sh516370"
+      ],
+      "rationale": "电源结构转型对电力公用事业估值是长期变量，新能源主导新增供给利好绿电运营商但压制火电利用小时；限制是传导缓慢，不影响当日价格方向，仅作为结构背景。",
+      "evidenceType": "structural",
+      "independenceGroup": "power-mix-transition-2026"
+    },
+    {
+      "id": "F16",
+      "title": "9月21日亚洲时段美元指数交投于100.30附近、连续两日下跌后反弹；市场押注美联储10月加息概率56.5%，美元维持强势",
+      "sourceName": "Mitrade（编译Fxstreet）",
+      "sourceUrl": "https://www.mitrade.com/cn/insights/news/live-news/article-4-2101330-20260921",
+      "publishedAt": "2026-09-21T10:00:00+08:00",
+      "reliability": 0.82,
+      "direction": -1,
+      "magnitude": 1,
+      "affects": [
+        "全部",
+        "sh513120",
+        "sz159985",
+        "sh513310"
+      ],
+      "rationale": "美元坚挺压制港股流动性与以美元计价的大宗商品，对港股权益、豆粕等农产品和半导体进口链偏负面；限制是美元仍处区间波动、单日幅度有限。",
+      "evidenceType": "event",
+      "independenceGroup": "dxy-2026-09-21"
+    },
+    {
+      "id": "F17",
+      "title": "长鑫科技宣布第五代DRAM技术平台量产，该平台在关键工艺维度实现多项技术突破",
+      "sourceName": "新华财经早报",
+      "sourceUrl": "https://www.cnfin.com/gs-lb/detail/20260921/4472613_1.html",
+      "publishedAt": "2026-09-21T08:00:00+08:00",
+      "reliability": 0.85,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sh513310",
+        "A股科技"
+      ],
+      "rationale": "国产DRAM代际突破强化存储与半导体产业链的国产替代叙事，对中韩半导体主题形成情绪催化；限制是量产爬坡与盈利兑现仍需时间，且可能加剧与韩系厂商的竞争定价。",
+      "evidenceType": "event",
+      "independenceGroup": "cxmt-dram-2026-09-21"
+    },
+    {
+      "id": "F18",
+      "title": "行业数据：2026年二季度全球NAND闪存市场营收环比增长70%、合约价环比上涨55%；渠道研判年末前移动DRAM（LPDDR4）价格最高再涨50%，主流NAND涨30%—40%；三星二季度NAND市占率28%、SK海力士19%",
+      "sourceName": "中国IC交易网",
+      "sourceUrl": "http://www.dram.com.cn/page/views.asp?id=86559&menuid=34",
+      "publishedAt": "2026-09-04T10:00:00+08:00",
+      "reliability": 0.8,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sh513310",
+        "A股科技"
+      ],
+      "rationale": "存储量价齐升直接改善韩系与国内存储链盈利预期，支持中韩半导体主题；限制是价格数据来自渠道与二手统计，且AI需求集中企业级、消费级分化明显。",
+      "evidenceType": "structural",
+      "independenceGroup": "memory-price-supercycle-2026q3"
+    },
+    {
+      "id": "F19",
+      "title": "摩根士丹利预计2026年三季度DDR4等成熟DRAM价格将上涨50%、四季度再涨10%，但明确预警存储合约价大概率在2026年四季度见顶回落；TrendForce指三季度传统DRAM与NAND涨价幅度已明显收窄",
+      "sourceName": "东方财富网（广州日报）",
+      "sourceUrl": "https://finance.eastmoney.com/a/202608203847801744.html",
+      "publishedAt": "2026-08-20T16:40:00+08:00",
+      "reliability": 0.8,
+      "direction": -1,
+      "magnitude": 2,
+      "affects": [
+        "sh513310",
+        "A股科技",
+        "sh515880"
+      ],
+      "rationale": "周期见顶预警与涨价动能收窄，构成存储与A股科技情绪的反方证据，高位品种存在“利好兑现”压力；限制是缺口仍在、2027年供需偏紧预期尚未证伪。",
+      "evidenceType": "structural",
+      "independenceGroup": "memory-cycle-peak-warning-2026"
+    },
+    {
+      "id": "F20",
+      "title": "工信部印发《信息通信行业发展“十五五”规划》：到2030年信息通信行业收入达4.1万亿元、信息基础设施累计投资3.8万亿元、智能算力规模达9800EFLOPS、每万人5G基站50个、5G用户普及率95%，并适时启动6G商用",
+      "sourceName": "新华社（新华网）",
+      "sourceUrl": "https://www.news.cn/fortune/20260907/def9a4d503584f3698586a89db9755a1/c.html",
+      "publishedAt": "2026-09-07T15:33:04+08:00",
+      "reliability": 0.93,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sh515880",
+        "通信",
+        "AI算力",
+        "A股科技"
+      ],
+      "rationale": "五年规划明确算力与通信基础设施投资规模，为通信设备、光通信与AI算力链提供中期需求锚；限制是规划为方向性文件，订单与收入兑现节奏取决于运营商与云厂商资本开支。",
+      "evidenceType": "structural",
+      "independenceGroup": "miit-ict-plan-2030"
+    },
+    {
+      "id": "F21",
+      "title": "Choice数据：截至9月1日，A股CPO板块82家上市公司半年报全部披露，其中52家归母净利润同比增长；中际旭创上半年营收417.78亿元、净利136.51亿元（同比+241.7%），新易盛净利75.29亿元（同比+90.98%），800G、1.6T高速光模块放量为主因",
+      "sourceName": "证券日报（证券时报转载）",
+      "sourceUrl": "https://www.stcn.com/article/detail/4168456.html",
+      "publishedAt": "2026-09-02T08:18:00+08:00",
+      "reliability": 0.88,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sh515880",
+        "通信",
+        "光通信",
+        "A股科技",
+        "AI算力"
+      ],
+      "rationale": "光模块产业链半年报大面积高增，验证AI算力需求向业绩的有效传导，对通信主题构成扎实的基本面支持；限制是业绩已被市场较充分预期，边际增量要看三季度订单与交付。",
+      "evidenceType": "structural",
+      "independenceGroup": "cpo-h1-results-2026"
+    },
+    {
+      "id": "F22",
+      "title": "花旗预计2026年全球1.6T光模块出货量将达2200万只；工信部《高速光模块产业发展白皮书》测算2026年全球1.6T光模块市场规模达45亿美元；龙头厂商在手订单已覆盖2026年全年并洽谈2027年订单",
+      "sourceName": "21财经（中国证券报）",
+      "sourceUrl": "https://m.21jingji.com/article/20260828/herald/2863d176452f0f32a5506ca9f8f247c8.html",
+      "publishedAt": "2026-08-28T11:00:00+08:00",
+      "reliability": 0.82,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sh515880",
+        "光通信",
+        "AI算力",
+        "通信"
+      ],
+      "rationale": "高速产品订单能见度延伸至2027年，降低通信板块下半年业绩的不确定性；限制是第三方预测存在高估风险，且产能扩张最终可能改变供需格局。",
+      "evidenceType": "structural",
+      "independenceGroup": "optical-1.6t-demand-2026"
+    },
+    {
+      "id": "F23",
+      "title": "据生意社监测，截至9月17日炭黑基准价报12778.57元/吨，较9月初上涨39.77%，创历史新高；丙烯、聚丙烯粉料等化工品价格亦创阶段新高",
+      "sourceName": "证券日报（中国经济网）",
+      "sourceUrl": "http://www.ce.cn/xwzx/gnsz/gdxw/202609/t20260919_3222622.shtml",
+      "publishedAt": "2026-09-19T07:32:00+08:00",
+      "reliability": 0.85,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sz002068",
+        "炭黑",
+        "化工",
+        "新材料"
+      ],
+      "rationale": "炭黑价格创历史新高直接改善行业报价与库存重估预期，对炭黑及化工材料相关标的偏正面；限制是涨价源于原料成本推动，价格高位下的成交与回款质量需观察。",
+      "evidenceType": "structural",
+      "independenceGroup": "carbon-black-price-spike-2026-09"
+    },
+    {
+      "id": "F24",
+      "title": "卓创资讯分析师称原料大幅上涨将炭黑价格推至历史新高，但成本传导不畅令行业单吨亏损创历史新高、主流大厂集中减产；下游轮胎企业对高价原料普遍抵触，“金九”旺季成色不足，多维持刚需采购",
+      "sourceName": "证券日报（中国经济网）",
+      "sourceUrl": "http://www.ce.cn/xwzx/gnsz/gdxw/202609/t20260919_3222622.shtml",
+      "publishedAt": "2026-09-19T07:32:00+08:00",
+      "reliability": 0.85,
+      "direction": -1,
+      "magnitude": 2,
+      "affects": [
+        "sz002068",
+        "炭黑",
+        "化工",
+        "新材料"
+      ],
+      "rationale": "涨价并未带来利润，行业亏损与需求抵触直接削弱炭黑板块的盈利弹性，构成反方证据；限制是大厂减产的供给收缩也可能在未来支撑价格，形成对冲。",
+      "evidenceType": "structural",
+      "independenceGroup": "carbon-black-demand-margin-2026-09"
+    },
+    {
+      "id": "F25",
+      "title": "隆众资讯数据：截至8月27日，山东地区炭黑工厂N330理论利润约-23元/吨（较上一周期-141元/吨有所回升），原料煤焦油新单价格继续上涨、成本压力增大，炭黑市场处于亏损状态",
+      "sourceName": "我的钢铁网（Mysteel）",
+      "sourceUrl": "https://www.mysteel.com/hot/1599222.html",
+      "publishedAt": "2026-08-31T17:00:00+08:00",
+      "reliability": 0.78,
+      "direction": -1,
+      "magnitude": 2,
+      "affects": [
+        "sz002068",
+        "炭黑",
+        "化工"
+      ],
+      "rationale": "独立价格监测机构确认行业理论利润为负，佐证成本挤压下盈利质量偏弱，对炭黑公司基本面构成负面事实；限制是数据口径为理论利润、样本区域有限。",
+      "evidenceType": "structural",
+      "independenceGroup": "carbon-black-profit-aug2026"
+    },
+    {
+      "id": "F26",
+      "title": "报道称2026年9月国内炭黑市场强势上涨、煤焦油价格翻倍、炭黑价格冲破1.2万元/吨；受前期持续亏损、年度检修与环保管控影响，行业开工率仅约65%，供给收缩放大涨价",
+      "sourceName": "新浪财经",
+      "sourceUrl": "https://finance.sina.com.cn/roll/2026-09-11/doc-inirmvzz2082165.shtml",
+      "publishedAt": "2026-09-11T10:00:00+08:00",
+      "reliability": 0.75,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sz002068",
+        "炭黑",
+        "化工",
+        "新材料"
+      ],
+      "rationale": "低开工率与供给收缩强化炭黑涨价的持续性预期，并曾在9月上旬引发相关标的涨停，市场情绪偏多；限制是媒体转述为主、开工率数据未经行业协会确认。",
+      "evidenceType": "structural",
+      "independenceGroup": "carbon-black-stock-rally-2026-09"
+    },
+    {
+      "id": "F27",
+      "title": "国家能源局：2026年8月全社会用电量达10332亿千瓦时、同比增长1.7%，用电负荷15.6亿千瓦创历史新高；高技术及装备制造业用电量1222亿千瓦时、同比增长7.2%，充换电服务业与互联网数据服务用电量分别增长51.2%和37.9%，城乡居民生活用电量同比下降4.0%",
+      "sourceName": "人民网（国家能源局）",
+      "sourceUrl": "http://finance.people.com.cn/n1/2026/0920/c1004-40802230.html",
+      "publishedAt": "2026-09-20T19:11:00+08:00",
+      "reliability": 0.92,
+      "direction": 1,
+      "magnitude": 1,
+      "affects": [
+        "sh516370",
+        "全部"
+      ],
+      "rationale": "用电量与负荷创新高、数据中心与充换电用电高增，为电力公用事业需求端提供官方数据支撑；限制是增速仅1.7%、居民用电下降，需求总量扩张偏温和。",
+      "evidenceType": "event",
+      "independenceGroup": "nea-power-aug2026"
+    },
+    {
+      "id": "F28",
+      "title": "生意社监测显示，动力煤基准价自9月1日875.50元/吨上行至9月7日932.75元/吨（约一周上涨6.5%），9月上旬动力煤CCI、CCTD指数全线上涨",
+      "sourceName": "生意社（能源频道）",
+      "sourceUrl": "https://energy.100ppi.com/news/list--816-1.html",
+      "publishedAt": "2026-09-07T08:30:00+08:00",
+      "reliability": 0.75,
+      "direction": -1,
+      "magnitude": 2,
+      "affects": [
+        "sh516370"
+      ],
+      "rationale": "燃料成本上行直接挤压火电盈利，对以火电权重为主的电力公用事业构成负面证据；限制是煤价上涨对绿电运营商影响较小，且长协比例会平滑部分冲击。",
+      "evidenceType": "structural",
+      "independenceGroup": "coal-price-sept2026"
+    },
+    {
+      "id": "F29",
+      "title": "9月21日生意社豆粕基准价为3398.00元/吨",
+      "sourceName": "新浪财经（生意社）",
+      "sourceUrl": "https://finance.sina.com.cn/money/future/agri/2026-09-21/doc-inispuec0929362.shtml",
+      "publishedAt": "2026-09-21T09:00:00+08:00",
+      "reliability": 0.8,
+      "direction": 0,
+      "magnitude": 1,
+      "affects": [
+        "sz159985",
+        "豆粕",
+        "农产品",
+        "大宗商品"
+      ],
+      "rationale": "现货基准价给出豆粕当日定价锚，反映内贸现货仍受进口到港与压榨供应压制；限制是基准价为现货观测值，与期货及ETF净值波动并不同步。",
+      "evidenceType": "market",
+      "independenceGroup": "soymeal-basis-2026-09-21"
+    },
+    {
+      "id": "F30",
+      "title": "9月21日生意社农产品期货主约榜：豆粕跌1.11%、菜籽粕跌1.76%、生猪跌1.17%；花生涨0.91%、菜籽油涨0.72%",
+      "sourceName": "生意社（大宗榜）",
+      "sourceUrl": "https://top.100ppi.com/ncp/fdetail-day---11.html",
+      "publishedAt": "2026-09-21T17:00:00+08:00",
+      "reliability": 0.8,
+      "direction": -1,
+      "magnitude": 1,
+      "affects": [
+        "sz159985",
+        "豆粕",
+        "农产品",
+        "大宗商品"
+      ],
+      "rationale": "国内粕类期货领跌农产品，直接影响豆粕ETF的跟踪标的表现，构成当日负向证据；限制是跌幅温和、油脂与花生走强显示板块内部分化。",
+      "evidenceType": "market",
+      "independenceGroup": "ag-futures-2026-09-21"
+    },
+    {
+      "id": "F31",
+      "title": "9月21日期市收评：豆一日内上涨0.69%，机构称关注美豆收割进度、豆粕盘面短期仍承压；9月大豆到港量仍较高，预计本周油厂大豆压榨量约240万吨",
+      "sourceName": "同花顺财经",
+      "sourceUrl": "https://goodsfu.10jqka.com.cn/20260921/c680120839.shtml",
+      "publishedAt": "2026-09-21T15:30:00+08:00",
+      "reliability": 0.78,
+      "direction": -1,
+      "magnitude": 1,
+      "affects": [
+        "sz159985",
+        "豆粕",
+        "农产品"
+      ],
+      "rationale": "高到港、高压榨意味着豆粕供应宽松，机构对盘面短期判断偏空，压制豆粕ETF；限制是收割进度与天气仍可能改变美豆成本端预期。",
+      "evidenceType": "market",
+      "independenceGroup": "soymeal-supply-2026-09-21"
+    },
+    {
+      "id": "F32",
+      "title": "USDA 9月WASDE报告：美豆产量上调1600万蒲式耳至45亿蒲式耳、出口上调2500万至16.9亿蒲式耳，期末库存降至3.10亿蒲式耳，农场均价上调60美分至12美元/蒲式耳；同时下调玉米产量2.13亿蒲式耳",
+      "sourceName": "RFD-TV",
+      "sourceUrl": "https://www.rfdtv.com/september-wasde-report-usda-corn-yield-estimates-in-focus-as-harvest-begins",
+      "publishedAt": "2026-09-11T11:35:00-05:00",
+      "reliability": 0.88,
+      "direction": 1,
+      "magnitude": 2,
+      "affects": [
+        "sz159985",
+        "豆粕",
+        "农产品",
+        "大宗商品"
+      ],
+      "rationale": "美豆出口上调、期末库存下降、农场价格上涨，抬高进口大豆成本端，对国内豆粕构成正向成本支撑；限制是产量同步上调且国内到港充足，外盘强势向内盘传导会打折。",
+      "evidenceType": "structural",
+      "independenceGroup": "wasde-2026-09-11"
+    },
+    {
+      "id": "F33",
+      "title": "医疗器械动态：国家药监局批准4个创新医疗器械产品注册（含经导管三尖瓣夹系统、心脏脉冲电场消融仪等），8款产品拟进入创新医疗器械特别审查程序；7月单月批准注册323个医疗器械产品",
+      "sourceName": "新浪财经（中国医药报）",
+      "sourceUrl": "https://finance.sina.com.cn/jjxw/2026-08-20/doc-ininxkrz8885638.shtml",
+      "publishedAt": "2026-08-20T08:09:00+08:00",
+      "reliability": 0.85,
+      "direction": 1,
+      "magnitude": 1,
+      "affects": [
+        "sz300760"
+      ],
+      "rationale": "创新器械审批通道持续放量，利好具备高值创新管线的国产器械龙头，对医疗器械板块构成结构性正向证据；限制是审批到放量之间存在招标与入院周期。",
+      "evidenceType": "structural",
+      "independenceGroup": "nmpa-innovative-devices-2026-08"
+    },
+    {
+      "id": "F34",
+      "title": "监管动态：国家组织高值医用耗材联合采购办公室取消日本豪雅人工合成骨、德国欧心药物涂层球囊的国家集采中选资格并列入违规名单；另有两家企业6款产品因质量管理体系严重缺陷被取消中选资格",
+      "sourceName": "新浪财经（中国医药报）",
+      "sourceUrl": "https://finance.sina.com.cn/jjxw/2026-08-20/doc-ininxkrz8885638.shtml",
+      "publishedAt": "2026-08-20T08:09:00+08:00",
+      "reliability": 0.82,
+      "direction": -1,
+      "magnitude": 1,
+      "affects": [
+        "sz300760"
+      ],
+      "rationale": "集采中选资格被取消与违规名单机制强化监管威慑，提示耗材企业合规与份额风险，对医疗器械板块构成结构性反方证据；限制是事件集中于个别外资和中小厂商，对龙头直接冲击有限。",
+      "evidenceType": "structural",
+      "independenceGroup": "nhsa-enforcement-2026-08"
+    },
+    {
+      "id": "F35",
+      "title": "A股发行安排统计：9月21日至24日有2只新股启动申购（含拟募资77.29亿元的半导体新股），本周43只个股限售股解禁、合计解禁市值151.28亿元，其中单只个股解禁比例最高达56.96%",
+      "sourceName": "山东财经网",
+      "sourceUrl": "https://www.sdenews.cn/html/2026/09/20/523671.shtml",
+      "publishedAt": "2026-09-20T10:52:00+08:00",
+      "reliability": 0.8,
+      "direction": 0,
+      "magnitude": 1,
+      "affects": [
+        "全部",
+        "A股权益",
+        "sh513310"
+      ],
+      "rationale": "新股申购与解禁对存量资金形成轻度分流，大型半导体新股发行对板块情绪与资金面同时产生作用；限制是151亿元解禁规模属常态水平，对市场整体冲击有限。",
+      "evidenceType": "event",
+      "independenceGroup": "ashare-ipo-unlock-2026-w39"
+    },
+    {
+      "id": "F36",
+      "title": "9月21日人民币对美元中间价报6.7487，较上一交易日上调34个基点",
+      "sourceName": "中国新闻网",
+      "sourceUrl": "https://www.chinanews.com.cn/cj/2026/09-21/10700543.shtml",
+      "publishedAt": "2026-09-21T09:20:00+08:00",
+      "reliability": 0.9,
+      "direction": 1,
+      "magnitude": 1,
+      "affects": [
+        "全部",
+        "A股权益",
+        "sh513120"
+      ],
+      "rationale": "人民币中间价小幅上调，有利于稳定外资风险偏好与港股资金面，对A股及港股权益构成温和正向；限制是中间价调幅有限，汇率仍受美元强势与中美利差约束。",
+      "evidenceType": "market",
+      "independenceGroup": "rmb-fixing-2026-09-21"
+    }
+  ]
+}
